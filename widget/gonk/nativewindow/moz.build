@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # Copyright 2013 Mozilla Foundation and Mozilla contributors
 #
@@ -17,62 +17,88 @@
 EXPORTS += [
     'GonkBufferQueue.h',
     'GonkNativeWindow.h',
-    'GonkNativeWindowClient.h',
 ]
 
-if CONFIG['ANDROID_VERSION'] == '19':
+if CONFIG['ANDROID_VERSION'] >= '19':
+    EXPORTS += [
+        'IGonkGraphicBufferConsumer.h',
+    ]
+
+if CONFIG['ANDROID_VERSION'] >= '21':
+    EXPORTS += [
+        'GonkBufferQueueLL/GonkBufferQueueDefs.h',
+        'GonkBufferQueueLL/GonkBufferQueueLL.h',
+        'GonkBufferQueueLL/GonkBufferQueueProducer.h',
+        'GonkBufferQueueLL/GonkBufferSlot.h',
+        'GonkConsumerBaseLL.h',
+        'GonkNativeWindowLL.h',
+        'IGonkGraphicBufferConsumerLL.h',
+    ]
+elif CONFIG['ANDROID_VERSION'] >= '19':
     EXPORTS += [
         'GonkBufferQueueKK.h',
         'GonkConsumerBaseKK.h',
-        'GonkNativeWindowClientKK.h',
         'GonkNativeWindowKK.h',
-        'IGonkGraphicBufferConsumer.h',
+        'IGonkGraphicBufferConsumerKK.h',
     ]
 elif CONFIG['ANDROID_VERSION'] in ('17', '18'):
     EXPORTS += [
         'GonkBufferQueueJB.h',
         'GonkConsumerBaseJB.h',
-        'GonkNativeWindowClientJB.h',
         'GonkNativeWindowJB.h',
     ]
-elif CONFIG['ANDROID_VERSION'] == '15':
-    EXPORTS += [
-        'GonkNativeWindowClientICS.h',
-        'GonkNativeWindowICS.h',
-    ]
 
-if CONFIG['MOZ_B2G_CAMERA'] or CONFIG['MOZ_OMX_DECODER'] or CONFIG['MOZ_WEBRTC']:
-    if CONFIG['ANDROID_VERSION'] == '19':
+if CONFIG['MOZ_WEBRTC']:
+    if CONFIG['ANDROID_VERSION'] >= '21':
+        SOURCES += [
+            'GonkBufferQueueLL/GonkBufferItem.cpp',
+            'GonkBufferQueueLL/GonkBufferQueueConsumer.cpp',
+            'GonkBufferQueueLL/GonkBufferQueueCore.cpp',
+            'GonkBufferQueueLL/GonkBufferQueueLL.cpp',
+            'GonkBufferQueueLL/GonkBufferQueueProducer.cpp',
+            'GonkBufferQueueLL/GonkBufferSlot.cpp',
+            'GonkConsumerBaseLL.cpp',
+            'GonkNativeWindowLL.cpp',
+            'IGonkGraphicBufferConsumerLL.cpp',
+        ]
+    elif CONFIG['ANDROID_VERSION'] >= '19':
         SOURCES += [
             'GonkBufferQueueKK.cpp',
             'GonkConsumerBaseKK.cpp',
-            'GonkNativeWindowClientKK.cpp',
             'GonkNativeWindowKK.cpp',
-            'IGonkGraphicBufferConsumer.cpp',
+            'IGonkGraphicBufferConsumerKK.cpp',
         ]
     elif CONFIG['ANDROID_VERSION'] in ('17', '18'):
         SOURCES += [
             'GonkBufferQueueJB.cpp',
             'GonkConsumerBaseJB.cpp',
-            'GonkNativeWindowClientJB.cpp',
             'GonkNativeWindowJB.cpp',
         ]
-    elif CONFIG['ANDROID_VERSION'] == '15':
-        SOURCES += [
-            'GonkNativeWindowClientICS.cpp',
-            'GonkNativeWindowICS.cpp',
-        ]
 
-if CONFIG['MOZ_B2G_CAMERA'] or CONFIG['MOZ_OMX_DECODER']:
-    if CONFIG['ANDROID_VERSION'] >= '18':
-        SOURCES += [
-            'FakeSurfaceComposer.cpp',
-        ]
-
-FAIL_ON_WARNINGS = True
+if CONFIG['ANDROID_VERSION'] >= '18':
+    SOURCES += [
+        'FakeSurfaceComposer.cpp',
+    ]
 
 include('/ipc/chromium/chromium-config.mozbuild')
+
+if CONFIG['ANDROID_VERSION'] >= '18':
+    LOCAL_INCLUDES += [
+        '%' + '%s/%s' % (CONFIG['ANDROID_SOURCE'], d) for d in [
+            'frameworks/native/opengl/include',
+        ]
+    ]
+
+DEFINES['HAVE_ANDROID_OS'] = True
+
+# Suppress some GCC warnings being treated as errors:
+#  - about attributes on forward declarations for types that are already
+#    defined, which complains about an important MOZ_EXPORT for android::AString
+if CONFIG['GNU_CC']:
+  CXXFLAGS += ['-Wno-error=attributes', '-Wno-overloaded-virtual']
 
 FINAL_LIBRARY = 'xul'
 
 DISABLE_STL_WRAPPING = True
+
+NO_VISIBILITY_FLAGS = True

@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
    vim:set ts=2 sw=2 sts=2 et:
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -129,12 +129,9 @@ function insertAndCheckMultipleParams(aVal)
  */
 function printValDesc(aVal)
 {
-  try
-  {
+  try {
     var toSource = aVal.toSource();
-  }
-  catch (exc)
-  {
+  } catch (ex) {
     toSource = "";
   }
   print("Testing value: toString=" + aVal +
@@ -146,7 +143,7 @@ function run_test()
   setup();
 
   // function JSValStorageStatementBinder in
-  // storage/src/mozStorageStatementParams.cpp tells us that the following types
+  // storage/mozStorageStatementParams.cpp tells us that the following types
   // and only the following types are valid as statement parameters:
   var vals = [
     1337,       // int
@@ -163,7 +160,7 @@ function run_test()
     print("Single parameter");
     insertAndCheckSingleParam(val);
     print("Multiple parameters");
-    insertAndCheckMultipleParams(val)
+    insertAndCheckMultipleParams(val);
   });
 
   cleanup();

@@ -4,22 +4,22 @@
 
 "use strict";
 
-const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
-
-Cu.import("resource://gre/modules/Services.jsm");
-
-let service = Cc["@mozilla.org/weave/service;1"]
-                .getService(Ci.nsISupports)
-                .wrappedJSObject;
-
-if (!service.allowPasswordsEngine) {
-  let checkbox = document.getElementById("fxa-pweng-chk");
-  checkbox.checked = false;
-  checkbox.disabled = true;
-}
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 addEventListener("dialogaccept", function () {
   let pane = document.getElementById("sync-customize-pane");
+  // First determine what the preference for the "global" sync enabled pref
+  // should be based on the engines selected.
+  let prefElts = pane.querySelectorAll("preferences > preference");
+  let syncEnabled = false;
+  for (let elt of prefElts) {
+    if (elt.name.startsWith("services.sync.") && elt.value) {
+      syncEnabled = true;
+      break;
+    }
+  }
+  Services.prefs.setBoolPref("services.sync.enabled", syncEnabled);
+  // and write the individual prefs.
   pane.writePreferences(true);
   window.arguments[0].accepted = true;
 });

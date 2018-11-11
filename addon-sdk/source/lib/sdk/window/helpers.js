@@ -3,14 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 'use strict';
 
-const { defer } = require('../core/promise');
+const { defer, all } = require('../core/promise');
 const events = require('../system/events');
 const { open: openWindow, onFocus, getToplevelWindow,
-        isInteractive, getOuterId } = require('./utils');
+        isInteractive, isStartupFinished, getOuterId } = require('./utils');
 const { Ci } = require("chrome");
 
 function open(uri, options) {
-  return promise(openWindow.apply(null, arguments), 'load');
+  return promise(openWindow.apply(null, arguments), 'load').then(focus);
 }
 exports.open = open;
 
@@ -48,6 +48,24 @@ function ready(window) {
   return result;
 }
 exports.ready = ready;
+
+function startup(window) {
+  let { promise: result, resolve } = defer();
+
+  if (isStartupFinished(window)) {
+    resolve(window);
+  } else {
+    events.on("browser-delayed-startup-finished", function listener({subject}) {
+      if (subject === window) {
+        events.off("browser-delayed-startup-finished", listener);
+        resolve(window);
+      }
+    });
+  }
+
+  return result;
+}
+exports.startup = startup;
 
 function promise(target, evt, capture) {
   let deferred = defer();

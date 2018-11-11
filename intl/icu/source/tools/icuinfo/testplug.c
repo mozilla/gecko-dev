@@ -1,7 +1,9 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 ******************************************************************************
 *
-*   Copyright (C) 2009-2010, International Business Machines
+*   Copyright (C) 2009-2015, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *
 ******************************************************************************
@@ -18,6 +20,10 @@
 */
 
 #include "unicode/icuplug.h"
+
+#if UCONFIG_ENABLE_PLUGINS
+/* This file isn't usually compiled except on Windows. Guard it. */
+
 #include <stdio.h> /* for fprintf */
 #include <stdlib.h> /* for malloc */
 #include "udbgutil.h"
@@ -202,3 +208,4 @@ UPlugTokenReturn U_EXPORT2 debugMemoryPlugin (
     return UPLUG_TOKEN;
 }
 
+#endif

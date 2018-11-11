@@ -4,14 +4,27 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * http://www.whatwg.org/specs/web-apps/current-work/#texttrackcue
+ * http://dev.w3.org/html5/webvtt/#the-vttcue-interface
  */
 
 enum AutoKeyword { "auto" };
 
+enum LineAlignSetting {
+  "start",
+  "center",
+  "end"
+};
+
+enum PositionAlignSetting {
+  "line-left",
+  "center",
+  "line-right",
+  "auto"
+};
+
 enum AlignSetting {
   "start",
-  "middle",
+  "center",
   "end",
   "left",
   "right"
@@ -23,35 +36,24 @@ enum DirectionSetting {
   "lr"
 };
 
-[Constructor(double startTime, double endTime, DOMString text),
- Pref="media.webvtt.enabled"]
-interface VTTCue : EventTarget {
-  readonly attribute TextTrack? track;
-
-  attribute DOMString id;
-  attribute double startTime;
-  attribute double endTime;
-  attribute boolean pauseOnExit;
+[Constructor(double startTime, double endTime, DOMString text)]
+interface VTTCue : TextTrackCue {
   [Pref="media.webvtt.regions.enabled"]
   attribute VTTRegion? region;
   attribute DirectionSetting vertical;
   attribute boolean snapToLines;
-  attribute (long or AutoKeyword) line;
+  attribute (double or AutoKeyword) line;
   [SetterThrows]
-  attribute AlignSetting lineAlign;
+  attribute LineAlignSetting lineAlign;
   [SetterThrows]
-  attribute long position;
+  attribute (double or AutoKeyword) position;
   [SetterThrows]
-  attribute AlignSetting positionAlign;
+  attribute PositionAlignSetting positionAlign;
   [SetterThrows]
-  attribute long size;
+  attribute double size;
   attribute AlignSetting align;
   attribute DOMString text;
   DocumentFragment getCueAsHTML();
-
-  attribute EventHandler onenter;
-
-  attribute EventHandler onexit;
 };
 
 // Mozilla extensions.
@@ -60,4 +62,10 @@ partial interface VTTCue {
   attribute HTMLDivElement? displayState;
   [ChromeOnly]
   readonly attribute boolean hasBeenReset;
+  [ChromeOnly]
+  readonly attribute double computedLine;
+  [ChromeOnly]
+  readonly attribute double computedPosition;
+  [ChromeOnly]
+  readonly attribute PositionAlignSetting computedPositionAlign;
 };

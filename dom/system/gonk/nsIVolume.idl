@@ -5,10 +5,12 @@
 #include "nsISupports.idl"
 #include "nsIVolumeStat.idl"
 
-[scriptable, uuid(13caa69c-8f1f-11e3-8e36-10bf48d707fb)]
+[scriptable, uuid(EE752CB8-8FD7-11E4-A602-70221D5D46B0)]
 interface nsIVolume : nsISupports
 {
   // These MUST match the states from android's system/vold/Volume.h header
+  // Note: Changes made to the STATE_xxx names should also be reflected in the
+  //       NS_VolumeStateStr function found in Volume.cpp
   const long STATE_INIT        = -1;
   const long STATE_NOMEDIA     = 0;
   const long STATE_IDLE        = 1;
@@ -19,6 +21,8 @@ interface nsIVolume : nsISupports
   const long STATE_FORMATTING  = 6;
   const long STATE_SHARED      = 7;
   const long STATE_SHAREDMNT   = 8;
+  const long STATE_CHECKMNT    = 100;
+  const long STATE_MOUNT_FAIL  = 101;
 
   // The name of the volume. Often there is only one volume, called sdcard.
   // But some phones support multiple volumes.
@@ -67,6 +71,8 @@ interface nsIVolume : nsISupports
   // once the volume has been formatted and mounted again.
   readonly attribute boolean isFormatting;
 
+  readonly attribute boolean isUnmounting;
+
   nsIVolumeStat getStats();
 
   // Formats the volume in IO thread, if the volume is ready to be formatted.
@@ -83,11 +89,19 @@ interface nsIVolume : nsISupports
 
   // Whether this is a fake volume.
   readonly attribute boolean isFake;
+
+  // Whether this is a removable volume
+  readonly attribute boolean isRemovable;
+
+  // Whether this is a hot-swappable volume
+  readonly attribute boolean isHotSwappable;
+
 };
 
 %{C++
 // For use with the ObserverService
 #define NS_VOLUME_STATE_CHANGED  "volume-state-changed"
+#define NS_VOLUME_REMOVED        "volume-removed"
 
 namespace mozilla {
 namespace system {

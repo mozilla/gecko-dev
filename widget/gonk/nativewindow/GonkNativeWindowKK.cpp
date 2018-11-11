@@ -23,19 +23,14 @@
 #include "GonkNativeWindowKK.h"
 #include "GrallocImages.h"
 
-#define BI_LOGV(...) __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__)
-#define BI_LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
-#define BI_LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define BI_LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
-#define BI_LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
-
 using namespace mozilla;
 using namespace mozilla::layers;
 
 namespace android {
 
 GonkNativeWindow::GonkNativeWindow(int bufferCount) :
-    GonkConsumerBase(new GonkBufferQueue(true), false)
+    GonkConsumerBase(new GonkBufferQueue(true), false),
+    mNewFrameCallback(nullptr)
 {
     mConsumer->setMaxAcquiredBufferCount(bufferCount);
 }
@@ -68,7 +63,7 @@ status_t GonkNativeWindow::acquireBuffer(BufferItem *item,
     err = acquireBufferLocked(item, presentWhen);
     if (err != OK) {
         if (err != NO_BUFFER_AVAILABLE) {
-            BI_LOGE("Error acquiring buffer: %s (%d)", strerror(err), err);
+            ALOGE("Error acquiring buffer: %s (%d)", strerror(err), err);
         }
         return err;
     }
@@ -76,7 +71,7 @@ status_t GonkNativeWindow::acquireBuffer(BufferItem *item,
     if (waitForFence) {
         err = item->mFence->waitForever("GonkNativeWindow::acquireBuffer");
         if (err != OK) {
-            BI_LOGE("Failed to wait for fence of acquired buffer: %s (%d)",
+            ALOGE("Failed to wait for fence of acquired buffer: %s (%d)",
                     strerror(-err), err);
             return err;
         }
@@ -97,7 +92,7 @@ status_t GonkNativeWindow::releaseBuffer(const BufferItem &item,
 
     err = releaseBufferLocked(item.mBuf, item.mGraphicBuffer);
     if (err != OK) {
-        BI_LOGE("Failed to release buffer: %s (%d)",
+        ALOGE("Failed to release buffer: %s (%d)",
                 strerror(-err), err);
     }
     return err;
@@ -113,7 +108,7 @@ status_t GonkNativeWindow::setDefaultBufferFormat(uint32_t defaultFormat) {
     return mConsumer->setDefaultBufferFormat(defaultFormat);
 }
 
-TemporaryRef<TextureClient>
+already_AddRefed<TextureClient>
 GonkNativeWindow::getCurrentBuffer() {
     Mutex::Autolock _l(mMutex);
     BufferItem item;
@@ -130,8 +125,8 @@ GonkNativeWindow::getCurrentBuffer() {
     if (!textureClient) {
         return NULL;
     }
-  textureClient->SetRecycleCallback(GonkNativeWindow::RecycleCallback, this);
-  return textureClient;
+    textureClient->SetRecycleCallback(GonkNativeWindow::RecycleCallback, this);
+    return textureClient.forget();
 }
 
 /* static */ void
@@ -139,32 +134,31 @@ GonkNativeWindow::RecycleCallback(TextureClient* client, void* closure) {
   GonkNativeWindow* nativeWindow =
     static_cast<GonkNativeWindow*>(closure);
 
+  MOZ_ASSERT(client && !client->IsDead());
   client->ClearRecycleCallback();
   nativeWindow->returnBuffer(client);
 }
 
 void GonkNativeWindow::returnBuffer(TextureClient* client) {
-    BI_LOGD("GonkNativeWindow::returnBuffer");
+    ALOGD("GonkNativeWindow::returnBuffer");
     Mutex::Autolock lock(mMutex);
 
     int index =  mConsumer->getSlotFromTextureClientLocked(client);
     if (index < 0) {
     }
 
-    sp<Fence> fence = client->GetReleaseFenceHandle().mFence;
-    if (!fence.get()) {
-      fence = Fence::NO_FENCE;
-    }
+    FenceHandle handle = client->GetAndResetReleaseFenceHandle();
+    RefPtr<FenceHandle::FdObj> fdObj = handle.GetAndResetFdObj();
+    sp<Fence> fence = new Fence(fdObj->GetAndResetFd());
 
-    status_t err;
-    err = addReleaseFenceLocked(index,
-                                mSlots[index].mGraphicBuffer,
-                                fence);
+    addReleaseFenceLocked(index,
+                          mSlots[index].mGraphicBuffer,
+                          fence);
 
-    err = releaseBufferLocked(index, mSlots[index].mGraphicBuffer);
+    releaseBufferLocked(index, mSlots[index].mGraphicBuffer);
 }
 
-TemporaryRef<TextureClient>
+already_AddRefed<TextureClient>
 GonkNativeWindow::getTextureClientFromBuffer(ANativeWindowBuffer* buffer) {
     Mutex::Autolock lock(mMutex);
     return mConsumer->getTextureClientFromBuffer(buffer);
@@ -172,7 +166,7 @@ GonkNativeWindow::getTextureClientFromBuffer(ANativeWindowBuffer* buffer) {
 
 void GonkNativeWindow::setNewFrameCallback(
         GonkNativeWindowNewFrameCallback* callback) {
-    BI_LOGD("setNewFrameCallback");
+    ALOGD("setNewFrameCallback");
     Mutex::Autolock lock(mMutex);
     mNewFrameCallback = callback;
 }

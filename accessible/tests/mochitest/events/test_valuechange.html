@@ -20,8 +20,6 @@
           src="../value.js"></script>
 
   <script type="application/javascript">
-
-
     /**
      * Do tests.
      */
@@ -31,6 +29,10 @@
     function changeARIAValue(aNodeOrID, aValuenow, aValuetext)
     {
       this.DOMNode = getNode(aNodeOrID);
+      this.eventSeq = [ new invokerChecker(aValuetext ?
+                                           EVENT_TEXT_VALUE_CHANGE :
+                                           EVENT_VALUE_CHANGE, this.DOMNode)
+        ];
 
       this.invoke = function changeARIAValue_invoke() {
 
@@ -63,6 +65,9 @@
     function changeValue(aID, aValue)
     {
       this.DOMNode = getNode(aID);
+      this.eventSeq = [new invokerChecker(EVENT_TEXT_VALUE_CHANGE,
+                                          this.DOMNode)
+        ];
 
       this.invoke = function changeValue_invoke()
       {
@@ -84,6 +89,7 @@
     function changeProgressValue(aID, aValue)
     {
       this.DOMNode = getNode(aID);
+      this.eventSeq = [new invokerChecker(EVENT_VALUE_CHANGE, this.DOMNode)];
 
       this.invoke = function changeProgressValue_invoke()
       {
@@ -105,6 +111,7 @@
     function changeRangeValue(aID)
     {
       this.DOMNode = getNode(aID);
+      this.eventSeq = [new invokerChecker(EVENT_VALUE_CHANGE, this.DOMNode)];
 
       this.invoke = function changeRangeValue_invoke()
       {
@@ -123,6 +130,30 @@
       }
     }
 
+    function changeSelectValue(aID, aKey, aValue)
+    {
+      this.eventSeq =
+        [ new invokerChecker(EVENT_TEXT_VALUE_CHANGE, getAccessible(aID)) ];
+
+      this.invoke = function changeSelectValue_invoke()
+      {
+        getNode(aID).focus();
+        synthesizeKey(aKey, {}, window);
+      }
+
+      this.finalCheck = function changeSelectValue_finalCheck()
+      {
+        is(getAccessible(aID).value, aValue, "Wrong value for " + prettyName(aID));
+      }
+
+      this.getID = function changeSelectValue_getID()
+      {
+        return `${prettyName(aID)} closed select value change on '${aKey}'' key press`;
+      }
+    }
+
+    //enableLogging("DOMEvents");
+    //gA11yEventDumpToConsole = true;
     function doTests()
     {
       // Test initial values
@@ -134,7 +165,7 @@
       testValue("range", "6", 6, 0, 10, 1);
 
       // Test value change events
-      gQueue = new eventQueue(nsIAccessibleEvent.EVENT_VALUE_CHANGE);
+      gQueue = new eventQueue();
 
       gQueue.push(new changeARIAValue("slider_vn", "6", undefined));
       gQueue.push(new changeARIAValue("slider_vt", undefined, "hey!"));
@@ -145,6 +176,9 @@
 
       gQueue.push(new changeProgressValue("progress", "50"));
       gQueue.push(new changeRangeValue("range"));
+
+      gQueue.push(new changeSelectValue("select", "VK_DOWN", "2nd"));
+      gQueue.push(new changeSelectValue("select", "3", "3rd"));
 
       gQueue.invoke(); // Will call SimpleTest.finish();
     }
@@ -212,5 +246,10 @@
   <!-- input@type="range" -->
   <input type="range" id="range" min="0" max="10" value="6">
 
+  <select id="select">
+    <option>1st</option>
+    <option>2nd</option>
+    <option>3rd</option>
+  </select>
 </body>
 </html>

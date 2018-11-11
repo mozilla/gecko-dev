@@ -2,16 +2,20 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import random
+from __future__ import absolute_import
+
 import errno
-import types
+import random
 import os
+import subprocess
+import types
 import xml.etree.ElementTree as ET
 from .common import CommonBackend
 
 from ..frontend.data import (
     Defines,
 )
+from mozbuild.base import ExecutionSummary
 
 # TODO Have ./mach eclipse generate the workspace and index it:
 # /Users/bgirard/mozilla/eclipse/eclipse/eclipse/eclipse -application org.eclipse.cdt.managedbuilder.core.headlessbuild -data $PWD/workspace -importAll $PWD/eclipse
@@ -22,41 +26,59 @@ class CppEclipseBackend(CommonBackend):
     """Backend that generates Cpp Eclipse project files.
     """
 
+    def __init__(self, environment):
+        if os.name == 'nt':
+            raise Exception('Eclipse is not supported on Windows. '
+                            'Consider using Visual Studio instead.')
+        super(CppEclipseBackend, self).__init__(environment)
+
     def _init(self):
         CommonBackend._init(self)
 
         self._paths_to_defines = {}
-        self._workspace_dir = os.path.join(self.environment.topobjdir, 'eclipse_workspace')
-        self._project_dir = os.path.join(self._workspace_dir, 'gecko')
+        self._project_name = 'Gecko'
+        self._workspace_dir = self._get_workspace_path()
+        self._project_dir = os.path.join(self._workspace_dir, self._project_name)
+        self._overwriting_workspace = os.path.isdir(self._workspace_dir)
 
         self._macbundle = self.environment.substs['MOZ_MACBUNDLE_NAME']
         self._appname = self.environment.substs['MOZ_APP_NAME']
         self._bin_suffix = self.environment.substs['BIN_SUFFIX']
         self._cxx = self.environment.substs['CXX']
         # Note: We need the C Pre Processor (CPP) flags, not the CXX flags
-        self._cppflags = self.environment.substs['CPPFLAGS']
+        self._cppflags = self.environment.substs.get('CPPFLAGS', '')
 
-        def detailed(summary):
-            return ('\n' + \
-                   'Generated Cpp Eclipse workspace in "%s".\n' + \
-                   'OPTIONAL: Setup & index the project using: eclipse -application org.eclipse.cdt.managedbuilder.core.headlessbuild -data %s -importAll %s\n' + \
-                   'NOTE: This will take about 10 minutes.\n\n' \
-                   'Run with: eclipse -data %s\n' \
-                   'Import the project using File > Import > General > Existing Project into workspace') \
-                   % (self._workspace_dir, self._workspace_dir, self._project_dir, self._workspace_dir)
+    def summary(self):
+        return ExecutionSummary(
+            'CppEclipse backend executed in {execution_time:.2f}s\n'
+            'Generated Cpp Eclipse workspace in "{workspace:s}".\n'
+            'If missing, import the project using File > Import > General > Existing Project into workspace\n'
+            '\n'
+            'Run with: eclipse -data {workspace:s}\n',
+            execution_time=self._execution_time,
+            workspace=self._workspace_dir)
 
-        self.summary.backend_detailed_summary = types.MethodType(detailed,
-            self.summary)
+    def _get_workspace_path(self):
+        return CppEclipseBackend.get_workspace_path(self.environment.topsrcdir, self.environment.topobjdir)
+
+    @staticmethod
+    def get_workspace_path(topsrcdir, topobjdir):
+        # Eclipse doesn't support having the workspace inside the srcdir.
+        # Since most people have their objdir inside their srcdir it's easier
+        # and more consistent to just put the workspace along side the srcdir
+        srcdir_parent = os.path.dirname(topsrcdir)
+        workspace_dirname = "eclipse_" + os.path.basename(topobjdir)
+        return os.path.join(srcdir_parent, workspace_dirname)
 
     def consume_object(self, obj):
-        obj.ack()
-
         reldir = getattr(obj, 'relativedir', None)
 
         # Note that unlike VS, Eclipse' indexer seem to crawl the headers and
         # isn't picky about the local includes.
         if isinstance(obj, Defines):
             self._paths_to_defines.setdefault(reldir, {}).update(obj.defines)
+
+        return True
 
     def consume_finished(self):
         settings_dir = os.path.join(self._project_dir, '.settings')
@@ -101,6 +123,36 @@ class CppEclipseBackend(CommonBackend):
         with open(editor_prefs_path, 'wb') as fh:
             fh.write(EDITOR_SETTINGS);
 
+        # Now import the project into the workspace
+        self._import_project()
+
+    def _import_project(self):
+        # If the workspace already exists then don't import the project again because
+        # eclipse doesn't handle this properly
+        if self._overwriting_workspace:
+            return
+
+        # We disable the indexer otherwise we're forced to index
+        # the whole codebase when importing the project. Indexing the project can take 20 minutes.
+        self._write_noindex()
+
+        try:
+            process = subprocess.check_call(
+                             ["eclipse", "-application", "-nosplash",
+                              "org.eclipse.cdt.managedbuilder.core.headlessbuild",
+                              "-data", self._workspace_dir, "-importAll", self._project_dir])
+        finally:
+            self._remove_noindex()
+
+    def _write_noindex(self):
+        noindex_path = os.path.join(self._project_dir, '.settings/org.eclipse.cdt.core.prefs')
+        with open(noindex_path, 'wb') as fh:
+            fh.write(NOINDEX_TEMPLATE);
+
+    def _remove_noindex(self):
+        noindex_path = os.path.join(self._project_dir, '.settings/org.eclipse.cdt.core.prefs')
+        os.remove(noindex_path)
+
     def _define_entry(self, name, value):
         define = ET.Element('entry')
         define.set('kind', 'macro')
@@ -116,7 +168,6 @@ class CppEclipseBackend(CommonBackend):
         settings = settings.replace('@IPDL_INCLUDE_PATH@', os.path.join(self.environment.topobjdir, 'ipc/ipdl/_ipdlheaders'))
         settings = settings.replace('@PREINCLUDE_FILE_PATH@', os.path.join(self.environment.topobjdir, 'dist/include/mozilla-config.h'))
         settings = settings.replace('@DEFINE_MOZILLA_INTERNAL_API@', self._define_entry('MOZILLA_INTERNAL_API', '1'))
-        settings = settings.replace('@DEFINE_MDCPUCFG@', self._define_entry('MDCPUCFG', self.environment.substs['TARGET_NSPR_MDCPUCFG']))
         settings = settings.replace("@COMPILER_FLAGS@", self._cxx + " " + self._cppflags);
 
         fh.write(settings)
@@ -157,7 +208,7 @@ class CppEclipseBackend(CommonBackend):
     def _write_project(self, fh):
         project = PROJECT_TEMPLATE;
 
-        project = project.replace('@PROJECT_NAME@', 'Gecko')
+        project = project.replace('@PROJECT_NAME@', self._project_name)
         project = project.replace('@PROJECT_TOPSRCDIR@', self.environment.topsrcdir)
         fh.write(project)
 
@@ -376,7 +427,6 @@ LANGUAGE_SETTINGS_TEMPLATE = """<?xml version="1.0" encoding="UTF-8" standalone=
                                                   MOZILLA_EXTERNAL_API code will suffer.
                                                 -->
                                                 @DEFINE_MOZILLA_INTERNAL_API@
-                                                @DEFINE_MDCPUCFG@
                                         </resource>
                                 </language>
                         </provider>
@@ -641,4 +691,8 @@ org.eclipse.cdt.core.formatter.put_empty_statement_on_new_line=true
 org.eclipse.cdt.core.formatter.tabulation.char=space
 org.eclipse.cdt.core.formatter.tabulation.size=2
 org.eclipse.cdt.core.formatter.use_tabs_only_for_leading_indentations=false
+"""
+
+NOINDEX_TEMPLATE = """eclipse.preferences.version=1
+indexer/indexerId=org.eclipse.cdt.core.nullIndexer
 """

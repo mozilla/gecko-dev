@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # Copyright 2013 Mozilla Foundation and Mozilla contributors
 #
@@ -18,7 +18,13 @@ SOURCES += [
     'BootAnimation.cpp',
 ]
 
-if CONFIG['ANDROID_VERSION'] >= '18':
+if CONFIG['ANDROID_VERSION'] >= '19':
+    SOURCES += [
+        'FramebufferSurface.cpp',
+        'GonkDisplayJB.cpp',
+        'VirtualDisplaySurface.cpp',
+    ]
+elif CONFIG['ANDROID_VERSION'] == '18':
     SOURCES += [
         'FramebufferSurface.cpp',
         'GonkDisplayJB.cpp',
@@ -29,14 +35,10 @@ elif CONFIG['ANDROID_VERSION'] == '17':
         'GonkDisplayJB.cpp',
         'GraphicBufferAlloc.cpp',
     ]
-elif CONFIG['ANDROID_VERSION'] == '15':
-    SOURCES += [
-        'GonkDisplayICS.cpp'
-    ]
 elif CONFIG['ANDROID_VERSION'] and CONFIG['COMPILE_ENVIRONMENT']:
     error('Unsupported platform version: %s' % (CONFIG['ANDROID_VERSION']))
 
-LIBRARY_NAME = 'display'
+Library('display')
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
@@ -46,8 +48,8 @@ DEFINES['XPCOM_GLUE'] = True
 
 DISABLE_STL_WRAPPING = True
 
-CXXFLAGS += [
-    '-I%s/%s' % (CONFIG['ANDROID_SOURCE'], d) for d in [
+LOCAL_INCLUDES += [
+    '%' + '%s/%s' % (CONFIG['ANDROID_SOURCE'], d) for d in [
         'frameworks/native/include/gui',
         'frameworks/native/opengl/include',
         'hardware/libhardware/include',

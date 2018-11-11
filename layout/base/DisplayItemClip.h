@@ -6,14 +6,21 @@
 #ifndef DISPLAYITEMCLIP_H_
 #define DISPLAYITEMCLIP_H_
 
+#include "mozilla/RefPtr.h"
 #include "nsRect.h"
 #include "nsTArray.h"
 #include "nsStyleConsts.h"
 
 class gfxContext;
-class nsDisplayItem;
 class nsPresContext;
 class nsRegion;
+
+namespace mozilla {
+namespace gfx {
+class DrawTarget;
+class Path;
+} // namespace gfx
+} // namespace mozilla
 
 namespace mozilla {
 
@@ -24,6 +31,10 @@ namespace mozilla {
  * SVG clip-path), including no clipping at all.
  */
 class DisplayItemClip {
+  typedef mozilla::gfx::Color Color;
+  typedef mozilla::gfx::DrawTarget DrawTarget;
+  typedef mozilla::gfx::Path Path;
+
 public:
   struct RoundedRect {
     nsRect mRect;
@@ -57,6 +68,7 @@ public:
 
   void SetTo(const nsRect& aRect);
   void SetTo(const nsRect& aRect, const nscoord* aRadii);
+  void SetTo(const nsRect& aRect, const nsRect& aRoundedRect, const nscoord* aRadii);
   void IntersectWith(const DisplayItemClip& aOther);
 
   // Apply this |DisplayItemClip| to the given gfxContext.  Any saving of state
@@ -69,15 +81,19 @@ public:
   // Applies the rounded rects in this Clip to aContext
   // Will only apply rounded rects from aBegin (inclusive) to aEnd
   // (exclusive) or the number of rounded rects, whichever is smaller.
-  void ApplyRoundedRectsTo(gfxContext* aContext, int32_t A2DPRInt32,
-                           uint32_t aBegin, uint32_t aEnd) const;
+  void ApplyRoundedRectClipsTo(gfxContext* aContext, int32_t A2DPRInt32,
+                               uint32_t aBegin, uint32_t aEnd) const;
 
   // Draw (fill) the rounded rects in this clip to aContext
-  void DrawRoundedRectsTo(gfxContext* aContext, int32_t A2D,
-                          uint32_t aBegin, uint32_t aEnd) const;
+  void FillIntersectionOfRoundedRectClips(gfxContext* aContext,
+                                          const Color& aColor,
+                                          int32_t aAppUnitsPerDevPixel,
+                                          uint32_t aBegin,
+                                          uint32_t aEnd) const;
   // 'Draw' (create as a path, does not stroke or fill) aRoundRect to aContext
-  void AddRoundedRectPathTo(gfxContext* aContext, int32_t A2D,
-                            const RoundedRect &aRoundRect) const;
+  already_AddRefed<Path> MakeRoundedRectPath(DrawTarget& aDrawTarget,
+                                                  int32_t A2D,
+                                                  const RoundedRect &aRoundRect) const;
 
   // Returns true if the intersection of aRect and this clip region is
   // non-empty. This is precise for DisplayItemClips with at most one
@@ -85,6 +101,7 @@ public:
   // check that the rectangle intersects all of them (but possibly in different
   // places). So it may return true when the correct answer is false.
   bool MayIntersect(const nsRect& aRect) const;
+
   // Return a rectangle contained in the intersection of aRect with this
   // clip region. Tries to return the largest possible rectangle, but may
   // not succeed.
@@ -110,6 +127,7 @@ public:
   // Returns false if aRect is definitely not clipped by anything in this clip.
   // Fast but not necessarily accurate.
   bool IsRectAffectedByClip(const nsRect& aRect) const;
+  bool IsRectAffectedByClip(const nsIntRect& aRect, float aXScale, float aYScale, int32_t A2D) const;
 
   // Intersection of all rects in this clip ignoring any rounded corners.
   nsRect NonRoundedIntersection() const;
@@ -123,8 +141,8 @@ public:
 
   // Adds the difference between Intersect(*this + aPoint, aBounds) and
   // Intersect(aOther, aOtherBounds) to aDifference (or a bounding-box thereof).
-  void AddOffsetAndComputeDifference(const nsPoint& aPoint, const nsRect& aBounds,
-                                     const DisplayItemClip& aOther, const nsRect& aOtherBounds,
+  void AddOffsetAndComputeDifference(uint32_t aStart, const nsPoint& aPoint, const nsRect& aBounds,
+                                     const DisplayItemClip& aOther, uint32_t aOtherStart, const nsRect& aOtherBounds,
                                      nsRegion* aDifference);
 
   bool operator==(const DisplayItemClip& aOther) const {
@@ -145,9 +163,7 @@ public:
 
   void MoveBy(nsPoint aPoint);
 
-#ifdef MOZ_DUMP_PAINTING
   nsCString ToString() const;
-#endif
 
   /**
    * Find the largest N such that the first N rounded rects in 'this' are
@@ -170,6 +186,6 @@ private:
   bool mHaveClipRect;
 };
 
-}
+} // namespace mozilla
 
 #endif /* DISPLAYITEMCLIP_H_ */

@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,20 +17,20 @@ namespace mozilla {
 class InternalMutationEvent : public WidgetEvent
 {
 public:
-  virtual InternalMutationEvent* AsMutationEvent() MOZ_OVERRIDE { return this; }
+  virtual InternalMutationEvent* AsMutationEvent() override { return this; }
 
-  InternalMutationEvent(bool aIsTrusted, uint32_t aMessage) :
-    WidgetEvent(aIsTrusted, aMessage, NS_MUTATION_EVENT),
-    mAttrChange(0)
+  InternalMutationEvent(bool aIsTrusted, EventMessage aMessage)
+    : WidgetEvent(aIsTrusted, aMessage, eMutationEventClass)
+    , mAttrChange(0)
   {
     mFlags.mCancelable = false;
   }
 
-  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  virtual WidgetEvent* Duplicate() const override
   {
-    MOZ_ASSERT(eventStructType == NS_MUTATION_EVENT,
+    MOZ_ASSERT(mClass == eMutationEventClass,
                "Duplicate() must be overridden by sub class");
-    InternalMutationEvent* result = new InternalMutationEvent(false, message);
+    InternalMutationEvent* result = new InternalMutationEvent(false, mMessage);
     result->AssignMutationEventData(*this, true);
     result->mFlags = mFlags;
     return result;

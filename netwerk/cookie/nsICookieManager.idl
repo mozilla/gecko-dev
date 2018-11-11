@@ -5,7 +5,21 @@
 
 #include "nsISupports.idl"
 
+%{ C++
+namespace mozilla {
+class NeckoOriginAttributes;
+} // mozilla namespace
+%}
+
+[ptr] native NeckoOriginAttributesPtr(mozilla::NeckoOriginAttributes);
+
 interface nsISimpleEnumerator;
+
+[scriptable, function, uuid(20709db8-8dad-4e45-b33e-6e7c761dfc5d)]
+interface nsIPrivateModeCallback : nsISupports
+{
+  void callback();
+};
 
 /** 
  * An optional interface for accessing or removing the cookies
@@ -39,11 +53,36 @@ interface nsICookieManager : nsISupports
    *              dot must be present.
    * @param aName The name specified in the cookie
    * @param aPath The path for which the cookie was set
-   * @param aBlocked Indicates if cookies from this host should be permanently blocked
+   * @param aOriginAttributes The originAttributes of this cookie. This
+   *                          attribute is optional to avoid breaking add-ons.
+   *                          In 1 or 2 releases it will be mandatory: bug 1260399.
+   * @param aBlocked Indicates if cookies from this host should be permanently
+   *                 blocked.
    *
    */
-  void remove(in AUTF8String aHost,
-              in ACString    aName,
-              in AUTF8String aPath,
-              in boolean     aBlocked);
+  [implicit_jscontext, optional_argc]
+  void remove(in AUTF8String   aHost,
+              in ACString      aName,
+              in AUTF8String   aPath,
+              in boolean       aBlocked,
+              [optional] in jsval aOriginAttributes);
+
+  [notxpcom]
+  nsresult removeNative(in AUTF8String   aHost,
+                        in ACString      aName,
+                        in AUTF8String   aPath,
+                        in boolean       aBlocked,
+                        in NeckoOriginAttributesPtr aOriginAttributes);
+
+  /**
+   * Set the cookie manager to work on private or non-private cookies for the
+   * duration of the callback.
+   *
+   * @param aIsPrivate True to work on private cookies, false to work on
+   *                   non-private cookies.
+   * @param aCallback Methods on the cookie manager interface will work on
+   *                  private or non-private cookies for the duration of this
+   *                  callback.
+   */
+  void usePrivateMode(in boolean aIsPrivate, in nsIPrivateModeCallback aCallback);
 };

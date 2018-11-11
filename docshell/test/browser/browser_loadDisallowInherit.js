@@ -33,7 +33,7 @@ function test() {
 
         // Now load the URL and disallow inheriting the principal
         let webNav = Components.interfaces.nsIWebNavigation;
-        loadURL(url, webNav.LOAD_FLAGS_DISALLOW_INHERIT_OWNER, function () {
+        loadURL(url, webNav.LOAD_FLAGS_DISALLOW_INHERIT_PRINCIPAL, function () {
           let newPrincipal = browser.contentPrincipal;
           ok(newPrincipal, "got inner principal");
           ok(!newPrincipal.equals(pagePrincipal),
@@ -47,7 +47,9 @@ function test() {
 
   let urls = [
     "data:text/html,<body>hi",
-    "javascript:1;"
+    // We used to test javascript: here as well, but now that we no longer run
+    // javascript: in a sandbox, we end up not running it at all in the
+    // DISALLOW_INHERIT_OWNER case, so never actually do a load for it at all.
   ];
 
   function nextTest() {

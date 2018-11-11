@@ -28,13 +28,13 @@ using namespace mozilla;
 nsIFrame*
 NS_NewTitleBarFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
-  return new (aPresShell) nsTitleBarFrame(aPresShell, aContext);
+  return new (aPresShell) nsTitleBarFrame(aContext);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsTitleBarFrame)
 
-nsTitleBarFrame::nsTitleBarFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
-:nsBoxFrame(aPresShell, aContext, false)
+nsTitleBarFrame::nsTitleBarFrame(nsStyleContext* aContext)
+:nsBoxFrame(aContext, false)
 {
   mTrackingMouseMove = false;
   UpdateMouseThrough();
@@ -66,9 +66,9 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
 
   bool doDefault = true;
 
-  switch (aEvent->message) {
+  switch (aEvent->mMessage) {
 
-   case NS_MOUSE_BUTTON_DOWN:  {
+   case eMouseDown: {
        if (aEvent->AsMouseEvent()->button == WidgetMouseEvent::eLeftButton) {
          // titlebar has no effect in non-chrome shells
          nsCOMPtr<nsIDocShellTreeItem> dsti = aPresContext->GetDocShell();
@@ -81,7 +81,7 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
              nsIPresShell::SetCapturingContent(GetContent(), CAPTURE_IGNOREALLOWED);
 
              // remember current mouse coordinates.
-             mLastPoint = LayoutDeviceIntPoint::ToUntyped(aEvent->refPoint);
+             mLastPoint = aEvent->mRefPoint;
            }
          }
 
@@ -92,7 +92,7 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
      break;
 
 
-   case NS_MOUSE_BUTTON_UP: {
+   case eMouseUp: {
        if (mTrackingMouseMove &&
            aEvent->AsMouseEvent()->button == WidgetMouseEvent::eLeftButton) {
          // we're done tracking.
@@ -107,10 +107,10 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
      }
      break;
 
-   case NS_MOUSE_MOVE: {
+   case eMouseMove: {
        if(mTrackingMouseMove)
        {
-         nsIntPoint nsMoveBy = LayoutDeviceIntPoint::ToUntyped(aEvent->refPoint) - mLastPoint;
+         LayoutDeviceIntPoint nsMoveBy = aEvent->mRefPoint - mLastPoint;
 
          nsIFrame* parent = GetParent();
          while (parent) {
@@ -125,16 +125,15 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
          if (parent) {
            nsMenuPopupFrame* menuPopupFrame = static_cast<nsMenuPopupFrame*>(parent);
            nsCOMPtr<nsIWidget> widget = menuPopupFrame->GetWidget();
-           nsIntRect bounds;
-           widget->GetScreenBounds(bounds);
+           LayoutDeviceIntRect bounds = widget->GetScreenBounds();
 
-           int32_t newx = aPresContext->DevPixelsToIntCSSPixels(bounds.x + nsMoveBy.x);
-           int32_t newy = aPresContext->DevPixelsToIntCSSPixels(bounds.y + nsMoveBy.y);
-           menuPopupFrame->MoveTo(newx, newy, false);
+           CSSPoint cssPos = (bounds.TopLeft() + nsMoveBy)
+                           / aPresContext->CSSToDevPixelScale();
+           menuPopupFrame->MoveTo(RoundedToInt(cssPos), false);
          }
          else {
            nsIPresShell* presShell = aPresContext->PresShell();
-           nsPIDOMWindow *window = presShell->GetDocument()->GetWindow();
+           nsPIDOMWindowOuter *window = presShell->GetDocument()->GetWindow();
            if (window) {
              window->MoveBy(nsMoveBy.x, nsMoveBy.y);
            }
@@ -147,13 +146,16 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
      }
      break;
 
-    case NS_MOUSE_CLICK: {
+    case eMouseClick: {
       WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent();
       if (mouseEvent->IsLeftClickEvent()) {
-        MouseClicked(aPresContext, mouseEvent);
+        MouseClicked(mouseEvent);
       }
       break;
     }
+
+    default:
+      break;
   }
 
   if ( doDefault )
@@ -163,10 +165,8 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
 }
 
 void
-nsTitleBarFrame::MouseClicked(nsPresContext* aPresContext,
-                              WidgetMouseEvent* aEvent)
+nsTitleBarFrame::MouseClicked(WidgetMouseEvent* aEvent)
 {
   // Execute the oncommand event handler.
-  nsContentUtils::DispatchXULCommand(mContent,
-                                     aEvent && aEvent->mFlags.mIsTrusted);
+  nsContentUtils::DispatchXULCommand(mContent, aEvent && aEvent->IsTrusted());
 }

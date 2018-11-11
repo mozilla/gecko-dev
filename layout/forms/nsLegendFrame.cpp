@@ -49,34 +49,37 @@ NS_QUERYFRAME_TAIL_INHERITING(nsBlockFrame)
 
 void
 nsLegendFrame::Reflow(nsPresContext*          aPresContext,
-                     nsHTMLReflowMetrics&     aDesiredSize,
-                     const nsHTMLReflowState& aReflowState,
+                     ReflowOutput&     aDesiredSize,
+                     const ReflowInput& aReflowInput,
                      nsReflowStatus&          aStatus)
 {
   DO_GLOBAL_REFLOW_COUNT("nsLegendFrame");
-  DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
+  DISPLAY_REFLOW(aPresContext, this, aReflowInput, aDesiredSize, aStatus);
   if (mState & NS_FRAME_FIRST_REFLOW) {
     nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), true);
   }
-  return nsBlockFrame::Reflow(aPresContext, aDesiredSize, aReflowState, aStatus);
+  return nsBlockFrame::Reflow(aPresContext, aDesiredSize, aReflowInput, aStatus);
 }
 
-// REVIEW: We don't need to override BuildDisplayList, nsBlockFrame will honour
-// our visibility setting
-int32_t nsLegendFrame::GetAlign()
+int32_t
+nsLegendFrame::GetLogicalAlign(WritingMode aCBWM)
 {
-  int32_t intValue = NS_STYLE_TEXT_ALIGN_LEFT;
-  if (GetParent() &&
-      NS_STYLE_DIRECTION_RTL == GetParent()->StyleVisibility()->mDirection) {
-    intValue = NS_STYLE_TEXT_ALIGN_RIGHT;
-  }
-
-  nsGenericHTMLElement *content = nsGenericHTMLElement::FromContent(mContent);
-
+  int32_t intValue = NS_STYLE_TEXT_ALIGN_START;
+  nsGenericHTMLElement* content = nsGenericHTMLElement::FromContent(mContent);
   if (content) {
     const nsAttrValue* attr = content->GetParsedAttr(nsGkAtoms::align);
     if (attr && attr->Type() == nsAttrValue::eEnum) {
       intValue = attr->GetEnumValue();
+      switch (intValue) {
+        case NS_STYLE_TEXT_ALIGN_LEFT:
+          intValue = aCBWM.IsBidiLTR() ? NS_STYLE_TEXT_ALIGN_START
+                                       : NS_STYLE_TEXT_ALIGN_END;
+          break;
+        case NS_STYLE_TEXT_ALIGN_RIGHT:
+          intValue = aCBWM.IsBidiLTR() ? NS_STYLE_TEXT_ALIGN_END
+                                       : NS_STYLE_TEXT_ALIGN_START;
+          break;
+      }
     }
   }
   return intValue;

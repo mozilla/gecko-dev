@@ -3,7 +3,7 @@
 
 // Test that the cookie APIs behave sanely after 'profile-before-change'.
 
-let test_generator = do_run_test();
+var test_generator = do_run_test();
 
 function run_test() {
   do_test_pending();
@@ -54,11 +54,11 @@ function do_run_test() {
   }, Cr.NS_ERROR_NOT_AVAILABLE);
 
   do_check_throws(function() {
-    Services.cookiemgr.add("foo.com", "", "oh4", "hai", false, false, false, 0);
+    Services.cookiemgr.add("foo.com", "", "oh4", "hai", false, false, false, 0, {});
   }, Cr.NS_ERROR_NOT_AVAILABLE);
 
   do_check_throws(function() {
-    Services.cookiemgr.remove("foo.com", "", "oh4", false);
+    Services.cookiemgr.remove("foo.com", "", "oh4", false, {});
   }, Cr.NS_ERROR_NOT_AVAILABLE);
 
   do_check_throws(function() {
@@ -76,7 +76,7 @@ function do_run_test() {
   }, Cr.NS_ERROR_NOT_AVAILABLE);
 
   do_check_throws(function() {
-    Services.cookies.getCookiesFromHost("foo.com");
+    Services.cookies.getCookiesFromHost("foo.com", {});
   }, Cr.NS_ERROR_NOT_AVAILABLE);
 
   // Wait for the database to finish closing.

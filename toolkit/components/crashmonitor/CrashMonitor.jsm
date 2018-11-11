@@ -1,4 +1,4 @@
-/* -*- Mode: js; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -53,7 +53,7 @@ const NOTIFICATIONS = [
   "sessionstore-final-state-write-complete"
 ];
 
-let CrashMonitorInternal = {
+var CrashMonitorInternal = {
 
   /**
    * Notifications received during the current session.
@@ -84,13 +84,9 @@ let CrashMonitorInternal = {
    * Path to checkpoint file.
    *
    * Each time a new notification is received, this file is written to
-   * disc to reflect the information in |checkpoints|. Although Firefox for
-   * Desktop and Metro share the same profile, they need to keep record of
-   * crashes separately.
+   * disc to reflect the information in |checkpoints|.
    */
-  path: (Services.metro && Services.metro.immersive) ?
-    OS.Path.join(OS.Constants.Path.profileDir, "metro", "sessionCheckpoints.json"):
-    OS.Path.join(OS.Constants.Path.profileDir, "sessionCheckpoints.json"),
+  path: OS.Path.join(OS.Constants.Path.profileDir, "sessionCheckpoints.json"),
 
   /**
    * Load checkpoints from previous session asynchronously.
@@ -102,7 +98,10 @@ let CrashMonitorInternal = {
       let data;
       try {
         data = yield OS.File.read(CrashMonitorInternal.path, { encoding: "utf-8" });
-      } catch (ex if ex instanceof OS.File.Error) {
+      } catch (ex) {
+        if (!(ex instanceof OS.File.Error)) {
+          throw ex;
+        }
         if (!ex.becauseNoSuchFile) {
           Cu.reportError("Error while loading crash monitor data: " + ex.toString());
         }
@@ -115,6 +114,12 @@ let CrashMonitorInternal = {
         notifications = JSON.parse(data);
       } catch (ex) {
         Cu.reportError("Error while parsing crash monitor data: " + ex);
+        return null;
+      }
+
+      // If `notifications` isn't an object, then the monitor data isn't valid.
+      if (Object(notifications) !== notifications) {
+        Cu.reportError("Error while parsing crash monitor data: invalid monitor data");
         return null;
       }
 
@@ -172,9 +177,6 @@ this.CrashMonitor = {
     );
 
     CrashMonitorInternal.initialized = true;
-    if (Services.metro && Services.metro.immersive) {
-      OS.File.makeDir(OS.Path.join(OS.Constants.Path.profileDir, "metro"));
-    }
     return promise;
   },
 
@@ -188,7 +190,7 @@ this.CrashMonitor = {
       // If this is the first time this notification is received,
       // remember it and write it to file
       CrashMonitorInternal.checkpoints[aTopic] = true;
-      Task.spawn(function() {
+      Task.spawn(function* () {
         try {
           let data = JSON.stringify(CrashMonitorInternal.checkpoints);
 

@@ -6,7 +6,12 @@
 #ifndef MOZILLA_GFX_PATHCG_H_
 #define MOZILLA_GFX_PATHCG_H_
 
+#ifdef MOZ_WIDGET_COCOA
 #include <ApplicationServices/ApplicationServices.h>
+#else
+#include <CoreGraphics/CoreGraphics.h>
+#endif
+
 #include "2D.h"
 
 namespace mozilla {
@@ -25,7 +30,7 @@ public:
       mCGPath = aPath;
   }
 
-  PathBuilderCG(FillRule aFillRule)
+  explicit PathBuilderCG(FillRule aFillRule)
     : mFillRule(aFillRule)
   {
       mCGPath = CGPathCreateMutable();
@@ -45,7 +50,9 @@ public:
                    Float aEndAngle, bool aAntiClockwise = false);
   virtual Point CurrentPoint() const;
 
-  virtual TemporaryRef<Path> Finish();
+  virtual already_AddRefed<Path> Finish();
+
+  virtual BackendType GetBackendType() const { return BackendType::SKIA; }
 
 private:
   friend class PathCG;
@@ -73,11 +80,11 @@ public:
 
   // Paths will always return BackendType::COREGRAPHICS, but note that they
   // are compatible with BackendType::COREGRAPHICS_ACCELERATED backend.
-  virtual BackendType GetBackendType() const { return BackendType::COREGRAPHICS; }
+  virtual BackendType GetBackendType() const { return BackendType::SKIA; }
 
-  virtual TemporaryRef<PathBuilder> CopyToBuilder(FillRule aFillRule = FillRule::FILL_WINDING) const;
-  virtual TemporaryRef<PathBuilder> TransformedCopyToBuilder(const Matrix &aTransform,
-                                                             FillRule aFillRule = FillRule::FILL_WINDING) const;
+  virtual already_AddRefed<PathBuilder> CopyToBuilder(FillRule aFillRule) const;
+  virtual already_AddRefed<PathBuilder> TransformedCopyToBuilder(const Matrix &aTransform,
+                                                             FillRule aFillRule) const;
 
   virtual bool ContainsPoint(const Point &aPoint, const Matrix &aTransform) const;
   virtual bool StrokeContainsPoint(const StrokeOptions &aStrokeOptions,
@@ -101,7 +108,7 @@ private:
   FillRule mFillRule;
 };
 
-}
-}
+} // namespace gfx
+} // namespace mozilla
 
 #endif

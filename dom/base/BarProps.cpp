@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -21,23 +22,22 @@ BarProp::BarProp(nsGlobalWindow* aWindow)
   : mDOMWindow(aWindow)
 {
   MOZ_ASSERT(aWindow->IsInnerWindow());
-  SetIsDOMBinding();
 }
 
 BarProp::~BarProp()
 {
 }
 
-nsPIDOMWindow*
+nsPIDOMWindowInner*
 BarProp::GetParentObject() const
 {
-  return mDOMWindow;
+  return mDOMWindow->AsInner();
 }
 
 JSObject*
-BarProp::WrapObject(JSContext* aCx)
+BarProp::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return BarPropBinding::Wrap(aCx, this);
+  return BarPropBinding::Wrap(aCx, this, aGivenProto);
 }
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(BarProp, mDOMWindow)
@@ -276,7 +276,7 @@ ScrollbarsProp::GetVisible(ErrorResult& aRv)
 void
 ScrollbarsProp::SetVisible(bool aVisible, ErrorResult& aRv)
 {
-  if (!nsContentUtils::IsCallerChrome()) {
+  if (!nsContentUtils::LegacyIsCallerChromeOrNativeCode()) {
     return;
   }
 
@@ -287,23 +287,7 @@ ScrollbarsProp::SetVisible(bool aVisible, ErrorResult& aRv)
      and because embedding apps have no interface for implementing this
      themselves, and therefore the implementation must be internal. */
 
-  nsCOMPtr<nsIScrollable> scroller =
-    do_QueryInterface(mDOMWindow->GetDocShell());
-
-  if (scroller) {
-    int32_t prefValue;
-
-    if (aVisible) {
-      prefValue = nsIScrollable::Scrollbar_Auto;
-    } else {
-      prefValue = nsIScrollable::Scrollbar_Never;
-    }
-
-    scroller->SetDefaultScrollbarPreferences(
-                nsIScrollable::ScrollOrientation_Y, prefValue);
-    scroller->SetDefaultScrollbarPreferences(
-                nsIScrollable::ScrollOrientation_X, prefValue);
-  }
+  nsContentUtils::SetScrollbarsVisibility(mDOMWindow->GetDocShell(), aVisible);
 
   /* Notably absent is the part where we notify the chrome window using
      GetBrowserChrome()->SetChromeFlags(). Given the possibility of multiple

@@ -13,13 +13,16 @@ function openContextMenuFor(element, shiftkey, waitForSpellCheck) {
     function actuallyOpenContextMenuFor() {
       lastElement = element;
       var eventDetails = { type : "contextmenu", button : 2, shiftKey : shiftkey };
-      synthesizeMouse(element, 2, 2, eventDetails, element.ownerDocument.defaultView);
+      synthesizeMouse(element, 2, 2, eventDetails, element.ownerGlobal);
     }
 
-    if (waitForSpellCheck)
+    if (waitForSpellCheck) {
+      var { onSpellCheck } = SpecialPowers.Cu.import("resource://gre/modules/AsyncSpellCheckTestHelper.jsm", {});
       onSpellCheck(element, actuallyOpenContextMenuFor);
-    else
+    }
+    else {
       actuallyOpenContextMenuFor();
+    }
 }
 
 function closeContextMenu() {
@@ -38,37 +41,41 @@ function getVisibleMenuItems(aMenu, aData) {
         if (key)
             key = key.toLowerCase();
 
-        var isGenerated = item.hasAttribute("generateditemid");
+        var isPageMenuItem = item.hasAttribute("generateditemid");
 
         if (item.nodeName == "menuitem") {
-            var isSpellSuggestion = item.className == "spell-suggestion";
-            if (isSpellSuggestion) {
-              is(item.id, "", "child menuitem #" + i + " is a spelling suggestion");
-            } else if (isGenerated) {
-              is(item.id, "", "child menuitem #" + i + " is a generated item");
+            var isGenerated = item.className == "spell-suggestion"
+                              || item.className == "sendtab-target";
+            if (isGenerated) {
+              is(item.id, "", "child menuitem #" + i + " is generated");
+            } else if (isPageMenuItem) {
+              is(item.id, "", "child menuitem #" + i + " is a generated page menu item");
             } else {
               ok(item.id, "child menuitem #" + i + " has an ID");
             }
             var label = item.getAttribute("label");
             ok(label.length, "menuitem " + item.id + " has a label");
-            if (isSpellSuggestion) {
-              is(key, "", "Spell suggestions shouldn't have an access key");
+            if (isGenerated) {
+              is(key, "", "Generated items shouldn't have an access key");
               items.push("*" + label);
-            } else if (isGenerated) {
+            } else if (isPageMenuItem) {
               items.push("+" + label);
             } else if (item.id.indexOf("spell-check-dictionary-") != 0 &&
                        item.id != "spell-no-suggestions" &&
-                       item.id != "spell-add-dictionaries-main") {
+                       item.id != "spell-add-dictionaries-main" &&
+                       item.id != "context-savelinktopocket" &&
+                       item.id != "fill-login-saved-passwords" &&
+                       item.id != "fill-login-no-logins") {
               ok(key, "menuitem " + item.id + " has an access key");
               if (accessKeys[key])
                   ok(false, "menuitem " + item.id + " has same accesskey as " + accessKeys[key]);
               else
                   accessKeys[key] = item.id;
             }
-            if (!isSpellSuggestion && !isGenerated) {
+            if (!isGenerated && !isPageMenuItem) {
               items.push(item.id);
             }
-            if (isGenerated) {
+            if (isPageMenuItem) {
               var p = {};
               p.type = item.getAttribute("type");
               p.icon = item.getAttribute("image");
@@ -83,11 +90,11 @@ function getVisibleMenuItems(aMenu, aData) {
             items.push("---");
             items.push(null);
         } else if (item.nodeName == "menu") {
-            if (isGenerated) {
+            if (isPageMenuItem) {
                 item.id = "generated-submenu-" + aData.generatedSubmenuId++;
             }
             ok(item.id, "child menu #" + i + " has an ID");
-            if (!isGenerated) {
+            if (!isPageMenuItem) {
                 ok(key, "menu has an access key");
                 if (accessKeys[key])
                     ok(false, "menu " + item.id + " has same accesskey as " + accessKeys[key]);
@@ -179,7 +186,7 @@ function checkMenuItem(actualItem, actualEnabled, expectedItem, expectedEnabled,
  */
 function checkMenu(menu, expectedItems, data) {
     var actualItems = getVisibleMenuItems(menu, data);
-    //ok(false, "Items are: " + actualItems);
+    // ok(false, "Items are: " + actualItems);
     for (var i = 0; i < expectedItems.length; i+=2) {
         var actualItem   = actualItems[i];
         var actualEnabled = actualItems[i + 1];
@@ -210,4 +217,108 @@ function checkMenu(menu, expectedItems, data) {
     }
     // Could find unexpected extra items at the end...
     is(actualItems.length, expectedItems.length, "checking expected number of menu entries");
+}
+
+let lastElementSelector = null;
+/**
+ * Right-clicks on the element that matches `selector` and checks the
+ * context menu that appears against the `menuItems` array.
+ *
+ * @param {String} selector
+ *        A selector passed to querySelector to find
+ *        the element that will be referenced.
+ * @param {Array} menuItems
+ *        An array of menuitem ids and their associated enabled state. A state
+ *        of null means that it will be ignored. Ids of '---' are used for
+ *        menuseparators.
+ * @param {Object} options, optional
+ *        skipFocusChange: don't move focus to the element before test, useful
+ *                         if you want to delay spell-check initialization
+ *        offsetX: horizontal mouse offset from the top-left corner of
+ *                 the element, optional
+ *        offsetY: vertical mouse offset from the top-left corner of the
+ *                 element, optional
+ *        centered: if true, mouse position is centered in element, defaults
+ *                  to true if offsetX and offsetY are not provided
+ *        waitForSpellCheck: wait until spellcheck is initialized before
+ *                           starting test
+ *        preCheckContextMenuFn: callback to run before opening menu
+ *        onContextMenuShown: callback to run when the context menu is shown
+ *        postCheckContextMenuFn: callback to run after opening menu
+ * @return {Promise} resolved after the test finishes
+ */
+function* test_contextmenu(selector, menuItems, options={}) {
+  contextMenu = document.getElementById("contentAreaContextMenu");
+  is(contextMenu.state, "closed", "checking if popup is closed");
+
+  // Default to centered if no positioning is defined.
+  if (!options.offsetX && !options.offsetY) {
+    options.centered = true;
+  }
+
+  if (!options.skipFocusChange) {
+    yield ContentTask.spawn(gBrowser.selectedBrowser,
+                            [lastElementSelector, selector],
+                            function*([contentLastElementSelector, contentSelector]) {
+      if (contentLastElementSelector) {
+        let contentLastElement = content.document.querySelector(contentLastElementSelector);
+        contentLastElement.blur();
+      }
+      let element = content.document.querySelector(contentSelector);
+      element.focus();
+    });
+    lastElementSelector = selector;
+    info(`Moved focus to ${selector}`);
+  }
+
+  if (options.preCheckContextMenuFn) {
+    yield options.preCheckContextMenuFn();
+    info("Completed preCheckContextMenuFn");
+  }
+
+  if (options.waitForSpellCheck) {
+    info("Waiting for spell check");
+    yield ContentTask.spawn(gBrowser.selectedBrowser, selector, function*(contentSelector) {
+      let {onSpellCheck} = Cu.import("resource://gre/modules/AsyncSpellCheckTestHelper.jsm", {});
+      let element = content.document.querySelector(contentSelector);
+      yield new Promise(resolve => onSpellCheck(element, resolve));
+      info("Spell check running");
+    });
+  }
+
+  let awaitPopupShown = BrowserTestUtils.waitForEvent(contextMenu, "popupshown");
+  yield BrowserTestUtils.synthesizeMouse(selector, options.offsetX || 0, options.offsetY || 0, {
+      type: "contextmenu",
+      button: 2,
+      shiftkey: options.shiftkey,
+      centered: options.centered
+    },
+    gBrowser.selectedBrowser);
+  yield awaitPopupShown;
+  info("Popup Shown");
+
+  if (options.onContextMenuShown) {
+    yield options.onContextMenuShown();
+    info("Completed onContextMenuShown");
+  }
+
+  if (menuItems) {
+    if (Services.prefs.getBoolPref("devtools.inspector.enabled")) {
+      let inspectItems = ["---", null,
+                          "context-inspect", true];
+      menuItems = menuItems.concat(inspectItems);
+    }
+
+    checkContextMenu(menuItems);
+  }
+
+  let awaitPopupHidden = BrowserTestUtils.waitForEvent(contextMenu, "popuphidden");
+
+  if (options.postCheckContextMenuFn) {
+    yield options.postCheckContextMenuFn();
+    info("Completed postCheckContextMenuFn");
+  }
+
+  contextMenu.hidePopup();
+  yield awaitPopupHidden;
 }

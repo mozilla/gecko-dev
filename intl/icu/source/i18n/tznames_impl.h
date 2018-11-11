@@ -1,7 +1,9 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
  *******************************************************************************
- * Copyright (C) 2011-2013, International Business Machines Corporation and    *
- * others. All Rights Reserved.                                                *
+ * Copyright (C) 2011-2016, International Business Machines Corporation and
+ * others. All Rights Reserved.
  *******************************************************************************
  */
 
@@ -159,8 +161,8 @@ private:
 
 
 class ZNames;
-class TZNames;
 class TextTrieMap;
+class ZNameSearchHandler;
 
 class TimeZoneNamesImpl : public TimeZoneNames {
 public:
@@ -184,7 +186,15 @@ public:
 
     TimeZoneNames::MatchInfoCollection* find(const UnicodeString& text, int32_t start, uint32_t types, UErrorCode& status) const;
 
+    void loadAllDisplayNames(UErrorCode& status);
+    void getDisplayNames(const UnicodeString& tzID, const UTimeZoneNameType types[], int32_t numTypes, UDate date, UnicodeString dest[], UErrorCode& status) const;
+
     static UnicodeString& getDefaultExemplarLocationName(const UnicodeString& tzID, UnicodeString& name);
+
+    static StringEnumeration* _getAvailableMetaZoneIDs(UErrorCode& status);
+    static StringEnumeration* _getAvailableMetaZoneIDs(const UnicodeString& tzID, UErrorCode& status);
+    static UnicodeString& _getMetaZoneID(const UnicodeString& tzID, UDate date, UnicodeString& mzID);
+    static UnicodeString& _getReferenceZoneID(const UnicodeString& mzID, const char* region, UnicodeString& tzID);
 
 private:
 
@@ -196,15 +206,51 @@ private:
     UHashtable* fMZNamesMap;
 
     UBool fNamesTrieFullyLoaded;
+    UBool fNamesFullyLoaded;
     TextTrieMap fNamesTrie;
 
     void initialize(const Locale& locale, UErrorCode& status);
     void cleanup();
 
-    void loadStrings(const UnicodeString& tzCanonicalID);
+    void loadStrings(const UnicodeString& tzCanonicalID, UErrorCode& status);
 
-    ZNames* loadMetaZoneNames(const UnicodeString& mzId);
-    TZNames* loadTimeZoneNames(const UnicodeString& mzId);
+    ZNames* loadMetaZoneNames(const UnicodeString& mzId, UErrorCode& status);
+    ZNames* loadTimeZoneNames(const UnicodeString& mzId, UErrorCode& status);
+    TimeZoneNames::MatchInfoCollection* doFind(ZNameSearchHandler& handler,
+        const UnicodeString& text, int32_t start, UErrorCode& status) const;
+    void addAllNamesIntoTrie(UErrorCode& errorCode);
+
+    void internalLoadAllDisplayNames(UErrorCode& status);
+
+    struct ZoneStringsLoader;
+};
+
+class TZDBNames;
+
+class TZDBTimeZoneNames : public TimeZoneNames {
+public:
+    TZDBTimeZoneNames(const Locale& locale);
+    virtual ~TZDBTimeZoneNames();
+
+    virtual UBool operator==(const TimeZoneNames& other) const;
+    virtual TimeZoneNames* clone() const;
+
+    StringEnumeration* getAvailableMetaZoneIDs(UErrorCode& status) const;
+    StringEnumeration* getAvailableMetaZoneIDs(const UnicodeString& tzID, UErrorCode& status) const;
+
+    UnicodeString& getMetaZoneID(const UnicodeString& tzID, UDate date, UnicodeString& mzID) const;
+    UnicodeString& getReferenceZoneID(const UnicodeString& mzID, const char* region, UnicodeString& tzID) const;
+
+    UnicodeString& getMetaZoneDisplayName(const UnicodeString& mzID, UTimeZoneNameType type, UnicodeString& name) const;
+    UnicodeString& getTimeZoneDisplayName(const UnicodeString& tzID, UTimeZoneNameType type, UnicodeString& name) const;
+
+    TimeZoneNames::MatchInfoCollection* find(const UnicodeString& text, int32_t start, uint32_t types, UErrorCode& status) const;
+
+    static const TZDBNames* getMetaZoneNames(const UnicodeString& mzId, UErrorCode& status);
+
+private:
+    Locale fLocale;
+    char fRegion[ULOC_COUNTRY_CAPACITY];
 };
 
 U_NAMESPACE_END

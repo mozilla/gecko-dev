@@ -30,14 +30,16 @@
 
 
 #include "HashStore.h"
-#include "nsAutoPtr.h"
 #include "nsICryptoHash.h"
 #include "nsISeekableStream.h"
 #include "nsIStreamConverterService.h"
 #include "nsNetUtil.h"
 #include "nsCheckSummedOutputStream.h"
-#include "prlog.h"
+#include "prio.h"
+#include "mozilla/Logging.h"
 #include "zlib.h"
+#include "Classifier.h"
+#include "nsUrlClassifierDBService.h"
 
 // Main store for SafeBrowsing protocol data. We store
 // known add/sub chunks, prefixes and completions in memory
@@ -92,15 +94,10 @@
 // Name of the SafeBrowsing store
 #define STORE_SUFFIX ".sbstore"
 
-// NSPR_LOG_MODULES=UrlClassifierDbService:5
-extern PRLogModuleInfo *gUrlClassifierDbServiceLog;
-#if defined(PR_LOGGING)
-#define LOG(args) PR_LOG(gUrlClassifierDbServiceLog, PR_LOG_DEBUG, args)
-#define LOG_ENABLED() PR_LOG_TEST(gUrlClassifierDbServiceLog, 4)
-#else
-#define LOG(args)
-#define LOG_ENABLED() (false)
-#endif
+// MOZ_LOG=UrlClassifierDbService:5
+extern mozilla::LazyLogModule gUrlClassifierDbServiceLog;
+#define LOG(args) MOZ_LOG(gUrlClassifierDbServiceLog, mozilla::LogLevel::Debug, args)
+#define LOG_ENABLED() MOZ_LOG_TEST(gUrlClassifierDbServiceLog, mozilla::LogLevel::Debug)
 
 // Either the return was successful or we call the Reset function (unless we
 // hit an OOM).  Used while reading in the store.
@@ -124,46 +121,107 @@ namespace safebrowsing {
 const uint32_t STORE_MAGIC = 0x1231af3b;
 const uint32_t CURRENT_VERSION = 3;
 
-void
-TableUpdate::NewAddPrefix(uint32_t aAddChunk, const Prefix& aHash)
+nsresult
+TableUpdateV2::NewAddPrefix(uint32_t aAddChunk, const Prefix& aHash)
 {
-  AddPrefix *add = mAddPrefixes.AppendElement();
+  AddPrefix *add = mAddPrefixes.AppendElement(fallible);
+  if (!add) return NS_ERROR_OUT_OF_MEMORY;
   add->addChunk = aAddChunk;
   add->prefix = aHash;
+  return NS_OK;
 }
 
-void
-TableUpdate::NewSubPrefix(uint32_t aAddChunk, const Prefix& aHash, uint32_t aSubChunk)
+nsresult
+TableUpdateV2::NewSubPrefix(uint32_t aAddChunk, const Prefix& aHash, uint32_t aSubChunk)
 {
-  SubPrefix *sub = mSubPrefixes.AppendElement();
+  SubPrefix *sub = mSubPrefixes.AppendElement(fallible);
+  if (!sub) return NS_ERROR_OUT_OF_MEMORY;
   sub->addChunk = aAddChunk;
   sub->prefix = aHash;
   sub->subChunk = aSubChunk;
+  return NS_OK;
 }
 
-void
-TableUpdate::NewAddComplete(uint32_t aAddChunk, const Completion& aHash)
+nsresult
+TableUpdateV2::NewAddComplete(uint32_t aAddChunk, const Completion& aHash)
 {
-  AddComplete *add = mAddCompletes.AppendElement();
+  AddComplete *add = mAddCompletes.AppendElement(fallible);
+  if (!add) return NS_ERROR_OUT_OF_MEMORY;
   add->addChunk = aAddChunk;
   add->complete = aHash;
+  return NS_OK;
 }
 
-void
-TableUpdate::NewSubComplete(uint32_t aAddChunk, const Completion& aHash, uint32_t aSubChunk)
+nsresult
+TableUpdateV2::NewSubComplete(uint32_t aAddChunk, const Completion& aHash, uint32_t aSubChunk)
 {
-  SubComplete *sub = mSubCompletes.AppendElement();
+  SubComplete *sub = mSubCompletes.AppendElement(fallible);
+  if (!sub) return NS_ERROR_OUT_OF_MEMORY;
   sub->addChunk = aAddChunk;
   sub->complete = aHash;
   sub->subChunk = aSubChunk;
+  return NS_OK;
 }
 
-
-HashStore::HashStore(const nsACString& aTableName, nsIFile* aStoreDir)
-  : mTableName(aTableName)
-  , mStoreDirectory(aStoreDir)
-  , mInUpdate(false)
+void
+TableUpdateV4::NewPrefixes(int32_t aSize, std::string& aPrefixes)
 {
+  NS_ENSURE_TRUE_VOID(aPrefixes.size() % aSize == 0);
+  NS_ENSURE_TRUE_VOID(!mPrefixesMap.Get(aSize));
+
+  if (LOG_ENABLED() && 4 == aSize) {
+    int numOfPrefixes = aPrefixes.size() / 4;
+    uint32_t* p = (uint32_t*)aPrefixes.c_str();
+
+    // Dump the first/last 10 fixed-length prefixes for debugging.
+    LOG(("* The first 10 (maximum) fixed-length prefixes: "));
+    for (int i = 0; i < std::min(10, numOfPrefixes); i++) {
+      uint8_t* c = (uint8_t*)&p[i];
+      LOG(("%.2X%.2X%.2X%.2X", c[0], c[1], c[2], c[3]));
+    }
+
+    LOG(("* The last 10 (maximum) fixed-length prefixes: "));
+    for (int i = std::max(0, numOfPrefixes - 10); i < numOfPrefixes; i++) {
+      uint8_t* c = (uint8_t*)&p[i];
+      LOG(("%.2X%.2X%.2X%.2X", c[0], c[1], c[2], c[3]));
+    }
+
+    LOG(("---- %d fixed-length prefixes in total.", aPrefixes.size() / aSize));
+  }
+
+  PrefixStdString* prefix = new PrefixStdString(aPrefixes);
+  mPrefixesMap.Put(aSize, prefix);
+}
+
+void
+TableUpdateV4::NewRemovalIndices(const uint32_t* aIndices, size_t aNumOfIndices)
+{
+  for (size_t i = 0; i < aNumOfIndices; i++) {
+    mRemovalIndiceArray.AppendElement(aIndices[i]);
+  }
+}
+
+void
+TableUpdateV4::NewChecksum(const std::string& aChecksum)
+{
+  mChecksum.Assign(aChecksum.data(), aChecksum.size());
+}
+
+HashStore::HashStore(const nsACString& aTableName,
+                     const nsACString& aProvider,
+                     nsIFile* aRootStoreDir)
+  : mTableName(aTableName)
+  , mInUpdate(false)
+  , mFileSize(0)
+{
+  nsresult rv = Classifier::GetPrivateStoreDirectory(aRootStoreDir,
+                                                     aTableName,
+                                                     aProvider,
+                                                     getter_AddRefs(mStoreDirectory));
+  if (NS_FAILED(rv)) {
+    LOG(("Failed to get private store directory for %s", mTableName.get()));
+    mStoreDirectory = aRootStoreDir;
+  }
 }
 
 HashStore::~HashStore()
@@ -185,13 +243,18 @@ HashStore::Reset()
   rv = storeFile->Remove(false);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  mFileSize = 0;
+
   return NS_OK;
 }
 
 nsresult
-HashStore::CheckChecksum(nsIFile* aStoreFile,
-                         uint32_t aFileSize)
+HashStore::CheckChecksum(uint32_t aFileSize)
 {
+  if (!mInputStream) {
+    return NS_OK;
+  }
+
   // Check for file corruption by
   // comparing the stored checksum to actual checksum of data
   nsAutoCString hash;
@@ -253,22 +316,13 @@ HashStore::Open()
     return NS_ERROR_FAILURE;
   }
 
-  uint32_t fileSize32 = static_cast<uint32_t>(fileSize);
-
-  rv = NS_NewBufferedInputStream(getter_AddRefs(mInputStream), origStream,
-                                 fileSize32);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = CheckChecksum(storeFile, fileSize32);
-  SUCCESS_OR_RESET(rv);
+  mFileSize = static_cast<uint32_t>(fileSize);
+  mInputStream = NS_BufferInputStream(origStream, mFileSize);
 
   rv = ReadHeader();
   SUCCESS_OR_RESET(rv);
 
   rv = SanityCheck();
-  SUCCESS_OR_RESET(rv);
-
-  rv = ReadChunkNumbers();
   SUCCESS_OR_RESET(rv);
 
   return NS_OK;
@@ -364,11 +418,14 @@ HashStore::UpdateHeader()
 nsresult
 HashStore::ReadChunkNumbers()
 {
-  NS_ENSURE_STATE(mInputStream);
+  if (!mInputStream || AlreadyReadChunkNumbers()) {
+    return NS_OK;
+  }
 
   nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mInputStream);
   nsresult rv = seekable->Seek(nsISeekableStream::NS_SEEK_SET,
                                sizeof(Header));
+  NS_ENSURE_SUCCESS(rv, rv);
 
   rv = mAddChunks.Read(mInputStream, mHeader.numAddChunks);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -395,11 +452,51 @@ HashStore::ReadHashes()
   uint32_t offset = sizeof(Header);
   offset += (mHeader.numAddChunks + mHeader.numSubChunks) * sizeof(uint32_t);
   nsresult rv = seekable->Seek(nsISeekableStream::NS_SEEK_SET, offset);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   rv = ReadAddPrefixes();
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = ReadSubPrefixes();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // If completions was read before, then we are done here.
+  if (AlreadyReadCompletions()) {
+    return NS_OK;
+  }
+
+  rv = ReadTArray(mInputStream, &mAddCompletes, mHeader.numAddCompletes);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = ReadTArray(mInputStream, &mSubCompletes, mHeader.numSubCompletes);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+
+nsresult
+HashStore::ReadCompletions()
+{
+  if (!mInputStream || AlreadyReadCompletions()) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIFile> storeFile;
+  nsresult rv = mStoreDirectory->Clone(getter_AddRefs(storeFile));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = storeFile->AppendNative(mTableName + NS_LITERAL_CSTRING(STORE_SUFFIX));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  uint32_t offset = mFileSize -
+                    sizeof(struct AddComplete) * mHeader.numAddCompletes -
+                    sizeof(struct SubComplete) * mHeader.numSubCompletes -
+                    nsCheckSummedOutputStream::CHECKSUM_SIZE;
+
+  nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mInputStream);
+
+  rv = seekable->Seek(nsISeekableStream::NS_SEEK_SET, offset);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = ReadTArray(mInputStream, &mAddCompletes, mHeader.numAddCompletes);
@@ -412,11 +509,27 @@ HashStore::ReadHashes()
 }
 
 nsresult
+HashStore::PrepareForUpdate()
+{
+  nsresult rv = CheckChecksum(mFileSize);
+  SUCCESS_OR_RESET(rv);
+
+  rv = ReadChunkNumbers();
+  SUCCESS_OR_RESET(rv);
+
+  rv = ReadHashes();
+  SUCCESS_OR_RESET(rv);
+
+  return NS_OK;
+}
+
+nsresult
 HashStore::BeginUpdate()
 {
-  // Read the rest of the store in memory.
-  nsresult rv = ReadHashes();
-  SUCCESS_OR_RESET(rv);
+  // Check wether the file is corrupted and read the rest of the store
+  // in memory.
+  nsresult rv = PrepareForUpdate();
+  NS_ENSURE_SUCCESS(rv, rv);
 
   // Close input stream, won't be needed any more and
   // we will rewrite ourselves.
@@ -475,15 +588,22 @@ Merge(ChunkSet* aStoreChunks,
   // to make the chunkranges continuous.
   aStoreChunks->Merge(aUpdateChunks);
 
-  aStorePrefixes->AppendElements(adds);
+  if (!aStorePrefixes->AppendElements(adds, fallible))
+    return NS_ERROR_OUT_OF_MEMORY;
+
   EntrySort(*aStorePrefixes);
 
   return NS_OK;
 }
 
 nsresult
-HashStore::ApplyUpdate(TableUpdate &update)
+HashStore::ApplyUpdate(TableUpdate &aUpdate)
 {
+  auto updateV2 = TableUpdate::Cast<TableUpdateV2>(&aUpdate);
+  NS_ENSURE_TRUE(updateV2, NS_ERROR_FAILURE);
+
+  TableUpdateV2& update = *updateV2;
+
   nsresult rv = mAddExpirations.Merge(update.AddExpirations());
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -550,7 +670,7 @@ ExpireEntries(FallibleTArray<T>* aEntries, ChunkSet& aExpirations)
     }
   }
 
-  aEntries->SetLength(addIter - aEntries->Elements());
+  aEntries->TruncateLength(addIter - aEntries->Elements());
 }
 
 nsresult
@@ -576,7 +696,7 @@ nsresult DeflateWriteTArray(nsIOutputStream* aStream, nsTArray<T>& aIn)
   uLongf insize = aIn.Length() * sizeof(T);
   uLongf outsize = compressBound(insize);
   FallibleTArray<char> outBuff;
-  if (!outBuff.SetLength(outsize)) {
+  if (!outBuff.SetLength(outsize, fallible)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
@@ -619,7 +739,7 @@ nsresult InflateReadTArray(nsIInputStream* aStream, FallibleTArray<T>* aOut,
   NS_ASSERTION(read == sizeof(inLen), "Error reading inflate length");
 
   FallibleTArray<char> inBuff;
-  if (!inBuff.SetLength(inLen)) {
+  if (!inBuff.SetLength(inLen, fallible)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
@@ -628,7 +748,7 @@ nsresult InflateReadTArray(nsIInputStream* aStream, FallibleTArray<T>* aOut,
 
   uLongf insize = inLen;
   uLongf outsize = aExpectedSize * sizeof(T);
-  if (!aOut->SetLength(aExpectedSize)) {
+  if (!aOut->SetLength(aExpectedSize, fallible)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
@@ -649,33 +769,46 @@ nsresult InflateReadTArray(nsIInputStream* aStream, FallibleTArray<T>* aOut,
 static nsresult
 ByteSliceWrite(nsIOutputStream* aOut, nsTArray<uint32_t>& aData)
 {
-  nsTArray<uint8_t> slice1;
-  nsTArray<uint8_t> slice2;
-  nsTArray<uint8_t> slice3;
-  nsTArray<uint8_t> slice4;
+  nsTArray<uint8_t> slice;
   uint32_t count = aData.Length();
 
-  slice1.SetCapacity(count);
-  slice2.SetCapacity(count);
-  slice3.SetCapacity(count);
-  slice4.SetCapacity(count);
-
-  for (uint32_t i = 0; i < count; i++) {
-    slice1.AppendElement( aData[i] >> 24);
-    slice2.AppendElement((aData[i] >> 16) & 0xFF);
-    slice3.AppendElement((aData[i] >>  8) & 0xFF);
-    slice4.AppendElement( aData[i]        & 0xFF);
+  // Only process one slice at a time to avoid using too much memory.
+  if (!slice.SetLength(count, fallible)) {
+    return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  nsresult rv = DeflateWriteTArray(aOut, slice1);
+  // Process slice 1.
+  for (uint32_t i = 0; i < count; i++) {
+    slice[i] = (aData[i] >> 24);
+  }
+
+  nsresult rv = DeflateWriteTArray(aOut, slice);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = DeflateWriteTArray(aOut, slice2);
+
+  // Process slice 2.
+  for (uint32_t i = 0; i < count; i++) {
+    slice[i] = ((aData[i] >> 16) & 0xFF);
+  }
+
+  rv = DeflateWriteTArray(aOut, slice);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = DeflateWriteTArray(aOut, slice3);
+
+  // Process slice 3.
+  for (uint32_t i = 0; i < count; i++) {
+    slice[i] = ((aData[i] >> 8) & 0xFF);
+  }
+
+  rv = DeflateWriteTArray(aOut, slice);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  // Process slice 4.
+  for (uint32_t i = 0; i < count; i++) {
+    slice[i] = (aData[i] & 0xFF);
+  }
+
   // The LSB slice is generally uncompressible, don't bother
   // compressing it.
-  rv = WriteTArray(aOut, slice4);
+  rv = WriteTArray(aOut, slice);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -701,13 +834,16 @@ ByteSliceRead(nsIInputStream* aInStream, FallibleTArray<uint32_t>* aData, uint32
   rv = ReadTArray(aInStream, &slice4, count);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (!aData->SetCapacity(count)) {
+  if (!aData->SetCapacity(count, fallible)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
   for (uint32_t i = 0; i < count; i++) {
-    aData->AppendElement((slice1[i] << 24) | (slice2[i] << 16)
-                         | (slice3[i] << 8) | (slice4[i]));
+    aData->AppendElement((slice1[i] << 24) |
+                           (slice2[i] << 16) |
+                           (slice3[i] << 8) |
+                           (slice4[i]),
+                         fallible);
   }
 
   return NS_OK;
@@ -722,11 +858,11 @@ HashStore::ReadAddPrefixes()
   nsresult rv = ByteSliceRead(mInputStream, &chunks, count);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (!mAddPrefixes.SetCapacity(count)) {
+  if (!mAddPrefixes.SetCapacity(count, fallible)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   for (uint32_t i = 0; i < count; i++) {
-    AddPrefix *add = mAddPrefixes.AppendElement();
+    AddPrefix *add = mAddPrefixes.AppendElement(fallible);
     add->prefix.FromUint32(0);
     add->addChunk = chunks[i];
   }
@@ -751,11 +887,11 @@ HashStore::ReadSubPrefixes()
   rv = ByteSliceRead(mInputStream, &prefixes, count);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (!mSubPrefixes.SetCapacity(count)) {
+  if (!mSubPrefixes.SetCapacity(count, fallible)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   for (uint32_t i = 0; i < count; i++) {
-    SubPrefix *sub = mSubPrefixes.AppendElement();
+    SubPrefix *sub = mSubPrefixes.AppendElement(fallible);
     sub->addChunk = addchunks[i];
     sub->prefix.FromUint32(prefixes[i]);
     sub->subChunk = subchunks[i];
@@ -770,7 +906,9 @@ HashStore::WriteAddPrefixes(nsIOutputStream* aOut)
 {
   nsTArray<uint32_t> chunks;
   uint32_t count = mAddPrefixes.Length();
-  chunks.SetCapacity(count);
+  if (!chunks.SetCapacity(count, fallible)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
 
   for (uint32_t i = 0; i < count; i++) {
     chunks.AppendElement(mAddPrefixes[i].Chunk());
@@ -815,6 +953,9 @@ nsresult
 HashStore::WriteFile()
 {
   NS_ASSERTION(mInUpdate, "Must be in update to write database.");
+  if (nsUrlClassifierDBService::ShutdownHasStarted()) {
+    return NS_ERROR_ABORT;
+  }
 
   nsCOMPtr<nsIFile> storeFile;
   nsresult rv = mStoreDirectory->Clone(getter_AddRefs(storeFile));
@@ -823,8 +964,7 @@ HashStore::WriteFile()
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIOutputStream> out;
-  rv = NS_NewCheckSummedOutputStream(getter_AddRefs(out), storeFile,
-                                     PR_WRONLY | PR_TRUNCATE | PR_CREATE_FILE);
+  rv = NS_NewCheckSummedOutputStream(getter_AddRefs(out), storeFile);
   NS_ENSURE_SUCCESS(rv, rv);
 
   uint32_t written;
@@ -974,7 +1114,7 @@ RemoveDeadSubPrefixes(SubPrefixArray& aSubs, ChunkSet& aAddChunks)
   }
 
   LOG(("Removed %u dead SubPrefix entries.", subEnd - subIter));
-  aSubs.SetLength(subIter - aSubs.Elements());
+  aSubs.TruncateLength(subIter - aSubs.Elements());
 }
 
 #ifdef DEBUG
@@ -1047,5 +1187,61 @@ HashStore::AugmentAdds(const nsTArray<uint32_t>& aPrefixes)
   return NS_OK;
 }
 
+ChunkSet&
+HashStore::AddChunks()
+{
+  ReadChunkNumbers();
+
+  return mAddChunks;
 }
+
+ChunkSet&
+HashStore::SubChunks()
+{
+  ReadChunkNumbers();
+
+  return mSubChunks;
 }
+
+AddCompleteArray&
+HashStore::AddCompletes()
+{
+  ReadCompletions();
+
+  return mAddCompletes;
+}
+
+SubCompleteArray&
+HashStore::SubCompletes()
+{
+  ReadCompletions();
+
+  return mSubCompletes;
+}
+
+bool
+HashStore::AlreadyReadChunkNumbers()
+{
+  // If there are chunks but chunk set not yet contains any data
+  // Then we haven't read chunk numbers.
+  if ((mHeader.numAddChunks != 0 && mAddChunks.Length() == 0) ||
+      (mHeader.numSubChunks != 0 && mSubChunks.Length() == 0)) {
+    return false;
+  }
+  return true;
+}
+
+bool
+HashStore::AlreadyReadCompletions()
+{
+  // If there are completions but completion set not yet contains any data
+  // Then we haven't read completions.
+  if ((mHeader.numAddCompletes != 0 && mAddCompletes.Length() == 0) ||
+      (mHeader.numSubCompletes != 0 && mSubCompletes.Length() == 0)) {
+    return false;
+  }
+  return true;
+}
+
+} // namespace safebrowsing
+} // namespace mozilla

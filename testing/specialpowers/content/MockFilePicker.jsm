@@ -15,6 +15,10 @@ Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+// Allow stuff from this scope to be accessed from non-privileged scopes. This
+// would crash if used outside of automation.
+Cu.forcePermissiveCOWs();
+
 var registrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
 var oldClassID, oldFactory;
 var newClassID = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator).generateUUID();
@@ -89,14 +93,19 @@ this.MockFilePicker = {
   useAnyFile: function() {
     var file = FileUtils.getDir("TmpD", [], false);
     file.append("testfile");
-    file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0644);
+    file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0o644);
     this.returnFiles = [file];
   },
 
   useBlobFile: function() {
     var blob = new this.window.Blob([]);
-    var file = new this.window.File(blob, { name: 'helloworld.txt', type: 'plain/text' });
+    var file = new this.window.File([blob], 'helloworld.txt', { type: 'plain/text' });
     this.returnFiles = [file];
+  },
+
+  useDirectory: function(aPath) {
+    var directory = new this.window.Directory(aPath);
+    this.returnFiles = [directory];
   },
 
   isNsIFile: function(aFile) {
@@ -142,7 +151,9 @@ MockFilePickerInstance.prototype = {
 
     return null;
   },
-  get domfile()  {
+
+  // We don't support directories here.
+  get domFileOrDirectory()  {
     if (MockFilePicker.returnFiles.length >= 1) {
       // window.File does not implement nsIFile
       if (!MockFilePicker.isNsIFile(MockFilePicker.returnFiles[0])) {
@@ -180,7 +191,7 @@ MockFilePickerInstance.prototype = {
       }
     };
   },
-  get domfiles()  {
+  get domFileOrDirectoryEnumerator()  {
     let utils = this.parent.QueryInterface(Ci.nsIInterfaceRequestor)
                            .getInterface(Ci.nsIDOMWindowUtils);
     return {
@@ -222,15 +233,3 @@ MockFilePickerInstance.prototype = {
     }.bind(this), 0);
   }
 };
-
-// Expose everything to content. We call reset() here so that all of the relevant
-// lazy expandos get added.
-MockFilePicker.reset();
-function exposeAll(obj) {
-  var props = {};
-  for (var prop in obj)
-    props[prop] = 'rw';
-  obj.__exposedProps__ = props;
-}
-exposeAll(MockFilePicker);
-exposeAll(MockFilePickerInstance.prototype);

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsIDocument.h"
 #include "nsIDOMClassInfo.h"
 #include "nsIDOMEvent.h"
 #include "nsIDOMEventListener.h"
@@ -11,9 +12,8 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "AudioChannelManager.h"
 #include "mozilla/dom/AudioChannelManagerBinding.h"
+#include "mozilla/dom/nsBrowserElement.h"
 #include "mozilla/Services.h"
-
-using namespace mozilla::hal;
 
 namespace mozilla {
 namespace dom {
@@ -25,17 +25,14 @@ NS_IMPL_ADDREF_INHERITED(AudioChannelManager, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(AudioChannelManager, DOMEventTargetHelper)
 
 AudioChannelManager::AudioChannelManager()
-  : mState(SWITCH_STATE_UNKNOWN)
-  , mVolumeChannel(-1)
+  : mVolumeChannel(-1)
 {
-  RegisterSwitchObserver(SWITCH_HEADPHONES, this);
-  mState = GetCurrentSwitchState(SWITCH_HEADPHONES);
-  SetIsDOMBinding();
+  hal::RegisterSwitchObserver(hal::SWITCH_HEADPHONES, this);
 }
 
 AudioChannelManager::~AudioChannelManager()
 {
-  UnregisterSwitchObserver(SWITCH_HEADPHONES, this);
+  hal::UnregisterSwitchObserver(hal::SWITCH_HEADPHONES, this);
 
   nsCOMPtr<EventTarget> target = do_QueryInterface(GetOwner());
   NS_ENSURE_TRUE_VOID(target);
@@ -46,10 +43,9 @@ AudioChannelManager::~AudioChannelManager()
 }
 
 void
-AudioChannelManager::Init(nsPIDOMWindow* aWindow)
+AudioChannelManager::Init(nsPIDOMWindowInner* aWindow)
 {
-  BindToOwner(aWindow->IsOuterWindow() ?
-              aWindow->GetCurrentInnerWindow() : aWindow);
+  BindToOwner(aWindow);
 
   nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(GetOwner());
   NS_ENSURE_TRUE_VOID(target);
@@ -61,15 +57,15 @@ AudioChannelManager::Init(nsPIDOMWindow* aWindow)
 }
 
 JSObject*
-AudioChannelManager::WrapObject(JSContext* aCx)
+AudioChannelManager::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return AudioChannelManagerBinding::Wrap(aCx, this);
+  return AudioChannelManagerBinding::Wrap(aCx, this, aGivenProto);
 }
 
 void
-AudioChannelManager::Notify(const SwitchEvent& aEvent)
+AudioChannelManager::Notify(const hal::SwitchEvent& aEvent)
 {
-  mState = aEvent.status();
+  mState = Some(aEvent.status());
 
   DispatchTrustedEvent(NS_LITERAL_STRING("headphoneschange"));
 }
@@ -132,7 +128,11 @@ AudioChannelManager::NotifyVolumeControlChannelChanged()
   bool isActive = false;
   docshell->GetIsActive(&isActive);
 
-  AudioChannelService* service = AudioChannelService::GetAudioChannelService();
+  RefPtr<AudioChannelService> service = AudioChannelService::GetOrCreate();
+  if (!service) {
+    return;
+  }
+
   if (isActive) {
     service->SetDefaultVolumeControlChannel(mVolumeChannel, isActive);
   } else {
@@ -150,6 +150,30 @@ AudioChannelManager::HandleEvent(nsIDOMEvent* aEvent)
     NotifyVolumeControlChannelChanged();
   }
   return NS_OK;
+}
+
+void
+AudioChannelManager::GetAllowedAudioChannels(
+                 nsTArray<RefPtr<BrowserElementAudioChannel>>& aAudioChannels,
+                 ErrorResult& aRv)
+{
+  MOZ_ASSERT(aAudioChannels.IsEmpty());
+
+  // Only main process is supported.
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return;
+  }
+
+  nsCOMPtr<nsPIDOMWindowInner> window = GetOwner();
+  if (NS_WARN_IF(!window)) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return;
+  }
+
+  nsBrowserElement::GenerateAllowedAudioChannels(window, nullptr, nullptr,
+                                                 aAudioChannels, aRv);
+  NS_WARNING_ASSERTION(!aRv.Failed(), "GenerateAllowedAudioChannels failed");
 }
 
 } // namespace system

@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 // Copyright (c) 2006-2008 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -20,8 +22,33 @@
 #include "base/string16.h"
 
 #if defined(COMPILER_MSVC) || (defined(ANDROID) && defined(_STLP_STD_NAME))
+#ifdef COMPILER_MSVC
+#pragma push_macro("_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS")
+#define _SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS
+#endif
+
+// Suppress -Wshadow warnings from stlport headers.
+#ifdef __GNUC__
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wshadow"
+#  if MOZ_GCC_VERSION_AT_LEAST(4, 9, 0)
+#    pragma GCC diagnostic ignored "-Wshadow-local"
+#  endif
+#endif
+
 #include <hash_map>
 #include <hash_set>
+
+#ifdef __GNUC__
+#  if MOZ_GCC_VERSION_AT_LEAST(4, 9, 0)
+#    pragma GCC diagnostic pop // -Wshadow-local
+#  endif
+#  pragma GCC diagnostic pop // -Wshadow
+#endif
+
+#ifdef COMPILER_MSVC
+#pragma pop_macro("_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS")
+#endif
 namespace base {
 #ifdef ANDROID
 using _STLP_STD_NAME::hash_map;

@@ -22,17 +22,17 @@ namespace webrtc
 class VoENetworkImpl: public VoENetwork
 {
 public:
-    virtual int RegisterExternalTransport(int channel, Transport& transport);
+ int RegisterExternalTransport(int channel, Transport& transport) override;
 
-    virtual int DeRegisterExternalTransport(int channel);
+ int DeRegisterExternalTransport(int channel) override;
 
-    virtual int ReceivedRTPPacket(int channel,
-                                  const void* data,
-                                  unsigned int length);
+ int ReceivedRTPPacket(int channel, const void* data, size_t length) override;
+ int ReceivedRTPPacket(int channel,
+                       const void* data,
+                       size_t length,
+                       const PacketTime& packet_time) override;
 
-    virtual int ReceivedRTCPPacket(int channel,
-                                   const void* data,
-                                   unsigned int length);
+ int ReceivedRTCPPacket(int channel, const void* data, size_t length) override;
 
 protected:
     VoENetworkImpl(voe::SharedData* shared);

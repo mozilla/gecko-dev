@@ -1,0 +1,118 @@
+# HG changeset patch
+# User Alex Chronopoulos <achronop@gmail.com>
+# Parent  b7bb31e5a851d6f8e142c39dc077e3774719eced
+Bug 1342363 - Uplift wasapi fixes in Beta. r?kinetik
+
+diff --git a/media/libcubeb/src/cubeb_wasapi.cpp b/media/libcubeb/src/cubeb_wasapi.cpp
+--- a/media/libcubeb/src/cubeb_wasapi.cpp
++++ b/media/libcubeb/src/cubeb_wasapi.cpp
+@@ -807,16 +807,20 @@ wasapi_stream_render_loop(LPVOID stream)
+      maybe WebRTC. */
+   mmcss_handle =
+     stm->context->set_mm_thread_characteristics("Audio", &mmcss_task_index);
+   if (!mmcss_handle) {
+     /* This is not fatal, but we might glitch under heavy load. */
+     LOG("Unable to use mmcss to bump the render thread priority: %x", GetLastError());
+   }
+ 
++  // This has already been nulled out, simply exit.
++  if (!emergency_bailout) {
++    is_playing = false;
++  }
+ 
+   /* WaitForMultipleObjects timeout can trigger in cases where we don't want to
+      treat it as a timeout, such as across a system sleep/wake cycle.  Trigger
+      the timeout error handling only when the timeout_limit is reached, which is
+      reset on each successful loop. */
+   unsigned timeout_count = 0;
+   const unsigned timeout_limit = 5;
+   while (is_playing) {
+@@ -1158,22 +1162,26 @@ bool stop_and_join_render_thread(cubeb_s
+ 
+   /* Wait five seconds for the rendering thread to return. It's supposed to
+    * check its event loop very often, five seconds is rather conservative. */
+   DWORD r = WaitForSingleObject(stm->thread, 5000);
+   if (r == WAIT_TIMEOUT) {
+     /* Something weird happened, leak the thread and continue the shutdown
+      * process. */
+     *(stm->emergency_bailout) = true;
++    // We give the ownership to the rendering thread.
++    stm->emergency_bailout = nullptr;
+     LOG("Destroy WaitForSingleObject on thread timed out,"
+         " leaking the thread: %d", GetLastError());
+     rv = false;
+   }
+   if (r == WAIT_FAILED) {
+     *(stm->emergency_bailout) = true;
++    // We give the ownership to the rendering thread.
++    stm->emergency_bailout = nullptr;
+     LOG("Destroy WaitForSingleObject on thread failed: %d", GetLastError());
+     rv = false;
+   }
+ 
+ 
+   // Only attempts to close and null out the thread and event if the
+   // WaitForSingleObject above succeeded, so that calling this function again
+   // attemps to clean up the thread and event each time.
+@@ -1798,19 +1806,16 @@ void wasapi_stream_destroy(cubeb_stream 
+   XASSERT(stm);
+ 
+   // Only free stm->emergency_bailout if we could not join the thread.
+   // If we could not join the thread, stm->emergency_bailout is true 
+   // and is still alive until the thread wakes up and exits cleanly.
+   if (stop_and_join_render_thread(stm)) {
+     delete stm->emergency_bailout.load();
+     stm->emergency_bailout = nullptr;
+-  } else {
+-    // If we're leaking, it must be that this is true.
+-    assert(*(stm->emergency_bailout));
+   }
+ 
+   unregister_notification_client(stm);
+ 
+   SafeRelease(stm->reconfigure_event);
+   SafeRelease(stm->refill_event);
+   SafeRelease(stm->input_available_event);
+ 
+@@ -1865,21 +1870,21 @@ int stream_start_one_side(cubeb_stream *
+     return CUBEB_ERROR;
+   }
+ 
+   return CUBEB_OK;
+ }
+ 
+ int wasapi_stream_start(cubeb_stream * stm)
+ {
++  auto_lock lock(stm->stream_reset_lock);
++
+   XASSERT(stm && !stm->thread && !stm->shutdown_event);
+   XASSERT(stm->output_client || stm->input_client);
+ 
+-  auto_lock lock(stm->stream_reset_lock);
+-
+   stm->emergency_bailout = new std::atomic<bool>(false);
+ 
+   if (stm->output_client) {
+     int rv = stream_start_one_side(stm, OUTPUT);
+     if (rv != CUBEB_OK) {
+       return rv;
+     }
+   }
+@@ -1932,16 +1937,17 @@ int wasapi_stream_stop(cubeb_stream * st
+       }
+     }
+ 
+ 
+     stm->state_callback(stm, stm->user_ptr, CUBEB_STATE_STOPPED);
+   }
+ 
+   if (stop_and_join_render_thread(stm)) {
++    // This is null if we've given the pointer to the other thread
+     if (stm->emergency_bailout.load()) {
+       delete stm->emergency_bailout.load();
+       stm->emergency_bailout = nullptr;
+     }
+   }
+ 
+   return CUBEB_OK;
+ }

@@ -10,6 +10,10 @@
 #include "mozilla/ipc/ProcessChild.h"
 #include "mozilla/plugins/PluginModuleChild.h"
 
+#if defined(XP_WIN)
+#include "mozilla/mscom/MainThreadRuntime.h"
+#endif
+
 namespace mozilla {
 namespace plugins {
 //-----------------------------------------------------------------------------
@@ -19,14 +23,15 @@ protected:
     typedef mozilla::ipc::ProcessChild ProcessChild;
 
 public:
-    PluginProcessChild(ProcessHandle parentHandle) : ProcessChild(parentHandle)
+    explicit PluginProcessChild(ProcessId aParentPid)
+      : ProcessChild(aParentPid), mPlugin(true)
     { }
 
     virtual ~PluginProcessChild()
     { }
 
-    virtual bool Init() MOZ_OVERRIDE;
-    virtual void CleanUp() MOZ_OVERRIDE;
+    virtual bool Init() override;
+    virtual void CleanUp() override;
 
 protected:
     static PluginProcessChild* current() {
@@ -34,12 +39,17 @@ protected:
     }
 
 private:
+#if defined(XP_WIN)
+    /* Drag-and-drop and Silverlight depend on the host initializing COM.
+     * This object initializes and configures COM. */
+    mozilla::mscom::MainThreadRuntime mCOMRuntime;
+#endif
     PluginModuleChild mPlugin;
 
     DISALLOW_EVIL_CONSTRUCTORS(PluginProcessChild);
 };
 
-}  // namespace plugins
-}  // namespace mozilla
+} // namespace plugins
+} // namespace mozilla
 
 #endif  // ifndef dom_plugins_PluginProcessChild_h

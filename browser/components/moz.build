@@ -1,26 +1,30 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-PARALLEL_DIRS += [
+DIRS += [
     'about',
+    'contextualidentity',
     'customizableui',
     'dirprovider',
     'downloads',
+    'extensions',
     'feeds',
-    'loop',
+    'migration',
+    'newtab',
+    'originattributes',
     'places',
     'preferences',
     'privatebrowsing',
     'search',
     'sessionstore',
     'shell',
-    'sidebar',
-    'tabview',
+    'selfsupport',
+    'syncedtabs',
+    'uitour',
     'translation',
-    'migration',
 ]
 
 DIRS += ['build']
@@ -34,6 +38,9 @@ XPIDL_MODULE = 'browsercompsbase'
 
 EXTRA_PP_COMPONENTS += [
     'BrowserComponents.manifest',
+]
+
+EXTRA_COMPONENTS += [
     'nsBrowserContentHandler.js',
     'nsBrowserGlue.js',
 ]
@@ -43,8 +50,16 @@ EXTRA_JS_MODULES += [
 ]
 
 BROWSER_CHROME_MANIFESTS += [
-    'test/browser.ini'
+    'safebrowsing/content/test/browser.ini',
+    'tests/browser/browser.ini'
 ]
 
-if CONFIG['MOZ_SAFE_BROWSING']:
-    BROWSER_CHROME_MANIFESTS += ['safebrowsing/content/test/browser.ini']
+XPCSHELL_TESTS_MANIFESTS += [
+    'tests/unit/xpcshell.ini'
+]
+
+with Files('safebrowsing/*'):
+    BUG_COMPONENT = ('Toolkit', 'Phishing Protection')
+
+with Files('controlcenter/**'):
+    BUG_COMPONENT = ('Firefox', 'General')

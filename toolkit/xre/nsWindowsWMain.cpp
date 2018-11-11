@@ -11,9 +11,15 @@
 #endif
 
 #include "nsUTF8Utils.h"
+#include <intrin.h>
+#include <math.h>
 
 #ifndef XRE_DONT_PROTECT_DLL_LOAD
 #include "nsSetDllDirectory.h"
+#endif
+
+#if defined(__GNUC__)
+#define XRE_DONT_SUPPORT_XPSP2
 #endif
 
 #ifdef __MINGW32__

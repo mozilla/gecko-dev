@@ -9,7 +9,6 @@
  *
  * Event sent to a window when a storage area changes.
  */
-interface Storage;
 
 [Constructor(DOMString type, optional StorageEventInit eventInitDict)]
 interface StorageEvent : Event
@@ -21,7 +20,6 @@ interface StorageEvent : Event
   readonly attribute Storage? storageArea;
 
   // Bug 1016053 - This is not spec compliant.
-  [Throws]
   void initStorageEvent(DOMString type,
                         boolean canBubble,
                         boolean cancelable,

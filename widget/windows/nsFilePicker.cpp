@@ -10,6 +10,8 @@
 #include <shlwapi.h>
 #include <cderr.h>
 
+#include "mozilla/mscom/EnsureMTA.h"
+#include "mozilla/UniquePtr.h"
 #include "mozilla/WindowsVersion.h"
 #include "nsReadableUtils.h"
 #include "nsNetUtil.h"
@@ -24,8 +26,13 @@
 #include "nsToolkit.h"
 #include "WinUtils.h"
 #include "nsPIDOMWindow.h"
+#include "GeckoProfiler.h"
 
 using mozilla::IsVistaOrLater;
+using mozilla::IsWin8OrLater;
+using mozilla::MakeUnique;
+using mozilla::mscom::EnsureMTA;
+using mozilla::UniquePtr;
 using namespace mozilla::widget;
 
 char16_t *nsFilePicker::mLastUsedUnicodeDirectory;
@@ -61,7 +68,7 @@ private:
       mWindow->SuppressBlurEvents(aFlag);
     }
   }
-  nsRefPtr<nsWindow> mWindow;
+  RefPtr<nsWindow> mWindow;
 };
 
 // Manages the current working path.
@@ -70,15 +77,15 @@ class AutoRestoreWorkingPath
 public:
   AutoRestoreWorkingPath() {
     DWORD bufferLength = GetCurrentDirectoryW(0, nullptr);
-    mWorkingPath = new wchar_t[bufferLength];
-    if (GetCurrentDirectoryW(bufferLength, mWorkingPath) == 0) {
+    mWorkingPath = MakeUnique<wchar_t[]>(bufferLength);
+    if (GetCurrentDirectoryW(bufferLength, mWorkingPath.get()) == 0) {
       mWorkingPath = nullptr;
     }
   }
 
   ~AutoRestoreWorkingPath() {
     if (HasWorkingPath()) {
-      ::SetCurrentDirectoryW(mWorkingPath);
+      ::SetCurrentDirectoryW(mWorkingPath.get());
     }
   }
 
@@ -86,7 +93,7 @@ public:
     return mWorkingPath != nullptr;
   }
 private:
-  nsAutoArrayPtr<wchar_t> mWorkingPath;
+  UniquePtr<wchar_t[]> mWorkingPath;
 };
 
 // Manages NS_NATIVE_TMP_WINDOW child windows. NS_NATIVE_TMP_WINDOWs are
@@ -130,7 +137,7 @@ private:
         mWindow->PickerClosed();
     }
   }
-  nsRefPtr<nsWindow> mWindow;
+  RefPtr<nsWindow> mWindow;
 };
 
 // Manages a simple callback timer
@@ -179,7 +186,7 @@ nsFilePicker::nsFilePicker() :
 nsFilePicker::~nsFilePicker()
 {
   if (mLastUsedUnicodeDirectory) {
-    NS_Free(mLastUsedUnicodeDirectory);
+    free(mLastUsedUnicodeDirectory);
     mLastUsedUnicodeDirectory = nullptr;
   }
   CoUninitialize();
@@ -187,9 +194,9 @@ nsFilePicker::~nsFilePicker()
 
 NS_IMPL_ISUPPORTS(nsFilePicker, nsIFilePicker)
 
-NS_IMETHODIMP nsFilePicker::Init(nsIDOMWindow *aParent, const nsAString& aTitle, int16_t aMode)
+NS_IMETHODIMP nsFilePicker::Init(mozIDOMWindowProxy *aParent, const nsAString& aTitle, int16_t aMode)
 {
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aParent);
+  nsCOMPtr<nsPIDOMWindowOuter> window = do_QueryInterface(aParent);
   nsIDocShell* docShell = window ? window->GetDocShell() : nullptr;  
   mLoadContext = do_QueryInterface(docShell);
   
@@ -439,7 +446,7 @@ HRESULT
 nsFilePicker::OnTypeChange(IFileDialog *pfd)
 {
   // Failures here result in errors due to security concerns.
-  nsRefPtr<IOleWindow> win;
+  RefPtr<IOleWindow> win;
   pfd->QueryInterface(IID_IOleWindow, getter_AddRefs(win));
   if (!win) {
     NS_ERROR("Could not retrieve the IOleWindow interface for IFileDialog.");
@@ -523,8 +530,8 @@ nsFilePicker::ShowXPFolderPicker(const nsString& aInitialDir)
 {
   bool result = false;
 
-  nsAutoArrayPtr<wchar_t> dirBuffer(new wchar_t[FILE_BUFFER_SIZE]);
-  wcsncpy(dirBuffer, aInitialDir.get(), FILE_BUFFER_SIZE);
+  auto dirBuffer = MakeUnique<wchar_t[]>(FILE_BUFFER_SIZE);
+  wcsncpy(dirBuffer.get(), aInitialDir.get(), FILE_BUFFER_SIZE);
   dirBuffer[FILE_BUFFER_SIZE-1] = '\0';
 
   AutoDestroyTmpWindow adtw((HWND)(mParentWidget.get() ?
@@ -532,7 +539,7 @@ nsFilePicker::ShowXPFolderPicker(const nsString& aInitialDir)
 
   BROWSEINFOW browserInfo = {0};
   browserInfo.pidlRoot       = nullptr;
-  browserInfo.pszDisplayName = dirBuffer;
+  browserInfo.pszDisplayName = dirBuffer.get();
   browserInfo.lpszTitle      = mTitle.get();
   browserInfo.ulFlags        = BIF_USENEWUI | BIF_RETURNONLYFSDIRS;
   browserInfo.hwndOwner      = adtw.get(); 
@@ -551,9 +558,9 @@ nsFilePicker::ShowXPFolderPicker(const nsString& aInitialDir)
 
   LPITEMIDLIST list = ::SHBrowseForFolderW(&browserInfo);
   if (list) {
-    result = ::SHGetPathFromIDListW(list, dirBuffer);
+    result = ::SHGetPathFromIDListW(list, dirBuffer.get());
     if (result)
-      mUnicodeFile.Assign(static_cast<const wchar_t*>(dirBuffer));
+      mUnicodeFile.Assign(static_cast<const wchar_t*>(dirBuffer.get()));
     // free PIDL
     CoTaskMemFree(list);
   }
@@ -573,7 +580,16 @@ nsFilePicker::ShowXPFolderPicker(const nsString& aInitialDir)
 bool
 nsFilePicker::ShowFolderPicker(const nsString& aInitialDir, bool &aWasInitError)
 {
-  nsRefPtr<IFileOpenDialog> dialog;
+  if (!IsWin8OrLater()) {
+    // Some Windows 7 users are experiencing a race condition when some dlls
+    // that are loaded by the file picker cause a crash while attempting to shut
+    // down the COM multithreaded apartment. By instantiating EnsureMTA, we hold
+    // an additional reference to the MTA that should prevent this race, since
+    // the MTA will remain alive until shutdown.
+    EnsureMTA ensureMTA;
+  }
+
+  RefPtr<IFileOpenDialog> dialog;
   if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC,
                               IID_IFileOpenDialog,
                               getter_AddRefs(dialog)))) {
@@ -591,8 +607,13 @@ nsFilePicker::ShowFolderPicker(const nsString& aInitialDir, bool &aWasInitError)
  
   // initial strings
   dialog->SetTitle(mTitle.get());
+
+  if (!mOkButtonLabel.IsEmpty()) {
+    dialog->SetOkButtonLabel(mOkButtonLabel.get());
+  }
+
   if (!aInitialDir.IsEmpty()) {
-    nsRefPtr<IShellItem> folder;
+    RefPtr<IShellItem> folder;
     if (SUCCEEDED(
           WinUtils::SHCreateItemFromParsingName(aInitialDir.get(), nullptr,
                                                 IID_IShellItem,
@@ -605,7 +626,7 @@ nsFilePicker::ShowFolderPicker(const nsString& aInitialDir, bool &aWasInitError)
     mParentWidget->GetNativeData(NS_NATIVE_TMP_WINDOW) : nullptr));
  
   // display
-  nsRefPtr<IShellItem> item;
+  RefPtr<IShellItem> item;
   if (FAILED(dialog->Show(adtw.get())) ||
       FAILED(dialog->GetResult(getter_AddRefs(item))) ||
       !item) {
@@ -618,8 +639,8 @@ nsFilePicker::ShowFolderPicker(const nsString& aInitialDir, bool &aWasInitError)
 
   // If the user chose a Win7 Library, resolve to the library's
   // default save folder.
-  nsRefPtr<IShellItem> folderPath;
-  nsRefPtr<IShellLibrary> shellLib;
+  RefPtr<IShellItem> folderPath;
+  RefPtr<IShellLibrary> shellLib;
   CoCreateInstance(CLSID_ShellLibrary, nullptr, CLSCTX_INPROC,
                    IID_IShellLibrary, getter_AddRefs(shellLib));
   if (shellLib &&
@@ -637,23 +658,27 @@ nsFilePicker::ShowFolderPicker(const nsString& aInitialDir, bool &aWasInitError)
  * File open and save picker invocation
  */
 
+/* static */ bool
+nsFilePicker::GetFileNameWrapper(OPENFILENAMEW* ofn, PickerType aType)
+{
+  MOZ_SEH_TRY {
+    if (aType == PICKER_TYPE_OPEN)
+      return ::GetOpenFileNameW(ofn);
+    else if (aType == PICKER_TYPE_SAVE)
+      return ::GetSaveFileNameW(ofn);
+  } MOZ_SEH_EXCEPT(true) {
+    NS_ERROR("nsFilePicker GetFileName win32 call generated an exception! This is bad!");
+  }
+  return false;
+}
+
 bool
 nsFilePicker::FilePickerWrapper(OPENFILENAMEW* ofn, PickerType aType)
 {
   if (!ofn)
     return false;
-
-  bool result = false;
   AutoWidgetPickerState awps(mParentWidget);
-  MOZ_SEH_TRY {
-    if (aType == PICKER_TYPE_OPEN) 
-      result = ::GetOpenFileNameW(ofn);
-    else if (aType == PICKER_TYPE_SAVE)
-      result = ::GetSaveFileNameW(ofn);
-  } MOZ_SEH_EXCEPT(true) {
-    NS_ERROR("nsFilePicker GetFileName win32 call generated an exception! This is bad!");
-  }
-  return result;
+  return GetFileNameWrapper(ofn, aType);
 }
 
 bool
@@ -663,8 +688,8 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
   ofn.lStructSize = sizeof(ofn);
   nsString filterBuffer = mFilterList;
                                 
-  nsAutoArrayPtr<wchar_t> fileBuffer(new wchar_t[FILE_BUFFER_SIZE]);
-  wcsncpy(fileBuffer,  mDefaultFilePath.get(), FILE_BUFFER_SIZE);
+  auto fileBuffer = MakeUnique<wchar_t[]>(FILE_BUFFER_SIZE);
+  wcsncpy(fileBuffer.get(),  mDefaultFilePath.get(), FILE_BUFFER_SIZE);
   fileBuffer[FILE_BUFFER_SIZE-1] = '\0'; // null terminate in case copy truncated
 
   if (!aInitialDir.IsEmpty()) {
@@ -677,7 +702,7 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
   ofn.lpstrTitle   = (LPCWSTR)mTitle.get();
   ofn.lpstrFilter  = (LPCWSTR)filterBuffer.get();
   ofn.nFilterIndex = mSelectedType;
-  ofn.lpstrFile    = fileBuffer;
+  ofn.lpstrFile    = fileBuffer.get();
   ofn.nMaxFile     = FILE_BUFFER_SIZE;
   ofn.hwndOwner    = adtw.get();
   ofn.lCustData    = reinterpret_cast<LPARAM>(this);
@@ -750,9 +775,9 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
       // the new Common File Dialogs for Vista and up.
       if (!IsVistaOrLater()) {
         ofn.lpfnHook = MultiFilePickerHook;
-        fileBuffer.forget();
+        fileBuffer.release();
         result = FilePickerWrapper(&ofn, PICKER_TYPE_OPEN);
-        fileBuffer = ofn.lpstrFile;
+        fileBuffer.reset(ofn.lpstrFile);
       } else {
         result = FilePickerWrapper(&ofn, PICKER_TYPE_OPEN);
       }
@@ -794,7 +819,7 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
 
   // Single file selection, we're done
   if (mMode != modeOpenMultiple) {
-    GetQualifiedPath(fileBuffer, mUnicodeFile);
+    GetQualifiedPath(fileBuffer.get(), mUnicodeFile);
     return true;
   }
 
@@ -804,7 +829,7 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
   // separated, with an extra '\0' character after the last file name. This
   // format enables the Explorer-style dialog boxes to return long file names
   // that include spaces. 
-  wchar_t *current = fileBuffer;
+  wchar_t *current = fileBuffer.get();
   
   nsAutoString dirName(current);
   // Sometimes dirName contains a trailing slash and sometimes it doesn't:
@@ -835,7 +860,7 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
   // Handle the case where the user selected just one file. From msdn: If you
   // specify OFN_ALLOWMULTISELECT and the user selects only one file the
   // lpstrFile string does not have a separator between the path and file name.
-  if (current && *current && (current == fileBuffer)) {
+  if (current && *current && (current == fileBuffer.get())) {
     nsCOMPtr<nsIFile> file = do_CreateInstance("@mozilla.org/file/local;1");
     NS_ENSURE_TRUE(file, false);
     
@@ -861,7 +886,18 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
 bool
 nsFilePicker::ShowFilePicker(const nsString& aInitialDir, bool &aWasInitError)
 {
-  nsRefPtr<IFileDialog> dialog;
+  PROFILER_LABEL_FUNC(js::ProfileEntry::Category::OTHER);
+
+  if (!IsWin8OrLater()) {
+    // Some Windows 7 users are experiencing a race condition when some dlls
+    // that are loaded by the file picker cause a crash while attempting to shut
+    // down the COM multithreaded apartment. By instantiating EnsureMTA, we hold
+    // an additional reference to the MTA that should prevent this race, since
+    // the MTA will remain alive until shutdown.
+    EnsureMTA ensureMTA;
+  }
+
+  RefPtr<IFileDialog> dialog;
   if (mMode != modeSave) {
     if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC,
                                 IID_IFileOpenDialog,
@@ -939,7 +975,7 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir, bool &aWasInitError)
 
   // initial location
   if (!aInitialDir.IsEmpty()) {
-    nsRefPtr<IShellItem> folder;
+    RefPtr<IShellItem> folder;
     if (SUCCEEDED(
           WinUtils::SHCreateItemFromParsingName(aInitialDir.get(), nullptr,
                                                 IID_IShellItem,
@@ -979,21 +1015,21 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir, bool &aWasInitError)
 
   // single selection
   if (mMode != modeOpenMultiple) {
-    nsRefPtr<IShellItem> item;
+    RefPtr<IShellItem> item;
     if (FAILED(dialog->GetResult(getter_AddRefs(item))) || !item)
       return false;
     return WinUtils::GetShellItemPath(item, mUnicodeFile);
   }
 
   // multiple selection
-  nsRefPtr<IFileOpenDialog> openDlg;
+  RefPtr<IFileOpenDialog> openDlg;
   dialog->QueryInterface(IID_IFileOpenDialog, getter_AddRefs(openDlg));
   if (!openDlg) {
     // should not happen
     return false;
   }
 
-  nsRefPtr<IShellItemArray> items;
+  RefPtr<IShellItemArray> items;
   if (FAILED(openDlg->GetResults(getter_AddRefs(items))) || !items) {
     return false;
   }
@@ -1001,7 +1037,7 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir, bool &aWasInitError)
   DWORD count = 0;
   items->GetCount(&count);
   for (unsigned int idx = 0; idx < count; idx++) {
-    nsRefPtr<IShellItem> item;
+    RefPtr<IShellItem> item;
     nsAutoString str;
     if (SUCCEEDED(items->GetItemAt(idx, getter_AddRefs(item)))) {
       if (!WinUtils::GetShellItemPath(item, str))
@@ -1039,6 +1075,10 @@ nsFilePicker::ShowW(int16_t *aReturnVal)
   // Clear previous file selections
   mUnicodeFile.Truncate();
   mFiles.Clear();
+
+  // On Win10, the picker doesn't support per-monitor DPI, so we open it
+  // with our context set temporarily to system-dpi-aware
+  WinUtils::AutoSystemDpiAware dpiAwareness;
 
   // Launch the XP file/folder picker on XP and as a fallback on Vista+. 
   // The CoCreateInstance call to CLSID_FileOpenDialog fails with "(0x80040111)
@@ -1272,7 +1312,7 @@ nsFilePicker::RememberLastUsedDirectory()
   }
 
   if (mLastUsedUnicodeDirectory) {
-    NS_Free(mLastUsedUnicodeDirectory);
+    free(mLastUsedUnicodeDirectory);
     mLastUsedUnicodeDirectory = nullptr;
   }
   mLastUsedUnicodeDirectory = ToNewUnicode(newDir);

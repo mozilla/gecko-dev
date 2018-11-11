@@ -7,6 +7,7 @@
 #define MASKLAYERIMAGECACHE_H_
 
 #include "DisplayItemClip.h"
+#include "nsAutoPtr.h"
 #include "nsPresContext.h"
 #include "mozilla/gfx/Matrix.h"
 
@@ -14,7 +15,8 @@ namespace mozilla {
 
 namespace layers {
 class ImageContainer;
-}
+class ShadowLayerForwarder;
+} // namespace layers
 
 /**
  * Keeps a record of image containers for mask layers, containers are mapped
@@ -32,6 +34,7 @@ class ImageContainer;
 class MaskLayerImageCache
 {
   typedef mozilla::layers::ImageContainer ImageContainer;
+  typedef mozilla::layers::ShadowLayerForwarder ShadowLayerForwarder;
 public:
   MaskLayerImageCache();
   ~MaskLayerImageCache();
@@ -116,8 +119,10 @@ public:
     gfxFloat mRadii[8];
 
   private:
-    PixelRoundedRect() MOZ_DELETE;
+    PixelRoundedRect() = delete;
   };
+
+  struct MaskLayerImageKeyRef;
 
   /**
    * A key to identify cached image containers.
@@ -131,29 +136,15 @@ public:
    */
   struct MaskLayerImageKey
   {
-    MaskLayerImageKey()
-      : mLayerCount(0)
-      , mRoundedClipRects()
-    {
-      MOZ_COUNT_CTOR(MaskLayerImageKey);
-    }
-    MaskLayerImageKey(const MaskLayerImageKey& aKey)
-      : mLayerCount(aKey.mLayerCount)
-      , mRoundedClipRects(aKey.mRoundedClipRects)
-    {
-      MOZ_COUNT_CTOR(MaskLayerImageKey);
-    }
+    friend struct MaskLayerImageKeyRef;
 
-    ~MaskLayerImageKey()
-    {
-      MOZ_COUNT_DTOR(MaskLayerImageKey);
-    }
+    MaskLayerImageKey();
+    MaskLayerImageKey(const MaskLayerImageKey& aKey);
 
-    void AddRef() const { ++mLayerCount; }
-    void Release() const
-    {
-      NS_ASSERTION(mLayerCount > 0, "Inconsistent layer count");
-      --mLayerCount;
+    ~MaskLayerImageKey();
+
+    bool HasZeroLayerCount() const {
+      return mLayerCount == 0;
     }
 
     PLDHashNumber Hash() const
@@ -163,20 +154,66 @@ public:
       for (uint32_t i = 0; i < mRoundedClipRects.Length(); ++i) {
         hash = AddToHash(hash, mRoundedClipRects[i].Hash());
       }
+      hash = AddToHash(hash, mForwarder.get());
 
       return hash;
     }
 
     bool operator==(const MaskLayerImageKey& aOther) const
     {
-      return mRoundedClipRects == aOther.mRoundedClipRects;
+      return mForwarder == aOther.mForwarder &&
+             mRoundedClipRects == aOther.mRoundedClipRects;
     }
 
-    mutable uint32_t mLayerCount;
     nsTArray<PixelRoundedRect> mRoundedClipRects;
+    RefPtr<ShadowLayerForwarder> mForwarder;
+  private:
+    void IncLayerCount() const { ++mLayerCount; }
+    void DecLayerCount() const
+    {
+      NS_ASSERTION(mLayerCount > 0, "Inconsistent layer count");
+      --mLayerCount;
+    }
+    mutable uint32_t mLayerCount;
   };
 
-  
+  /**
+   * This struct maintains a reference to a MaskLayerImageKey, via a variant on
+   * refcounting. When a key is passed in via Reset(), we increment the
+   * passed-in key's mLayerCount, and we decrement its mLayerCount when we're
+   * destructed (or when the key is replaced via a second Reset() call).
+   *
+   * However, unlike standard refcounting smart-pointers, this object does
+   * *not* delete the tracked MaskLayerImageKey -- instead, deletion happens
+   * in MaskLayerImageCache::Sweep(), for any keys whose mLayerCount is 0.
+   */
+  struct MaskLayerImageKeyRef
+  {
+    ~MaskLayerImageKeyRef()
+    {
+      if (mRawPtr) {
+        mRawPtr->DecLayerCount();
+      }
+    }
+
+    MaskLayerImageKeyRef() : mRawPtr(nullptr) {}
+    MaskLayerImageKeyRef(const MaskLayerImageKeyRef&) = delete;
+    void operator=(const MaskLayerImageKeyRef&) = delete;
+
+    void Reset(const MaskLayerImageKey* aPtr)
+    {
+      MOZ_ASSERT(aPtr, "Cannot initialize a MaskLayerImageKeyRef with a null pointer");
+      aPtr->IncLayerCount();
+      if (mRawPtr) {
+        mRawPtr->DecLayerCount();
+      }
+      mRawPtr = aPtr;
+    }
+
+  private:
+    const MaskLayerImageKey* mRawPtr;
+  };
+
   // Find an image container for aKey, returns nullptr if there is no suitable
   // cached image. If there is an image, then aKey is set to point at the stored
   // key for the image.
@@ -199,7 +236,8 @@ protected:
     typedef const MaskLayerImageKey& KeyType;
     typedef const MaskLayerImageKey* KeyTypePointer;
 
-    MaskLayerImageEntry(KeyTypePointer aKey) : mKey(aKey)
+    explicit MaskLayerImageEntry(KeyTypePointer aKey)
+      : mKey(aKey)
     {
       MOZ_COUNT_CTOR(MaskLayerImageEntry);
     }
@@ -238,16 +276,14 @@ protected:
     }
 
     nsAutoPtr<const MaskLayerImageKey> mKey;
-    nsRefPtr<ImageContainer> mContainer;
+    RefPtr<ImageContainer> mContainer;
   };
 
   nsTHashtable<MaskLayerImageEntry> mMaskImageContainers;
-
-  // helper funtion for Sweep(), called for each entry in the hashtable
-  static PLDHashOperator SweepFunc(MaskLayerImageEntry* aEntry, void* aUserArg);
 };
 
-}
+
+} // namespace mozilla
 
 
 #endif

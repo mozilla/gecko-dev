@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,7 +10,9 @@ EXPORTS += [
     'nsXPCOMCIDInternal.h',
     'nsXREAppData.h',
     'nsXULAppAPI.h',
+    'XREChildData.h',
     'xrecore.h',
+    'XREShellData.h',
 ]
 
 EXPORTS.mozilla += [
@@ -32,12 +34,13 @@ if CONFIG['OS_ARCH'] == 'WINNT':
         'PoisonIOInterposerBase.cpp',
         'PoisonIOInterposerWin.cpp',
     ]
-elif CONFIG['OS_ARCH'] == 'Darwin':
-    SOURCES += [
-        'mach_override.c',
+elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+    UNIFIED_SOURCES += [
         'PoisonIOInterposerBase.cpp',
         'PoisonIOInterposerMac.cpp',
     ]
+    SOURCES += ['mach_override.c']
+    SOURCES['mach_override.c'].flags += ['-Wno-unused-function']
 else:
     SOURCES += ['PoisonIOInterposerStub.cpp']
 
@@ -51,9 +54,9 @@ UNIFIED_SOURCES += [
     'IOInterposer.cpp',
     'LateWriteChecks.cpp',
     'MainThreadIOLogger.cpp',
-    'nsXPComInit.cpp',
     'nsXPCOMStrings.cpp',
     'Services.cpp',
+    'XPCOMInit.cpp',
 ]
 
 if CONFIG['OS_ARCH'] != 'WINNT':
@@ -68,33 +71,25 @@ SOURCES += [
     'Omnijar.cpp',
 ]
 
-MSVC_ENABLE_PGO = True
-
-LIBRARY_NAME = 'xpcom_core'
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
 
 DEFINES['_IMPL_NS_STRINGAPI'] = True
 DEFINES['OMNIJAR_NAME'] = CONFIG['OMNIJAR_NAME']
+if CONFIG['MOZ_ICU_DATA_ARCHIVE']:
+    DEFINES['MOZ_ICU_DATA_ARCHIVE'] = True
 
-if CONFIG['TARGET_XPCOM_ABI']:
-    DEFINES['TARGET_XPCOM_ABI'] = '"%s"' % CONFIG['TARGET_XPCOM_ABI']
-
-if CONFIG['MOZ_OPTIMIZE']:
-    DEFINES['MOZ_OPTIMIZE'] = True
-
-GENERATED_INCLUDES += ['..']
 LOCAL_INCLUDES += [
+    '!..',
     '../base',
     '../components',
     '../ds',
     '../glue',
     '../io',
-    '../reflect/xptinfo/src',
+    '../reflect/xptinfo',
     '../threads',
-    '/chrome/src',
+    '/chrome',
     '/docshell/base',
 ]
 
@@ -102,3 +97,6 @@ if CONFIG['MOZ_VPX']:
     LOCAL_INCLUDES += [
         '/media/libvpx',
     ]
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+    CXXFLAGS += CONFIG['TK_CFLAGS']

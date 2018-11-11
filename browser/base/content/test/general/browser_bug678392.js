@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-let HTTPROOT = "http://example.com/browser/browser/base/content/test/general/";
+var HTTPROOT = "http://example.com/browser/browser/base/content/test/general/";
 
 function maxSnapshotOverride() {
   return 5;
@@ -157,7 +157,6 @@ function test2() {
   let tab = gBrowser.selectedTab;
 
   load(tab, HTTPROOT + "browser_bug678392-1.html", function() {
-    var historyIndex = gBrowser.webNavigation.sessionHistory.index - 1;
     load(tab, HTTPROOT + "browser_bug678392-2.html", function() {
       is(gHistorySwipeAnimation._trackedSnapshots.length, 2, "Length of " +
          "snapshot array is equal to 2 after loading two pages");

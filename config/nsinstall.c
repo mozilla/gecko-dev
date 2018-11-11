@@ -213,7 +213,6 @@ static void
 copydir( char *from, char *to, mode_t mode, char *group, char *owner,
          int dotimes, uid_t uid, gid_t gid)
 {
-  int i;
   DIR *dir;
   struct dirent *ep;
   struct stat sb;
@@ -262,13 +261,12 @@ copydir( char *from, char *to, mode_t mode, char *group, char *owner,
 int
 main(int argc, char **argv)
 {
-    int onlydir, dodir, dolink, dorelsymlink, dotimes, opt, len, lplen, tdlen, bnlen, exists, fromfd, tofd, cc, wc;
+    int onlydir, dodir, dolink, dorelsymlink, dotimes, opt, len, lplen, tdlen, bnlen, exists;
     mode_t mode = 0755;
-    char *linkprefix, *owner, *group, *cp, *cwd, *todir, *toname, *name, *base, *linkname, *bp, buf[BUFSIZ];
+    char *linkprefix, *owner, *group, *cp, *cwd, *todir, *toname, *name, *base, *linkname, buf[BUFSIZ];
     uid_t uid;
     gid_t gid;
     struct stat sb, tosb, fromsb;
-    struct utimbuf utb;
 
     program = argv[0];
     cwd = linkname = linkprefix = owner = group = 0;
@@ -410,11 +408,12 @@ main(int argc, char **argv)
 	    }
 
 	    /* Check for a pre-existing symlink with identical content. */
-	    if ((exists && (!S_ISLNK(tosb.st_mode) ||
+	    if (exists && (!S_ISLNK(tosb.st_mode) ||
 						readlink(toname, buf, sizeof buf) != len ||
-						strncmp(buf, name, (unsigned int)len) != 0)) || 
-			((stat(name, &fromsb) == 0) && 
-			 (fromsb.st_mtime > tosb.st_mtime))) {
+						strncmp(buf, name, (unsigned int)len) != 0 || 
+			((stat(name, &fromsb) == 0) &&
+			 (fromsb.st_mtime > tosb.st_mtime) 
+			 ))) {
 		(void) (S_ISDIR(tosb.st_mode) ? rmdir : unlink)(toname);
 		exists = 0;
 	    }

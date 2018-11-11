@@ -1,8 +1,10 @@
 node-http2
 ==========
 
-An HTTP/2 ([draft-ietf-httpbis-http2-12](http://tools.ietf.org/html/draft-ietf-httpbis-http2-12))
+An HTTP/2 ([RFC 7540](http://tools.ietf.org/html/rfc7540))
 client and server implementation for node.js.
+
+![Travis CI status](https://travis-ci.org/molnarg/node-http2.svg?branch=master)
 
 Installation
 ------------
@@ -39,8 +41,6 @@ require('http2').createServer(options, function(request, response) {
 ### Using as a client ###
 
 ```javascript
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
 require('http2').get('https://localhost:8080/', function(response) {
   response.pipe(process.stdout);
 });
@@ -72,10 +72,7 @@ For a server push example, see the source code of the example
 Status
 ------
 
-* ALPN is not yet supported in node.js (see
-  [this issue](https://github.com/joyent/node/issues/5945)). For ALPN support, you will have to use
-  [Shigeki Ohtsu's node.js fork](https://github.com/shigeki/node/tree/alpn_support) until this code
-  gets merged upstream.
+* ALPN is only supported in node.js >= 5.0
 * Upgrade mechanism to start HTTP/2 over unencrypted channel is not implemented yet
   (issue [#4](https://github.com/molnarg/node-http2/issues/4))
 * Other minor features found in
@@ -114,12 +111,12 @@ point to understand the code.
 ### Test coverage ###
 
 To generate a code coverage report, run `npm test --coverage` (which runs very slowly, be patient).
-Code coverage summary as of version 2.4.0:
+Code coverage summary as of version 3.0.1:
 ```
-Statements   : 93.19% ( 397/426 )
-Branches     : 79.88% ( 131/164 )
-Functions    : 93.75% ( 60/64 )
-Lines        : 93.19% ( 397/426 )
+Statements   : 92.09% ( 1759/1910 )
+Branches     : 82.56% ( 696/843 )
+Functions    : 91.38% ( 212/232 )
+Lines        : 92.17% ( 1753/1902 )
 ```
 
 There's a hosted version of the detailed (line-by-line) coverage report
@@ -143,21 +140,27 @@ $ HTTP2_LOG=info node ./example/server.js
 ```
 
 ```bash
-$ HTTP2_LOG=info node ./example/client.js 'http://localhost:8080/server.js' >/dev/null
+$ HTTP2_LOG=info node ./example/client.js 'https://localhost:8080/server.js' >/dev/null
 ```
 
 Contributors
 ------------
 
+The co-maintainer of the project is [Nick Hurley](https://github.com/todesschaf).
+
 Code contributions are always welcome! People who contributed to node-http2 so far:
 
-* Nick Hurley
-* Mike Belshe
-* Yoshihiro Iwanaga
+* [Nick Hurley](https://github.com/todesschaf)
+* [Mike Belshe](https://github.com/mbelshe)
+* [Yoshihiro Iwanaga](https://github.com/iwanaga)
+* [Igor Novikov](https://github.com/vsemogutor)
+* [James Willcox](https://github.com/snorp)
+* [David Björklund](https://github.com/kesla)
+* [Patrick McManus](https://github.com/mcmanus)
 
 Special thanks to Google for financing the development of this module as part of their [Summer of
 Code program](https://developers.google.com/open-source/soc/) (project: [HTTP/2 prototype server
-implementation](https://google-melange.appspot.com/gsoc/project/google/gsoc2013/molnarg/5001)), and
+implementation](https://google-melange.appspot.com/gsoc/project/details/google/gsoc2013/molnarg/5818821692620800)), and
 Nick Hurley of Mozilla, my GSoC mentor, who helped with regular code review and technical advices.
 
 License

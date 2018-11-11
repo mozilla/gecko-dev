@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,7 +17,9 @@
 #include "nsIURI.h"
 #include "nsXBLSerialize.h"
 #include "nsXBLPrototypeBinding.h"
+#include "mozilla/AddonPathService.h"
 #include "mozilla/dom/BindingUtils.h"
+#include "mozilla/dom/ElementBinding.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "nsGlobalWindow.h"
 #include "xpcpublic.h"
@@ -60,8 +63,8 @@ nsXBLProtoImplField::~nsXBLProtoImplField()
 {
   MOZ_COUNT_DTOR(nsXBLProtoImplField);
   if (mFieldText)
-    nsMemory::Free(mFieldText);
-  NS_Free(mName);
+    free(mFieldText);
+  free(mName);
   NS_CONTENT_DELETE_LIST_MEMBER(nsXBLProtoImplField, this, mNext);
 }
 
@@ -74,7 +77,7 @@ nsXBLProtoImplField::AppendFieldText(const nsAString& aText)
     char16_t* temp = mFieldText;
     mFieldText = ToNewUnicode(newFieldText);
     mFieldTextLength = newFieldText.Length();
-    nsMemory::Free(temp);
+    free(temp);
   }
   else {
     mFieldText = ToNewUnicode(aText);
@@ -112,7 +115,7 @@ ValueHasISupportsPrivate(JS::Handle<JS::Value> v)
     return false;
   }
 
-  const DOMClass* domClass = GetDOMClass(&v.toObject());
+  const DOMJSClass* domClass = GetDOMClass(&v.toObject());
   if (domClass) {
     return domClass->mDOMObjectIsISupports;
   }
@@ -152,8 +155,7 @@ InstallXBLField(JSContext* cx,
   // But there are some cases where we must accept |thisObj| but not install a
   // property on it, or otherwise touch it.  Hence this split of |this|-vetting
   // duties.
-  nsISupports* native =
-    nsContentUtils::XPConnect()->GetNativeOfWrapper(cx, thisObj);
+  nsCOMPtr<nsISupports> native = xpc::UnwrapReflectorToISupports(thisObj);
   if (!native) {
     // Looks like whatever |thisObj| is it's not our nsIContent.  It might well
     // be the proto our binding installed, however, where the private is the
@@ -180,7 +182,7 @@ InstallXBLField(JSContext* cx,
   // Field[GS]etter where we attempt a cross-compartment call), we must enter
   // the callee's compartment to access its reserved slots.
   nsXBLPrototypeBinding* protoBinding;
-  nsDependentJSString fieldName;
+  nsAutoJSString fieldName;
   {
     JSAutoCompartment ac(cx, callee);
 
@@ -188,8 +190,9 @@ InstallXBLField(JSContext* cx,
     xblProto = &js::GetFunctionNativeReserved(callee, XBLPROTO_SLOT).toObject();
 
     JS::Rooted<JS::Value> name(cx, js::GetFunctionNativeReserved(callee, FIELD_SLOT));
-    JSFlatString* fieldStr = JS_ASSERT_STRING_IS_FLAT(name.toString());
-    fieldName.infallibleInit(fieldStr);
+    if (!fieldName.init(cx, name.toString())) {
+      return false;
+    }
 
     MOZ_ALWAYS_TRUE(JS_ValueToId(cx, name, idp));
 
@@ -217,7 +220,7 @@ InstallXBLField(JSContext* cx,
 }
 
 bool
-FieldGetterImpl(JSContext *cx, JS::CallArgs args)
+FieldGetterImpl(JSContext *cx, const JS::CallArgs& args)
 {
   JS::Handle<JS::Value> thisv = args.thisv();
   MOZ_ASSERT(ValueHasISupportsPrivate(thisv));
@@ -241,12 +244,7 @@ FieldGetterImpl(JSContext *cx, JS::CallArgs args)
     return true;
   }
 
-  JS::Rooted<JS::Value> v(cx);
-  if (!JS_GetPropertyById(cx, thisObj, id, &v)) {
-    return false;
-  }
-  args.rval().set(v);
-  return true;
+  return JS_GetPropertyById(cx, thisObj, id, args.rval());
 }
 
 static bool
@@ -258,7 +256,7 @@ FieldGetter(JSContext *cx, unsigned argc, JS::Value *vp)
 }
 
 bool
-FieldSetterImpl(JSContext *cx, JS::CallArgs args)
+FieldSetterImpl(JSContext *cx, const JS::CallArgs& args)
 {
   JS::Handle<JS::Value> thisv = args.thisv();
   MOZ_ASSERT(ValueHasISupportsPrivate(thisv));
@@ -333,12 +331,12 @@ nsXBLProtoImplField::InstallAccessors(JSContext* aCx,
   // First, enter the XBL scope, and compile the functions there.
   JSAutoCompartment ac(aCx, scopeObject);
   JS::Rooted<JS::Value> wrappedClassObj(aCx, JS::ObjectValue(*aTargetClassObject));
-  if (!JS_WrapValue(aCx, &wrappedClassObj) || !JS_WrapId(aCx, &id))
+  if (!JS_WrapValue(aCx, &wrappedClassObj))
     return NS_ERROR_OUT_OF_MEMORY;
 
   JS::Rooted<JSObject*> get(aCx,
     JS_GetFunctionObject(js::NewFunctionByIdWithReserved(aCx, FieldGetter,
-                                                         0, 0, scopeObject, id)));
+                                                         0, 0, id)));
   if (!get) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -348,7 +346,7 @@ nsXBLProtoImplField::InstallAccessors(JSContext* aCx,
 
   JS::Rooted<JSObject*> set(aCx,
     JS_GetFunctionObject(js::NewFunctionByIdWithReserved(aCx, FieldSetter,
-                                                          1, 0, scopeObject, id)));
+                                                          1, 0, id)));
   if (!set) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -359,16 +357,14 @@ nsXBLProtoImplField::InstallAccessors(JSContext* aCx,
   // Now, re-enter the class object's scope, wrap the getters/setters, and define
   // them there.
   JSAutoCompartment ac2(aCx, aTargetClassObject);
-  if (!JS_WrapObject(aCx, &get) || !JS_WrapObject(aCx, &set) ||
-      !JS_WrapId(aCx, &id))
-  {
+  if (!JS_WrapObject(aCx, &get) || !JS_WrapObject(aCx, &set)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
   if (!::JS_DefinePropertyById(aCx, aTargetClassObject, id, JS::UndefinedHandleValue,
                                AccessorAttributes(),
-                               JS_DATA_TO_FUNC_PTR(JSPropertyOp, get.get()),
-                               JS_DATA_TO_FUNC_PTR(JSStrictPropertyOp, set.get()))) {
+                               JS_DATA_TO_FUNC_PTR(JSNative, get.get()),
+                               JS_DATA_TO_FUNC_PTR(JSNative, set.get()))) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
@@ -393,12 +389,11 @@ nsXBLProtoImplField::InstallField(JS::Handle<JSObject*> aBoundNode,
 
   nsAutoMicroTask mt;
 
-  // EvaluateString and JS_DefineUCProperty can both trigger GC, so
-  // protect |result| here.
-  nsresult rv;
-
   nsAutoCString uriSpec;
-  aBindingDocURI->GetSpec(uriSpec);
+  nsresult rv = aBindingDocURI->GetSpec(uriSpec);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
 
   nsIGlobalObject* globalObject = xpc::WindowGlobalOrNull(aBoundNode);
   if (!globalObject) {
@@ -407,35 +402,57 @@ nsXBLProtoImplField::InstallField(JS::Handle<JSObject*> aBoundNode,
 
   // We are going to run script via EvaluateString, so we need a script entry
   // point, but as this is XBL related it does not appear in the HTML spec.
-  AutoEntryScript entryScript(globalObject, true);
-  JSContext* cx = entryScript.cx();
+  // We need an actual JSContext to do GetScopeForXBLExecution, and it needs to
+  // be in the compartment of globalObject.  But we want our XBL execution scope
+  // to be our entry global.
+  AutoJSAPI jsapi;
+  if (!jsapi.Init(globalObject)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+  MOZ_ASSERT(!::JS_IsExceptionPending(jsapi.cx()),
+             "Shouldn't get here when an exception is pending!");
 
-  NS_ASSERTION(!::JS_IsExceptionPending(cx),
-               "Shouldn't get here when an exception is pending!");
+  JSAddonId* addonId = MapURIToAddonID(aBindingDocURI);
 
-  // First, enter the xbl scope, wrap the node, and use that as the scope for
-  // the evaluation.
-  JS::Rooted<JSObject*> scopeObject(cx, xpc::GetXBLScopeOrGlobal(cx, aBoundNode));
+  // Note: the UNWRAP_OBJECT may mutate boundNode; don't use it after that call.
+  JS::Rooted<JSObject*> boundNode(jsapi.cx(), aBoundNode);
+  Element* boundElement = nullptr;
+  rv = UNWRAP_OBJECT(Element, &boundNode, boundElement);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  // First, enter the xbl scope, build the element's scope chain, and use
+  // that as the scope chain for the evaluation.
+  JS::Rooted<JSObject*> scopeObject(jsapi.cx(),
+    xpc::GetScopeForXBLExecution(jsapi.cx(), aBoundNode, addonId));
   NS_ENSURE_TRUE(scopeObject, NS_ERROR_OUT_OF_MEMORY);
-  JSAutoCompartment ac(cx, scopeObject);
 
-  JS::Rooted<JSObject*> wrappedNode(cx, aBoundNode);
-  if (!JS_WrapObject(cx, &wrappedNode))
-      return NS_ERROR_OUT_OF_MEMORY;
+  AutoEntryScript aes(scopeObject, "XBL <field> initialization", true);
+  JSContext* cx = aes.cx();
 
   JS::Rooted<JS::Value> result(cx);
   JS::CompileOptions options(cx);
   options.setFileAndLine(uriSpec.get(), mLineNumber)
          .setVersion(JSVERSION_LATEST);
-  nsJSUtils::EvaluateOptions evalOptions;
+  nsJSUtils::EvaluateOptions evalOptions(cx);
+  if (!nsJSUtils::GetScopeChainForElement(cx, boundElement,
+                                          evalOptions.scopeChain)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
   rv = nsJSUtils::EvaluateString(cx, nsDependentString(mFieldText,
                                                        mFieldTextLength),
-                                 wrappedNode, options, evalOptions,
-                                 &result);
+                                 scopeObject, options, evalOptions, &result);
   if (NS_FAILED(rv)) {
     return rv;
   }
 
+  if (rv == NS_SUCCESS_DOM_SCRIPT_EVALUATION_THREW) {
+    // Report the exception now, before we try using the JSContext for
+    // the JS_DefineUCProperty call.  Note that this reports in our current
+    // compartment, which is the XBL scope.
+    aes.ReportException();
+  }
 
   // Now, enter the node's compartment, wrap the eval result, and define it on
   // the bound node.
@@ -443,7 +460,7 @@ nsXBLProtoImplField::InstallField(JS::Handle<JSObject*> aBoundNode,
   nsDependentString name(mName);
   if (!JS_WrapValue(cx, &result) ||
       !::JS_DefineUCProperty(cx, aBoundNode,
-                             reinterpret_cast<const jschar*>(mName),
+                             reinterpret_cast<const char16_t*>(mName),
                              name.Length(), result, mJSAttributes)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -489,5 +506,5 @@ nsXBLProtoImplField::Write(nsIObjectOutputStream* aStream)
   rv = aStream->Write32(mLineNumber);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return aStream->WriteWStringZ(mFieldText ? mFieldText : MOZ_UTF16(""));
+  return aStream->WriteWStringZ(mFieldText ? mFieldText : u"");
 }

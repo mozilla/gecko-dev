@@ -13,11 +13,11 @@
 
 namespace ots {
 
-bool ots_post_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
+bool ots_post_parse(Font *font, const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
   OpenTypePOST *post = new OpenTypePOST;
-  file->post = post;
+  font->post = post;
 
   if (!table.ReadU32(&post->version) ||
       !table.ReadU32(&post->italic_angle) ||
@@ -53,12 +53,12 @@ bool ots_post_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
     return OTS_FAILURE_MSG("Failed to read number of glyphs");
   }
 
-  if (!file->maxp) {
+  if (!font->maxp) {
     return OTS_FAILURE_MSG("No maxp table required by post table");
   }
 
   if (num_glyphs == 0) {
-    if (file->maxp->num_glyphs > 258) {
+    if (font->maxp->num_glyphs > 258) {
       return OTS_FAILURE_MSG("Can't have no glyphs in the post table if there are more than 256 glyphs in the font");
     }
     OTS_WARNING("table version is 1, but no glyf names are found");
@@ -68,7 +68,7 @@ bool ots_post_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
     return true;
   }
 
-  if (num_glyphs != file->maxp->num_glyphs) {
+  if (num_glyphs != font->maxp->num_glyphs) {
     // Note: Fixedsys500c.ttf seems to have inconsistent num_glyphs values.
     return OTS_FAILURE_MSG("Bad number of glyphs in post table %d", num_glyphs);
   }
@@ -120,15 +120,15 @@ bool ots_post_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   return true;
 }
 
-bool ots_post_should_serialise(OpenTypeFile *file) {
-  return file->post != NULL;
+bool ots_post_should_serialise(Font *font) {
+  return font->post != NULL;
 }
 
-bool ots_post_serialise(OTSStream *out, OpenTypeFile *file) {
-  const OpenTypePOST *post = file->post;
+bool ots_post_serialise(OTSStream *out, Font *font) {
+  const OpenTypePOST *post = font->post;
 
   // OpenType with CFF glyphs must have v3 post table.
-  if (file->post && file->cff && file->post->version != 0x00030000) {
+  if (post && font->cff && post->version != 0x00030000) {
     return OTS_FAILURE_MSG("Bad post version %x", post->version);
   }
 
@@ -148,11 +148,14 @@ bool ots_post_serialise(OTSStream *out, OpenTypeFile *file) {
     return true;  // v1.0 and v3.0 does not have glyph names.
   }
 
-  if (!out->WriteU16(post->glyph_name_index.size())) {
+  const uint16_t num_indexes =
+      static_cast<uint16_t>(post->glyph_name_index.size());
+  if (num_indexes != post->glyph_name_index.size() ||
+      !out->WriteU16(num_indexes)) {
     return OTS_FAILURE_MSG("Failed to write number of indices");
   }
 
-  for (unsigned i = 0; i < post->glyph_name_index.size(); ++i) {
+  for (uint16_t i = 0; i < num_indexes; ++i) {
     if (!out->WriteU16(post->glyph_name_index[i])) {
       return OTS_FAILURE_MSG("Failed to write name index %d", i);
     }
@@ -161,8 +164,9 @@ bool ots_post_serialise(OTSStream *out, OpenTypeFile *file) {
   // Now we just have to write out the strings in the correct order
   for (unsigned i = 0; i < post->names.size(); ++i) {
     const std::string& s = post->names[i];
-    const uint8_t string_length = s.size();
-    if (!out->Write(&string_length, 1)) {
+    const uint8_t string_length = static_cast<uint8_t>(s.size());
+    if (string_length != s.size() ||
+        !out->Write(&string_length, 1)) {
       return OTS_FAILURE_MSG("Failed to write string %d", i);
     }
     // Some ttf fonts (e.g., frank.ttf on Windows Vista) have zero-length name.
@@ -175,8 +179,13 @@ bool ots_post_serialise(OTSStream *out, OpenTypeFile *file) {
   return true;
 }
 
-void ots_post_free(OpenTypeFile *file) {
-  delete file->post;
+void ots_post_reuse(Font *font, Font *other) {
+  font->post = other->post;
+  font->post_reused = true;
+}
+
+void ots_post_free(Font *font) {
+  delete font->post;
 }
 
 }  // namespace ots

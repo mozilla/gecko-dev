@@ -6,6 +6,51 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
   "resource://gre/modules/PlacesUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesTestUtils",
+  "resource://testing-common/PlacesTestUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "TabCrashHandler",
+  "resource:///modules/ContentCrashHandlers.jsm");
+
+/**
+ * Wait for a <notification> to be closed then call the specified callback.
+ */
+function waitForNotificationClose(notification, cb) {
+  let parent = notification.parentNode;
+
+  let observer = new MutationObserver(function onMutatations(mutations) {
+    for (let mutation of mutations) {
+      for (let i = 0; i < mutation.removedNodes.length; i++) {
+        let node = mutation.removedNodes.item(i);
+        if (node != notification) {
+          continue;
+        }
+        observer.disconnect();
+        cb();
+      }
+    }
+  });
+  observer.observe(parent, {childList: true});
+}
+
+function closeAllNotifications () {
+  let notificationBox = document.getElementById("global-notificationbox");
+
+  if (!notificationBox || !notificationBox.currentNotification) {
+    return Promise.resolve();
+  }
+
+  let deferred = Promise.defer();
+  for (let notification of notificationBox.allNotifications) {
+    waitForNotificationClose(notification, function () {
+      if (notificationBox.allNotifications.length === 0) {
+        deferred.resolve();
+      }
+    });
+    notification.close();
+  }
+
+  return deferred.promise;
+}
 
 function whenDelayedStartupFinished(aWindow, aCallback) {
   Services.obs.addObserver(function observer(aSubject, aTopic) {
@@ -16,17 +61,7 @@ function whenDelayedStartupFinished(aWindow, aCallback) {
   }, "browser-delayed-startup-finished", false);
 }
 
-function findChromeWindowByURI(aURI) {
-  let windows = Services.wm.getEnumerator(null);
-  while (windows.hasMoreElements()) {
-    let win = windows.getNext();
-    if (win.location.href == aURI)
-      return win;
-  }
-  return null;
-}
-
-function updateTabContextMenu(tab) {
+function updateTabContextMenu(tab, onOpened) {
   let menu = document.getElementById("tabContextMenu");
   if (!tab)
     tab = gBrowser.selectedTab;
@@ -34,7 +69,15 @@ function updateTabContextMenu(tab) {
   tab.dispatchEvent(evt);
   menu.openPopup(tab, "end_after", 0, 0, true, false, evt);
   is(TabContextMenu.contextTab, tab, "TabContextMenu context is the expected tab");
-  menu.hidePopup();
+  const onFinished = () => menu.hidePopup();
+  if (onOpened) {
+    return Task.spawn(function*() {
+      yield onOpened();
+      onFinished();
+    });
+  }
+  onFinished();
+  return Promise.resolve();
 }
 
 function openToolbarCustomizationUI(aCallback, aBrowserWin) {
@@ -60,10 +103,11 @@ function closeToolbarCustomizationUI(aCallback, aBrowserWin) {
   aBrowserWin.gCustomizeMode.exit();
 }
 
-function waitForCondition(condition, nextTest, errorMsg) {
+function waitForCondition(condition, nextTest, errorMsg, retryTimes) {
+  retryTimes = typeof retryTimes !== 'undefined' ?  retryTimes : 30;
   var tries = 0;
   var interval = setInterval(function() {
-    if (tries >= 30) {
+    if (tries >= retryTimes) {
       ok(false, errorMsg);
       moveOn();
     }
@@ -80,6 +124,42 @@ function waitForCondition(condition, nextTest, errorMsg) {
     tries++;
   }, 100);
   var moveOn = function() { clearInterval(interval); nextTest(); };
+}
+
+function promiseWaitForCondition(aConditionFn) {
+  let deferred = Promise.defer();
+  waitForCondition(aConditionFn, deferred.resolve, "Condition didn't pass.");
+  return deferred.promise;
+}
+
+function promiseWaitForEvent(object, eventName, capturing = false, chrome = false) {
+  return new Promise((resolve) => {
+    function listener(event) {
+      info("Saw " + eventName);
+      object.removeEventListener(eventName, listener, capturing, chrome);
+      resolve(event);
+    }
+
+    info("Waiting for " + eventName);
+    object.addEventListener(eventName, listener, capturing, chrome);
+  });
+}
+
+/**
+ * Allows setting focus on a window, and waiting for that window to achieve
+ * focus.
+ *
+ * @param aWindow
+ *        The window to focus and wait for.
+ *
+ * @return {Promise}
+ * @resolves When the window is focused.
+ * @rejects Never.
+ */
+function promiseWaitForFocus(aWindow) {
+  return new Promise((resolve) => {
+    waitForFocus(resolve, aWindow);
+  });
 }
 
 function getTestPlugin(aName) {
@@ -108,16 +188,10 @@ function setTestPluginEnabledState(newEnabledState, pluginName) {
   });
 }
 
-// after a test is done using the plugin doorhanger, we should just clear
-// any permissions that may have crept in
-function clearAllPluginPermissions() {
-  let perms = Services.perms.enumerator;
-  while (perms.hasMoreElements()) {
-    let perm = perms.getNext();
-    if (perm.type.startsWith('plugin')) {
-      Services.perms.remove(perm.host, perm.type);
-    }
-  }
+function pushPrefs(...aPrefs) {
+  let deferred = Promise.defer();
+  SpecialPowers.pushPrefEnv({"set": aPrefs}, deferred.resolve);
+  return deferred.promise;
 }
 
 function updateBlocklist(aCallback) {
@@ -149,6 +223,44 @@ function whenNewWindowLoaded(aOptions, aCallback) {
     win.removeEventListener("load", onLoad, false);
     aCallback(win);
   }, false);
+}
+
+function promiseWindowWillBeClosed(win) {
+  return new Promise((resolve, reject) => {
+    Services.obs.addObserver(function observe(subject, topic) {
+      if (subject == win) {
+        Services.obs.removeObserver(observe, topic);
+        resolve();
+      }
+    }, "domwindowclosed", false);
+  });
+}
+
+function promiseWindowClosed(win) {
+  let promise = promiseWindowWillBeClosed(win);
+  win.close();
+  return promise;
+}
+
+function promiseOpenAndLoadWindow(aOptions, aWaitForDelayedStartup=false) {
+  let deferred = Promise.defer();
+  let win = OpenBrowserWindow(aOptions);
+  if (aWaitForDelayedStartup) {
+    Services.obs.addObserver(function onDS(aSubject, aTopic, aData) {
+      if (aSubject != win) {
+        return;
+      }
+      Services.obs.removeObserver(onDS, "browser-delayed-startup-finished");
+      deferred.resolve(win);
+    }, "browser-delayed-startup-finished", false);
+
+  } else {
+    win.addEventListener("load", function onLoad() {
+      win.removeEventListener("load", onLoad);
+      deferred.resolve(win);
+    });
+  }
+  return deferred.promise;
 }
 
 /**
@@ -199,7 +311,7 @@ function waitForAsyncUpdates(aCallback, aScope, aArguments) {
  */
 function promiseIsURIVisited(aURI, aExpectedValue) {
   let deferred = Promise.defer();
-  PlacesUtils.asyncHistory.isURIVisited(aURI, function(aURI, aIsVisited) {
+  PlacesUtils.asyncHistory.isURIVisited(aURI, function(unused, aIsVisited) {
     deferred.resolve(aIsVisited);
   });
 
@@ -219,56 +331,13 @@ function whenNewTabLoaded(aWindow, aCallback) {
 }
 
 function whenTabLoaded(aTab, aCallback) {
-  let browser = aTab.linkedBrowser;
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
-    executeSoon(aCallback);
-  }, true);
+  promiseTabLoadEvent(aTab).then(aCallback);
 }
 
 function promiseTabLoaded(aTab) {
   let deferred = Promise.defer();
   whenTabLoaded(aTab, deferred.resolve);
   return deferred.promise;
-}
-
-function addVisits(aPlaceInfo, aCallback) {
-  let places = [];
-  if (aPlaceInfo instanceof Ci.nsIURI) {
-    places.push({ uri: aPlaceInfo });
-  } else if (Array.isArray(aPlaceInfo)) {
-    places = places.concat(aPlaceInfo);
-  } else {
-    places.push(aPlaceInfo);
-   }
-
-  // Create mozIVisitInfo for each entry.
-  let now = Date.now();
-  for (let i = 0; i < places.length; i++) {
-    if (!places[i].title) {
-      places[i].title = "test visit for " + places[i].uri.spec;
-    }
-    places[i].visits = [{
-      transitionType: places[i].transition === undefined ? Ci.nsINavHistoryService.TRANSITION_LINK
-                                                         : places[i].transition,
-      visitDate: places[i].visitDate || (now++) * 1000,
-      referrerURI: places[i].referrer
-    }];
-  }
-
-  PlacesUtils.asyncHistory.updatePlaces(
-    places,
-    {
-      handleError: function AAV_handleError() {
-        throw("Unexpected error in adding visit.");
-      },
-      handleResult: function () {},
-      handleCompletion: function UP_handleCompletion() {
-        if (aCallback)
-          aCallback();
-      }
-    }
-  );
 }
 
 /**
@@ -288,47 +357,14 @@ function promiseHistoryClearedState(aURIs, aShouldBeCleared) {
       deferred.resolve();
   }
   aURIs.forEach(function (aURI) {
-    PlacesUtils.asyncHistory.isURIVisited(aURI, function(aURI, aIsVisited) {
-      is(aIsVisited, !aShouldBeCleared,
-         "history visit " + aURI.spec + " should " + niceStr + " exist");
+    PlacesUtils.asyncHistory.isURIVisited(aURI, function(uri, isVisited) {
+      is(isVisited, !aShouldBeCleared,
+         "history visit " + uri.spec + " should " + niceStr + " exist");
       callbackDone();
     });
   });
 
   return deferred.promise;
-}
-
-/**
- * Allows waiting for an observer notification once.
- *
- * @param topic
- *        Notification topic to observe.
- *
- * @return {Promise}
- * @resolves The array [subject, data] from the observed notification.
- * @rejects Never.
- */
-function promiseTopicObserved(topic)
-{
-  let deferred = Promise.defer();
-  Services.obs.addObserver(function PTO_observe(subject, topic, data) {
-    Services.obs.removeObserver(PTO_observe, topic);
-    deferred.resolve([subject, data]);
-  }, topic, false);
-  return deferred.promise;
-}
-
-/**
- * Clears history asynchronously.
- *
- * @return {Promise}
- * @resolves When history has been cleared.
- * @rejects Never.
- */
-function promiseClearHistory() {
-  let promise = promiseTopicObserved(PlacesUtils.TOPIC_EXPIRATION_FINISHED);
-  PlacesUtils.bhistory.removeAllPages();
-  return promise;
 }
 
 /**
@@ -338,40 +374,126 @@ function promiseClearHistory() {
  *
  * @param aExpectedURL
  *        The URL of the document that is expected to load.
+ * @param aStopFromProgressListener
+ *        Whether to cancel the load directly from the progress listener. Defaults to true.
+ *        If you're using this method to avoid hitting the network, you want the default (true).
+ *        However, the browser UI will behave differently for loads stopped directly from
+ *        the progress listener (effectively in the middle of a call to loadURI) and so there
+ *        are cases where you may want to avoid stopping the load directly from within the
+ *        progress listener callback.
  * @return promise
  */
-function waitForDocLoadAndStopIt(aExpectedURL) {
-  let deferred = Promise.defer();
-  let progressListener = {
-    onStateChange: function (webProgress, req, flags, status) {
-      info("waitForDocLoadAndStopIt: onStateChange: " + req.name);
-      let docStart = Ci.nsIWebProgressListener.STATE_IS_DOCUMENT |
-                     Ci.nsIWebProgressListener.STATE_START;
-      if ((flags & docStart) && webProgress.isTopLevel) {
-        info("waitForDocLoadAndStopIt: Document start: " +
-             req.QueryInterface(Ci.nsIChannel).URI.spec);
-        is(req.originalURI.spec, aExpectedURL,
-           "waitForDocLoadAndStopIt: The expected URL was loaded");
-        req.cancel(Components.results.NS_ERROR_FAILURE);
-        gBrowser.removeProgressListener(progressListener);
-        deferred.resolve();
+function waitForDocLoadAndStopIt(aExpectedURL, aBrowser=gBrowser.selectedBrowser, aStopFromProgressListener=true) {
+  function content_script(contentStopFromProgressListener) {
+    let { interfaces: Ci, utils: Cu } = Components;
+    Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+    let wp = docShell.QueryInterface(Ci.nsIWebProgress);
+
+    function stopContent(now, uri) {
+      if (now) {
+        /* Hammer time. */
+        content.stop();
+
+        /* Let the parent know we're done. */
+        sendAsyncMessage("Test:WaitForDocLoadAndStopIt", { uri });
+      } else {
+        setTimeout(stopContent.bind(null, true, uri), 0);
       }
-    },
-  };
-  gBrowser.addProgressListener(progressListener);
-  info("waitForDocLoadAndStopIt: Waiting for URL: " + aExpectedURL);
-  return deferred.promise;
+    }
+
+    let progressListener = {
+      onStateChange: function (webProgress, req, flags, status) {
+        dump("waitForDocLoadAndStopIt: onStateChange " + flags.toString(16) + ": " + req.name + "\n");
+
+        if (webProgress.isTopLevel &&
+            flags & Ci.nsIWebProgressListener.STATE_START) {
+          wp.removeProgressListener(progressListener);
+
+          let chan = req.QueryInterface(Ci.nsIChannel);
+          dump(`waitForDocLoadAndStopIt: Document start: ${chan.URI.spec}\n`);
+
+          stopContent(contentStopFromProgressListener, chan.originalURI.spec);
+        }
+      },
+      QueryInterface: XPCOMUtils.generateQI(["nsISupportsWeakReference"])
+    };
+    wp.addProgressListener(progressListener, wp.NOTIFY_STATE_WINDOW);
+
+    /**
+     * As |this| is undefined and we can't extend |docShell|, adding an unload
+     * event handler is the easiest way to ensure the weakly referenced
+     * progress listener is kept alive as long as necessary.
+     */
+    addEventListener("unload", function () {
+      try {
+        wp.removeProgressListener(progressListener);
+      } catch (e) { /* Will most likely fail. */ }
+    });
+  }
+
+  return new Promise((resolve, reject) => {
+    function complete({ data }) {
+      is(data.uri, aExpectedURL, "waitForDocLoadAndStopIt: The expected URL was loaded");
+      mm.removeMessageListener("Test:WaitForDocLoadAndStopIt", complete);
+      resolve();
+    }
+
+    let mm = aBrowser.messageManager;
+    mm.loadFrameScript("data:,(" + content_script.toString() + ")(" + aStopFromProgressListener + ");", true);
+    mm.addMessageListener("Test:WaitForDocLoadAndStopIt", complete);
+    info("waitForDocLoadAndStopIt: Waiting for URL: " + aExpectedURL);
+  });
 }
 
-let FullZoomHelper = {
+/**
+ * Waits for the next load to complete in any browser or the given browser.
+ * If a <tabbrowser> is given it waits for a load in any of its browsers.
+ *
+ * @return promise
+ */
+function waitForDocLoadComplete(aBrowser=gBrowser) {
+  return new Promise(resolve => {
+    let listener = {
+      onStateChange: function (webProgress, req, flags, status) {
+        let docStop = Ci.nsIWebProgressListener.STATE_IS_NETWORK |
+                      Ci.nsIWebProgressListener.STATE_STOP;
+        info("Saw state " + flags.toString(16) + " and status " + status.toString(16));
+
+        // When a load needs to be retargetted to a new process it is cancelled
+        // with NS_BINDING_ABORTED so ignore that case
+        if ((flags & docStop) == docStop && status != Cr.NS_BINDING_ABORTED) {
+          aBrowser.removeProgressListener(this);
+          waitForDocLoadComplete.listeners.delete(this);
+
+          let chan = req.QueryInterface(Ci.nsIChannel);
+          info("Browser loaded " + chan.originalURI.spec);
+          resolve();
+        }
+      },
+      QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
+                                             Ci.nsISupportsWeakReference])
+    };
+    aBrowser.addProgressListener(listener);
+    waitForDocLoadComplete.listeners.add(listener);
+    info("Waiting for browser load");
+  });
+}
+
+// Keep a set of progress listeners for waitForDocLoadComplete() to make sure
+// they're not GC'ed before we saw the page load.
+waitForDocLoadComplete.listeners = new Set();
+registerCleanupFunction(() => waitForDocLoadComplete.listeners.clear());
+
+var FullZoomHelper = {
 
   selectTabAndWaitForLocationChange: function selectTabAndWaitForLocationChange(tab) {
     if (!tab)
       throw new Error("tab must be given.");
     if (gBrowser.selectedTab == tab)
       return Promise.resolve();
-    gBrowser.selectedTab = tab;
-    return this.waitForLocationChange();
+
+    return Promise.all([BrowserTestUtils.switchTab(gBrowser, tab),
+                        this.waitForLocationChange()]);
   },
 
   removeTabAndWaitForLocationChange: function removeTabAndWaitForLocationChange(tab) {
@@ -384,35 +506,33 @@ let FullZoomHelper = {
   },
 
   waitForLocationChange: function waitForLocationChange() {
-    let deferred = Promise.defer();
-    Services.obs.addObserver(function obs(subj, topic, data) {
-      Services.obs.removeObserver(obs, topic);
-      deferred.resolve();
-    }, "browser-fullZoom:location-change", false);
-    return deferred.promise;
+    return new Promise(resolve => {
+      Services.obs.addObserver(function obs(subj, topic, data) {
+        Services.obs.removeObserver(obs, topic);
+        resolve();
+      }, "browser-fullZoom:location-change", false);
+    });
   },
 
   load: function load(tab, url) {
-    let deferred = Promise.defer();
-    let didLoad = false;
-    let didZoom = false;
+    return new Promise(resolve => {
+      let didLoad = false;
+      let didZoom = false;
 
-    tab.linkedBrowser.addEventListener("load", function (event) {
-      event.currentTarget.removeEventListener("load", arguments.callee, true);
-      didLoad = true;
-      if (didZoom)
-        deferred.resolve();
-    }, true);
+      promiseTabLoadEvent(tab).then(event => {
+        didLoad = true;
+        if (didZoom)
+          resolve();
+      }, true);
 
-    this.waitForLocationChange().then(function () {
-      didZoom = true;
-      if (didLoad)
-        deferred.resolve();
+      this.waitForLocationChange().then(function () {
+        didZoom = true;
+        if (didLoad)
+          resolve();
+      });
+
+      tab.linkedBrowser.loadURI(url);
     });
-
-    tab.linkedBrowser.loadURI(url);
-
-    return deferred.promise;
   },
 
   zoomTest: function zoomTest(tab, val, msg) {
@@ -420,48 +540,42 @@ let FullZoomHelper = {
   },
 
   enlarge: function enlarge() {
-    let deferred = Promise.defer();
-    FullZoom.enlarge(function () deferred.resolve());
-    return deferred.promise;
+    return new Promise(resolve => FullZoom.enlarge(resolve));
   },
 
   reduce: function reduce() {
-    let deferred = Promise.defer();
-    FullZoom.reduce(function () deferred.resolve());
-    return deferred.promise;
+    return new Promise(resolve => FullZoom.reduce(resolve));
   },
 
   reset: function reset() {
-    let deferred = Promise.defer();
-    FullZoom.reset(function () deferred.resolve());
-    return deferred.promise;
+    return FullZoom.reset();
   },
 
   BACK: 0,
   FORWARD: 1,
   navigate: function navigate(direction) {
-    let deferred = Promise.defer();
-    let didPs = false;
-    let didZoom = false;
+    return new Promise(resolve => {
+      let didPs = false;
+      let didZoom = false;
 
-    gBrowser.addEventListener("pageshow", function (event) {
-      gBrowser.removeEventListener("pageshow", arguments.callee, true);
-      didPs = true;
-      if (didZoom)
-        deferred.resolve();
-    }, true);
+      gBrowser.addEventListener("pageshow", function listener(event) {
+        gBrowser.removeEventListener("pageshow", listener, true);
+        didPs = true;
+        if (didZoom)
+          resolve();
+      }, true);
 
-    if (direction == this.BACK)
-      gBrowser.goBack();
-    else if (direction == this.FORWARD)
-      gBrowser.goForward();
+      if (direction == this.BACK)
+        gBrowser.goBack();
+      else if (direction == this.FORWARD)
+        gBrowser.goForward();
 
-    this.waitForLocationChange().then(function () {
-      didZoom = true;
-      if (didPs)
-        deferred.resolve();
+      this.waitForLocationChange().then(function () {
+        didZoom = true;
+        if (didPs)
+          resolve();
+      });
     });
-    return deferred.promise;
   },
 
   failAndContinue: function failAndContinue(func) {
@@ -472,3 +586,484 @@ let FullZoomHelper = {
   },
 };
 
+/**
+ * Waits for a load (or custom) event to finish in a given tab. If provided
+ * load an uri into the tab.
+ *
+ * @param tab
+ *        The tab to load into.
+ * @param [optional] url
+ *        The url to load, or the current url.
+ * @return {Promise} resolved when the event is handled.
+ * @resolves to the received event
+ * @rejects if a valid load event is not received within a meaningful interval
+ */
+function promiseTabLoadEvent(tab, url)
+{
+  info("Wait tab event: load");
+
+  function handle(loadedUrl) {
+    if (loadedUrl === "about:blank" || (url && loadedUrl !== url)) {
+      info(`Skipping spurious load event for ${loadedUrl}`);
+      return false;
+    }
+
+    info("Tab event received: load");
+    return true;
+  }
+
+  let loaded = BrowserTestUtils.browserLoaded(tab.linkedBrowser, false, handle);
+
+  if (url)
+    BrowserTestUtils.loadURI(tab.linkedBrowser, url);
+
+  return loaded;
+}
+
+/**
+ * Returns a Promise that resolves once a new tab has been opened in
+ * a xul:tabbrowser.
+ *
+ * @param aTabBrowser
+ *        The xul:tabbrowser to monitor for a new tab.
+ * @return {Promise}
+ *        Resolved when the new tab has been opened.
+ * @resolves to the TabOpen event that was fired.
+ * @rejects Never.
+ */
+function waitForNewTabEvent(aTabBrowser) {
+  return promiseWaitForEvent(aTabBrowser.tabContainer, "TabOpen");
+}
+
+/**
+ * Test the state of the identity box and control center to make
+ * sure they are correctly showing the expected mixed content states.
+ *
+ * @note The checks are done synchronously, but new code should wait on the
+ *       returned Promise object to ensure the identity panel has closed.
+ *       Bug 1221114 is filed to fix the existing code.
+ *
+ * @param tabbrowser
+ * @param Object states
+ *        MUST include the following properties:
+ *        {
+ *           activeLoaded: true|false,
+ *           activeBlocked: true|false,
+ *           passiveLoaded: true|false,
+ *        }
+ *
+ * @return {Promise}
+ * @resolves When the operation has finished and the identity panel has closed.
+ */
+function assertMixedContentBlockingState(tabbrowser, states = {}) {
+  if (!tabbrowser || !("activeLoaded" in states) ||
+      !("activeBlocked" in states) || !("passiveLoaded" in states))  {
+    throw new Error("assertMixedContentBlockingState requires a browser and a states object");
+  }
+
+  let {passiveLoaded, activeLoaded, activeBlocked} = states;
+  let {gIdentityHandler} = tabbrowser.ownerGlobal;
+  let doc = tabbrowser.ownerDocument;
+  let identityBox = gIdentityHandler._identityBox;
+  let classList = identityBox.classList;
+  let connectionIcon = doc.getElementById("connection-icon");
+  let connectionIconImage = tabbrowser.ownerGlobal.getComputedStyle(connectionIcon).
+                         getPropertyValue("list-style-image");
+
+  let stateSecure = gIdentityHandler._state & Ci.nsIWebProgressListener.STATE_IS_SECURE;
+  let stateBroken = gIdentityHandler._state & Ci.nsIWebProgressListener.STATE_IS_BROKEN;
+  let stateInsecure = gIdentityHandler._state & Ci.nsIWebProgressListener.STATE_IS_INSECURE;
+  let stateActiveBlocked = gIdentityHandler._state & Ci.nsIWebProgressListener.STATE_BLOCKED_MIXED_ACTIVE_CONTENT;
+  let stateActiveLoaded = gIdentityHandler._state & Ci.nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT;
+  let statePassiveLoaded = gIdentityHandler._state & Ci.nsIWebProgressListener.STATE_LOADED_MIXED_DISPLAY_CONTENT;
+
+  is(activeBlocked, !!stateActiveBlocked, "Expected state for activeBlocked matches UI state");
+  is(activeLoaded, !!stateActiveLoaded, "Expected state for activeLoaded matches UI state");
+  is(passiveLoaded, !!statePassiveLoaded, "Expected state for passiveLoaded matches UI state");
+
+  if (stateInsecure) {
+    // HTTP request, there should be no MCB classes for the identity box and the non secure icon
+    // should always be visible regardless of MCB state.
+    ok(classList.contains("unknownIdentity"), "unknownIdentity on HTTP page");
+    is_element_hidden(connectionIcon);
+
+    ok(!classList.contains("mixedActiveContent"), "No MCB icon on HTTP page");
+    ok(!classList.contains("mixedActiveBlocked"), "No MCB icon on HTTP page");
+    ok(!classList.contains("mixedDisplayContent"), "No MCB icon on HTTP page");
+    ok(!classList.contains("mixedDisplayContentLoadedActiveBlocked"), "No MCB icon on HTTP page");
+  } else {
+    // Make sure the identity box UI has the correct mixedcontent states and icons
+    is(classList.contains("mixedActiveContent"), activeLoaded,
+        "identityBox has expected class for activeLoaded");
+    is(classList.contains("mixedActiveBlocked"), activeBlocked && !passiveLoaded,
+        "identityBox has expected class for activeBlocked && !passiveLoaded");
+    is(classList.contains("mixedDisplayContent"), passiveLoaded && !(activeLoaded || activeBlocked),
+       "identityBox has expected class for passiveLoaded && !(activeLoaded || activeBlocked)");
+    is(classList.contains("mixedDisplayContentLoadedActiveBlocked"), passiveLoaded && activeBlocked,
+       "identityBox has expected class for passiveLoaded && activeBlocked");
+
+    is_element_visible(connectionIcon);
+    if (activeLoaded) {
+      is(connectionIconImage, "url(\"chrome://browser/skin/connection-mixed-active-loaded.svg#icon\")",
+        "Using active loaded icon");
+    }
+    if (activeBlocked && !passiveLoaded) {
+      is(connectionIconImage, "url(\"chrome://browser/skin/connection-secure.svg\")",
+        "Using active blocked icon");
+    }
+    if (passiveLoaded && !(activeLoaded || activeBlocked)) {
+      is(connectionIconImage, "url(\"chrome://browser/skin/connection-mixed-passive-loaded.svg#icon\")",
+        "Using passive loaded icon");
+    }
+    if (passiveLoaded && activeBlocked) {
+      is(connectionIconImage, "url(\"chrome://browser/skin/connection-mixed-passive-loaded.svg#icon\")",
+        "Using active blocked and passive loaded icon");
+    }
+  }
+
+  // Make sure the identity popup has the correct mixedcontent states
+  gIdentityHandler._identityBox.click();
+  let popupAttr = doc.getElementById("identity-popup").getAttribute("mixedcontent");
+  let bodyAttr = doc.getElementById("identity-popup-securityView-body").getAttribute("mixedcontent");
+
+  is(popupAttr.includes("active-loaded"), activeLoaded,
+      "identity-popup has expected attr for activeLoaded");
+  is(bodyAttr.includes("active-loaded"), activeLoaded,
+      "securityView-body has expected attr for activeLoaded");
+
+  is(popupAttr.includes("active-blocked"), activeBlocked,
+      "identity-popup has expected attr for activeBlocked");
+  is(bodyAttr.includes("active-blocked"), activeBlocked,
+      "securityView-body has expected attr for activeBlocked");
+
+  is(popupAttr.includes("passive-loaded"), passiveLoaded,
+      "identity-popup has expected attr for passiveLoaded");
+  is(bodyAttr.includes("passive-loaded"), passiveLoaded,
+      "securityView-body has expected attr for passiveLoaded");
+
+  // Make sure the correct icon is visible in the Control Center.
+  // This logic is controlled with CSS, so this helps prevent regressions there.
+  let securityView = doc.getElementById("identity-popup-securityView");
+  let securityViewBG = tabbrowser.ownerGlobal.getComputedStyle(securityView).
+                       getPropertyValue("background-image");
+  let securityContentBG = tabbrowser.ownerGlobal.getComputedStyle(securityView).
+                          getPropertyValue("background-image");
+
+  if (stateInsecure) {
+    is(securityViewBG, "url(\"chrome://browser/skin/controlcenter/conn-not-secure.svg\")",
+      "CC using 'not secure' icon");
+    is(securityContentBG, "url(\"chrome://browser/skin/controlcenter/conn-not-secure.svg\")",
+      "CC using 'not secure' icon");
+  }
+
+  if (stateSecure) {
+    is(securityViewBG, "url(\"chrome://browser/skin/controlcenter/connection.svg#connection-secure\")",
+      "CC using secure icon");
+    is(securityContentBG, "url(\"chrome://browser/skin/controlcenter/connection.svg#connection-secure\")",
+      "CC using secure icon");
+  }
+
+  if (stateBroken) {
+    if (activeLoaded) {
+      is(securityViewBG, "url(\"chrome://browser/skin/controlcenter/mcb-disabled.svg\")",
+        "CC using active loaded icon");
+      is(securityContentBG, "url(\"chrome://browser/skin/controlcenter/mcb-disabled.svg\")",
+        "CC using active loaded icon");
+    } else if (activeBlocked || passiveLoaded) {
+      is(securityViewBG, "url(\"chrome://browser/skin/controlcenter/connection.svg#connection-degraded\")",
+        "CC using degraded icon");
+      is(securityContentBG, "url(\"chrome://browser/skin/controlcenter/connection.svg#connection-degraded\")",
+        "CC using degraded icon");
+    } else {
+      // There is a case here with weak ciphers, but no bc tests are handling this yet.
+      is(securityViewBG, "url(\"chrome://browser/skin/controlcenter/connection.svg#connection-degraded\")",
+        "CC using degraded icon");
+      is(securityContentBG, "url(\"chrome://browser/skin/controlcenter/connection.svg#connection-degraded\")",
+        "CC using degraded icon");
+    }
+  }
+
+  if (activeLoaded || activeBlocked || passiveLoaded) {
+    doc.getElementById("identity-popup-security-expander").click();
+    is(Array.filter(doc.querySelectorAll("[observes=identity-popup-mcb-learn-more]"),
+                    element => !is_hidden(element)).length, 1,
+       "The 'Learn more' link should be visible once.");
+  }
+
+  gIdentityHandler._identityPopup.hidden = true;
+
+  // Wait for the panel to be closed before continuing. The promisePopupHidden
+  // function cannot be used because it's unreliable unless promisePopupShown is
+  // also called before closing the panel. This cannot be done until all callers
+  // are made asynchronous (bug 1221114).
+  return new Promise(resolve => executeSoon(resolve));
+}
+
+function is_hidden(element) {
+  var style = element.ownerGlobal.getComputedStyle(element);
+  if (style.display == "none")
+    return true;
+  if (style.visibility != "visible")
+    return true;
+  if (style.display == "-moz-popup")
+    return ["hiding", "closed"].indexOf(element.state) != -1;
+
+  // Hiding a parent element will hide all its children
+  if (element.parentNode != element.ownerDocument)
+    return is_hidden(element.parentNode);
+
+  return false;
+}
+
+function is_visible(element) {
+  var style = element.ownerGlobal.getComputedStyle(element);
+  if (style.display == "none")
+    return false;
+  if (style.visibility != "visible")
+    return false;
+  if (style.display == "-moz-popup" && element.state != "open")
+    return false;
+
+  // Hiding a parent element will hide all its children
+  if (element.parentNode != element.ownerDocument)
+    return is_visible(element.parentNode);
+
+  return true;
+}
+
+function is_element_visible(element, msg) {
+  isnot(element, null, "Element should not be null, when checking visibility");
+  ok(is_visible(element), msg || "Element should be visible");
+}
+
+function is_element_hidden(element, msg) {
+  isnot(element, null, "Element should not be null, when checking visibility");
+  ok(is_hidden(element), msg || "Element should be hidden");
+}
+
+function promisePopupEvent(popup, eventSuffix) {
+  let endState = {shown: "open", hidden: "closed"}[eventSuffix];
+
+  if (popup.state == endState)
+    return Promise.resolve();
+
+  let eventType = "popup" + eventSuffix;
+  let deferred = Promise.defer();
+  popup.addEventListener(eventType, function onPopupShown(event) {
+    popup.removeEventListener(eventType, onPopupShown);
+    deferred.resolve();
+  });
+
+  return deferred.promise;
+}
+
+function promisePopupShown(popup) {
+  return promisePopupEvent(popup, "shown");
+}
+
+function promisePopupHidden(popup) {
+  return promisePopupEvent(popup, "hidden");
+}
+
+function promiseNotificationShown(notification) {
+  let win = notification.browser.ownerGlobal;
+  if (win.PopupNotifications.panel.state == "open") {
+    return Promise.resolve();
+  }
+  let panelPromise = promisePopupShown(win.PopupNotifications.panel);
+  notification.reshow();
+  return panelPromise;
+}
+
+/**
+ * Allows waiting for an observer notification once.
+ *
+ * @param aTopic
+ *        Notification topic to observe.
+ *
+ * @return {Promise}
+ * @resolves An object with subject and data properties from the observed
+ *           notification.
+ * @rejects Never.
+ */
+function promiseTopicObserved(aTopic)
+{
+  return new Promise((resolve) => {
+    Services.obs.addObserver(
+      function PTO_observe(aSubject, aTopic2, aData) {
+        Services.obs.removeObserver(PTO_observe, aTopic2);
+        resolve({subject: aSubject, data: aData});
+      }, aTopic, false);
+  });
+}
+
+function promiseNewSearchEngine(basename) {
+  return new Promise((resolve, reject) => {
+    info("Waiting for engine to be added: " + basename);
+    let url = getRootDirectory(gTestPath) + basename;
+    Services.search.addEngine(url, null, "", false, {
+      onSuccess: function (engine) {
+        info("Search engine added: " + basename);
+        registerCleanupFunction(() => Services.search.removeEngine(engine));
+        resolve(engine);
+      },
+      onError: function (errCode) {
+        Assert.ok(false, "addEngine failed with error code " + errCode);
+        reject();
+      },
+    });
+  });
+}
+
+// Compares the security state of the page with what is expected
+function isSecurityState(expectedState) {
+  let ui = gTestBrowser.securityUI;
+  if (!ui) {
+    ok(false, "No security UI to get the security state");
+    return;
+  }
+
+  const wpl = Components.interfaces.nsIWebProgressListener;
+
+  // determine the security state
+  let isSecure = ui.state & wpl.STATE_IS_SECURE;
+  let isBroken = ui.state & wpl.STATE_IS_BROKEN;
+  let isInsecure = ui.state & wpl.STATE_IS_INSECURE;
+
+  let actualState;
+  if (isSecure && !(isBroken || isInsecure)) {
+    actualState = "secure";
+  } else if (isBroken && !(isSecure || isInsecure)) {
+    actualState = "broken";
+  } else if (isInsecure && !(isSecure || isBroken)) {
+    actualState = "insecure";
+  } else {
+    actualState = "unknown";
+  }
+
+  is(expectedState, actualState, "Expected state " + expectedState + " and the actual state is " + actualState + ".");
+}
+
+/**
+ * Resolves when a bookmark with the given uri is added.
+ */
+function promiseOnBookmarkItemAdded(aExpectedURI) {
+  return new Promise((resolve, reject) => {
+    let bookmarksObserver = {
+      onItemAdded: function (aItemId, aFolderId, aIndex, aItemType, aURI) {
+        info("Added a bookmark to " + aURI.spec);
+        PlacesUtils.bookmarks.removeObserver(bookmarksObserver);
+        if (aURI.equals(aExpectedURI)) {
+          resolve();
+        }
+        else {
+          reject(new Error("Added an unexpected bookmark"));
+        }
+      },
+      onBeginUpdateBatch: function () {},
+      onEndUpdateBatch: function () {},
+      onItemRemoved: function () {},
+      onItemChanged: function () {},
+      onItemVisited: function () {},
+      onItemMoved: function () {},
+      QueryInterface: XPCOMUtils.generateQI([
+        Ci.nsINavBookmarkObserver,
+      ])
+    };
+    info("Waiting for a bookmark to be added");
+    PlacesUtils.bookmarks.addObserver(bookmarksObserver, false);
+  });
+}
+
+function promiseErrorPageLoaded(browser) {
+  return new Promise(resolve => {
+    browser.addEventListener("DOMContentLoaded", function onLoad() {
+      browser.removeEventListener("DOMContentLoaded", onLoad, false, true);
+      resolve();
+    }, false, true);
+  });
+}
+
+function* loadBadCertPage(url) {
+  const EXCEPTION_DIALOG_URI = "chrome://pippki/content/exceptionDialog.xul";
+  let exceptionDialogResolved = new Promise(function(resolve) {
+    // When the certificate exception dialog has opened, click the button to add
+    // an exception.
+    let certExceptionDialogObserver = {
+      observe: function(aSubject, aTopic, aData) {
+        if (aTopic == "cert-exception-ui-ready") {
+          Services.obs.removeObserver(this, "cert-exception-ui-ready");
+          let certExceptionDialog = getCertExceptionDialog(EXCEPTION_DIALOG_URI);
+          ok(certExceptionDialog, "found exception dialog");
+          executeSoon(function() {
+            certExceptionDialog.documentElement.getButton("extra1").click();
+            resolve();
+          });
+        }
+      }
+    };
+
+    Services.obs.addObserver(certExceptionDialogObserver,
+                             "cert-exception-ui-ready", false);
+  });
+
+  let loaded = BrowserTestUtils.waitForErrorPage(gBrowser.selectedBrowser);
+  yield BrowserTestUtils.loadURI(gBrowser.selectedBrowser, url);
+  yield loaded;
+
+  yield ContentTask.spawn(gBrowser.selectedBrowser, null, function*() {
+    content.document.getElementById("exceptionDialogButton").click();
+  });
+  yield exceptionDialogResolved;
+  yield BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
+}
+
+// Utility function to get a handle on the certificate exception dialog.
+// Modified from toolkit/components/passwordmgr/test/prompt_common.js
+function getCertExceptionDialog(aLocation) {
+  let enumerator = Services.wm.getXULWindowEnumerator(null);
+
+  while (enumerator.hasMoreElements()) {
+    let win = enumerator.getNext();
+    let windowDocShell = win.QueryInterface(Ci.nsIXULWindow).docShell;
+
+    let containedDocShells = windowDocShell.getDocShellEnumerator(
+                                      Ci.nsIDocShellTreeItem.typeChrome,
+                                      Ci.nsIDocShell.ENUMERATE_FORWARDS);
+    while (containedDocShells.hasMoreElements()) {
+      // Get the corresponding document for this docshell
+      let childDocShell = containedDocShells.getNext();
+      let childDoc = childDocShell.QueryInterface(Ci.nsIDocShell)
+                                  .contentViewer
+                                  .DOMDocument;
+
+      if (childDoc.location.href == aLocation) {
+        return childDoc;
+      }
+    }
+  }
+  return undefined;
+}
+
+function setupRemoteClientsFixture(fixture) {
+  let oldRemoteClientsGetter =
+    Object.getOwnPropertyDescriptor(gFxAccounts, "remoteClients").get;
+
+  Object.defineProperty(gFxAccounts, "remoteClients", {
+    get: function() { return fixture; }
+  });
+  return oldRemoteClientsGetter;
+}
+
+function restoreRemoteClients(getter) {
+  Object.defineProperty(gFxAccounts, "remoteClients", {
+    get: getter
+  });
+}
+
+function* openMenuItemSubmenu(id) {
+  let menuPopup = document.getElementById(id).menupopup;
+  let menuPopupPromise = BrowserTestUtils.waitForEvent(menuPopup, "popupshown");
+  menuPopup.showPopup();
+  yield menuPopupPromise;
+}

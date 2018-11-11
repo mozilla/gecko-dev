@@ -1,14 +1,8 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-XPIDL_SOURCES += [
-    'nsIIconURI.idl',
-]
-
-XPIDL_MODULE = 'imgicon'
 
 UNIFIED_SOURCES += [
     'nsIconModule.cpp',
@@ -16,19 +10,14 @@ UNIFIED_SOURCES += [
     'nsIconURI.cpp',
 ]
 
-LIBRARY_NAME = 'imgicon'
-
-FAIL_ON_WARNINGS = True
-
 FINAL_LIBRARY = 'xul'
+
+include('/ipc/chromium/chromium-config.mozbuild')
 
 platform = None
 
-if CONFIG['MOZ_WIDGET_GTK']:
+if 'gtk' in CONFIG['MOZ_WIDGET_TOOLKIT']:
     platform = 'gtk'
-
-if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'qt':
-    platform = 'qt'
 
 if CONFIG['OS_ARCH'] == 'WINNT':
     platform = 'win'

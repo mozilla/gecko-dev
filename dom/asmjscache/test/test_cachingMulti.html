@@ -17,7 +17,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=944821
 
   <script>
   var jsFuns = SpecialPowers.Cu.getJSTestingFunctions();
-  ok(jsFuns.isAsmJSCompilationAvailable(), "compilation is available");
+
+  var assertCacheHit = false;
 
   // generate four slightly different big asm.js modules and compile them async
   // so that we can hit the asm.js cache.
@@ -35,7 +36,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=944821
     code2 += "return g" + i + ";\n";
     code2 += "}\n";
     code2 += "ok(jsFuns.isAsmJSModule(f), 'f is an asm.js module')\n";
-    code2 += "if (assertCacheHit) ok(jsFuns.isAsmJSModuleLoadedFromCache(f), 'cache hit');\n";
+    code2 += "if (assertCacheHit) ok(!jsFuns.isAsmJSModuleLoadedFromCache(f), 'cache disabled');\n";
     code2 += "var gX = f();\n";
     code2 += "ok(jsFuns.isAsmJSFunction(gX), 'gX is an asm.js function')\n";
     code2 += "ok(gX() === " + i + ", 'gX returns the correct result')\n";
@@ -50,11 +51,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=944821
     document.body.appendChild(script);
   }
 
-  for (var i = 0; i < N; i++)
-    evalAsync(codes[i]);
-
   var finishedCount = 0;
-  var assertCacheHit = false;
   function finishedEvalAsync() {
     finishedCount++;
 
@@ -69,7 +66,18 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=944821
     }
   }
 
-  SimpleTest.waitForExplicitFinish();
+  function runTest() {
+      for (var i = 0; i < N; i++)
+        evalAsync(codes[i]);
+
+      SimpleTest.waitForExplicitFinish();
+  }
+
+  if (!jsFuns.isAsmJSCompilationAvailable()) {
+      ok(true, "isAsmJSCompilationAvailable is false, skipping this test!");
+  } else {
+      runTest();
+  }
   </script>
 
 </body>

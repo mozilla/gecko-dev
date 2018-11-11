@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,50 +17,32 @@ ScrollAreaEvent::ScrollAreaEvent(EventTarget* aOwner,
                                  nsPresContext* aPresContext,
                                  InternalScrollAreaEvent* aEvent)
   : UIEvent(aOwner, aPresContext, aEvent)
-  , mClientArea(nullptr)
+  , mClientArea(new DOMRect(nullptr))
 {
-  mClientArea.SetLayoutRect(aEvent ? aEvent->mArea : nsRect());
+  mClientArea->SetLayoutRect(aEvent ? aEvent->mArea : nsRect());
 }
 
 NS_IMPL_ADDREF_INHERITED(ScrollAreaEvent, UIEvent)
 NS_IMPL_RELEASE_INHERITED(ScrollAreaEvent, UIEvent)
 
 NS_INTERFACE_MAP_BEGIN(ScrollAreaEvent)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMScrollAreaEvent)
 NS_INTERFACE_MAP_END_INHERITING(UIEvent)
 
-
-#define FORWARD_GETTER(_name)                                                  \
-  NS_IMETHODIMP                                                                \
-  ScrollAreaEvent::Get ## _name(float* aResult)                                \
-  {                                                                            \
-    *aResult = _name();                                                        \
-    return NS_OK;                                                              \
-  }
-
-FORWARD_GETTER(X)
-FORWARD_GETTER(Y)
-FORWARD_GETTER(Width)
-FORWARD_GETTER(Height)
-
-NS_IMETHODIMP
+void
 ScrollAreaEvent::InitScrollAreaEvent(const nsAString& aEventType,
                                      bool aCanBubble,
                                      bool aCancelable,
-                                     nsIDOMWindow* aView,
+                                     nsGlobalWindow* aView,
                                      int32_t aDetail,
                                      float aX,
                                      float aY,
                                      float aWidth,
                                      float aHeight)
 {
-  nsresult rv =
-    UIEvent::InitUIEvent(aEventType, aCanBubble, aCancelable, aView, aDetail);
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE_VOID(!mEvent->mFlags.mIsBeingDispatched);
 
-  mClientArea.SetRect(aX, aY, aWidth, aHeight);
-
-  return NS_OK;
+  UIEvent::InitUIEvent(aEventType, aCanBubble, aCancelable, aView, aDetail);
+  mClientArea->SetRect(aX, aY, aWidth, aHeight);
 }
 
 NS_IMETHODIMP_(void)
@@ -79,7 +62,7 @@ ScrollAreaEvent::Serialize(IPC::Message* aMsg,
 }
 
 NS_IMETHODIMP_(bool)
-ScrollAreaEvent::Deserialize(const IPC::Message* aMsg, void** aIter)
+ScrollAreaEvent::Deserialize(const IPC::Message* aMsg, PickleIterator* aIter)
 {
   NS_ENSURE_TRUE(Event::Deserialize(aMsg, aIter), false);
 
@@ -88,7 +71,7 @@ ScrollAreaEvent::Deserialize(const IPC::Message* aMsg, void** aIter)
   NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &y), false);
   NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &width), false);
   NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &height), false);
-  mClientArea.SetRect(x, y, width, height);
+  mClientArea->SetRect(x, y, width, height);
 
   return true;
 }
@@ -99,12 +82,12 @@ ScrollAreaEvent::Deserialize(const IPC::Message* aMsg, void** aIter)
 using namespace mozilla;
 using namespace mozilla::dom;
 
-nsresult
-NS_NewDOMScrollAreaEvent(nsIDOMEvent** aInstancePtrResult,
-                         EventTarget* aOwner,
+already_AddRefed<ScrollAreaEvent>
+NS_NewDOMScrollAreaEvent(EventTarget* aOwner,
                          nsPresContext* aPresContext,
                          InternalScrollAreaEvent* aEvent)
 {
-  ScrollAreaEvent* ev = new ScrollAreaEvent(aOwner, aPresContext, aEvent);
-  return CallQueryInterface(ev, aInstancePtrResult);
+  RefPtr<ScrollAreaEvent> ev =
+    new ScrollAreaEvent(aOwner, aPresContext, aEvent);
+  return ev.forget();
 }

@@ -20,10 +20,10 @@
 #include "nsCOMArray.h"
 #include "nsCycleCollectionParticipant.h"
 
-class nsAutoCompleteController : public nsIAutoCompleteController,
-                                 public nsIAutoCompleteObserver,
-                                 public nsITimerCallback,
-                                 public nsITreeView
+class nsAutoCompleteController final : public nsIAutoCompleteController,
+                                       public nsIAutoCompleteObserver,
+                                       public nsITimerCallback,
+                                       public nsITreeView
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -35,9 +35,10 @@ public:
   NS_DECL_NSITIMERCALLBACK
    
   nsAutoCompleteController();
-  virtual ~nsAutoCompleteController();
   
 protected:
+  virtual ~nsAutoCompleteController();
+
   nsresult OpenPopup();
   nsresult ClosePopup();
 
@@ -47,11 +48,15 @@ protected:
   nsresult StartSearches();
   void AfterSearches();
   nsresult ClearSearchTimer();
+  void MaybeCompletePlaceholder();
 
+  void HandleSearchResult(nsIAutoCompleteSearch *aSearch,
+                          nsIAutoCompleteResult *aResult);
   nsresult ProcessResult(int32_t aSearchIndex, nsIAutoCompleteResult *aResult);
   nsresult PostSearchCleanup();
 
-  nsresult EnterMatch(bool aIsPopupSelection);
+  nsresult EnterMatch(bool aIsPopupSelection,
+                      nsIDOMEvent *aEvent);
   nsresult RevertTextValue();
 
   nsresult CompleteDefaultIndex(int32_t aResultIndex);
@@ -119,10 +124,8 @@ protected:
   nsCOMPtr<nsIAutoCompleteInput> mInput;
 
   nsCOMArray<nsIAutoCompleteSearch> mSearches;
+  // This is used as a sparse array, always use SafeObjectAt to access it.
   nsCOMArray<nsIAutoCompleteResult> mResults;
-  // Caches the match counts for the current ongoing results to allow
-  // incremental results to keep the rowcount up to date.
-  nsTArray<uint32_t> mMatchCounts;
   // Temporarily keeps the results alive while invoking startSearch() for each
   // search.  This is needed to allow the searches to reuse the previous result,
   // since otherwise the first search clears mResults.
@@ -133,9 +136,21 @@ protected:
   nsCOMPtr<nsITreeBoxObject> mTree;
 
   nsString mSearchString;
+  nsString mPlaceholderCompletionString;
   bool mDefaultIndexCompleted;
-  bool mBackspaced;
   bool mPopupClosedByCompositionStart;
+
+  // Whether autofill is allowed for the next search. May be retrieved by the
+  // search through the "prohibit-autofill" searchParam.
+  bool mProhibitAutoFill;
+
+  // Indicates whether the user cleared the autofilled part, returning to the
+  // originally entered search string.
+  bool mUserClearedAutoFill;
+
+  // Indicates whether clearing the autofilled string should issue a new search.
+  bool mClearingAutoFillSearchesAgain;
+
   enum CompositionState {
     eCompositionState_None,
     eCompositionState_Composing,
@@ -148,6 +163,14 @@ protected:
   uint32_t mSearchesFailed;
   bool mFirstSearchResult;
   uint32_t mImmediateSearchesCount;
+  // The index of the match on the popup that was selected using the keyboard,
+  // if the completeselectedindex attribute is set.
+  // This is used to distinguish that selection (which would have been put in
+  // the input on being selected) from a moused-over selectedIndex value. This
+  // distinction is used to prevent mouse moves from inadvertently changing
+  // what happens once the user hits Enter on the keyboard.
+  // See bug 1043584 for more details.
+  int32_t  mCompletedSelectionIndex;
 };
 
 #endif /* __nsAutoCompleteController__ */

@@ -1,9 +1,10 @@
-/* -*- Mode: C; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
 const C = Components.classes;
@@ -50,14 +51,14 @@ function startup()
           }, 0, listitem);
         }
       }
-      catch(e) { }
+      catch (e) { }
     }
 
     var autoSelectLastProfile = document.getElementById("autoSelectLastProfile");
     autoSelectLastProfile.checked = gProfileService.startWithLastProfile;
     profilesElement.focus();
   }
-  catch(e) {
+  catch (e) {
     window.close();
     throw (e);
   }
@@ -102,6 +103,7 @@ function acceptDialog()
   gDialogParams.objects.insertElementAt(profileLock.nsIProfileLock, 0, false);
 
   gProfileService.selectedProfile = selectedProfile.profile;
+  gProfileService.defaultProfile = selectedProfile.profile;
   updateStartupPrefs();
 
   gDialogParams.SetInt(0, 1);
@@ -114,7 +116,7 @@ function acceptDialog()
 function exitDialog()
 {
   updateStartupPrefs();
-  
+
   return true;
 }
 
@@ -130,12 +132,12 @@ function updateStartupPrefs()
 // handle key event on listboxes
 function onProfilesKey(aEvent)
 {
-  switch( aEvent.keyCode ) 
+  switch ( aEvent.keyCode )
   {
-  case KeyEvent.DOM_VK_DELETE:
-#ifdef XP_MACOSX
   case KeyEvent.DOM_VK_BACK_SPACE:
-#endif
+    if (AppConstants.platform != "macosx")
+      break;
+  case KeyEvent.DOM_VK_DELETE:
     ConfirmDelete();
     break;
   case KeyEvent.DOM_VK_F2:
@@ -146,7 +148,7 @@ function onProfilesKey(aEvent)
 
 function onProfilesDblClick(aEvent)
 {
-  if(aEvent.target.localName == "listitem")
+  if (aEvent.target.localName == "listitem")
     document.documentElement.acceptDialog();
 }
 
@@ -256,7 +258,7 @@ function ConfirmDelete()
     if (buttonPressed == 2)
       deleteFiles = true;
   }
-  
+
   selectedProfile.remove(deleteFiles);
   profileList.removeChild(selectedItem);
   if (profileList.firstChild != undefined) {

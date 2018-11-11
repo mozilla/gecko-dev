@@ -1,17 +1,11 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/sw_UG.xml
-// *
-// ***************************************************************************
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 sw_UG{
     Currencies{
         UGX{
             "USh",
-            "shilingi ya Uganda",
+            "Shilingi ya Uganda",
         }
     }
-    Version{"2.0.90.61"}
+    Version{"2.1.27.40"}
 }

@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -53,10 +53,10 @@ var test = {
 
     // create test folders each with a bookmark
     for (var i = 0; i < this._count; i++) {
-      var folderId = 
+      var folderId =
         PlacesUtils.bookmarks.createFolder(this._testRootId, "folder" + i, DEFAULT_INDEX);
       this._folderIds.push(folderId)
-      
+
       var bookmarkURI = uri("http://" + i);
       PlacesUtils.bookmarks.insertBookmark(folderId, bookmarkURI,
                                            DEFAULT_INDEX, "bookmark" + i);
@@ -96,7 +96,7 @@ var test = {
   validate: function validate() {
     // Throw a wrench in the works by inserting some new bookmarks,
     // ensuring folder ids won't be the same, when restoring.
-    for (var i = 0; i < 10; i++) {
+    for (let i = 0; i < 10; i++) {
       PlacesUtils.bookmarks.
                   insertBookmark(PlacesUtils.bookmarksMenuFolderId, uri("http://aaaa"+i), DEFAULT_INDEX, "");
     }
@@ -115,7 +115,7 @@ var test = {
     // |_count| folders + the query node
     do_check_eq(folderNode.childCount, this._count+3);
 
-    for (var i = 0; i < this._count; i++) {
+    for (let i = 0; i < this._count; i++) {
       var subFolder = folderNode.getChild(i);
       do_check_eq(subFolder.title, "folder"+i);
       subFolder.QueryInterface(Ci.nsINavHistoryContainerResultNode);
@@ -189,7 +189,7 @@ function run_test() {
   run_next_test();
 }
 
-add_task(function () {
+add_task(function* () {
   // make json file
   let jsonFile = OS.Path.join(OS.Constants.Path.profileDir, "bookmarks.json");
 

@@ -5,7 +5,7 @@
 from setuptools import setup, find_packages
 
 PACKAGE_NAME = 'mozlog'
-PACKAGE_VERSION = '1.9'
+PACKAGE_VERSION = '3.4'
 
 setup(name=PACKAGE_NAME,
       version=PACKAGE_VERSION,
@@ -17,19 +17,23 @@ setup(name=PACKAGE_NAME,
       license='MPL 1.1/GPL 2.0/LGPL 2.1',
       packages=find_packages(),
       zip_safe=False,
+      install_requires=["blessings>=1.3"],
       tests_require=['mozfile'],
-      platforms =['Any'],
+      platforms=['Any'],
       classifiers=['Development Status :: 4 - Beta',
                    'Environment :: Console',
                    'Intended Audience :: Developers',
                    'License :: OSI Approved :: Mozilla Public License 1.1 (MPL 1.1)',
                    'Operating System :: OS Independent',
                    'Topic :: Software Development :: Libraries :: Python Modules',
-                  ],
-      package_data={"mozlog.structured": ["formatters/html/main.js",
-                                          "formatters/html/style.css"]},
+                   ],
+      package_data={"mozlog": ["formatters/html/main.js",
+                               "formatters/html/style.css"]},
       entry_points={
           "console_scripts": [
-              "structlog = mozlog.structured.scripts:main"
+              "structlog = mozlog.scripts:main"
+          ],
+          'pytest11': [
+              'mozlog = mozlog.pytest_mozlog.plugin',
           ]}
-     )
+      )

@@ -2,10 +2,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import logging
 import types
 import unittest
-
-import mozlog
 
 from mozdevice import devicemanager
 from mozdevice import devicemanagerSUT
@@ -13,7 +12,8 @@ from mozdevice import devicemanagerSUT
 ip = ''
 port = 0
 heartbeat_port = 0
-log_level = mozlog.ERROR
+log_level = logging.ERROR
+
 
 class DeviceManagerTestCase(unittest.TestCase):
     """DeviceManager tests should subclass this.
@@ -49,7 +49,7 @@ class DeviceManagerTestLoader(unittest.TestLoader):
         for name in dir(module):
             obj = getattr(module, name)
             if (isinstance(obj, (type, types.ClassType)) and
-                issubclass(obj, unittest.TestCase)) and \
-                (not self.isTestDevice or obj.runs_on_test_device):
+                    issubclass(obj, unittest.TestCase)) and \
+                    (not self.isTestDevice or obj.runs_on_test_device):
                 tests.append(self.loadTestsFromTestCase(obj))
         return self.suiteClass(tests)

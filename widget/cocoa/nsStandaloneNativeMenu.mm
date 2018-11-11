@@ -13,10 +13,12 @@
 #include "nsObjCExceptions.h"
 
 
-NS_IMPL_ISUPPORTS(nsStandaloneNativeMenu, nsIMutationObserver, nsIStandaloneNativeMenu)
+NS_IMPL_ISUPPORTS_INHERITED(nsStandaloneNativeMenu, nsMenuGroupOwnerX,
+                            nsIMutationObserver, nsIStandaloneNativeMenu)
 
 nsStandaloneNativeMenu::nsStandaloneNativeMenu()
 : mMenu(nullptr)
+, mContainerStatusBarItem(nil)
 {
 }
 
@@ -35,9 +37,7 @@ nsStandaloneNativeMenu::Init(nsIDOMElement * aDOMElement)
   nsCOMPtr<nsIContent> content = do_QueryInterface(aDOMElement, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsIAtom * tag = content->Tag();
-  if (!content->IsXUL() ||
-      (tag != nsGkAtoms::menu && tag != nsGkAtoms::menupopup))
+  if (!content->IsAnyOfXULElements(nsGkAtoms::menu, nsGkAtoms::menupopup))
     return NS_ERROR_FAILURE;
 
   rv = nsMenuGroupOwnerX::Create(content);
@@ -51,6 +51,8 @@ nsStandaloneNativeMenu::Init(nsIDOMElement * aDOMElement)
     mMenu = nullptr;
     return rv;
   }
+
+  mMenu->SetupIcon();
 
   return NS_OK;
 }
@@ -193,4 +195,19 @@ nsStandaloneNativeMenu::ForceUpdateNativeMenuAt(const nsAString& indexString)
   }
 
   return NS_OK;
+}
+
+void
+nsStandaloneNativeMenu::IconUpdated()
+{
+  if (mContainerStatusBarItem) {
+    [mContainerStatusBarItem setImage:[mMenu->NativeMenuItem() image]];
+  }
+}
+
+void
+nsStandaloneNativeMenu::SetContainerStatusBarItem(NSStatusItem* aItem)
+{
+  mContainerStatusBarItem = aItem;
+  IconUpdated();
 }

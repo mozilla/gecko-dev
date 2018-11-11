@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,6 +10,8 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/GamepadBinding.h"
 #include "mozilla/dom/GamepadButton.h"
+#include "mozilla/dom/GamepadPose.h"
+#include "mozilla/dom/Performance.h"
 #include <stdint.h>
 #include "nsCOMPtr.h"
 #include "nsString.h"
@@ -30,8 +34,9 @@ const int kLeftStickYAxis = 1;
 const int kRightStickXAxis = 2;
 const int kRightStickYAxis = 3;
 
-class Gamepad : public nsISupports,
-                public nsWrapperCache
+
+class Gamepad final : public nsISupports,
+                      public nsWrapperCache
 {
 public:
   Gamepad(nsISupports* aParent,
@@ -45,6 +50,7 @@ public:
   void SetButton(uint32_t aButton, bool aPressed, double aValue);
   void SetAxis(uint32_t aAxis, double aValue);
   void SetIndex(uint32_t aIndex);
+  void SetPose(const GamepadPoseState& aPose);
 
   // Make the state of this gamepad equivalent to other.
   void SyncState(Gamepad* aOther);
@@ -58,11 +64,16 @@ public:
     return mParent;
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   void GetId(nsAString& aID) const
   {
     aID = mID;
+  }
+
+  DOMHighResTimeStamp Timestamp() const
+  {
+     return mTimestamp;
   }
 
   GamepadMappingType Mapping()
@@ -80,7 +91,7 @@ public:
     return mIndex;
   }
 
-  void GetButtons(nsTArray<nsRefPtr<GamepadButton>>& aButtons) const
+  void GetButtons(nsTArray<RefPtr<GamepadButton>>& aButtons) const
   {
     aButtons = mButtons;
   }
@@ -90,8 +101,14 @@ public:
     aAxes = mAxes;
   }
 
+  GamepadPose* GetPose() const
+  {
+    return mPose;
+  }
+
 private:
   virtual ~Gamepad() {}
+  void UpdateTimestamp();
 
 protected:
   nsCOMPtr<nsISupports> mParent;
@@ -105,8 +122,10 @@ protected:
   bool mConnected;
 
   // Current state of buttons, axes.
-  nsTArray<nsRefPtr<GamepadButton>> mButtons;
+  nsTArray<RefPtr<GamepadButton>> mButtons;
   nsTArray<double> mAxes;
+  DOMHighResTimeStamp mTimestamp;
+  RefPtr<GamepadPose> mPose;
 };
 
 } // namespace dom

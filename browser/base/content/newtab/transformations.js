@@ -9,7 +9,7 @@
  * in the DOM and by showing or hiding the node. It additionally provides
  * convenience methods to work with a site's DOM node.
  */
-let gTransformation = {
+var gTransformation = {
   /**
    * Returns the width of the left and top border of a cell. We need to take it
    * into account when measuring and comparing site and cell positions.
@@ -103,7 +103,7 @@ let gTransformation = {
 
     let style = aSite.node.style;
     let comp = getComputedStyle(aSite.node, null);
-    style.width = comp.getPropertyValue("width")
+    style.width = comp.getPropertyValue("width");
     style.height = comp.getPropertyValue("height");
 
     aSite.node.setAttribute("frozen", "true");
@@ -179,19 +179,18 @@ let gTransformation = {
       if (!aSite || aSite == gDrag.draggedSite)
         return;
 
-      let deferred = Promise.defer();
-      batch.push(deferred.promise);
-      let cb = deferred.resolve;
-
-      if (!cells[aIndex])
-        // The site disappeared from the grid, hide it.
-        this.hideSite(aSite, cb);
-      else if (this._getNodeOpacity(aSite.node) != 1)
-        // The site disappeared before but is now back, show it.
-        this.showSite(aSite, cb);
-      else
-        // The site's position has changed, move it around.
-        this._moveSite(aSite, aIndex, {unfreeze: unfreeze, callback: cb});
+      batch.push(new Promise(resolve => {
+        if (!cells[aIndex]) {
+          // The site disappeared from the grid, hide it.
+          this.hideSite(aSite, resolve);
+        } else if (this._getNodeOpacity(aSite.node) != 1) {
+          // The site disappeared before but is now back, show it.
+          this.showSite(aSite, resolve);
+        } else {
+          // The site's position has changed, move it around.
+          this._moveSite(aSite, aIndex, {unfreeze: unfreeze, callback: resolve});
+        }
+      }));
     }, this);
 
     if (callback) {

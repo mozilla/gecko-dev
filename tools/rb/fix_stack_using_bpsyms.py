@@ -4,12 +4,19 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+# This script uses breakpad symbols to post-process the entries produced by
+# NS_FormatCodeAddress(), which on TBPL builds often lack a file name and a
+# line number (and on Linux even the symbol is often bad).
+
 from __future__ import with_statement
 
 import sys
 import os
 import re
+import subprocess
 import bisect
+
+here = os.path.dirname(__file__)
 
 def prettyFileName(name):
   if name.startswith("../") or name.startswith("..\\"):
@@ -33,10 +40,13 @@ class SymbolFile:
     with open(fn) as f:
       for line in f:
         line = line.rstrip()
-        # http://code.google.com/p/google-breakpad/wiki/SymbolFiles
+        # https://chromium.googlesource.com/breakpad/breakpad/+/master/docs/symbol_files.md
         if line.startswith("FUNC "):
           # FUNC <address> <size> <stack_param_size> <name>
-          (junk, rva, size, ss, name) = line.split(None, 4)
+          bits = line.split(None, 4)
+          if len(bits) < 5:
+            bits.append('unnamed_function')
+          (junk, rva, size, ss, name) = bits
           rva = int(rva,16)
           funcs[rva] = name
           addrs.append(rva)
@@ -73,23 +83,43 @@ class SymbolFile:
     else:
       return ""
 
-def guessSymbolFile(fn, symbolsDir):
+def findIdForPath(path):
+  """Finds the breakpad id for the object file at the given path."""
+  # We should always be packaged with a "fileid" executable.
+  fileid_exe = os.path.join(here, 'fileid')
+  if not os.path.isfile(fileid_exe):
+    fileid_exe = fileid_exe + '.exe'
+    if not os.path.isfile(fileid_exe):
+      raise Exception("Could not find fileid executable in %s" % here)
+
+  if not os.path.isfile(path):
+    for suffix in ('.exe', '.dll'):
+      if os.path.isfile(path + suffix):
+        path = path + suffix
+  try:
+    return subprocess.check_output([fileid_exe, path]).rstrip()
+  except subprocess.CalledProcessError as e:
+    raise Exception("Error getting fileid for %s: %s" %
+                    (path, e.output))
+
+def guessSymbolFile(full_path, symbolsDir):
   """Guess a symbol file based on an object file's basename, ignoring the path and UUID."""
-  fn = os.path.basename(fn)
+  fn = os.path.basename(full_path)
   d1 = os.path.join(symbolsDir, fn)
+  root, _ = os.path.splitext(fn)
+  if os.path.exists(os.path.join(symbolsDir, root) + '.pdb'):
+    d1 = os.path.join(symbolsDir, root) + '.pdb'
+    fn = root
   if not os.path.exists(d1):
-    fn = fn + ".pdb"
-    d1 = os.path.join(symbolsDir, fn)
-    if not os.path.exists(d1):
-      return None
+    return None
   uuids = os.listdir(d1)
   if len(uuids) == 0:
     raise Exception("Missing symbol file for " + fn)
   if len(uuids) > 1:
-    raise Exception("Ambiguous symbol file for " + fn)
-  if fn.endswith(".pdb"):
-    fn = fn[:-4]
-  return os.path.join(d1, uuids[0], fn + ".sym")
+    uuid = findIdForPath(full_path)
+  else:
+    uuid = uuids[0]
+  return os.path.join(d1, uuid, fn + ".sym")
 
 parsedSymbolFiles = {}
 def getSymbolFile(file, symbolsDir):
@@ -112,18 +142,14 @@ def addressToSymbol(file, address, symbolsDir):
   else:
     return ""
 
-line_re = re.compile("^(.*) ?\[([^ ]*) \+(0x[0-9A-F]{1,16})\](.*)$")
-balance_tree_re = re.compile("^([ \|0-9-]*)")
+# Matches lines produced by NS_FormatCodeAddress().
+line_re = re.compile("^(.*#\d+: )(.+)\[(.+) \+(0x[0-9A-Fa-f]+)\](.*)$")
 
 def fixSymbols(line, symbolsDir):
   result = line_re.match(line)
   if result is not None:
-    # before allows preservation of balance trees
-    # after allows preservation of counts
-    (before, file, address, after) = result.groups()
+    (before, fn, file, address, after) = result.groups()
     address = int(address, 16)
-    # throw away the bad symbol, but keep balance tree structure
-    before = balance_tree_re.match(before).groups()[0]
     symbol = addressToSymbol(file, address, symbolsDir)
     if not symbol:
       symbol = "%s + 0x%x" % (os.path.basename(file), address)

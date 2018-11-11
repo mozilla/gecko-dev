@@ -16,6 +16,11 @@ this.EXPORTED_SYMBOLS = [
   "Assert"
 ];
 
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/ObjectUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+                                  "resource://gre/modules/Promise.jsm");
 /**
  * 1. The assert module provides functions that throw AssertionError's when
  * particular conditions are not met.
@@ -24,7 +29,7 @@ this.EXPORTED_SYMBOLS = [
  * to override certain behavior on the newly obtained instance. For examples,
  * see the javadoc comments for the `report` member function.
  */
-let Assert = this.Assert = function(reporterFunc) {
+var Assert = this.Assert = function(reporterFunc) {
   if (reporterFunc)
     this.setReporter(reporterFunc);
 };
@@ -103,8 +108,8 @@ Assert.AssertionError = function(options) {
   // The part of the stack that comes from this module is not interesting.
   let stack = Components.stack;
   do {
-    stack = stack.caller;
-  } while(stack.filename && stack.filename.contains("Assert.jsm"))
+    stack = stack.asyncCaller || stack.caller;
+  } while(stack && stack.filename && stack.filename.includes("Assert.jsm"))
   this.stack = stack;
 };
 
@@ -118,7 +123,7 @@ Assert.AssertionError.prototype = Object.create(Error.prototype, {
   }
 });
 
-let proto = Assert.prototype;
+var proto = Assert.prototype;
 
 proto._reporter = null;
 /**
@@ -254,92 +259,8 @@ proto.notEqual = function notEqual(actual, expected, message) {
  *        (string) Short explanation of the expected result
  */
 proto.deepEqual = function deepEqual(actual, expected, message) {
-  this.report(!_deepEqual(actual, expected), actual, expected, message, "deepEqual");
+  this.report(!ObjectUtils.deepEqual(actual, expected), actual, expected, message, "deepEqual");
 };
-
-function _deepEqual(actual, expected) {
-  // 7.1. All identical values are equivalent, as determined by ===.
-  if (actual === expected) {
-    return true;
-  // 7.2. If the expected value is a Date object, the actual value is
-  // equivalent if it is also a Date object that refers to the same time.
-  } else if (instanceOf(actual, "Date") && instanceOf(expected, "Date")) {
-    return actual.getTime() === expected.getTime();
-  // 7.3 If the expected value is a RegExp object, the actual value is
-  // equivalent if it is also a RegExp object with the same source and
-  // properties (`global`, `multiline`, `lastIndex`, `ignoreCase`).
-  } else if (instanceOf(actual, "RegExp") && instanceOf(expected, "RegExp")) {
-    return actual.source === expected.source &&
-           actual.global === expected.global &&
-           actual.multiline === expected.multiline &&
-           actual.lastIndex === expected.lastIndex &&
-           actual.ignoreCase === expected.ignoreCase;
-  // 7.4. Other pairs that do not both pass typeof value == "object",
-  // equivalence is determined by ==.
-  } else if (typeof actual != "object" && typeof expected != "object") {
-    return actual == expected;
-  // 7.5 For all other Object pairs, including Array objects, equivalence is
-  // determined by having the same number of owned properties (as verified
-  // with Object.prototype.hasOwnProperty.call), the same set of keys
-  // (although not necessarily the same order), equivalent values for every
-  // corresponding key, and an identical 'prototype' property. Note: this
-  // accounts for both named and indexed properties on Arrays.
-  } else {
-    return objEquiv(actual, expected);
-  }
-}
-
-function isUndefinedOrNull(value) {
-  return value === null || value === undefined;
-}
-
-function isArguments(object) {
-  return instanceOf(object, "Arguments");
-}
-
-function objEquiv(a, b) {
-  if (isUndefinedOrNull(a) || isUndefinedOrNull(b)) {
-    return false;
-  }
-  // An identical 'prototype' property.
-  if (a.prototype !== b.prototype) {
-    return false;
-  }
-  // Object.keys may be broken through screwy arguments passing. Converting to
-  // an array solves the problem.
-  if (isArguments(a)) {
-    if (!isArguments(b)) {
-      return false;
-    }
-    a = pSlice.call(a);
-    b = pSlice.call(b);
-    return _deepEqual(a, b);
-  }
-  let ka, kb, key, i;
-  try {
-    ka = Object.keys(a);
-    kb = Object.keys(b);
-  } catch (e) {
-    // Happens when one is a string literal and the other isn't
-    return false;
-  }
-  // Having the same number of owned properties (keys incorporates
-  // hasOwnProperty)
-  if (ka.length != kb.length)
-    return false;
-  // The same set of keys (although not necessarily the same order),
-  ka.sort();
-  kb.sort();
-  // Equivalent values for every corresponding key, and possibly expensive deep 
-  // test
-  for (i = ka.length - 1; i >= 0; i--) {
-    key = ka[i];
-    if (!_deepEqual(a[key], b[key])) {
-      return false;
-    }
-  }
-  return true;
-}
 
 /**
  * 8. The non-equivalence assertion tests for any deep inequality.
@@ -353,7 +274,7 @@ function objEquiv(a, b) {
  *        (string) Short explanation of the expected result
  */
 proto.notDeepEqual = function notDeepEqual(actual, expected, message) {
-  this.report(_deepEqual(actual, expected), actual, expected, message, "notDeepEqual");
+  this.report(ObjectUtils.deepEqual(actual, expected), actual, expected, message, "notDeepEqual");
 };
 
 /**
@@ -440,3 +361,113 @@ proto.throws = function(block, expected, message) {
 
   this.report(false, expected, expected, message);
 };
+
+/**
+ * A promise that is expected to reject:
+ * assert.rejects(promise, expected, message);
+ *
+ * @param promise
+ *        (promise) A promise that is expected to reject
+ * @param expected (optional)
+ *        (mixed) Test reference to evaluate against the rejection result
+ * @param message (optional)
+ *        (string) Short explanation of the expected result
+ */
+proto.rejects = function(promise, expected, message) {
+  return new Promise((resolve, reject) => {
+    if (typeof expected === "string") {
+      message = expected;
+      expected = null;
+    }
+    return promise.then(
+      () => this.report(true, null, expected, "Missing expected exception " + message),
+      err => {
+        if (expected && !expectedException(err, expected)) {
+          reject(err);
+          return;
+        }
+        this.report(false, err, expected, message);
+        resolve();
+      }
+    ).then(null, reject);
+  });
+};
+
+function compareNumbers(expression, lhs, rhs, message, operator) {
+  let lhsIsNumber = typeof lhs == "number";
+  let rhsIsNumber = typeof rhs == "number";
+
+  if (lhsIsNumber && rhsIsNumber) {
+    this.report(expression, lhs, rhs, message, operator);
+    return;
+  }
+
+  let errorMessage;
+  if (!lhsIsNumber && !rhsIsNumber) {
+    errorMessage = "Neither '" + lhs + "' nor '" + rhs + "' are numbers";
+  } else {
+    errorMessage = "'" + (lhsIsNumber ? rhs : lhs) + "' is not a number";
+  }
+  this.report(true, lhs, rhs, errorMessage);
+}
+
+/**
+ * The lhs must be greater than the rhs.
+ * assert.greater(lhs, rhs, message_opt);
+ *
+ * @param lhs
+ *        (number) The left-hand side value
+ * @param rhs
+ *        (number) The right-hand side value
+ * @param message (optional)
+ *        (string) Short explanation of the comparison result
+ */
+proto.greater = function greater(lhs, rhs, message) {
+  compareNumbers.call(this, lhs <= rhs, lhs, rhs, message, ">");
+};
+
+/**
+ * The lhs must be greater than or equal to the rhs.
+ * assert.greaterOrEqual(lhs, rhs, message_opt);
+ *
+ * @param lhs
+ *        (number) The left-hand side value
+ * @param rhs
+ *        (number) The right-hand side value
+ * @param message (optional)
+ *        (string) Short explanation of the comparison result
+ */
+proto.greaterOrEqual = function greaterOrEqual(lhs, rhs, message) {
+  compareNumbers.call(this, lhs < rhs, lhs, rhs, message, ">=");
+};
+
+/**
+ * The lhs must be less than the rhs.
+ * assert.less(lhs, rhs, message_opt);
+ *
+ * @param lhs
+ *        (number) The left-hand side value
+ * @param rhs
+ *        (number) The right-hand side value
+ * @param message (optional)
+ *        (string) Short explanation of the comparison result
+ */
+proto.less = function less(lhs, rhs, message) {
+  compareNumbers.call(this, lhs >= rhs, lhs, rhs, message, "<");
+};
+
+/**
+ * The lhs must be less than or equal to the rhs.
+ * assert.lessOrEqual(lhs, rhs, message_opt);
+ *
+ * @param lhs
+ *        (number) The left-hand side value
+ * @param rhs
+ *        (number) The right-hand side value
+ * @param message (optional)
+ *        (string) Short explanation of the comparison result
+ */
+proto.lessOrEqual = function lessOrEqual(lhs, rhs, message) {
+  compareNumbers.call(this, lhs > rhs, lhs, rhs, message, "<=");
+};
+

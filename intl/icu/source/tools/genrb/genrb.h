@@ -1,15 +1,14 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 *******************************************************************************
 *
-*   Copyright (C) 2002-2011, International Business Machines
+*   Copyright (C) 2002-2015, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *
 *******************************************************************************
 *
 * File genrb.h
-*
-* Modification History:
-*******************************************************************************
 */
 
 #ifndef GENRB_H
@@ -27,8 +26,6 @@
 #include "errmsg.h"
 #include "parse.h"
 #include "rbutil.h"
-#include "reslist.h"
-
 
 #include "toolutil.h"
 #include "uoptions.h"
@@ -37,11 +34,9 @@
 #include "unicode/uloc.h"
 
 /* The version of genrb */
-#define GENRB_VERSION "3.3"
+#define GENRB_VERSION "56"
 
 U_CDECL_BEGIN
-
-extern UBool gIncludeUnihanColl;
 
 U_CAPI void processFile(
     const char *filename,

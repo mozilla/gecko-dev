@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /********************************************************************
  * COPYRIGHT: 
- * Copyright (c) 2002-2010, International Business Machines Corporation and
+ * Copyright (c) 2002-2014, International Business Machines Corporation and
  * others. All Rights Reserved.
  ********************************************************************/
 
@@ -62,7 +64,7 @@ void IcuTestErrorCode::handleFailure() const {
     UnicodeString msg(testName, -1, US_INV);
     msg.append(UNICODE_STRING_SIMPLE(" failure: ")).append(UnicodeString(errorName(), -1, US_INV));
 
-    if (get() == U_MISSING_RESOURCE_ERROR) {
+    if (get() == U_MISSING_RESOURCE_ERROR || get() == U_FILE_ACCESS_ERROR) {
         testClass.dataerrln(msg);
     } else {
         testClass.errln(msg);

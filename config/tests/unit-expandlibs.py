@@ -36,7 +36,7 @@ config_unix = {
 
 config = sys.modules['expandlibs_config'] = imp.new_module('expandlibs_config')
 
-from expandlibs import LibDescriptor, ExpandArgs, relativize, ExpandLibsDeps
+from expandlibs import LibDescriptor, ExpandArgs, relativize
 from expandlibs_gen import generate
 from expandlibs_exec import ExpandArgsMore, SectionFinder
 
@@ -186,33 +186,15 @@ class TestExpandArgs(TestExpandInit):
         args = ExpandArgs(['foo', '-bar'] + self.arg_files + [self.tmpfile('liby', Lib('y'))])
         self.assertRelEqual(args, ['foo', '-bar'] + self.files + self.liby_files + self.libx_files) 
 
-        # When a library exists at the same time as a descriptor, we just use
-        # the library
+        # When a library exists at the same time as a descriptor, we still use
+        # the descriptor.
         self.touch([self.tmpfile('libx', Lib('x'))])
         args = ExpandArgs(['foo', '-bar'] + self.arg_files + [self.tmpfile('liby', Lib('y'))])
-        self.assertRelEqual(args, ['foo', '-bar'] + self.files + self.liby_files + [self.tmpfile('libx', Lib('x'))]) 
+        self.assertRelEqual(args, ['foo', '-bar'] + self.files + self.liby_files + self.libx_files)
 
         self.touch([self.tmpfile('liby', Lib('y'))])
         args = ExpandArgs(['foo', '-bar'] + self.arg_files + [self.tmpfile('liby', Lib('y'))])
-        self.assertRelEqual(args, ['foo', '-bar'] + self.files + [self.tmpfile('liby', Lib('y'))])
-
-class TestExpandLibsDeps(TestExpandInit):
-    def test_expandlibsdeps(self):
-        '''Test library expansion for dependencies'''
-        # Dependency list for a library with a descriptor is equivalent to
-        # the arguments expansion, to which we add each descriptor
-        args = self.arg_files + [self.tmpfile('liby', Lib('y'))]
-        self.assertRelEqual(ExpandLibsDeps(args), ExpandArgs(args) + [self.tmpfile('libx', Lib('x') + config.LIBS_DESC_SUFFIX), self.tmpfile('liby', Lib('y') + config.LIBS_DESC_SUFFIX)])
-
-        # When a library exists at the same time as a descriptor, the
-        # descriptor is not a dependency
-        self.touch([self.tmpfile('libx', Lib('x'))])
-        args = self.arg_files + [self.tmpfile('liby', Lib('y'))]
-        self.assertRelEqual(ExpandLibsDeps(args), ExpandArgs(args) + [self.tmpfile('liby', Lib('y') + config.LIBS_DESC_SUFFIX)])
-
-        self.touch([self.tmpfile('liby', Lib('y'))])
-        args = self.arg_files + [self.tmpfile('liby', Lib('y'))]
-        self.assertRelEqual(ExpandLibsDeps(args), ExpandArgs(args))
+        self.assertRelEqual(args, ['foo', '-bar'] + self.files + self.liby_files + self.libx_files)
 
 class TestExpandArgsMore(TestExpandInit):
     def test_makelist(self):
@@ -296,14 +278,15 @@ class TestExpandArgsMore(TestExpandInit):
         self.touch([self.tmpfile('liby', Lib('y'))])
         for iteration in (1, 2):
             with ExpandArgsMore(['foo', '-bar'] + self.arg_files + [self.tmpfile('liby', Lib('y'))]) as args:
-                self.assertRelEqual(args, ['foo', '-bar'] + self.files + [self.tmpfile('liby', Lib('y'))])
+                files = self.files + self.liby_files + self.libx_files
+
+                self.assertRelEqual(args, ['foo', '-bar'] + files)
 
                 extracted = {}
                 # ExpandArgsMore also has an extra method extracting static libraries
                 # when possible
                 args.extract()
 
-                files = self.files + self.liby_files + self.libx_files
                 # With AR_EXTRACT, it uses the descriptors when there are, and
                 # actually
                 # extracts the remaining libraries

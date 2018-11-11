@@ -4,7 +4,7 @@
 
 "use strict";
 
-let { classes: Cc, interfaces: Ci, results: Cr, utils: Cu }  = Components;
+var { classes: Cc, interfaces: Ci, results: Cr, utils: Cu }  = Components;
 Cu.import("resource://gre/modules/Services.jsm");
 
 function debug(msg) {
@@ -26,33 +26,58 @@ function parentDocShell(docshell) {
 function isTopBrowserElement(docShell) {
   while (docShell) {
     docShell = parentDocShell(docShell);
-    if (docShell && docShell.isBrowserOrApp) {
+    if (docShell && docShell.isMozBrowserOrApp) {
       return false;
     }
   }
   return true;
 }
 
-if (!('BrowserElementIsPreloaded' in this)) {
-  if (isTopBrowserElement(docShell) &&
-      Services.prefs.getBoolPref("dom.mozInputMethod.enabled")) {
-    try {
-      Services.scriptloader.loadSubScript("chrome://global/content/forms.js");
-    } catch (e) {
+var BrowserElementIsReady;
+
+debug(`Might load BE scripts: BEIR: ${BrowserElementIsReady}`);
+if (!BrowserElementIsReady) {
+  debug("Loading BE scripts")
+  if (!("BrowserElementIsPreloaded" in this)) {
+    if (isTopBrowserElement(docShell)) {
+      if (Services.prefs.getBoolPref("dom.mozInputMethod.enabled")) {
+        try {
+          Services.scriptloader.loadSubScript("chrome://global/content/forms.js");
+        } catch (e) {
+        }
+      }
     }
+
+    if(Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT) {
+      // general content apps
+      if (isTopBrowserElement(docShell)) {
+        Services.scriptloader.loadSubScript("chrome://global/content/BrowserElementCopyPaste.js");
+      }
+    } else {
+      // rocketbar in system app and other in-process case (ex. B2G desktop client)
+      Services.scriptloader.loadSubScript("chrome://global/content/BrowserElementCopyPaste.js");
+    }
+
+    Services.scriptloader.loadSubScript("chrome://global/content/BrowserElementChildPreload.js");
   }
 
-  Services.scriptloader.loadSubScript("chrome://global/content/BrowserElementPanning.js");
-  ContentPanning.init();
+  function onDestroy() {
+    removeMessageListener("browser-element-api:destroy", onDestroy);
 
-  Services.scriptloader.loadSubScript("chrome://global/content/BrowserElementChildPreload.js");
+    if (api) {
+      api.destroy();
+    }
+    if ("CopyPasteAssistent" in this) {
+      CopyPasteAssistent.destroy();
+    }
+
+    BrowserElementIsReady = false;
+  }
+  addMessageListener("browser-element-api:destroy", onDestroy);
+
+  BrowserElementIsReady = true;
 } else {
-  ContentPanning.init();
+  debug("BE already loaded, abort");
 }
 
-var BrowserElementIsReady = true;
-
-let infos = sendSyncMessage('browser-element-api:call',
-                            { 'msg_name': 'hello' })[0];
-docShell.QueryInterface(Ci.nsIDocShellTreeItem).name = infos.name;
-docShell.setFullscreenAllowed(infos.fullscreenAllowed);
+sendAsyncMessage('browser-element-api:call', { 'msg_name': 'hello' });

@@ -1,9 +1,10 @@
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
-const Cu = Components.utils;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cr = Components.results;
+var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://testing-common/httpd.js");
 
 var server = new HttpServer();
@@ -32,6 +33,7 @@ var requests = [];
 var listeners = [];
 
 function NotificationCallbacks(isPrivate) {
+  this.originAttributes.privateBrowsingId = isPrivate ? 1 : 0;
   this.usePrivateBrowsing = isPrivate;
 }
 
@@ -46,17 +48,25 @@ NotificationCallbacks.prototype = {
     if (iid.equals(Ci.nsILoadContext))
       return this;
     throw Cr.NS_ERROR_NO_INTERFACE;
+  },
+  originAttributes: {
+    privateBrowsingId: 0
   }
 };
 
 var gImgPath = 'http://localhost:' + server.identity.primaryPort + '/image.png';
 
 function setup_chan(path, isPrivate, callback) {
-  var uri = gIoService.newURI(gImgPath, null, null);
-  var chan = gIoService.newChannelFromURI(uri);
+  var uri = NetUtil.newURI(gImgPath);
+  var securityFlags = Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL;
+  var principal = Services.scriptSecurityManager
+                          .createCodebasePrincipal(uri, {privateBrowsingId: isPrivate ? 1 : 0});
+  var chan =  NetUtil.newChannel({uri: uri, loadingPrincipal: principal,
+                                  securityFlags: securityFlags,
+                                  contentPolicyType: Ci.nsIContentPolicy.TYPE_INTERNAL_IMAGE});
   chan.notificationCallbacks = new NotificationCallbacks(isPrivate);
   var channelListener = new ChannelListener();
-  chan.asyncOpen(channelListener, null);
+  chan.asyncOpen2(channelListener);
 
   var listener = new ImageListener(null, callback);
   var outlistener = {};
@@ -77,7 +87,7 @@ function loadImage(isPrivate, callback) {
   var loadGroup = Cc["@mozilla.org/network/load-group;1"].createInstance(Ci.nsILoadGroup);
   loadGroup.notificationCallbacks = new NotificationCallbacks(isPrivate);
   var loader = isPrivate ? gPrivateLoader : gPublicLoader;
-  requests.push(loader.loadImageXPCOM(uri, null, null, null, loadGroup, outer, null, 0, null, null));
+  requests.push(loader.loadImageXPCOM(uri, null, null, "default", null, loadGroup, outer, null, 0, null));
   listener.synchronous = false;
 }
 

@@ -27,6 +27,7 @@ dictionary RTCStats {
 
 dictionary RTCRTPStreamStats : RTCStats {
   DOMString ssrc;
+  DOMString mediaType;
   DOMString remoteId;
   boolean isRemote = false;
   DOMString mediaTrackId;
@@ -114,7 +115,7 @@ dictionary RTCIceCandidatePairStats : RTCStats {
   DOMString localCandidateId;
   DOMString remoteCandidateId;
   RTCStatsIceCandidatePairState state;
-  unsigned long long mozPriority;
+  unsigned long long priority;
   boolean readable;
   boolean nominated;
   boolean selected;
@@ -145,8 +146,6 @@ dictionary RTCCodecStats : RTCStats {
   DOMString parameters;            // From SDP description line
 };
 
-callback RTCStatsReportCallback = void (RTCStatsReport obj);
-
 // This is the internal representation of the report in this implementation
 // to be received from c++
 
@@ -172,9 +171,7 @@ dictionary RTCStatsReportInternal {
 // MapClass(DOMString, object)
  JSImplementation="@mozilla.org/dom/rtcstatsreport;1"]
 interface RTCStatsReport {
+  readonly maplike<DOMString, object>;
   [ChromeOnly]
   readonly attribute DOMString mozPcid;
-  void forEach(RTCStatsReportCallback callbackFn, optional any thisArg);
-  object get(DOMString key);
-  boolean has(DOMString key);
 };

@@ -12,7 +12,7 @@
 var old_serialize = serialize;
 var captured = [];
 
-if ("JS_RECORD_RESULTS" in environment) {
+if (os.getenv("JS_RECORD_RESULTS") !== undefined) {
   serialize = function(o) {
     var data;
     try {
@@ -116,14 +116,14 @@ function test() {
 test();
 reportCompare(0, 0, 'ok');
 
-if ("JS_RECORD_RESULTS" in environment) {
+if (os.getenv("JS_RECORD_RESULTS") !== undefined) {
   print("var captured = [];");
   for (var i in captured) {
     var s = "captured[" + i + "] = ";
     if (captured[i] instanceof Error) {
       print(s + captured[i].toSource() + ";");
     } else {
-      data = [ c.charCodeAt(0) for (c of captured[i].clonebuffer.split('')) ];
+      data = captured[i].clonebuffer.split('').map(c => c.charCodeAt(0));
       print(s + "serialize(0); captured[" + i + "].clonebuffer = String.fromCharCode(" + data.join(", ") + ");");
     }
   }

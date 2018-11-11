@@ -13,11 +13,14 @@
 #include "nsIServiceManager.h"
 #include "mozilla/ModuleUtils.h"
 #include "nsPrintfCString.h"
-#include "nsNetUtil.h"
+#include "nsNetCID.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIURI.h"
+#include "GeckoProfiler.h"
+#include "prnetdb.h"
+#include "ProxyUtils.h"
 
-class nsWindowsSystemProxySettings MOZ_FINAL : public nsISystemProxySettings
+class nsWindowsSystemProxySettings final : public nsISystemProxySettings
 {
 public:
     NS_DECL_THREADSAFE_ISUPPORTS
@@ -146,10 +149,18 @@ nsWindowsSystemProxySettings::MatchOverride(const nsACString& aHost)
             const nsAutoCString override(Substring(cbuf, start,
                                                    delimiter - start));
             if (override.EqualsLiteral("<local>")) {
-                // This override matches local addresses.
-                if (host.EqualsLiteral("localhost") ||
-                    host.EqualsLiteral("127.0.0.1"))
+                PRNetAddr addr;
+                bool isIpAddr = (PR_StringToNetAddr(host.get(), &addr) == PR_SUCCESS);
+
+                // Don't use proxy for local hosts (plain hostname, no dots)
+                if (!isIpAddr && !host.Contains('.')) {
                     return true;
+                }
+
+                if (host.EqualsLiteral("127.0.0.1") ||
+                    host.EqualsLiteral("::1")) {
+                    return true;
+                }
             } else if (PatternMatch(host, override)) {
                 return true;
             }
@@ -167,42 +178,13 @@ bool
 nsWindowsSystemProxySettings::PatternMatch(const nsACString& aHost,
                                            const nsACString& aOverride)
 {
-    nsAutoCString host(aHost);
-    nsAutoCString override(aOverride);
-    int32_t overrideLength = override.Length();
-    int32_t tokenStart = 0;
-    int32_t offset = 0;
-    bool star = false;
-
-    while (tokenStart < overrideLength) {
-        int32_t tokenEnd = override.FindChar('*', tokenStart);
-        if (tokenEnd == tokenStart) {
-            star = true;
-            tokenStart++;
-            // If the character following the '*' is a '.' character then skip
-            // it so that "*.foo.com" allows "foo.com".
-            if (override.FindChar('.', tokenStart) == tokenStart)
-                tokenStart++;
-        } else {
-            if (tokenEnd == -1)
-                tokenEnd = overrideLength;
-            nsAutoCString token(Substring(override, tokenStart,
-                                          tokenEnd - tokenStart));
-            offset = host.Find(token, offset);
-            if (offset == -1 || (!star && offset))
-                return false;
-            star = false;
-            tokenStart = tokenEnd;
-            offset += token.Length();
-        }
-    }
-
-    return (star || (offset == host.Length()));
+    return mozilla::toolkit::system::IsHostProxyEntry(aHost, aOverride);
 }
 
 nsresult
 nsWindowsSystemProxySettings::GetPACURI(nsACString& aResult)
 {
+    PROFILER_LABEL_FUNC(js::ProfileEntry::Category::STORAGE);
     nsresult rv;
     uint32_t flags = 0;
     nsAutoString buf;

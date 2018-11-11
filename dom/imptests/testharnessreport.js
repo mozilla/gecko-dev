@@ -42,11 +42,17 @@ var W3CTest = {
 
   /**
    * Prefixes for the error logging. Indexed first by int(todo) and second by
-   * int(result).
+   * int(result). Also contains the test's status, and expected status.
    */
   "prefixes": [
-    ["TEST-UNEXPECTED-FAIL", "TEST-PASS"],
-    ["TEST-KNOWN-FAIL", "TEST-UNEXPECTED-PASS"]
+    [
+      {status: 'FAIL', expected: 'PASS', message: "TEST-UNEXPECTED-FAIL"},
+      {status: 'PASS', expected: 'PASS', message: "TEST-PASS"}
+    ],
+    [
+      {status: 'FAIL', expected: 'FAIL', message: "TEST-KNOWN-FAIL"},
+      {status: 'PASS', expected: 'FAIL', message: "TEST-UNEXPECTED-PASS"}
+    ]
   ],
 
   /**
@@ -133,14 +139,21 @@ var W3CTest = {
    */
   "_log": function(test) {
     var url = this.getURL();
-    var msg = this.prefixes[+test.todo][+test.result] + " | ";
-    if (url) {
-      msg += url;
-    }
-    msg += " | " + this.formatTestMessage(test);
+    var message = this.formatTestMessage(test);
+    var result = this.prefixes[+test.todo][+test.result];
+
     if (this.runner) {
-      this.runner[(test.result === !test.todo) ? "log" : "error"](msg);
+      this.runner.structuredLogger.testStatus(url,
+                                              test.name,
+                                              result.status,
+                                              result.expected,
+                                              message);
     } else {
+      var msg = result.message + " | ";
+      if (url) {
+        msg += url;
+      }
+      msg += " | " + this.formatTestMessage(test);
       dump(msg + "\n");
     }
   },
@@ -290,7 +303,7 @@ var W3CTest = {
     add_result_callback(W3CTest.result.bind(W3CTest));
     add_completion_callback(W3CTest.finish.bind(W3CTest));
     setup({
-      "output": false,
+      "output": W3CTest.runner && !W3CTest.runner.getParameterInfo().closeWhenDone,
       "explicit_timeout": true
     });
   } catch (e) {

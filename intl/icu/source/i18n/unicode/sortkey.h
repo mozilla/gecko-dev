@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
  *****************************************************************************
- * Copyright (C) 1996-2013, International Business Machines Corporation and others.
+ * Copyright (C) 1996-2014, International Business Machines Corporation and others.
  * All Rights Reserved.
  *****************************************************************************
  *
@@ -38,6 +40,7 @@ U_NAMESPACE_BEGIN
 
 /* forward declaration */
 class RuleBasedCollator;
+class CollationKeyByteSink;
 
 /**
  *

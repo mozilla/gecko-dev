@@ -11,12 +11,15 @@
 #include "nsBoxFrame.h"
 #include "nsBulletFrame.h"
 #include "nsFlexContainerFrame.h"
+#include "nsGridContainerFrame.h"
 #include "nsGfxScrollFrame.h"
 #include "nsIFrame.h"
 #include "nsISVGChildFrame.h"
 #include "nsImageFrame.h"
 #include "nsInlineFrame.h"
 #include "nsPlaceholderFrame.h"
+#include "nsRubyTextFrame.h"
+#include "nsRubyTextContainerFrame.h"
 #include "nsSVGContainerFrame.h"
 #include "nsTableCellFrame.h"
 #include "nsTableRowFrame.h"
@@ -30,7 +33,7 @@ nsCString
 GetFrameState(nsIFrame* aFrame)
 {
   nsCString result;
-  nsAutoTArray<const char*,3> groups;
+  AutoTArray<const char*,3> groups;
 
   nsFrameState state = aFrame->GetStateBits();
 

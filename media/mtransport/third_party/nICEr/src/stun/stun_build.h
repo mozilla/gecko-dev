@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef USE_STUND_0_96
 #define NR_STUN_MODE_STUND_0_96         2    /* backwards compatibility mode */
 #endif /* USE_STUND_0_96 */
+#define NR_STUN_MODE_STUN_NO_AUTH       3
 int nr_stun_form_request_or_indication(int mode, int msg_type, nr_stun_message **msg);
 
 typedef struct nr_stun_client_stun_binding_request_params_ {
@@ -76,16 +77,6 @@ int nr_stun_build_req_stund_0_96(nr_stun_client_stun_binding_request_stund_0_96_
 
 
 #ifdef USE_ICE
-typedef struct nr_stun_client_ice_use_candidate_params_ {
-    char *username;
-    Data password;
-    UINT4 priority;
-    UINT8 tiebreaker;
-} nr_stun_client_ice_use_candidate_params;
-
-int nr_stun_build_use_candidate(nr_stun_client_ice_use_candidate_params *params, nr_stun_message **msg);
-
-
 typedef struct nr_stun_client_ice_binding_request_params_ {
     char *username;
     Data password;
@@ -95,6 +86,8 @@ typedef struct nr_stun_client_ice_binding_request_params_ {
 #define NR_ICE_CONTROLLED   2
     UINT8 tiebreaker;
 } nr_stun_client_ice_binding_request_params;
+
+int nr_stun_build_use_candidate(nr_stun_client_ice_binding_request_params *params, nr_stun_message **msg);
 
 int nr_stun_build_req_ice(nr_stun_client_ice_binding_request_params *params, nr_stun_message **msg);
 #endif /* USE_ICE */

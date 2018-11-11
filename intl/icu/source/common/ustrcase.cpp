@@ -1,7 +1,9 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 *******************************************************************************
 *
-*   Copyright (C) 2001-2011, International Business Machines
+*   Copyright (C) 2001-2015, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *
 *******************************************************************************
@@ -28,8 +30,7 @@
 #include "cmemory.h"
 #include "ucase.h"
 #include "ustr_imp.h"
-
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
+#include "uassert.h"
 
 U_NAMESPACE_USE
 
@@ -46,24 +47,27 @@ appendResult(UChar *dest, int32_t destIndex, int32_t destCapacity,
     if(result<0) {
         /* (not) original code point */
         c=~result;
-        length=-1;
+        length=U16_LENGTH(c);
     } else if(result<=UCASE_MAX_STRING_LENGTH) {
         c=U_SENTINEL;
         length=result;
     } else {
         c=result;
-        length=-1;
+        length=U16_LENGTH(c);
+    }
+    if(length>(INT32_MAX-destIndex)) {
+        return -1;  // integer overflow
     }
 
     if(destIndex<destCapacity) {
         /* append the result */
-        if(length<0) {
+        if(c>=0) {
             /* code point */
             UBool isError=FALSE;
             U16_APPEND(dest, destIndex, destCapacity, c, isError);
             if(isError) {
                 /* overflow, nothing written */
-                destIndex+=U16_LENGTH(c);
+                destIndex+=length;
             }
         } else {
             /* string */
@@ -79,11 +83,32 @@ appendResult(UChar *dest, int32_t destIndex, int32_t destCapacity,
         }
     } else {
         /* preflight */
-        if(length<0) {
-            destIndex+=U16_LENGTH(c);
-        } else {
-            destIndex+=length;
+        destIndex+=length;
+    }
+    return destIndex;
+}
+
+static inline int32_t
+appendUChar(UChar *dest, int32_t destIndex, int32_t destCapacity, UChar c) {
+    if(destIndex<destCapacity) {
+        dest[destIndex]=c;
+    } else if(destIndex==INT32_MAX) {
+        return -1;  // integer overflow
+    }
+    return destIndex+1;
+}
+
+static inline int32_t
+appendString(UChar *dest, int32_t destIndex, int32_t destCapacity,
+             const UChar *s, int32_t length) {
+    if(length>0) {
+        if(length>(INT32_MAX-destIndex)) {
+            return -1;  // integer overflow
         }
+        if((destIndex+length)<=destCapacity) {
+            u_memcpy(dest+destIndex, s, length);
+        }
+        destIndex+=length;
     }
     return destIndex;
 }
@@ -150,6 +175,10 @@ _caseMap(const UCaseMap *csm, UCaseMapFull *map,
             dest[destIndex++]=(UChar)c2;
         } else {
             destIndex=appendResult(dest, destIndex, destCapacity, c, s);
+            if(destIndex<0) {
+                *pErrorCode=U_INDEX_OUTOFBOUNDS_ERROR;
+                return 0;
+            }
         }
     }
 
@@ -168,7 +197,7 @@ ustrcase_internalToTitle(const UCaseMap *csm,
                          UErrorCode *pErrorCode) {
     const UChar *s;
     UChar32 c;
-    int32_t prev, titleStart, titleLimit, idx, destIndex, length;
+    int32_t prev, titleStart, titleLimit, idx, destIndex;
     UBool isFirstIndex;
 
     if(U_FAILURE(*pErrorCode)) {
@@ -234,12 +263,10 @@ ustrcase_internalToTitle(const UCaseMap *csm,
                         break; /* cased letter at [titleStart..titleLimit[ */
                     }
                 }
-                length=titleStart-prev;
-                if(length>0) {
-                    if((destIndex+length)<=destCapacity) {
-                        uprv_memcpy(dest+destIndex, src+prev, length*U_SIZEOF_UCHAR);
-                    }
-                    destIndex+=length;
+                destIndex=appendString(dest, destIndex, destCapacity, src+prev, titleStart-prev);
+                if(destIndex<0) {
+                    *pErrorCode=U_INDEX_OUTOFBOUNDS_ERROR;
+                    return 0;
                 }
             }
 
@@ -249,15 +276,22 @@ ustrcase_internalToTitle(const UCaseMap *csm,
                 csc.cpLimit=titleLimit;
                 c=ucase_toFullTitle(csm->csp, c, utf16_caseContextIterator, &csc, &s, csm->locale, &locCache);
                 destIndex=appendResult(dest, destIndex, destCapacity, c, s); 
+                if(destIndex<0) {
+                    *pErrorCode=U_INDEX_OUTOFBOUNDS_ERROR;
+                    return 0;
+                }
 
                 /* Special case Dutch IJ titlecasing */
-                if ( titleStart+1 < idx && 
-                     ucase_getCaseLocale(csm->locale,&locCache) == UCASE_LOC_DUTCH &&
-                     ( src[titleStart] == (UChar32) 0x0049 || src[titleStart] == (UChar32) 0x0069 ) &&
-                     ( src[titleStart+1] == (UChar32) 0x004A || src[titleStart+1] == (UChar32) 0x006A )) { 
-                            c=(UChar32) 0x004A;
-                            destIndex=appendResult(dest, destIndex, destCapacity, c, s);
-                            titleLimit++;
+                if (titleStart+1 < idx &&
+                        ucase_getCaseLocale(csm->locale,&locCache) == UCASE_LOC_DUTCH &&
+                        (src[titleStart] == 0x0049 || src[titleStart] == 0x0069) &&
+                        (src[titleStart+1] == 0x004A || src[titleStart+1] == 0x006A)) {
+                    destIndex=appendUChar(dest, destIndex, destCapacity, 0x004A);
+                    if(destIndex<0) {
+                        *pErrorCode=U_INDEX_OUTOFBOUNDS_ERROR;
+                        return 0;
+                    }
+                    titleLimit++;
                 }
 
                 /* lowercase [titleLimit..index[ */
@@ -271,13 +305,19 @@ ustrcase_internalToTitle(const UCaseMap *csm,
                                 src, &csc,
                                 titleLimit, idx,
                                 pErrorCode);
+                        if(*pErrorCode==U_BUFFER_OVERFLOW_ERROR) {
+                            *pErrorCode=U_ZERO_ERROR;
+                        }
+                        if(U_FAILURE(*pErrorCode)) {
+                            return destIndex;
+                        }
                     } else {
                         /* Optionally just copy the rest of the word unchanged. */
-                        length=idx-titleLimit;
-                        if((destIndex+length)<=destCapacity) {
-                            uprv_memcpy(dest+destIndex, src+titleLimit, length*U_SIZEOF_UCHAR);
+                        destIndex=appendString(dest, destIndex, destCapacity, src+titleLimit, idx-titleLimit);
+                        if(destIndex<0) {
+                            *pErrorCode=U_INDEX_OUTOFBOUNDS_ERROR;
+                            return 0;
                         }
-                        destIndex+=length;
                     }
                 }
             }
@@ -293,6 +333,605 @@ ustrcase_internalToTitle(const UCaseMap *csm,
 }
 
 #endif  // !UCONFIG_NO_BREAK_ITERATION
+
+U_NAMESPACE_BEGIN
+namespace GreekUpper {
+
+// Data generated by prototype code, see
+// http://site.icu-project.org/design/case/greek-upper
+// TODO: Move this data into ucase.icu.
+static const uint16_t data0370[] = {
+    // U+0370..03FF
+    0x0370,
+    0x0370,
+    0x0372,
+    0x0372,
+    0,
+    0,
+    0x0376,
+    0x0376,
+    0,
+    0,
+    0x037A,
+    0x03FD,
+    0x03FE,
+    0x03FF,
+    0,
+    0x037F,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0x0391 | HAS_VOWEL | HAS_ACCENT,
+    0,
+    0x0395 | HAS_VOWEL | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_ACCENT,
+    0x0399 | HAS_VOWEL | HAS_ACCENT,
+    0,
+    0x039F | HAS_VOWEL | HAS_ACCENT,
+    0,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_ACCENT,
+    0x0399 | HAS_VOWEL | HAS_ACCENT | HAS_DIALYTIKA,
+    0x0391 | HAS_VOWEL,
+    0x0392,
+    0x0393,
+    0x0394,
+    0x0395 | HAS_VOWEL,
+    0x0396,
+    0x0397 | HAS_VOWEL,
+    0x0398,
+    0x0399 | HAS_VOWEL,
+    0x039A,
+    0x039B,
+    0x039C,
+    0x039D,
+    0x039E,
+    0x039F | HAS_VOWEL,
+    0x03A0,
+    0x03A1,
+    0,
+    0x03A3,
+    0x03A4,
+    0x03A5 | HAS_VOWEL,
+    0x03A6,
+    0x03A7,
+    0x03A8,
+    0x03A9 | HAS_VOWEL,
+    0x0399 | HAS_VOWEL | HAS_DIALYTIKA,
+    0x03A5 | HAS_VOWEL | HAS_DIALYTIKA,
+    0x0391 | HAS_VOWEL | HAS_ACCENT,
+    0x0395 | HAS_VOWEL | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_ACCENT,
+    0x0399 | HAS_VOWEL | HAS_ACCENT,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT | HAS_DIALYTIKA,
+    0x0391 | HAS_VOWEL,
+    0x0392,
+    0x0393,
+    0x0394,
+    0x0395 | HAS_VOWEL,
+    0x0396,
+    0x0397 | HAS_VOWEL,
+    0x0398,
+    0x0399 | HAS_VOWEL,
+    0x039A,
+    0x039B,
+    0x039C,
+    0x039D,
+    0x039E,
+    0x039F | HAS_VOWEL,
+    0x03A0,
+    0x03A1,
+    0x03A3,
+    0x03A3,
+    0x03A4,
+    0x03A5 | HAS_VOWEL,
+    0x03A6,
+    0x03A7,
+    0x03A8,
+    0x03A9 | HAS_VOWEL,
+    0x0399 | HAS_VOWEL | HAS_DIALYTIKA,
+    0x03A5 | HAS_VOWEL | HAS_DIALYTIKA,
+    0x039F | HAS_VOWEL | HAS_ACCENT,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_ACCENT,
+    0x03CF,
+    0x0392,
+    0x0398,
+    0x03D2,
+    0x03D2 | HAS_ACCENT,
+    0x03D2 | HAS_DIALYTIKA,
+    0x03A6,
+    0x03A0,
+    0x03CF,
+    0x03D8,
+    0x03D8,
+    0x03DA,
+    0x03DA,
+    0x03DC,
+    0x03DC,
+    0x03DE,
+    0x03DE,
+    0x03E0,
+    0x03E0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0x039A,
+    0x03A1,
+    0x03F9,
+    0x037F,
+    0x03F4,
+    0x0395 | HAS_VOWEL,
+    0,
+    0x03F7,
+    0x03F7,
+    0x03F9,
+    0x03FA,
+    0x03FA,
+    0x03FC,
+    0x03FD,
+    0x03FE,
+    0x03FF,
+};
+
+static const uint16_t data1F00[] = {
+    // U+1F00..1FFF
+    0x0391 | HAS_VOWEL,
+    0x0391 | HAS_VOWEL,
+    0x0391 | HAS_VOWEL | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_ACCENT,
+    0x0391 | HAS_VOWEL,
+    0x0391 | HAS_VOWEL,
+    0x0391 | HAS_VOWEL | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_ACCENT,
+    0x0395 | HAS_VOWEL,
+    0x0395 | HAS_VOWEL,
+    0x0395 | HAS_VOWEL | HAS_ACCENT,
+    0x0395 | HAS_VOWEL | HAS_ACCENT,
+    0x0395 | HAS_VOWEL | HAS_ACCENT,
+    0x0395 | HAS_VOWEL | HAS_ACCENT,
+    0,
+    0,
+    0x0395 | HAS_VOWEL,
+    0x0395 | HAS_VOWEL,
+    0x0395 | HAS_VOWEL | HAS_ACCENT,
+    0x0395 | HAS_VOWEL | HAS_ACCENT,
+    0x0395 | HAS_VOWEL | HAS_ACCENT,
+    0x0395 | HAS_VOWEL | HAS_ACCENT,
+    0,
+    0,
+    0x0397 | HAS_VOWEL,
+    0x0397 | HAS_VOWEL,
+    0x0397 | HAS_VOWEL | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_ACCENT,
+    0x0397 | HAS_VOWEL,
+    0x0397 | HAS_VOWEL,
+    0x0397 | HAS_VOWEL | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_ACCENT,
+    0x0399 | HAS_VOWEL,
+    0x0399 | HAS_VOWEL,
+    0x0399 | HAS_VOWEL | HAS_ACCENT,
+    0x0399 | HAS_VOWEL | HAS_ACCENT,
+    0x0399 | HAS_VOWEL | HAS_ACCENT,
+    0x0399 | HAS_VOWEL | HAS_ACCENT,
+    0x0399 | HAS_VOWEL | HAS_ACCENT,
+    0x0399 | HAS_VOWEL | HAS_ACCENT,
+    0x0399 | HAS_VOWEL,
+    0x0399 | HAS_VOWEL,
+    0x0399 | HAS_VOWEL | HAS_ACCENT,
+    0x0399 | HAS_VOWEL | HAS_ACCENT,
+    0x0399 | HAS_VOWEL | HAS_ACCENT,
+    0x0399 | HAS_VOWEL | HAS_ACCENT,
+    0x0399 | HAS_VOWEL | HAS_ACCENT,
+    0x0399 | HAS_VOWEL | HAS_ACCENT,
+    0x039F | HAS_VOWEL,
+    0x039F | HAS_VOWEL,
+    0x039F | HAS_VOWEL | HAS_ACCENT,
+    0x039F | HAS_VOWEL | HAS_ACCENT,
+    0x039F | HAS_VOWEL | HAS_ACCENT,
+    0x039F | HAS_VOWEL | HAS_ACCENT,
+    0,
+    0,
+    0x039F | HAS_VOWEL,
+    0x039F | HAS_VOWEL,
+    0x039F | HAS_VOWEL | HAS_ACCENT,
+    0x039F | HAS_VOWEL | HAS_ACCENT,
+    0x039F | HAS_VOWEL | HAS_ACCENT,
+    0x039F | HAS_VOWEL | HAS_ACCENT,
+    0,
+    0,
+    0x03A5 | HAS_VOWEL,
+    0x03A5 | HAS_VOWEL,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT,
+    0,
+    0x03A5 | HAS_VOWEL,
+    0,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT,
+    0,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT,
+    0,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL,
+    0x03A9 | HAS_VOWEL,
+    0x03A9 | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL,
+    0x03A9 | HAS_VOWEL,
+    0x03A9 | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_ACCENT,
+    0x0395 | HAS_VOWEL | HAS_ACCENT,
+    0x0395 | HAS_VOWEL | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_ACCENT,
+    0x0399 | HAS_VOWEL | HAS_ACCENT,
+    0x0399 | HAS_VOWEL | HAS_ACCENT,
+    0x039F | HAS_VOWEL | HAS_ACCENT,
+    0x039F | HAS_VOWEL | HAS_ACCENT,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_ACCENT,
+    0,
+    0,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0391 | HAS_VOWEL,
+    0x0391 | HAS_VOWEL,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0,
+    0x0391 | HAS_VOWEL | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0391 | HAS_VOWEL,
+    0x0391 | HAS_VOWEL,
+    0x0391 | HAS_VOWEL | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_ACCENT,
+    0x0391 | HAS_VOWEL | HAS_YPOGEGRAMMENI,
+    0,
+    0x0399 | HAS_VOWEL,
+    0,
+    0,
+    0,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0,
+    0x0397 | HAS_VOWEL | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x0395 | HAS_VOWEL | HAS_ACCENT,
+    0x0395 | HAS_VOWEL | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_ACCENT,
+    0x0397 | HAS_VOWEL | HAS_YPOGEGRAMMENI,
+    0,
+    0,
+    0,
+    0x0399 | HAS_VOWEL,
+    0x0399 | HAS_VOWEL,
+    0x0399 | HAS_VOWEL | HAS_ACCENT | HAS_DIALYTIKA,
+    0x0399 | HAS_VOWEL | HAS_ACCENT | HAS_DIALYTIKA,
+    0,
+    0,
+    0x0399 | HAS_VOWEL | HAS_ACCENT,
+    0x0399 | HAS_VOWEL | HAS_ACCENT | HAS_DIALYTIKA,
+    0x0399 | HAS_VOWEL,
+    0x0399 | HAS_VOWEL,
+    0x0399 | HAS_VOWEL | HAS_ACCENT,
+    0x0399 | HAS_VOWEL | HAS_ACCENT,
+    0,
+    0,
+    0,
+    0,
+    0x03A5 | HAS_VOWEL,
+    0x03A5 | HAS_VOWEL,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT | HAS_DIALYTIKA,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT | HAS_DIALYTIKA,
+    0x03A1,
+    0x03A1,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT | HAS_DIALYTIKA,
+    0x03A5 | HAS_VOWEL,
+    0x03A5 | HAS_VOWEL,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT,
+    0x03A5 | HAS_VOWEL | HAS_ACCENT,
+    0x03A1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0,
+    0x03A9 | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI | HAS_ACCENT,
+    0x039F | HAS_VOWEL | HAS_ACCENT,
+    0x039F | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_ACCENT,
+    0x03A9 | HAS_VOWEL | HAS_YPOGEGRAMMENI,
+    0,
+    0,
+    0,
+};
+
+// U+2126 Ohm sign
+static const uint16_t data2126 = 0x03A9 | HAS_VOWEL;
+
+uint32_t getLetterData(UChar32 c) {
+    if (c < 0x370 || 0x2126 < c || (0x3ff < c && c < 0x1f00)) {
+        return 0;
+    } else if (c <= 0x3ff) {
+        return data0370[c - 0x370];
+    } else if (c <= 0x1fff) {
+        return data1F00[c - 0x1f00];
+    } else if (c == 0x2126) {
+        return data2126;
+    } else {
+        return 0;
+    }
+}
+
+uint32_t getDiacriticData(UChar32 c) {
+    switch (c) {
+    case 0x0300:  // varia
+    case 0x0301:  // tonos = oxia
+    case 0x0342:  // perispomeni
+    case 0x0302:  // circumflex can look like perispomeni
+    case 0x0303:  // tilde can look like perispomeni
+    case 0x0311:  // inverted breve can look like perispomeni
+        return HAS_ACCENT;
+    case 0x0308:  // dialytika = diaeresis
+        return HAS_COMBINING_DIALYTIKA;
+    case 0x0344:  // dialytika tonos
+        return HAS_COMBINING_DIALYTIKA | HAS_ACCENT;
+    case 0x0345:  // ypogegrammeni = iota subscript
+        return HAS_YPOGEGRAMMENI;
+    case 0x0304:  // macron
+    case 0x0306:  // breve
+    case 0x0313:  // comma above
+    case 0x0314:  // reversed comma above
+    case 0x0343:  // koronis
+        return HAS_OTHER_GREEK_DIACRITIC;
+    default:
+        return 0;
+    }
+}
+
+UBool isFollowedByCasedLetter(const UCaseProps *csp, const UChar *s, int32_t i, int32_t length) {
+    while (i < length) {
+        UChar32 c;
+        U16_NEXT(s, i, length, c);
+        int32_t type = ucase_getTypeOrIgnorable(csp, c);
+        if ((type & UCASE_IGNORABLE) != 0) {
+            // Case-ignorable, continue with the loop.
+        } else if (type != UCASE_NONE) {
+            return TRUE;  // Followed by cased letter.
+        } else {
+            return FALSE;  // Uncased and not case-ignorable.
+        }
+    }
+    return FALSE;  // Not followed by cased letter.
+}
+
+/**
+ * Greek string uppercasing with a state machine.
+ * Probably simpler than a stateless function that has to figure out complex context-before
+ * for each character.
+ * TODO: Try to re-consolidate one way or another with the non-Greek function.
+ */
+int32_t toUpper(const UCaseMap *csm,
+                UChar *dest, int32_t destCapacity,
+                const UChar *src, int32_t srcLength,
+                UErrorCode *pErrorCode) {
+    int32_t locCache = UCASE_LOC_GREEK;
+    int32_t destIndex=0;
+    uint32_t state = 0;
+    for (int32_t i = 0; i < srcLength;) {
+        int32_t nextIndex = i;
+        UChar32 c;
+        U16_NEXT(src, nextIndex, srcLength, c);
+        uint32_t nextState = 0;
+        int32_t type = ucase_getTypeOrIgnorable(csm->csp, c);
+        if ((type & UCASE_IGNORABLE) != 0) {
+            // c is case-ignorable
+            nextState |= (state & AFTER_CASED);
+        } else if (type != UCASE_NONE) {
+            // c is cased
+            nextState |= AFTER_CASED;
+        }
+        uint32_t data = getLetterData(c);
+        if (data > 0) {
+            uint32_t upper = data & UPPER_MASK;
+            // Add a dialytika to this iota or ypsilon vowel
+            // if we removed a tonos from the previous vowel,
+            // and that previous vowel did not also have (or gain) a dialytika.
+            // Adding one only to the final vowel in a longer sequence
+            // (which does not occur in normal writing) would require lookahead.
+            // Set the same flag as for preserving an existing dialytika.
+            if ((data & HAS_VOWEL) != 0 && (state & AFTER_VOWEL_WITH_ACCENT) != 0 &&
+                    (upper == 0x399 || upper == 0x3A5)) {
+                data |= HAS_DIALYTIKA;
+            }
+            int32_t numYpogegrammeni = 0;  // Map each one to a trailing, spacing, capital iota.
+            if ((data & HAS_YPOGEGRAMMENI) != 0) {
+                numYpogegrammeni = 1;
+            }
+            // Skip combining diacritics after this Greek letter.
+            while (nextIndex < srcLength) {
+                uint32_t diacriticData = getDiacriticData(src[nextIndex]);
+                if (diacriticData != 0) {
+                    data |= diacriticData;
+                    if ((diacriticData & HAS_YPOGEGRAMMENI) != 0) {
+                        ++numYpogegrammeni;
+                    }
+                    ++nextIndex;
+                } else {
+                    break;  // not a Greek diacritic
+                }
+            }
+            if ((data & HAS_VOWEL_AND_ACCENT_AND_DIALYTIKA) == HAS_VOWEL_AND_ACCENT) {
+                nextState |= AFTER_VOWEL_WITH_ACCENT;
+            }
+            // Map according to Greek rules.
+            UBool addTonos = FALSE;
+            if (upper == 0x397 &&
+                    (data & HAS_ACCENT) != 0 &&
+                    numYpogegrammeni == 0 &&
+                    (state & AFTER_CASED) == 0 &&
+                    !isFollowedByCasedLetter(csm->csp, src, nextIndex, srcLength)) {
+                // Keep disjunctive "or" with (only) a tonos.
+                // We use the same "word boundary" conditions as for the Final_Sigma test.
+                if (i == nextIndex) {
+                    upper = 0x389;  // Preserve the precomposed form.
+                } else {
+                    addTonos = TRUE;
+                }
+            } else if ((data & HAS_DIALYTIKA) != 0) {
+                // Preserve a vowel with dialytika in precomposed form if it exists.
+                if (upper == 0x399) {
+                    upper = 0x3AA;
+                    data &= ~HAS_EITHER_DIALYTIKA;
+                } else if (upper == 0x3A5) {
+                    upper = 0x3AB;
+                    data &= ~HAS_EITHER_DIALYTIKA;
+                }
+            }
+            destIndex=appendUChar(dest, destIndex, destCapacity, (UChar)upper);
+            if (destIndex >= 0 && (data & HAS_EITHER_DIALYTIKA) != 0) {
+                destIndex=appendUChar(dest, destIndex, destCapacity, 0x308);  // restore or add a dialytika
+            }
+            if (destIndex >= 0 && addTonos) {
+                destIndex=appendUChar(dest, destIndex, destCapacity, 0x301);
+            }
+            while (destIndex >= 0 && numYpogegrammeni > 0) {
+                destIndex=appendUChar(dest, destIndex, destCapacity, 0x399);
+                --numYpogegrammeni;
+            }
+            if(destIndex<0) {
+                *pErrorCode=U_INDEX_OUTOFBOUNDS_ERROR;
+                return 0;
+            }
+        } else {
+            const UChar *s;
+            UChar32 c2 = 0;
+            c=ucase_toFullUpper(csm->csp, c, NULL, NULL, &s, csm->locale, &locCache);
+            if((destIndex<destCapacity) && (c<0 ? (c2=~c)<=0xffff : UCASE_MAX_STRING_LENGTH<c && (c2=c)<=0xffff)) {
+                /* fast path version of appendResult() for BMP results */
+                dest[destIndex++]=(UChar)c2;
+            } else {
+                destIndex=appendResult(dest, destIndex, destCapacity, c, s);
+                if(destIndex<0) {
+                    *pErrorCode=U_INDEX_OUTOFBOUNDS_ERROR;
+                    return 0;
+                }
+            }
+        }
+        i = nextIndex;
+        state = nextState;
+    }
+
+    if(destIndex>destCapacity) {
+        *pErrorCode=U_BUFFER_OVERFLOW_ERROR;
+    }
+    return destIndex;
+}
+
+}  // namespace GreekUpper
+U_NAMESPACE_END
 
 /* functions available in the common library (for unistr_case.cpp) */
 
@@ -316,6 +955,10 @@ ustrcase_internalToUpper(const UCaseMap *csm,
                          UChar *dest, int32_t destCapacity,
                          const UChar *src, int32_t srcLength,
                          UErrorCode *pErrorCode) {
+    int32_t locCache = csm->locCache;
+    if (ucase_getCaseLocale(csm->locale, &locCache) == UCASE_LOC_GREEK) {
+        return GreekUpper::toUpper(csm, dest, destCapacity, src, srcLength, pErrorCode);
+    }
     UCaseContext csc=UCASECONTEXT_INITIALIZER;
     csc.p=(void *)src;
     csc.limit=srcLength;
@@ -347,6 +990,10 @@ ustr_foldCase(const UCaseProps *csp,
             dest[destIndex++]=(UChar)c2;
         } else {
             destIndex=appendResult(dest, destIndex, destCapacity, c, s);
+            if(destIndex<0) {
+                *pErrorCode=U_INDEX_OUTOFBOUNDS_ERROR;
+                return 0;
+            }
         }
     }
 
@@ -399,7 +1046,7 @@ ustrcase_map(const UCaseMap *csm,
          (dest>=src && dest<(src+srcLength)))
     ) {
         /* overlap: provide a temporary destination buffer and later copy the result */
-        if(destCapacity<=LENGTHOF(buffer)) {
+        if(destCapacity<=UPRV_LENGTHOF(buffer)) {
             /* the stack buffer is large enough */
             temp=buffer;
         } else {
@@ -420,7 +1067,7 @@ ustrcase_map(const UCaseMap *csm,
         if(destLength>0) {
             int32_t copyLength= destLength<=destCapacity ? destLength : destCapacity;
             if(copyLength>0) {
-                uprv_memmove(dest, temp, copyLength*U_SIZEOF_UCHAR);
+                u_memmove(dest, temp, copyLength);
             }
         }
         if(temp!=buffer) {
@@ -465,16 +1112,38 @@ struct CmpEquivLevel {
 };
 typedef struct CmpEquivLevel CmpEquivLevel;
 
-/* internal function */
-U_CFUNC int32_t
-u_strcmpFold(const UChar *s1, int32_t length1,
-             const UChar *s2, int32_t length2,
-             uint32_t options,
-             UErrorCode *pErrorCode) {
+/**
+ * Internal implementation code comparing string with case fold.
+ * This function is called from u_strcmpFold() and u_caseInsensitivePrefixMatch().
+ *
+ * @param s1            input string 1
+ * @param length1       length of string 1, or -1 (NULL terminated)
+ * @param s2            input string 2
+ * @param length2       length of string 2, or -1 (NULL terminated)
+ * @param options       compare options
+ * @param matchLen1     (output) length of partial prefix match in s1
+ * @param matchLen2     (output) length of partial prefix match in s2
+ * @param pErrorCode    receives error status
+ * @return The result of comparison
+ */
+static int32_t _cmpFold(
+            const UChar *s1, int32_t length1,
+            const UChar *s2, int32_t length2,
+            uint32_t options,
+            int32_t *matchLen1, int32_t *matchLen2,
+            UErrorCode *pErrorCode) {
+    int32_t cmpRes = 0;
+
     const UCaseProps *csp;
 
     /* current-level start/limit - s1/s2 as current */
     const UChar *start1, *start2, *limit1, *limit2;
+
+    /* points to the original start address */
+    const UChar *org1, *org2;
+
+    /* points to the end of match + 1 */
+    const UChar *m1, *m2;
 
     /* case folding variables */
     const UChar *p;
@@ -504,14 +1173,20 @@ u_strcmpFold(const UChar *s1, int32_t length1,
     }
 
     /* initialize */
-    start1=s1;
+    if(matchLen1) {
+        U_ASSERT(matchLen2 !=NULL);
+        *matchLen1=0;
+        *matchLen2=0;
+    }
+
+    start1=m1=org1=s1;
     if(length1==-1) {
         limit1=NULL;
     } else {
         limit1=s1+length1;
     }
 
-    start2=s2;
+    start2=m2=org2=s2;
     if(length2==-1) {
         limit2=NULL;
     } else {
@@ -579,15 +1254,59 @@ u_strcmpFold(const UChar *s1, int32_t length1,
          * either variable c1, c2 is -1 only if the corresponding string is finished
          */
         if(c1==c2) {
+            const UChar *next1, *next2;
+
             if(c1<0) {
-                return 0;   /* c1==c2==-1 indicating end of strings */
+                cmpRes=0;   /* c1==c2==-1 indicating end of strings */
+                break;
+            }
+
+            /*
+             * Note: Move the match positions in both strings at the same time
+             *      only when corresponding code point(s) in the original strings
+             *      are fully consumed. For example, when comparing s1="Fust" and
+             *      s2="Fu\u00dfball", s2[2] is folded into "ss", and s1[2] matches
+             *      the first code point in the case-folded data. But the second "s"
+             *      has no matching code point in s1, so this implementation returns
+             *      2 as the prefix match length ("Fu").
+             */
+            next1=next2=NULL;
+            if(level1==0) {
+                next1=s1;
+            } else if(s1==limit1) {
+                /* Note: This implementation only use a single level of stack.
+                 *      If this code needs to be changed to use multiple levels
+                 *      of stacks, the code above should check if the current
+                 *      code is at the end of all stacks.
+                 */
+                U_ASSERT(level1==1);
+
+                /* is s1 at the end of the current stack? */
+                next1=stack1[0].s;
+            }
+
+            if (next1!=NULL) {
+                if(level2==0) {
+                    next2=s2;
+                } else if(s2==limit2) {
+                    U_ASSERT(level2==1);
+
+                    /* is s2 at the end of the current stack? */
+                    next2=stack2[0].s;
+                }
+                if(next2!=NULL) {
+                    m1=next1;
+                    m2=next2;
+                }
             }
             c1=c2=-1;       /* make us fetch new code units */
             continue;
         } else if(c1<0) {
-            return -1;      /* string 1 ends before string 2 */
+            cmpRes=-1;      /* string 1 ends before string 2 */
+            break;
         } else if(c2<0) {
-            return 1;       /* string 2 ends before string 1 */
+            cmpRes=1;       /* string 2 ends before string 1 */
+            break;
         }
         /* c1!=c2 && c1>=0 && c2>=0 */
 
@@ -646,6 +1365,7 @@ u_strcmpFold(const UChar *s1, int32_t length1,
                      * the decomposition would replace the entire code point
                      */
                     --s2;
+                    --m2;
                     c2=*(s2-1);
                 }
             }
@@ -691,6 +1411,7 @@ u_strcmpFold(const UChar *s1, int32_t length1,
                      * the decomposition would replace the entire code point
                      */
                     --s1;
+                    --m2;
                     c1=*(s1-1);
                 }
             }
@@ -759,8 +1480,24 @@ u_strcmpFold(const UChar *s1, int32_t length1,
             }
         }
 
-        return c1-c2;
+        cmpRes=c1-c2;
+        break;
     }
+
+    if(matchLen1) {
+        *matchLen1=m1-org1;
+        *matchLen2=m2-org2;
+    }
+    return cmpRes;
+}
+
+/* internal function */
+U_CFUNC int32_t
+u_strcmpFold(const UChar *s1, int32_t length1,
+             const UChar *s2, int32_t length2,
+             uint32_t options,
+             UErrorCode *pErrorCode) {
+    return _cmpFold(s1, length1, s2, length2, options, NULL, NULL, pErrorCode);
 }
 
 /* public API functions */
@@ -805,4 +1542,15 @@ u_strncasecmp(const UChar *s1, const UChar *s2, int32_t n, uint32_t options) {
     return u_strcmpFold(s1, n, s2, n,
                         options|(U_COMPARE_IGNORE_CASE|_STRNCMP_STYLE),
                         &errorCode);
+}
+
+/* internal API - detect length of shared prefix */
+U_CAPI void
+u_caseInsensitivePrefixMatch(const UChar *s1, int32_t length1,
+                             const UChar *s2, int32_t length2,
+                             uint32_t options,
+                             int32_t *matchLen1, int32_t *matchLen2,
+                             UErrorCode *pErrorCode) {
+    _cmpFold(s1, length1, s2, length2, options,
+        matchLen1, matchLen2, pErrorCode);
 }

@@ -7,25 +7,6 @@ function run_test() {
   run_next_test();
 }
 
-function _getWorker() {
-  let _postedMessage;
-  let _worker = newWorker({
-    postRILMessage: function(data) {
-    },
-    postMessage: function(message) {
-      _postedMessage = message;
-    }
-  });
-  return {
-    get postedMessage() {
-      return _postedMessage;
-    },
-    get worker() {
-      return _worker;
-    }
-  };
-}
-
 /*
  * Helper function to covert a HEX string to a byte array.
  *
@@ -173,7 +154,7 @@ function pduToParcelData(cdmaPduHelper, pdu) {
   writeByte(0);
 
   // Bearer Data Length
-  let dataLength = pdu.bearerData.length;
+  dataLength = pdu.bearerData.length;
   writeByte(dataLength);
 
   // Bearer Data
@@ -188,7 +169,7 @@ function pduToParcelData(cdmaPduHelper, pdu) {
  * Verify CDMA SMS Delivery ACK Message.
  */
 add_test(function test_processCdmaSmsStatusReport() {
-  let workerHelper = _getWorker();
+  let workerHelper = newInterceptWorker();
   let worker = workerHelper.worker;
   let context = worker.ContextPool._contexts[0];
 
@@ -232,20 +213,20 @@ add_test(function test_processCdmaSmsStatusReport() {
     let postedMessage = workerHelper.postedMessage;
 
     // Check if pending token is removed.
-    do_check_true((errorClass === 2) ? !!sentSmsMap[msgId] : !sentSmsMap[msgId]);
+    ok((errorClass === 2) ? !!sentSmsMap[msgId] : !sentSmsMap[msgId]);
 
     // Check the response message accordingly.
     if (errorClass === -1) {
       // Check if the report is treated as normal incoming SMS
-      do_check_eq("sms-received", postedMessage.rilMessageType);
+      equal("sms-received", postedMessage.rilMessageType);
     } else if (errorClass === 2) {
       // Do nothing.
     } else {
       // Check Delivery Status
       if (errorClass === 0) {
-        do_check_eq(postedMessage.deliveryStatus, GECKO_SMS_DELIVERY_STATUS_SUCCESS);
+        equal(postedMessage.deliveryStatus, GECKO_SMS_DELIVERY_STATUS_SUCCESS);
       } else {
-        do_check_eq(postedMessage.deliveryStatus, GECKO_SMS_DELIVERY_STATUS_ERROR);
+        equal(postedMessage.deliveryStatus, GECKO_SMS_DELIVERY_STATUS_ERROR);
       }
     }
   }
@@ -262,7 +243,7 @@ add_test(function test_processCdmaSmsStatusReport() {
  * Verify WAP Push over CDMA SMS Message.
  */
 add_test(function test_processCdmaSmsWapPush() {
-  let workerHelper = _getWorker(),
+  let workerHelper = newInterceptWorker(),
       worker = workerHelper.worker,
       context = worker.ContextPool._contexts[0],
       bitBufferHelper = context.BitBufferHelper,
@@ -302,12 +283,12 @@ add_test(function test_processCdmaSmsWapPush() {
 
     do_print("fullDataHexString: " + fullDataHexString);
 
-    do_check_eq("sms-received", postedMessage.rilMessageType);
-    do_check_eq(PDU_CDMA_MSG_TELESERIVCIE_ID_WAP, postedMessage.teleservice);
-    do_check_eq(orig_address, postedMessage.sender);
-    do_check_eq(0x23F0, postedMessage.header.originatorPort);
-    do_check_eq(0x0B84, postedMessage.header.destinationPort);
-    do_check_eq(fullDataHexString, bytesToHexString(postedMessage.data));
+    equal("sms-received", postedMessage.rilMessageType);
+    equal(PDU_CDMA_MSG_TELESERIVCIE_ID_WAP, postedMessage.teleservice);
+    equal(orig_address, postedMessage.sender);
+    equal(0x23F0, postedMessage.header.originatorPort);
+    equal(0x0B84, postedMessage.header.destinationPort);
+    equal(fullDataHexString, bytesToHexString(postedMessage.data));
   }
 
   // Verify Single WAP PDU

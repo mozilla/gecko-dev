@@ -29,4 +29,9 @@ interface AudioChannelManager : EventTarget {
    * volume keys.
    */
   attribute DOMString volumeControlChannel;
+
+  [Pure, Cached, Throws,
+   Pref="dom.mozBrowserFramesEnabled",
+   ChromeOnly]
+  readonly attribute sequence<BrowserElementAudioChannel> allowedAudioChannels;
 };

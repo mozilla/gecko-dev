@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,6 +9,8 @@
 
 #include "prio.h"
 #include "private/pprio.h"
+#include "nsDebug.h"
+#include "nscore.h"
 
 namespace {
 
@@ -27,7 +31,7 @@ PRFileInfo64FN sFileInfo64Fn = nullptr;
 class NSPRIOAutoObservation : public IOInterposeObserver::Observation
 {
 public:
-  NSPRIOAutoObservation(IOInterposeObserver::Operation aOp)
+  explicit NSPRIOAutoObservation(IOInterposeObserver::Operation aOp)
     : IOInterposeObserver::Observation(aOp, "NSPRIOInterposer")
   {
   }
@@ -38,7 +42,8 @@ public:
   }
 };
 
-PRStatus PR_CALLBACK interposedClose(PRFileDesc* aFd)
+PRStatus PR_CALLBACK
+interposedClose(PRFileDesc* aFd)
 {
   // If we don't have a valid original function pointer something is very wrong.
   NS_ASSERTION(sCloseFn, "NSPR IO Interposing: sCloseFn is NULL");
@@ -47,7 +52,8 @@ PRStatus PR_CALLBACK interposedClose(PRFileDesc* aFd)
   return sCloseFn(aFd);
 }
 
-int32_t PR_CALLBACK interposedRead(PRFileDesc* aFd, void* aBuf, int32_t aAmt)
+int32_t PR_CALLBACK
+interposedRead(PRFileDesc* aFd, void* aBuf, int32_t aAmt)
 {
   // If we don't have a valid original function pointer something is very wrong.
   NS_ASSERTION(sReadFn, "NSPR IO Interposing: sReadFn is NULL");
@@ -56,8 +62,8 @@ int32_t PR_CALLBACK interposedRead(PRFileDesc* aFd, void* aBuf, int32_t aAmt)
   return sReadFn(aFd, aBuf, aAmt);
 }
 
-int32_t PR_CALLBACK interposedWrite(PRFileDesc* aFd, const void* aBuf,
-                                    int32_t aAmt)
+int32_t PR_CALLBACK
+interposedWrite(PRFileDesc* aFd, const void* aBuf, int32_t aAmt)
 {
   // If we don't have a valid original function pointer something is very wrong.
   NS_ASSERTION(sWriteFn, "NSPR IO Interposing: sWriteFn is NULL");
@@ -66,7 +72,8 @@ int32_t PR_CALLBACK interposedWrite(PRFileDesc* aFd, const void* aBuf,
   return sWriteFn(aFd, aBuf, aAmt);
 }
 
-PRStatus PR_CALLBACK interposedFSync(PRFileDesc* aFd)
+PRStatus PR_CALLBACK
+interposedFSync(PRFileDesc* aFd)
 {
   // If we don't have a valid original function pointer something is very wrong.
   NS_ASSERTION(sFSyncFn, "NSPR IO Interposing: sFSyncFn is NULL");
@@ -75,7 +82,8 @@ PRStatus PR_CALLBACK interposedFSync(PRFileDesc* aFd)
   return sFSyncFn(aFd);
 }
 
-PRStatus PR_CALLBACK interposedFileInfo(PRFileDesc *aFd, PRFileInfo *aInfo)
+PRStatus PR_CALLBACK
+interposedFileInfo(PRFileDesc* aFd, PRFileInfo* aInfo)
 {
   // If we don't have a valid original function pointer something is very wrong.
   NS_ASSERTION(sFileInfoFn, "NSPR IO Interposing: sFileInfoFn is NULL");
@@ -84,7 +92,8 @@ PRStatus PR_CALLBACK interposedFileInfo(PRFileDesc *aFd, PRFileInfo *aInfo)
   return sFileInfoFn(aFd, aInfo);
 }
 
-PRStatus PR_CALLBACK interposedFileInfo64(PRFileDesc *aFd, PRFileInfo64 *aInfo)
+PRStatus PR_CALLBACK
+interposedFileInfo64(PRFileDesc* aFd, PRFileInfo64* aInfo)
 {
   // If we don't have a valid original function pointer something is very wrong.
   NS_ASSERTION(sFileInfo64Fn, "NSPR IO Interposing: sFileInfo64Fn is NULL");
@@ -93,11 +102,12 @@ PRStatus PR_CALLBACK interposedFileInfo64(PRFileDesc *aFd, PRFileInfo64 *aInfo)
   return sFileInfo64Fn(aFd, aInfo);
 }
 
-} // anonymous namespace
+} // namespace
 
 namespace mozilla {
 
-void InitNSPRIOInterposing()
+void
+InitNSPRIOInterposing()
 {
   // Check that we have not interposed any of the IO methods before
   MOZ_ASSERT(!sCloseFn && !sReadFn && !sWriteFn && !sFSyncFn && !sFileInfoFn &&
@@ -135,7 +145,8 @@ void InitNSPRIOInterposing()
   methods->fileInfo64 = &interposedFileInfo64;
 }
 
-void ClearNSPRIOInterposing()
+void
+ClearNSPRIOInterposing()
 {
   // If we have already cleared IO interposing, or not initialized it this is
   // actually bad.

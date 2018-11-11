@@ -13,10 +13,18 @@
 
 #include "builtin/SIMD.h"
 
+#include "mozilla/FloatingPoint.h"
+#include "mozilla/IntegerTypeTraits.h"
+#include "mozilla/Sprintf.h"
+
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "jsnum.h"
+#include "jsprf.h"
 
 #include "builtin/TypedObject.h"
+#include "jit/InlinableNatives.h"
+#include "js/GCAPI.h"
 #include "js/Value.h"
 
 #include "jsobjinlines.h"
@@ -26,929 +34,1519 @@ using namespace js;
 using mozilla::ArrayLength;
 using mozilla::IsFinite;
 using mozilla::IsNaN;
-
-namespace js {
-extern const JSFunctionSpec Float32x4Methods[];
-extern const JSFunctionSpec Int32x4Methods[];
-}
+using mozilla::FloorLog2;
+using mozilla::NumberIsInt32;
 
 ///////////////////////////////////////////////////////////////////////////
-// X4
+// SIMD
 
-static const char *laneNames[] = {"lane 0", "lane 1", "lane 2", "lane3"};
+static_assert(unsigned(SimdType::Count) == 12, "sync with TypedObjectConstants.h");
 
-template<typename Type32x4, int lane>
-static bool GetX4Lane(JSContext *cx, unsigned argc, Value *vp) {
-    typedef typename Type32x4::Elem Elem;
+static bool ArgumentToLaneIndex(JSContext* cx, JS::HandleValue v, unsigned limit, unsigned* lane);
 
-    CallArgs args = CallArgsFromVp(argc, vp);
-    if (!args.thisv().isObject() || !args.thisv().toObject().is<TypedObject>()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
-                             X4TypeDescr::class_.name, laneNames[lane],
-                             InformalValueTypeName(args.thisv()));
-        return false;
-    }
-
-    TypedObject &typedObj = args.thisv().toObject().as<TypedObject>();
-    TypeDescr &descr = typedObj.typeDescr();
-    if (descr.kind() != type::X4 || descr.as<X4TypeDescr>().type() != Type32x4::type) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
-                             X4TypeDescr::class_.name, laneNames[lane],
-                             InformalValueTypeName(args.thisv()));
-        return false;
-    }
-
-    MOZ_ASSERT(!typedObj.owner().isNeutered());
-    Elem *data = reinterpret_cast<Elem *>(typedObj.typedMem());
-    Type32x4::setReturn(args, data[lane]);
-    return true;
-}
-
-#define LANE_ACCESSOR(type, lane) \
-static bool type##Lane##lane(JSContext *cx, unsigned argc, Value *vp) { \
-    return GetX4Lane<type, lane>(cx, argc, vp);\
-}
-
-#define FOUR_LANES_ACCESSOR(type) \
-    LANE_ACCESSOR(type, 0); \
-    LANE_ACCESSOR(type, 1); \
-    LANE_ACCESSOR(type, 2); \
-    LANE_ACCESSOR(type, 3);
-
-    FOUR_LANES_ACCESSOR(Int32x4);
-    FOUR_LANES_ACCESSOR(Float32x4);
-#undef FOUR_LANES_ACCESSOR
-#undef LANE_ACCESSOR
-
-template<typename Type32x4>
-static bool SignMask(JSContext *cx, unsigned argc, Value *vp) {
-    typedef typename Type32x4::Elem Elem;
-
-    CallArgs args = CallArgsFromVp(argc, vp);
-    if (!args.thisv().isObject() || !args.thisv().toObject().is<TypedObject>()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
-                             X4TypeDescr::class_.name, "signMask",
-                             InformalValueTypeName(args.thisv()));
-        return false;
-    }
-
-    TypedObject &typedObj = args.thisv().toObject().as<TypedObject>();
-    TypeDescr &descr = typedObj.typeDescr();
-    if (descr.kind() != type::X4 || descr.as<X4TypeDescr>().type() != Type32x4::type) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
-                             X4TypeDescr::class_.name, "signMask",
-                             InformalValueTypeName(args.thisv()));
-        return false;
-    }
-
-    MOZ_ASSERT(!typedObj.owner().isNeutered());
-    Elem *data = reinterpret_cast<Elem *>(typedObj.typedMem());
-    int32_t mx = data[0] < 0.0 ? 1 : 0;
-    int32_t my = data[1] < 0.0 ? 1 : 0;
-    int32_t mz = data[2] < 0.0 ? 1 : 0;
-    int32_t mw = data[3] < 0.0 ? 1 : 0;
-    int32_t result = mx | my << 1 | mz << 2 | mw << 3;
-    args.rval().setInt32(result);
-    return true;
-}
-
-#define SIGN_MASK(type) \
-static bool type##SignMask(JSContext *cx, unsigned argc, Value *vp) { \
-    return SignMask<Int32x4>(cx, argc, vp); \
-}
-    SIGN_MASK(Float32x4);
-    SIGN_MASK(Int32x4);
-#undef SIGN_MASK
-
-const Class X4TypeDescr::class_ = {
-    "X4",
-    JSCLASS_HAS_RESERVED_SLOTS(JS_DESCR_SLOTS),
-    JS_PropertyStub,         /* addProperty */
-    JS_DeletePropertyStub,   /* delProperty */
-    JS_PropertyStub,         /* getProperty */
-    JS_StrictPropertyStub,   /* setProperty */
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub,
-    nullptr,             /* finalize    */
-    call,                /* call        */
-    nullptr,             /* hasInstance */
-    nullptr,             /* construct   */
-    nullptr
-};
-
-// These classes just exist to group together various properties and so on.
-namespace js {
-class Int32x4Defn {
-  public:
-    static const X4TypeDescr::Type type = X4TypeDescr::TYPE_INT32;
-    static const JSFunctionSpec TypeDescriptorMethods[];
-    static const JSPropertySpec TypedObjectProperties[];
-    static const JSFunctionSpec TypedObjectMethods[];
-};
-class Float32x4Defn {
-  public:
-    static const X4TypeDescr::Type type = X4TypeDescr::TYPE_FLOAT32;
-    static const JSFunctionSpec TypeDescriptorMethods[];
-    static const JSPropertySpec TypedObjectProperties[];
-    static const JSFunctionSpec TypedObjectMethods[];
-};
-} // namespace js
-
-const JSFunctionSpec js::Float32x4Defn::TypeDescriptorMethods[] = {
-    JS_SELF_HOSTED_FN("toSource", "DescrToSource", 0, 0),
-    JS_SELF_HOSTED_FN("array", "ArrayShorthand", 1, 0),
-    JS_SELF_HOSTED_FN("equivalent", "TypeDescrEquivalent", 1, 0),
-    JS_FS_END
-};
-
-const JSPropertySpec js::Float32x4Defn::TypedObjectProperties[] = {
-    JS_PSG("x", Float32x4Lane0, JSPROP_PERMANENT),
-    JS_PSG("y", Float32x4Lane1, JSPROP_PERMANENT),
-    JS_PSG("z", Float32x4Lane2, JSPROP_PERMANENT),
-    JS_PSG("w", Float32x4Lane3, JSPROP_PERMANENT),
-    JS_PSG("signMask", Float32x4SignMask, JSPROP_PERMANENT),
-    JS_PS_END
-};
-
-const JSFunctionSpec js::Float32x4Defn::TypedObjectMethods[] = {
-    JS_SELF_HOSTED_FN("toSource", "X4ToSource", 0, 0),
-    JS_FS_END
-};
-
-const JSFunctionSpec js::Int32x4Defn::TypeDescriptorMethods[] = {
-    JS_SELF_HOSTED_FN("toSource", "DescrToSource", 0, 0),
-    JS_SELF_HOSTED_FN("array", "ArrayShorthand", 1, 0),
-    JS_SELF_HOSTED_FN("equivalent", "TypeDescrEquivalent", 1, 0),
-    JS_FS_END,
-};
-
-const JSPropertySpec js::Int32x4Defn::TypedObjectProperties[] = {
-    JS_PSG("x", Int32x4Lane0, JSPROP_PERMANENT),
-    JS_PSG("y", Int32x4Lane1, JSPROP_PERMANENT),
-    JS_PSG("z", Int32x4Lane2, JSPROP_PERMANENT),
-    JS_PSG("w", Int32x4Lane3, JSPROP_PERMANENT),
-    JS_PSG("signMask", Int32x4SignMask, JSPROP_PERMANENT),
-    JS_PS_END
-};
-
-const JSFunctionSpec js::Int32x4Defn::TypedObjectMethods[] = {
-    JS_SELF_HOSTED_FN("toSource", "X4ToSource", 0, 0),
-    JS_FS_END
-};
-
-template<typename T>
-static JSObject *
-CreateX4Class(JSContext *cx,
-              Handle<GlobalObject*> global,
-              HandlePropertyName stringRepr)
+static bool
+CheckVectorObject(HandleValue v, SimdType expectedType)
 {
-    const X4TypeDescr::Type type = T::type;
+    if (!v.isObject())
+        return false;
 
-    RootedObject funcProto(cx, global->getOrCreateFunctionPrototype(cx));
-    if (!funcProto)
-        return nullptr;
+    JSObject& obj = v.toObject();
+    if (!obj.is<TypedObject>())
+        return false;
 
-    // Create type constructor itself and initialize its reserved slots.
+    TypeDescr& typeRepr = obj.as<TypedObject>().typeDescr();
+    if (typeRepr.kind() != type::Simd)
+        return false;
 
-    Rooted<X4TypeDescr*> x4(cx);
-    x4 = NewObjectWithProto<X4TypeDescr>(cx, funcProto, global, TenuredObject);
-    if (!x4)
-        return nullptr;
+    return typeRepr.as<SimdTypeDescr>().type() == expectedType;
+}
 
-    x4->initReservedSlot(JS_DESCR_SLOT_KIND, Int32Value(type::X4));
-    x4->initReservedSlot(JS_DESCR_SLOT_STRING_REPR, StringValue(stringRepr));
-    x4->initReservedSlot(JS_DESCR_SLOT_ALIGNMENT, Int32Value(X4TypeDescr::size(type)));
-    x4->initReservedSlot(JS_DESCR_SLOT_SIZE, Int32Value(X4TypeDescr::alignment(type)));
-    x4->initReservedSlot(JS_DESCR_SLOT_OPAQUE, BooleanValue(false));
-    x4->initReservedSlot(JS_DESCR_SLOT_TYPE, Int32Value(T::type));
+template<class V>
+bool
+js::IsVectorObject(HandleValue v)
+{
+    return CheckVectorObject(v, V::type);
+}
 
-    if (!CreateUserSizeAndAlignmentProperties(cx, x4))
-        return nullptr;
+#define FOR_EACH_SIMD(macro) \
+  macro(Int8x16)             \
+  macro(Int16x8)             \
+  macro(Int32x4)             \
+  macro(Uint8x16)            \
+  macro(Uint16x8)            \
+  macro(Uint32x4)            \
+  macro(Float32x4)           \
+  macro(Float64x2)           \
+  macro(Bool8x16)            \
+  macro(Bool16x8)            \
+  macro(Bool32x4)            \
+  macro(Bool64x2)
 
-    // Create prototype property, which inherits from Object.prototype.
+#define InstantiateIsVectorObject_(T) \
+    template bool js::IsVectorObject<T>(HandleValue v);
+FOR_EACH_SIMD(InstantiateIsVectorObject_)
+#undef InstantiateIsVectorObject_
 
-    RootedObject objProto(cx, global->getOrCreateObjectPrototype(cx));
-    if (!objProto)
-        return nullptr;
-    Rooted<TypedProto*> proto(cx);
-    proto = NewObjectWithProto<TypedProto>(cx, objProto, nullptr, TenuredObject);
-    if (!proto)
-        return nullptr;
-    proto->initTypeDescrSlot(*x4);
-    x4->initReservedSlot(JS_DESCR_SLOT_TYPROTO, ObjectValue(*proto));
-
-    // Link constructor to prototype and install properties.
-
-    if (!JS_DefineFunctions(cx, x4, T::TypeDescriptorMethods))
-        return nullptr;
-
-    if (!LinkConstructorAndPrototype(cx, x4, proto) ||
-        !DefinePropertiesAndBrand(cx, proto, T::TypedObjectProperties,
-                                  T::TypedObjectMethods))
-    {
-        return nullptr;
+const char*
+js::SimdTypeToString(SimdType type)
+{
+    switch (type) {
+#define RETSTR_(TYPE) case SimdType::TYPE: return #TYPE;
+      FOR_EACH_SIMD(RETSTR_)
+#undef RETSTR_
+      case SimdType::Count: break;
     }
+    return "<bad SimdType>";
+}
 
-    return x4;
+PropertyName*
+js::SimdTypeToName(const JSAtomState& atoms, SimdType type)
+{
+    switch (type) {
+#define CASE_(TypeName) case SimdType::TypeName: return atoms.TypeName;
+      FOR_EACH_SIMD(CASE_)
+#undef CASE_
+      case SimdType::Count: break;
+    }
+    MOZ_CRASH("bad SIMD type");
 }
 
 bool
-X4TypeDescr::call(JSContext *cx, unsigned argc, Value *vp)
+js::IsSimdTypeName(const JSAtomState& atoms, const PropertyName* name, SimdType* type)
 {
-    CallArgs args = CallArgsFromVp(argc, vp);
-    const unsigned LANES = 4;
+#define CHECK_(TypeName) if (name == atoms.TypeName) {   \
+                             *type = SimdType::TypeName; \
+                             return true;                \
+                         }
+    FOR_EACH_SIMD(CHECK_)
+#undef CHECK_
+    return false;
+}
 
-    if (args.length() < LANES) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_MORE_ARGS_NEEDED,
-                             args.callee().getClass()->name, "3", "s");
+static inline bool
+ErrorBadArgs(JSContext* cx)
+{
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
+    return false;
+}
+
+static inline bool
+ErrorWrongTypeArg(JSContext* cx, unsigned argIndex, Handle<TypeDescr*> typeDescr)
+{
+    MOZ_ASSERT(argIndex < 10);
+    char charArgIndex[2];
+    SprintfLiteral(charArgIndex, "%u", argIndex);
+
+    HeapSlot& typeNameSlot = typeDescr->getReservedSlotRef(JS_DESCR_SLOT_STRING_REPR);
+    char* typeNameStr = JS_EncodeString(cx, typeNameSlot.toString());
+    if (!typeNameStr)
         return false;
-    }
 
-    double values[LANES];
-    for (unsigned i = 0; i < LANES; i++) {
-        if (!ToNumber(cx, args[i], &values[i]))
+    JS_ReportErrorNumberLatin1(cx, GetErrorMessage, nullptr, JSMSG_SIMD_NOT_A_VECTOR,
+                               typeNameStr, charArgIndex);
+    JS_free(cx, typeNameStr);
+    return false;
+}
+
+static inline bool
+ErrorBadIndex(JSContext* cx)
+{
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_BAD_INDEX);
+    return false;
+}
+
+template<typename T>
+static SimdTypeDescr*
+GetTypeDescr(JSContext* cx)
+{
+    RootedGlobalObject global(cx, cx->global());
+    return GlobalObject::getOrCreateSimdTypeDescr(cx, global, T::type);
+}
+
+template<typename V>
+bool
+js::ToSimdConstant(JSContext* cx, HandleValue v, jit::SimdConstant* out)
+{
+    typedef typename V::Elem Elem;
+    Rooted<TypeDescr*> typeDescr(cx, GetTypeDescr<V>(cx));
+    if (!typeDescr)
+        return false;
+    if (!IsVectorObject<V>(v))
+        return ErrorWrongTypeArg(cx, 1, typeDescr);
+
+    JS::AutoCheckCannotGC nogc(cx);
+    Elem* mem = reinterpret_cast<Elem*>(v.toObject().as<TypedObject>().typedMem(nogc));
+    *out = jit::SimdConstant::CreateSimd128(mem);
+    return true;
+}
+
+template bool js::ToSimdConstant<Int8x16>(JSContext* cx, HandleValue v, jit::SimdConstant* out);
+template bool js::ToSimdConstant<Int16x8>(JSContext* cx, HandleValue v, jit::SimdConstant* out);
+template bool js::ToSimdConstant<Int32x4>(JSContext* cx, HandleValue v, jit::SimdConstant* out);
+template bool js::ToSimdConstant<Float32x4>(JSContext* cx, HandleValue v, jit::SimdConstant* out);
+template bool js::ToSimdConstant<Bool8x16>(JSContext* cx, HandleValue v, jit::SimdConstant* out);
+template bool js::ToSimdConstant<Bool16x8>(JSContext* cx, HandleValue v, jit::SimdConstant* out);
+template bool js::ToSimdConstant<Bool32x4>(JSContext* cx, HandleValue v, jit::SimdConstant* out);
+
+template<typename Elem>
+static Elem
+TypedObjectMemory(HandleValue v, const JS::AutoRequireNoGC& nogc)
+{
+    TypedObject& obj = v.toObject().as<TypedObject>();
+    return reinterpret_cast<Elem>(obj.typedMem(nogc));
+}
+
+static const ClassOps SimdTypeDescrClassOps = {
+    nullptr, /* addProperty */
+    nullptr, /* delProperty */
+    nullptr, /* getProperty */
+    nullptr, /* setProperty */
+    nullptr, /* enumerate */
+    nullptr, /* resolve */
+    nullptr, /* mayResolve */
+    TypeDescr::finalize,
+    SimdTypeDescr::call
+};
+
+const Class SimdTypeDescr::class_ = {
+    "SIMD",
+    JSCLASS_HAS_RESERVED_SLOTS(JS_DESCR_SLOTS) | JSCLASS_BACKGROUND_FINALIZE,
+    &SimdTypeDescrClassOps
+};
+
+namespace {
+
+// Define classes (Int8x16Defn, Int16x8Defn, etc.) to group together various
+// properties and so on.
+#define DEFINE_DEFN_(TypeName)                                       \
+class TypeName##Defn {                                               \
+  public:                                                            \
+    static const JSFunctionSpec Methods[];                           \
+};
+
+FOR_EACH_SIMD(DEFINE_DEFN_)
+#undef DEFINE_DEFN_
+
+} // namespace
+
+// Shared type descriptor methods for all SIMD types.
+static const JSFunctionSpec TypeDescriptorMethods[] = {
+    JS_SELF_HOSTED_FN("toSource", "DescrToSource", 0, 0),
+    JS_SELF_HOSTED_FN("array", "ArrayShorthand", 1, 0),
+    JS_SELF_HOSTED_FN("equivalent", "TypeDescrEquivalent", 1, 0),
+    JS_FS_END
+};
+
+// Shared TypedObject methods for all SIMD types.
+static const JSFunctionSpec SimdTypedObjectMethods[] = {
+    JS_SELF_HOSTED_FN("toString", "SimdToString", 0, 0),
+    JS_SELF_HOSTED_FN("valueOf", "SimdValueOf", 0, 0),
+    JS_SELF_HOSTED_FN("toSource", "SimdToSource", 0, 0),
+    JS_FS_END
+};
+
+// Provide JSJitInfo structs for those types that are supported by Ion.
+// The controlling SIMD type is encoded as the InlinableNative primary opcode.
+// The SimdOperation within the type is encoded in the .depth field.
+//
+// The JS_INLINABLE_FN macro refers to js::JitInfo_##native which we provide as
+// Simd##Type##_##Operation
+//
+// /!\ Don't forget to keep this list in sync with the SIMD instrinics used in
+// SelfHosting.cpp.
+
+namespace js {
+namespace jit {
+
+static_assert(uint64_t(SimdOperation::Last) <= UINT16_MAX, "SimdOperation must fit in uint16_t");
+
+// See also JitInfo_* in MCallOptimize.cpp. We provide a JSJitInfo for all the
+// named functions here. The default JitInfo_SimdInt32x4 etc structs represent the
+// SimdOperation::Constructor.
+#define DEFN(TYPE, OP) const JSJitInfo JitInfo_Simd##TYPE##_##OP = {                             \
+     /* .getter, unused for inlinable natives. */                                                \
+    { nullptr },                                                                                 \
+    /* .inlinableNative, but we have to init first union member: .protoID. */                    \
+    { uint16_t(InlinableNative::Simd##TYPE) },                                                   \
+    /* .nativeOp. Actually initializing first union member .depth. */                            \
+    { uint16_t(SimdOperation::Fn_##OP) },                                                        \
+    /* .type_ bitfield says this in an inlinable native function. */                             \
+    JSJitInfo::InlinableNative                                                                   \
+    /* Remaining fields are not used for inlinable natives. They are zero-initialized. */        \
+};
+
+// This list of inlinable types should match the one in jit/InlinableNatives.h.
+#define TDEFN(Name, Func, Operands) DEFN(Float32x4, Name)
+FLOAT32X4_FUNCTION_LIST(TDEFN)
+#undef TDEFN
+
+#define TDEFN(Name, Func, Operands) DEFN(Int8x16, Name)
+INT8X16_FUNCTION_LIST(TDEFN)
+#undef TDEFN
+
+#define TDEFN(Name, Func, Operands) DEFN(Uint8x16, Name)
+UINT8X16_FUNCTION_LIST(TDEFN)
+#undef TDEFN
+
+#define TDEFN(Name, Func, Operands) DEFN(Int16x8, Name)
+INT16X8_FUNCTION_LIST(TDEFN)
+#undef TDEFN
+
+#define TDEFN(Name, Func, Operands) DEFN(Uint16x8, Name)
+UINT16X8_FUNCTION_LIST(TDEFN)
+#undef TDEFN
+
+#define TDEFN(Name, Func, Operands) DEFN(Int32x4, Name)
+INT32X4_FUNCTION_LIST(TDEFN)
+#undef TDEFN
+
+#define TDEFN(Name, Func, Operands) DEFN(Uint32x4, Name)
+UINT32X4_FUNCTION_LIST(TDEFN)
+#undef TDEFN
+
+#define TDEFN(Name, Func, Operands) DEFN(Bool8x16, Name)
+BOOL8X16_FUNCTION_LIST(TDEFN)
+#undef TDEFN
+
+#define TDEFN(Name, Func, Operands) DEFN(Bool16x8, Name)
+BOOL16X8_FUNCTION_LIST(TDEFN)
+#undef TDEFN
+
+#define TDEFN(Name, Func, Operands) DEFN(Bool32x4, Name)
+BOOL32X4_FUNCTION_LIST(TDEFN)
+#undef TDEFN
+
+} // namespace jit
+} // namespace js
+
+const JSFunctionSpec Float32x4Defn::Methods[] = {
+#define SIMD_FLOAT32X4_FUNCTION_ITEM(Name, Func, Operands) \
+    JS_INLINABLE_FN(#Name, js::simd_float32x4_##Name, Operands, 0, SimdFloat32x4_##Name),
+    FLOAT32X4_FUNCTION_LIST(SIMD_FLOAT32X4_FUNCTION_ITEM)
+#undef SIMD_FLOAT32x4_FUNCTION_ITEM
+    JS_FS_END
+};
+
+const JSFunctionSpec Float64x2Defn::Methods[]  = {
+#define SIMD_FLOAT64X2_FUNCTION_ITEM(Name, Func, Operands) \
+    JS_FN(#Name, js::simd_float64x2_##Name, Operands, 0),
+    FLOAT64X2_FUNCTION_LIST(SIMD_FLOAT64X2_FUNCTION_ITEM)
+#undef SIMD_FLOAT64X2_FUNCTION_ITEM
+    JS_FS_END
+};
+
+const JSFunctionSpec Int8x16Defn::Methods[] = {
+#define SIMD_INT8X16_FUNCTION_ITEM(Name, Func, Operands) \
+    JS_INLINABLE_FN(#Name, js::simd_int8x16_##Name, Operands, 0, SimdInt8x16_##Name),
+    INT8X16_FUNCTION_LIST(SIMD_INT8X16_FUNCTION_ITEM)
+#undef SIMD_INT8X16_FUNCTION_ITEM
+    JS_FS_END
+};
+
+const JSFunctionSpec Int16x8Defn::Methods[] = {
+#define SIMD_INT16X8_FUNCTION_ITEM(Name, Func, Operands) \
+    JS_INLINABLE_FN(#Name, js::simd_int16x8_##Name, Operands, 0, SimdInt16x8_##Name),
+    INT16X8_FUNCTION_LIST(SIMD_INT16X8_FUNCTION_ITEM)
+#undef SIMD_INT16X8_FUNCTION_ITEM
+    JS_FS_END
+};
+
+const JSFunctionSpec Int32x4Defn::Methods[] = {
+#define SIMD_INT32X4_FUNCTION_ITEM(Name, Func, Operands) \
+    JS_INLINABLE_FN(#Name, js::simd_int32x4_##Name, Operands, 0, SimdInt32x4_##Name),
+    INT32X4_FUNCTION_LIST(SIMD_INT32X4_FUNCTION_ITEM)
+#undef SIMD_INT32X4_FUNCTION_ITEM
+    JS_FS_END
+};
+
+const JSFunctionSpec Uint8x16Defn::Methods[] = {
+#define SIMD_UINT8X16_FUNCTION_ITEM(Name, Func, Operands) \
+    JS_INLINABLE_FN(#Name, js::simd_uint8x16_##Name, Operands, 0, SimdUint8x16_##Name),
+    UINT8X16_FUNCTION_LIST(SIMD_UINT8X16_FUNCTION_ITEM)
+#undef SIMD_UINT8X16_FUNCTION_ITEM
+    JS_FS_END
+};
+
+const JSFunctionSpec Uint16x8Defn::Methods[] = {
+#define SIMD_UINT16X8_FUNCTION_ITEM(Name, Func, Operands) \
+    JS_INLINABLE_FN(#Name, js::simd_uint16x8_##Name, Operands, 0, SimdUint16x8_##Name),
+    UINT16X8_FUNCTION_LIST(SIMD_UINT16X8_FUNCTION_ITEM)
+#undef SIMD_UINT16X8_FUNCTION_ITEM
+    JS_FS_END
+};
+
+const JSFunctionSpec Uint32x4Defn::Methods[] = {
+#define SIMD_UINT32X4_FUNCTION_ITEM(Name, Func, Operands) \
+    JS_INLINABLE_FN(#Name, js::simd_uint32x4_##Name, Operands, 0, SimdUint32x4_##Name),
+    UINT32X4_FUNCTION_LIST(SIMD_UINT32X4_FUNCTION_ITEM)
+#undef SIMD_UINT32X4_FUNCTION_ITEM
+    JS_FS_END
+};
+
+const JSFunctionSpec Bool8x16Defn::Methods[] = {
+#define SIMD_BOOL8X16_FUNCTION_ITEM(Name, Func, Operands) \
+    JS_INLINABLE_FN(#Name, js::simd_bool8x16_##Name, Operands, 0, SimdBool8x16_##Name),
+    BOOL8X16_FUNCTION_LIST(SIMD_BOOL8X16_FUNCTION_ITEM)
+#undef SIMD_BOOL8X16_FUNCTION_ITEM
+    JS_FS_END
+};
+
+const JSFunctionSpec Bool16x8Defn::Methods[] = {
+#define SIMD_BOOL16X8_FUNCTION_ITEM(Name, Func, Operands) \
+    JS_INLINABLE_FN(#Name, js::simd_bool16x8_##Name, Operands, 0, SimdBool16x8_##Name),
+    BOOL16X8_FUNCTION_LIST(SIMD_BOOL16X8_FUNCTION_ITEM)
+#undef SIMD_BOOL16X8_FUNCTION_ITEM
+    JS_FS_END
+};
+
+const JSFunctionSpec Bool32x4Defn::Methods[] = {
+#define SIMD_BOOL32X4_FUNCTION_ITEM(Name, Func, Operands) \
+    JS_INLINABLE_FN(#Name, js::simd_bool32x4_##Name, Operands, 0, SimdBool32x4_##Name),
+    BOOL32X4_FUNCTION_LIST(SIMD_BOOL32X4_FUNCTION_ITEM)
+#undef SIMD_BOOL32X4_FUNCTION_ITEM
+    JS_FS_END
+};
+
+const JSFunctionSpec Bool64x2Defn::Methods[] = {
+#define SIMD_BOOL64X2_FUNCTION_ITEM(Name, Func, Operands) \
+    JS_FN(#Name, js::simd_bool64x2_##Name, Operands, 0),
+    BOOL64X2_FUNCTION_LIST(SIMD_BOOL64X2_FUNCTION_ITEM)
+#undef SIMD_BOOL64x2_FUNCTION_ITEM
+    JS_FS_END
+};
+
+template <typename T>
+static bool
+FillLanes(JSContext* cx, Handle<TypedObject*> result, const CallArgs& args)
+{
+    typedef typename T::Elem Elem;
+    Elem tmp;
+    for (unsigned i = 0; i < T::lanes; i++) {
+        if (!T::Cast(cx, args.get(i), &tmp))
             return false;
-    }
-
-    Rooted<X4TypeDescr*> descr(cx, &args.callee().as<X4TypeDescr>());
-    Rooted<TypedObject*> result(cx, TypedObject::createZeroed(cx, descr, 0));
-    if (!result)
-        return false;
-
-    MOZ_ASSERT(!result->owner().isNeutered());
-    switch (descr->type()) {
-#define STORE_LANES(_constant, _type, _name)                                  \
-      case _constant:                                                         \
-      {                                                                       \
-        _type *mem = reinterpret_cast<_type*>(result->typedMem());            \
-        for (unsigned i = 0; i < LANES; i++)                                  \
-            mem[i] = ConvertScalar<_type>(values[i]);                         \
-        break;                                                                \
-      }
-      JS_FOR_EACH_X4_TYPE_REPR(STORE_LANES)
-#undef STORE_LANES
+        // Reassure typedMem() that we won't GC while holding onto the returned
+        // pointer, even though we could GC on every iteration of this loop
+        // (but it is safe because we re-fetch each time.)
+        JS::AutoCheckCannotGC nogc(cx);
+        reinterpret_cast<Elem*>(result->typedMem(nogc))[i] = tmp;
     }
     args.rval().setObject(*result);
     return true;
 }
 
+bool
+SimdTypeDescr::call(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<SimdTypeDescr*> descr(cx, &args.callee().as<SimdTypeDescr>());
+    Rooted<TypedObject*> result(cx, TypedObject::createZeroed(cx, descr, 0));
+    if (!result)
+        return false;
+
+#define CASE_CALL_(Type) \
+      case SimdType::Type:   return FillLanes< ::Type>(cx, result, args);
+
+    switch (descr->type()) {
+      FOR_EACH_SIMD(CASE_CALL_)
+      case SimdType::Count: break;
+    }
+
+#undef CASE_CALL_
+    MOZ_CRASH("unexpected SIMD descriptor");
+    return false;
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // SIMD class
 
-const Class SIMDObject::class_ = {
-        "SIMD",
-        JSCLASS_HAS_CACHED_PROTO(JSProto_SIMD),
-        JS_PropertyStub,         /* addProperty */
-        JS_DeletePropertyStub,   /* delProperty */
-        JS_PropertyStub,         /* getProperty */
-        JS_StrictPropertyStub,   /* setProperty */
-        JS_EnumerateStub,
-        JS_ResolveStub,
-        JS_ConvertStub,
-        nullptr,             /* finalize    */
-        nullptr,             /* call        */
-        nullptr,             /* hasInstance */
-        nullptr,             /* construct   */
-        nullptr
+static const ClassOps SimdObjectClassOps = {
+    nullptr, /* addProperty */
+    nullptr, /* delProperty */
+    nullptr, /* getProperty */
+    nullptr, /* setProperty */
+    nullptr, /* enumerate */
+    SimdObject::resolve
 };
 
-JSObject *
-SIMDObject::initClass(JSContext *cx, Handle<GlobalObject *> global)
+const Class SimdObject::class_ = {
+    "SIMD",
+    JSCLASS_HAS_RESERVED_SLOTS(uint32_t(SimdType::Count)),
+    &SimdObjectClassOps
+};
+
+bool
+GlobalObject::initSimdObject(JSContext* cx, Handle<GlobalObject*> global)
 {
-    // SIMD relies on having the TypedObject module initialized.
+    // SIMD relies on the TypedObject module being initialized.
     // In particular, the self-hosted code for array() wants
     // to be able to call GetTypedObjectModule(). It is NOT necessary
     // to install the TypedObjectModule global, but at the moment
     // those two things are not separable.
     if (!global->getOrCreateTypedObjectModule(cx))
-        return nullptr;
+        return false;
 
-    // Create SIMD Object.
+    RootedObject globalSimdObject(cx);
     RootedObject objProto(cx, global->getOrCreateObjectPrototype(cx));
     if (!objProto)
-        return nullptr;
-    RootedObject SIMD(cx, NewObjectWithGivenProto(cx, &SIMDObject::class_, objProto,
-                                                  global, SingletonObject));
-    if (!SIMD)
-        return nullptr;
+        return false;
 
-    // float32x4
-    RootedObject float32x4Object(cx);
-    float32x4Object = CreateX4Class<Float32x4Defn>(cx, global,
-                                                   cx->names().float32x4);
-    if (!float32x4Object)
-        return nullptr;
+    globalSimdObject = NewObjectWithGivenProto(cx, &SimdObject::class_, objProto, SingletonObject);
+    if (!globalSimdObject)
+        return false;
 
-    // Define float32x4 functions and install as a property of the SIMD object.
-    RootedValue float32x4Value(cx, ObjectValue(*float32x4Object));
-    if (!JS_DefineFunctions(cx, float32x4Object, Float32x4Methods) ||
-        !JSObject::defineProperty(cx, SIMD, cx->names().float32x4,
-                                  float32x4Value, nullptr, nullptr,
-                                  JSPROP_READONLY | JSPROP_PERMANENT))
+    RootedValue globalSimdValue(cx, ObjectValue(*globalSimdObject));
+    if (!DefineProperty(cx, global, cx->names().SIMD, globalSimdValue, nullptr, nullptr,
+                        JSPROP_RESOLVING))
     {
-        return nullptr;
+        return false;
     }
 
-    // int32x4
-    RootedObject int32x4Object(cx);
-    int32x4Object = CreateX4Class<Int32x4Defn>(cx, global,
-                                               cx->names().int32x4);
-    if (!int32x4Object)
-        return nullptr;
-
-    // Define int32x4 functions and install as a property of the SIMD object.
-    RootedValue int32x4Value(cx, ObjectValue(*int32x4Object));
-    if (!JS_DefineFunctions(cx, int32x4Object, Int32x4Methods) ||
-        !JSObject::defineProperty(cx, SIMD, cx->names().int32x4,
-                                  int32x4Value, nullptr, nullptr,
-                                  JSPROP_READONLY | JSPROP_PERMANENT))
-    {
-        return nullptr;
-    }
-
-    RootedValue SIMDValue(cx, ObjectValue(*SIMD));
-
-    // Everything is set up, install SIMD on the global object.
-    if (!JSObject::defineProperty(cx, global, cx->names().SIMD, SIMDValue, nullptr, nullptr, 0))
-        return nullptr;
-
-    global->setConstructor(JSProto_SIMD, SIMDValue);
-    global->setFloat32x4TypeDescr(*float32x4Object);
-    global->setInt32x4TypeDescr(*int32x4Object);
-    return SIMD;
+    global->setConstructor(JSProto_SIMD, globalSimdValue);
+    return true;
 }
 
-JSObject *
-js_InitSIMDClass(JSContext *cx, HandleObject obj)
-{
-    JS_ASSERT(obj->is<GlobalObject>());
-    Rooted<GlobalObject *> global(cx, &obj->as<GlobalObject>());
-    return SIMDObject::initClass(cx, global);
-}
-
-template<typename V>
 static bool
-IsVectorObject(HandleValue v)
+CreateSimdType(JSContext* cx, Handle<GlobalObject*> global, HandlePropertyName stringRepr,
+               SimdType simdType, const JSFunctionSpec* methods)
 {
-    if (!v.isObject())
+    RootedObject funcProto(cx, global->getOrCreateFunctionPrototype(cx));
+    if (!funcProto)
         return false;
 
-    JSObject &obj = v.toObject();
-    if (!obj.is<TypedObject>())
+    // Create type constructor itself and initialize its reserved slots.
+    Rooted<SimdTypeDescr*> typeDescr(cx);
+    typeDescr = NewObjectWithGivenProto<SimdTypeDescr>(cx, funcProto, SingletonObject);
+    if (!typeDescr)
         return false;
 
-    TypeDescr &typeRepr = obj.as<TypedObject>().typeDescr();
-    if (typeRepr.kind() != type::X4)
+    typeDescr->initReservedSlot(JS_DESCR_SLOT_KIND, Int32Value(type::Simd));
+    typeDescr->initReservedSlot(JS_DESCR_SLOT_STRING_REPR, StringValue(stringRepr));
+    typeDescr->initReservedSlot(JS_DESCR_SLOT_ALIGNMENT, Int32Value(SimdTypeDescr::alignment(simdType)));
+    typeDescr->initReservedSlot(JS_DESCR_SLOT_SIZE, Int32Value(SimdTypeDescr::size(simdType)));
+    typeDescr->initReservedSlot(JS_DESCR_SLOT_OPAQUE, BooleanValue(false));
+    typeDescr->initReservedSlot(JS_DESCR_SLOT_TYPE, Int32Value(uint8_t(simdType)));
+
+    if (!CreateUserSizeAndAlignmentProperties(cx, typeDescr))
         return false;
 
-    return typeRepr.as<X4TypeDescr>().type() == V::type;
+    // Create prototype property, which inherits from Object.prototype.
+    RootedObject objProto(cx, global->getOrCreateObjectPrototype(cx));
+    if (!objProto)
+        return false;
+    Rooted<TypedProto*> proto(cx);
+    proto = NewObjectWithGivenProto<TypedProto>(cx, objProto, SingletonObject);
+    if (!proto)
+        return false;
+    typeDescr->initReservedSlot(JS_DESCR_SLOT_TYPROTO, ObjectValue(*proto));
+
+    // Link constructor to prototype and install properties.
+    if (!JS_DefineFunctions(cx, typeDescr, TypeDescriptorMethods))
+        return false;
+
+    if (!LinkConstructorAndPrototype(cx, typeDescr, proto) ||
+        !JS_DefineFunctions(cx, proto, SimdTypedObjectMethods))
+    {
+        return false;
+    }
+
+    // Bind type descriptor to the global SIMD object
+    RootedObject globalSimdObject(cx, global->getOrCreateSimdGlobalObject(cx));
+    MOZ_ASSERT(globalSimdObject);
+
+    RootedValue typeValue(cx, ObjectValue(*typeDescr));
+    if (!JS_DefineFunctions(cx, typeDescr, methods) ||
+        !DefineProperty(cx, globalSimdObject, stringRepr, typeValue, nullptr, nullptr,
+                        JSPROP_READONLY | JSPROP_PERMANENT | JSPROP_RESOLVING))
+    {
+        return false;
+    }
+
+    uint32_t slot = uint32_t(typeDescr->type());
+    MOZ_ASSERT(globalSimdObject->as<NativeObject>().getReservedSlot(slot).isUndefined());
+    globalSimdObject->as<NativeObject>().setReservedSlot(slot, ObjectValue(*typeDescr));
+    return !!typeDescr;
 }
 
-template<typename Elem>
-static Elem
-TypedObjectMemory(HandleValue v)
+bool
+GlobalObject::initSimdType(JSContext* cx, Handle<GlobalObject*> global, SimdType simdType)
 {
-    TypedObject &obj = v.toObject().as<TypedObject>();
-    MOZ_ASSERT(!obj.owner().isNeutered());
-    return reinterpret_cast<Elem>(obj.typedMem());
+#define CREATE_(Type) \
+    case SimdType::Type: \
+      return CreateSimdType(cx, global, cx->names().Type, simdType, Type##Defn::Methods);
+
+    switch (simdType) {
+      FOR_EACH_SIMD(CREATE_)
+      case SimdType::Count: break;
+    }
+    MOZ_CRASH("unexpected simd type");
+
+#undef CREATE_
+}
+
+SimdTypeDescr*
+GlobalObject::getOrCreateSimdTypeDescr(JSContext* cx, Handle<GlobalObject*> global,
+                                       SimdType simdType)
+{
+    MOZ_ASSERT(unsigned(simdType) < unsigned(SimdType::Count), "Invalid SIMD type");
+
+    RootedObject globalSimdObject(cx, global->getOrCreateSimdGlobalObject(cx));
+    if (!globalSimdObject)
+       return nullptr;
+
+    uint32_t typeSlotIndex = uint32_t(simdType);
+    if (globalSimdObject->as<NativeObject>().getReservedSlot(typeSlotIndex).isUndefined() &&
+        !GlobalObject::initSimdType(cx, global, simdType))
+    {
+        return nullptr;
+    }
+
+    const Value& slot = globalSimdObject->as<NativeObject>().getReservedSlot(typeSlotIndex);
+    MOZ_ASSERT(slot.isObject());
+    return &slot.toObject().as<SimdTypeDescr>();
+}
+
+bool
+SimdObject::resolve(JSContext* cx, JS::HandleObject obj, JS::HandleId id, bool* resolved)
+{
+    *resolved = false;
+    if (!JSID_IS_ATOM(id))
+        return true;
+    JSAtom* str = JSID_TO_ATOM(id);
+    Rooted<GlobalObject*> global(cx, cx->global());
+#define TRY_RESOLVE_(Type)                                                    \
+    if (str == cx->names().Type) {                                            \
+        *resolved = CreateSimdType(cx, global, cx->names().Type,              \
+                                   SimdType::Type, Type##Defn::Methods);      \
+        return *resolved;                                                     \
+    }
+    FOR_EACH_SIMD(TRY_RESOLVE_)
+#undef TRY_RESOLVE_
+    return true;
+}
+
+JSObject*
+js::InitSimdClass(JSContext* cx, HandleObject obj)
+{
+    Rooted<GlobalObject*> global(cx, &obj->as<GlobalObject>());
+    return global->getOrCreateSimdGlobalObject(cx);
 }
 
 template<typename V>
-JSObject *
-js::Create(JSContext *cx, typename V::Elem *data)
+JSObject*
+js::CreateSimd(JSContext* cx, const typename V::Elem* data)
 {
     typedef typename V::Elem Elem;
-    Rooted<TypeDescr*> typeDescr(cx, &V::GetTypeDescr(*cx->global()));
-    JS_ASSERT(typeDescr);
+    Rooted<TypeDescr*> typeDescr(cx, GetTypeDescr<V>(cx));
+    if (!typeDescr)
+        return nullptr;
 
-    Rooted<TypedObject *> result(cx, TypedObject::createZeroed(cx, typeDescr, 0));
+    Rooted<TypedObject*> result(cx, TypedObject::createZeroed(cx, typeDescr, 0));
     if (!result)
         return nullptr;
 
-    MOZ_ASSERT(!result->owner().isNeutered());
-    Elem *resultMem = reinterpret_cast<Elem *>(result->typedMem());
+    JS::AutoCheckCannotGC nogc(cx);
+    Elem* resultMem = reinterpret_cast<Elem*>(result->typedMem(nogc));
     memcpy(resultMem, data, sizeof(Elem) * V::lanes);
     return result;
 }
 
-template JSObject *js::Create<Float32x4>(JSContext *cx, Float32x4::Elem *data);
-template JSObject *js::Create<Int32x4>(JSContext *cx, Int32x4::Elem *data);
+#define InstantiateCreateSimd_(Type) \
+    template JSObject* js::CreateSimd<Type>(JSContext* cx, const Type::Elem* data);
+
+FOR_EACH_SIMD(InstantiateCreateSimd_)
+
+#undef InstantiateCreateSimd_
+
+#undef FOR_EACH_SIMD
 
 namespace js {
-template<typename T, typename V>
+// Unary SIMD operators
+template<typename T>
+struct Identity {
+    static T apply(T x) { return x; }
+};
+template<typename T>
 struct Abs {
-    static inline T apply(T x, T zero) { return V::toType(x < 0 ? -1 * x : x); }
+    static T apply(T x) { return mozilla::Abs(x); }
 };
-template<typename T, typename V>
+template<typename T>
 struct Neg {
-    static inline T apply(T x, T zero) { return V::toType(-1 * x); }
+    static T apply(T x) { return -1 * x; }
 };
-template<typename T, typename V>
+template<typename T>
 struct Not {
-    static inline T apply(T x, T zero) { return V::toType(~x); }
+    static T apply(T x) { return ~x; }
 };
-template<typename T, typename V>
-struct Rec {
-    static inline T apply(T x, T zero) { return V::toType(1 / x); }
+template<typename T>
+struct LogicalNot {
+    static T apply(T x) { return !x; }
 };
-template<typename T, typename V>
-struct RecSqrt {
-    static inline T apply(T x, T zero) { return V::toType(1 / sqrt(x)); }
+template<typename T>
+struct RecApprox {
+    static T apply(T x) { return 1 / x; }
 };
-template<typename T, typename V>
+template<typename T>
+struct RecSqrtApprox {
+    static T apply(T x) { return 1 / sqrt(x); }
+};
+template<typename T>
 struct Sqrt {
-    static inline T apply(T x, T zero) { return V::toType(sqrt(x)); }
+    static T apply(T x) { return sqrt(x); }
 };
-template<typename T, typename V>
+
+// Binary SIMD operators
+template<typename T>
 struct Add {
-    static inline T apply(T l, T r) { return V::toType(l + r); }
+    static T apply(T l, T r) { return l + r; }
 };
-template<typename T, typename V>
+template<typename T>
 struct Sub {
-    static inline T apply(T l, T r) { return V::toType(l - r); }
+    static T apply(T l, T r) { return l - r; }
 };
-template<typename T, typename V>
+template<typename T>
 struct Div {
-    static inline T apply(T l, T r) { return V::toType(l / r); }
+    static T apply(T l, T r) { return l / r; }
 };
-template<typename T, typename V>
+template<typename T>
 struct Mul {
-    static inline T apply(T l, T r) { return V::toType(l * r); }
+    static T apply(T l, T r) { return l * r; }
 };
-template<typename T, typename V>
+template<typename T>
 struct Minimum {
-    static inline T apply(T l, T r) { return V::toType(l < r ? l : r); }
+    static T apply(T l, T r) { return math_min_impl(l, r); }
 };
-template<typename T, typename V>
+template<typename T>
+struct MinNum {
+    static T apply(T l, T r) { return IsNaN(l) ? r : (IsNaN(r) ? l : math_min_impl(l, r)); }
+};
+template<typename T>
 struct Maximum {
-    static inline T apply(T l, T r) { return V::toType(l > r ? l : r); }
+    static T apply(T l, T r) { return math_max_impl(l, r); }
 };
-template<typename T, typename V>
+template<typename T>
+struct MaxNum {
+    static T apply(T l, T r) { return IsNaN(l) ? r : (IsNaN(r) ? l : math_max_impl(l, r)); }
+};
+template<typename T>
 struct LessThan {
-    static inline T apply(T l, T r) { return V::toType(l < r ? 0xFFFFFFFF : 0x0); }
+    static bool apply(T l, T r) { return l < r; }
 };
-template<typename T, typename V>
+template<typename T>
 struct LessThanOrEqual {
-    static inline T apply(T l, T r) { return V::toType(l <= r ? 0xFFFFFFFF : 0x0); }
+    static bool apply(T l, T r) { return l <= r; }
 };
-template<typename T, typename V>
+template<typename T>
 struct GreaterThan {
-    static inline T apply(T l, T r) { return V::toType(l > r ? 0xFFFFFFFF : 0x0); }
+    static bool apply(T l, T r) { return l > r; }
 };
-template<typename T, typename V>
+template<typename T>
 struct GreaterThanOrEqual {
-    static inline T apply(T l, T r) { return V::toType(l >= r ? 0xFFFFFFFF : 0x0); }
+    static bool apply(T l, T r) { return l >= r; }
 };
-template<typename T, typename V>
+template<typename T>
 struct Equal {
-    static inline T apply(T l, T r) { return V::toType(l == r ? 0xFFFFFFFF : 0x0); }
+    static bool apply(T l, T r) { return l == r; }
 };
-template<typename T, typename V>
+template<typename T>
 struct NotEqual {
-    static inline T apply(T l, T r) { return V::toType(l != r ? 0xFFFFFFFF : 0x0); }
+    static bool apply(T l, T r) { return l != r; }
 };
-template<typename T, typename V>
+template<typename T>
 struct Xor {
-    static inline T apply(T l, T r) { return V::toType(l ^ r); }
+    static T apply(T l, T r) { return l ^ r; }
 };
-template<typename T, typename V>
+template<typename T>
 struct And {
-    static inline T apply(T l, T r) { return V::toType(l & r); }
+    static T apply(T l, T r) { return l & r; }
 };
-template<typename T, typename V>
+template<typename T>
 struct Or {
-    static inline T apply(T l, T r) { return V::toType(l | r); }
+    static T apply(T l, T r) { return l | r; }
 };
-template<typename T, typename V>
-struct Scale {
-    static inline T apply(int32_t lane, T scalar, T x) { return V::toType(scalar * x); }
-};
-template<typename T, typename V>
-struct WithX {
-    static inline T apply(int32_t lane, T scalar, T x) { return V::toType(lane == 0 ? scalar : x); }
-};
-template<typename T, typename V>
-struct WithY {
-    static inline T apply(int32_t lane, T scalar, T x) { return V::toType(lane == 1 ? scalar : x); }
-};
-template<typename T, typename V>
-struct WithZ {
-    static inline T apply(int32_t lane, T scalar, T x) { return V::toType(lane == 2 ? scalar : x); }
-};
-template<typename T, typename V>
-struct WithW {
-    static inline T apply(int32_t lane, T scalar, T x) { return V::toType(lane == 3 ? scalar : x); }
-};
-template<typename T, typename V>
-struct WithFlagX {
-    static inline T apply(T l, T f, T x) { return V::toType(l == 0 ? (f ? 0xFFFFFFFF : 0x0) : x); }
-};
-template<typename T, typename V>
-struct WithFlagY {
-    static inline T apply(T l, T f, T x) { return V::toType(l == 1 ? (f ? 0xFFFFFFFF : 0x0) : x); }
-};
-template<typename T, typename V>
-struct WithFlagZ {
-    static inline T apply(T l, T f, T x) { return V::toType(l == 2 ? (f ? 0xFFFFFFFF : 0x0) : x); }
-};
-template<typename T, typename V>
-struct WithFlagW {
-    static inline T apply(T l, T f, T x) { return V::toType(l == 3 ? (f ? 0xFFFFFFFF : 0x0) : x); }
-};
-template<typename T, typename V>
-struct Shuffle {
-    static inline int32_t apply(int32_t l, int32_t mask) { return V::toType((mask >> l) & 0x3); }
-};
+
+// For the following three operators, if the value v we're trying to shift is
+// such that v << bits can't fit in the int32 range, then we have undefined
+// behavior, according to C++11 [expr.shift]p2. However, left-shifting an
+// unsigned type is well-defined.
+//
+// In C++, shifting by an amount outside the range [0;N-1] is undefined
+// behavior. SIMD.js reduces the shift amount modulo the number of bits in a
+// lane and has defined behavior for all shift amounts.
+template<typename T>
 struct ShiftLeft {
-    static inline int32_t apply(int32_t v, int32_t bits) { return v << bits; }
+    static T apply(T v, int32_t bits) {
+        typedef typename mozilla::MakeUnsigned<T>::Type UnsignedT;
+        uint32_t maskedBits = uint32_t(bits) % (sizeof(T) * 8);
+        return UnsignedT(v) << maskedBits;
+    }
 };
-struct ShiftRight {
-    static inline int32_t apply(int32_t v, int32_t bits) { return v >> bits; }
+template<typename T>
+struct ShiftRightArithmetic {
+    static T apply(T v, int32_t bits) {
+        typedef typename mozilla::MakeSigned<T>::Type SignedT;
+        uint32_t maskedBits = uint32_t(bits) % (sizeof(T) * 8);
+        return SignedT(v) >> maskedBits;
+    }
 };
+template<typename T>
 struct ShiftRightLogical {
-    static inline int32_t apply(int32_t v, int32_t bits) { return uint32_t(v) >> (bits & 31); }
+    static T apply(T v, int32_t bits) {
+        typedef typename mozilla::MakeUnsigned<T>::Type UnsignedT;
+        uint32_t maskedBits = uint32_t(bits) % (sizeof(T) * 8);
+        return UnsignedT(v) >> maskedBits;
+    }
 };
+
+// Saturating arithmetic is only defined on types smaller than int.
+// Clamp `x` into the range supported by the integral type T.
+template<typename T>
+static T
+Saturate(int x)
+{
+    static_assert(mozilla::IsIntegral<T>::value, "Only integer saturation supported");
+    static_assert(sizeof(T) < sizeof(int), "Saturating int-sized arithmetic is not safe");
+    const T lower = mozilla::MinValue<T>::value;
+    const T upper = mozilla::MaxValue<T>::value;
+    if (x > int(upper))
+        return upper;
+    if (x < int(lower))
+        return lower;
+    return T(x);
 }
 
-static inline bool
-ErrorBadArgs(JSContext *cx)
+// Since signed integer overflow is undefined behavior in C++, it would be
+// wildly irresponsible to attempt something as dangerous as adding two numbers
+// coming from user code. However, in this case we know that T is smaller than
+// int, so there is no way these operations can cause overflow. The
+// static_assert in Saturate() enforces this for us.
+template<typename T>
+struct AddSaturate {
+    static T apply(T l, T r) { return Saturate<T>(l + r); }
+};
+template<typename T>
+struct SubSaturate {
+    static T apply(T l, T r) { return Saturate<T>(l - r); }
+};
+
+} // namespace js
+
+template<typename Out>
+static bool
+StoreResult(JSContext* cx, CallArgs& args, typename Out::Elem* result)
 {
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
-    return false;
+    RootedObject obj(cx, CreateSimd<Out>(cx, result));
+    if (!obj)
+        return false;
+    args.rval().setObject(*obj);
+    return true;
 }
+
+// StoreResult can GC, and it is commonly used after pulling something out of a
+// TypedObject:
+//
+//   Elem result = op(TypedObjectMemory<Elem>(args[0]));
+//   StoreResult<Out>(..., result);
+//
+// The pointer extracted from the typed object in args[0] in the above example
+// could be an interior pointer, and therefore be invalidated by GC.
+// TypedObjectMemory() requires an assertion token to be passed in to prove
+// that we won't GC, but the scope of eg an AutoCheckCannotGC RAII object
+// extends to the end of its containing scope -- which would include the call
+// to StoreResult, resulting in a rooting hazard.
+//
+// TypedObjectElemArray fixes this by wrapping the problematic pointer in a
+// type, and the analysis is able to see that it is dead before calling
+// StoreResult. (But if another GC called is made before the pointer is dead,
+// it will correctly report a hazard.)
+//
+template <typename Elem>
+class TypedObjectElemArray {
+    Elem* elements;
+  public:
+    explicit TypedObjectElemArray(HandleValue objVal) {
+        JS::AutoCheckCannotGC nogc;
+        elements = TypedObjectMemory<Elem*>(objVal, nogc);
+    }
+    Elem& operator[](int i) { return elements[i]; }
+} JS_HAZ_GC_POINTER;
 
 // Coerces the inputs of type In to the type Coercion, apply the operator Op
 // and converts the result to the type Out.
-template<typename In, typename Coercion, typename Op, typename Out>
+template<typename In, typename Coercion, template<typename C> class Op, typename Out>
 static bool
-CoercedFunc(JSContext *cx, unsigned argc, Value *vp)
+CoercedUnaryFunc(JSContext* cx, unsigned argc, Value* vp)
 {
     typedef typename Coercion::Elem CoercionElem;
     typedef typename Out::Elem RetElem;
 
     CallArgs args = CallArgsFromVp(argc, vp);
-    if (args.length() != 1 && args.length() != 2)
+    if (args.length() != 1 || !IsVectorObject<In>(args[0]))
         return ErrorBadArgs(cx);
 
     CoercionElem result[Coercion::lanes];
-    if (args.length() == 1) {
-        if (!IsVectorObject<In>(args[0]))
-            return ErrorBadArgs(cx);
+    TypedObjectElemArray<CoercionElem> val(args[0]);
+    for (unsigned i = 0; i < Coercion::lanes; i++)
+        result[i] = Op<CoercionElem>::apply(val[i]);
+    return StoreResult<Out>(cx, args, (RetElem*) result);
+}
 
-        CoercionElem *val = TypedObjectMemory<CoercionElem *>(args[0]);
-        for (unsigned i = 0; i < Coercion::lanes; i++)
-            result[i] = Op::apply(val[i], 0);
-    } else {
-        JS_ASSERT(args.length() == 2);
-        if (!IsVectorObject<In>(args[0]) || !IsVectorObject<In>(args[1]))
-            return ErrorBadArgs(cx);
+// Coerces the inputs of type In to the type Coercion, apply the operator Op
+// and converts the result to the type Out.
+template<typename In, typename Coercion, template<typename C> class Op, typename Out>
+static bool
+CoercedBinaryFunc(JSContext* cx, unsigned argc, Value* vp)
+{
+    typedef typename Coercion::Elem CoercionElem;
+    typedef typename Out::Elem RetElem;
 
-        CoercionElem *left = TypedObjectMemory<CoercionElem *>(args[0]);
-        CoercionElem *right = TypedObjectMemory<CoercionElem *>(args[1]);
-        for (unsigned i = 0; i < Coercion::lanes; i++)
-            result[i] = Op::apply(left[i], right[i]);
-    }
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (args.length() != 2 || !IsVectorObject<In>(args[0]) || !IsVectorObject<In>(args[1]))
+        return ErrorBadArgs(cx);
 
-    RetElem *coercedResult = reinterpret_cast<RetElem *>(result);
-    RootedObject obj(cx, Create<Out>(cx, coercedResult));
-    if (!obj)
+    CoercionElem result[Coercion::lanes];
+    TypedObjectElemArray<CoercionElem> left(args[0]);
+    TypedObjectElemArray<CoercionElem> right(args[1]);
+    for (unsigned i = 0; i < Coercion::lanes; i++)
+        result[i] = Op<CoercionElem>::apply(left[i], right[i]);
+    return StoreResult<Out>(cx, args, (RetElem*) result);
+}
+
+// Same as above, with no coercion, i.e. Coercion == In.
+template<typename In, template<typename C> class Op, typename Out>
+static bool
+UnaryFunc(JSContext* cx, unsigned argc, Value* vp)
+{
+    return CoercedUnaryFunc<In, Out, Op, Out>(cx, argc, vp);
+}
+
+template<typename In, template<typename C> class Op, typename Out>
+static bool
+BinaryFunc(JSContext* cx, unsigned argc, Value* vp)
+{
+    return CoercedBinaryFunc<In, Out, Op, Out>(cx, argc, vp);
+}
+
+template<typename V>
+static bool
+ExtractLane(JSContext* cx, unsigned argc, Value* vp)
+{
+    typedef typename V::Elem Elem;
+
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (args.length() < 2 || !IsVectorObject<V>(args[0]))
+        return ErrorBadArgs(cx);
+
+    unsigned lane;
+    if (!ArgumentToLaneIndex(cx, args[1], V::lanes, &lane))
         return false;
 
-    args.rval().setObject(*obj);
+    JS::AutoCheckCannotGC nogc(cx);
+    Elem* vec = TypedObjectMemory<Elem*>(args[0], nogc);
+    Elem val = vec[lane];
+    args.rval().set(V::ToValue(val));
     return true;
 }
 
-// Same as above, with Coercion == Out
-template<typename In, typename Op, typename Out>
+template<typename V>
 static bool
-Func(JSContext *cx, unsigned argc, Value *vp)
-{
-    return CoercedFunc<In, Out, Op, Out>(cx, argc, vp);
-}
-
-template<typename V, typename OpWith, typename Vret>
-static bool
-FuncWith(JSContext *cx, unsigned argc, Value *vp)
+AllTrue(JSContext* cx, unsigned argc, Value* vp)
 {
     typedef typename V::Elem Elem;
-    typedef typename Vret::Elem RetElem;
 
     CallArgs args = CallArgsFromVp(argc, vp);
-    if (args.length() != 2 || !IsVectorObject<V>(args[0]) ||
-        (!args[1].isNumber() && !args[1].isBoolean()))
+    if (args.length() < 1 || !IsVectorObject<V>(args[0]))
+        return ErrorBadArgs(cx);
+
+    JS::AutoCheckCannotGC nogc(cx);
+    Elem* vec = TypedObjectMemory<Elem*>(args[0], nogc);
+    bool allTrue = true;
+    for (unsigned i = 0; allTrue && i < V::lanes; i++)
+        allTrue = vec[i];
+
+    args.rval().setBoolean(allTrue);
+    return true;
+}
+
+template<typename V>
+static bool
+AnyTrue(JSContext* cx, unsigned argc, Value* vp)
+{
+    typedef typename V::Elem Elem;
+
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (args.length() < 1 || !IsVectorObject<V>(args[0]))
+        return ErrorBadArgs(cx);
+
+    JS::AutoCheckCannotGC nogc(cx);
+    Elem* vec = TypedObjectMemory<Elem*>(args[0], nogc);
+    bool anyTrue = false;
+    for (unsigned i = 0; !anyTrue && i < V::lanes; i++)
+        anyTrue = vec[i];
+
+    args.rval().setBoolean(anyTrue);
+    return true;
+}
+
+template<typename V>
+static bool
+ReplaceLane(JSContext* cx, unsigned argc, Value* vp)
+{
+    typedef typename V::Elem Elem;
+
+    CallArgs args = CallArgsFromVp(argc, vp);
+    // Only the first and second arguments are mandatory
+    if (args.length() < 2 || !IsVectorObject<V>(args[0]))
+        return ErrorBadArgs(cx);
+
+    unsigned lane;
+    if (!ArgumentToLaneIndex(cx, args[1], V::lanes, &lane))
+        return false;
+
+    Elem value;
+    if (!V::Cast(cx, args.get(2), &value))
+        return false;
+
+    TypedObjectElemArray<Elem> vec(args[0]);
+    Elem result[V::lanes];
+    for (unsigned i = 0; i < V::lanes; i++)
+        result[i] = i == lane ? value : vec[i];
+
+    return StoreResult<V>(cx, args, result);
+}
+
+template<typename V>
+static bool
+Swizzle(JSContext* cx, unsigned argc, Value* vp)
+{
+    typedef typename V::Elem Elem;
+
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (args.length() != (V::lanes + 1) || !IsVectorObject<V>(args[0]))
+        return ErrorBadArgs(cx);
+
+    unsigned lanes[V::lanes];
+    for (unsigned i = 0; i < V::lanes; i++) {
+        if (!ArgumentToLaneIndex(cx, args[i + 1], V::lanes, &lanes[i]))
+            return false;
+    }
+
+    TypedObjectElemArray<Elem> val(args[0]);
+    Elem result[V::lanes];
+    for (unsigned i = 0; i < V::lanes; i++)
+        result[i] = val[lanes[i]];
+
+    return StoreResult<V>(cx, args, result);
+}
+
+template<typename V>
+static bool
+Shuffle(JSContext* cx, unsigned argc, Value* vp)
+{
+    typedef typename V::Elem Elem;
+
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (args.length() != (V::lanes + 2) || !IsVectorObject<V>(args[0]) || !IsVectorObject<V>(args[1]))
+        return ErrorBadArgs(cx);
+
+    unsigned lanes[V::lanes];
+    for (unsigned i = 0; i < V::lanes; i++) {
+        if (!ArgumentToLaneIndex(cx, args[i + 2], 2 * V::lanes, &lanes[i]))
+            return false;
+    }
+
+    Elem result[V::lanes];
     {
-        return ErrorBadArgs(cx);
+        JS::AutoCheckCannotGC nogc(cx);
+        Elem* lhs = TypedObjectMemory<Elem*>(args[0], nogc);
+        Elem* rhs = TypedObjectMemory<Elem*>(args[1], nogc);
+
+        for (unsigned i = 0; i < V::lanes; i++) {
+            Elem* selectedInput = lanes[i] < V::lanes ? lhs : rhs;
+            result[i] = selectedInput[lanes[i] % V::lanes];
+        }
     }
 
-    Elem *val = TypedObjectMemory<Elem *>(args[0]);
-    RetElem result[Vret::lanes];
-
-    if (args[1].isNumber()) {
-        Elem withAsNumber;
-        if (!Vret::toType(cx, args[1], &withAsNumber))
-            return false;
-        for (unsigned i = 0; i < Vret::lanes; i++)
-            result[i] = OpWith::apply(i, withAsNumber, val[i]);
-    } else {
-        JS_ASSERT(args[1].isBoolean());
-        bool withAsBool = args[1].toBoolean();
-        for (unsigned i = 0; i < Vret::lanes; i++)
-            result[i] = OpWith::apply(i, withAsBool, val[i]);
-    }
-
-    RootedObject obj(cx, Create<Vret>(cx, result));
-    if (!obj)
-        return false;
-
-    args.rval().setObject(*obj);
-    return true;
+    return StoreResult<V>(cx, args, result);
 }
 
-template<typename V, typename OpShuffle, typename Vret>
+template<typename V, template<typename T> class Op>
 static bool
-FuncShuffle(JSContext *cx, unsigned argc, Value *vp)
+BinaryScalar(JSContext* cx, unsigned argc, Value* vp)
 {
     typedef typename V::Elem Elem;
-    typedef typename Vret::Elem RetElem;
 
-    CallArgs args = CallArgsFromVp(argc, vp);
-    if (args.length() != 2 && args.length() != 3)
-        return ErrorBadArgs(cx);
-
-    RetElem result[Vret::lanes];
-    if (args.length() == 2) {
-        if (!IsVectorObject<V>(args[0]) || !args[1].isNumber())
-            return ErrorBadArgs(cx);
-
-        Elem *val = TypedObjectMemory<Elem *>(args[0]);;
-        Elem arg1;
-        if (!Vret::toType(cx, args[1], &arg1))
-            return false;
-
-        for (unsigned i = 0; i < Vret::lanes; i++)
-            result[i] = val[OpShuffle::apply(i * 2, arg1)];
-    } else {
-        JS_ASSERT(args.length() == 3);
-        if (!IsVectorObject<V>(args[0]) || !IsVectorObject<V>(args[1]) || !args[2].isNumber())
-            return ErrorBadArgs(cx);
-
-        Elem *val1 = TypedObjectMemory<Elem *>(args[0]);
-        Elem *val2 = TypedObjectMemory<Elem *>(args[1]);
-        Elem arg2;
-        if (!Vret::toType(cx, args[2], &arg2))
-            return false;
-
-        unsigned i = 0;
-        for (; i < Vret::lanes / 2; i++)
-            result[i] = val1[OpShuffle::apply(i * 2, arg2)];
-        for (; i < Vret::lanes; i++)
-            result[i] = val2[OpShuffle::apply(i * 2, arg2)];
-    }
-
-    RootedObject obj(cx, Create<Vret>(cx, result));
-    if (!obj)
-        return false;
-
-    args.rval().setObject(*obj);
-    return true;
-}
-
-template<typename Op>
-static bool
-Int32x4BinaryScalar(JSContext *cx, unsigned argc, Value *vp)
-{
     CallArgs args = CallArgsFromVp(argc, vp);
     if (args.length() != 2)
         return ErrorBadArgs(cx);
 
-    int32_t result[4];
-    if (!IsVectorObject<Int32x4>(args[0]) || !args[1].isNumber())
+    if (!IsVectorObject<V>(args[0]))
         return ErrorBadArgs(cx);
 
-    int32_t *val = TypedObjectMemory<int32_t *>(args[0]);;
     int32_t bits;
     if (!ToInt32(cx, args[1], &bits))
         return false;
 
-    for (unsigned i = 0; i < 4; i++)
-        result[i] = Op::apply(val[i], bits);
+    TypedObjectElemArray<Elem> val(args[0]);
+    Elem result[V::lanes];
+    for (unsigned i = 0; i < V::lanes; i++)
+        result[i] = Op<Elem>::apply(val[i], bits);
 
-    RootedObject obj(cx, Create<Int32x4>(cx, result));
-    if (!obj)
-        return false;
-
-    args.rval().setObject(*obj);
-    return true;
+    return StoreResult<V>(cx, args, result);
 }
+
+template<typename In, template<typename C> class Op, typename Out>
+static bool
+CompareFunc(JSContext* cx, unsigned argc, Value* vp)
+{
+    typedef typename In::Elem InElem;
+    typedef typename Out::Elem OutElem;
+
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (args.length() != 2 || !IsVectorObject<In>(args[0]) || !IsVectorObject<In>(args[1]))
+        return ErrorBadArgs(cx);
+
+    OutElem result[Out::lanes];
+    TypedObjectElemArray<InElem> left(args[0]);
+    TypedObjectElemArray<InElem> right(args[1]);
+    for (unsigned i = 0; i < Out::lanes; i++) {
+        unsigned j = (i * In::lanes) / Out::lanes;
+        result[i] = Op<InElem>::apply(left[j], right[j]) ? -1 : 0;
+    }
+
+    return StoreResult<Out>(cx, args, result);
+}
+
+// This struct defines whether we should throw during a conversion attempt,
+// when trying to convert a value of type from From to the type To.  This
+// happens whenever a C++ conversion would have undefined behavior (and perhaps
+// be platform-dependent).
+template<typename From, typename To>
+struct ThrowOnConvert;
+
+struct NeverThrow
+{
+    static bool value(int32_t v) {
+        return false;
+    }
+};
+
+// While int32 to float conversions can be lossy, these conversions have
+// defined behavior in C++, so we don't need to care about them here. In practice,
+// this means round to nearest, tie with even (zero bit in significand).
+template<>
+struct ThrowOnConvert<int32_t, float> : public NeverThrow {};
+
+template<>
+struct ThrowOnConvert<uint32_t, float> : public NeverThrow {};
+
+// All int32 can be safely converted to doubles.
+template<>
+struct ThrowOnConvert<int32_t, double> : public NeverThrow {};
+
+template<>
+struct ThrowOnConvert<uint32_t, double> : public NeverThrow {};
+
+// All floats can be safely converted to doubles.
+template<>
+struct ThrowOnConvert<float, double> : public NeverThrow {};
+
+// Double to float conversion for inputs which aren't in the float range are
+// undefined behavior in C++, but they're defined in IEEE754.
+template<>
+struct ThrowOnConvert<double, float> : public NeverThrow {};
+
+// Float to integer conversions have undefined behavior if the float value
+// is out of the representable integer range (on x86, will yield the undefined
+// value pattern, namely 0x80000000; on arm, will clamp the input value), so
+// check this here.
+template<typename From, typename IntegerType>
+struct ThrowIfNotInRange
+{
+    static_assert(mozilla::IsIntegral<IntegerType>::value, "bad destination type");
+
+    static bool value(From v) {
+        // Truncate to integer value before the range check.
+        double d = trunc(double(v));
+        // Arrange relations so NaN returns true (i.e., it throws a RangeError).
+        return !(d >= double(mozilla::MinValue<IntegerType>::value) &&
+                 d <= double(mozilla::MaxValue<IntegerType>::value));
+    }
+};
+
+template<>
+struct ThrowOnConvert<double, int32_t> : public ThrowIfNotInRange<double, int32_t> {};
+
+template<>
+struct ThrowOnConvert<double, uint32_t> : public ThrowIfNotInRange<double, uint32_t> {};
+
+template<>
+struct ThrowOnConvert<float, int32_t> : public ThrowIfNotInRange<float, int32_t> {};
+
+template<>
+struct ThrowOnConvert<float, uint32_t> : public ThrowIfNotInRange<float, uint32_t> {};
 
 template<typename V, typename Vret>
 static bool
-FuncConvert(JSContext *cx, unsigned argc, Value *vp)
+FuncConvert(JSContext* cx, unsigned argc, Value* vp)
 {
     typedef typename V::Elem Elem;
     typedef typename Vret::Elem RetElem;
 
+    static_assert(!mozilla::IsSame<V,Vret>::value, "Can't convert SIMD type to itself");
+    static_assert(V::lanes == Vret::lanes, "Can only convert from same number of lanes");
+    static_assert(!mozilla::IsIntegral<Elem>::value || !mozilla::IsIntegral<RetElem>::value,
+                  "Cannot convert between integer SIMD types");
+
     CallArgs args = CallArgsFromVp(argc, vp);
     if (args.length() != 1 || !IsVectorObject<V>(args[0]))
         return ErrorBadArgs(cx);
 
-    Elem *val = TypedObjectMemory<Elem *>(args[0]);
+    TypedObjectElemArray<Elem> val(args[0]);
     RetElem result[Vret::lanes];
-    for (unsigned i = 0; i < Vret::lanes; i++)
-        result[i] = RetElem(val[i]);
+    for (unsigned i = 0; i < V::lanes; i++) {
+        if (ThrowOnConvert<Elem, RetElem>::value(val[i])) {
+            JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_SIMD_FAILED_CONVERSION);
+            return false;
+        }
+        result[i] = ConvertScalar<RetElem>(val[i]);
+    }
 
-    RootedObject obj(cx, Create<Vret>(cx, result));
-    if (!obj)
-        return false;
-
-    args.rval().setObject(*obj);
-    return true;
+    return StoreResult<Vret>(cx, args, result);
 }
 
 template<typename V, typename Vret>
 static bool
-FuncConvertBits(JSContext *cx, unsigned argc, Value *vp)
+FuncConvertBits(JSContext* cx, unsigned argc, Value* vp)
 {
+    typedef typename V::Elem Elem;
     typedef typename Vret::Elem RetElem;
+
+    static_assert(!mozilla::IsSame<V, Vret>::value, "Can't convert SIMD type to itself");
+    static_assert(V::lanes * sizeof(Elem) == Vret::lanes * sizeof(RetElem),
+                  "Can only bitcast from the same number of bits");
 
     CallArgs args = CallArgsFromVp(argc, vp);
     if (args.length() != 1 || !IsVectorObject<V>(args[0]))
         return ErrorBadArgs(cx);
 
-    RetElem *val = TypedObjectMemory<RetElem *>(args[0]);
-    RootedObject obj(cx, Create<Vret>(cx, val));
-    if (!obj)
-        return false;
-
-    args.rval().setObject(*obj);
-    return true;
+    // While we could just pass the typedMem of args[0] as StoreResults' last
+    // argument, a GC could move the pointer to its memory in the meanwhile.
+    // For consistency with other SIMD functions, simply copy the input in a
+    // temporary array.
+    RetElem copy[Vret::lanes];
+    {
+        JS::AutoCheckCannotGC nogc(cx);
+        memcpy(copy, TypedObjectMemory<RetElem*>(args[0], nogc), Vret::lanes * sizeof(RetElem));
+    }
+    return StoreResult<Vret>(cx, args, copy);
 }
 
 template<typename Vret>
 static bool
-FuncZero(JSContext *cx, unsigned argc, Value *vp)
+FuncSplat(JSContext* cx, unsigned argc, Value* vp)
 {
     typedef typename Vret::Elem RetElem;
 
     CallArgs args = CallArgsFromVp(argc, vp);
-    if (args.length() != 0)
-        return ErrorBadArgs(cx);
-
-    RetElem result[Vret::lanes];
-    for (unsigned i = 0; i < Vret::lanes; i++)
-        result[i] = RetElem(0);
-
-    RootedObject obj(cx, Create<Vret>(cx, result));
-    if (!obj)
-        return false;
-
-    args.rval().setObject(*obj);
-    return true;
-}
-
-template<typename Vret>
-static bool
-FuncSplat(JSContext *cx, unsigned argc, Value *vp)
-{
-    typedef typename Vret::Elem RetElem;
-
-    CallArgs args = CallArgsFromVp(argc, vp);
-    if (args.length() != 1 || !args[0].isNumber())
-        return ErrorBadArgs(cx);
-
     RetElem arg;
-    if (!Vret::toType(cx, args[0], &arg))
+    if (!Vret::Cast(cx, args.get(0), &arg))
         return false;
 
     RetElem result[Vret::lanes];
     for (unsigned i = 0; i < Vret::lanes; i++)
         result[i] = arg;
-
-    RootedObject obj(cx, Create<Vret>(cx, result));
-    if (!obj)
-        return false;
-
-    args.rval().setObject(*obj);
-    return true;
+    return StoreResult<Vret>(cx, args, result);
 }
 
+template<typename V>
 static bool
-Int32x4Bool(JSContext *cx, unsigned argc, Value *vp)
+Bool(JSContext* cx, unsigned argc, Value* vp)
 {
+    typedef typename V::Elem Elem;
+
     CallArgs args = CallArgsFromVp(argc, vp);
-    if (args.length() != 4 ||
-        !args[0].isBoolean() || !args[1].isBoolean() ||
-        !args[2].isBoolean() || !args[3].isBoolean())
+
+    Elem result[V::lanes];
+    for (unsigned i = 0; i < V::lanes; i++)
+        result[i] = ToBoolean(args.get(i)) ? -1 : 0;
+    return StoreResult<V>(cx, args, result);
+}
+
+template<typename V, typename MaskType>
+static bool
+SelectBits(JSContext* cx, unsigned argc, Value* vp)
+{
+    typedef typename V::Elem Elem;
+    typedef typename MaskType::Elem MaskTypeElem;
+
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (args.length() != 3 || !IsVectorObject<MaskType>(args[0]) ||
+        !IsVectorObject<V>(args[1]) || !IsVectorObject<V>(args[2]))
     {
         return ErrorBadArgs(cx);
     }
 
-    int32_t result[Int32x4::lanes];
-    for (unsigned i = 0; i < Int32x4::lanes; i++)
-        result[i] = args[i].toBoolean() ? 0xFFFFFFFF : 0x0;
+    TypedObjectElemArray<MaskTypeElem> val(args[0]);
+    TypedObjectElemArray<MaskTypeElem> tv(args[1]);
+    TypedObjectElemArray<MaskTypeElem> fv(args[2]);
 
-    RootedObject obj(cx, Create<Int32x4>(cx, result));
-    if (!obj)
-        return false;
+    MaskTypeElem tr[MaskType::lanes];
+    for (unsigned i = 0; i < MaskType::lanes; i++)
+        tr[i] = And<MaskTypeElem>::apply(val[i], tv[i]);
 
-    args.rval().setObject(*obj);
-    return true;
+    MaskTypeElem fr[MaskType::lanes];
+    for (unsigned i = 0; i < MaskType::lanes; i++)
+        fr[i] = And<MaskTypeElem>::apply(Not<MaskTypeElem>::apply(val[i]), fv[i]);
+
+    MaskTypeElem orInt[MaskType::lanes];
+    for (unsigned i = 0; i < MaskType::lanes; i++)
+        orInt[i] = Or<MaskTypeElem>::apply(tr[i], fr[i]);
+
+    Elem* result = reinterpret_cast<Elem*>(orInt);
+    return StoreResult<V>(cx, args, result);
 }
 
+template<typename V, typename MaskType>
 static bool
-Float32x4Clamp(JSContext *cx, unsigned argc, Value *vp)
+Select(JSContext* cx, unsigned argc, Value* vp)
 {
+    typedef typename V::Elem Elem;
+    typedef typename MaskType::Elem MaskTypeElem;
+
     CallArgs args = CallArgsFromVp(argc, vp);
-    if (args.length() != 3 || !IsVectorObject<Float32x4>(args[0]) ||
-        !IsVectorObject<Float32x4>(args[1]) || !IsVectorObject<Float32x4>(args[2]))
+    if (args.length() != 3 || !IsVectorObject<MaskType>(args[0]) ||
+        !IsVectorObject<V>(args[1]) || !IsVectorObject<V>(args[2]))
     {
         return ErrorBadArgs(cx);
     }
 
-    float *val = TypedObjectMemory<float *>(args[0]);
-    float *lowerLimit = TypedObjectMemory<float *>(args[1]);
-    float *upperLimit = TypedObjectMemory<float *>(args[2]);
+    TypedObjectElemArray<MaskTypeElem> mask(args[0]);
+    TypedObjectElemArray<Elem> tv(args[1]);
+    TypedObjectElemArray<Elem> fv(args[2]);
 
-    float result[Float32x4::lanes];
-    for (unsigned i = 0; i < Float32x4::lanes; i++) {
-        result[i] = val[i] < lowerLimit[i] ? lowerLimit[i] : val[i];
-        result[i] = result[i] > upperLimit[i] ? upperLimit[i] : result[i];
-    }
+    Elem result[V::lanes];
+    for (unsigned i = 0; i < V::lanes; i++)
+        result[i] = mask[i] ? tv[i] : fv[i];
 
-    RootedObject obj(cx, Create<Float32x4>(cx, result));
-    if (!obj)
-        return false;
-
-    args.rval().setObject(*obj);
-    return true;
+    return StoreResult<V>(cx, args, result);
 }
 
+// Extract an integer lane index from a function argument.
+//
+// Register an exception and return false if the argument is not suitable.
 static bool
-Int32x4Select(JSContext *cx, unsigned argc, Value *vp)
+ArgumentToLaneIndex(JSContext* cx, JS::HandleValue v, unsigned limit, unsigned* lane)
 {
-    CallArgs args = CallArgsFromVp(argc, vp);
-    if (args.length() != 3 || !IsVectorObject<Int32x4>(args[0]) ||
-        !IsVectorObject<Float32x4>(args[1]) || !IsVectorObject<Float32x4>(args[2]))
-    {
-        return ErrorBadArgs(cx);
-    }
-
-    int32_t *val = TypedObjectMemory<int32_t *>(args[0]);
-    int32_t *tv = TypedObjectMemory<int32_t *>(args[1]);
-    int32_t *fv = TypedObjectMemory<int32_t *>(args[2]);
-
-    int32_t tr[Int32x4::lanes];
-    for (unsigned i = 0; i < Int32x4::lanes; i++)
-        tr[i] = And<int32_t, Int32x4>::apply(val[i], tv[i]);
-
-    int32_t fr[Int32x4::lanes];
-    for (unsigned i = 0; i < Int32x4::lanes; i++)
-        fr[i] = And<int32_t, Int32x4>::apply(Not<int32_t, Int32x4>::apply(val[i], 0), fv[i]);
-
-    int32_t orInt[Int32x4::lanes];
-    for (unsigned i = 0; i < Int32x4::lanes; i++)
-        orInt[i] = Or<int32_t, Int32x4>::apply(tr[i], fr[i]);
-
-    float *result = reinterpret_cast<float *>(orInt);
-    RootedObject obj(cx, Create<Float32x4>(cx, result));
-    if (!obj)
+    uint64_t arg;
+    if (!ToIntegerIndex(cx, v, &arg))
         return false;
+    if (arg >= limit)
+        return ErrorBadIndex(cx);
 
-    args.rval().setObject(*obj);
+    *lane = unsigned(arg);
     return true;
 }
 
-#define DEFINE_SIMD_FLOAT32X4_FUNCTION(Name, Func, Operands, Flags, MIRId)     \
-bool                                                                           \
-js::simd_float32x4_##Name(JSContext *cx, unsigned argc, Value *vp)             \
-{                                                                              \
-    return Func(cx, argc, vp);                                                 \
+// Look for arguments (ta, idx) where ta is a TypedArray and idx is a
+// non-negative integer.
+// Check that accessBytes can be accessed starting from index idx in the array.
+// Return the array handle in typedArray and idx converted to a byte offset in byteStart.
+static bool
+TypedArrayFromArgs(JSContext* cx, const CallArgs& args, uint32_t accessBytes,
+                   MutableHandleObject typedArray, size_t* byteStart)
+{
+    if (!args[0].isObject())
+        return ErrorBadArgs(cx);
+
+    JSObject& argobj = args[0].toObject();
+    if (!argobj.is<TypedArrayObject>())
+        return ErrorBadArgs(cx);
+
+    typedArray.set(&argobj);
+
+    uint64_t index;
+    if (!ToIntegerIndex(cx, args[1], &index))
+        return false;
+
+    // Do the range check in 64 bits even when size_t is 32 bits.
+    // This can't overflow because index <= 2^53.
+    uint64_t bytes = index * typedArray->as<TypedArrayObject>().bytesPerElement();
+    // Keep in sync with AsmJS OnOutOfBounds function.
+    if ((bytes + accessBytes) > typedArray->as<TypedArrayObject>().byteLength())
+        return ErrorBadIndex(cx);
+
+    *byteStart = bytes;
+
+    return true;
+}
+
+template<class V, unsigned NumElem>
+static bool
+Load(JSContext* cx, unsigned argc, Value* vp)
+{
+    typedef typename V::Elem Elem;
+
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (args.length() != 2)
+        return ErrorBadArgs(cx);
+
+    size_t byteStart;
+    RootedObject typedArray(cx);
+    if (!TypedArrayFromArgs(cx, args, sizeof(Elem) * NumElem, &typedArray, &byteStart))
+        return false;
+
+    Rooted<TypeDescr*> typeDescr(cx, GetTypeDescr<V>(cx));
+    if (!typeDescr)
+        return false;
+
+    Rooted<TypedObject*> result(cx, TypedObject::createZeroed(cx, typeDescr, 0));
+    if (!result)
+        return false;
+
+    JS::AutoCheckCannotGC nogc(cx);
+    SharedMem<Elem*> src =
+        typedArray->as<TypedArrayObject>().viewDataEither().addBytes(byteStart).cast<Elem*>();
+    Elem* dst = reinterpret_cast<Elem*>(result->typedMem(nogc));
+    jit::AtomicOperations::podCopySafeWhenRacy(SharedMem<Elem*>::unshared(dst), src, NumElem);
+
+    args.rval().setObject(*result);
+    return true;
+}
+
+template<class V, unsigned NumElem>
+static bool
+Store(JSContext* cx, unsigned argc, Value* vp)
+{
+    typedef typename V::Elem Elem;
+
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (args.length() != 3)
+        return ErrorBadArgs(cx);
+
+    size_t byteStart;
+    RootedObject typedArray(cx);
+    if (!TypedArrayFromArgs(cx, args, sizeof(Elem) * NumElem, &typedArray, &byteStart))
+        return false;
+
+    if (!IsVectorObject<V>(args[2]))
+        return ErrorBadArgs(cx);
+
+    JS::AutoCheckCannotGC nogc(cx);
+    Elem* src = TypedObjectMemory<Elem*>(args[2], nogc);
+    SharedMem<Elem*> dst =
+        typedArray->as<TypedArrayObject>().viewDataEither().addBytes(byteStart).cast<Elem*>();
+    js::jit::AtomicOperations::podCopySafeWhenRacy(dst, SharedMem<Elem*>::unshared(src), NumElem);
+
+    args.rval().setObject(args[2].toObject());
+    return true;
+}
+
+#define DEFINE_SIMD_FLOAT32X4_FUNCTION(Name, Func, Operands)       \
+bool                                                               \
+js::simd_float32x4_##Name(JSContext* cx, unsigned argc, Value* vp) \
+{                                                                  \
+    return Func(cx, argc, vp);                                     \
 }
 FLOAT32X4_FUNCTION_LIST(DEFINE_SIMD_FLOAT32X4_FUNCTION)
-#undef DEFINE_SIMD_FLOAT32x4_FUNCTION
+#undef DEFINE_SIMD_FLOAT32X4_FUNCTION
 
-#define DEFINE_SIMD_INT32X4_FUNCTION(Name, Func, Operands, Flags, MIRId)       \
-bool                                                                           \
-js::simd_int32x4_##Name(JSContext *cx, unsigned argc, Value *vp)               \
-{                                                                              \
-    return Func(cx, argc, vp);                                                 \
+#define DEFINE_SIMD_FLOAT64X2_FUNCTION(Name, Func, Operands)       \
+bool                                                               \
+js::simd_float64x2_##Name(JSContext* cx, unsigned argc, Value* vp) \
+{                                                                  \
+    return Func(cx, argc, vp);                                     \
+}
+FLOAT64X2_FUNCTION_LIST(DEFINE_SIMD_FLOAT64X2_FUNCTION)
+#undef DEFINE_SIMD_FLOAT64X2_FUNCTION
+
+#define DEFINE_SIMD_INT8X16_FUNCTION(Name, Func, Operands)         \
+bool                                                               \
+js::simd_int8x16_##Name(JSContext* cx, unsigned argc, Value* vp)   \
+{                                                                  \
+    return Func(cx, argc, vp);                                     \
+}
+INT8X16_FUNCTION_LIST(DEFINE_SIMD_INT8X16_FUNCTION)
+#undef DEFINE_SIMD_INT8X16_FUNCTION
+
+#define DEFINE_SIMD_INT16X8_FUNCTION(Name, Func, Operands)         \
+bool                                                               \
+js::simd_int16x8_##Name(JSContext* cx, unsigned argc, Value* vp)   \
+{                                                                  \
+    return Func(cx, argc, vp);                                     \
+}
+INT16X8_FUNCTION_LIST(DEFINE_SIMD_INT16X8_FUNCTION)
+#undef DEFINE_SIMD_INT16X8_FUNCTION
+
+#define DEFINE_SIMD_INT32X4_FUNCTION(Name, Func, Operands)         \
+bool                                                               \
+js::simd_int32x4_##Name(JSContext* cx, unsigned argc, Value* vp)   \
+{                                                                  \
+    return Func(cx, argc, vp);                                     \
 }
 INT32X4_FUNCTION_LIST(DEFINE_SIMD_INT32X4_FUNCTION)
 #undef DEFINE_SIMD_INT32X4_FUNCTION
 
-const JSFunctionSpec js::Float32x4Methods[] = {
-#define SIMD_FLOAT32X4_FUNCTION_ITEM(Name, Func, Operands, Flags, MIRId)       \
-        JS_FN(#Name, js::simd_float32x4_##Name, Operands, Flags),
-        FLOAT32X4_FUNCTION_LIST(SIMD_FLOAT32X4_FUNCTION_ITEM)
-#undef SIMD_FLOAT32x4_FUNCTION_ITEM
-        JS_FS_END
-};
+#define DEFINE_SIMD_UINT8X16_FUNCTION(Name, Func, Operands)        \
+bool                                                               \
+js::simd_uint8x16_##Name(JSContext* cx, unsigned argc, Value* vp)  \
+{                                                                  \
+    return Func(cx, argc, vp);                                     \
+}
+UINT8X16_FUNCTION_LIST(DEFINE_SIMD_UINT8X16_FUNCTION)
+#undef DEFINE_SIMD_UINT8X16_FUNCTION
 
-const JSFunctionSpec js::Int32x4Methods[] = {
-#define SIMD_INT32X4_FUNCTION_ITEM(Name, Func, Operands, Flags, MIRId)         \
-        JS_FN(#Name, js::simd_int32x4_##Name, Operands, Flags),
-        INT32X4_FUNCTION_LIST(SIMD_INT32X4_FUNCTION_ITEM)
-#undef SIMD_INT32X4_FUNCTION_ITEM
-        JS_FS_END
-};
+#define DEFINE_SIMD_UINT16X8_FUNCTION(Name, Func, Operands)        \
+bool                                                               \
+js::simd_uint16x8_##Name(JSContext* cx, unsigned argc, Value* vp)  \
+{                                                                  \
+    return Func(cx, argc, vp);                                     \
+}
+UINT16X8_FUNCTION_LIST(DEFINE_SIMD_UINT16X8_FUNCTION)
+#undef DEFINE_SIMD_UINT16X8_FUNCTION
+
+#define DEFINE_SIMD_UINT32X4_FUNCTION(Name, Func, Operands)        \
+bool                                                               \
+js::simd_uint32x4_##Name(JSContext* cx, unsigned argc, Value* vp)  \
+{                                                                  \
+    return Func(cx, argc, vp);                                     \
+}
+UINT32X4_FUNCTION_LIST(DEFINE_SIMD_UINT32X4_FUNCTION)
+#undef DEFINE_SIMD_UINT32X4_FUNCTION
+
+#define DEFINE_SIMD_BOOL8X16_FUNCTION(Name, Func, Operands)        \
+bool                                                               \
+js::simd_bool8x16_##Name(JSContext* cx, unsigned argc, Value* vp)  \
+{                                                                  \
+    return Func(cx, argc, vp);                                     \
+}
+
+BOOL8X16_FUNCTION_LIST(DEFINE_SIMD_BOOL8X16_FUNCTION)
+#undef DEFINE_SIMD_BOOL8X16_FUNCTION
+
+#define DEFINE_SIMD_BOOL16X8_FUNCTION(Name, Func, Operands)        \
+bool                                                               \
+js::simd_bool16x8_##Name(JSContext* cx, unsigned argc, Value* vp)  \
+{                                                                  \
+    return Func(cx, argc, vp);                                     \
+}
+BOOL16X8_FUNCTION_LIST(DEFINE_SIMD_BOOL16X8_FUNCTION)
+#undef DEFINE_SIMD_BOOL16X8_FUNCTION
+
+#define DEFINE_SIMD_BOOL32X4_FUNCTION(Name, Func, Operands)        \
+bool                                                               \
+js::simd_bool32x4_##Name(JSContext* cx, unsigned argc, Value* vp)  \
+{                                                                  \
+    return Func(cx, argc, vp);                                     \
+}
+BOOL32X4_FUNCTION_LIST(DEFINE_SIMD_BOOL32X4_FUNCTION)
+#undef DEFINE_SIMD_BOOL32X4_FUNCTION
+
+#define DEFINE_SIMD_BOOL64X2_FUNCTION(Name, Func, Operands)        \
+bool                                                               \
+js::simd_bool64x2_##Name(JSContext* cx, unsigned argc, Value* vp)  \
+{                                                                  \
+    return Func(cx, argc, vp);                                     \
+}
+BOOL64X2_FUNCTION_LIST(DEFINE_SIMD_BOOL64X2_FUNCTION)
+#undef DEFINE_SIMD_BOOL64X2_FUNCTION

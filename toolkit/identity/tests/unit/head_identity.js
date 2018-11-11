@@ -1,17 +1,17 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-const Cr = Components.results;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
+var Cr = Components.results;
 
 Cu.import("resource://testing-common/httpd.js");
 
 // XXX until bug 937114 is fixed
 Cu.importGlobalProperties(["atob"]);
 
-// The following boilerplate makes sure that XPCom calls
+// The following boilerplate makes sure that XPCOM calls
 // that use the profile directory work.
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -165,7 +165,7 @@ function setup_test_identity(identity, cert, cb) {
   function keyGenerated(err, kpo) {
     store.addIdentity(identity, kpo, cert);
     cb();
-  };
+  }
 
   jwcrypto.generateKeyPair("DS160", keyGenerated);
 }
@@ -183,7 +183,7 @@ function call_sequentially() {
       do_throw("Too many calls: " + argString);
       return;
     }
-    funcs[numCalls].apply(funcs[numCalls],arguments);
+    funcs[numCalls].apply(funcs[numCalls], arguments);
     numCalls += 1;
   };
 }
@@ -233,17 +233,17 @@ function setup_provisioning(identity, afterSetupCallback, doneProvisioningCallba
 }
 
 // Switch debug messages on by default
-let initialPrefDebugValue = false;
+var initialPrefDebugValue = false;
 try {
   initialPrefDebugValue = Services.prefs.getBoolPref("toolkit.identity.debug");
-} catch(noPref) {}
+} catch (noPref) {}
 Services.prefs.setBoolPref("toolkit.identity.debug", true);
 
 // Switch on firefox accounts
-let initialPrefFXAValue = false;
+var initialPrefFXAValue = false;
 try {
   initialPrefFXAValue = Services.prefs.getBoolPref("identity.fxaccounts.enabled");
-} catch(noPref) {}
+} catch (noPref) {}
 Services.prefs.setBoolPref("identity.fxaccounts.enabled", true);
 
 // after execution, restore prefs

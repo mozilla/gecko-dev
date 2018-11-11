@@ -3,11 +3,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef MOZILLA_IMAGELIB_EXIF_H_
-#define MOZILLA_IMAGELIB_EXIF_H_
+#ifndef mozilla_image_decoders_EXIF_h
+#define mozilla_image_decoders_EXIF_h
 
 #include <stdint.h>
-#include "mozilla/TypedEnum.h"
 #include "nsDebug.h"
 
 #include "Orientation.h"
@@ -15,11 +14,11 @@
 namespace mozilla {
 namespace image {
 
-MOZ_BEGIN_ENUM_CLASS(ByteOrder, uint8_t)
+enum class ByteOrder : uint8_t {
   Unknown,
   LittleEndian,
   BigEndian
-MOZ_END_ENUM_CLASS(ByteOrder)
+};
 
 struct EXIFData
 {
@@ -70,7 +69,7 @@ private:
   ByteOrder      mByteOrder;
 };
 
-}
-}
+} // namespace image
+} // namespace mozilla
 
-#endif
+#endif // mozilla_image_decoders_EXIF_h

@@ -5,12 +5,10 @@
 #ifndef Mappable_h
 #define Mappable_h
 
-#include <sys/types.h>
-#include <pthread.h>
 #include "Zip.h"
 #include "SeekableZStream.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/Scoped.h"
+#include "mozilla/UniquePtr.h"
 #include "zlib.h"
 
 /**
@@ -110,7 +108,7 @@ private:
 class MappableExtractFile: public MappableFile
 {
 public:
-  ~MappableExtractFile();
+  ~MappableExtractFile() = default;
 
   /**
    * Create a MappableExtractFile instance for the given Zip stream. The name
@@ -123,30 +121,24 @@ public:
 
   virtual Kind GetKind() const { return MAPPABLE_EXTRACT_FILE; };
 private:
-  MappableExtractFile(int fd, char *path)
-  : MappableFile(fd), path(path), pid(getpid()) { }
-
   /**
-   * AutoUnlinkFile keeps track or a file name and removes (unlinks) the file
+   * AutoUnlinkFile keeps track of a file name and removes (unlinks) the file
    * when the instance is destroyed.
    */
-  struct AutoUnlinkFileTraits: public mozilla::ScopedDeleteArrayTraits<char>
+  struct UnlinkFile
   {
-    static void release(char *value)
-    {
-      if (!value)
-        return;
+    void operator()(char *value) {
       unlink(value);
-      mozilla::ScopedDeleteArrayTraits<char>::release(value);
+      delete [] value;
     }
   };
-  typedef mozilla::Scoped<AutoUnlinkFileTraits> AutoUnlinkFile;
+  typedef mozilla::UniquePtr<char[], UnlinkFile> AutoUnlinkFile;
 
-  /* Extracted file */
-  AutoUnlinkFile path;
+  MappableExtractFile(int fd, const char* path)
+  : MappableFile(fd), path(path) { }
 
-  /* Id of the process that initialized the instance */
-  pid_t pid;
+  /* Extracted file path */
+  mozilla::UniquePtr<const char[]> path;
 };
 
 class _MappableBuffer;
@@ -177,13 +169,13 @@ private:
   MappableDeflate(_MappableBuffer *buf, Zip *zip, Zip::Stream *stream);
 
   /* Zip reference */
-  mozilla::RefPtr<Zip> zip;
+  RefPtr<Zip> zip;
 
   /* Decompression buffer */
-  mozilla::ScopedDeletePtr<_MappableBuffer> buffer;
+  mozilla::UniquePtr<_MappableBuffer> buffer;
 
   /* Zlib data */
-  z_stream zStream;
+  zxx_stream zStream;
 };
 
 /**
@@ -217,10 +209,10 @@ private:
   MappableSeekableZStream(Zip *zip);
 
   /* Zip reference */
-  mozilla::RefPtr<Zip> zip;
+  RefPtr<Zip> zip;
 
   /* Decompression buffer */
-  mozilla::ScopedDeletePtr<_MappableBuffer> buffer;
+  mozilla::UniquePtr<_MappableBuffer> buffer;
 
   /* Seekable ZStream */
   SeekableZStream zStream;
@@ -242,18 +234,18 @@ private:
     }
 
     /* Returns offset + length */
-    const off_t endOffset() const {
+    off_t endOffset() const {
       return offset + length;
     }
 
     /* Returns the offset corresponding to the given address */
-    const off_t offsetOf(const void *ptr) const {
+    off_t offsetOf(const void *ptr) const {
       return reinterpret_cast<uintptr_t>(ptr)
              - reinterpret_cast<uintptr_t>(addr) + offset;
     }
 
     /* Returns whether the given address is in the LazyMap range */
-    const bool Contains(const void *ptr) const {
+    bool Contains(const void *ptr) const {
       return (ptr >= addr) && (ptr < end());
     }
   };
@@ -263,7 +255,7 @@ private:
 
   /* Array keeping track of which chunks have already been decompressed.
    * Each value is the number of pages decompressed for the given chunk. */
-  mozilla::ScopedDeleteArray<unsigned char> chunkAvail;
+  mozilla::UniquePtr<unsigned char[]> chunkAvail;
 
   /* Number of chunks that have already been decompressed. */
   mozilla::Atomic<size_t> chunkAvailNum;

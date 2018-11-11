@@ -7,22 +7,37 @@
 #ifndef ds_IdValuePair_h
 #define ds_IdValuePair_h
 
-#include "NamespaceImports.h"
+#include "jsapi.h"
 
+#include "NamespaceImports.h"
+#include "gc/Tracer.h"
+#include "js/GCVector.h"
 #include "js/Id.h"
 
 namespace js {
 
 struct IdValuePair
 {
-    jsid id;
     Value value;
+    jsid id;
 
-    IdValuePair() {}
-    explicit IdValuePair(jsid idArg)
-      : id(idArg), value(UndefinedValue())
+    IdValuePair()
+      : value(UndefinedValue()), id(JSID_EMPTY)
     {}
+    explicit IdValuePair(jsid idArg)
+      : value(UndefinedValue()), id(idArg)
+    {}
+    IdValuePair(jsid idArg, const Value& valueArg)
+      : value(valueArg), id(idArg)
+    {}
+
+    void trace(JSTracer* trc) {
+        TraceRoot(trc, &value, "IdValuePair::value");
+        TraceRoot(trc, &id, "IdValuePair::id");
+    }
 };
+
+using IdValueVector = JS::GCVector<IdValuePair>;
 
 } /* namespace js */
 

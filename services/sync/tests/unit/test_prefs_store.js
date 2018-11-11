@@ -23,24 +23,21 @@ function makePersona(id) {
 }
 
 function run_test() {
+  _("Test fixtures.");
+  // read our custom prefs file before doing anything.
+  Services.prefs.readUserPrefs(do_get_file("prefs_test_prefs_store.js"));
+  // Now we've read from this file, any writes the pref service makes will be
+  // back to this prefs_test_prefs_store.js directly in the obj dir. This
+  // upsets things in confusing ways :) We avoid this by explicitly telling the
+  // pref service to use a file in our profile dir.
+  let prefFile = do_get_profile();
+  prefFile.append("prefs.js");
+  Services.prefs.savePrefFile(prefFile);
+  Services.prefs.readUserPrefs(prefFile);
+
   let store = Service.engineManager.get("prefs")._store;
   let prefs = new Preferences();
   try {
-
-    _("Test fixtures.");
-    Svc.Prefs.set("prefs.sync.testing.int", true);
-    Svc.Prefs.set("prefs.sync.testing.string", true);
-    Svc.Prefs.set("prefs.sync.testing.bool", true);
-    Svc.Prefs.set("prefs.sync.testing.dont.change", true);
-    Svc.Prefs.set("prefs.sync.testing.turned.off", false);
-    Svc.Prefs.set("prefs.sync.testing.nonexistent", true);
-
-    prefs.set("testing.int", 123);
-    prefs.set("testing.string", "ohai");
-    prefs.set("testing.bool", true);
-    prefs.set("testing.dont.change", "Please don't change me.");
-    prefs.set("testing.turned.off", "I won't get synced.");
-    prefs.set("testing.not.turned.on", "I won't get synced either!");
 
     _("The GUID corresponds to XUL App ID.");
     let allIDs = store.getAllIDs();
@@ -61,17 +58,22 @@ function run_test() {
     do_check_eq(record.value["testing.int"], 123);
     do_check_eq(record.value["testing.string"], "ohai");
     do_check_eq(record.value["testing.bool"], true);
+    // non-existing prefs get null as the value
     do_check_eq(record.value["testing.nonexistent"], null);
+    // as do prefs that have a default value.
+    do_check_eq(record.value["testing.default"], null);
     do_check_false("testing.turned.off" in record.value);
     do_check_false("testing.not.turned.on" in record.value);
 
-    _("Prefs record contains pref sync prefs too.");
-    do_check_eq(record.value["services.sync.prefs.sync.testing.int"], true);
-    do_check_eq(record.value["services.sync.prefs.sync.testing.string"], true);
-    do_check_eq(record.value["services.sync.prefs.sync.testing.bool"], true);
-    do_check_eq(record.value["services.sync.prefs.sync.testing.dont.change"], true);
+    _("Prefs record contains non-default pref sync prefs too.");
+    do_check_eq(record.value["services.sync.prefs.sync.testing.int"], null);
+    do_check_eq(record.value["services.sync.prefs.sync.testing.string"], null);
+    do_check_eq(record.value["services.sync.prefs.sync.testing.bool"], null);
+    do_check_eq(record.value["services.sync.prefs.sync.testing.dont.change"], null);
+    // but this one is a user_pref so *will* be synced.
     do_check_eq(record.value["services.sync.prefs.sync.testing.turned.off"], false);
-    do_check_eq(record.value["services.sync.prefs.sync.testing.nonexistent"], true);
+    do_check_eq(record.value["services.sync.prefs.sync.testing.nonexistent"], null);
+    do_check_eq(record.value["services.sync.prefs.sync.testing.default"], null);
 
     _("Update some prefs, including one that's to be reset/deleted.");
     Svc.Prefs.set("testing.deleteme", "I'm going to be deleted!");
@@ -81,6 +83,7 @@ function run_test() {
       "testing.string": "im in ur prefs",
       "testing.bool": false,
       "testing.deleteme": null,
+      "testing.somepref": "im a new pref from other device",
       "services.sync.prefs.sync.testing.somepref": true
     };
     store.update(record);
@@ -89,34 +92,35 @@ function run_test() {
     do_check_eq(prefs.get("testing.bool"), false);
     do_check_eq(prefs.get("testing.deleteme"), undefined);
     do_check_eq(prefs.get("testing.dont.change"), "Please don't change me.");
+    do_check_eq(prefs.get("testing.somepref"), "im a new pref from other device");
     do_check_eq(Svc.Prefs.get("prefs.sync.testing.somepref"), true);
 
     _("Enable persona");
     // Ensure we don't go to the network to fetch personas and end up leaking
     // stuff.
     Services.io.offline = true;
-    do_check_false(!!prefs.get("lightweightThemes.isThemeSelected"));
+    do_check_false(!!prefs.get("lightweightThemes.selectedThemeID"));
     do_check_eq(LightweightThemeManager.currentTheme, null);
 
     let persona1 = makePersona();
     let persona2 = makePersona();
     let usedThemes = JSON.stringify([persona1, persona2]);
     record.value = {
-      "lightweightThemes.isThemeSelected": true,
+      "lightweightThemes.selectedThemeID": persona1.id,
       "lightweightThemes.usedThemes": usedThemes
     };
     store.update(record);
-    do_check_true(prefs.get("lightweightThemes.isThemeSelected"));
+    do_check_eq(prefs.get("lightweightThemes.selectedThemeID"), persona1.id);
     do_check_true(Utils.deepEquals(LightweightThemeManager.currentTheme,
                   persona1));
 
     _("Disable persona");
     record.value = {
-      "lightweightThemes.isThemeSelected": false,
+      "lightweightThemes.selectedThemeID": null,
       "lightweightThemes.usedThemes": usedThemes
     };
     store.update(record);
-    do_check_false(prefs.get("lightweightThemes.isThemeSelected"));
+    do_check_false(!!prefs.get("lightweightThemes.selectedThemeID"));
     do_check_eq(LightweightThemeManager.currentTheme, null);
 
     _("Only the current app's preferences are applied.");
@@ -127,6 +131,37 @@ function run_test() {
     store.update(record);
     do_check_eq(prefs.get("testing.int"), 42);
 
+    _("The light-weight theme preference is handled correctly.");
+    let lastThemeID = undefined;
+    let orig_updateLightWeightTheme = store._updateLightWeightTheme;
+    store._updateLightWeightTheme = function(themeID) {
+      lastThemeID = themeID;
+    }
+    try {
+      record = new PrefRec("prefs", PREFS_GUID);
+      record.value = {
+        "testing.int": 42,
+      };
+      store.update(record);
+      do_check_true(lastThemeID === undefined,
+                    "should not have tried to change the theme with an unrelated pref.");
+      Services.prefs.setCharPref("lightweightThemes.selectedThemeID", "foo");
+      record.value = {
+        "lightweightThemes.selectedThemeID": "foo",
+      };
+      store.update(record);
+      do_check_true(lastThemeID === undefined,
+                    "should not have tried to change the theme when the incoming pref matches current value.");
+
+      record.value = {
+        "lightweightThemes.selectedThemeID": "bar",
+      };
+      store.update(record);
+      do_check_eq(lastThemeID, "bar",
+                  "should have tried to change the theme when the incoming pref was different.");
+    } finally {
+      store._updateLightWeightTheme = orig_updateLightWeightTheme;
+    }
   } finally {
     prefs.resetBranch("");
   }

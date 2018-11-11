@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#include <android/log.h>
 #include <fcntl.h>
 #include <sysutils/NetlinkEvent.h>
-#include <cutils/properties.h>
 
 #include "base/message_loop.h"
+#include "base/task.h"
 
 #include "Hal.h"
+#include "HalLog.h"
 #include "mozilla/FileUtils.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/Monitor.h"
@@ -31,8 +31,6 @@
 #include "UeventPoller.h"
 
 using namespace mozilla::hal;
-
-#define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "GonkSwitch" , ## args) 
 
 #define SWITCH_HEADSET_DEVPATH "/devices/virtual/switch/h2w"
 #define SWITCH_USB_DEVPATH_GB  "/devices/virtual/switch/usb_configuration"
@@ -64,23 +62,19 @@ public:
     GetInitialState();
   }
 
-  virtual ~SwitchHandler()
-  {
-  }
-
   bool CheckEvent(NetlinkEvent* aEvent)
   {
     if (strcmp(GetSubsystem(), aEvent->getSubsystem()) ||
         strcmp(mDevPath, aEvent->findParam("DEVPATH"))) {
         return false;
     }
-    
+
     mState = ConvertState(GetStateString(aEvent));
     return mState != SWITCH_STATE_UNKNOWN;
   }
 
   SwitchState GetState()
-  { 
+  {
     return mState;
   }
 
@@ -89,6 +83,10 @@ public:
     return mDevice;
   }
 protected:
+  virtual ~SwitchHandler()
+  {
+  }
+
   virtual const char* GetSubsystem()
   {
     return "switch";
@@ -111,14 +109,14 @@ protected:
     char state[16];
     ssize_t bytesRead = read(fd, state, sizeof(state));
     if (bytesRead < 0) {
-      LOG("Read data from %s fails", statePath.get());
+      HAL_ERR("Read data from %s fails", statePath.get());
       return;
     }
 
     if (state[bytesRead - 1] == '\n') {
       bytesRead--;
     }
-    
+
     state[bytesRead] = '\0';
     mState = ConvertState(state);
   }
@@ -215,14 +213,14 @@ protected:
 
 typedef nsTArray<RefPtr<SwitchHandler> > SwitchHandlerArray;
 
-class SwitchEventRunnable : public nsRunnable
+class SwitchEventRunnable : public Runnable
 {
 public:
   SwitchEventRunnable(SwitchEvent& aEvent) : mEvent(aEvent)
   {
   }
 
-  NS_IMETHOD Run()
+  NS_IMETHOD Run() override
   {
     NotifySwitchChange(mEvent);
     return NS_OK;
@@ -231,7 +229,7 @@ private:
   SwitchEvent mEvent;
 };
 
-class SwitchEventObserver MOZ_FINAL : public IUeventObserver
+class SwitchEventObserver final : public IUeventObserver
 {
   ~SwitchEventObserver()
   {
@@ -240,7 +238,9 @@ class SwitchEventObserver MOZ_FINAL : public IUeventObserver
 
 public:
   NS_INLINE_DECL_REFCOUNTING(SwitchEventObserver)
-  SwitchEventObserver() : mEnableCount(0)
+  SwitchEventObserver()
+    : mEnableCount(0),
+    mHeadphonesFromInputDev(false)
   {
     Init();
   }
@@ -265,10 +265,10 @@ public:
   void Notify(const NetlinkEvent& aEvent)
   {
     SwitchState currState;
-    
+
     SwitchDevice device = GetEventInfo(aEvent, currState);
     if (device == SWITCH_DEVICE_UNKNOWN) {
-      return; 
+      return;
     }
 
     EventInfo& info = mEventInfo[device];
@@ -309,6 +309,12 @@ public:
       NS_DispatchToMainThread(new SwitchEventRunnable(info.mEvent));
     }
   }
+
+  bool GetHeadphonesFromInputDev()
+  {
+    return mHeadphonesFromInputDev;
+  }
+
 private:
   class EventInfo
   {
@@ -325,15 +331,20 @@ private:
   EventInfo mEventInfo[NUM_SWITCH_DEVICE];
   size_t mEnableCount;
   SwitchHandlerArray mHandler;
+  bool mHeadphonesFromInputDev;
 
+  // This function might also get called on the main thread
+  // (from IsHeadphoneEventFromInputDev)
   void Init()
   {
-    char value[PROPERTY_VALUE_MAX];
-    property_get("ro.moz.devinputjack", value, "0");
-    bool headphonesFromInputDev = !strcmp(value, "1");
+    RefPtr<SwitchHandlerHeadphone> switchHeadPhone =
+      new SwitchHandlerHeadphone(SWITCH_HEADSET_DEVPATH);
 
-    if (!headphonesFromInputDev) {
-      mHandler.AppendElement(new SwitchHandlerHeadphone(SWITCH_HEADSET_DEVPATH));
+    // If the initial state is unknown, it means the headphone event is from input dev
+    mHeadphonesFromInputDev = switchHeadPhone->GetState() == SWITCH_STATE_UNKNOWN ? true : false;
+
+    if (!mHeadphonesFromInputDev) {
+      mHandler.AppendElement(switchHeadPhone);
     } else {
       // If headphone status will be notified from input dev then initialize
       // status to "off" and wait for event notification.
@@ -362,7 +373,7 @@ private:
   {
     //working around the android code not being const-correct
     NetlinkEvent *e = const_cast<NetlinkEvent*>(&aEvent);
-    
+
     for (size_t i = 0; i < mHandler.Length(); i++) {
       if (mHandler[i]->CheckEvent(e)) {
         aState = mHandler[i]->GetState();
@@ -403,7 +414,7 @@ EnableSwitchNotificationsIOThread(SwitchDevice aDevice, Monitor *aMonitor)
     lock.Notify();
   }
 
-  // Notify the latest state if IO thread has the information. 
+  // Notify the latest state if IO thread has the information.
   if (sSwitchObserver->GetEnableCount() > 1) {
     sSwitchObserver->NotifyAnEvent(aDevice);
   }
@@ -416,7 +427,6 @@ EnableSwitchNotifications(SwitchDevice aDevice)
   {
     MonitorAutoLock lock(monitor);
     XRE_GetIOMessageLoop()->PostTask(
-        FROM_HERE,
         NewRunnableFunction(EnableSwitchNotificationsIOThread, aDevice, &monitor));
     lock.Wait();
   }
@@ -434,7 +444,6 @@ void
 DisableSwitchNotifications(SwitchDevice aDevice)
 {
   XRE_GetIOMessageLoop()->PostTask(
-      FROM_HERE,
       NewRunnableFunction(DisableSwitchNotificationsIOThread, aDevice));
 }
 
@@ -448,15 +457,23 @@ GetCurrentSwitchState(SwitchDevice aDevice)
 static void
 NotifySwitchStateIOThread(SwitchDevice aDevice, SwitchState aState)
 {
+  InitializeResourceIfNeed();
   sSwitchObserver->Notify(aDevice, aState);
 }
 
 void NotifySwitchStateFromInputDevice(SwitchDevice aDevice, SwitchState aState)
 {
-  InitializeResourceIfNeed();
   XRE_GetIOMessageLoop()->PostTask(
-      FROM_HERE,
       NewRunnableFunction(NotifySwitchStateIOThread, aDevice, aState));
 }
+
+bool IsHeadphoneEventFromInputDev()
+{
+  // Instead of calling InitializeResourceIfNeed, create new SwitchEventObserver
+  // to prevent calling RegisterUeventListener in main thread.
+  RefPtr<SwitchEventObserver> switchObserver = new SwitchEventObserver();
+  return switchObserver->GetHeadphonesFromInputDev();
+}
+
 } // hal_impl
 } //mozilla

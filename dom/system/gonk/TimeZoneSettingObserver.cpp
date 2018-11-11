@@ -4,6 +4,7 @@
 
 #include "base/message_loop.h"
 #include "jsapi.h"
+#include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Hal.h"
@@ -20,10 +21,12 @@
 #include "TimeZoneSettingObserver.h"
 #include "xpcpublic.h"
 #include "nsContentUtils.h"
-#include "nsCxPusher.h"
 #include "nsPrintfCString.h"
+#include "mozilla/dom/BindingUtils.h"
+#include "mozilla/dom/SettingChangeNotificationBinding.h"
 
 #undef LOG
+#undef ERR
 #define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "Time Zone Setting" , ## args)
 #define ERR(args...)  __android_log_print(ANDROID_LOG_ERROR, "Time Zone Setting" , ## args)
 
@@ -31,6 +34,7 @@
 #define MOZSETTINGS_CHANGED "mozsettings-changed"
 
 using namespace mozilla;
+using namespace mozilla::dom;
 
 namespace {
 
@@ -41,11 +45,13 @@ public:
   NS_DECL_NSIOBSERVER
 
   TimeZoneSettingObserver();
-  virtual ~TimeZoneSettingObserver();
   static nsresult SetTimeZone(const JS::Value &aValue, JSContext *aContext);
+
+protected:
+  virtual ~TimeZoneSettingObserver();
 };
 
-class TimeZoneSettingCb MOZ_FINAL : public nsISettingsServiceCallback
+class TimeZoneSettingCb final : public nsISettingsServiceCallback
 {
 public:
   NS_DECL_ISUPPORTS
@@ -107,6 +113,9 @@ public:
     ERR("TimeZoneSettingCb::HandleError: %s\n", NS_LossyConvertUTF16toASCII(aName).get());
     return NS_OK;
   }
+
+protected:
+  ~TimeZoneSettingCb() {}
 };
 
 NS_IMPL_ISUPPORTS(TimeZoneSettingCb, nsISettingsServiceCallback)
@@ -144,7 +153,7 @@ nsresult TimeZoneSettingObserver::SetTimeZone(const JS::Value &aValue, JSContext
 {
   // Convert the JS value to a nsCString type.
   // The value should be a JS string like "America/Chicago" or "UTC-05:00".
-  nsDependentJSString valueStr;
+  nsAutoJSString valueStr;
   if (!valueStr.init(aContext, aValue.toString())) {
     ERR("Failed to convert JS value to nsCString");
     return NS_ERROR_FAILURE;
@@ -184,8 +193,8 @@ NS_IMPL_ISUPPORTS(TimeZoneSettingObserver, nsIObserver)
 
 NS_IMETHODIMP
 TimeZoneSettingObserver::Observe(nsISupports *aSubject,
-                     const char *aTopic,
-                     const char16_t *aData)
+                                 const char *aTopic,
+                                 const char16_t *aData)
 {
   if (strcmp(aTopic, MOZSETTINGS_CHANGED) != 0) {
     return NS_OK;
@@ -199,40 +208,22 @@ TimeZoneSettingObserver::Observe(nsISupports *aSubject,
   // {"key":"time.timezone","value":"UTC-05:00"}
 
   AutoSafeJSContext cx;
-
-  // Parse the JSON value.
-  nsDependentString dataStr(aData);
-  JS::Rooted<JS::Value> val(cx);
-  if (!JS_ParseJSON(cx, dataStr.get(), dataStr.Length(), &val) ||
-      !val.isObject()) {
+  RootedDictionary<SettingChangeNotification> setting(cx);
+  if (!WrappedJSToDictionary(cx, aSubject, setting)) {
     return NS_OK;
   }
-
-  // Get the key, which should be the JS string "time.timezone".
-  JS::Rooted<JSObject*> obj(cx, &val.toObject());
-  JS::Rooted<JS::Value> key(cx);
-  if (!JS_GetProperty(cx, obj, "key", &key) ||
-      !key.isString()) {
+  if (!setting.mKey.EqualsASCII(TIME_TIMEZONE)) {
     return NS_OK;
   }
-  bool match;
-  if (!JS_StringEqualsAscii(cx, key.toString(), TIME_TIMEZONE, &match) ||
-      !match) {
-    return NS_OK;
-  }
-
-  // Get the value, which should be a JS string like "America/Chicago".
-  JS::Rooted<JS::Value> value(cx);
-  if (!JS_GetProperty(cx, obj, "value", &value) ||
-      !value.isString()) {
+  if (!setting.mValue.isString()) {
     return NS_OK;
   }
 
   // Set the system timezone.
-  return SetTimeZone(value, cx);
+  return SetTimeZone(setting.mValue, cx);
 }
 
-} // anonymous namespace
+} // namespace
 
 static mozilla::StaticRefPtr<TimeZoneSettingObserver> sTimeZoneSettingObserver;
 namespace mozilla {

@@ -29,19 +29,20 @@ namespace widget {
 class JumpListBuilder : public nsIJumpListBuilder, 
                         public nsIObserver
 {
+  virtual ~JumpListBuilder();
+
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIJUMPLISTBUILDER
   NS_DECL_NSIOBSERVER
 
   JumpListBuilder();
-  virtual ~JumpListBuilder();
 
 protected:
   static bool sBuildingList; 
 
 private:
-  nsRefPtr<ICustomDestinationList> mJumpListMgr;
+  RefPtr<ICustomDestinationList> mJumpListMgr;
   uint32_t mMaxItems;
   bool mHasCommit;
   nsCOMPtr<nsIThread> mIOThread;

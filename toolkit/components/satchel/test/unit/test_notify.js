@@ -33,7 +33,7 @@ var TestObserver = {
   }
 };
 
-let testIterator = null;
+var testIterator = null;
 
 function run_test() {
   do_test_pending();
@@ -46,7 +46,7 @@ function next_test()
   testIterator.next();
 }
 
-function run_test_steps() {
+function* run_test_steps() {
 
 try {
 
@@ -54,12 +54,10 @@ var testnum = 0;
 var testdesc = "Setup of test form history entries";
 
 var entry1 = ["entry1", "value1"];
-var entry2 = ["entry2", "value2"];
-
 
 /* ========== 1 ========== */
-var testnum = 1;
-var testdesc = "Initial connection to storage module"
+testnum = 1;
+testdesc = "Initial connection to storage module"
 
 yield updateEntry("remove", null, null, next_test);
 yield countEntries(null, null, function (num) { do_check_false(num, "Checking initial DB is empty"); next_test(); });
@@ -157,4 +155,4 @@ do_test_finished();
 } catch (e) {
     throw "FAILED in test #" + testnum + " -- " + testdesc + ": " + e;
 }
-};
+}

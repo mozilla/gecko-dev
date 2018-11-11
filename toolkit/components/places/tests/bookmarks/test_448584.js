@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,7 @@ try {
   var mDBConn = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
                                    .DBConnection;
 }
-catch(ex) {
+catch (ex) {
   do_throw("Could not get database connection\n");
 }
 
@@ -32,7 +32,7 @@ var invalidURITest = {
                                          PlacesUtils.bookmarks.DEFAULT_INDEX,
                                          this._itemTitle);
     // this bookmark will go corrupt
-    this._itemId = 
+    this._itemId =
       PlacesUtils.bookmarks.insertBookmark(PlacesUtils.toolbarFolderId,
                                            PlacesUtils._uri(this._itemUrl),
                                            PlacesUtils.bookmarks.DEFAULT_INDEX,
@@ -70,7 +70,7 @@ function run_test() {
   run_next_test();
 }
 
-add_task(function() {
+add_task(function*() {
   // make json file
   let jsonFile = OS.Path.join(OS.Constants.Path.profileDir, "bookmarks.json");
 
@@ -101,7 +101,7 @@ add_task(function() {
   // restore json file
   try {
     yield BookmarkJSONUtils.importFromFile(jsonFile, true);
-  } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
+  } catch (ex) { do_throw("couldn't import the exported file: " + ex); }
 
   // validate
   tests.forEach(function(aTest) {

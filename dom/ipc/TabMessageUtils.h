@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,10 +7,10 @@
 #ifndef TABMESSAGE_UTILS_H
 #define TABMESSAGE_UTILS_H
 
-#include "AudioChannelCommon.h"
 #include "ipc/IPCMessageUtils.h"
 #include "mozilla/dom/AudioChannelBinding.h"
 #include "nsIDOMEvent.h"
+#include "nsPIDOMWindow.h"
 #include "nsCOMPtr.h"
 
 #ifdef MOZ_CRASHREPORTER
@@ -24,7 +25,7 @@ struct RemoteDOMEvent
   nsCOMPtr<nsIDOMEvent> mEvent;
 };
 
-bool ReadRemoteEvent(const IPC::Message* aMsg, void** aIter,
+bool ReadRemoteEvent(const IPC::Message* aMsg, PickleIterator* aIter,
                      mozilla::dom::RemoteDOMEvent* aResult);
 
 #ifdef MOZ_CRASHREPORTER
@@ -34,8 +35,8 @@ typedef CrashReporter::ThreadId NativeThreadId;
 typedef int32_t NativeThreadId;
 #endif
 
-}
-}
+} // namespace dom
+} // namespace mozilla
 
 namespace IPC {
 
@@ -49,7 +50,7 @@ struct ParamTraits<mozilla::dom::RemoteDOMEvent>
     aParam.mEvent->Serialize(aMsg, true);
   }
 
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
     return mozilla::dom::ReadRemoteEvent(aMsg, aIter, aResult);
   }
@@ -64,16 +65,19 @@ struct ParamTraits<mozilla::dom::AudioChannel>
 {
   typedef mozilla::dom::AudioChannel paramType;
 
-  static bool IsLegalValue(const paramType &aValue) {
+  static bool IsLegalValue(const paramType &aValue)
+  {
     return aValue <= mozilla::dom::AudioChannel::Publicnotification;
   }
 
-  static void Write(Message* aMsg, const paramType& aValue) {
+  static void Write(Message* aMsg, const paramType& aValue)
+  {
     MOZ_ASSERT(IsLegalValue(aValue));
     WriteParam(aMsg, (uint32_t)aValue);
   }
 
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult) {
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
+  {
     uint32_t value;
     if(!ReadParam(aMsg, aIter, &value) ||
        !IsLegalValue(paramType(value))) {
@@ -84,18 +88,30 @@ struct ParamTraits<mozilla::dom::AudioChannel>
   }
 
   static void Log(const paramType& aParam, std::wstring* aLog)
-  {
-  }
+  {}
 };
 
 template <>
-struct ParamTraits<mozilla::dom::AudioChannelState>
-  : public ContiguousEnumSerializer<mozilla::dom::AudioChannelState,
-                                    mozilla::dom::AUDIO_CHANNEL_STATE_NORMAL,
-                                    mozilla::dom::AUDIO_CHANNEL_STATE_LAST>
+struct ParamTraits<nsEventStatus>
+  : public ContiguousEnumSerializer<nsEventStatus,
+                                    nsEventStatus_eIgnore,
+                                    nsEventStatus_eSentinel>
+{};
+
+template<>
+struct ParamTraits<nsSizeMode>
+  : public ContiguousEnumSerializer<nsSizeMode,
+                                    nsSizeMode_Normal,
+                                    nsSizeMode_Invalid>
+{};
+
+template<>
+struct ParamTraits<UIStateChangeType>
+  : public ContiguousEnumSerializer<UIStateChangeType,
+                                    UIStateChangeType_NoChange,
+                                    UIStateChangeType_Invalid>
 { };
 
-}
+} // namespace IPC
 
-
-#endif
+#endif // TABMESSAGE_UTILS_H

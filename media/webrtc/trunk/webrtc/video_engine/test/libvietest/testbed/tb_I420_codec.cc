@@ -12,7 +12,6 @@
 
 #include <assert.h>
 #include <stdio.h>
-#include <string.h>
 
 #include "webrtc/common_video/libyuv/include/webrtc_libyuv.h"
 
@@ -33,23 +32,6 @@ TbI420Encoder::~TbI420Encoder()
     }
 }
 
-int32_t TbI420Encoder::VersionStatic(char* version, int32_t length)
-{
-    const char* str = "I420 version 1.0.0\n";
-    int32_t verLen = (int32_t) strlen(str);
-    if (verLen > length)
-    {
-        return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
-    }
-    strncpy(version, str, length);
-    return verLen;
-}
-
-int32_t TbI420Encoder::Version(char* version, int32_t length) const
-{
-    return VersionStatic(version, length);
-}
-
 int32_t TbI420Encoder::Release()
 {
     _functionCalls.Release++;
@@ -64,25 +46,14 @@ int32_t TbI420Encoder::Release()
     return WEBRTC_VIDEO_CODEC_OK;
 }
 
-int32_t TbI420Encoder::Reset()
-{
-    _functionCalls.Reset++;
-    if (!_inited)
-    {
-        return WEBRTC_VIDEO_CODEC_UNINITIALIZED;
-    }
-    return WEBRTC_VIDEO_CODEC_OK;
-
-}
-
-int32_t TbI420Encoder::SetChannelParameters(uint32_t packetLoss, int rtt) {
+int32_t TbI420Encoder::SetChannelParameters(uint32_t packetLoss, int64_t rtt) {
   _functionCalls.SetChannelParameters++;
   return WEBRTC_VIDEO_CODEC_OK;
 }
 
 int32_t TbI420Encoder::InitEncode(const webrtc::VideoCodec* inst,
                                   int32_t /*numberOfCores*/,
-                                  uint32_t /*maxPayloadSize */)
+                                  size_t /*maxPayloadSize */)
 {
     _functionCalls.InitEncode++;
     if (inst == NULL)
@@ -134,9 +105,9 @@ int32_t TbI420Encoder::Encode(
     _encodedImage._timeStamp = inputImage.timestamp();
     _encodedImage._encodedHeight = inputImage.height();
     _encodedImage._encodedWidth = inputImage.width();
-    unsigned int reqSize = webrtc::CalcBufferSize(webrtc::kI420,
-                                                  _encodedImage._encodedWidth,
-                                                  _encodedImage._encodedHeight);
+    size_t reqSize = webrtc::CalcBufferSize(webrtc::kI420,
+                                            _encodedImage._encodedWidth,
+                                            _encodedImage._encodedHeight);
     if (reqSize > _encodedImage._size)
     {
 
@@ -161,7 +132,7 @@ int32_t TbI420Encoder::Encode(
     }
 
     _encodedImage._length = reqSize;
-    _encodedCompleteCallback->Encoded(_encodedImage);
+    _encodedCompleteCallback->Encoded(_encodedImage, NULL, NULL);
     return WEBRTC_VIDEO_CODEC_OK;
 }
 
@@ -261,14 +232,14 @@ int32_t TbI420Decoder::Decode(
     }
 
     // Only send complete frames.
-    if (static_cast<int>(inputImage._length) !=
-        webrtc::CalcBufferSize(webrtc::kI420,_width,_height)) {
+    if (webrtc::CalcBufferSize(webrtc::kI420,_width,_height) !=
+        inputImage._length) {
       return WEBRTC_VIDEO_CODEC_ERROR;
     }
 
-    int ret = ConvertToI420(webrtc::kI420, inputImage._buffer, 0, 0,
-                           _width, _height,
-                           0, webrtc::kRotateNone, &_decodedImage);
+    int ret =
+        ConvertToI420(webrtc::kI420, inputImage._buffer, 0, 0, _width, _height,
+                      0, webrtc::kVideoRotation_0, &_decodedImage);
 
     if (ret < 0)
       return WEBRTC_VIDEO_CODEC_ERROR;

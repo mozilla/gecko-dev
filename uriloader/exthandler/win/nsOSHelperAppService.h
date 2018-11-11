@@ -40,14 +40,13 @@ public:
   NS_IMETHOD GetProtocolHandlerInfoFromOS(const nsACString &aScheme, 
                                           bool *found,
                                           nsIHandlerInfo **_retval);
+  virtual bool GetMIMETypeFromOSForExtension(const nsACString& aExtension,
+                                             nsACString& aMIMEType) override;
 
   /** Get the string value of a registry value and store it in result.
    * @return true on success, false on failure
    */
   static bool GetValueString(HKEY hKey, const char16_t* pValueName, nsAString& result);
-
-  // Removes registry command handler parameters, quotes, and expands environment strings.
-  static bool CleanupCmdHandlerPath(nsAString& aCommandHandler);
 
 protected:
   nsresult GetDefaultAppInfo(const nsAString& aTypeName, nsAString& aDefaultDescription, nsIFile** aDefaultApplication);

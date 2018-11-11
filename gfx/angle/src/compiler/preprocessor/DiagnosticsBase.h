@@ -4,15 +4,10 @@
 // found in the LICENSE file.
 //
 
-#ifndef COMPILER_PREPROCESSOR_DIAGNOSTICS_H_
-#define COMPILER_PREPROCESSOR_DIAGNOSTICS_H_
+#ifndef COMPILER_PREPROCESSOR_DIAGNOSTICSBASE_H_
+#define COMPILER_PREPROCESSOR_DIAGNOSTICSBASE_H_
 
 #include <string>
-
-// Windows.h #defines ERROR.
-#ifdef ERROR
-#undef ERROR
-#endif
 
 namespace pp
 {
@@ -26,67 +21,75 @@ class Diagnostics
   public:
     enum Severity
     {
-        ERROR,
-        WARNING
+        PP_ERROR,
+        PP_WARNING
     };
     enum ID
     {
-        ERROR_BEGIN,
-        INTERNAL_ERROR,
-        OUT_OF_MEMORY,
-        INVALID_CHARACTER,
-        INVALID_NUMBER,
-        INTEGER_OVERFLOW,
-        FLOAT_OVERFLOW,
-        TOKEN_TOO_LONG,
-        INVALID_EXPRESSION,
-        DIVISION_BY_ZERO,
-        EOF_IN_COMMENT,
-        UNEXPECTED_TOKEN,
-        DIRECTIVE_INVALID_NAME,
-        MACRO_NAME_RESERVED,
-        MACRO_REDEFINED,
-        MACRO_PREDEFINED_REDEFINED,
-        MACRO_PREDEFINED_UNDEFINED,
-        MACRO_UNTERMINATED_INVOCATION,
-        MACRO_TOO_FEW_ARGS,
-        MACRO_TOO_MANY_ARGS,
-        CONDITIONAL_ENDIF_WITHOUT_IF,
-        CONDITIONAL_ELSE_WITHOUT_IF,
-        CONDITIONAL_ELSE_AFTER_ELSE,
-        CONDITIONAL_ELIF_WITHOUT_IF,
-        CONDITIONAL_ELIF_AFTER_ELSE,
-        CONDITIONAL_UNTERMINATED,
-        INVALID_EXTENSION_NAME,
-        INVALID_EXTENSION_BEHAVIOR,
-        INVALID_EXTENSION_DIRECTIVE,
-        INVALID_VERSION_NUMBER,
-        INVALID_VERSION_DIRECTIVE,
-        VERSION_NOT_FIRST_STATEMENT,
-        INVALID_LINE_NUMBER,
-        INVALID_FILE_NUMBER,
-        INVALID_LINE_DIRECTIVE,
-        ERROR_END,
+        PP_ERROR_BEGIN,
+        PP_INTERNAL_ERROR,
+        PP_OUT_OF_MEMORY,
+        PP_INVALID_CHARACTER,
+        PP_INVALID_NUMBER,
+        PP_INTEGER_OVERFLOW,
+        PP_FLOAT_OVERFLOW,
+        PP_TOKEN_TOO_LONG,
+        PP_INVALID_EXPRESSION,
+        PP_DIVISION_BY_ZERO,
+        PP_EOF_IN_COMMENT,
+        PP_UNEXPECTED_TOKEN,
+        PP_DIRECTIVE_INVALID_NAME,
+        PP_MACRO_NAME_RESERVED,
+        PP_MACRO_REDEFINED,
+        PP_MACRO_PREDEFINED_REDEFINED,
+        PP_MACRO_PREDEFINED_UNDEFINED,
+        PP_MACRO_UNTERMINATED_INVOCATION,
+        PP_MACRO_UNDEFINED_WHILE_INVOKED,
+        PP_MACRO_TOO_FEW_ARGS,
+        PP_MACRO_TOO_MANY_ARGS,
+        PP_MACRO_DUPLICATE_PARAMETER_NAMES,
+        PP_CONDITIONAL_ENDIF_WITHOUT_IF,
+        PP_CONDITIONAL_ELSE_WITHOUT_IF,
+        PP_CONDITIONAL_ELSE_AFTER_ELSE,
+        PP_CONDITIONAL_ELIF_WITHOUT_IF,
+        PP_CONDITIONAL_ELIF_AFTER_ELSE,
+        PP_CONDITIONAL_UNTERMINATED,
+        PP_CONDITIONAL_UNEXPECTED_TOKEN,
+        PP_INVALID_EXTENSION_NAME,
+        PP_INVALID_EXTENSION_BEHAVIOR,
+        PP_INVALID_EXTENSION_DIRECTIVE,
+        PP_INVALID_VERSION_NUMBER,
+        PP_INVALID_VERSION_DIRECTIVE,
+        PP_VERSION_NOT_FIRST_STATEMENT,
+        PP_VERSION_NOT_FIRST_LINE_ESSL3,
+        PP_INVALID_LINE_NUMBER,
+        PP_INVALID_FILE_NUMBER,
+        PP_INVALID_LINE_DIRECTIVE,
+        PP_NON_PP_TOKEN_BEFORE_EXTENSION_ESSL3,
+        PP_UNDEFINED_SHIFT,
+        PP_ERROR_END,
 
-        WARNING_BEGIN,
-        EOF_IN_DIRECTIVE,
-        CONDITIONAL_UNEXPECTED_TOKEN,
-        UNRECOGNIZED_PRAGMA,
-        WARNING_END
+        PP_WARNING_BEGIN,
+        PP_EOF_IN_DIRECTIVE,
+        PP_UNRECOGNIZED_PRAGMA,
+        PP_NON_PP_TOKEN_BEFORE_EXTENSION_ESSL1,
+        PP_WARNING_MACRO_NAME_RESERVED,
+        PP_WARNING_END
     };
 
     virtual ~Diagnostics();
 
-    void report(ID id, const SourceLocation& loc, const std::string& text);
+    void report(ID id, const SourceLocation &loc, const std::string &text);
 
   protected:
     Severity severity(ID id);
     std::string message(ID id);
 
     virtual void print(ID id,
-                       const SourceLocation& loc,
-                       const std::string& text) = 0;
+                       const SourceLocation &loc,
+                       const std::string &text) = 0;
 };
 
 }  // namespace pp
-#endif  // COMPILER_PREPROCESSOR_DIAGNOSTICS_H_
+
+#endif  // COMPILER_PREPROCESSOR_DIAGNOSTICSBASE_H_

@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,8 +17,8 @@ DataContainerEvent::DataContainerEvent(EventTarget* aOwner,
                                        WidgetEvent* aEvent)
   : Event(aOwner, aPresContext, aEvent)
 {
-  if (mOwner) {
-    if (nsIDocument* doc = mOwner->GetExtantDoc()) {
+  if (nsCOMPtr<nsPIDOMWindowInner> win = do_QueryInterface(aOwner)) {
+    if (nsIDocument* doc = win->GetExtantDoc()) {
       doc->WarnOnceAbout(nsIDocument::eDataContainerEvent);
     }
   }
@@ -26,11 +27,11 @@ DataContainerEvent::DataContainerEvent(EventTarget* aOwner,
 NS_IMPL_CYCLE_COLLECTION_CLASS(DataContainerEvent)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(DataContainerEvent, Event)
-  tmp->mData.Clear();
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mData)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(DataContainerEvent, Event)
-  tmp->mData.EnumerateRead(TraverseEntry, &cb);
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mData)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_ADDREF_INHERITED(DataContainerEvent, Event)
@@ -79,33 +80,19 @@ DataContainerEvent::SetData(JSContext* aCx, const nsAString& aKey,
   aRv = SetData(aKey, val);
 }
 
-PLDHashOperator
-DataContainerEvent::TraverseEntry(const nsAString& aKey,
-                                  nsIVariant* aDataItem,
-                                  void* aUserArg)
-{
-  nsCycleCollectionTraversalCallback *cb =
-    static_cast<nsCycleCollectionTraversalCallback*>(aUserArg);
-  cb->NoteXPCOMChild(aDataItem);
-
-  return PL_DHASH_NEXT;
-}
-
 } // namespace dom
 } // namespace mozilla
 
 using namespace mozilla;
 using namespace mozilla::dom;
 
-nsresult
-NS_NewDOMDataContainerEvent(nsIDOMEvent** aInstancePtrResult,
-                            EventTarget* aOwner,
+already_AddRefed<DataContainerEvent>
+NS_NewDOMDataContainerEvent(EventTarget* aOwner,
                             nsPresContext* aPresContext,
                             WidgetEvent* aEvent)
 {
-  DataContainerEvent* it = new DataContainerEvent(aOwner, aPresContext, aEvent);
-  NS_ADDREF(it);
-  *aInstancePtrResult = static_cast<Event*>(it);
-  return NS_OK;
+  RefPtr<DataContainerEvent> it =
+    new DataContainerEvent(aOwner, aPresContext, aEvent);
+  return it.forget();
 }
 

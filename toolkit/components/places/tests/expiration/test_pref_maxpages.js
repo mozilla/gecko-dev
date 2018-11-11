@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  * vim: sw=2 ts=2 et lcs=trail\:.,tab\:>~ :
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,10 +14,10 @@
  * If the pref is set to a number < 0 we will use the default value.
  */
 
-let hs = Cc["@mozilla.org/browser/nav-history-service;1"].
+var hs = Cc["@mozilla.org/browser/nav-history-service;1"].
          getService(Ci.nsINavHistoryService);
 
-let tests = [
+var tests = [
 
   { desc: "Set max_pages to a negative value, with 1 page.",
     maxPages: -1,
@@ -64,7 +64,7 @@ function run_test() {
   run_next_test();
 }
 
-add_task(function test_pref_maxpages() {
+add_task(function* test_pref_maxpages() {
   // The pref should not exist by default.
   try {
     getMaxPages();
@@ -84,11 +84,11 @@ add_task(function test_pref_maxpages() {
     let now = getExpirablePRTime();
     for (let i = 0; i < currentTest.addPages; i++) {
       let page = "http://" + testIndex + "." + i + ".mozilla.org/";
-      yield promiseAddVisits({ uri: uri(page), visitDate: now++ });
+      yield PlacesTestUtils.addVisits({ uri: uri(page), visitDate: now++ });
     }
 
     // Observe history.
-    historyObserver = {
+    let historyObserver = {
       onBeginUpdateBatch: function PEX_onBeginUpdateBatch() {},
       onEndUpdateBatch: function PEX_onEndUpdateBatch() {},
       onClearHistory: function() {},
@@ -116,9 +116,9 @@ add_task(function test_pref_maxpages() {
                 currentTest.expectedNotifications);
 
     // Clean up.
-    yield promiseClearHistory();
+    yield PlacesTestUtils.clearHistory();
   }
 
   clearMaxPages();
-  yield promiseClearHistory();
+  yield PlacesTestUtils.clearHistory();
 });

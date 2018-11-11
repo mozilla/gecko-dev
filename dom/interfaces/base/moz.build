@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -6,8 +6,8 @@
 
 XPIDL_SOURCES += [
     'domstubs.idl',
+    'nsIBrowser.idl',
     'nsIBrowserDOMWindow.idl',
-    'nsICompositionStringSynthesizer.idl',
     'nsIContentPermissionPrompt.idl',
     'nsIContentPrefService.idl',
     'nsIContentPrefService2.idl',
@@ -16,10 +16,9 @@ XPIDL_SOURCES += [
     'nsIDOMClientRect.idl',
     'nsIDOMClientRectList.idl',
     'nsIDOMConstructor.idl',
-    'nsIDOMGlobalObjectConstructor.idl',
+    'nsIDOMCrypto.idl',
     'nsIDOMGlobalPropertyInitializer.idl',
     'nsIDOMHistory.idl',
-    'nsIDOMJSWindow.idl',
     'nsIDOMLocation.idl',
     'nsIDOMModalContentWindow.idl',
     'nsIDOMNavigator.idl',
@@ -28,33 +27,16 @@ XPIDL_SOURCES += [
     'nsIDOMWindowCollection.idl',
     'nsIDOMWindowUtils.idl',
     'nsIFocusManager.idl',
-    'nsIFrameRequestCallback.idl',
     'nsIIdleObserver.idl',
     'nsIQueryContentEventResult.idl',
+    'nsIRemoteBrowser.idl',
     'nsIServiceWorkerManager.idl',
     'nsIStructuredCloneContainer.idl',
     'nsITabChild.idl',
     'nsITabParent.idl',
+    'nsITextInputProcessor.idl',
+    'nsITextInputProcessorCallback.idl',
 ]
-
-if CONFIG['MOZ_DISABLE_CRYPTOLEGACY']:
-    XPIDL_SOURCES += [
-        'nsIDOMCrypto.idl',
-    ]
-else:
-    XPIDL_SOURCES += [
-        'nsIDOMCryptoLegacy.idl',
-    ]
-
-if CONFIG['MOZ_B2G']:
-    XPIDL_SOURCES += [
-        'nsIDOMWindowB2G.idl',
-    ]
-
-if CONFIG['MOZ_WEBSPEECH']:
-    XPIDL_SOURCES += [
-        'nsISpeechSynthesisGetter.idl'
-    ]
 
 XPIDL_MODULE = 'dom_base'
 

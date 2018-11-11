@@ -5,10 +5,9 @@
  * This file tests the DeferredTask.jsm module.
  */
 
-////////////////////////////////////////////////////////////////////////////////
-/// Globals
+// Globals
 
-const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
+var { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -40,8 +39,7 @@ function run_test()
   run_next_test();
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//// Tests
+// Tests
 
 /**
  * Creates a simple DeferredTask and executes it once.
@@ -156,7 +154,7 @@ add_test(function test_arm_async()
   let finishedExecutionAgain = false;
 
   // Create a task that will run later.
-  let deferredTask = new DeferredTask(function () {
+  let deferredTask = new DeferredTask(function* () {
     yield promiseTimeout(4*T);
     if (!finishedExecution) {
       finishedExecution = true;
@@ -247,7 +245,7 @@ add_test(function test_disarm_async()
 {
   let finishedExecution = false;
 
-  let deferredTask = new DeferredTask(function () {
+  let deferredTask = new DeferredTask(function* () {
     deferredTask.arm();
     yield promiseTimeout(2*T);
     finishedExecution = true;
@@ -277,7 +275,7 @@ add_test(function test_disarm_immediate_async()
 {
   let executed = false;
 
-  let deferredTask = new DeferredTask(function () {
+  let deferredTask = new DeferredTask(function* () {
     do_check_false(executed);
     executed = true;
     yield promiseTimeout(2*T);
@@ -353,7 +351,7 @@ add_test(function test_finalize_executes_entirely()
   let executedAgain = false;
   let timePassed = false;
 
-  let deferredTask = new DeferredTask(function () {
+  let deferredTask = new DeferredTask(function* () {
     // The first time, we arm the timer again and set up the finalization.
     if (!executed) {
       deferredTask.arm();

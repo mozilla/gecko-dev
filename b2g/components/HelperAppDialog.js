@@ -1,4 +1,4 @@
-// -*- Mode: js2; tab-width: 2; indent-tabs-mode: nil; js2-basic-offset: 2; js2-skip-preprocessor-directives: t; -*-
+// -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -33,21 +33,13 @@ HelperAppLauncherDialog.prototype = {
     aLauncher.saveToDisk(null, false);
   },
 
-  promptForSaveToFile: function(aLauncher,
-                                aContext,
-                                aDefaultFile,
-                                aSuggestedFileExt,
-                                aForcePrompt) {
-    throw Cr.NS_ERROR_NOT_AVAILABLE;
-  },
-
   promptForSaveToFileAsync: function(aLauncher,
                                      aContext,
                                      aDefaultFile,
                                      aSuggestedFileExt,
                                      aForcePrompt) {
     // Retrieve the user's default download directory.
-    Task.spawn(function() {
+    Task.spawn(function*() {
       let file = null;
       try {
         let defaultFolder = yield Downloads.getPreferredDownloadsDirectory();
@@ -97,7 +89,7 @@ HelperAppLauncherDialog.prototype = {
           aLocalFile.leafName = aLocalFile.leafName.replace(/^(.*\()\d+\)/, "$1" + (collisionCount+1) + ")");
         }
       }
-      aLocalFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0600);
+      aLocalFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0o600);
     }
     catch (e) {
       dump("*** exception in makeFileUnique: " + e + "\n");
@@ -108,7 +100,7 @@ HelperAppLauncherDialog.prototype = {
       if (aLocalFile.leafName == "" || aLocalFile.isDirectory()) {
         aLocalFile.append("unnamed");
         if (aLocalFile.exists())
-          aLocalFile.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0600);
+          aLocalFile.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0o600);
       }
     }
   },

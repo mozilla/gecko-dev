@@ -6,45 +6,20 @@
 <merge xmlns:android="http://schemas.android.com/apk/res/android"
        xmlns:gecko="http://schemas.android.com/apk/res-auto">
 
-    <org.mozilla.gecko.tabspanel.TabsTray android:id="@+id/private_tabs_tray"
-                                          style="@style/TabsList"
-                                          android:layout_width="match_parent"
-                                          android:layout_height="match_parent"
-                                          android:choiceMode="singleChoice"
-                                          gecko:tabs="tabs_private"/>
+    <ImageView android:id="@+id/private_tabs_empty"
+               android:layout_height="wrap_content"
+               android:layout_width="wrap_content"
+               android:src="@drawable/private_masq"
+               android:layout_gravity="center"/>
 
-    <LinearLayout android:id="@+id/private_tabs_empty"
-                  style="@style/TabsPanelFrame.PrivateTabs"
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent">
-
-        <LinearLayout style="@style/TabsPanelSection.PrivateTabs.Header"
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content">
-
-            <TextView style="@style/TabsPanelItem.TextAppearance.Header.PrivateTabs"
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:text="@string/private_browsing_title"/>
-
-            <TextView style="@style/TabsPanelItem.TextAppearance"
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:text="@string/private_tabs_panel_description"/>
-
-        </LinearLayout>
-
-        <LinearLayout style="@style/TabsPanelSection.PrivateTabs"
-                      android:layout_width="match_parent"
-                      android:layout_height="match_parent">
-
-            <TextView android:id="@+id/private_tabs_learn_more"
-                      style="@style/TabsPanelItem.TextAppearance.Linkified.LearnMore"
-                      android:layout_width="match_parent"
-                      android:text="@string/private_tabs_panel_learn_more"/>
-
-        </LinearLayout>
-
-    </LinearLayout>
+    <!-- Note: for an unknown reason, scrolling in the TabsLayout
+         does not work unless it is laid out after the empty view. -->
+    <view class="org.mozilla.gecko.tabs.TabsPanel$TabsLayout"
+          android:id="@+id/private_tabs_layout"
+          style="@style/TabsLayout"
+          android:layout_width="match_parent"
+          android:layout_height="match_parent"
+          android:choiceMode="singleChoice"
+          gecko:tabs="tabs_private"/>
 
 </merge>

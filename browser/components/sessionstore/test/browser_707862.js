@@ -1,7 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-let tabState = {
+var tabState = {
   entries: [{url: "about:robots", children: [{url: "about:mozilla"}]}]
 };
 
@@ -18,15 +18,14 @@ function test() {
 
   let browser = tab.linkedBrowser;
 
-  waitForTabState(tab, tabState, function() {
-
+  promiseTabState(tab, tabState).then(() => {
     let sessionHistory = browser.sessionHistory;
     let entry = sessionHistory.getEntryAtIndex(0, false);
     entry.QueryInterface(Ci.nsISHContainer);
 
     whenChildCount(entry, 1, function () {
       whenChildCount(entry, 2, function () {
-        whenBrowserLoaded(browser, function () {
+        promiseBrowserLoaded(browser).then(() => {
           let sessionHistory = browser.sessionHistory;
           let entry = sessionHistory.getEntryAtIndex(0, false);
 
@@ -48,11 +47,15 @@ function test() {
       iframe.setAttribute("src", "about:mozilla");
     });
   });
+
+  // This test relies on the test timing out in order to indicate failure so
+  // let's add a dummy pass.
+  ok(true, "Each test requires at least one pass, fail or todo so here is a pass.");
 }
 
 function whenChildCount(aEntry, aChildCount, aCallback) {
   if (aEntry.childCount == aChildCount)
     aCallback();
   else
-    setTimeout(function () whenChildCount(aEntry, aChildCount, aCallback), 100);
+    setTimeout(() => whenChildCount(aEntry, aChildCount, aCallback), 100);
 }

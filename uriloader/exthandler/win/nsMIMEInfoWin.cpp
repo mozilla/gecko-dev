@@ -6,8 +6,7 @@
 
 #include "nsArrayEnumerator.h"
 #include "nsCOMArray.h"
-#include "nsIFile.h"
-#include "nsIVariant.h"
+#include "nsLocalFile.h"
 #include "nsMIMEInfoWin.h"
 #include "nsNetUtil.h"
 #include <windows.h>
@@ -19,9 +18,10 @@
 #include "windows.h"
 #include "nsIWindowsRegKey.h"
 #include "nsIProcess.h"
-#include "nsOSHelperAppService.h"
 #include "nsUnicharUtils.h"
 #include "nsITextToSubURI.h"
+#include "nsVariant.h"
+#include "mozilla/UniquePtrExtensions.h"
 
 #define RUNDLL32_EXE L"\\rundll32.exe"
 
@@ -172,15 +172,13 @@ nsMIMEInfoWin::GetEnumerator(nsISimpleEnumerator* *_retval)
 
 static nsresult GetIconURLVariant(nsIFile* aApplication, nsIVariant* *_retval)
 {
-  nsresult rv = CallCreateInstance("@mozilla.org/variant;1", _retval);
-  if (NS_FAILED(rv))
-    return rv;
   nsAutoCString fileURLSpec;
   NS_GetURLSpecFromFile(aApplication, fileURLSpec);
   nsAutoCString iconURLSpec; iconURLSpec.AssignLiteral("moz-icon://");
   iconURLSpec += fileURLSpec;
-  nsCOMPtr<nsIWritableVariant> writable(do_QueryInterface(*_retval));
+  RefPtr<nsVariant> writable(new nsVariant());
   writable->SetAsAUTF8String(iconURLSpec);
+  writable.forget(_retval);
   return NS_OK;
 }
 
@@ -237,15 +235,15 @@ nsMIMEInfoWin::LoadUriInternal(nsIURI * aURL)
     nsCOMPtr<nsITextToSubURI> textToSubURI = do_GetService(NS_ITEXTTOSUBURI_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = textToSubURI->UnEscapeNonAsciiURI(urlCharset, urlSpec, utf16Spec);
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (NS_FAILED(textToSubURI->UnEscapeNonAsciiURI(urlCharset, urlSpec, utf16Spec))) {
+      CopyASCIItoUTF16(urlSpec, utf16Spec);
+    }
 
     static const wchar_t cmdVerb[] = L"open";
     SHELLEXECUTEINFOW sinfo;
     memset(&sinfo, 0, sizeof(sinfo));
     sinfo.cbSize   = sizeof(sinfo);
-    sinfo.fMask    = SEE_MASK_FLAG_DDEWAIT |
-      SEE_MASK_FLAG_NO_UI;
+    sinfo.fMask    = SEE_MASK_FLAG_DDEWAIT;
     sinfo.hwnd     = nullptr;
     sinfo.lpVerb   = (LPWSTR)&cmdVerb;
     sinfo.nShow    = SW_SHOWNORMAL;
@@ -349,7 +347,7 @@ bool nsMIMEInfoWin::GetAppsVerbCommandHandler(const nsAString& appExeName,
                                            appFilesystemCommand))) {
     
     // Expand environment vars, clean up any misc.
-    if (!nsOSHelperAppService::CleanupCmdHandlerPath(appFilesystemCommand))
+    if (!nsLocalFile::CleanupCmdHandlerPath(appFilesystemCommand))
       return false;
     
     applicationPath = appFilesystemCommand;
@@ -426,15 +424,15 @@ bool nsMIMEInfoWin::GetDllLaunchInfo(nsIFile * aDll,
     if (bufLength == 0) // Error
       return false;
 
-    nsAutoArrayPtr<wchar_t> destination(new wchar_t[bufLength]);
+    auto destination = mozilla::MakeUniqueFallible<wchar_t[]>(bufLength);
     if (!destination)
       return false;
     if (!::ExpandEnvironmentStringsW(appFilesystemCommand.get(),
-                                     destination,
+                                     destination.get(),
                                      bufLength))
       return false;
 
-    appFilesystemCommand = static_cast<const wchar_t*>(destination);
+    appFilesystemCommand.Assign(destination.get());
 
     // C:\Windows\System32\rundll32.exe "C:\Program Files\Windows 
     // Photo Gallery\PhotoViewer.dll", ImageView_Fullscreen %1
@@ -494,7 +492,7 @@ bool nsMIMEInfoWin::GetProgIDVerbCommandHandler(const nsAString& appProgIDName,
   if (NS_SUCCEEDED(appKey->ReadStringValue(EmptyString(), appFilesystemCommand))) {
     
     // Expand environment vars, clean up any misc.
-    if (!nsOSHelperAppService::CleanupCmdHandlerPath(appFilesystemCommand))
+    if (!nsLocalFile::CleanupCmdHandlerPath(appFilesystemCommand))
       return false;
     
     applicationPath = appFilesystemCommand;

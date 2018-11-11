@@ -8,8 +8,10 @@
 #include "HttpLog.h"
 
 #include "nsHttpResponseHead.h"
+#include "nsIHttpHeaderVisitor.h"
 #include "nsPrintfCString.h"
 #include "prtime.h"
+#include "plstr.h"
 #include "nsURLHelper.h"
 #include <algorithm>
 
@@ -20,12 +22,141 @@ namespace net {
 // nsHttpResponseHead <public>
 //-----------------------------------------------------------------------------
 
+nsHttpResponseHead::nsHttpResponseHead(const nsHttpResponseHead &aOther)
+    : mReentrantMonitor("nsHttpResponseHead.mReentrantMonitor")
+    , mInVisitHeaders(false)
+{
+    nsHttpResponseHead &other = const_cast<nsHttpResponseHead&>(aOther);
+    ReentrantMonitorAutoEnter monitor(other.mReentrantMonitor);
+
+    mHeaders = other.mHeaders;
+    mVersion = other.mVersion;
+    mStatus = other.mStatus;
+    mStatusText = other.mStatusText;
+    mContentLength = other.mContentLength;
+    mContentType = other.mContentType;
+    mContentCharset = other.mContentCharset;
+    mCacheControlPrivate = other.mCacheControlPrivate;
+    mCacheControlNoStore = other.mCacheControlNoStore;
+    mCacheControlNoCache = other.mCacheControlNoCache;
+    mCacheControlImmutable = other.mCacheControlImmutable;
+    mPragmaNoCache = other.mPragmaNoCache;
+}
+
+nsHttpResponseHead&
+nsHttpResponseHead::operator=(const nsHttpResponseHead &aOther)
+{
+    nsHttpResponseHead &other = const_cast<nsHttpResponseHead&>(aOther);
+    ReentrantMonitorAutoEnter monitorOther(other.mReentrantMonitor);
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+
+    mHeaders = other.mHeaders;
+    mVersion = other.mVersion;
+    mStatus = other.mStatus;
+    mStatusText = other.mStatusText;
+    mContentLength = other.mContentLength;
+    mContentType = other.mContentType;
+    mContentCharset = other.mContentCharset;
+    mCacheControlPrivate = other.mCacheControlPrivate;
+    mCacheControlNoStore = other.mCacheControlNoStore;
+    mCacheControlNoCache = other.mCacheControlNoCache;
+    mCacheControlImmutable = other.mCacheControlImmutable;
+    mPragmaNoCache = other.mPragmaNoCache;
+
+    return *this;
+}
+
+nsHttpVersion
+nsHttpResponseHead::Version()
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    return mVersion;
+}
+
+uint16_t
+nsHttpResponseHead::Status()
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    return mStatus;
+}
+
+void
+nsHttpResponseHead::StatusText(nsACString &aStatusText)
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    aStatusText = mStatusText;
+}
+
+int64_t
+nsHttpResponseHead::ContentLength()
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    return mContentLength;
+}
+
+void
+nsHttpResponseHead::ContentType(nsACString &aContentType)
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    aContentType = mContentType;
+}
+
+void
+nsHttpResponseHead::ContentCharset(nsACString &aContentCharset)
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    aContentCharset = mContentCharset;
+}
+
+bool
+nsHttpResponseHead::Private()
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    return mCacheControlPrivate;
+}
+
+bool
+nsHttpResponseHead::NoStore()
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    return mCacheControlNoStore;
+}
+
+bool
+nsHttpResponseHead::NoCache()
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    return (mCacheControlNoCache || mPragmaNoCache);
+}
+
+bool
+nsHttpResponseHead::Immutable()
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    return mCacheControlImmutable;
+}
+
 nsresult
 nsHttpResponseHead::SetHeader(nsHttpAtom hdr,
                               const nsACString &val,
                               bool merge)
 {
-    nsresult rv = mHeaders.SetHeader(hdr, val, merge);
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+
+    if (mInVisitHeaders) {
+        return NS_ERROR_FAILURE;
+    }
+
+    return SetHeader_locked(hdr, val, merge);
+}
+
+nsresult
+nsHttpResponseHead::SetHeader_locked(nsHttpAtom hdr,
+                                     const nsACString &val,
+                                     bool merge)
+{
+    nsresult rv = mHeaders.SetHeader(hdr, val, merge,
+                                     nsHttpHeaderArray::eVarietyResponse);
     if (NS_FAILED(rv)) return rv;
 
     // respond to changes in these headers.  we need to reparse the entire
@@ -38,19 +169,75 @@ nsHttpResponseHead::SetHeader(nsHttpAtom hdr,
     return NS_OK;
 }
 
+nsresult
+nsHttpResponseHead::GetHeader(nsHttpAtom h, nsACString &v)
+{
+    v.Truncate();
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    return mHeaders.GetHeader(h, v);
+}
+
+void
+nsHttpResponseHead::ClearHeader(nsHttpAtom h)
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    mHeaders.ClearHeader(h);
+}
+
+void
+nsHttpResponseHead::ClearHeaders()
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    mHeaders.Clear();
+}
+
+bool
+nsHttpResponseHead::HasHeaderValue(nsHttpAtom h, const char *v)
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    return mHeaders.HasHeaderValue(h, v);
+}
+
+bool
+nsHttpResponseHead::HasHeader(nsHttpAtom h)
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    return mHeaders.HasHeader(h);
+}
+
+void
+nsHttpResponseHead::SetContentType(const nsACString &s)
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    mContentType = s;
+}
+
+void
+nsHttpResponseHead::SetContentCharset(const nsACString &s)
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    mContentCharset = s;
+}
+
 void
 nsHttpResponseHead::SetContentLength(int64_t len)
 {
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+
     mContentLength = len;
     if (len < 0)
         mHeaders.ClearHeader(nsHttp::Content_Length);
     else
-        mHeaders.SetHeader(nsHttp::Content_Length, nsPrintfCString("%lld", len));
+        mHeaders.SetHeader(nsHttp::Content_Length,
+                           nsPrintfCString("%lld", len),
+                           false,
+                           nsHttpHeaderArray::eVarietyResponse);
 }
 
 void
 nsHttpResponseHead::Flatten(nsACString &buf, bool pruneTransients)
 {
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
     if (mVersion == NS_HTTP_VERSION_0_9)
         return;
 
@@ -67,44 +254,26 @@ nsHttpResponseHead::Flatten(nsACString &buf, bool pruneTransients)
                mStatusText +
                NS_LITERAL_CSTRING("\r\n"));
 
-    if (!pruneTransients) {
-        mHeaders.Flatten(buf, false);
+
+    mHeaders.Flatten(buf, false, pruneTransients);
+}
+
+void
+nsHttpResponseHead::FlattenNetworkOriginalHeaders(nsACString &buf)
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    if (mVersion == NS_HTTP_VERSION_0_9) {
         return;
     }
 
-    // otherwise, we need to iterate over the headers and only flatten
-    // those that are appropriate.
-    uint32_t i, count = mHeaders.Count();
-    for (i=0; i<count; ++i) {
-        nsHttpAtom header;
-        const char *value = mHeaders.PeekHeaderAt(i, header);
-
-        if (!value || header == nsHttp::Connection
-                   || header == nsHttp::Proxy_Connection
-                   || header == nsHttp::Keep_Alive
-                   || header == nsHttp::WWW_Authenticate
-                   || header == nsHttp::Proxy_Authenticate
-                   || header == nsHttp::Trailer
-                   || header == nsHttp::Transfer_Encoding
-                   || header == nsHttp::Upgrade
-                   // XXX this will cause problems when we start honoring
-                   // Cache-Control: no-cache="set-cookie", what to do?
-                   || header == nsHttp::Set_Cookie)
-            continue;
-
-        // otherwise, write out the "header: value\r\n" line
-        buf.Append(nsDependentCString(header.get()) +
-                   NS_LITERAL_CSTRING(": ") +
-                   nsDependentCString(value) +
-                   NS_LITERAL_CSTRING("\r\n"));
-    }
+    mHeaders.FlattenOriginalHeader(buf);
 }
 
 nsresult
-nsHttpResponseHead::Parse(char *block)
+nsHttpResponseHead::ParseCachedHead(const char *block)
 {
-
-    LOG(("nsHttpResponseHead::Parse [this=%p]\n", this));
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    LOG(("nsHttpResponseHead::ParseCachedHead [this=%p]\n", this));
 
     // this command works on a buffer as prepared by Flatten, as such it is
     // not very forgiving ;-)
@@ -113,22 +282,69 @@ nsHttpResponseHead::Parse(char *block)
     if (!p)
         return NS_ERROR_UNEXPECTED;
 
-    *p = 0;
-    ParseStatusLine(block);
+    ParseStatusLine_locked(nsDependentCSubstring(block, p - block));
 
     do {
         block = p + 2;
 
-		if (*block == 0)
-			break;
+        if (*block == 0)
+            break;
+
+        p = PL_strstr(block, "\r\n");
+        if (!p)
+            return NS_ERROR_UNEXPECTED;
+
+        ParseHeaderLine_locked(nsDependentCSubstring(block, p - block), false);
+
+    } while (1);
+
+    return NS_OK;
+}
+
+nsresult
+nsHttpResponseHead::ParseCachedOriginalHeaders(char *block)
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    LOG(("nsHttpResponseHead::ParseCachedOriginalHeader [this=%p]\n", this));
+
+    // this command works on a buffer as prepared by FlattenOriginalHeader,
+    // as such it is not very forgiving ;-)
+
+    if (!block) {
+        return NS_ERROR_UNEXPECTED;
+    }
+
+    char *p = block;
+    nsHttpAtom hdr = {0};
+    nsAutoCString val;
+    nsresult rv;
+
+    do {
+        block = p;
+
+        if (*block == 0)
+            break;
 
         p = PL_strstr(block, "\r\n");
         if (!p)
             return NS_ERROR_UNEXPECTED;
 
         *p = 0;
-        ParseHeaderLine(block);
+        if (NS_FAILED(nsHttpHeaderArray::ParseHeaderLine(
+            nsDependentCString(block, p - block), &hdr, &val))) {
 
+            return NS_OK;
+        }
+
+        rv = mHeaders.SetResponseHeaderFromCache(hdr,
+                                                 val,
+                                                 nsHttpHeaderArray::eVarietyResponseNetOriginal);
+
+        if (NS_FAILED(rv)) {
+            return rv;
+        }
+
+        p = p + 2;
     } while (1);
 
     return NS_OK;
@@ -191,6 +407,12 @@ nsHttpResponseHead::AssignDefaultStatusText()
         break;
     case 206:
         mStatusText.AssignLiteral("Partial Content");
+        break;
+    case 207:
+        mStatusText.AssignLiteral("Multi-Status");
+        break;
+    case 208:
+        mStatusText.AssignLiteral("Already Reported");
         break;
     case 300:
         mStatusText.AssignLiteral("Multiple Choices");
@@ -258,6 +480,9 @@ nsHttpResponseHead::AssignDefaultStatusText()
     case 417:
         mStatusText.AssignLiteral("Expectation Failed");
         break;
+    case 421:
+        mStatusText.AssignLiteral("Misdirected Request");
+        break;
     case 501:
         mStatusText.AssignLiteral("Not Implemented");
         break;
@@ -280,33 +505,51 @@ nsHttpResponseHead::AssignDefaultStatusText()
 }
 
 void
-nsHttpResponseHead::ParseStatusLine(const char *line)
+nsHttpResponseHead::ParseStatusLine(const nsACString &line)
+{
+
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    ParseStatusLine_locked(line);
+}
+
+void
+nsHttpResponseHead::ParseStatusLine_locked(const nsACString &line)
 {
     //
     // Parse Status-Line:: HTTP-Version SP Status-Code SP Reason-Phrase CRLF
     //
 
-    // HTTP-Version
-    ParseVersion(line);
+    const char *start = line.BeginReading();
+    const char *end = line.EndReading();
+    const char *p = start;
 
-    if ((mVersion == NS_HTTP_VERSION_0_9) || !(line = PL_strchr(line, ' '))) {
+    // HTTP-Version
+    ParseVersion(start);
+
+    int32_t index = line.FindChar(' ');
+
+    if ((mVersion == NS_HTTP_VERSION_0_9) || (index == -1)) {
         mStatus = 200;
         AssignDefaultStatusText();
     }
     else {
         // Status-Code
-        mStatus = (uint16_t) atoi(++line);
+        p += index + 1;
+        mStatus = (uint16_t) atoi(p);
         if (mStatus == 0) {
             LOG(("mal-formed response status; assuming status = 200\n"));
             mStatus = 200;
         }
 
         // Reason-Phrase is whatever is remaining of the line
-        if (!(line = PL_strchr(line, ' '))) {
+        index = line.FindChar(' ', p - start);
+        if (index == -1) {
             AssignDefaultStatusText();
         }
-        else
-            mStatusText = nsDependentCString(++line);
+        else {
+            p = start + index + 1;
+            mStatusText = nsDependentCSubstring(p, end - p);
+        }
     }
 
     LOG(("Have status line [version=%u status=%u statusText=%s]\n",
@@ -314,15 +557,34 @@ nsHttpResponseHead::ParseStatusLine(const char *line)
 }
 
 nsresult
-nsHttpResponseHead::ParseHeaderLine(const char *line)
+nsHttpResponseHead::ParseHeaderLine(const nsACString &line)
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    return ParseHeaderLine_locked(line, true);
+}
+
+nsresult
+nsHttpResponseHead::ParseHeaderLine_locked(const nsACString &line, bool originalFromNetHeaders)
 {
     nsHttpAtom hdr = {0};
-    char *val;
-    nsresult rv;
+    nsAutoCString val;
 
-    rv = mHeaders.ParseHeaderLine(line, &hdr, &val);
-    if (NS_FAILED(rv))
+    if (NS_FAILED(nsHttpHeaderArray::ParseHeaderLine(line, &hdr, &val))) {
+        return NS_OK;
+    }
+    nsresult rv;
+    if (originalFromNetHeaders) {
+        rv = mHeaders.SetHeaderFromNet(hdr,
+                                       val,
+                                       true);
+    } else {
+        rv = mHeaders.SetResponseHeaderFromCache(hdr,
+                                                 val,
+                                                 nsHttpHeaderArray::eVarietyResponse);
+    }
+    if (NS_FAILED(rv)) {
         return rv;
+    }
 
     // leading and trailing LWS has been removed from |val|
 
@@ -331,24 +593,24 @@ nsHttpResponseHead::ParseHeaderLine(const char *line)
         int64_t len;
         const char *ignored;
         // permit only a single value here.
-        if (nsHttp::ParseInt64(val, &ignored, &len)) {
+        if (nsHttp::ParseInt64(val.get(), &ignored, &len)) {
             mContentLength = len;
         }
         else {
             // If this is a negative content length then just ignore it
-            LOG(("invalid content-length! %s\n", val));
+            LOG(("invalid content-length! %s\n", val.get()));
         }
     }
     else if (hdr == nsHttp::Content_Type) {
-        LOG(("ParseContentType [type=%s]\n", val));
+        LOG(("ParseContentType [type=%s]\n", val.get()));
         bool dummy;
-        net_ParseContentType(nsDependentCString(val),
+        net_ParseContentType(val,
                              mContentType, mContentCharset, &dummy);
     }
     else if (hdr == nsHttp::Cache_Control)
-        ParseCacheControl(val);
+        ParseCacheControl(val.get());
     else if (hdr == nsHttp::Pragma)
-        ParsePragma(val);
+        ParsePragma(val.get());
     return NS_OK;
 }
 
@@ -365,14 +627,20 @@ nsHttpResponseHead::ParseHeaderLine(const char *line)
 nsresult
 nsHttpResponseHead::ComputeCurrentAge(uint32_t now,
                                       uint32_t requestTime,
-                                      uint32_t *result) const
+                                      uint32_t *result)
 {
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
     uint32_t dateValue;
     uint32_t ageValue;
 
     *result = 0;
 
-    if (NS_FAILED(GetDateValue(&dateValue))) {
+    if (requestTime > now) {
+        // for calculation purposes lets not allow the request to happen in the future
+        requestTime = now;
+    }
+
+    if (NS_FAILED(GetDateValue_locked(&dateValue))) {
         LOG(("nsHttpResponseHead::ComputeCurrentAge [this=%p] "
              "Date response header not set!\n", this));
         // Assume we have a fast connection and that our clock
@@ -385,10 +653,8 @@ nsHttpResponseHead::ComputeCurrentAge(uint32_t now,
         *result = now - dateValue;
 
     // Compute corrected received age
-    if (NS_SUCCEEDED(GetAgeValue(&ageValue)))
+    if (NS_SUCCEEDED(GetAgeValue_locked(&ageValue)))
         *result = std::max(*result, ageValue);
-
-    MOZ_ASSERT(now >= requestTime, "bogus request time");
 
     // Compute current age
     *result += (now - requestTime);
@@ -402,51 +668,62 @@ nsHttpResponseHead::ComputeCurrentAge(uint32_t now,
 // <or>
 //     freshnessLifetime = expires_value - date_value
 // <or>
-//     freshnessLifetime = (date_value - last_modified_value) * 0.10
+//     freshnessLifetime = min(one-week,(date_value - last_modified_value) * 0.10)
 // <or>
 //     freshnessLifetime = 0
 //
 nsresult
-nsHttpResponseHead::ComputeFreshnessLifetime(uint32_t *result) const
+nsHttpResponseHead::ComputeFreshnessLifetime(uint32_t *result)
 {
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
     *result = 0;
 
     // Try HTTP/1.1 style max-age directive...
-    if (NS_SUCCEEDED(GetMaxAgeValue(result)))
+    if (NS_SUCCEEDED(GetMaxAgeValue_locked(result)))
         return NS_OK;
 
     *result = 0;
 
     uint32_t date = 0, date2 = 0;
-    if (NS_FAILED(GetDateValue(&date)))
+    if (NS_FAILED(GetDateValue_locked(&date)))
         date = NowInSeconds(); // synthesize a date header if none exists
 
     // Try HTTP/1.0 style expires header...
-    if (NS_SUCCEEDED(GetExpiresValue(&date2))) {
+    if (NS_SUCCEEDED(GetExpiresValue_locked(&date2))) {
         if (date2 > date)
             *result = date2 - date;
         // the Expires header can specify a date in the past.
         return NS_OK;
     }
 
+    // These responses can be cached indefinitely.
+    if ((mStatus == 300) || (mStatus == 410) || nsHttp::IsPermanentRedirect(mStatus)) {
+        LOG(("nsHttpResponseHead::ComputeFreshnessLifetime [this = %p] "
+             "Assign an infinite heuristic lifetime\n", this));
+        *result = uint32_t(-1);
+        return NS_OK;
+    }
+
+    if (mStatus >= 400) {
+        LOG(("nsHttpResponseHead::ComputeFreshnessLifetime [this = %p] "
+             "Do not calculate heuristic max-age for most responses >= 400\n", this));
+        return NS_OK;
+    }
+
     // Fallback on heuristic using last modified header...
-    if (NS_SUCCEEDED(GetLastModifiedValue(&date2))) {
+    if (NS_SUCCEEDED(GetLastModifiedValue_locked(&date2))) {
         LOG(("using last-modified to determine freshness-lifetime\n"));
         LOG(("last-modified = %u, date = %u\n", date2, date));
         if (date2 <= date) {
             // this only makes sense if last-modified is actually in the past
             *result = (date - date2) / 10;
+            const uint32_t kOneWeek = 60 * 60 * 24 * 7;
+            *result = std::min(kOneWeek, *result);
             return NS_OK;
         }
     }
 
-    // These responses can be cached indefinitely.
-    if ((mStatus == 300) || nsHttp::IsPermanentRedirect(mStatus)) {
-        *result = uint32_t(-1);
-        return NS_OK;
-    }
-
-    LOG(("nsHttpResponseHead::ComputeFreshnessLifetime [this = %x] "
+    LOG(("nsHttpResponseHead::ComputeFreshnessLifetime [this = %p] "
          "Insufficient information to compute a non-zero freshness "
          "lifetime!\n", this));
 
@@ -454,8 +731,9 @@ nsHttpResponseHead::ComputeFreshnessLifetime(uint32_t *result) const
 }
 
 bool
-nsHttpResponseHead::MustValidate() const
+nsHttpResponseHead::MustValidate()
 {
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
     LOG(("nsHttpResponseHead::MustValidate ??\n"));
 
     // Some response codes are cacheable, but the rest are not.  This switch
@@ -472,6 +750,8 @@ nsHttpResponseHead::MustValidate() const
     case 304:
     case 307:
     case 308:
+        // Gone forever
+    case 410:
         break;
         // Uncacheable redirects
     case 303:
@@ -488,7 +768,7 @@ nsHttpResponseHead::MustValidate() const
 
     // The no-cache response header indicates that we must validate this
     // cached response before reusing.
-    if (NoCache()) {
+    if (mCacheControlNoCache || mPragmaNoCache) {
         LOG(("Must validate since response contains 'no-cache' header\n"));
         return true;
     }
@@ -497,7 +777,7 @@ nsHttpResponseHead::MustValidate() const
     // cached response before reusing.  NOTE: it may seem odd that a no-store
     // response may be cached, but indeed all responses are cached in order
     // to support File->SaveAs, View->PageSource, and other browser features.
-    if (NoStore()) {
+    if (mCacheControlNoStore) {
         LOG(("Must validate since response contains 'no-store' header\n"));
         return true;
     }
@@ -505,7 +785,7 @@ nsHttpResponseHead::MustValidate() const
     // Compare the Expires header to the Date header.  If the server sent an
     // Expires header with a timestamp in the past, then we must validate this
     // cached response before reusing.
-    if (ExpiresInPast()) {
+    if (ExpiresInPast_locked()) {
         LOG(("Must validate since Expires < Date\n"));
         return true;
     }
@@ -515,7 +795,7 @@ nsHttpResponseHead::MustValidate() const
 }
 
 bool
-nsHttpResponseHead::MustValidateIfExpired() const
+nsHttpResponseHead::MustValidateIfExpired()
 {
     // according to RFC2616, section 14.9.4:
     //
@@ -527,8 +807,9 @@ nsHttpResponseHead::MustValidateIfExpired() const
 }
 
 bool
-nsHttpResponseHead::IsResumable() const
+nsHttpResponseHead::IsResumable()
 {
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
     // even though some HTTP/1.0 servers may support byte range requests, we're not
     // going to bother with them, since those servers wouldn't understand If-Range.
     // Also, while in theory it may be possible to resume when the status code
@@ -536,35 +817,46 @@ nsHttpResponseHead::IsResumable() const
     // non-2xx responses.
     return mStatus == 200 &&
            mVersion >= NS_HTTP_VERSION_1_1 &&
-           PeekHeader(nsHttp::Content_Length) &&
-          (PeekHeader(nsHttp::ETag) || PeekHeader(nsHttp::Last_Modified)) &&
-           HasHeaderValue(nsHttp::Accept_Ranges, "bytes");
+           mHeaders.PeekHeader(nsHttp::Content_Length) &&
+           (mHeaders.PeekHeader(nsHttp::ETag) ||
+            mHeaders.PeekHeader(nsHttp::Last_Modified)) &&
+           mHeaders.HasHeaderValue(nsHttp::Accept_Ranges, "bytes");
 }
 
 bool
-nsHttpResponseHead::ExpiresInPast() const
+nsHttpResponseHead::ExpiresInPast()
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    return ExpiresInPast_locked();
+}
+
+bool
+nsHttpResponseHead::ExpiresInPast_locked() const
 {
     uint32_t maxAgeVal, expiresVal, dateVal;
 
     // Bug #203271. Ensure max-age directive takes precedence over Expires
-    if (NS_SUCCEEDED(GetMaxAgeValue(&maxAgeVal))) {
+    if (NS_SUCCEEDED(GetMaxAgeValue_locked(&maxAgeVal))) {
         return false;
     }
 
-    return NS_SUCCEEDED(GetExpiresValue(&expiresVal)) &&
-           NS_SUCCEEDED(GetDateValue(&dateVal)) &&
+    return NS_SUCCEEDED(GetExpiresValue_locked(&expiresVal)) &&
+           NS_SUCCEEDED(GetDateValue_locked(&dateVal)) &&
            expiresVal < dateVal;
 }
 
 nsresult
-nsHttpResponseHead::UpdateHeaders(const nsHttpHeaderArray &headers)
+nsHttpResponseHead::UpdateHeaders(nsHttpResponseHead *aOther)
 {
     LOG(("nsHttpResponseHead::UpdateHeaders [this=%p]\n", this));
 
-    uint32_t i, count = headers.Count();
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    ReentrantMonitorAutoEnter monitorOther(aOther->mReentrantMonitor);
+
+    uint32_t i, count = aOther->mHeaders.Count();
     for (i=0; i<count; ++i) {
         nsHttpAtom header;
-        const char *val = headers.PeekHeaderAt(i, header);
+        const char *val = aOther->mHeaders.PeekHeaderAt(i, header);
 
         if (!val) {
             continue;
@@ -598,7 +890,7 @@ nsHttpResponseHead::UpdateHeaders(const nsHttpHeaderArray &headers)
             LOG(("new response header [%s: %s]\n", header.get(), val));
 
             // overwrite the current header value with the new value...
-            SetHeader(header, nsDependentCString(val));
+            SetHeader_locked(header, nsDependentCString(val));
         }
     }
 
@@ -610,13 +902,17 @@ nsHttpResponseHead::Reset()
 {
     LOG(("nsHttpResponseHead::Reset\n"));
 
-    ClearHeaders();
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+
+    mHeaders.Clear();
 
     mVersion = NS_HTTP_VERSION_1_1;
     mStatus = 200;
-    mContentLength = UINT64_MAX;
+    mContentLength = -1;
+    mCacheControlPrivate = false;
     mCacheControlNoStore = false;
     mCacheControlNoCache = false;
+    mCacheControlImmutable = false;
     mPragmaNoCache = false;
     mStatusText.Truncate();
     mContentType.Truncate();
@@ -626,7 +922,7 @@ nsHttpResponseHead::Reset()
 nsresult
 nsHttpResponseHead::ParseDateHeader(nsHttpAtom header, uint32_t *result) const
 {
-    const char *val = PeekHeader(header);
+    const char *val = mHeaders.PeekHeader(header);
     if (!val)
         return NS_ERROR_NOT_AVAILABLE;
 
@@ -640,9 +936,16 @@ nsHttpResponseHead::ParseDateHeader(nsHttpAtom header, uint32_t *result) const
 }
 
 nsresult
-nsHttpResponseHead::GetAgeValue(uint32_t *result) const
+nsHttpResponseHead::GetAgeValue(uint32_t *result)
 {
-    const char *val = PeekHeader(nsHttp::Age);
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    return GetAgeValue_locked(result);
+}
+
+nsresult
+nsHttpResponseHead::GetAgeValue_locked(uint32_t *result) const
+{
+    const char *val = mHeaders.PeekHeader(nsHttp::Age);
     if (!val)
         return NS_ERROR_NOT_AVAILABLE;
 
@@ -653,9 +956,16 @@ nsHttpResponseHead::GetAgeValue(uint32_t *result) const
 // Return the value of the (HTTP 1.1) max-age directive, which itself is a
 // component of the Cache-Control response header
 nsresult
-nsHttpResponseHead::GetMaxAgeValue(uint32_t *result) const
+nsHttpResponseHead::GetMaxAgeValue(uint32_t *result)
 {
-    const char *val = PeekHeader(nsHttp::Cache_Control);
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    return GetMaxAgeValue_locked(result);
+}
+
+nsresult
+nsHttpResponseHead::GetMaxAgeValue_locked(uint32_t *result) const
+{
+    const char *val = mHeaders.PeekHeader(nsHttp::Cache_Control);
     if (!val)
         return NS_ERROR_NOT_AVAILABLE;
 
@@ -679,9 +989,23 @@ nsHttpResponseHead::GetMaxAgeValue(uint32_t *result) const
 }
 
 nsresult
-nsHttpResponseHead::GetExpiresValue(uint32_t *result) const
+nsHttpResponseHead::GetDateValue(uint32_t *result)
 {
-    const char *val = PeekHeader(nsHttp::Expires);
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    return GetDateValue_locked(result);
+}
+
+nsresult
+nsHttpResponseHead::GetExpiresValue(uint32_t *result)
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    return GetExpiresValue_locked(result);
+}
+
+nsresult
+nsHttpResponseHead::GetExpiresValue_locked(uint32_t *result) const
+{
+    const char *val = mHeaders.PeekHeader(nsHttp::Expires);
     if (!val)
         return NS_ERROR_NOT_AVAILABLE;
 
@@ -701,12 +1025,42 @@ nsHttpResponseHead::GetExpiresValue(uint32_t *result) const
     return NS_OK;
 }
 
-int64_t
-nsHttpResponseHead::TotalEntitySize() const
+nsresult
+nsHttpResponseHead::GetLastModifiedValue(uint32_t *result)
 {
-    const char* contentRange = PeekHeader(nsHttp::Content_Range);
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    return ParseDateHeader(nsHttp::Last_Modified, result);
+}
+
+bool
+nsHttpResponseHead::operator==(const nsHttpResponseHead& aOther) const
+{
+    nsHttpResponseHead &curr = const_cast<nsHttpResponseHead&>(*this);
+    nsHttpResponseHead &other = const_cast<nsHttpResponseHead&>(aOther);
+    ReentrantMonitorAutoEnter monitorOther(other.mReentrantMonitor);
+    ReentrantMonitorAutoEnter monitor(curr.mReentrantMonitor);
+
+    return mHeaders == aOther.mHeaders &&
+           mVersion == aOther.mVersion &&
+           mStatus == aOther.mStatus &&
+           mStatusText == aOther.mStatusText &&
+           mContentLength == aOther.mContentLength &&
+           mContentType == aOther.mContentType &&
+           mContentCharset == aOther.mContentCharset &&
+           mCacheControlPrivate == aOther.mCacheControlPrivate &&
+           mCacheControlNoCache == aOther.mCacheControlNoCache &&
+           mCacheControlNoStore == aOther.mCacheControlNoStore &&
+           mCacheControlImmutable == aOther.mCacheControlImmutable &&
+           mPragmaNoCache == aOther.mPragmaNoCache;
+}
+
+int64_t
+nsHttpResponseHead::TotalEntitySize()
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    const char* contentRange = mHeaders.PeekHeader(nsHttp::Content_Range);
     if (!contentRange)
-        return ContentLength();
+        return mContentLength;
 
     // Total length is after a slash
     const char* slash = strrchr(contentRange, '/');
@@ -783,10 +1137,16 @@ nsHttpResponseHead::ParseCacheControl(const char *val)
 {
     if (!(val && *val)) {
         // clear flags
+        mCacheControlPrivate = false;
         mCacheControlNoCache = false;
         mCacheControlNoStore = false;
+        mCacheControlImmutable = false;
         return;
     }
+
+    // search header value for occurrence of "private"
+    if (nsHttp::FindToken(val, "private", HTTP_HEADER_VALUE_SEPS))
+        mCacheControlPrivate = true;
 
     // search header value for occurrence(s) of "no-cache" but ignore
     // occurrence(s) of "no-cache=blah"
@@ -796,6 +1156,11 @@ nsHttpResponseHead::ParseCacheControl(const char *val)
     // search header value for occurrence of "no-store"
     if (nsHttp::FindToken(val, "no-store", HTTP_HEADER_VALUE_SEPS))
         mCacheControlNoStore = true;
+
+    // search header value for occurrence of "immutable"
+    if (nsHttp::FindToken(val, "immutable", HTTP_HEADER_VALUE_SEPS)) {
+        mCacheControlImmutable = true;
+    }
 }
 
 void
@@ -816,5 +1181,41 @@ nsHttpResponseHead::ParsePragma(const char *val)
         mPragmaNoCache = true;
 }
 
-} // namespace mozilla::net
+nsresult
+nsHttpResponseHead::VisitHeaders(nsIHttpHeaderVisitor *visitor,
+                                 nsHttpHeaderArray::VisitorFilter filter)
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    mInVisitHeaders = true;
+    nsresult rv = mHeaders.VisitHeaders(visitor, filter);
+    mInVisitHeaders = false;
+    return rv;
+}
+
+nsresult
+nsHttpResponseHead::GetOriginalHeader(nsHttpAtom aHeader,
+                                      nsIHttpHeaderVisitor *aVisitor)
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    mInVisitHeaders = true;
+    nsresult rv = mHeaders.GetOriginalHeader(aHeader, aVisitor);
+    mInVisitHeaders = false;
+    return rv;
+}
+
+bool
+nsHttpResponseHead::HasContentType()
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    return !mContentType.IsEmpty();
+}
+
+bool
+nsHttpResponseHead::HasContentCharset()
+{
+    ReentrantMonitorAutoEnter monitor(mReentrantMonitor);
+    return !mContentCharset.IsEmpty();
+}
+
+} // namespace net
 } // namespace mozilla

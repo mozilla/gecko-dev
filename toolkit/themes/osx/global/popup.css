@@ -41,16 +41,18 @@ panel[type="arrow"][side="right"] {
 
 .panel-arrowcontent {
   -moz-appearance: none;
-  background-image: linear-gradient(hsla(0,0%,99%,1), hsla(0,0%,99%,.975) 10%, hsla(0,0%,98%,.975));
-  border-radius: 3.5px;
-  box-shadow: 0 0 0 1px hsla(210,4%,10%,.05);
-  color: hsl(0,0%,10%);
-  padding: 16px;
+  background: var(--arrowpanel-background);
+  border-radius: var(--arrowpanel-border-radius);
+  box-shadow: 0 0 0 1px var(--arrowpanel-border-color);
+  color: var(--arrowpanel-color);
+  border: none;
+  padding: var(--arrowpanel-padding);
   margin: 1px;
 }
 
 .panel-arrow[side="top"] {
-  list-style-image: url("chrome://global/skin/arrow/panelarrow-vertical.png");
+  list-style-image: var(--panel-arrow-image-vertical,
+                        url("chrome://global/skin/arrow/panelarrow-vertical.png"));
   margin-left: 16px;
   margin-right: 16px;
   margin-bottom: -1px;
@@ -82,7 +84,8 @@ panel[type="arrow"][side="right"] {
 @media (min-resolution: 2dppx) {
   .panel-arrow[side="top"],
   .panel-arrow[side="bottom"] {
-    list-style-image: url("chrome://global/skin/arrow/panelarrow-vertical@2x.png");
+    list-style-image: var(--panel-arrow-image-vertical,
+                          url("chrome://global/skin/arrow/panelarrow-vertical@2x.png"));
     width: 18px;
     height: 10px;
   }
@@ -116,15 +119,23 @@ tooltip[titletip="true"] {
 
 /* rules for popups associated with menulists */
 
-menulist > menupopup,
-.menulist-menupopup {
+menulist > menupopup {
   min-width: 0px;
+}
+
+menulist > menupopup:not([position]) {
+  margin-inline-start: -13px;
+  margin-top: -2px;
 }
 
 menulist[editable="true"] > menupopup {
   -moz-appearance: none;
 }
 
-menulist[editable="true"] > menupopup > .popup-internal-box {
+menulist > menupopup > .popup-internal-box {
   padding: 0;
+}
+
+menulist:not([editable="true"]) > menupopup {
+  padding: 4px 0;
 }

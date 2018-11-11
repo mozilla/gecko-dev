@@ -85,8 +85,8 @@ add_test(function test_dh_addRemoveDownload()
     // Verify that the URI is already available in results at this time.
     do_check_true(!!page_in_database(DOWNLOAD_URI));
 
-    waitForOnDeleteURI(function DHRAD_onDeleteURI(aURI) {
-      do_check_true(aURI.equals(DOWNLOAD_URI));
+    waitForOnDeleteURI(function DHRAD_onDeleteURI(aDeletedURI) {
+      do_check_true(aDeletedURI.equals(DOWNLOAD_URI));
 
       // Verify that the URI is already available in results at this time.
       do_check_false(!!page_in_database(DOWNLOAD_URI));
@@ -101,17 +101,19 @@ add_test(function test_dh_addRemoveDownload()
 
 add_test(function test_dh_addMultiRemoveDownload()
 {
-  promiseAddVisits({ uri: DOWNLOAD_URI,
-                     transition: TRANSITION_TYPED }).then(function () {
+  PlacesTestUtils.addVisits({
+    uri: DOWNLOAD_URI,
+    transition: TRANSITION_TYPED
+  }).then(function () {
     waitForOnVisit(function DHAD_onVisit(aURI) {
       do_check_true(aURI.equals(DOWNLOAD_URI));
       do_check_true(!!page_in_database(DOWNLOAD_URI));
 
-      waitForOnDeleteVisits(function DHRAD_onDeleteVisits(aURI) {
-        do_check_true(aURI.equals(DOWNLOAD_URI));
+      waitForOnDeleteVisits(function DHRAD_onDeleteVisits(aDeletedURI) {
+        do_check_true(aDeletedURI.equals(DOWNLOAD_URI));
         do_check_true(!!page_in_database(DOWNLOAD_URI));
 
-        promiseClearHistory().then(run_next_test);
+        PlacesTestUtils.clearHistory().then(run_next_test);
       });
       gDownloadHistory.removeAllDownloads();
     });
@@ -130,11 +132,11 @@ add_test(function test_dh_addBookmarkRemoveDownload()
     do_check_true(aURI.equals(DOWNLOAD_URI));
     do_check_true(!!page_in_database(DOWNLOAD_URI));
 
-    waitForOnDeleteVisits(function DHRAD_onDeleteVisits(aURI) {
-      do_check_true(aURI.equals(DOWNLOAD_URI));
+    waitForOnDeleteVisits(function DHRAD_onDeleteVisits(aDeletedURI) {
+      do_check_true(aDeletedURI.equals(DOWNLOAD_URI));
       do_check_true(!!page_in_database(DOWNLOAD_URI));
 
-      promiseClearHistory().then(run_next_test);
+      PlacesTestUtils.clearHistory().then(run_next_test);
     });
     gDownloadHistory.removeAllDownloads();
   });
@@ -148,15 +150,15 @@ add_test(function test_dh_addDownload_referrer()
     do_check_true(aURI.equals(REFERRER_URI));
     let referrerVisitId = aVisitID;
 
-    waitForOnVisit(function DHAD_onVisit(aURI, aVisitID, aTime, aSessionID,
-                                              aReferringID) {
-      do_check_true(aURI.equals(DOWNLOAD_URI));
+    waitForOnVisit(function DHAD_onVisit(aVisitedURI, unused, unused2, unused3,
+                                         aReferringID) {
+      do_check_true(aVisitedURI.equals(DOWNLOAD_URI));
       do_check_eq(aReferringID, referrerVisitId);
 
       // Verify that the URI is already available in results at this time.
       do_check_true(!!page_in_database(DOWNLOAD_URI));
 
-      promiseClearHistory().then(run_next_test);
+      PlacesTestUtils.clearHistory().then(run_next_test);
     });
 
     gDownloadHistory.addDownload(DOWNLOAD_URI, REFERRER_URI, Date.now() * 1000);
@@ -185,7 +187,7 @@ add_test(function test_dh_addDownload_disabledHistory()
     do_check_true(!!page_in_database(DOWNLOAD_URI));
     do_check_false(!!page_in_database(PRIVATE_URI));
 
-    promiseClearHistory().then(run_next_test);
+    PlacesTestUtils.clearHistory().then(run_next_test);
   });
 
   Services.prefs.setBoolPref("places.history.enabled", false);
@@ -221,9 +223,9 @@ add_test(function test_dh_details()
       PlacesUtils.annotations.removeObserver(annoObserver);
       PlacesUtils.history.removeObserver(historyObserver);
 
-      promiseClearHistory().then(run_next_test);
+      PlacesTestUtils.clearHistory().then(run_next_test);
     }
-  };
+  }
 
   let annoObserver = {
     onPageAnnotationSet: function AO_onPageAnnotationSet(aPage, aName)

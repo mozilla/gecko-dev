@@ -40,7 +40,7 @@ this.Log = {
     Config: 30,
     Debug:  20,
     Trace:  10,
-    All:    0,
+    All:    -1, // We don't want All to be falsy.
     Desc: {
       70: "FATAL",
       60: "ERROR",
@@ -49,7 +49,7 @@ this.Log = {
       30: "CONFIG",
       20: "DEBUG",
       10: "TRACE",
-      0:  "ALL"
+      "-1":  "ALL",
     },
     Numbers: {
       "FATAL": 70,
@@ -59,7 +59,7 @@ this.Log = {
       "CONFIG": 30,
       "DEBUG": 20,
       "TRACE": 10,
-      "ALL": 0,
+      "ALL": -1,
     }
   },
 
@@ -102,7 +102,7 @@ this.Log = {
         aObject.QueryInterface(Ci[i]);
         interfaces.push(i);
       }
-      catch(ex) {}
+      catch (ex) {}
     }
 
     return interfaces;
@@ -121,7 +121,7 @@ this.Log = {
           continue;
         properties.push(p + " = " + aObject[p]);
       }
-      catch(ex) {
+      catch (ex) {
         properties.push(p + " = " + ex);
       }
     }
@@ -194,8 +194,8 @@ this.Log = {
     }
     // Standard JS exception
     if (e.stack) {
-      return "JS Stack trace: " + e.stack.trim().replace(/\n/g, " < ").
-        replace(/@[^@]*?([^\/\.]+\.\w+:)/g, "@$1");
+      return "JS Stack trace: " + Task.Debugging.generateReadableStack(e.stack).trim()
+        .replace(/\n/g, " < ").replace(/@[^@]*?([^\/\.]+\.\w+:)/g, "@$1");
     }
 
     return "No traceback available";
@@ -280,7 +280,9 @@ Logger.prototype = {
   },
 
   _parent: null,
-  get parent() this._parent,
+  get parent() {
+    return this._parent;
+  },
   set parent(parent) {
     if (this._parent == parent) {
       return;
@@ -348,7 +350,8 @@ Logger.prototype = {
       throw "An action is required when logging a structured message.";
     }
     if (!params) {
-      return this.log(this.level, undefined, {"action": action});
+      this.log(this.level, undefined, {"action": action});
+      return;
     }
     if (typeof(params) != "object") {
       throw "The params argument is required to be an object.";
@@ -497,19 +500,8 @@ LoggerRepository.prototype = {
   getLoggerWithMessagePrefix: function (name, prefix) {
     let log = this.getLogger(name);
 
-    let proxy = {__proto__: log};
-
-    for (let level in Log.Level) {
-      if (level == "Desc") {
-        continue;
-      }
-
-      let lc = level.toLowerCase();
-      proxy[lc] = function (msg, ...args) {
-        return log[lc].apply(log, [prefix + msg, ...args]);
-      };
-    }
-
+    let proxy = Object.create(log);
+    proxy.log = (level, string, params) => log.log(level, prefix + string, params);
     return proxy;
   },
 };
@@ -546,7 +538,7 @@ BasicFormatter.prototype = {
    */
   formatText: function (message) {
     let params = message.params;
-    if (!params) {
+    if (typeof(params) == "undefined") {
       return message.message || "";
     }
     // Defensive handling of non-object params
@@ -554,7 +546,7 @@ BasicFormatter.prototype = {
     let pIsObject = (typeof(params) == 'object' || typeof(params) == 'function');
 
     // if we have params, try and find substitutions.
-    if (message.params && this.parameterFormatter) {
+    if (this.parameterFormatter) {
       // have we successfully substituted any parameters into the message?
       // in the log message
       let subDone = false;
@@ -584,6 +576,7 @@ BasicFormatter.prototype = {
       }
       return textParts.join(': ');
     }
+    return undefined;
   },
 
   format: function BF_format(message) {
@@ -643,7 +636,7 @@ StructuredFormatter.prototype = {
 function isError(aObj) {
   return (aObj && typeof(aObj) == 'object' && "name" in aObj && "message" in aObj &&
           "fileName" in aObj && "lineNumber" in aObj && "stack" in aObj);
-};
+}
 
 /*
  * Parameter Formatters
@@ -841,7 +834,7 @@ StorageStreamAppender.prototype = {
     }
     try {
       this.outputStream.writeString(formatted + "\n");
-    } catch(ex) {
+    } catch (ex) {
       if (ex.result == Cr.NS_BASE_STREAM_CLOSED) {
         // The underlying output stream is closed, so let's open a new one
         // and try again.
@@ -876,7 +869,7 @@ FileAppender.prototype = {
   __proto__: Appender.prototype,
 
   _openFile: function () {
-    return Task.spawn(function _openFile() {
+    return Task.spawn(function* _openFile() {
       try {
         this._file = yield OS.File.open(this._path,
                                         {truncate: true});
@@ -908,6 +901,7 @@ FileAppender.prototype = {
         if (this._file) {
           return this._file.write(array);
         }
+        return undefined;
       });
     }
   },
@@ -951,6 +945,7 @@ BoundedFileAppender.prototype = {
       this._removeFilePromise = null;
       this.doAppend(formatted);
     });
+    return undefined;
   },
 
   reset: function () {

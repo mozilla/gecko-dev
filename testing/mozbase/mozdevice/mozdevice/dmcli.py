@@ -7,6 +7,7 @@ Command-line client to control a device
 """
 
 import errno
+import logging
 import os
 import posixpath
 import StringIO
@@ -15,126 +16,139 @@ import mozdevice
 import mozlog
 import argparse
 
+
 class DMCli(object):
 
     def __init__(self):
-        self.commands = { 'install': { 'function': self.install,
-                                       'args': [ { 'name': 'file' } ],
-                                       'help': 'push this package file to the device and install it' },
-                          'uninstall': { 'function': self.uninstall,
-                                         'args': [ { 'name': 'packagename' } ],
-                                         'help': 'uninstall the named app from the device' },
-                          'killapp': { 'function': self.kill,
-                                       'args': [ { 'name': 'process_name', 'nargs': '*' } ],
-                                       'help': 'kills any processes with name(s) on device' },
-                          'launchapp': { 'function': self.launchapp,
-                                         'args': [ { 'name': 'appname' },
-                                                   { 'name': 'activity_name' },
-                                                   { 'name': '--intent',
-                                                     'action': 'store',
-                                                     'default': 'android.intent.action.VIEW' },
-                                                   { 'name': '--url',
-                                                     'action': 'store' },
-                                                   { 'name': '--no-fail-if-running',
-                                                     'action': 'store_true',
-                                                     'help': 'Don\'t fail if application is already running' }
+        self.commands = {'deviceroot': {'function': self.deviceroot,
+                                        'help': 'get device root directory for storing temporary '
+                                        'files'},
+                         'install': {'function': self.install,
+                                     'args': [{'name': 'file'}],
+                                     'help': 'push this package file to the device'
+                                     ' and install it'},
+                         'uninstall': {'function': self.uninstall,
+                                       'args': [{'name': 'packagename'}],
+                                       'help': 'uninstall the named app from the device'},
+                         'killapp': {'function': self.kill,
+                                     'args': [{'name': 'process_name', 'nargs': '*'}],
+                                     'help': 'kills any processes with name(s) on device'},
+                         'launchapp': {'function': self.launchapp,
+                                       'args': [{'name': 'appname'},
+                                                {'name': 'activity_name'},
+                                                {'name': '--intent',
+                                                 'action': 'store',
+                                                 'default': 'android.intent.action.VIEW'},
+                                                {'name': '--url',
+                                                 'action': 'store'},
+                                                {'name': '--no-fail-if-running',
+                                                 'action': 'store_true',
+                                                 'help': 'Don\'t fail if application is'
+                                                 ' already running'}
                                                 ],
-                                      'help': 'launches application on device' },
-                          'listapps': { 'function': self.listapps,
-                                        'help': 'list applications on device' },
-                          'push': { 'function': self.push,
-                                    'args': [ { 'name': 'local_file' },
-                                              { 'name': 'remote_file' }
-                                              ],
-                                    'help': 'copy file/dir to device' },
-                          'pull': { 'function': self.pull,
-                                    'args': [ { 'name': 'local_file' },
-                                              { 'name': 'remote_file', 'nargs': '?' } ],
-                                    'help': 'copy file/dir from device' },
-                          'shell': { 'function': self.shell,
-                                    'args': [ { 'name': 'command', 'nargs': argparse.REMAINDER },
-                                              { 'name': '--root', 'action': 'store_true',
-                                                'help': 'Run command as root' }],
-                                    'help': 'run shell command on device' },
-                          'info': { 'function': self.getinfo,
-                                    'args': [ { 'name': 'directive', 'nargs': '?' } ],
-                                    'help': 'get information on specified '
-                                    'aspect of the device (if no argument '
-                                    'given, print all available information)'
+                                       'help': 'launches application on device'},
+                         'listapps': {'function': self.listapps,
+                                      'help': 'list applications on device'},
+                         'push': {'function': self.push,
+                                  'args': [{'name': 'local_file'},
+                                           {'name': 'remote_file'}
+                                           ],
+                                  'help': 'copy file/dir to device'},
+                         'pull': {'function': self.pull,
+                                  'args': [{'name': 'local_file'},
+                                           {'name': 'remote_file', 'nargs': '?'}],
+                                  'help': 'copy file/dir from device'},
+                         'shell': {'function': self.shell,
+                                   'args': [{'name': 'command', 'nargs': argparse.REMAINDER},
+                                            {'name': '--root', 'action': 'store_true',
+                                             'help': 'Run command as root'}],
+                                   'help': 'run shell command on device'},
+                         'info': {'function': self.getinfo,
+                                  'args': [{'name': 'directive', 'nargs': '?'}],
+                                  'help': 'get information on specified '
+                                  'aspect of the device (if no argument '
+                                  'given, print all available information)'
+                                  },
+                         'ps': {'function': self.processlist,
+                                'help': 'get information on running processes on device'
+                                },
+                         'logcat': {'function': self.logcat,
+                                    'help': 'get logcat from device'
                                     },
-                          'ps': { 'function': self.processlist,
-                                  'help': 'get information on running processes on device'
+                         'ls': {'function': self.listfiles,
+                                'args': [{'name': 'remote_dir'}],
+                                'help': 'list files on device'
                                 },
-                          'logcat' : { 'function': self.logcat,
-                                       'help': 'get logcat from device'
+                         'rm': {'function': self.removefile,
+                                'args': [{'name': 'remote_file'}],
+                                'help': 'remove file from device'
                                 },
-                          'ls': { 'function': self.listfiles,
-                                  'args': [ { 'name': 'remote_dir' } ],
-                                  'help': 'list files on device'
-                                },
-                          'rm': { 'function': self.removefile,
-                                  'args': [ { 'name': 'remote_file' } ],
-                                  'help': 'remove file from device'
-                                },
-                          'isdir': { 'function': self.isdir,
-                                     'args': [ { 'name': 'remote_dir' } ],
-                                     'help': 'print if remote file is a directory'
-                                },
-                          'mkdir': { 'function': self.mkdir,
-                                     'args': [ { 'name': 'remote_dir' } ],
-                                     'help': 'makes a directory on device'
-                                },
-                          'rmdir': { 'function': self.rmdir,
-                                     'args': [ { 'name': 'remote_dir' } ],
-                                     'help': 'recursively remove directory from device'
-                                },
-                          'screencap': { 'function': self.screencap,
-                                         'args': [ { 'name': 'png_file' } ],
-                                         'help': 'capture screenshot of device in action'
-                                         },
-                          'sutver': { 'function': self.sutver,
-                                      'help': 'SUTAgent\'s product name and version (SUT only)'
+                         'isdir': {'function': self.isdir,
+                                   'args': [{'name': 'remote_dir'}],
+                                   'help': 'print if remote file is a directory'
                                    },
-                          'clearlogcat': { 'function': self.clearlogcat,
-                                           'help': 'clear the logcat'
+                         'mkdir': {'function': self.mkdir,
+                                   'args': [{'name': 'remote_dir'}],
+                                   'help': 'makes a directory on device'
+                                   },
+                         'rmdir': {'function': self.rmdir,
+                                   'args': [{'name': 'remote_dir'}],
+                                   'help': 'recursively remove directory from device'
+                                   },
+                         'screencap': {'function': self.screencap,
+                                       'args': [{'name': 'png_file'}],
+                                       'help': 'capture screenshot of device in action'
+                                       },
+                         'sutver': {'function': self.sutver,
+                                    'help': 'SUTAgent\'s product name and version (SUT only)'
+                                    },
+                         'clearlogcat': {'function': self.clearlogcat,
+                                         'help': 'clear the logcat'
                                          },
-                          'reboot': { 'function': self.reboot,
-                                      'help': 'reboot the device',
-                                      'args': [ { 'name': '--wait',
-                                                  'action': 'store_true',
-                                                  'help': 'Wait for device to come back up before exiting' } ]
+                         'reboot': {'function': self.reboot,
+                                    'help': 'reboot the device',
+                                    'args': [{'name': '--wait',
+                                              'action': 'store_true',
+                                              'help': 'Wait for device to come back up'
+                                              ' before exiting'}]
 
-                                   },
-                          'isfile': { 'function': self.isfile,
-                                      'args': [ { 'name': 'remote_file' } ],
-                                      'help': 'check whether a file exists on the device'
-                                   },
-                          'launchfennec': { 'function': self.launchfennec,
-                                            'args': [ { 'name': 'appname' },
-                                                      { 'name': '--intent', 'action': 'store',
-                                                        'default': 'android.intent.action.VIEW' },
-                                                      { 'name': '--url', 'action': 'store' },
-                                                      { 'name': '--extra-args', 'action': 'store' },
-                                                      { 'name': '--mozenv', 'action': 'store',
-                                                        'help': 'Gecko environment variables to set in "KEY1=VAL1 KEY2=VAL2" format' },
-                                                      { 'name': '--no-fail-if-running',
-                                                        'action': 'store_true',
-                                                        'help': 'Don\'t fail if application is already running' }
-                                                      ],
-                                            'help': 'launch fennec'
-                                            },
-                          'getip': { 'function': self.getip,
-                                     'args': [ { 'name': 'interface', 'nargs': '*' } ],
-                                     'help': 'get the ip address of the device'
+                                    },
+                         'isfile': {'function': self.isfile,
+                                    'args': [{'name': 'remote_file'}],
+                                    'help': 'check whether a file exists on the device'
+                                    },
+                         'launchfennec': {'function': self.launchfennec,
+                                          'args': [{'name': 'appname'},
+                                                   {'name': '--intent', 'action': 'store',
+                                                    'default': 'android.intent.action.VIEW'},
+                                                   {'name': '--url', 'action': 'store'},
+                                                   {'name': '--extra-args', 'action': 'store'},
+                                                   {'name': '--mozenv', 'action': 'store',
+                                                    'help': 'Gecko environment variables to set'
+                                                    ' in "KEY1=VAL1 KEY2=VAL2" format'},
+                                                   {'name': '--no-fail-if-running',
+                                                    'action': 'store_true',
+                                                    'help': 'Don\'t fail if application is '
+                                                    'already running'}
+                                                   ],
+                                          'help': 'launch fennec'
+                                          },
+                         'getip': {'function': self.getip,
+                                   'args': [{'name': 'interface', 'nargs': '*'}],
+                                   'help': 'get the ip address of the device'
                                    }
-                          }
+                         }
 
         self.parser = argparse.ArgumentParser()
         self.add_options(self.parser)
         self.add_commands(self.parser)
+        mozlog.commandline.add_logging_group(self.parser)
 
     def run(self, args=sys.argv[1:]):
         args = self.parser.parse_args()
+
+        mozlog.commandline.setup_logging(
+            'mozdevice', args, {'mach': sys.stdout})
 
         if args.dmtype == "sut" and not args.host and not args.hwid:
             self.parser.error("Must specify device ip in TEST_DEVICE or "
@@ -153,20 +167,20 @@ class DMCli(object):
     def add_options(self, parser):
         parser.add_argument("-v", "--verbose", action="store_true",
                             help="Verbose output from DeviceManager",
-                            default=False)
+                            default=bool(os.environ.get('VERBOSE')))
         parser.add_argument("--host", action="store",
-                            help="Device hostname (only if using TCP/IP, " \
-                                "defaults to TEST_DEVICE environment " \
-                                "variable if present)",
+                            help="Device hostname (only if using TCP/IP, "
+                            "defaults to TEST_DEVICE environment "
+                            "variable if present)",
                             default=os.environ.get('TEST_DEVICE'))
         parser.add_argument("-p", "--port", action="store",
                             type=int,
                             help="Custom device port (if using SUTAgent or "
                             "adb-over-tcp)", default=None)
         parser.add_argument("-m", "--dmtype", action="store",
-                            help="DeviceManager type (adb or sut, defaults " \
-                                "to DM_TRANS environment variable, if " \
-                                "present, or adb)",
+                            help="DeviceManager type (adb or sut, defaults "
+                            "to DM_TRANS environment variable, if "
+                            "present, or adb)",
                             default=os.environ.get('DM_TRANS', 'adb'))
         parser.add_argument("-d", "--hwid", action="store",
                             help="HWID", default=None)
@@ -196,9 +210,9 @@ class DMCli(object):
         '''
         Returns a device with the specified parameters
         '''
-        logLevel = mozlog.ERROR
+        logLevel = logging.ERROR
         if verbose:
-            logLevel = mozlog.DEBUG
+            logLevel = logging.DEBUG
 
         if hwid:
             return mozdevice.DroidConnectByHWID(hwid, logLevel=logLevel)
@@ -218,6 +232,9 @@ class DMCli(object):
                                       logLevel=logLevel)
         else:
             self.parser.error("Unknown device manager type: %s" % type)
+
+    def deviceroot(self, args):
+        print self.dm.deviceRoot
 
     def push(self, args):
         (src, dest) = (args.local_file, args.remote_file)
@@ -244,7 +261,7 @@ class DMCli(object):
 
     def install(self, args):
         basename = os.path.basename(args.file)
-        app_path_on_device = posixpath.join(self.dm.getDeviceRoot(),
+        app_path_on_device = posixpath.join(self.dm.deviceRoot,
                                             basename)
         self.dm.pushFile(args.file, app_path_on_device)
         self.dm.installApp(app_path_on_device)
@@ -277,14 +294,11 @@ class DMCli(object):
         info = self.dm.getInfo(directive=args.directive)
         for (infokey, infoitem) in sorted(info.iteritems()):
             if infokey == "process":
-                pass # skip process list: get that through ps
-            elif not args.directive and not infoitem:
-                print "%s:" % infokey.upper()
-            elif not args.directive:
-                for line in infoitem:
-                    print "%s: %s" % (infokey.upper(), line)
+                pass  # skip process list: get that through ps
+            elif args.directive is None:
+                print "%s: %s" % (infokey.upper(), infoitem)
             else:
-                print "%s" % "\n".join(infoitem)
+                print infoitem
 
     def logcat(self, args):
         print ''.join(self.dm.getLogcat())
@@ -357,6 +371,7 @@ class DMCli(object):
             print(self.dm.getIP(args.interface))
         else:
             print(self.dm.getIP())
+
 
 def cli(args=sys.argv[1:]):
     # process the command line

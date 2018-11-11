@@ -6,7 +6,6 @@
 #include "ClientContainerLayer.h"
 #include "ClientLayerManager.h"         // for ClientLayerManager, etc
 #include "mozilla/mozalloc.h"           // for operator new
-#include "nsAutoPtr.h"                  // for nsRefPtr
 #include "nsCOMPtr.h"                   // for already_AddRefed
 #include "nsISupportsImpl.h"            // for Layer::AddRef, etc
 
@@ -17,7 +16,7 @@ already_AddRefed<ContainerLayer>
 ClientLayerManager::CreateContainerLayer()
 {
   NS_ASSERTION(InConstruction(), "Only allowed in construction phase");
-  nsRefPtr<ClientContainerLayer> layer =
+  RefPtr<ClientContainerLayer> layer =
     new ClientContainerLayer(this);
   CREATE_SHADOW(Container);
   return layer.forget();
@@ -27,11 +26,11 @@ already_AddRefed<RefLayer>
 ClientLayerManager::CreateRefLayer()
 {
   NS_ASSERTION(InConstruction(), "Only allowed in construction phase");
-  nsRefPtr<ClientRefLayer> layer =
+  RefPtr<ClientRefLayer> layer =
     new ClientRefLayer(this);
   CREATE_SHADOW(Ref);
   return layer.forget();
 }
 
-}
-}
+} // namespace layers
+} // namespace mozilla

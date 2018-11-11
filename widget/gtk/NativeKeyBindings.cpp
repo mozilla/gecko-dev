@@ -65,9 +65,25 @@ delete_from_cursor_cb(GtkWidget *w, GtkDeleteType del_type,
                       gint count, gpointer user_data)
 {
   g_signal_stop_emission_by_name(w, "delete_from_cursor");
-  gHandled = true;
-
   bool forward = count > 0;
+
+#if (MOZ_WIDGET_GTK == 3)
+  // Ignore GTK's Ctrl-K keybinding introduced in GTK 3.14 and removed in
+  // 3.18 if the user has custom bindings set. See bug 1176929.
+  if (del_type == GTK_DELETE_PARAGRAPH_ENDS && forward && GTK_IS_ENTRY(w) &&
+      !gtk_check_version(3, 14, 1) && gtk_check_version(3, 17, 9)) {
+    GtkStyleContext* context = gtk_widget_get_style_context(w);
+    GtkStateFlags flags = gtk_widget_get_state_flags(w);
+
+    GPtrArray* array;
+    gtk_style_context_get(context, flags, "gtk-key-bindings", &array, nullptr);
+    if (!array)
+      return;
+    g_ptr_array_unref(array);
+  }
+#endif
+
+  gHandled = true;
   if (uint32_t(del_type) >= ArrayLength(sDeleteCommands)) {
     // unsupported deletion type
     return;
@@ -210,7 +226,7 @@ NativeKeyBindings::GetInstance(NativeKeyBindingsType aType)
 
     default:
       // fallback to multiline editor case in release build
-      MOZ_ASSERT(false, "aType is invalid or not yet implemented");
+      MOZ_FALLTHROUGH_ASSERT("aType is invalid or not yet implemented");
     case nsIWidget::NativeKeyBindingsForMultiLineEditor:
     case nsIWidget::NativeKeyBindingsForRichTextEditor:
       if (!sInstanceForMultiLineEditor) {
@@ -287,8 +303,8 @@ NativeKeyBindings::Execute(const WidgetKeyboardEvent& aEvent,
 
   guint keyval;
 
-  if (aEvent.charCode) {
-    keyval = gdk_unicode_to_keyval(aEvent.charCode);
+  if (aEvent.mCharCode) {
+    keyval = gdk_unicode_to_keyval(aEvent.mCharCode);
   } else {
     keyval =
       static_cast<GdkEventKey*>(aEvent.mNativeKeyEvent)->keyval;
@@ -298,11 +314,11 @@ NativeKeyBindings::Execute(const WidgetKeyboardEvent& aEvent,
     return true;
   }
 
-  for (uint32_t i = 0; i < aEvent.alternativeCharCodes.Length(); ++i) {
+  for (uint32_t i = 0; i < aEvent.mAlternativeCharCodes.Length(); ++i) {
     uint32_t ch = aEvent.IsShift() ?
-      aEvent.alternativeCharCodes[i].mShiftedCharCode :
-      aEvent.alternativeCharCodes[i].mUnshiftedCharCode;
-    if (ch && ch != aEvent.charCode) {
+      aEvent.mAlternativeCharCodes[i].mShiftedCharCode :
+      aEvent.mAlternativeCharCodes[i].mUnshiftedCharCode;
+    if (ch && ch != aEvent.mCharCode) {
       keyval = gdk_unicode_to_keyval(ch);
       if (ExecuteInternal(aEvent, aCallback, aCallbackData, keyval)) {
         return true;

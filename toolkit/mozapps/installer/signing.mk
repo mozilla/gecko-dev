@@ -8,8 +8,9 @@ ifndef MOZ_PROFILE_GENERATE
 # Signing support
 ifdef MOZ_SIGN_CMD
 ifeq (WINNT,$(OS_ARCH))
-MOZ_INTERNAL_SIGNING_FORMAT := signcode
-MOZ_EXTERNAL_SIGNING_FORMAT := signcode
+MOZ_INTERNAL_SIGNING_FORMAT := sha2signcode
+MOZ_EXTERNAL_SIGNING_FORMAT := sha2signcode
+MOZ_EXTERNAL_SIGNING_FORMAT_STUB := sha2signcodestub
 SIGN_INCLUDES := \
   '*.dll' \
   '*.exe' \
@@ -22,7 +23,7 @@ SIGN_EXCLUDES := \
 endif # Windows
 
 ifeq (Darwin, $(OS_ARCH))
-MOZ_INTERNAL_SIGNING_FORMAT := dmg
+MOZ_INTERNAL_SIGNING_FORMAT := macapp
 MOZ_EXTERNAL_SIGNING_FORMAT :=
 endif # Darwin
 

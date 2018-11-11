@@ -13,6 +13,7 @@
 #include "prnetdb.h"
 #include "prenv.h"
 #include "nsPrintfCString.h"
+#include "nsNetCID.h"
 #include "nsNetUtil.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIGSettingsService.h"
@@ -20,13 +21,13 @@
 #include "mozilla/Attributes.h"
 #include "nsIURI.h"
 
-class nsUnixSystemProxySettings MOZ_FINAL : public nsISystemProxySettings {
+class nsUnixSystemProxySettings final : public nsISystemProxySettings {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSISYSTEMPROXYSETTINGS
 
   nsUnixSystemProxySettings()
-    : mSchemeProxySettings(5)
+    : mSchemeProxySettings(4)
   {
   }
   nsresult Init();

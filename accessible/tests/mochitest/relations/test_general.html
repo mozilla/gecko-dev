@@ -85,8 +85,6 @@
       testRelation("tree2_ti1b", RELATION_NODE_CHILD_OF, "tree2_ti1");
 
       // 'node child of' relation for row role in grid.
-      // Relation for row associated using aria-owns should exist.
-      testRelation("simplegrid-ownrow", RELATION_NODE_CHILD_OF, "simplegrid");
       // Relation for row associated using aria-level should exist.
       testRelation("simplegrid-row3", RELATION_NODE_CHILD_OF,
                    "simplegrid-row2");
@@ -131,8 +129,6 @@
                    ["treegridrow1", "treegridrow2"]);
 
       // 'node parent of' relation on ARIA grid.
-      // Should only have relation to child added through aria-owns.
-      testRelation("simplegrid", RELATION_NODE_PARENT_OF, "simplegrid-ownrow");
       // 'node parent of' relation on ARIA grid's row.
       // Should only have relation to child through aria-level.
       testRelation("simplegrid-row2", RELATION_NODE_PARENT_OF,
@@ -191,6 +187,14 @@
       testRelation("control1_1", RELATION_CONTAINING_DOCUMENT, document);
       testRelation("control1_1", RELATION_CONTAINING_TAB_PANE, getTabDocAccessible("control1_1"));
       testRelation("control1_1", RELATION_CONTAINING_APPLICATION, getApplicationAccessible());
+
+      // details
+      testRelation("has_details", RELATION_DETAILS, "details");
+      testRelation("details", RELATION_DETAILS_FOR, "has_details");
+
+      // error
+      testRelation("has_error", RELATION_ERRORMSG, "error");
+      testRelation("error", RELATION_ERRORMSG_FOR, "has_error");
 
       // finish test
       SimpleTest.finish();
@@ -310,7 +314,7 @@
     </div>
   </div>
 
-  <div aria-owns="simplegrid-ownrow" role="grid" id="simplegrid">
+  <div role="grid" id="simplegrid">
     <div role="row" id="simplegrid-row1" aria-level="1">
       <div role="gridcell">cell 1,1</div>
       <div role="gridcell">cell 1,2</div>
@@ -324,7 +328,6 @@
       <div role="gridcell">cell 3,2</div>
     </div>
   </div>
-  <div role="row" id="simplegrid-ownrow"></div>
 
   <ul role="tree" id="tree2">
     <li role="treeitem" id="tree2_ti1">Item 1
@@ -396,5 +399,8 @@
     <legend id="legend">legend</legend>
     <input />
   </fieldset>
+
+  <input id="has_details" aria-details="details"><section id="details"></section>
+  <input id="has_error" aria-errormessage="error"><section id="error"></section>
 </body>
 </html>

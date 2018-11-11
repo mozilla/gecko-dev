@@ -39,133 +39,13 @@
 //  cpu: the CPU that the module was built for
 //  symbol_file: the contents of the breakpad-format symbol file
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <functional>
-#include <iostream>
-#include <string>
-#include <vector>
+#include "common/linux/symbol_upload.h"
 
-#include "common/linux/http_upload.h"
-
-using google_breakpad::HTTPUpload;
-
-typedef struct {
-  std::string symbolsPath;
-  std::string uploadURLStr;
-  std::string proxy;
-  std::string proxy_user_pwd;
-  std::string version;
-  bool success;
-} Options;
-
-static void TokenizeByChar(const std::string &source_string,
-              int c, std::vector<std::string> *results) {
-  assert(results);
-  std::string::size_type cur_pos = 0, next_pos = 0;
-  while ((next_pos = source_string.find(c, cur_pos)) != std::string::npos) {
-    if (next_pos != cur_pos)
-      results->push_back(source_string.substr(cur_pos, next_pos - cur_pos));
-    cur_pos = next_pos + 1;
-  }
-  if (cur_pos < source_string.size() && next_pos != cur_pos)
-    results->push_back(source_string.substr(cur_pos));
-}
-
-//=============================================================================
-// Parse out the module line which have 5 parts.
-// MODULE <os> <cpu> <uuid> <module-name>
-static bool ModuleDataForSymbolFile(const std::string &file,
-                                    std::vector<std::string> *module_parts) {
-  assert(module_parts);
-  const size_t kModulePartNumber = 5;
-  FILE *fp = fopen(file.c_str(), "r");
-  if (fp) {
-    char buffer[1024];
-    if (fgets(buffer, sizeof(buffer), fp)) {
-      std::string line(buffer);
-      std::string::size_type line_break_pos = line.find_first_of('\n');
-      if (line_break_pos == std::string::npos) {
-        assert(0 && "The file is invalid!");
-        fclose(fp);
-        return false;
-      }
-      line.resize(line_break_pos);
-      const char kDelimiter = ' ';
-      TokenizeByChar(line, kDelimiter, module_parts);
-      if (module_parts->size() != kModulePartNumber)
-        module_parts->clear();
-    }
-    fclose(fp);
-  }
-
-  return module_parts->size() == kModulePartNumber;
-}
-
-//=============================================================================
-static std::string CompactIdentifier(const std::string &uuid) {
-  std::vector<std::string> components;
-  TokenizeByChar(uuid, '-', &components);
-  std::string result;
-  for (size_t i = 0; i < components.size(); ++i)
-    result += components[i];
-  return result;
-}
-
-//=============================================================================
-static void Start(Options *options) {
-  std::map<std::string, std::string> parameters;
-  options->success = false;
-  std::vector<std::string> module_parts;
-  if (!ModuleDataForSymbolFile(options->symbolsPath, &module_parts)) {
-    fprintf(stderr, "Failed to parse symbol file!\n");
-    return;
-  }
-
-  std::string compacted_id = CompactIdentifier(module_parts[3]);
-
-  // Add parameters
-  if (!options->version.empty())
-    parameters["version"] = options->version;
-
-  // MODULE <os> <cpu> <uuid> <module-name>
-  // 0      1    2     3      4
-  parameters["os"] = module_parts[1];
-  parameters["cpu"] = module_parts[2];
-  parameters["debug_file"] = module_parts[4];
-  parameters["code_file"] = module_parts[4];
-  parameters["debug_identifier"] = compacted_id;
-  std::string response, error;
-  long response_code;
-  bool success = HTTPUpload::SendRequest(options->uploadURLStr,
-                                         parameters,
-                                         options->symbolsPath,
-                                         "symbol_file",
-                                         options->proxy,
-                                         options->proxy_user_pwd,
-                                         "",
-                                         &response,
-                                         &response_code,
-                                         &error);
-
-  if (!success) {
-    printf("Failed to send symbol file: %s\n", error.c_str());
-    printf("Response:\n");
-    printf("%s\n", response.c_str());
-  } else if (response_code == 0) {
-    printf("Failed to send symbol file: No response code\n");
-  } else if (response_code != 200) {
-    printf("Failed to send symbol file: Response code %ld\n", response_code);
-    printf("Response:\n");
-    printf("%s\n", response.c_str());
-  } else {
-    printf("Successfully sent the symbol file.\n");
-  }
-  options->success = success;
-}
+using google_breakpad::sym_upload::Options;
 
 //=============================================================================
 static void
@@ -186,10 +66,15 @@ Usage(int argc, const char *argv[]) {
 static void
 SetupOptions(int argc, const char *argv[], Options *options) {
   extern int optind;
-  char ch;
+  int ch;
 
   while ((ch = getopt(argc, (char * const *)argv, "u:v:x:h?")) != -1) {
     switch (ch) {
+      case 'h':
+      case '?':
+        Usage(argc, argv);
+        exit(0);
+        break;
       case 'u':
         options->proxy_user_pwd = optarg;
         break;
@@ -201,8 +86,9 @@ SetupOptions(int argc, const char *argv[], Options *options) {
         break;
 
       default:
+        fprintf(stderr, "Invalid option '%c'\n", ch);
         Usage(argc, argv);
-        exit(0);
+        exit(1);
         break;
     }
   }
@@ -218,9 +104,9 @@ SetupOptions(int argc, const char *argv[], Options *options) {
 }
 
 //=============================================================================
-int main (int argc, const char * argv[]) {
+int main(int argc, const char* argv[]) {
   Options options;
   SetupOptions(argc, argv, &options);
-  Start(&options);
+  google_breakpad::sym_upload::Start(&options);
   return options.success ? 0 : 1;
 }

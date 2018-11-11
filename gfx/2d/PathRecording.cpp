@@ -69,22 +69,22 @@ PathBuilderRecording::CurrentPoint() const
   return mPathBuilder->CurrentPoint();
 }
 
-TemporaryRef<Path>
+already_AddRefed<Path>
 PathBuilderRecording::Finish()
 {
   RefPtr<Path> path = mPathBuilder->Finish();
-  return new PathRecording(path, mPathOps, mFillRule);
+  return MakeAndAddRef<PathRecording>(path, mPathOps, mFillRule);
 }
 
 PathRecording::~PathRecording()
 {
   for (size_t i = 0; i < mStoredRecorders.size(); i++) {
-    mStoredRecorders[i]->RemoveStoredPath(this);
+    mStoredRecorders[i]->RemoveStoredObject(this);
     mStoredRecorders[i]->RecordEvent(RecordedPathDestruction(this));
   }
 }
 
-TemporaryRef<PathBuilder>
+already_AddRefed<PathBuilder>
 PathRecording::CopyToBuilder(FillRule aFillRule) const
 {
   RefPtr<PathBuilder> pathBuilder = mPath->CopyToBuilder(aFillRule);
@@ -93,7 +93,7 @@ PathRecording::CopyToBuilder(FillRule aFillRule) const
   return recording.forget();
 }
 
-TemporaryRef<PathBuilder>
+already_AddRefed<PathBuilder>
 PathRecording::TransformedCopyToBuilder(const Matrix &aTransform, FillRule aFillRule) const
 {
   RefPtr<PathBuilder> pathBuilder = mPath->TransformedCopyToBuilder(aTransform, aFillRule);
@@ -103,18 +103,18 @@ PathRecording::TransformedCopyToBuilder(const Matrix &aTransform, FillRule aFill
     PathOp newPathOp;
     newPathOp.mType = iter->mType;
     if (sPointCount[newPathOp.mType] >= 1) {
-      newPathOp.mP1 = aTransform * iter->mP1;
+      newPathOp.mP1 = aTransform.TransformPoint(iter->mP1);
     }
     if (sPointCount[newPathOp.mType] >= 2) {
-      newPathOp.mP2 = aTransform * iter->mP2;
+      newPathOp.mP2 = aTransform.TransformPoint(iter->mP2);
     }
     if (sPointCount[newPathOp.mType] >= 3) {
-      newPathOp.mP3 = aTransform * iter->mP3;
+      newPathOp.mP3 = aTransform.TransformPoint(iter->mP3);
     }
     recording->mPathOps.push_back(newPathOp);
   }
   return recording.forget();
 }
 
-}
-}
+} // namespace gfx
+} // namespace mozilla

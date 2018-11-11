@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80 filetype=javascript: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -34,8 +34,7 @@ this.EXPORTED_SYMBOLS = [
   "DownloadStore",
 ];
 
-////////////////////////////////////////////////////////////////////////////////
-//// Globals
+// Globals
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -59,8 +58,7 @@ XPCOMUtils.defineLazyGetter(this, "gTextEncoder", function () {
   return new TextEncoder();
 });
 
-////////////////////////////////////////////////////////////////////////////////
-//// DownloadStore
+// DownloadStore
 
 /**
  * Handles serialization of Download objects and persistence into a file, so
@@ -103,11 +101,14 @@ this.DownloadStore.prototype = {
    */
   load: function DS_load()
   {
-    return Task.spawn(function task_DS_load() {
+    return Task.spawn(function* task_DS_load() {
       let bytes;
       try {
         bytes = yield OS.File.read(this.path);
-      } catch (ex if ex instanceof OS.File.Error && ex.becauseNoSuchFile) {
+      } catch (ex) {
+        if (!(ex instanceof OS.File.Error) || !ex.becauseNoSuchFile) {
+          throw ex;
+        }
         // If the file does not exist, there are no downloads to load.
         return;
       }
@@ -121,8 +122,8 @@ this.DownloadStore.prototype = {
           try {
             if (!download.succeeded && !download.canceled && !download.error) {
               // Try to restart the download if it was in progress during the
-              // previous session.
-              download.start();
+              // previous session.  Ignore errors.
+              download.start().catch(() => {});
             } else {
               // If the download was not in progress, try to update the current
               // progress from disk.  This is relevant in case we retained
@@ -153,7 +154,7 @@ this.DownloadStore.prototype = {
    */
   save: function DS_save()
   {
-    return Task.spawn(function task_DS_save() {
+    return Task.spawn(function* task_DS_save() {
       let downloads = yield this.list.getAll();
 
       // Take a static snapshot of the current state of all the downloads.
@@ -164,7 +165,13 @@ this.DownloadStore.prototype = {
           if (!this.onsaveitem(download)) {
             continue;
           }
-          storeData.list.push(download.toSerializable());
+
+          let serializable = download.toSerializable();
+          if (!serializable) {
+            // This item cannot be persisted across sessions.
+            continue;
+          }
+          storeData.list.push(serializable);
           atLeastOneDownload = true;
         } catch (ex) {
           // If an item cannot be converted to a serializable form, don't
@@ -182,8 +189,11 @@ this.DownloadStore.prototype = {
         // Remove the file if there are no downloads to save at all.
         try {
           yield OS.File.remove(this.path);
-        } catch (ex if ex instanceof OS.File.Error &&
-                 (ex.becauseNoSuchFile || ex.becauseAccessDenied)) {
+        } catch (ex) {
+          if (!(ex instanceof OS.File.Error) ||
+              !(ex.becauseNoSuchFile || ex.becauseAccessDenied)) {
+            throw ex;
+          }
           // On Windows, we may get an access denied error instead of a no such
           // file error if the file existed before, and was recently deleted.
         }

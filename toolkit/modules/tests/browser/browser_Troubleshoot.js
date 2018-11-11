@@ -6,6 +6,7 @@
 // that aren't initialized outside of a XUL app environment like AddonManager
 // and the "@mozilla.org/xre/app-info;1" component.
 
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/Troubleshoot.jsm");
 
@@ -27,7 +28,7 @@ registerCleanupFunction(function () {
   delete window.Troubleshoot;
 });
 
-let tests = [
+var tests = [
 
   function snapshotSchema(done) {
     Troubleshoot.snapshot(function (snapshot) {
@@ -36,7 +37,7 @@ let tests = [
         ok(true, "The snapshot should conform to the schema.");
       }
       catch (err) {
-        ok(false, err);
+        ok(false, "Schema mismatch, " + err);
       }
       done();
     });
@@ -64,10 +65,26 @@ let tests = [
          "The pref should be absent because it's blacklisted.");
       ok(!("network.proxy.troubleshoot" in p),
          "The pref should be absent because it's blacklisted.");
-      prefs.forEach(function (p) Services.prefs.deleteBranch(p));
+      prefs.forEach(p => Services.prefs.deleteBranch(p));
       done();
     });
   },
+
+  function unicodePreferences(done) {
+    let name = "font.name.sans-serif.x-western";
+    let utf8Value = "\xc4\x8capk\xc5\xafv Krasopis"
+    let unicodeValue = "\u010Capk\u016Fv Krasopis";
+
+    // set/getCharPref work with 8bit strings (utf8)
+    Services.prefs.setCharPref(name, utf8Value);
+
+    Troubleshoot.snapshot(function (snapshot) {
+      let p = snapshot.modifiedPreferences;
+      is(p[name], unicodeValue, "The pref should have correct Unicode value.");
+      Services.prefs.deleteBranch(name);
+      done();
+    });
+  }
 ];
 
 // This is inspired by JSON Schema, or by the example on its Wikipedia page
@@ -88,15 +105,42 @@ const SNAPSHOT_SCHEMA = {
           required: true,
           type: "string",
         },
+        buildID: {
+          required: true,
+          type: "string",
+        },
         userAgent: {
+          required: true,
+          type: "string",
+        },
+        osVersion: {
           required: true,
           type: "string",
         },
         vendor: {
           type: "string",
         },
+        updateChannel: {
+          type: "string",
+        },
         supportURL: {
           type: "string",
+        },
+        remoteAutoStart: {
+          type: "boolean",
+          required: true,
+        },
+        autoStartStatus: {
+          type: "number",
+        },
+        numTotalWindows: {
+          type: "number",
+        },
+        numRemoteWindows: {
+          type: "number",
+        },
+        safeMode: {
+          type: "boolean",
         },
       },
     },
@@ -182,6 +226,12 @@ const SNAPSHOT_SCHEMA = {
         windowLayerManagerRemote: {
           type: "boolean",
         },
+        supportsHardwareH264: {
+          type: "string",
+        },
+        currentAudioBackend: {
+          type: "string",
+        },
         numAcceleratedWindowsMessage: {
           type: "array",
         },
@@ -192,6 +242,9 @@ const SNAPSHOT_SCHEMA = {
           type: "string",
         },
         adapterDeviceID: {
+          type: "string",
+        },
+        adapterSubsysID: {
           type: "string",
         },
         adapterRAM: {
@@ -213,6 +266,9 @@ const SNAPSHOT_SCHEMA = {
           type: "string",
         },
         adapterDeviceID2: {
+          type: "string",
+        },
+        adapterSubsysID2: {
           type: "string",
         },
         adapterRAM2: {
@@ -245,6 +301,9 @@ const SNAPSHOT_SCHEMA = {
         webglRenderer: {
           type: "string",
         },
+        webgl2Renderer: {
+          type: "string",
+        },
         info: {
           type: "object",
         },
@@ -254,10 +313,19 @@ const SNAPSHOT_SCHEMA = {
             type: "string",
           },
         },
-        direct2DEnabledMessage: {
+        indices: {
+          type: "array",
+          items: {
+            type: "number",
+          },
+        },
+        featureLog: {
+          type: "object",
+        },
+        crashGuards: {
           type: "array",
         },
-        webglRendererMessage: {
+        direct2DEnabledMessage: {
           type: "array",
         },
       },
@@ -373,6 +441,40 @@ const SNAPSHOT_SCHEMA = {
     experiments: {
       type: "array",
     },
+    sandbox: {
+      required: false,
+      type: "object",
+      properties: {
+        hasSeccompBPF: {
+          required: AppConstants.platform == "linux",
+          type: "boolean"
+        },
+        hasSeccompTSync: {
+          required: AppConstants.platform == "linux",
+          type: "boolean"
+        },
+        hasUserNamespaces: {
+          required: AppConstants.platform == "linux",
+          type: "boolean"
+        },
+        hasPrivilegedUserNamespaces: {
+          required: AppConstants.platform == "linux",
+          type: "boolean"
+        },
+        canSandboxContent: {
+          required: false,
+          type: "boolean"
+        },
+        canSandboxMedia: {
+          required: false,
+          type: "boolean"
+        },
+        contentSandboxLevel: {
+          required: AppConstants.MOZ_CONTENT_SANDBOX,
+          type: "number"
+        },
+      },
+    },
   },
 };
 
@@ -408,14 +510,14 @@ function validateObject_object(obj, schema) {
   // Now check that the object doesn't have any properties not in the schema.
   for (let prop in obj)
     if (!(prop in schema.properties))
-      throw validationErr("Object has property not in schema", obj, schema);
+      throw validationErr("Object has property "+prop+" not in schema", obj, schema);
 }
 
 function validateObject_array(array, schema) {
   if (typeof(schema.items) != "object")
     // Don't care what the array's elements are.
     return;
-  array.forEach(function (elt) validateObject(elt, schema.items));
+  array.forEach(elt => validateObject(elt, schema.items));
 }
 
 function validateObject_string(str, schema) {}

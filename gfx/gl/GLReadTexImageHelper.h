@@ -10,7 +10,6 @@
 #include "GLContextTypes.h"
 #include "mozilla/Attributes.h"
 #include "nsSize.h"
-#include "nsAutoPtr.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/gfx/Types.h"
 
@@ -18,17 +17,29 @@ namespace mozilla {
 
 namespace gfx {
 class DataSourceSurface;
-}
+} // namespace gfx
 
 namespace gl {
+
+// Returns true if the `dest{Format,Type}` are the same as the
+// `read{Format,Type}`.
+bool GetActualReadFormats(GLContext* gl,
+                          GLenum destFormat, GLenum destType,
+                          GLenum* out_readFormat, GLenum* out_readType);
 
 void ReadPixelsIntoDataSurface(GLContext* aGL,
                                gfx::DataSourceSurface* aSurface);
 
-TemporaryRef<gfx::DataSourceSurface>
+already_AddRefed<gfx::DataSourceSurface>
 ReadBackSurface(GLContext* gl, GLuint aTexture, bool aYInvert, gfx::SurfaceFormat aFormat);
 
-class GLReadTexImageHelper MOZ_FINAL
+already_AddRefed<gfx::DataSourceSurface>
+YInvertImageSurface(gfx::DataSourceSurface* aSurf);
+
+void
+SwapRAndBComponents(gfx::DataSourceSurface* surf);
+
+class GLReadTexImageHelper final
 {
     // The GLContext is the sole owner of the GLBlitHelper.
     GLContext* mGL;
@@ -41,15 +52,15 @@ class GLReadTexImageHelper MOZ_FINAL
 
 public:
 
-    GLReadTexImageHelper(GLContext* gl);
+    explicit GLReadTexImageHelper(GLContext* gl);
     ~GLReadTexImageHelper();
 
     /**
       * Read the image data contained in aTexture, and return it as an ImageSurface.
-      * If GL_RGBA is given as the format, a gfxImageFormat::ARGB32 surface is returned.
+      * If GL_RGBA is given as the format, a SurfaceFormat::A8R8G8B8_UINT32 surface is returned.
       * Not implemented yet:
-      * If GL_RGB is given as the format, a gfxImageFormat::RGB24 surface is returned.
-      * If GL_LUMINANCE is given as the format, a gfxImageFormat::A8 surface is returned.
+      * If GL_RGB is given as the format, a SurfaceFormat::X8R8G8B8_UINT32 surface is returned.
+      * If GL_LUMINANCE is given as the format, a SurfaceFormat::A8 surface is returned.
       *
       * THIS IS EXPENSIVE.  It is ridiculously expensive.  Only do this
       * if you absolutely positively must, and never in any performance
@@ -58,16 +69,21 @@ public:
       * NOTE: aShaderProgram is really mozilla::layers::ShaderProgramType. It is
       * passed as int to eliminate including LayerManagerOGLProgram.h here.
       */
-    TemporaryRef<gfx::DataSourceSurface> ReadTexImage(GLuint aTextureId,
-                                                      GLenum aTextureTarget,
-                                                      const gfx::IntSize& aSize,
-                              /* ShaderProgramType */ int aShaderProgram,
-                                                      bool aYInvert = false);
+    already_AddRefed<gfx::DataSourceSurface> ReadTexImage(GLuint aTextureId,
+                                                          GLenum aTextureTarget,
+                                                          const gfx::IntSize& aSize,
+                                  /* ShaderProgramType */ int aShaderProgram,
+                                                          bool aYInvert = false);
 
-
+    bool ReadTexImage(gfx::DataSourceSurface* aDest,
+                      GLuint aTextureId,
+                      GLenum aTextureTarget,
+                      const gfx::IntSize& aSize,
+                      int aShaderProgram,
+                      bool aYInvert = false);
 };
 
-}
-}
+} // namespace gl
+} // namespace mozilla
 
 #endif

@@ -24,9 +24,10 @@ class TaskbarWindowPreview : public TaskbarPreview,
                              public nsITaskbarOverlayIconController,
                              public nsSupportsWeakReference
 {
+  virtual ~TaskbarWindowPreview();
+
 public:
   TaskbarWindowPreview(ITaskbarList4 *aTaskbar, nsITaskbarPreviewController *aController, HWND aHWND, nsIDocShell *aShell);
-  virtual ~TaskbarWindowPreview();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSITASKBARWINDOWPREVIEW
@@ -34,15 +35,15 @@ public:
   NS_DECL_NSITASKBAROVERLAYICONCONTROLLER
   NS_FORWARD_NSITASKBARPREVIEW(TaskbarPreview::)
 
-  virtual LRESULT WndProc(UINT nMsg, WPARAM wParam, LPARAM lParam);
+  virtual LRESULT WndProc(UINT nMsg, WPARAM wParam, LPARAM lParam) override;
 private:
-  virtual nsresult ShowActive(bool active);
-  virtual HWND &PreviewWindow();
+  virtual nsresult ShowActive(bool active) override;
+  virtual HWND &PreviewWindow() override;
 
-  virtual nsresult UpdateTaskbarProperties();
-  virtual nsresult Enable();
-  virtual nsresult Disable();
-  virtual void DetachFromNSWindow();
+  virtual nsresult UpdateTaskbarProperties() override;
+  virtual nsresult Enable() override;
+  virtual nsresult Disable() override;
+  virtual void DetachFromNSWindow() override;
   nsresult UpdateButton(uint32_t index);
   nsresult UpdateButtons();
 

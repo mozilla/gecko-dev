@@ -40,9 +40,10 @@ from __future__ import print_function
 import difflib
 import os
 import re
-import subprocess
 import sys
-import traceback
+
+from mozversioncontrol import get_repository_from_env
+
 
 # We don't bother checking files in these directories, because they're (a) auxiliary or (b)
 # imported code that doesn't follow our coding style.
@@ -65,17 +66,21 @@ included_inclnames_to_ignore = set([
     'jsautokw.h',               # generated in $OBJDIR
     'jscustomallocator.h',      # provided by embedders;  allowed to be missing
     'js-config.h',              # generated in $OBJDIR
+    'fdlibm.h',                 # fdlibm
     'pratom.h',                 # NSPR
     'prcvar.h',                 # NSPR
+    'prerror.h',                # NSPR
     'prinit.h',                 # NSPR
+    'prio.h',                   # NSPR
+    'private/pprio.h',          # NSPR
     'prlink.h',                 # NSPR
     'prlock.h',                 # NSPR
     'prprf.h',                  # NSPR
     'prthread.h',               # NSPR
     'prtypes.h',                # NSPR
     'selfhosted.out.h',         # generated in $OBJDIR
-    'unicode/locid.h',          # ICU
-    'unicode/numsys.h',         # ICU
+    'shellmoduleloader.out.h',  # generated in $OBJDIR
+    'unicode/timezone.h',       # ICU
     'unicode/ucal.h',           # ICU
     'unicode/uclean.h',         # ICU
     'unicode/ucol.h',           # ICU
@@ -84,6 +89,7 @@ included_inclnames_to_ignore = set([
     'unicode/uenum.h',          # ICU
     'unicode/unorm.h',          # ICU
     'unicode/unum.h',           # ICU
+    'unicode/unumsys.h',        # ICU
     'unicode/ustring.h',        # ICU
     'unicode/utypes.h',         # ICU
     'vtune/VTuneWrapper.h'      # VTune
@@ -216,38 +222,33 @@ class FileKind(object):
         error(filename, None, 'unknown file kind')
 
 
-def get_all_filenames():
-    '''Get a list of all the files in the (Mercurial or Git) repository.'''
-    cmds = [['hg', 'manifest', '-q'], ['git', 'ls-files', '--full-name', '../..']]
-    for cmd in cmds:
-        try:
-            all_filenames = subprocess.check_output(cmd, universal_newlines=True,
-                                                    stderr=subprocess.PIPE).split('\n')
-            return all_filenames
-        except:
-            continue
-    else:
-        raise Exception('failed to run any of the repo manifest commands', cmds)
-
-
 def check_style():
     # We deal with two kinds of name.
     # - A "filename" is a full path to a file from the repository root.
     # - An "inclname" is how a file is referred to in a #include statement.
     #
     # Examples (filename -> inclname)
-    # - "mfbt/Attributes.h"  -> "mozilla/Attributes.h"
-    # - "js/public/Vector.h" -> "js/Vector.h"
-    # - "js/src/vm/String.h" -> "vm/String.h"
+    # - "mfbt/Attributes.h"         -> "mozilla/Attributes.h"
+    # - "mfbt/decimal/Decimal.h     -> "mozilla/Decimal.h"
+    # - "mozglue/misc/TimeStamp.h   -> "mozilla/TimeStamp.h"
+    # - "memory/mozalloc/mozalloc.h -> "mozilla/mozalloc.h"
+    # - "js/public/Vector.h"        -> "js/Vector.h"
+    # - "js/src/vm/String.h"        -> "vm/String.h"
 
-    mfbt_inclnames = set()      # type: set(inclname)
-    js_names = dict()           # type: dict(filename, inclname)
+    non_js_dirnames = ('mfbt/',
+                       'memory/mozalloc/',
+                       'mozglue/')  # type: tuple(str)
+    non_js_inclnames = set()        # type: set(inclname)
+    js_names = dict()               # type: dict(filename, inclname)
+
+    repo = get_repository_from_env()
 
     # Select the appropriate files.
-    for filename in get_all_filenames():
-        if filename.startswith('mfbt/') and filename.endswith('.h'):
-            inclname = 'mozilla/' + filename[len('mfbt/'):]
-            mfbt_inclnames.add(inclname)
+    for filename in repo.get_files_in_working_directory():
+        for non_js_dir in non_js_dirnames:
+            if filename.startswith(non_js_dir) and filename.endswith('.h'):
+                inclname = 'mozilla/' + filename.split('/')[-1]
+                non_js_inclnames.add(inclname)
 
         if filename.startswith('js/public/') and filename.endswith('.h'):
             inclname = 'js/' + filename[len('js/public/'):]
@@ -259,13 +260,13 @@ def check_style():
             inclname = filename[len('js/src/'):]
             js_names[filename] = inclname
 
-    all_inclnames = mfbt_inclnames | set(js_names.values())
+    all_inclnames = non_js_inclnames | set(js_names.values())
 
     edges = dict()      # type: dict(inclname, set(inclname))
 
-    # We don't care what's inside the MFBT files, but because they are
-    # #included from JS files we have to add them to the inclusion graph.
-    for inclname in mfbt_inclnames:
+    # We don't care what's inside the MFBT and MOZALLOC files, but because they
+    # are #included from JS files we have to add them to the inclusion graph.
+    for inclname in non_js_inclnames:
         edges[inclname] = set()
 
     # Process all the JS files.
@@ -278,7 +279,7 @@ def check_style():
 
             # This script is run in js/src/, so prepend '../../' to get to the root of the Mozilla
             # source tree.
-            with open(os.path.join('../..', filename)) as f:
+            with open(os.path.join(repo.path, filename)) as f:
                 do_file(filename, inclname, file_kind, f, all_inclnames, included_h_inclnames)
 
         edges[inclname] = included_h_inclnames
@@ -399,6 +400,10 @@ def do_file(filename, inclname, file_kind, f, all_inclnames, included_h_inclname
 
     # Extract the #include statements as a tree of IBlocks and IIncludes.
     for linenum, line in enumerate(f, start=1):
+        # We're only interested in lines that contain a '#'.
+        if not '#' in line:
+            continue
+
         # Look for a |#include "..."| line.
         m = re.match(r'\s*#\s*include\s+"([^"]*)"', line)
         if m is not None:
@@ -450,7 +455,7 @@ def do_file(filename, inclname, file_kind, f, all_inclnames, included_h_inclname
                 # Check the #include path has the correct form.
                 if include.inclname not in all_inclnames:
                     error(filename, include.linenum,
-                          include.quote() + ' is included ' + 'using the wrong path;',
+                          include.quote() + ' is included using the wrong path;',
                           'did you forget a prefix, or is the file not yet committed?')
 
                 # Record inclusions of .h files for cycle detection later.
@@ -482,16 +487,12 @@ def do_file(filename, inclname, file_kind, f, all_inclnames, included_h_inclname
             error(filename, str(include1.linenum) + ':' + str(include2.linenum),
                   include1.quote() + ' should be included after ' + include2.quote())
 
-    # The #include statements in the files in assembler/ and yarr/ have all manner of implicit
-    # ordering requirements.  Boo.  Ignore them.
-    skip_order_checking = inclname.startswith(('assembler/', 'yarr/'))
-
     # Check the extracted #include statements, both individually, and the ordering of
     # adjacent pairs that live in the same block.
     def pair_traverse(prev, this):
         if this.isLeaf():
             check_include_statement(this)
-            if prev is not None and prev.isLeaf() and not skip_order_checking:
+            if prev is not None and prev.isLeaf():
                 check_includes_order(prev, this)
         else:
             for prev2, this2 in zip([None] + this.kids[0:-1], this.kids):

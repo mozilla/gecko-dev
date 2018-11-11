@@ -1,19 +1,25 @@
 var fs = require('fs');
 var path = require('path');
 var http2 = require('..');
+var urlParse = require('url').parse;
 
+// Setting the global logger (optional)
 http2.globalAgent = new http2.Agent({
+  rejectUnauthorized: true,
   log: require('../test/util').createLogger('client')
 });
 
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
 // Sending the request
-// It would be `var request = http2.get(process.argv.pop());` if we wouldn't care about plain mode
-var options = require('url').parse(process.argv.pop());
-options.plain = Boolean(process.env.HTTP2_PLAIN);
-var request = http2.request(options);
-request.end();
+var url = process.argv.pop();
+var options = urlParse(url);
+
+// Optionally verify self-signed certificates.
+if (options.hostname == 'localhost') {
+  options.key = fs.readFileSync(path.join(__dirname, '/localhost.key'));
+  options.ca = fs.readFileSync(path.join(__dirname, '/localhost.crt'));
+}
+
+var request = process.env.HTTP2_PLAIN ? http2.raw.get(options) : http2.get(options);
 
 // Receiving the response
 request.on('response', function(response) {

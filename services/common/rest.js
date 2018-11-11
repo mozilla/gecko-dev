@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef MERGED_COMPARTMENT
-
-const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
+var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 this.EXPORTED_SYMBOLS = [
   "RESTRequest",
@@ -12,10 +10,9 @@ this.EXPORTED_SYMBOLS = [
   "TokenAuthenticatedRESTRequest",
 ];
 
-#endif
-
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-common/utils.js");
@@ -23,7 +20,7 @@ Cu.import("resource://services-common/utils.js");
 XPCOMUtils.defineLazyModuleGetter(this, "CryptoUtils",
                                   "resource://services-crypto/utils.js");
 
-const Prefs = new Preferences("services.common.rest.");
+const Prefs = new Preferences("services.common.");
 
 /**
  * Single use HTTP requests to RESTish resources.
@@ -106,6 +103,13 @@ RESTRequest.prototype = {
   ]),
 
   /*** Public API: ***/
+
+  /**
+   * A constant boolean that indicates whether this object will automatically
+   * utf-8 encode request bodies passed as an object. Used for feature detection
+   * so, eg, loop can use the same source code for old and new Firefox versions.
+   */
+  willUTF8EncodeObjectRequests: true,
 
   /**
    * URI for the request (an nsIURI object).
@@ -208,6 +212,23 @@ RESTRequest.prototype = {
   },
 
   /**
+   * Perform an HTTP PATCH.
+   *
+   * @param data
+   *        Data to be used as the request body. If this isn't a string
+   *        it will be JSONified automatically.
+   * @param onComplete
+   *        Short-circuit way to set the 'onComplete' method. Optional.
+   * @param onProgress
+   *        Short-circuit way to set the 'onProgress' method. Optional.
+   *
+   * @return the request object.
+   */
+  patch: function patch(data, onComplete, onProgress) {
+    return this.dispatch("PATCH", data, onComplete, onProgress);
+  },
+
+  /**
    * Perform an HTTP PUT.
    *
    * @param data
@@ -288,13 +309,14 @@ RESTRequest.prototype = {
     }
 
     // Create and initialize HTTP channel.
-    let channel = Services.io.newChannelFromURI(this.uri, null, null)
-                          .QueryInterface(Ci.nsIRequest)
-                          .QueryInterface(Ci.nsIHttpChannel);
+    let channel = NetUtil.newChannel({uri: this.uri, loadUsingSystemPrincipal: true})
+                         .QueryInterface(Ci.nsIRequest)
+                         .QueryInterface(Ci.nsIHttpChannel);
     this.channel = channel;
     channel.loadFlags |= this.loadFlags;
     channel.notificationCallbacks = this;
 
+    this._log.debug(`${method} request to ${this.uri.spec}`);
     // Set request headers.
     let headers = this._headers;
     for (let key in headers) {
@@ -307,10 +329,29 @@ RESTRequest.prototype = {
     }
 
     // Set HTTP request body.
-    if (method == "PUT" || method == "POST") {
-      // Convert non-string bodies into JSON.
+    if (method == "PUT" || method == "POST" || method == "PATCH") {
+      // Convert non-string bodies into JSON with utf-8 encoding. If a string
+      // is passed we assume they've already encoded it.
+      let contentType = headers["content-type"];
       if (typeof data != "string") {
         data = JSON.stringify(data);
+        if (!contentType) {
+          contentType = "application/json";
+        }
+        if (!contentType.includes("charset")) {
+          data = CommonUtils.encodeUTF8(data);
+          contentType += "; charset=utf-8";
+        } else {
+          // If someone handed us an object but also a custom content-type
+          // it's probably confused. We could go to even further lengths to
+          // respect it, but this shouldn't happen in practice.
+          Cu.reportError("rest.js found an object to JSON.stringify but also a " +
+                         "content-type header with a charset specification. " +
+                         "This probably isn't going to do what you expect");
+        }
+      }
+      if (!contentType) {
+        contentType = "text/plain";
       }
 
       this._log.debug(method + " Length: " + data.length);
@@ -322,9 +363,8 @@ RESTRequest.prototype = {
                      .createInstance(Ci.nsIStringInputStream);
       stream.setData(data, data.length);
 
-      let type = headers["content-type"] || "text/plain";
       channel.QueryInterface(Ci.nsIUploadChannel);
-      channel.setUploadStream(stream, type, data.length);
+      channel.setUploadStream(stream, contentType, data.length);
     }
     // We must set this after setting the upload stream, otherwise it
     // will always be 'PUT'. Yeah, I know.
@@ -336,10 +376,10 @@ RESTRequest.prototype = {
 
     // Blast off!
     try {
-      channel.asyncOpen(this, null);
+      channel.asyncOpen2(this);
     } catch (ex) {
       // asyncOpen can throw in a bunch of cases -- e.g., a forbidden port.
-      this._log.warn("Caught an error in asyncOpen: " + CommonUtils.exceptionStr(ex));
+      this._log.warn("Caught an error in asyncOpen", ex);
       CommonUtils.nextTick(onComplete.bind(this, ex));
     }
     this.status = this.SENT;
@@ -366,7 +406,7 @@ RESTRequest.prototype = {
                                      Cr.NS_ERROR_NET_TIMEOUT);
     if (!this.onComplete) {
       this._log.error("Unexpected error: onComplete not defined in " +
-                      "abortTimeout.")
+                      "abortTimeout.");
       return;
     }
     this.onComplete(error);
@@ -441,6 +481,7 @@ RESTRequest.prototype = {
     if (!statusSuccess) {
       let message = Components.Exception("", statusCode).name;
       let error = Components.Exception(message, statusCode);
+      this._log.debug(this.method + " " + uri + " failed: " + statusCode + " - " + message);
       this.onComplete(error);
       this.onComplete = this.onProgress = null;
       return;
@@ -494,8 +535,7 @@ RESTRequest.prototype = {
         }
       } catch (ex) {
         this._log.warn("Exception thrown reading " + count + " bytes from " +
-                       "the channel.");
-        this._log.warn(CommonUtils.exceptionStr(ex));
+                       "the channel", ex);
         throw ex;
       }
     } else {
@@ -515,8 +555,7 @@ RESTRequest.prototype = {
       this.onProgress();
     } catch (ex) {
       this._log.warn("Got exception calling onProgress handler, aborting " +
-                     this.method + " " + channel.URI.spec);
-      this._log.debug("Exception: " + CommonUtils.exceptionStr(ex));
+                     this.method + " " + channel.URI.spec, ex);
       this.abort();
 
       if (!this.onComplete) {
@@ -566,6 +605,10 @@ RESTRequest.prototype = {
   asyncOnChannelRedirect:
     function asyncOnChannelRedirect(oldChannel, newChannel, flags, callback) {
 
+    let oldSpec = (oldChannel && oldChannel.URI) ? oldChannel.URI.spec : "<undefined>";
+    let newSpec = (newChannel && newChannel.URI) ? newChannel.URI.spec : "<undefined>";
+    this._log.debug("Channel redirect: " + oldSpec + ", " + newSpec + ", " + flags);
+
     try {
       newChannel.QueryInterface(Ci.nsIHttpChannel);
     } catch (ex) {
@@ -583,7 +626,7 @@ RESTRequest.prototype = {
         }
       }
     } catch (ex) {
-      this._log.error("Error copying headers: " + CommonUtils.exceptionStr(ex));
+      this._log.error("Error copying headers", ex);
     }
 
     this.channel = newChannel;
@@ -604,7 +647,7 @@ this.RESTResponse = function RESTResponse() {
 }
 RESTResponse.prototype = {
 
-  _logName: "Sync.RESTResponse",
+  _logName: "Services.Common.RESTResponse",
 
   /**
    * Corresponding REST request
@@ -619,12 +662,11 @@ RESTResponse.prototype = {
     try {
       status = this.request.channel.responseStatus;
     } catch (ex) {
-      this._log.debug("Caught exception fetching HTTP status code:" +
-                      CommonUtils.exceptionStr(ex));
+      this._log.debug("Caught exception fetching HTTP status code", ex);
       return null;
     }
-    delete this.status;
-    return this.status = status;
+    Object.defineProperty(this, "status", {value: status});
+    return status;
   },
 
   /**
@@ -635,12 +677,11 @@ RESTResponse.prototype = {
     try {
       statusText = this.request.channel.responseStatusText;
     } catch (ex) {
-      this._log.debug("Caught exception fetching HTTP status text:" +
-                      CommonUtils.exceptionStr(ex));
+      this._log.debug("Caught exception fetching HTTP status text", ex);
       return null;
     }
-    delete this.statusText;
-    return this.statusText = statusText;
+    Object.defineProperty(this, "statusText", {value: statusText});
+    return statusText;
   },
 
   /**
@@ -651,12 +692,11 @@ RESTResponse.prototype = {
     try {
       success = this.request.channel.requestSucceeded;
     } catch (ex) {
-      this._log.debug("Caught exception fetching HTTP success flag:" +
-                      CommonUtils.exceptionStr(ex));
+      this._log.debug("Caught exception fetching HTTP success flag", ex);
       return null;
     }
-    delete this.success;
-    return this.success = success;
+    Object.defineProperty(this, "success", {value: success});
+    return success;
   },
 
   /**
@@ -671,13 +711,12 @@ RESTResponse.prototype = {
         headers[header.toLowerCase()] = value;
       });
     } catch (ex) {
-      this._log.debug("Caught exception processing response headers:" +
-                      CommonUtils.exceptionStr(ex));
+      this._log.debug("Caught exception processing response headers", ex);
       return null;
     }
 
-    delete this.headers;
-    return this.headers = headers;
+    Object.defineProperty(this, "headers", {value: headers});
+    return headers;
   },
 
   /**
@@ -723,4 +762,3 @@ TokenAuthenticatedRESTRequest.prototype = {
     );
   },
 };
-

@@ -8,26 +8,30 @@
 
 "use strict";
 
-const Ci = Components.interfaces;
+function run_test() {
+  removeMetadata();
+  updateAppInfo();
 
-Components.utils.import("resource://testing-common/httpd.js");
+  // The test engines used in this test need to be recognized as 'default'
+  // engines, or their MozParams used to set the purpose will be ignored.
+  let url = "resource://test/data/";
+  let resProt = Services.io.getProtocolHandler("resource")
+                        .QueryInterface(Ci.nsIResProtocolHandler);
+  resProt.setSubstitution("search-plugins",
+                          Services.io.newURI(url, null, null));
 
-function search_observer(aSubject, aTopic, aData) {
-  let engine = aSubject.QueryInterface(Ci.nsISearchEngine);
-  do_print("Observer: " + aData + " for " + engine.name);
+  run_next_test();
+}
 
-  if (aData != "engine-added")
-    return;
-
-  if (engine.name != "Test search engine")
-    return;
+add_task(function* test_purpose() {
+  let engine = Services.search.getEngineByName("Test search engine");
 
   function check_submission(aExpected, aSearchTerm, aType, aPurpose) {
     do_check_eq(engine.getSubmission(aSearchTerm, aType, aPurpose).uri.spec,
                 base + aExpected);
   }
 
-  let base = "http://www.google.com/search?q=foo&ie=utf-8&oe=utf-8&aq=t&client=firefox";
+  let base = "http://www.google.com/search?q=foo&ie=utf-8&oe=utf-8&aq=t";
   check_submission("",              "foo");
   check_submission("",              "foo", null);
   check_submission("",              "foo", "text/html");
@@ -38,37 +42,29 @@ function search_observer(aSubject, aTopic, aData) {
   check_submission("",              "foo", "text/html", "invalid");
 
   // Tests for a param that varies with a purpose but has a default value.
-  base = "http://www.google.com/search?q=foo&client=firefox";
-  check_submission("&channel=none", "foo", "application/x-moz-default-purpose");
-  check_submission("&channel=none", "foo", "application/x-moz-default-purpose", null);
-  check_submission("&channel=none", "foo", "application/x-moz-default-purpose", "");
+  base = "http://www.google.com/search?q=foo";
+  check_submission("&channel=ffsb", "foo", "application/x-moz-default-purpose");
+  check_submission("&channel=ffsb", "foo", "application/x-moz-default-purpose", null);
+  check_submission("&channel=ffsb", "foo", "application/x-moz-default-purpose", "");
   check_submission("&channel=rcs",  "foo", "application/x-moz-default-purpose", "contextmenu");
   check_submission("&channel=fflb", "foo", "application/x-moz-default-purpose", "keyword");
-  check_submission("",              "foo", "application/x-moz-default-purpose", "invalid");
+  check_submission("&channel=ffsb", "foo", "application/x-moz-default-purpose", "searchbar");
+  check_submission("&channel=ffsb", "foo", "application/x-moz-default-purpose", "invalid");
+
+  // Tests for a purpose on the search form (ie. empty query).
+  engine = Services.search.getEngineByName("engine-rel-searchform-purpose");
+  base = "http://www.google.com/search?q=";
+  check_submission("&channel=sb", "", null,        "searchbar");
+  check_submission("&channel=sb", "", "text/html", "searchbar");
+
+  // verify that the 'system' purpose falls back to the 'searchbar' purpose.
+  base = "http://www.google.com/search?q=foo";
+  check_submission("&channel=sb", "foo", "text/html", "system");
+  check_submission("&channel=sb", "foo", "text/html", "searchbar");
+  // Use an engine that actually defines the 'system' purpose...
+  engine = Services.search.getEngineByName("engine-system-purpose");
+  // ... and check that the system purpose is used correctly.
+  check_submission("&channel=sys", "foo", "text/html", "system");
 
   do_test_finished();
-};
-
-function run_test() {
-  removeMetadata();
-  updateAppInfo();
-  do_load_manifest("data/chrome.manifest");
-
-  let httpServer = new HttpServer();
-  httpServer.start(-1);
-  httpServer.registerDirectory("/", do_get_cwd());
-
-  do_register_cleanup(function cleanup() {
-    httpServer.stop(function() {});
-    Services.obs.removeObserver(search_observer, "browser-search-engine-modified");
-  });
-
-  do_test_pending();
-  Services.obs.addObserver(search_observer, "browser-search-engine-modified", false);
-
-  Services.search.addEngine("http://localhost:" +
-                            httpServer.identity.primaryPort +
-                            "/data/engine.xml",
-                            Ci.nsISearchEngine.DATA_XML,
-                            null, false);
-}
+});

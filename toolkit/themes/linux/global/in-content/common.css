@@ -1,0 +1,123 @@
+/* - This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this file,
+   - You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+%include ../../../shared/in-content/common.inc.css
+
+xul|tab[visuallyselected] {
+  /* Override styles for tab[selected] from
+     toolkit/themes/linux/global/tabbox.css */
+  margin-bottom: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+xul|button,
+html|button,
+xul|colorpicker[type="button"],
+xul|menulist {
+  margin: 2px 4px;
+}
+
+xul|button > xul|*.button-box,
+xul|menulist > xul|*.menulist-label-box {
+  -moz-appearance: none;
+}
+
+xul|button[type="menu"] > xul|*.button-box > xul|*.button-menu-dropmarker {
+  -moz-appearance: none !important;
+}
+
+xul|*.help-button > xul|*.button-box > xul|*.button-icon {
+  margin-inline-end: 0;
+}
+
+xul|*.groupbox-body {
+  padding-inline-start: 0;
+}
+
+xul|menulist {
+  font-size: inherit;
+}
+
+xul|menulist:not([editable="true"]) > xul|*.menulist-dropmarker {
+  display: -moz-box;
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
+xul|checkbox {
+  -moz-binding: url("chrome://global/content/bindings/checkbox.xml#checkbox");
+  -moz-box-align: center;
+}
+
+xul|*.checkbox-check {
+  background-image: none !important;
+}
+
+xul|*.checkbox-check[checked] {
+  list-style-image: url("chrome://global/skin/in-content/check.svg#check-native");
+  background-color: -moz-dialog;
+}
+
+xul|radio {
+  -moz-binding: url("chrome://global/content/bindings/radio.xml#radio");
+  -moz-box-align: center;
+}
+
+xul|*.radio-check {
+  background-image: none;
+}
+
+xul|*.radio-check[selected] {
+  list-style-image: url("chrome://global/skin/in-content/radio.svg#radio-native");
+  background-color: -moz-dialog;
+}
+
+xul|*.radio-label-box {
+  -moz-appearance: none;
+}
+
+/* Override OS-theme-based color to make it visible
+   on dark color themes. */
+xul|radio:not([disabled="true"]):hover,
+xul|checkbox:not([disabled="true"]):hover {
+  color: var(--in-content-text-color);
+}
+
+xul|*.numberbox-input-box {
+  -moz-appearance: none;
+  border-width: 0;
+}
+
+xul|*.text-link:-moz-focusring {
+  border: 1px dotted -moz-DialogText;
+}
+
+xul|menulist:-moz-focusring > xul|*.menulist-label-box,
+xul|radio[focused="true"] > xul|*.radio-label-box,
+html|input[type="checkbox"]:-moz-focusring + html|label:before,
+xul|checkbox:-moz-focusring > xul|*.checkbox-label-box {
+  outline: 1px dotted;
+}
+
+xul|spinbuttons {
+  -moz-appearance: none;
+}
+
+xul|treechildren::-moz-tree-row(multicol, odd) {
+  background-color: var(--in-content-box-background-odd);
+}
+
+/* These rules are duplicated from common.inc.css
+ * because above -moz-tree-row(multicol, odd) rule 
+ * overrides also hover/selected states. 
+ */
+xul|treechildren::-moz-tree-row(hover) {
+  background-color: var(--in-content-item-hover);
+}
+
+xul|treechildren::-moz-tree-row(selected) {
+  background-color: var(--in-content-item-selected);
+}
+

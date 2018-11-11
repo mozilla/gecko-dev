@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
 
 const nsIBLS = Ci.nsIBlocklistService;
 
@@ -41,12 +41,7 @@ var PLUGINS = [{
 function run_test() {
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9");
 
-  var blocklistFile = gProfD.clone();
-  blocklistFile.append("blocklist.xml");
-  if (blocklistFile.exists())
-    blocklistFile.remove(false);
-  var source = do_get_file("data/test_bug514327_1.xml");
-  source.copyTo(gProfD, "blocklist.xml");
+  copyBlocklistToProfile(do_get_file("data/test_bug514327_1.xml"));
 
   var blocklist = Cc["@mozilla.org/extensions/blocklist;1"].getService(nsIBLS);
 

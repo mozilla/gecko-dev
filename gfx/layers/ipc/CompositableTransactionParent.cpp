@@ -7,25 +7,24 @@
 
 #include "CompositableTransactionParent.h"
 #include "CompositableHost.h"           // for CompositableParent, etc
-#include "CompositorParent.h"           // for CompositorParent
+#include "CompositorBridgeParent.h"     // for CompositorBridgeParent
 #include "GLContext.h"                  // for GLContext
 #include "Layers.h"                     // for Layer
 #include "RenderTrace.h"                // for RenderTraceInvalidateEnd, etc
-#include "TiledLayerBuffer.h"           // for TiledLayerComposer
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
 #include "mozilla/RefPtr.h"             // for RefPtr
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/ContentHost.h"  // for ContentHostBase
 #include "mozilla/layers/ImageBridgeParent.h" // for ImageBridgeParent
-#include "mozilla/layers/SharedBufferManagerParent.h"
 #include "mozilla/layers/LayerManagerComposite.h"
 #include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor
 #include "mozilla/layers/LayersTypes.h"  // for MOZ_LAYERS_LOG
 #include "mozilla/layers/TextureHost.h"  // for TextureHost
 #include "mozilla/layers/TextureHostOGL.h"  // for TextureHostOGL
-#include "mozilla/layers/ThebesLayerComposite.h"
+#include "mozilla/layers/TiledContentHost.h"
+#include "mozilla/layers/PaintedLayerComposite.h"
 #include "mozilla/mozalloc.h"           // for operator delete
-#include "mozilla/unused.h"
+#include "mozilla/Unused.h"
 #include "nsDebug.h"                    // for NS_WARNING, NS_ASSERTION
 #include "nsRegion.h"                   // for nsIntRegion
 
@@ -34,12 +33,6 @@ namespace layers {
 
 class ClientTiledLayerBuffer;
 class Compositor;
-
-template<typename Op>
-CompositableHost* AsCompositable(const Op& op)
-{
-  return CompositableHost::FromIPDLActor(op.compositableParent());
-}
 
 // This function can in some cases fail and return false without it being a bug.
 // This can theoretically happen if the ImageBridge sends frames before
@@ -52,15 +45,14 @@ CompositableHost* AsCompositable(const Op& op)
 // big deal.
 // Note that Layers transactions do not need to call this because they always
 // schedule the composition, in LayerManagerComposite::EndTransaction.
-template<typename T>
-bool ScheduleComposition(const T& op)
+static bool
+ScheduleComposition(CompositableHost* aCompositable)
 {
-  CompositableHost* comp = AsCompositable(op);
-  uint64_t id = comp->GetCompositorID();
-  if (!comp || !id) {
+  uint64_t id = aCompositable->GetCompositorID();
+  if (!id) {
     return false;
   }
-  CompositorParent* cp = CompositorParent::GetCompositor(id);
+  CompositorBridgeParent* cp = CompositorBridgeParent::GetCompositorBridgeParent(id);
   if (!cp) {
     return false;
   }
@@ -72,31 +64,23 @@ bool
 CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation& aEdit,
                                                      EditReplyVector& replyv)
 {
-  switch (aEdit.type()) {
-    case CompositableOperation::TOpCreatedIncrementalTexture: {
-      MOZ_LAYERS_LOG(("[ParentSide] Created texture"));
-      const OpCreatedIncrementalTexture& op = aEdit.get_OpCreatedIncrementalTexture();
-      CompositableHost* compositable = AsCompositable(op);
+  // Ignore all operations on compositables created on stale compositors. We
+  // return true because the child is unable to handle errors.
+  CompositableHost* compositable = CompositableHost::FromIPDLActor(aEdit.compositableParent());
+  if (compositable->GetCompositor() && !compositable->GetCompositor()->IsValid()) {
+    return true;
+  }
 
-      bool success =
-        compositable->CreatedIncrementalTexture(this,
-                                                op.textureInfo(),
-                                                op.bufferRect());
-      if (!success) {
-        return false;
-      }
-      break;
-    }
-    case CompositableOperation::TOpPaintTextureRegion: {
-      MOZ_LAYERS_LOG(("[ParentSide] Paint ThebesLayer"));
+  switch (aEdit.detail().type()) {
+    case CompositableOperationDetail::TOpPaintTextureRegion: {
+      MOZ_LAYERS_LOG(("[ParentSide] Paint PaintedLayer"));
 
-      const OpPaintTextureRegion& op = aEdit.get_OpPaintTextureRegion();
-      CompositableHost* compositable = AsCompositable(op);
+      const OpPaintTextureRegion& op = aEdit.detail().get_OpPaintTextureRegion();
       Layer* layer = compositable->GetLayer();
-      if (!layer || layer->GetType() != Layer::TYPE_THEBES) {
+      if (!layer || layer->GetType() != Layer::TYPE_PAINTED) {
         return false;
       }
-      ThebesLayerComposite* thebes = static_cast<ThebesLayerComposite*>(layer);
+      PaintedLayerComposite* thebes = static_cast<PaintedLayerComposite*>(layer);
 
       const ThebesBufferData& bufferData = op.bufferData();
 
@@ -111,133 +95,123 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
         return false;
       }
       replyv.push_back(
-        OpContentBufferSwap(op.compositableParent(), nullptr, frontUpdatedRegion));
+        OpContentBufferSwap(aEdit.compositableParent(), nullptr, frontUpdatedRegion));
 
       RenderTraceInvalidateEnd(thebes, "FF00FF");
       break;
     }
-    case CompositableOperation::TOpPaintTextureIncremental: {
-      MOZ_LAYERS_LOG(("[ParentSide] Paint ThebesLayer"));
-
-      const OpPaintTextureIncremental& op = aEdit.get_OpPaintTextureIncremental();
-
-      CompositableHost* compositable = AsCompositable(op);
-
-      SurfaceDescriptor desc = op.image();
-
-      compositable->UpdateIncremental(op.textureId(),
-                                      desc,
-                                      op.updatedRegion(),
-                                      op.bufferRect(),
-                                      op.bufferRotation());
-      break;
-    }
-    case CompositableOperation::TOpUpdatePictureRect: {
-      const OpUpdatePictureRect& op = aEdit.get_OpUpdatePictureRect();
-      CompositableHost* compositable = AsCompositable(op);
-      MOZ_ASSERT(compositable);
-      compositable->SetPictureRect(op.picture());
-      break;
-    }
-    case CompositableOperation::TOpUseTiledLayerBuffer: {
+    case CompositableOperationDetail::TOpUseTiledLayerBuffer: {
       MOZ_LAYERS_LOG(("[ParentSide] Paint TiledLayerBuffer"));
-      const OpUseTiledLayerBuffer& op = aEdit.get_OpUseTiledLayerBuffer();
-      CompositableHost* compositable = AsCompositable(op);
+      const OpUseTiledLayerBuffer& op = aEdit.detail().get_OpUseTiledLayerBuffer();
+      TiledContentHost* tiledHost = compositable->AsTiledContentHost();
 
-      TiledLayerComposer* tileComposer = compositable->AsTiledLayerComposer();
-      NS_ASSERTION(tileComposer, "compositable is not a tile composer");
+      NS_ASSERTION(tiledHost, "The compositable is not tiled");
 
       const SurfaceDescriptorTiles& tileDesc = op.tileLayerDescriptor();
-      tileComposer->UseTiledLayerBuffer(this, tileDesc);
-      break;
-    }
-    case CompositableOperation::TOpRemoveTexture: {
-      const OpRemoveTexture& op = aEdit.get_OpRemoveTexture();
-      CompositableHost* compositable = AsCompositable(op);
-      RefPtr<TextureHost> tex = TextureHost::AsTextureHost(op.textureParent());
 
-      MOZ_ASSERT(tex.get());
-      compositable->RemoveTextureHost(tex);
-      // send FenceHandle if present.
-      TextureHost::SendFenceHandleIfPresent(op.textureParent());
-      break;
-    }
-    case CompositableOperation::TOpRemoveTextureAsync: {
-      const OpRemoveTextureAsync& op = aEdit.get_OpRemoveTextureAsync();
-      CompositableHost* compositable = AsCompositable(op);
-      RefPtr<TextureHost> tex = TextureHost::AsTextureHost(op.textureParent());
+      bool success = tiledHost->UseTiledLayerBuffer(this, tileDesc);
 
-      MOZ_ASSERT(tex.get());
-      compositable->RemoveTextureHost(tex);
-
-      if (!IsAsync() && GetChildProcessId()) {
-        // send FenceHandle if present via ImageBridge.
-        ImageBridgeParent::SendFenceHandleToTrackerIfPresent(
-                             GetChildProcessId(),
-                             op.holderId(),
-                             op.transactionId(),
-                             op.textureParent());
-
-        // If the message is recievied via PLayerTransaction,
-        // Send message back via PImageBridge.
-        ImageBridgeParent::ReplyRemoveTexture(
-                             GetChildProcessId(),
-                             OpReplyRemoveTexture(true, // isMain
-                                                  op.holderId(),
-                                                  op.transactionId()));
-      } else {
-        // send FenceHandle if present.
-        TextureHost::SendFenceHandleIfPresent(op.textureParent());
-
-        ReplyRemoveTexture(OpReplyRemoveTexture(false, // isMain
-                                                op.holderId(),
-                                                op.transactionId()));
-      }
-      break;
-    }
-    case CompositableOperation::TOpUseTexture: {
-      const OpUseTexture& op = aEdit.get_OpUseTexture();
-      CompositableHost* compositable = AsCompositable(op);
-      RefPtr<TextureHost> tex = TextureHost::AsTextureHost(op.textureParent());
-
-      MOZ_ASSERT(tex.get());
-      compositable->UseTextureHost(tex);
-
-      if (IsAsync()) {
-        ScheduleComposition(op);
-        // Async layer updates don't trigger invalidation, manually tell the layer
-        // that its content have changed.
-        if (compositable->GetLayer()) {
-          compositable->GetLayer()->SetInvalidRectToVisibleRegion();
+      const InfallibleTArray<TileDescriptor>& tileDescriptors = tileDesc.tiles();
+      for (size_t i = 0; i < tileDescriptors.Length(); i++) {
+        const TileDescriptor& tileDesc = tileDescriptors[i];
+        if (tileDesc.type() != TileDescriptor::TTexturedTileDescriptor) {
+          continue;
+        }
+        const TexturedTileDescriptor& texturedDesc = tileDesc.get_TexturedTileDescriptor();
+        RefPtr<TextureHost> texture = TextureHost::AsTextureHost(texturedDesc.textureParent());
+        if (texture) {
+          texture->SetLastFwdTransactionId(mFwdTransactionId);
+          // Make sure that each texture was handled by the compositable
+          // because the recycling logic depends on it.
+          MOZ_ASSERT(texture->NumCompositableRefs() > 0);
+        }
+        if (texturedDesc.textureOnWhite().type() == MaybeTexture::TPTextureParent) {
+          texture = TextureHost::AsTextureHost(texturedDesc.textureOnWhite().get_PTextureParent());
+          if (texture) {
+            texture->SetLastFwdTransactionId(mFwdTransactionId);
+            // Make sure that each texture was handled by the compositable
+            // because the recycling logic depends on it.
+            MOZ_ASSERT(texture->NumCompositableRefs() > 0);
+          }
         }
       }
+      if (!success) {
+        return false;
+      }
       break;
     }
-    case CompositableOperation::TOpUseComponentAlphaTextures: {
-      const OpUseComponentAlphaTextures& op = aEdit.get_OpUseComponentAlphaTextures();
-      CompositableHost* compositable = AsCompositable(op);
+    case CompositableOperationDetail::TOpRemoveTexture: {
+      const OpRemoveTexture& op = aEdit.detail().get_OpRemoveTexture();
+
+      RefPtr<TextureHost> tex = TextureHost::AsTextureHost(op.textureParent());
+
+      MOZ_ASSERT(tex.get());
+      compositable->RemoveTextureHost(tex);
+      break;
+    }
+    case CompositableOperationDetail::TOpUseTexture: {
+      const OpUseTexture& op = aEdit.detail().get_OpUseTexture();
+
+      AutoTArray<CompositableHost::TimedTexture,4> textures;
+      for (auto& timedTexture : op.textures()) {
+        CompositableHost::TimedTexture* t = textures.AppendElement();
+        t->mTexture =
+            TextureHost::AsTextureHost(timedTexture.textureParent());
+        MOZ_ASSERT(t->mTexture);
+        t->mTimeStamp = timedTexture.timeStamp();
+        t->mPictureRect = timedTexture.picture();
+        t->mFrameID = timedTexture.frameID();
+        t->mProducerID = timedTexture.producerID();
+        t->mTexture->DeserializeReadLock(timedTexture.sharedLock(), this);
+      }
+      if (textures.Length() > 0) {
+        compositable->UseTextureHost(textures);
+
+        for (auto& timedTexture : op.textures()) {
+          RefPtr<TextureHost> texture = TextureHost::AsTextureHost(timedTexture.textureParent());
+          if (texture) {
+            texture->SetLastFwdTransactionId(mFwdTransactionId);
+            // Make sure that each texture was handled by the compositable
+            // because the recycling logic depends on it.
+            MOZ_ASSERT(texture->NumCompositableRefs() > 0);
+          }
+        }
+      }
+
+      if (UsesImageBridge() && compositable->GetLayer()) {
+        ScheduleComposition(compositable);
+      }
+      break;
+    }
+    case CompositableOperationDetail::TOpUseComponentAlphaTextures: {
+      const OpUseComponentAlphaTextures& op = aEdit.detail().get_OpUseComponentAlphaTextures();
       RefPtr<TextureHost> texOnBlack = TextureHost::AsTextureHost(op.textureOnBlackParent());
       RefPtr<TextureHost> texOnWhite = TextureHost::AsTextureHost(op.textureOnWhiteParent());
+      texOnBlack->DeserializeReadLock(op.sharedLockBlack(), this);
+      texOnWhite->DeserializeReadLock(op.sharedLockWhite(), this);
 
       MOZ_ASSERT(texOnBlack && texOnWhite);
       compositable->UseComponentAlphaTextures(texOnBlack, texOnWhite);
 
-      if (IsAsync()) {
-        ScheduleComposition(op);
+      if (texOnBlack) {
+        texOnBlack->SetLastFwdTransactionId(mFwdTransactionId);
+        // Make sure that each texture was handled by the compositable
+        // because the recycling logic depends on it.
+        MOZ_ASSERT(texOnBlack->NumCompositableRefs() > 0);
+      }
+
+      if (texOnWhite) {
+        texOnWhite->SetLastFwdTransactionId(mFwdTransactionId);
+        // Make sure that each texture was handled by the compositable
+        // because the recycling logic depends on it.
+        MOZ_ASSERT(texOnWhite->NumCompositableRefs() > 0);
+      }
+
+      if (UsesImageBridge()) {
+        ScheduleComposition(compositable);
       }
       break;
     }
-    case CompositableOperation::TOpUpdateTexture: {
-      const OpUpdateTexture& op = aEdit.get_OpUpdateTexture();
-      RefPtr<TextureHost> texture = TextureHost::AsTextureHost(op.textureParent());
-      MOZ_ASSERT(texture);
-
-      texture->Updated(op.region().type() == MaybeRegion::TnsIntRegion
-                       ? &op.region().get_nsIntRegion()
-                       : nullptr); // no region means invalidate the entire surface
-      break;
-    }
-
     default: {
       MOZ_ASSERT(false, "bad type");
     }
@@ -246,6 +220,26 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
   return true;
 }
 
-} // namespace
-} // namespace
+void
+CompositableParentManager::DestroyActor(const OpDestroy& aOp)
+{
+  switch (aOp.type()) {
+    case OpDestroy::TPTextureParent: {
+      auto actor = aOp.get_PTextureParent();
+      TextureHost::ReceivedDestroy(actor);
+      break;
+    }
+    case OpDestroy::TPCompositableParent: {
+      auto actor = aOp.get_PCompositableParent();
+      CompositableHost::ReceivedDestroy(actor);
+      break;
+    }
+    default: {
+      MOZ_ASSERT(false, "unsupported type");
+    }
+  }
+}
+
+} // namespace layers
+} // namespace mozilla
 

@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,17 +12,14 @@ var expect = '';
 printBugNumber(BUGNUMBER);
 printStatus (summary);
 
-jit(true);
 
 if (!this.tracemonkey || this.tracemonkey.adaptive)
 {
-  jit(false);
   expect = actual = 'Test skipped due to lack of tracemonkey jitstats';
   reportCompare(expect, actual, summary);
 }
 else
 {
-  jit(true);
 
   expect = 'recorder started, recorder not aborted, trace completed';
   actual = '';
@@ -37,7 +34,6 @@ else
     Array(1, 2, 3);
   }
 
-  jit(false);
 
   var recorderStartedEnd = this.tracemonkey.recorderStarted;
   var recorderAbortedEnd = this.tracemonkey.recorderAborted;

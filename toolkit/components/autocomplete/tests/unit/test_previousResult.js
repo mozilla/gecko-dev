@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,40 +12,40 @@
 
 /**
  * Dummy nsIAutoCompleteInput source that returns
- * the given list of AutoCompleteSearch names. 
- * 
+ * the given list of AutoCompleteSearch names.
+ *
  * Implements only the methods needed for this test.
  */
 function AutoCompleteInput(aSearches) {
   this.searches = aSearches;
 }
 AutoCompleteInput.prototype = {
-  constructor: AutoCompleteInput, 
-  
+  constructor: AutoCompleteInput,
+
   // Array of AutoCompleteSearch names
   searches: null,
-  
+
   minResultsForPopup: 0,
   timeout: 10,
   searchParam: "",
   textValue: "",
-  disableAutoComplete: false,  
+  disableAutoComplete: false,
   completeDefaultIndex: false,
-  
+
   get searchCount() {
     return this.searches.length;
   },
-  
+
   getSearchAt: function(aIndex) {
     return this.searches[aIndex];
   },
-  
+
   onSearchBegin: function() {},
   onSearchComplete: function() {},
-  
-  popupOpen: false,  
-  
-  popup: { 
+
+  popupOpen: false,
+
+  popup: {
     setSelectedIndex: function(aIndex) {},
     invalidate: function() {},
 
@@ -56,9 +56,9 @@ AutoCompleteInput.prototype = {
         return this;
 
       throw Components.results.NS_ERROR_NO_INTERFACE;
-    }    
+    }
   },
-    
+
   // nsISupports implementation
   QueryInterface: function(iid) {
     if (iid.equals(Ci.nsISupports) ||
@@ -71,7 +71,7 @@ AutoCompleteInput.prototype = {
 
 
 
-/** 
+/**
  * nsIAutoCompleteResult implementation
  */
 function AutoCompleteResult(aValues, aComments, aStyles) {
@@ -86,15 +86,15 @@ function AutoCompleteResult(aValues, aComments, aStyles) {
 }
 AutoCompleteResult.prototype = {
   constructor: AutoCompleteResult,
-  
+
   // Arrays
   _values: null,
   _comments: null,
   _styles: null,
-  
+
   searchString: "",
   searchResult: null,
-  
+
   defaultIndex: 0,
 
   get matchCount() {
@@ -108,15 +108,15 @@ AutoCompleteResult.prototype = {
   getLabelAt: function(aIndex) {
     return this.getValueAt(aIndex);
   },
-  
+
   getCommentAt: function(aIndex) {
     return this._comments[aIndex];
   },
-  
+
   getStyleAt: function(aIndex) {
     return this._styles[aIndex];
   },
-  
+
   getImageAt: function(aIndex) {
     return "";
   },
@@ -134,11 +134,11 @@ AutoCompleteResult.prototype = {
       return this;
 
     throw Components.results.NS_ERROR_NO_INTERFACE;
-  }  
+  }
 }
 
 
-/** 
+/**
  * nsIAutoCompleteSearch implementation that always returns
  * the same result set.
  */
@@ -148,7 +148,7 @@ function AutoCompleteSearch(aName, aResult) {
 }
 AutoCompleteSearch.prototype = {
   constructor: AutoCompleteSearch,
-  
+
   // Search name. Used by AutoCompleteController
   name: null,
 
@@ -156,20 +156,20 @@ AutoCompleteSearch.prototype = {
   _result: null,
 
   _previousResult: null,
-  
-  
+
+
   /**
    * Return the same result set for every search
    */
-  startSearch: function(aSearchString, 
-                        aSearchParam, 
-                        aPreviousResult, 
-                        aListener) 
+  startSearch: function(aSearchString,
+                        aSearchParam,
+                        aPreviousResult,
+                        aListener)
   {
     this._previousResult = aPreviousResult;
     aListener.onSearchResult(this, this._result);
   },
-  
+
   stopSearch: function() {},
 
   // nsISupports implementation
@@ -181,7 +181,7 @@ AutoCompleteSearch.prototype = {
 
     throw Components.results.NS_ERROR_NO_INTERFACE;
   },
-  
+
   // nsIFactory implementation
   createInstance: function(outer, iid) {
     return this.QueryInterface(iid);
@@ -189,7 +189,7 @@ AutoCompleteSearch.prototype = {
 }
 
 
-/** 
+/**
  * Helper to register an AutoCompleteSearch with the given name.
  * Allows the AutoCompleteController to find the search.
  */
@@ -201,34 +201,34 @@ function registerAutoCompleteSearch(aSearch) {
   var cid = uuidGenerator.generateUUID();
 
   var desc = "Test AutoCompleteSearch";
-  
+
   var componentManager = Components.manager
                                    .QueryInterface(Ci.nsIComponentRegistrar);
   componentManager.registerFactory(cid, desc, name, aSearch);
 
   // Keep the id on the object so we can unregister later
-  aSearch.cid = cid; 
+  aSearch.cid = cid;
 }
 
 
-/** 
- * Helper to unregister an AutoCompleteSearch. 
+/**
+ * Helper to unregister an AutoCompleteSearch.
  */
 function unregisterAutoCompleteSearch(aSearch) {
   var componentManager = Components.manager
-                                   .QueryInterface(Ci.nsIComponentRegistrar);  
+                                   .QueryInterface(Ci.nsIComponentRegistrar);
   componentManager.unregisterFactory(aSearch.cid, aSearch);
 }
 
 
-/** 
+/**
  */
 function run_test() {
   // Make an AutoCompleteSearch that always returns nothing
   var search1 = new AutoCompleteSearch("test-previous-result1",
     new AutoCompleteResult(["hello1"], [""], [""]));
 
-  var search2 = new AutoCompleteSearch("test-previous-result2", 
+  var search2 = new AutoCompleteSearch("test-previous-result2",
     new AutoCompleteResult(["hello2"], [""], [""]));
 
   // Register search so AutoCompleteController can find them
@@ -243,14 +243,13 @@ function run_test() {
   var input = new AutoCompleteInput([search1.name,
                                      search2.name]);
   var numSearchesStarted = 0;
-  var previousResult = null;
 
   input.onSearchBegin = function() {
     numSearchesStarted++;
   };
 
   input.onSearchComplete = function() {
-    do_check_eq(controller.searchStatus, 
+    do_check_eq(controller.searchStatus,
                 Ci.nsIAutoCompleteController.STATUS_COMPLETE_MATCH);
     do_check_eq(controller.matchCount, 2);
 
@@ -262,10 +261,8 @@ function run_test() {
       controller.startSearch("test");
       return;
     }
-    else {
-      do_check_neq(search1._previousResult, null);
-      do_check_neq(search2._previousResult, null);
-    }
+    do_check_neq(search1._previousResult, null);
+    do_check_neq(search2._previousResult, null);
 
     // Unregister searches
     unregisterAutoCompleteSearch(search1);
@@ -278,7 +275,6 @@ function run_test() {
 
   // Search is asynchronous, so don't let the test finish immediately
   do_test_pending();
-  
+
   controller.startSearch("test");
 }
-

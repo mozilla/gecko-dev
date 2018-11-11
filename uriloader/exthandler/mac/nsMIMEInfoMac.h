@@ -9,22 +9,22 @@
 
 class nsMIMEInfoMac : public nsMIMEInfoImpl {
   public:
-    nsMIMEInfoMac(const char* aMIMEType = "") : nsMIMEInfoImpl(aMIMEType) {}
-    nsMIMEInfoMac(const nsACString& aMIMEType) : nsMIMEInfoImpl(aMIMEType) {}
+    explicit nsMIMEInfoMac(const char* aMIMEType = "") : nsMIMEInfoImpl(aMIMEType) {}
+    explicit nsMIMEInfoMac(const nsACString& aMIMEType) : nsMIMEInfoImpl(aMIMEType) {}
     nsMIMEInfoMac(const nsACString& aType, HandlerClass aClass) :
       nsMIMEInfoImpl(aType, aClass) {}
 
     NS_IMETHOD LaunchWithFile(nsIFile* aFile);
   protected:
-    virtual nsresult LoadUriInternal(nsIURI *aURI);
+    virtual MOZ_MUST_USE nsresult LoadUriInternal(nsIURI *aURI);
 #ifdef DEBUG
-    virtual nsresult LaunchDefaultWithFile(nsIFile* aFile) {
+    virtual MOZ_MUST_USE nsresult LaunchDefaultWithFile(nsIFile* aFile) {
       NS_NOTREACHED("do not call this method, use LaunchWithFile");
       return NS_ERROR_UNEXPECTED;
     }
 #endif
-    static nsresult OpenApplicationWithURI(nsIFile *aApplication, 
-                                                       const nsCString& aURI);
+    static MOZ_MUST_USE nsresult OpenApplicationWithURI(nsIFile *aApplication,
+                                                        const nsCString& aURI);
                                                        
     NS_IMETHOD GetDefaultDescription(nsAString& aDefaultDescription);
     

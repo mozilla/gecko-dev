@@ -284,7 +284,7 @@ txExprLexer::parse(const nsASingleFragmentString& aPattern)
         newToken = new Token(mPosition, Token::SUBTRACTION_OP);
         ++mPosition;
         break;
-      case ASTERIX:
+      case ASTERISK:
         if (nextIsOperatorToken(prevToken)) {
           newToken = new Token(mPosition, Token::MULTIPLY_OP);
         }
@@ -361,9 +361,6 @@ txExprLexer::parse(const nsASingleFragmentString& aPattern)
 
   // add a endToken to the list
   newToken = new Token(end, end, Token::END);
-  if (!newToken) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
   addToken(newToken);
 
   return NS_OK;

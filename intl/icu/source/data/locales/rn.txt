@@ -1,20 +1,8 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/rn.xml
-// *
-// ***************************************************************************
-/**
- * ICU <specials> source: <path>/common/main/rn.xml
- */
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 rn{
     ExemplarCharacters{"[a b c d e f g h i j k l m n o p q r s t u v w x y z]"}
     ExemplarCharactersIndex{"[A B C D E F G H I J K L M N O P Q R S T U V W X Y Z]"}
-    LocaleScript{
-        "Latn",
-    }
     NumberElements{
         latn{
             patterns{
@@ -28,7 +16,7 @@ rn{
             }
         }
     }
-    Version{"2.0.92.87"}
+    Version{"2.1.27.40"}
     calendar{
         generic{
             DateTimePatterns{
@@ -73,6 +61,10 @@ rn{
         }
         gregorian{
             AmPmMarkers{
+                "Z.MU.",
+                "Z.MW.",
+            }
+            AmPmMarkersAbbr{
                 "Z.MU.",
                 "Z.MW.",
             }
@@ -127,7 +119,7 @@ rn{
                         "gnd.",
                     }
                     wide{
-                        "Ku w'indwi",
+                        "Ku w’indwi",
                         "Ku wa mbere",
                         "Ku wa kabiri",
                         "Ku wa gatatu",
@@ -188,10 +180,10 @@ rn{
                         "I4",
                     }
                     wide{
-                        "Igice ca mbere c'umwaka",
-                        "Igice ca kabiri c'umwaka",
-                        "Igice ca gatatu c'umwaka",
-                        "Igice ca kane c'umwaka",
+                        "Igice ca mbere c’umwaka",
+                        "Igice ca kabiri c’umwaka",
+                        "Igice ca gatatu c’umwaka",
+                        "Igice ca kane c’umwaka",
                     }
                 }
             }
@@ -234,7 +226,7 @@ rn{
             dn{"Indwi, Iyinga"}
         }
         weekday{
-            dn{"Iminsi y'iyinga"}
+            dn{"Iminsi y’iyinga"}
         }
         year{
             dn{"Umwaka"}

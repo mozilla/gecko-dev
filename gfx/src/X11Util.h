@@ -13,16 +13,12 @@
 #if defined(MOZ_WIDGET_GTK)
 #  include <gdk/gdk.h>
 #  include <gdk/gdkx.h>
-#elif defined(MOZ_WIDGET_QT)
-#include "gfxQtPlatform.h"
-#undef CursorShape
-#  include <X11/Xlib.h>
+#  include "X11UndefineNone.h"
 #else
 #  error Unknown toolkit
-#endif 
+#endif
 
 #include <string.h>                     // for memset
-#include "gfxCore.h"                    // for NS_GFX
 #include "mozilla/Scoped.h"             // for SCOPED_TEMPLATE
 
 namespace mozilla {
@@ -35,8 +31,6 @@ DefaultXDisplay()
 {
 #if defined(MOZ_WIDGET_GTK)
   return GDK_DISPLAY_XDISPLAY(gdk_display_get_default());
-#elif defined(MOZ_WIDGET_QT)
-  return gfxQtPlatform::GetXDisplay();
 #endif
 }
 
@@ -91,7 +85,7 @@ SCOPED_TEMPLATE(ScopedXFree, ScopedXFreePtrTraits)
  * This class is not thread-safe at all. It is assumed that only one thread is using any ScopedXErrorHandler's. Given that it's
  * not used on Mac, it should be easy to make it thread-safe by using thread-local storage with __thread.
  */
-class NS_GFX ScopedXErrorHandler
+class ScopedXErrorHandler
 {
 public:
     // trivial wrapper around XErrorEvent, just adding ctor initializing by zero.
@@ -124,7 +118,10 @@ public:
     static int
     ErrorHandler(Display *, XErrorEvent *ev);
 
-    ScopedXErrorHandler();
+    /**
+     * @param aAllowOffMainThread whether to warn if used off main thread
+     */
+    explicit ScopedXErrorHandler(bool aAllowOffMainThread = false);
 
     ~ScopedXErrorHandler();
 
@@ -135,6 +132,15 @@ public:
      *           the first one will be returned.
      */
     bool SyncAndGetError(Display *dpy, XErrorEvent *ev = nullptr);
+};
+
+class OffMainThreadScopedXErrorHandler : public ScopedXErrorHandler
+{
+public:
+  OffMainThreadScopedXErrorHandler()
+    : ScopedXErrorHandler(true)
+  {
+  }
 };
 
 } // namespace mozilla

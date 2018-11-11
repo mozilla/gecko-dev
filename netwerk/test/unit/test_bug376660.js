@@ -1,3 +1,5 @@
+Cu.import("resource://gre/modules/NetUtil.jsm");
+
 var Cc = Components.classes;
 var Ci = Components.interfaces;
 
@@ -43,10 +45,11 @@ function test1() {
       createInstance(Ci.nsIUnicharStreamLoader);
   f.init(listener);
 
-  var ios = Components.classes["@mozilla.org/network/io-service;1"]
-                      .getService(Components.interfaces.nsIIOService);
-  var chan = ios.newChannel("data:text/plain,", null, null);
-  chan.asyncOpen(f, null);
+  var chan = NetUtil.newChannel({
+    uri: "data:text/plain,",
+    loadUsingSystemPrincipal: true
+  });
+  chan.asyncOpen2(f);
   do_test_pending();
 }
 
@@ -56,11 +59,12 @@ function test2() {
       createInstance(Ci.nsIUnicharStreamLoader);
   f.init(listener);
 
-  var ios = Components.classes["@mozilla.org/network/io-service;1"]
-                      .getService(Components.interfaces.nsIIOService);
-  var chan = ios.newChannel("http://localhost:0/", null, null);
+  var chan = NetUtil.newChannel({
+    uri: "http://localhost:0/",
+    loadUsingSystemPrincipal: true
+  });
   listener.expect_failure = true;
-  chan.asyncOpen(f, null);
+  chan.asyncOpen2(f);
   do_test_pending();
 }
 

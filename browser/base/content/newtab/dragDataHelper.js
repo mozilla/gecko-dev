@@ -4,14 +4,14 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 #endif
 
-let gDragDataHelper = {
+var gDragDataHelper = {
   get mimeType() {
     return "text/x-moz-url";
   },
 
   getLinkFromDragEvent: function DragDataHelper_getLinkFromDragEvent(aEvent) {
     let dt = aEvent.dataTransfer;
-    if (!dt || !dt.types.contains(this.mimeType)) {
+    if (!dt || !dt.types.includes(this.mimeType)) {
       return null;
     }
 

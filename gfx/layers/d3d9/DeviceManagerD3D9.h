@@ -12,14 +12,12 @@
 #include "nsTArray.h"
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/RefPtr.h"
-
-struct nsIntRect;
+#include "mozilla/gfx/Rect.h"
 
 namespace mozilla {
 namespace layers {
 
 class DeviceManagerD3D9;
-class LayerD3D9;
 class Nv3DVUtils;
 class Layer;
 class TextureSourceD3D9;
@@ -33,6 +31,7 @@ const int CBvLayerQuad = 10;
 // we don't use opacity with solid color shaders
 const int CBfLayerOpacity = 0;
 const int CBvColor = 0;
+const int CBmYuvColorMatrix = 1;
 
 enum DeviceManagerState {
   // The device and swap chain are OK.
@@ -79,7 +78,7 @@ struct ShaderConstantRect
  * SwapChain class, this class manages the swap chain belonging to a
  * LayerManagerD3D9.
  */
-class SwapChainD3D9 MOZ_FINAL
+class SwapChainD3D9 final
 {
   NS_INLINE_DECL_REFCOUNTING(SwapChainD3D9)
 public:
@@ -102,7 +101,7 @@ public:
    * This function will present the selected rectangle of the swap chain to
    * its associated window.
    */
-  void Present(const nsIntRect &aRect);
+  void Present(const gfx::IntRect &aRect);
   void Present();
 
 private:
@@ -121,8 +120,8 @@ private:
    */
   void Reset();
 
-  nsRefPtr<IDirect3DSwapChain9> mSwapChain;
-  nsRefPtr<DeviceManagerD3D9> mDeviceManager;
+  RefPtr<IDirect3DSwapChain9> mSwapChain;
+  RefPtr<DeviceManagerD3D9> mDeviceManager;
   HWND mWnd;
 };
 
@@ -131,20 +130,24 @@ private:
  * device and create swap chains for the individual windows the layer managers
  * belong to.
  */
-class DeviceManagerD3D9 MOZ_FINAL
+class DeviceManagerD3D9 final
 {
 public:
-  DeviceManagerD3D9();
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DeviceManagerD3D9)
 
   /**
-   * Initialises the device manager, the underlying device, and everything else
-   * the manager needs.
-   * Returns true if initialisation succeeds, false otherwise.
-   * Note that if initisalisation fails, you cannot try again - you must throw
-   * away the DeviceManagerD3D9 and create a new one.
+   * Setup or tear down static resources needed for D3D9.
    */
-  bool Init();
+  static void Init();
+  static void Shutdown();
+
+  /**
+   * Static accessors and helpers for accessing the global DeviceManagerD3D9
+   * instance.
+   */
+  static RefPtr<DeviceManagerD3D9> Get();
+  static RefPtr<IDirect3DDevice9> GetDevice();
+  static void OnDeviceManagerDestroy(DeviceManagerD3D9* aDeviceManager);
 
   /**
    * Sets up the render state for the device for layer rendering.
@@ -160,6 +163,8 @@ public:
 
   bool IsD3D9Ex() { return mDeviceEx; }
 
+  bool HasComponentAlpha() { return mHasComponentAlpha; }
+
   bool HasDynamicTextures() { return mHasDynamicTextures; }
 
   enum ShaderMode {
@@ -171,7 +176,6 @@ public:
     SOLIDCOLORLAYER
   };
 
-  void SetShaderMode(ShaderMode aMode, Layer* aMask, bool aIs2D);
   // returns the register to be used for the mask texture, if appropriate
   uint32_t SetShaderMode(ShaderMode aMode, MaskType aMaskType);
 
@@ -187,12 +191,6 @@ public:
 
   uint32_t GetDeviceResetCount() { return mDeviceResetCount; }
 
-  /**
-   * We keep a list of all layers here that may have hardware resource allocated
-   * so we can clean their resources on reset.
-   */
-  nsTArray<LayerD3D9*> mLayersWithResources;
-
   int32_t GetMaxTextureSize() { return mMaxTextureSize; }
 
   // Removes aHost from our list of texture hosts if it is the head.
@@ -203,7 +201,7 @@ public:
    * If needed, we keep a record of the new texture, so the texture can be
    * released. In this case, aTextureHostIDirect3DTexture9 must be non-null.
    */
-  TemporaryRef<IDirect3DTexture9> CreateTexture(const gfx::IntSize &aSize,
+  already_AddRefed<IDirect3DTexture9> CreateTexture(const gfx::IntSize &aSize,
                                                 _D3DFORMAT aFormat,
                                                 D3DPOOL aPool,
                                                 TextureSourceD3D9* aTextureHostIDirect3DTexture9);
@@ -225,7 +223,18 @@ public:
 private:
   friend class SwapChainD3D9;
 
+  DeviceManagerD3D9();
   ~DeviceManagerD3D9();
+
+  /**
+   * Initialises the device manager, the underlying device, and everything else
+   * the manager needs.
+   * Returns true if initialisation succeeds, false otherwise.
+   * Note that if initisalisation fails, you cannot try again - you must throw
+   * away the DeviceManagerD3D9 and create a new one.
+   */
+  bool Initialize();
+
   void DestroyDevice();
 
   /**
@@ -247,54 +256,52 @@ private:
   nsTArray<SwapChainD3D9*> mSwapChains;
 
   /* The D3D device we use */
-  nsRefPtr<IDirect3DDevice9> mDevice;
+  RefPtr<IDirect3DDevice9> mDevice;
 
   /* The D3D9Ex device - only valid on Vista+ with WDDM */
-  nsRefPtr<IDirect3DDevice9Ex> mDeviceEx;
+  RefPtr<IDirect3DDevice9Ex> mDeviceEx;
 
   /* An instance of the D3D9 object */
-  nsRefPtr<IDirect3D9> mD3D9;
+  RefPtr<IDirect3D9> mD3D9;
 
   /* An instance of the D3D9Ex object - only valid on Vista+ with WDDM */
-  nsRefPtr<IDirect3D9Ex> mD3D9Ex;
+  RefPtr<IDirect3D9Ex> mD3D9Ex;
 
   /* Vertex shader used for layer quads */
-  nsRefPtr<IDirect3DVertexShader9> mLayerVS;
+  RefPtr<IDirect3DVertexShader9> mLayerVS;
 
   /* Pixel shader used for RGB textures */
-  nsRefPtr<IDirect3DPixelShader9> mRGBPS;
+  RefPtr<IDirect3DPixelShader9> mRGBPS;
 
   /* Pixel shader used for RGBA textures */
-  nsRefPtr<IDirect3DPixelShader9> mRGBAPS;
+  RefPtr<IDirect3DPixelShader9> mRGBAPS;
 
   /* Pixel shader used for component alpha textures (pass 1) */
-  nsRefPtr<IDirect3DPixelShader9> mComponentPass1PS;
+  RefPtr<IDirect3DPixelShader9> mComponentPass1PS;
 
   /* Pixel shader used for component alpha textures (pass 2) */
-  nsRefPtr<IDirect3DPixelShader9> mComponentPass2PS;
+  RefPtr<IDirect3DPixelShader9> mComponentPass2PS;
 
   /* Pixel shader used for RGB textures */
-  nsRefPtr<IDirect3DPixelShader9> mYCbCrPS;
+  RefPtr<IDirect3DPixelShader9> mYCbCrPS;
 
   /* Pixel shader used for solid colors */
-  nsRefPtr<IDirect3DPixelShader9> mSolidColorPS;
+  RefPtr<IDirect3DPixelShader9> mSolidColorPS;
 
   /* As above, but using a mask layer */
-  nsRefPtr<IDirect3DVertexShader9> mLayerVSMask;
-  nsRefPtr<IDirect3DVertexShader9> mLayerVSMask3D;
-  nsRefPtr<IDirect3DPixelShader9> mRGBPSMask;
-  nsRefPtr<IDirect3DPixelShader9> mRGBAPSMask;
-  nsRefPtr<IDirect3DPixelShader9> mRGBAPSMask3D;
-  nsRefPtr<IDirect3DPixelShader9> mComponentPass1PSMask;
-  nsRefPtr<IDirect3DPixelShader9> mComponentPass2PSMask;
-  nsRefPtr<IDirect3DPixelShader9> mYCbCrPSMask;
-  nsRefPtr<IDirect3DPixelShader9> mSolidColorPSMask;
+  RefPtr<IDirect3DVertexShader9> mLayerVSMask;
+  RefPtr<IDirect3DPixelShader9> mRGBPSMask;
+  RefPtr<IDirect3DPixelShader9> mRGBAPSMask;
+  RefPtr<IDirect3DPixelShader9> mComponentPass1PSMask;
+  RefPtr<IDirect3DPixelShader9> mComponentPass2PSMask;
+  RefPtr<IDirect3DPixelShader9> mYCbCrPSMask;
+  RefPtr<IDirect3DPixelShader9> mSolidColorPSMask;
 
   /* Vertex buffer containing our basic vertex structure */
-  nsRefPtr<IDirect3DVertexBuffer9> mVB;
+  RefPtr<IDirect3DVertexBuffer9> mVB;
 
   /* Our vertex declaration */
-  nsRefPtr<IDirect3DVertexDeclaration9> mVD;
+  RefPtr<IDirect3DVertexDeclaration9> mVD;
 
   /* We maintain a doubly linked list of all d3d9 texture hosts which host
    * d3d9 textures created by this device manager.
@@ -321,6 +328,9 @@ private:
    * rotation, but some older hardware doesn't support it.
    */
   D3DTEXTUREADDRESS mTextureAddressingMode;
+
+  /* If this device supports component alpha */
+  bool mHasComponentAlpha;
 
   /* If this device supports dynamic textures */
   bool mHasDynamicTextures;

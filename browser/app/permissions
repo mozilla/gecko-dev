@@ -1,0 +1,23 @@
+# This file has default permissions for the permission manager.
+# The file-format is strict:
+# * matchtype \t type \t permission \t host
+# * "origin" should be used for matchtype, "host" is supported for legacy reasons
+# * type is a string that identifies the type of permission (e.g. "cookie")
+# * permission is an integer between 1 and 15
+# See nsPermissionManager.cpp for more...
+
+# UITour
+origin	uitour	1	https://www.mozilla.org
+origin	uitour	1	https://self-repair.mozilla.org
+origin	uitour	1	https://support.mozilla.org
+origin	uitour	1	https://addons.mozilla.org
+origin	uitour	1	https://discovery.addons.mozilla.org
+origin	uitour	1	about:home
+
+# XPInstall
+origin	install	1	https://addons.mozilla.org
+origin	install	1	https://testpilot.firefox.com
+
+# Remote troubleshooting
+origin	remote-troubleshooting	1	https://input.mozilla.org
+origin	remote-troubleshooting	1	https://support.mozilla.org

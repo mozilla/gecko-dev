@@ -14,10 +14,11 @@
     nsTArray<nsHtml5TreeOperation>         mOpQueue;
     nsTArray<nsHtml5SpeculativeLoad>       mSpeculativeLoadQueue;
     nsAHtml5TreeOpSink*                    mOpSink;
-    nsAutoArrayPtr<nsIContent*>            mHandles;
+    mozilla::UniquePtr<nsIContent*[]>      mHandles;
     int32_t                                mHandlesUsed;
-    nsTArray<nsAutoArrayPtr<nsIContent*> > mOldHandles;
+    nsTArray<mozilla::UniquePtr<nsIContent*[]>> mOldHandles;
     nsHtml5TreeOpStage*                    mSpeculativeLoadStage;
+    nsresult                               mBroken;
     bool                                   mCurrentHtmlScriptIsAsyncOrDefer;
     bool                                   mPreventScriptExecution;
 #ifdef DEBUG
@@ -70,9 +71,11 @@
       requestSuspension();
     }
 
+    void MarkAsBrokenFromPortability(nsresult aRv);
+
   public:
 
-    nsHtml5TreeBuilder(nsHtml5OplessBuilder* aBuilder);
+    explicit nsHtml5TreeBuilder(nsHtml5OplessBuilder* aBuilder);
 
     nsHtml5TreeBuilder(nsAHtml5TreeOpSink* aOpSink,
                        nsHtml5TreeOpStage* aStage);
@@ -126,6 +129,16 @@
     {
       return mBuilder;
     }
+
+    /**
+     * Makes sure the buffers are large enough to be able to tokenize aLength
+     * UTF-16 code units before having to make the buffers larger.
+     *
+     * @param aLength the number of UTF-16 code units to be tokenized before the
+     *                next call to this method.
+     * @return true if successful; false if out of memory
+     */
+    bool EnsureBufferSpace(int32_t aLength);
 
     void EnableViewSource(nsHtml5Highlighter* aHighlighter);
 
@@ -223,4 +236,13 @@
 
     void errEndWithUnclosedElements(nsIAtom* aName);
 
-    void MarkAsBroken();
+    void MarkAsBroken(nsresult aRv);
+
+    /**
+     * Checks if this parser is broken. Returns a non-NS_OK (i.e. non-0)
+     * value if broken.
+     */
+    nsresult IsBroken()
+    {
+      return mBroken;
+    }

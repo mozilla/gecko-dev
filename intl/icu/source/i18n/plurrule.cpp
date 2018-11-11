@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 *******************************************************************************
-* Copyright (C) 2007-2013, International Business Machines Corporation and
+* Copyright (C) 2007-2016, International Business Machines Corporation and
 * others. All Rights Reserved.
 *******************************************************************************
 *
@@ -29,12 +31,15 @@
 #include "ustrfmt.h"
 #include "uassert.h"
 #include "uvectr32.h"
+#include "sharedpluralrules.h"
+#include "unifiedcache.h"
+#include "digitinterval.h" 
+#include "visibledigits.h"
+
 
 #if !UCONFIG_NO_FORMATTING
 
 U_NAMESPACE_BEGIN
-
-#define ARRAY_SIZE(array) (int32_t)(sizeof array  / sizeof array[0])
 
 static const UChar PLURAL_KEYWORD_OTHER[]={LOW_O,LOW_T,LOW_H,LOW_E,LOW_R,0};
 static const UChar PLURAL_DEFAULT_RULE[]={LOW_O,LOW_T,LOW_H,LOW_E,LOW_R,COLON,SPACE,LOW_N,0};
@@ -49,7 +54,6 @@ static const UChar PK_VAR_I[]={LOW_I,0};
 static const UChar PK_VAR_F[]={LOW_F,0};
 static const UChar PK_VAR_T[]={LOW_T,0};
 static const UChar PK_VAR_V[]={LOW_V,0};
-static const UChar PK_VAR_J[]={LOW_J,0};
 static const UChar PK_WITHIN[]={LOW_W,LOW_I,LOW_T,LOW_H,LOW_I,LOW_N,0};
 static const UChar PK_DECIMAL[]={LOW_D,LOW_E,LOW_C,LOW_I,LOW_M,LOW_A,LOW_L,0};
 static const UChar PK_INTEGER[]={LOW_I,LOW_N,LOW_T,LOW_E,LOW_G,LOW_E,LOW_R,0};
@@ -72,6 +76,10 @@ PluralRules::PluralRules(const PluralRules& other)
 
 PluralRules::~PluralRules() {
     delete mRules;
+}
+
+SharedPluralRules::~SharedPluralRules() {
+    delete ptr;
 }
 
 PluralRules*
@@ -132,6 +140,46 @@ PluralRules::createDefaultRules(UErrorCode& status) {
     return createRules(UnicodeString(TRUE, PLURAL_DEFAULT_RULE, -1), status);
 }
 
+/******************************************************************************/
+/* Create PluralRules cache */
+
+template<> U_I18N_API
+const SharedPluralRules *LocaleCacheKey<SharedPluralRules>::createObject(
+        const void * /*unused*/, UErrorCode &status) const {
+    const char *localeId = fLoc.getName();
+    PluralRules *pr = PluralRules::internalForLocale(
+            localeId, UPLURAL_TYPE_CARDINAL, status);
+    if (U_FAILURE(status)) {
+        return NULL;
+    }
+    SharedPluralRules *result = new SharedPluralRules(pr);
+    if (result == NULL) {
+        status = U_MEMORY_ALLOCATION_ERROR;
+        delete pr;
+        return NULL;
+    }
+    result->addRef();
+    return result;
+}
+
+/* end plural rules cache */
+/******************************************************************************/
+
+const SharedPluralRules* U_EXPORT2
+PluralRules::createSharedInstance(
+        const Locale& locale, UPluralType type, UErrorCode& status) {
+    if (U_FAILURE(status)) {
+        return NULL;
+    }
+    if (type != UPLURAL_TYPE_CARDINAL) {
+        status = U_UNSUPPORTED_ERROR;
+        return NULL;
+    }
+    const SharedPluralRules *result = NULL;
+    UnifiedCache::getByLocale(locale, result, status);
+    return result;
+}
+
 PluralRules* U_EXPORT2
 PluralRules::forLocale(const Locale& locale, UErrorCode& status) {
     return forLocale(locale, UPLURAL_TYPE_CARDINAL, status);
@@ -139,6 +187,24 @@ PluralRules::forLocale(const Locale& locale, UErrorCode& status) {
 
 PluralRules* U_EXPORT2
 PluralRules::forLocale(const Locale& locale, UPluralType type, UErrorCode& status) {
+    if (type != UPLURAL_TYPE_CARDINAL) {
+        return internalForLocale(locale, type, status);
+    }
+    const SharedPluralRules *shared = createSharedInstance(
+            locale, type, status);
+    if (U_FAILURE(status)) {
+        return NULL;
+    }
+    PluralRules *result = (*shared)->clone();
+    shared->removeRef();
+    if (result == NULL) {
+        status = U_MEMORY_ALLOCATION_ERROR;
+    }
+    return result;
+}
+
+PluralRules* U_EXPORT2
+PluralRules::internalForLocale(const Locale& locale, UPluralType type, UErrorCode& status) {
     if (U_FAILURE(status)) {
         return NULL;
     }
@@ -189,6 +255,16 @@ PluralRules::select(const FixedDecimal &number) const {
         return mRules->select(number);
     }
 }
+
+UnicodeString
+PluralRules::select(const VisibleDigitsWithExponent &number) const {
+    if (number.getExponent() != NULL) {
+        return UnicodeString(TRUE, PLURAL_DEFAULT_RULE, -1);
+    }
+    return select(FixedDecimal(number.getMantissa()));
+}
+
+
 
 StringEnumeration*
 PluralRules::getKeywords(UErrorCode& status) const {
@@ -418,6 +494,7 @@ PluralRuleParser::parse(const UnicodeString& ruleData, PluralRules *prules, UErr
 
         case tNotEqual:
             curAndConstraint->negated=TRUE;
+            U_FALLTHROUGH;
         case tIn:
         case tWithin:
         case tEqual:
@@ -983,7 +1060,7 @@ PluralRuleParser::getNumberValue(const UnicodeString& token) {
     int32_t i;
     char digits[128];
 
-    i = token.extract(0, token.length(), digits, ARRAY_SIZE(digits), US_INV);
+    i = token.extract(0, token.length(), digits, UPRV_LENGTHOF(digits), US_INV);
     digits[i]='\0';
 
     return((int32_t)atoi(digits));
@@ -1307,7 +1384,14 @@ PluralKeywordEnumeration::count(UErrorCode& /*status*/) const {
 PluralKeywordEnumeration::~PluralKeywordEnumeration() {
 }
 
-
+FixedDecimal::FixedDecimal(const VisibleDigits &digits) {
+    digits.getFixedDecimal(
+            source, intValue, decimalDigits,
+            decimalDigitsWithoutTrailingZeros,
+            visibleDecimalDigitCount, hasIntegerValue);
+    isNegative = digits.isNegative();
+    isNanOrInfinity = digits.isNaNOrInfinity();
+}
 
 FixedDecimal::FixedDecimal(double n, int32_t v, int64_t f) {
     init(n, v, f);

@@ -1,4 +1,4 @@
-/* -*- Mode: JavaScript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  * vim: sw=2 ts=2 sts=2 et filetype=javascript
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,8 +8,7 @@ this.EXPORTED_SYMBOLS = [
   "DownloadTaskbarProgress",
 ];
 
-////////////////////////////////////////////////////////////////////////////////
-//// Constants
+// Constants
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -17,14 +16,14 @@ const Cu = Components.utils;
 const Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/AppConstants.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
 
 const kTaskbarIDWin = "@mozilla.org/windows-taskbar;1";
 const kTaskbarIDMac = "@mozilla.org/widget/macdocksupport;1";
 
-////////////////////////////////////////////////////////////////////////////////
-//// DownloadTaskbarProgress Object
+// DownloadTaskbarProgress Object
 
 this.DownloadTaskbarProgress =
 {
@@ -93,18 +92,17 @@ this.DownloadTaskbarProgress =
 
 };
 
-////////////////////////////////////////////////////////////////////////////////
-//// DownloadTaskbarProgressUpdater Object
+// DownloadTaskbarProgressUpdater Object
 
 var DownloadTaskbarProgressUpdater =
 {
-  /// Whether the taskbar is initialized.
+  // / Whether the taskbar is initialized.
   _initialized: false,
 
-  /// Reference to the taskbar.
+  // / Reference to the taskbar.
   _taskbar: null,
 
-  /// Reference to the download manager.
+  // / Reference to the download manager.
   _dm: null,
 
   /**
@@ -164,7 +162,7 @@ var DownloadTaskbarProgressUpdater =
    */
   _activeTaskbarProgress: null,
 
-  /// Whether the active window is the download window
+  // / Whether the active window is the download window
   _activeWindowIsDownloadWindow: false,
 
   /**
@@ -179,51 +177,50 @@ var DownloadTaskbarProgressUpdater =
    */
   _setActiveWindow: function DTPU_setActiveWindow(aWindow, aIsDownloadWindow)
   {
-#ifdef XP_WIN
-    // Clear out the taskbar for the old active window. (If there was no active
-    // window, this is a no-op.)
-    this._clearTaskbar();
+    if (AppConstants.platform == "win") {
+      // Clear out the taskbar for the old active window. (If there was no active
+      // window, this is a no-op.)
+      this._clearTaskbar();
 
-    this._activeWindowIsDownloadWindow = aIsDownloadWindow;
-    if (aWindow) {
-      // Get the taskbar progress for this window
-      let docShell = aWindow.QueryInterface(Ci.nsIInterfaceRequestor).
-                       getInterface(Ci.nsIWebNavigation).
-                       QueryInterface(Ci.nsIDocShellTreeItem).treeOwner.
-                       QueryInterface(Ci.nsIInterfaceRequestor).
-                       getInterface(Ci.nsIXULWindow).docShell;
-      let taskbarProgress = this._taskbar.getTaskbarProgress(docShell);
-      this._activeTaskbarProgress = taskbarProgress;
+      this._activeWindowIsDownloadWindow = aIsDownloadWindow;
+      if (aWindow) {
+        // Get the taskbar progress for this window
+        let docShell = aWindow.QueryInterface(Ci.nsIInterfaceRequestor).
+                         getInterface(Ci.nsIWebNavigation).
+                         QueryInterface(Ci.nsIDocShellTreeItem).treeOwner.
+                         QueryInterface(Ci.nsIInterfaceRequestor).
+                         getInterface(Ci.nsIXULWindow).docShell;
+        let taskbarProgress = this._taskbar.getTaskbarProgress(docShell);
+        this._activeTaskbarProgress = taskbarProgress;
 
-      this._updateTaskbar();
-      // _onActiveWindowUnload is idempotent, so we don't need to check whether
-      // we've already set this before or not.
-      aWindow.addEventListener("unload", function () {
-        DownloadTaskbarProgressUpdater._onActiveWindowUnload(taskbarProgress);
-      }, false);
+        this._updateTaskbar();
+        // _onActiveWindowUnload is idempotent, so we don't need to check whether
+        // we've already set this before or not.
+        aWindow.addEventListener("unload", function () {
+          DownloadTaskbarProgressUpdater._onActiveWindowUnload(taskbarProgress);
+        }, false);
+      }
+      else {
+        this._activeTaskbarProgress = null;
+      }
     }
-    else {
-      this._activeTaskbarProgress = null;
-    }
-#endif
   },
 
-  /// Current state displayed on the active window's taskbar item
+  // / Current state displayed on the active window's taskbar item
   _taskbarState: null,
   _totalSize: 0,
   _totalTransferred: 0,
 
   _shouldSetState: function DTPU_shouldSetState()
   {
-#ifdef XP_WIN
-    // If the active window is not the download manager window, set the state
-    // only if it is normal or indeterminate.
-    return this._activeWindowIsDownloadWindow ||
-           (this._taskbarState == Ci.nsITaskbarProgress.STATE_NORMAL ||
-            this._taskbarState == Ci.nsITaskbarProgress.STATE_INDETERMINATE);
-#else
+    if (AppConstants.platform == "win") {
+      // If the active window is not the download manager window, set the state
+      // only if it is normal or indeterminate.
+      return this._activeWindowIsDownloadWindow ||
+             (this._taskbarState == Ci.nsITaskbarProgress.STATE_NORMAL ||
+              this._taskbarState == Ci.nsITaskbarProgress.STATE_INDETERMINATE);
+    }
     return true;
-#endif
   },
 
   /**
@@ -370,8 +367,7 @@ var DownloadTaskbarProgressUpdater =
     }
   },
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// nsIDownloadProgressListener
+  // nsIDownloadProgressListener
 
   /**
    * Update status if a download's progress has changed.

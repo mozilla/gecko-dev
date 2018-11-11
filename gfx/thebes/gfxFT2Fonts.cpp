@@ -6,10 +6,6 @@
 #if defined(MOZ_WIDGET_GTK)
 #include "gfxPlatformGtk.h"
 #define gfxToolkitPlatform gfxPlatformGtk
-#elif defined(MOZ_WIDGET_QT)
-#include <qfontinfo.h>
-#include "gfxQtPlatform.h"
-#define gfxToolkitPlatform gfxQtPlatform
 #elif defined(XP_WIN)
 #include "gfxWindowsPlatform.h"
 #define gfxToolkitPlatform gfxWindowsPlatform
@@ -23,16 +19,15 @@
 #include "gfxFT2FontBase.h"
 #include "gfxFT2Utils.h"
 #include "gfxFT2FontList.h"
+#include "gfxTextRun.h"
 #include <locale.h>
-#include "gfxHarfBuzzShaper.h"
-#include "gfxGraphiteShaper.h"
 #include "nsGkAtoms.h"
 #include "nsTArray.h"
 #include "nsUnicodeRange.h"
 #include "nsCRT.h"
 #include "nsXULAppAPI.h"
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "prinit.h"
 
 #include "mozilla/MemoryReporting.h"
@@ -44,41 +39,21 @@
  */
 
 bool
-gfxFT2Font::ShapeText(gfxContext      *aContext,
+gfxFT2Font::ShapeText(DrawTarget     *aDrawTarget,
                       const char16_t *aText,
-                      uint32_t         aOffset,
-                      uint32_t         aLength,
-                      int32_t          aScript,
-                      gfxShapedText   *aShapedText,
-                      bool             aPreferPlatformShaping)
+                      uint32_t        aOffset,
+                      uint32_t        aLength,
+                      Script          aScript,
+                      bool            aVertical,
+                      gfxShapedText  *aShapedText)
 {
-    bool ok = false;
-
-    if (FontCanSupportGraphite()) {
-        if (gfxPlatform::GetPlatform()->UseGraphiteShaping()) {
-            if (!mGraphiteShaper) {
-                mGraphiteShaper = new gfxGraphiteShaper(this);
-            }
-            ok = mGraphiteShaper->ShapeText(aContext, aText,
-                                            aOffset, aLength,
-                                            aScript, aShapedText);
-        }
-    }
-
-    if (!ok && gfxPlatform::GetPlatform()->UseHarfBuzzForScript(aScript)) {
-        if (!mHarfBuzzShaper) {
-            mHarfBuzzShaper = new gfxHarfBuzzShaper(this);
-        }
-        ok = mHarfBuzzShaper->ShapeText(aContext, aText,
-                                        aOffset, aLength,
-                                        aScript, aShapedText);
-    }
-
-    if (!ok) {
+    if (!gfxFont::ShapeText(aDrawTarget, aText, aOffset, aLength, aScript,
+                            aVertical, aShapedText)) {
+        // harfbuzz must have failed(?!), just render raw glyphs
         AddRange(aText, aOffset, aLength, aShapedText);
+        PostShapingFixup(aDrawTarget, aText, aOffset, aLength,
+                         aVertical, aShapedText);
     }
-
-    PostShapingFixup(aContext, aText, aOffset, aLength, aShapedText);
 
     return true;
 }
@@ -186,7 +161,7 @@ gfxFT2Font::gfxFT2Font(cairo_scaled_font_t *aCairoFont,
                        const gfxFontStyle *aFontStyle,
                        bool aNeedsBold)
     : gfxFT2FontBase(aCairoFont, aFontEntry, aFontStyle)
-    , mCharGlyphCache(64)
+    , mCharGlyphCache(32)
 {
     NS_ASSERTION(mFontEntry, "Unable to find font entry for font.  Something is whack.");
     mApplySyntheticBold = aNeedsBold;
@@ -194,52 +169,6 @@ gfxFT2Font::gfxFT2Font(cairo_scaled_font_t *aCairoFont,
 
 gfxFT2Font::~gfxFT2Font()
 {
-}
-
-/**
- * Look up the font in the gfxFont cache. If we don't find it, create one.
- * In either case, add a ref, append it to the aFonts array, and return it ---
- * except for OOM in which case we do nothing and return null.
- */
-already_AddRefed<gfxFT2Font>
-gfxFT2Font::GetOrMakeFont(const nsAString& aName, const gfxFontStyle *aStyle,
-                          bool aNeedsBold)
-{
-#ifdef ANDROID
-    FT2FontEntry *fe = static_cast<FT2FontEntry*>
-        (gfxPlatformFontList::PlatformFontList()->
-            FindFontForFamily(aName, aStyle, aNeedsBold));
-#else
-    FT2FontEntry *fe = static_cast<FT2FontEntry*>
-        (gfxToolkitPlatform::GetPlatform()->FindFontEntry(aName, *aStyle));
-#endif
-    if (!fe) {
-        NS_WARNING("Failed to find font entry for font!");
-        return nullptr;
-    }
-
-    nsRefPtr<gfxFT2Font> font = GetOrMakeFont(fe, aStyle, aNeedsBold);
-    return font.forget();
-}
-
-already_AddRefed<gfxFT2Font>
-gfxFT2Font::GetOrMakeFont(FT2FontEntry *aFontEntry, const gfxFontStyle *aStyle,
-                          bool aNeedsBold)
-{
-    nsRefPtr<gfxFont> font = gfxFontCache::GetCache()->Lookup(aFontEntry, aStyle);
-    if (!font) {
-        cairo_scaled_font_t *scaledFont = aFontEntry->CreateScaledFont(aStyle);
-        if (!scaledFont) {
-            return nullptr;
-        }
-        font = new gfxFT2Font(scaledFont, aFontEntry, aStyle, aNeedsBold);
-        cairo_scaled_font_destroy(scaledFont);
-        if (!font) {
-            return nullptr;
-        }
-        gfxFontCache::GetCache()->AddNew(font);
-    }
-    return font.forget().downcast<gfxFT2Font>();
 }
 
 void
@@ -285,7 +214,7 @@ gfxFT2Font::AddSizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf,
 {
     gfxFont::AddSizeOfExcludingThis(aMallocSizeOf, aSizes);
     aSizes->mFontInstances +=
-        mCharGlyphCache.SizeOfExcludingThis(nullptr, aMallocSizeOf);
+        mCharGlyphCache.ShallowSizeOfExcludingThis(aMallocSizeOf);
 }
 
 void
@@ -295,21 +224,4 @@ gfxFT2Font::AddSizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf,
     aSizes->mFontInstances += aMallocSizeOf(this);
     AddSizeOfExcludingThis(aMallocSizeOf, aSizes);
 }
-
-#ifdef USE_SKIA
-mozilla::TemporaryRef<mozilla::gfx::GlyphRenderingOptions>
-gfxFT2Font::GetGlyphRenderingOptions()
-{
-  mozilla::gfx::FontHinting hinting;
-
-  if (gfxPlatform::GetPlatform()->FontHintingEnabled()) {
-    hinting = mozilla::gfx::FontHinting::NORMAL;
-  } else {
-    hinting = mozilla::gfx::FontHinting::NONE;
-  }
-
-  // We don't want to force the use of the autohinter over the font's built in hints
-  return mozilla::gfx::Factory::CreateCairoGlyphRenderingOptions(hinting, false);
-}
-#endif
 

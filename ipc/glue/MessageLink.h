@@ -39,75 +39,12 @@ enum Side {
     UnknownSide
 };
 
-enum ChannelState {
-    ChannelClosed,
-    ChannelOpening,
-    ChannelConnected,
-    ChannelTimeout,
-    ChannelClosing,
-    ChannelError
-};
-
-// What happens if Interrupt calls race?
-enum RacyInterruptPolicy {
-    RIPError,
-    RIPChildWins,
-    RIPParentWins
-};
-
-class MessageListener
-  : protected HasResultCodes,
-    public mozilla::SupportsWeakPtr<MessageListener>
-{
-  public:
-    MOZ_DECLARE_REFCOUNTED_TYPENAME(MessageListener)
-    typedef IPC::Message Message;
-
-    virtual ~MessageListener() { }
-
-    virtual void OnChannelClose() = 0;
-    virtual void OnChannelError() = 0;
-    virtual Result OnMessageReceived(const Message& aMessage) = 0;
-    virtual Result OnMessageReceived(const Message& aMessage, Message *& aReply) = 0;
-    virtual Result OnCallReceived(const Message& aMessage, Message *& aReply) = 0;
-    virtual void OnProcessingError(Result aError) = 0;
-    virtual void OnChannelConnected(int32_t peer_pid) {}
-    virtual bool OnReplyTimeout() {
-        return false;
-    }
-
-    virtual void OnEnteredCxxStack() {
-        NS_RUNTIMEABORT("default impl shouldn't be invoked");
-    }
-    virtual void OnExitedCxxStack() {
-        NS_RUNTIMEABORT("default impl shouldn't be invoked");
-    }
-    virtual void OnEnteredCall() {
-        NS_RUNTIMEABORT("default impl shouldn't be invoked");
-    }
-    virtual void OnExitedCall() {
-        NS_RUNTIMEABORT("default impl shouldn't be invoked");
-    }
-    virtual RacyInterruptPolicy MediateInterruptRace(const Message& parent,
-                                                     const Message& child)
-    {
-        return RIPChildWins;
-    }
-
-    virtual void ProcessRemoteNativeEventsInInterruptCall() {
-    }
-
-    // FIXME/bug 792652: this doesn't really belong here, but a
-    // large refactoring is needed to put it where it belongs.
-    virtual int32_t GetProtocolTypeId() = 0;
-};
-
 class MessageLink
 {
   public:
     typedef IPC::Message Message;
 
-    MessageLink(MessageChannel *aChan);
+    explicit MessageLink(MessageChannel *aChan);
     virtual ~MessageLink();
 
     // n.b.: These methods all require that the channel monitor is
@@ -134,29 +71,37 @@ class ProcessLink
 
     void AssertIOThread() const
     {
-        NS_ABORT_IF_FALSE(mIOLoop == MessageLoop::current(),
-                          "not on I/O thread!");
+        MOZ_ASSERT(mIOLoop == MessageLoop::current(),
+                   "not on I/O thread!");
     }
 
   public:
-    ProcessLink(MessageChannel *chan);
+    explicit ProcessLink(MessageChannel *chan);
     virtual ~ProcessLink();
+
+    // The ProcessLink will register itself as the IPC::Channel::Listener on the
+    // transport passed here. If the transport already has a listener registered
+    // then a listener chain will be established (the ProcessLink listener
+    // methods will be called first and may call some methods on the original
+    // listener as well). Once the channel is closed (either via normal shutdown
+    // or a pipe error) the chain will be destroyed and the original listener
+    // will again be registered.
     void Open(Transport* aTransport, MessageLoop *aIOLoop, Side aSide);
     
     // Run on the I/O thread, only when using inter-process link.
     // These methods acquire the monitor and forward to the
     // similarly named methods in AsyncChannel below
     // (OnMessageReceivedFromLink(), etc)
-    virtual void OnMessageReceived(const Message& msg) MOZ_OVERRIDE;
-    virtual void OnChannelConnected(int32_t peer_pid) MOZ_OVERRIDE;
-    virtual void OnChannelError() MOZ_OVERRIDE;
+    virtual void OnMessageReceived(Message&& msg) override;
+    virtual void OnChannelConnected(int32_t peer_pid) override;
+    virtual void OnChannelError() override;
 
-    virtual void EchoMessage(Message *msg) MOZ_OVERRIDE;
-    virtual void SendMessage(Message *msg) MOZ_OVERRIDE;
-    virtual void SendClose() MOZ_OVERRIDE;
+    virtual void EchoMessage(Message *msg) override;
+    virtual void SendMessage(Message *msg) override;
+    virtual void SendClose() override;
 
-    virtual bool Unsound_IsClosed() const MOZ_OVERRIDE;
-    virtual uint32_t Unsound_NumQueuedMessages() const MOZ_OVERRIDE;
+    virtual bool Unsound_IsClosed() const override;
+    virtual uint32_t Unsound_NumQueuedMessages() const override;
 
   protected:
     Transport* mTransport;
@@ -170,12 +115,12 @@ class ThreadLink : public MessageLink
     ThreadLink(MessageChannel *aChan, MessageChannel *aTargetChan);
     virtual ~ThreadLink();
 
-    virtual void EchoMessage(Message *msg) MOZ_OVERRIDE;
-    virtual void SendMessage(Message *msg) MOZ_OVERRIDE;
-    virtual void SendClose() MOZ_OVERRIDE;
+    virtual void EchoMessage(Message *msg) override;
+    virtual void SendMessage(Message *msg) override;
+    virtual void SendClose() override;
 
-    virtual bool Unsound_IsClosed() const MOZ_OVERRIDE;
-    virtual uint32_t Unsound_NumQueuedMessages() const MOZ_OVERRIDE;
+    virtual bool Unsound_IsClosed() const override;
+    virtual uint32_t Unsound_NumQueuedMessages() const override;
 
   protected:
     MessageChannel* mTargetChan;

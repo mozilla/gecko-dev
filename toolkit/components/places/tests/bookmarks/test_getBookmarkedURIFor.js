@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,18 +8,18 @@
   * Test bookmarksService.getBookmarkedURIFor(aURI);
   */
 
-let hs = PlacesUtils.history;
-let bs = PlacesUtils.bookmarks;
+var hs = PlacesUtils.history;
+var bs = PlacesUtils.bookmarks;
 
 function run_test() {
   run_next_test();
 }
 
-add_task(function test_getBookmarkedURIFor() {
+add_task(function* test_getBookmarkedURIFor() {
   let now = Date.now() * 1000;
   const sourceURI = uri("http://test.mozilla.org/");
   // Add a visit and a bookmark.
-  yield promiseAddVisits({ uri: sourceURI, visitDate: now });
+  yield PlacesTestUtils.addVisits({ uri: sourceURI, visitDate: now });
   do_check_eq(bs.getBookmarkedURIFor(sourceURI), null);
 
   let sourceItemId = bs.insertBookmark(bs.unfiledBookmarksFolder,
@@ -30,7 +30,7 @@ add_task(function test_getBookmarkedURIFor() {
 
   // Add a redirected visit.
   const permaURI = uri("http://perma.mozilla.org/");
-  yield promiseAddVisits({
+  yield PlacesTestUtils.addVisits({
     uri: permaURI,
     transition: TRANSITION_REDIRECT_PERMANENT,
     visitDate: now++,
@@ -52,7 +52,7 @@ add_task(function test_getBookmarkedURIFor() {
 
   // Add another redirected visit.
   const tempURI = uri("http://perma.mozilla.org/");
-  yield promiseAddVisits({
+  yield PlacesTestUtils.addVisits({
     uri: tempURI,
     transition: TRANSITION_REDIRECT_TEMPORARY,
     visitDate: now++,

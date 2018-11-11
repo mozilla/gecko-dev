@@ -8,10 +8,26 @@
 #define _NSSYSTEMINFO_H_
 
 #include "nsHashPropertyBag.h"
+#if defined(XP_WIN)
+#include "nsIObserver.h"
+#endif // defined(XP_WIN)
 
-class nsSystemInfo : public nsHashPropertyBag
+#ifdef MOZ_WIDGET_ANDROID
+#include "mozilla/dom/PContent.h"
+#endif // MOZ_WIDGET_ANDROID
+
+class nsSystemInfo final
+  : public nsHashPropertyBag
+#if defined(XP_WIN)
+  , public nsIObserver
+#endif // defined(XP_WIN)
 {
 public:
+#if defined(XP_WIN)
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_NSIOBSERVER
+#endif // defined(XP_WIN)
+
   nsSystemInfo();
 
   nsresult Init();
@@ -19,6 +35,12 @@ public:
   // Slot for NS_InitXPCOM2 to pass information to nsSystemInfo::Init.
   // See comments above the variable definition and in NS_InitXPCOM2.
   static uint32_t gUserUmask;
+
+#ifdef MOZ_WIDGET_ANDROID
+  static void GetAndroidSystemInfo(mozilla::dom::AndroidSystemInfo* aInfo);
+  protected:
+    void SetupAndroidInfo(const mozilla::dom::AndroidSystemInfo&);
+#endif
 
 protected:
   void SetInt32Property(const nsAString& aPropertyName,
@@ -30,6 +52,10 @@ protected:
 
 private:
   ~nsSystemInfo();
+
+#if defined(XP_WIN)
+  nsresult GetProfileHDDInfo();
+#endif // defined(XP_WIN)
 };
 
 #define NS_SYSTEMINFO_CONTRACTID "@mozilla.org/system-info;1"

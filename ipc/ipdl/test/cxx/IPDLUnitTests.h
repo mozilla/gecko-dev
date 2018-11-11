@@ -29,7 +29,7 @@ namespace _ipdltest {
 
 //-----------------------------------------------------------------------------
 // both processes
-const char* const IPDLUnitTestName();
+const char* IPDLUnitTestName();
 
 // NB: these are named like the similar functions in
 // xpcom/test/TestHarness.h.  The names should nominally be kept in
@@ -81,7 +81,7 @@ void QuitParent();
 extern void* gChildActor;
 
 void IPDLUnitTestChildInit(IPC::Channel* transport,
-                           base::ProcessHandle parent,
+                           base::ProcessId parentPid,
                            MessageLoop* worker);
 
 void QuitChild();

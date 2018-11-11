@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,18 +15,18 @@ function run_test()
   run_next_test();
 }
 
-add_task(function test_execute()
+add_task(function* test_execute()
 {
   // add pages to history
-  yield promiseAddVisits(TEST_URI);
-  yield promiseAddVisits(TEST_BOOKMARKED_URI);
+  yield PlacesTestUtils.addVisits(TEST_URI);
+  yield PlacesTestUtils.addVisits(TEST_BOOKMARKED_URI);
 
   // create bookmarks on TEST_BOOKMARKED_URI
-  var bm1 = PlacesUtils.bookmarks.insertBookmark(
+  PlacesUtils.bookmarks.insertBookmark(
               PlacesUtils.unfiledBookmarksFolderId,
               TEST_BOOKMARKED_URI, PlacesUtils.bookmarks.DEFAULT_INDEX,
               TEST_BOOKMARKED_URI.spec);
-  var bm2 = PlacesUtils.bookmarks.insertBookmark(
+  PlacesUtils.bookmarks.insertBookmark(
               PlacesUtils.toolbarFolderId,
               TEST_BOOKMARKED_URI, PlacesUtils.bookmarks.DEFAULT_INDEX,
               TEST_BOOKMARKED_URI.spec);
@@ -45,7 +45,7 @@ add_task(function test_execute()
   // get charset from bookmarked page
   do_check_eq((yield PlacesUtils.getCharsetForURI(TEST_BOOKMARKED_URI)), charset);
 
-  yield promiseClearHistory();
+  yield PlacesTestUtils.clearHistory();
 
   // ensure that charset has gone for not-bookmarked page
   do_check_neq((yield PlacesUtils.getCharsetForURI(TEST_URI)), charset);

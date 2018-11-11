@@ -28,12 +28,15 @@ public:
 
     ~MyEffectFilter() {}
 
-    virtual int Transform(int size, unsigned char* frameBuffer,
-                          unsigned int timeStamp90KHz, unsigned int width,
+    virtual int Transform(size_t size,
+                          unsigned char* frame_buffer,
+                          int64_t ntp_time_ms,
+                          unsigned int timestamp,
+                          unsigned int width,
                           unsigned int height)
     {
         // Black and white
-        memset(frameBuffer + (2 * size) / 3, 0x7f, size / 3);
+        memset(frame_buffer + (2 * size) / 3, 0x7f, size / 3);
         return 0;
     }
 };
@@ -45,7 +48,7 @@ void ViEAutoTest::ViEImageProcessStandardTest()
     //***************************************************************
     int rtpPort = 6000;
     // Create VIE
-    TbInterfaces ViE("ViEImageProcessAPITest");
+    TbInterfaces ViE("ViEImageProcessStandardTest");
     // Create a video channel
     TbVideoChannel tbChannel(ViE, webrtc::kVideoCodecVP8);
     // Create a capture device
@@ -86,8 +89,9 @@ void ViEAutoTest::ViEImageProcessStandardTest()
     ViETest::Log("Only Window 2 should be black and white");
     AutoTestSleep(kAutoTestSleepTimeMs);
 
-    EXPECT_EQ(0, ViE.render->StopRender(tbCapture.captureId));
-    EXPECT_EQ(0, ViE.render->RemoveRenderer(tbCapture.captureId));
+    StopRenderCaptureDeviceAndOutputStream(&ViE, &tbChannel, &tbCapture);
+
+    tbCapture.Disconnect(tbChannel.videoChannel);
 
     int rtpPort2 = rtpPort + 100;
     // Create a video channel
@@ -127,6 +131,10 @@ void ViEAutoTest::ViEImageProcessStandardTest()
     EXPECT_EQ(0, ViE.image_process->DeregisterSendEffectFilter(
         tbChannel.videoChannel));
 
+    EXPECT_EQ(0, ViE.render->RemoveRenderer(tbChannel2.videoChannel));
+
+    tbCapture.Disconnect(tbChannel2.videoChannel);
+
     //***************************************************************
     //	Testing finished. Tear down Video Engine
     //***************************************************************
@@ -157,10 +165,9 @@ void ViEAutoTest::ViEImageProcessAPITest()
         tbCapture.captureId, effectFilter));
     EXPECT_EQ(0, ViE.image_process->DeregisterCaptureEffectFilter(
         tbCapture.captureId));
-
-    // Double deregister
-    EXPECT_NE(0, ViE.image_process->DeregisterCaptureEffectFilter(
+    EXPECT_EQ(0, ViE.image_process->DeregisterCaptureEffectFilter(
         tbCapture.captureId));
+
     // Non-existing capture device
     EXPECT_NE(0, ViE.image_process->RegisterCaptureEffectFilter(
         tbChannel.videoChannel, effectFilter));
@@ -174,7 +181,7 @@ void ViEAutoTest::ViEImageProcessAPITest()
         tbChannel.videoChannel, effectFilter));
     EXPECT_EQ(0, ViE.image_process->DeregisterRenderEffectFilter(
         tbChannel.videoChannel));
-    EXPECT_NE(0, ViE.image_process->DeregisterRenderEffectFilter(
+    EXPECT_EQ(0, ViE.image_process->DeregisterRenderEffectFilter(
         tbChannel.videoChannel));
 
     // Non-existing channel id
@@ -190,24 +197,10 @@ void ViEAutoTest::ViEImageProcessAPITest()
         tbChannel.videoChannel, effectFilter));
     EXPECT_EQ(0, ViE.image_process->DeregisterSendEffectFilter(
         tbChannel.videoChannel));
-    EXPECT_NE(0, ViE.image_process->DeregisterSendEffectFilter(
+    EXPECT_EQ(0, ViE.image_process->DeregisterSendEffectFilter(
         tbChannel.videoChannel));
     EXPECT_NE(0, ViE.image_process->RegisterSendEffectFilter(
         tbCapture.captureId, effectFilter));
-
-    //
-    // Denoising
-    //
-    EXPECT_EQ(0, ViE.image_process->EnableDenoising(tbCapture.captureId, true));
-    // If the denoising is already enabled, it will just reuturn 0.
-    EXPECT_EQ(0, ViE.image_process->EnableDenoising(tbCapture.captureId, true));
-    EXPECT_EQ(0, ViE.image_process->EnableDenoising(
-        tbCapture.captureId, false));
-    // If the denoising is already disabled, it will just reuturn 0.
-    EXPECT_EQ(0, ViE.image_process->EnableDenoising(
-        tbCapture.captureId, false));
-    EXPECT_NE(0, ViE.image_process->EnableDenoising(
-        tbChannel.videoChannel, true));
 
     //
     // Deflickering
@@ -234,4 +227,6 @@ void ViEAutoTest::ViEImageProcessAPITest()
         tbChannel.videoChannel, false));
     EXPECT_NE(0, ViE.image_process->EnableColorEnhancement(
         tbCapture.captureId, true));
+
+    tbCapture.Disconnect(tbChannel.videoChannel);
 }

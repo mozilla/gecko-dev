@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -23,7 +23,7 @@ FileQuotaStream<FileStreamBase>::SetEOF()
     nsresult rv = FileStreamBase::Tell(&offset);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    mQuotaObject->UpdateSize(offset);
+    mQuotaObject->MaybeUpdateSize(offset, /* aTruncate */ true);
   }
 
   return NS_OK;
@@ -56,7 +56,7 @@ FileQuotaStream<FileStreamBase>::DoOpen()
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (mQuotaObject && (FileStreamBase::mOpenParams.ioFlags & PR_TRUNCATE)) {
-    mQuotaObject->UpdateSize(0);
+    mQuotaObject->MaybeUpdateSize(0, /* aTruncate */ true);
   }
 
   return NS_OK;
@@ -75,8 +75,11 @@ FileQuotaStreamWithWrite<FileStreamBase>::Write(const char* aBuf,
     rv = FileStreamBase::Tell(&offset);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    MOZ_ASSERT(INT64_MAX - offset >= int64_t(aCount));
+
     if (!FileQuotaStreamWithWrite::
-         mQuotaObject->MaybeAllocateMoreSpace(offset, aCount)) {
+         mQuotaObject->MaybeUpdateSize(offset + int64_t(aCount),
+                                       /* aTruncate */ false)) {
       return NS_ERROR_FILE_NO_DEVICE_SPACE;
     }
   }
@@ -95,7 +98,7 @@ FileInputStream::Create(PersistenceType aPersistenceType,
                         nsIFile* aFile, int32_t aIOFlags, int32_t aPerm,
                         int32_t aBehaviorFlags)
 {
-  nsRefPtr<FileInputStream> stream =
+  RefPtr<FileInputStream> stream =
     new FileInputStream(aPersistenceType, aGroup, aOrigin);
   nsresult rv = stream->Init(aFile, aIOFlags, aPerm, aBehaviorFlags);
   NS_ENSURE_SUCCESS(rv, nullptr);
@@ -110,7 +113,7 @@ FileOutputStream::Create(PersistenceType aPersistenceType,
                          nsIFile* aFile, int32_t aIOFlags, int32_t aPerm,
                          int32_t aBehaviorFlags)
 {
-  nsRefPtr<FileOutputStream> stream =
+  RefPtr<FileOutputStream> stream =
     new FileOutputStream(aPersistenceType, aGroup, aOrigin);
   nsresult rv = stream->Init(aFile, aIOFlags, aPerm, aBehaviorFlags);
   NS_ENSURE_SUCCESS(rv, nullptr);
@@ -124,7 +127,7 @@ FileStream::Create(PersistenceType aPersistenceType, const nsACString& aGroup,
                    const nsACString& aOrigin, nsIFile* aFile, int32_t aIOFlags,
                    int32_t aPerm, int32_t aBehaviorFlags)
 {
-  nsRefPtr<FileStream> stream =
+  RefPtr<FileStream> stream =
     new FileStream(aPersistenceType, aGroup, aOrigin);
   nsresult rv = stream->Init(aFile, aIOFlags, aPerm, aBehaviorFlags);
   NS_ENSURE_SUCCESS(rv, nullptr);

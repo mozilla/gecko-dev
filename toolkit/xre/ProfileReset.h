@@ -15,7 +15,7 @@ nsresult CreateResetProfile(nsIToolkitProfileService* aProfileSvc,
 
 nsresult ProfileResetCleanup(nsIToolkitProfile* aOldProfile);
 
-class ProfileResetCleanupResultTask : public nsRunnable
+class ProfileResetCleanupResultTask : public mozilla::Runnable
 {
 public:
   ProfileResetCleanupResultTask()
@@ -24,7 +24,7 @@ public:
     MOZ_ASSERT(!NS_IsMainThread());
   }
 
-  NS_IMETHOD Run() {
+  NS_IMETHOD Run() override {
     MOZ_ASSERT(NS_IsMainThread());
     mWorkerThread->Shutdown();
     return NS_OK;
@@ -34,7 +34,7 @@ private:
   nsCOMPtr<nsIThread> mWorkerThread;
 };
 
-class ProfileResetCleanupAsyncTask : public nsRunnable
+class ProfileResetCleanupAsyncTask : public mozilla::Runnable
 {
 public:
   ProfileResetCleanupAsyncTask(nsIFile* aProfileDir, nsIFile* aProfileLocalDir,
@@ -48,14 +48,15 @@ public:
 /**
  * Copy a root profile to a backup folder before deleting it.  Then delete the local profile dir.
  */
-  NS_IMETHOD Run()
+  NS_IMETHOD Run() override
   {
     // Copy to the destination then delete the profile. A move doesn't follow links.
     nsresult rv = mProfileDir->CopyToFollowingLinks(mTargetDir, mLeafName);
     if (NS_SUCCEEDED(rv))
       rv = mProfileDir->Remove(true);
-    else
+    if (NS_WARN_IF(NS_FAILED(rv))) {
       NS_WARNING("Could not backup the root profile directory");
+    }
 
     // If we have a separate local cache profile directory, just delete it.
     // Don't return an error if this fails so that reset can proceed if it can't be deleted.
@@ -76,5 +77,5 @@ private:
   nsCOMPtr<nsIFile> mProfileDir;
   nsCOMPtr<nsIFile> mProfileLocalDir;
   nsCOMPtr<nsIFile> mTargetDir;
-  nsAutoString mLeafName;
+  nsString mLeafName;
 };

@@ -17,17 +17,15 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=406375
 <pre id="test">
 <script type="application/javascript">
 
-if (navigator.platform.startsWith("Mac")) {
-  SimpleTest.expectAssertions(1);
-}
-
 /** Test for Bug 406375 **/
 
 
 SimpleTest.waitForExplicitFinish();
 
 function runTest() {
-  window.showModalDialog("file_bug406375.html");
+  if ("showModalDialog" in window) {
+    window.showModalDialog("file_bug406375.html");
+  }
   ok(true, "This test should not hang");
 
   SimpleTest.finish();

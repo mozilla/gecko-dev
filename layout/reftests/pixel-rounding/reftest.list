@@ -123,6 +123,10 @@ fails == collapsed-border-top-6.html border-top-10-ref.html
 == image-width-left-5.html image-width-5.html
 == image-width-left-6.html image-width-6.html
 
+
+skip pref(image.downscale-during-decode.enabled,true) == image-high-quality-scaling-1.html image-high-quality-scaling-1-ref.html
+
+
 != offscreen-0-ref.html offscreen-10-ref.html
 == offscreen-background-color-pos-4.html offscreen-0-ref.html
 == offscreen-background-color-pos-5.html offscreen-10-ref.html
@@ -139,39 +143,39 @@ fails == collapsed-border-top-6.html border-top-10-ref.html
 
 
 != rounded-background-color-base-ref.html rounded-background-color-height-10-ref.html
-== rounded-background-color-height-4.html rounded-background-color-base-ref.html
+fuzzy-if(skiaContent,1,14) == rounded-background-color-height-4.html rounded-background-color-base-ref.html
 == rounded-background-color-height-5.html rounded-background-color-height-10-ref.html
 == rounded-background-color-height-6.html rounded-background-color-height-10-ref.html
 != rounded-background-color-base-ref.html rounded-background-color-top-10-ref.html
-== rounded-background-color-top-4.html rounded-background-color-base-ref.html
+fuzzy-if(skiaContent,1,14) == rounded-background-color-top-4.html rounded-background-color-base-ref.html
 == rounded-background-color-top-5.html rounded-background-color-top-10-ref.html
 == rounded-background-color-top-6.html rounded-background-color-top-10-ref.html
 != rounded-background-color-base-ref.html rounded-background-color-width-10-ref.html
-== rounded-background-color-width-4.html rounded-background-color-base-ref.html
+fuzzy-if(skiaContent,1,14) == rounded-background-color-width-4.html rounded-background-color-base-ref.html
 == rounded-background-color-width-5.html rounded-background-color-width-10-ref.html
 == rounded-background-color-width-6.html rounded-background-color-width-10-ref.html
 != rounded-background-color-base-ref.html rounded-background-color-left-10-ref.html
-== rounded-background-color-left-4.html rounded-background-color-base-ref.html
-== rounded-background-color-left-5.html rounded-background-color-left-10-ref.html
-== rounded-background-color-left-6.html rounded-background-color-left-10-ref.html
-== rounded-background-color-top-height-4.html rounded-background-color-height-4.html
-== rounded-background-color-top-height-5.html rounded-background-color-height-5.html
-== rounded-background-color-top-height-6.html rounded-background-color-height-6.html
-== rounded-background-color-left-width-4.html rounded-background-color-width-4.html
-== rounded-background-color-left-width-5.html rounded-background-color-width-5.html
-== rounded-background-color-left-width-6.html rounded-background-color-width-6.html
-== rounded-background-color-height-top-4.html rounded-background-color-height-4.html
-== rounded-background-color-height-top-5.html rounded-background-color-height-5.html
-== rounded-background-color-height-top-6.html rounded-background-color-height-6.html
-== rounded-background-color-width-left-4.html rounded-background-color-width-4.html
-== rounded-background-color-width-left-5.html rounded-background-color-width-5.html
-== rounded-background-color-width-left-6.html rounded-background-color-width-6.html
+fuzzy-if(skiaContent,1,225) == rounded-background-color-left-4.html rounded-background-color-base-ref.html
+fuzzy-if(skiaContent,1,160) == rounded-background-color-left-5.html rounded-background-color-left-10-ref.html
+fuzzy-if(skiaContent,1,145) == rounded-background-color-left-6.html rounded-background-color-left-10-ref.html
+fuzzy-if(skiaContent,1,145) == rounded-background-color-top-height-4.html rounded-background-color-height-4.html
+fuzzy-if(skiaContent,1,113) == rounded-background-color-top-height-5.html rounded-background-color-height-5.html
+fuzzy-if(skiaContent,1,145) == rounded-background-color-top-height-6.html rounded-background-color-height-6.html
+fuzzy-if(skiaContent,1,225) == rounded-background-color-left-width-4.html rounded-background-color-width-4.html
+fuzzy-if(skiaContent,1,113) == rounded-background-color-left-width-5.html rounded-background-color-width-5.html
+fuzzy-if(skiaContent,1,113) == rounded-background-color-left-width-6.html rounded-background-color-width-6.html
+fuzzy-if(skiaContent,1,145) == rounded-background-color-height-top-4.html rounded-background-color-height-4.html
+fuzzy-if(skiaContent,1,97) == rounded-background-color-height-top-5.html rounded-background-color-height-5.html
+fuzzy-if(skiaContent,1,113) == rounded-background-color-height-top-6.html rounded-background-color-height-6.html
+fuzzy-if(skiaContent,1,225) == rounded-background-color-width-left-4.html rounded-background-color-width-4.html
+fuzzy-if(skiaContent,1,145) == rounded-background-color-width-left-5.html rounded-background-color-width-5.html
+fuzzy-if(skiaContent,1,145) == rounded-background-color-width-left-6.html rounded-background-color-width-6.html
 
-skip-if(B2G) fails-if(cocoaWidget) == background-image-tiling.html background-image-tiling-ref.html # probably bug 379317 # bug 773482
+== background-image-tiling.html background-image-tiling-ref.html
 
 != border-image-width-0.html border-image-width-10.html
-skip-if(B2G) random-if(Android) == border-image-width-4.html border-image-width-0.html # bug 661996 # bug 773482
-skip-if(B2G) random-if(Android) == border-image-width-9.html border-image-width-0.html # bug 661996 # bug 773482
+== border-image-width-4.html border-image-width-0.html
+== border-image-width-9.html border-image-width-0.html
 
 == iframe-1.html iframe-1-ref.html
 

@@ -16,7 +16,6 @@
  */
 
 class nsINode;
-class nsIDocument;
 
 namespace mozilla {
 
@@ -26,10 +25,10 @@ struct ConvertCoordinateOptions;
 class DOMQuad;
 class DOMRectReadOnly;
 class DOMPoint;
-class DOMPointInit;
+struct DOMPointInit;
 class OwningTextOrElementOrDocument;
 class TextOrElementOrDocument;
-}
+} // namespace dom
 
 typedef dom::TextOrElementOrDocument GeometryNode;
 typedef dom::OwningTextOrElementOrDocument OwningGeometryNode;
@@ -40,7 +39,7 @@ typedef dom::OwningTextOrElementOrDocument OwningGeometryNode;
  */
 void GetBoxQuads(nsINode* aNode,
                  const dom::BoxQuadOptions& aOptions,
-                 nsTArray<nsRefPtr<dom::DOMQuad> >& aResult,
+                 nsTArray<RefPtr<dom::DOMQuad> >& aResult,
                  ErrorResult& aRv);
 
 already_AddRefed<dom::DOMQuad>
@@ -61,6 +60,6 @@ ConvertPointFromNode(nsINode* aTo, const dom::DOMPointInit& aPoint,
                      const dom::ConvertCoordinateOptions& aOptions,
                      ErrorResult& aRv);
 
-}
+} // namespace mozilla
 
 #endif /* MOZILLA_GEOMETRYUTILS_H_ */

@@ -4,43 +4,64 @@
 
 /* File in use complete MAR file staged patch apply failure test */
 
+const STATE_AFTER_STAGE = IS_SERVICE_TEST ? STATE_APPLIED_SVC : STATE_APPLIED;
+const STATE_AFTER_RUNUPDATE = IS_SERVICE_TEST ? STATE_PENDING_SVC : STATE_PENDING;
+
 function run_test() {
-  gStageUpdate = true;
-  setupTestCommon();
+  if (!setupTestCommon()) {
+    return;
+  }
   gTestFiles = gTestFilesCompleteSuccess;
   gTestDirs = gTestDirsCompleteSuccess;
-  setTestFilesAndDirsForFailure();
-  setupUpdaterTest(FILE_COMPLETE_MAR, true, false);
-
-  // Launch an existing file so it is in use during the update.
-  let fileInUseBin = getApplyDirFile(gTestFiles[13].relPathDir +
-                                     gTestFiles[13].fileName);
-  let args = [getApplyDirPath() + "a/b/", "input", "output", "-s",
-              HELPER_SLEEP_TIMEOUT];
-  let fileInUseProcess = AUS_Cc["@mozilla.org/process/util;1"].
-                         createInstance(AUS_Ci.nsIProcess);
-  fileInUseProcess.init(fileInUseBin);
-  fileInUseProcess.run(false, args, args.length);
-
-  do_timeout(TEST_HELPER_TIMEOUT, waitForHelperSleep);
+  setupUpdaterTest(FILE_COMPLETE_MAR, false);
 }
 
-function doUpdate() {
-  runUpdate(0, STATE_APPLIED, null);
+/**
+ * Called after the call to setupUpdaterTest finishes.
+ */
+function setupUpdaterTestFinished() {
+  runHelperFileInUse(gTestFiles[13].relPathDir + gTestFiles[13].fileName,
+                     false);
+}
 
+/**
+ * Called after the call to waitForHelperSleep finishes.
+ */
+function waitForHelperSleepFinished() {
+  stageUpdate(true);
+}
+
+/**
+ * Called after the call to stageUpdate finishes.
+ */
+function stageUpdateFinished() {
+  checkPostUpdateRunningFile(false);
+  checkFilesAfterUpdateSuccess(getStageDirFile, true);
+  checkUpdateLogContents(LOG_COMPLETE_SUCCESS, true);
   // Switch the application to the staged application that was updated.
-  gStageUpdate = false;
-  gSwitchApp = true;
-  gDisableReplaceFallback = true;
-  runUpdate(1, STATE_FAILED_WRITE_ERROR);
+  runUpdate(STATE_AFTER_RUNUPDATE, true, 1, true);
 }
 
-function checkUpdateApplied() {
-  setupHelperFinish();
+/**
+ * Called after the call to runUpdate finishes.
+ */
+function runUpdateFinished() {
+  waitForHelperExit();
 }
 
-function checkUpdate() {
+/**
+ * Called after the call to waitForHelperExit finishes.
+ */
+function waitForHelperExitFinished() {
+  standardInit();
+  Assert.equal(gUpdateManager.updateCount, 1,
+               "the update manager updateCount attribute" + MSG_SHOULD_EQUAL);
+  Assert.equal(gUpdateManager.getUpdateAt(0).state, STATE_AFTER_RUNUPDATE,
+               "the update state" + MSG_SHOULD_EQUAL);
+  checkPostUpdateRunningFile(false);
+  setTestFilesAndDirsForFailure();
   checkFilesAfterUpdateFailure(getApplyDirFile);
   checkUpdateLogContains(ERR_RENAME_FILE);
-  checkCallbackAppLog();
+  checkUpdateLogContains(ERR_MOVE_DESTDIR_7 + "\n" + CALL_QUIT);
+  checkCallbackLog();
 }

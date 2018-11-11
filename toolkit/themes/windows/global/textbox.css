@@ -21,7 +21,7 @@ textbox {
   -moz-border-bottom-colors: ThreeDHighlight ThreeDLightShadow;
   -moz-border-left-colors: ThreeDShadow ThreeDDarkShadow;
   padding: 2px 2px 3px;
-  -moz-padding-start: 4px;
+  padding-inline-start: 4px;
   background-color: -moz-Field;
   color: -moz-FieldText;
 }
@@ -34,6 +34,14 @@ html|*.textbox-textarea {
   background-color: inherit;
   color: inherit;
   font: inherit;
+}
+
+@media (-moz-windows-default-theme) {
+  @media not all and (-moz-os-version: windows-xp) {
+    textbox html|*.textbox-input::placeholder {
+      font-style: italic;
+    }
+  }
 }
 
 .textbox-contextmenu {

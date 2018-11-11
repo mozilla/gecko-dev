@@ -14,8 +14,8 @@
 #include <string>
 #include <vector>
 
-#include "third_party/libyuv/include/libyuv/compare.h"
-#include "third_party/libyuv/include/libyuv/convert.h"
+#include "libyuv/compare.h"  // NOLINT
+#include "libyuv/convert.h"  // NOLINT
 
 namespace webrtc {
 namespace test {
@@ -97,13 +97,14 @@ bool IsThereBarcodeError(std::string line);
 // frame_0023 0284, we will get 284.
 int ExtractDecodedFrameNumber(std::string line);
 
-// Gets the next frame from an open I420 file.
-bool GetNextI420Frame(FILE* input_file, int width, int height,
-                      uint8* result_frame);
+// Extracts an I420 frame at position frame_number from the raw YUV file.
+bool ExtractFrameFromYuvFile(const char* i420_file_name, int width, int height,
+                             int frame_number, uint8* result_frame);
 
-// Extracts an I420 frame at position frame_number from the file.
-bool ExtractFrameFromI420(const char* i420_file_name, int width, int height,
-                          int frame_number, uint8* result_frame);
+// Extracts an I420 frame at position frame_number from the Y4M file. The first
+// frame has corresponded |frame_number| 0.
+bool ExtractFrameFromY4mFile(const char* i420_file_name, int width, int height,
+                             int frame_number, uint8* result_frame);
 
 
 }  // namespace test

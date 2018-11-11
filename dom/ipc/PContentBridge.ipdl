@@ -8,12 +8,18 @@ include protocol PBlob;
 include protocol PBrowser;
 include protocol PContent;
 include protocol PJavaScript;
+include protocol PFileDescriptorSet;
+include protocol PSendStream;
 
 include DOMTypes;
 include JavaScriptTypes;
 include PTabContext;
 
 using class IPC::Principal from "mozilla/dom/PermissionMessageUtils.h";
+using mozilla::dom::TabId from "mozilla/dom/ipc/IdType.h";
+using mozilla::dom::ContentParentId from "mozilla/dom/ipc/IdType.h";
+using class mozilla::dom::MessagePort from "mozilla/dom/MessagePort.h";
+using class mozilla::dom::ipc::StructuredCloneData from "mozilla/dom/ipc/StructuredCloneData.h";
 
 namespace mozilla {
 namespace dom {
@@ -26,30 +32,37 @@ namespace dom {
  * allocate the PContentBridgeChild.  This protocol allows these processes to
  * share PBrowsers and send messages to each other.
  */
-intr protocol PContentBridge
+nested(upto inside_cpow) sync protocol PContentBridge
 {
     bridges PContent, PContent;
 
     manages PBlob;
     manages PBrowser;
+    manages PFileDescriptorSet;
     manages PJavaScript;
+    manages PSendStream;
 
 parent:
     sync SyncMessage(nsString aMessage, ClonedMessageData aData,
                      CpowEntry[] aCpows, Principal aPrincipal)
-      returns (nsString[] retval);
-both:
-    // Both the parent and the child can construct the PBrowser.
-    // See the comment in PContent::PBrowser().
-    async PBrowser(IPCTabContext context, uint32_t chromeFlags,
-                   uint64_t id, bool isForApp, bool isForBrowser);
-
-    async PBlob(BlobConstructorParams params);
+      returns (StructuredCloneData[] retval);
 
     async PJavaScript();
 
-    AsyncMessage(nsString aMessage, ClonedMessageData aData,
-                 CpowEntry[] aCpows, Principal aPrincipal);
+    async PSendStream();
+
+both:
+    // Both the parent and the child can construct the PBrowser.
+    // See the comment in PContent::PBrowser().
+    async PBrowser(TabId tabId, IPCTabContext context, uint32_t chromeFlags,
+                   ContentParentId cpId, bool isForApp, bool isForBrowser);
+
+    async PBlob(BlobConstructorParams params);
+
+    async PFileDescriptorSet(FileDescriptor fd);
+
+    async AsyncMessage(nsString aMessage, CpowEntry[] aCpows,
+                       Principal aPrincipal, ClonedMessageData aData);
 };
 
 }

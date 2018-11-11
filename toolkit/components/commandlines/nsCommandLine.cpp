@@ -19,6 +19,8 @@
 #include "nsISupportsImpl.h"
 #include "nsNativeCharsetUtils.h"
 #include "nsNetUtil.h"
+#include "nsIFileProtocolHandler.h"
+#include "nsIURI.h"
 #include "nsUnicharUtils.h"
 #include "nsTArray.h"
 #include "nsTextFormatter.h"
@@ -43,7 +45,7 @@
 #define NS_COMMANDLINE_CID \
   { 0x23bcc750, 0xdc20, 0x460b, { 0xb2, 0xd4, 0x74, 0xd8, 0xf5, 0x8d, 0x36, 0x15 } }
 
-class nsCommandLine MOZ_FINAL : public nsICommandLineRunner
+class nsCommandLine final : public nsICommandLineRunner
 {
 public:
   NS_DECL_ISUPPORTS
@@ -63,7 +65,7 @@ protected:
 					void *aClosure);
 
   void appendArg(const char* arg);
-  void resolveShortcutURL(nsIFile* aFile, nsACString& outURL);
+  MOZ_MUST_USE nsresult resolveShortcutURL(nsIFile* aFile, nsACString& outURL);
   nsresult EnumerateHandlers(EnumerateHandlersCallback aCallback, void *aClosure);
   nsresult EnumerateValidators(EnumerateValidatorsCallback aCallback, void *aClosure);
 
@@ -275,7 +277,7 @@ nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile* *aResult)
   CFRelease(newurl);
   if (NS_FAILED(rv)) return rv;
 
-  NS_ADDREF(*aResult = newfile);
+  newfile.forget(aResult);
   return NS_OK;
 
 #elif defined(XP_UNIX)
@@ -306,7 +308,7 @@ nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile* *aResult)
   rv = lf->Normalize();
   if (NS_FAILED(rv)) return rv;
 
-  NS_ADDREF(*aResult = lf);
+  lf.forget(aResult);
   return NS_OK;
 
 #elif defined(XP_WIN32)
@@ -333,7 +335,7 @@ nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile* *aResult)
     rv = lf->InitWithPath(nsDependentString(pathBuf));
     if (NS_FAILED(rv)) return rv;
   }
-  NS_ADDREF(*aResult = lf);
+  lf.forget(aResult);
   return NS_OK;
 
 #else
@@ -363,8 +365,8 @@ nsCommandLine::ResolveURI(const nsAString& aArgument, nsIURI* *aResult)
     lf->Normalize();
     nsAutoCString url;
     // Try to resolve the url for .url files.
-    resolveShortcutURL(lf, url);
-    if (!url.IsEmpty()) {
+    rv = resolveShortcutURL(lf, url);
+    if (NS_SUCCEEDED(rv) && !url.IsEmpty()) {
       return io->NewURI(url,
                         nullptr,
                         workingDirURI,
@@ -397,20 +399,20 @@ nsCommandLine::appendArg(const char* arg)
   mArgs.AppendElement(warg);
 }
 
-void
+nsresult
 nsCommandLine::resolveShortcutURL(nsIFile* aFile, nsACString& outURL)
 {
   nsCOMPtr<nsIFileProtocolHandler> fph;
   nsresult rv = NS_GetFileProtocolHandler(getter_AddRefs(fph));
   if (NS_FAILED(rv))
-    return;
+    return rv;
 
   nsCOMPtr<nsIURI> uri;
   rv = fph->ReadURLFile(aFile, getter_AddRefs(uri));
   if (NS_FAILED(rv))
-    return;
+    return rv;
 
-  uri->GetSpec(outURL);
+  return uri->GetSpec(outURL);
 }
 
 NS_IMETHODIMP
@@ -489,7 +491,7 @@ LogConsoleMessage(const char16_t* fmt, ...)
   if (cs)
     cs->LogStringMessage(msg);
 
-  NS_Free(msg);
+  free(msg);
 }
 
 nsresult
@@ -523,7 +525,7 @@ nsCommandLine::EnumerateHandlers(EnumerateHandlersCallback aCallback, void *aClo
 
     nsCOMPtr<nsICommandLineHandler> clh(do_GetService(contractID.get()));
     if (!clh) {
-      LogConsoleMessage(MOZ_UTF16("Contract ID '%s' was registered as a command line handler for entry '%s', but could not be created."),
+      LogConsoleMessage(u"Contract ID '%s' was registered as a command line handler for entry '%s', but could not be created.",
                         contractID.get(), entry.get());
       continue;
     }

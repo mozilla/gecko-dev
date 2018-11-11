@@ -2,16 +2,24 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+//
+// Whitelisting this test.
+// As part of bug 1077403, the leaking uncaught rejection should be fixed.
+//
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: window.location is null");
+
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
   "resource://gre/modules/Promise.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "fxAccounts",
   "resource://gre/modules/FxAccounts.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
+  "resource://gre/modules/FileUtils.jsm");
 
 const CHROME_BASE = "chrome://mochitests/content/browser/browser/base/content/test/general/";
 // Preference helpers.
-let changedPrefs = new Set();
+var changedPrefs = new Set();
 
 function setPref(name, value) {
   changedPrefs.add(name);
@@ -25,42 +33,44 @@ registerCleanupFunction(function() {
   }
 });
 
-let gTests = [
+var gTests = [
 {
   desc: "Test the remote commands",
   teardown: function* () {
     gBrowser.removeCurrentTab();
-    yield fxAccounts.signOut();
+    yield signOut();
   },
   run: function* ()
   {
     setPref("identity.fxaccounts.remote.signup.uri",
             "https://example.com/browser/browser/base/content/test/general/accounts_testRemoteCommands.html");
-    yield promiseNewTabLoadEvent("about:accounts");
+    let tab = yield promiseNewTabLoadEvent("about:accounts");
+    let mm = tab.linkedBrowser.messageManager;
 
     let deferred = Promise.defer();
 
+    // We'll get a message when openPrefs() is called, which this test should
+    // arrange.
+    let promisePrefsOpened = promiseOneMessage(tab, "test:openPrefsCalled");
     let results = 0;
     try {
-      let win = gBrowser.contentWindow;
-      win.addEventListener("message", function testLoad(e) {
-        if (e.data.type == "testResult") {
-          ok(e.data.pass, e.data.info);
+      mm.addMessageListener("test:response", function responseHandler(msg) {
+        let data = msg.data.data;
+        if (data.type == "testResult") {
+          ok(data.pass, data.info);
           results++;
-        }
-        else if (e.data.type == "testsComplete") {
-          is(results, e.data.count, "Checking number of results received matches the number of tests that should have run");
-          win.removeEventListener("message", testLoad, false, true);
+        } else if (data.type == "testsComplete") {
+          is(results, data.count, "Checking number of results received matches the number of tests that should have run");
+          mm.removeMessageListener("test:response", responseHandler);
           deferred.resolve();
         }
-
-      }, false, true);
-
-    } catch(e) {
+      });
+    } catch (e) {
       ok(false, "Failed to get all commands");
       deferred.reject();
     }
     yield deferred.promise;
+    yield promisePrefsOpened;
   }
 },
 {
@@ -78,7 +88,8 @@ let gTests = [
       stage: false, // parent of 'manage' and 'intro'
       manage: false,
       intro: false, // this is  "get started"
-      remote: true
+      remote: true,
+      networkError: false
     });
   }
 },
@@ -105,7 +116,48 @@ let gTests = [
       stage: true, // parent of 'manage' and 'intro'
       manage: true,
       intro: false, // this is  "get started"
-      remote: false
+      remote: false,
+      networkError: false
+    });
+  }
+},
+{
+  desc: "Test action=signin - captive portal",
+  teardown: () => gBrowser.removeCurrentTab(),
+  run: function* ()
+  {
+    const signinUrl = "https://redirproxy.example.com/test";
+    setPref("identity.fxaccounts.remote.signin.uri", signinUrl);
+    let [tab, ] = yield promiseNewTabWithIframeLoadEvent("about:accounts?action=signin");
+    yield checkVisibilities(tab, {
+      stage: true, // parent of 'manage' and 'intro'
+      manage: false,
+      intro: false, // this is  "get started"
+      remote: false,
+      networkError: true
+    });
+  }
+},
+{
+  desc: "Test action=signin - offline",
+  teardown: () => {
+    gBrowser.removeCurrentTab();
+    BrowserOffline.toggleOfflineStatus();
+  },
+  run: function* ()
+  {
+    BrowserOffline.toggleOfflineStatus();
+    Services.cache2.clear();
+
+    const signinUrl = "https://unknowndomain.cow";
+    setPref("identity.fxaccounts.remote.signin.uri", signinUrl);
+    let [tab, ] = yield promiseNewTabWithIframeLoadEvent("about:accounts?action=signin");
+    yield checkVisibilities(tab, {
+      stage: true, // parent of 'manage' and 'intro'
+      manage: false,
+      intro: false, // this is  "get started"
+      remote: false,
+      networkError: true
     });
   }
 },
@@ -123,7 +175,8 @@ let gTests = [
       stage: false, // parent of 'manage' and 'intro'
       manage: false,
       intro: false, // this is  "get started"
-      remote: true
+      remote: true,
+      networkError: false
     });
   },
 },
@@ -142,7 +195,8 @@ let gTests = [
       stage: true, // parent of 'manage' and 'intro'
       manage: true,
       intro: false, // this is  "get started"
-      remote: false
+      remote: false,
+      networkError: false
     });
   },
 },
@@ -156,21 +210,113 @@ let gTests = [
   {
     const expected_url = "https://example.com/?is_force_auth";
     setPref("identity.fxaccounts.remote.force_auth.uri", expected_url);
-    let userData = {
-      email: "foo@example.com",
-      uid: "1234@lcip.org",
-      assertion: "foobar",
-      sessionToken: "dead",
-      kA: "beef",
-      kB: "cafe",
-      verified: true
-    };
 
     yield setSignedInUser();
-    let [tab, url] = yield promiseNewTabWithIframeLoadEvent("about:accounts?action=reauth");
+    let [, url] = yield promiseNewTabWithIframeLoadEvent("about:accounts?action=reauth");
     // The current user will be appended to the url
     let expected = expected_url + "&email=foo%40example.com";
     is(url, expected, "action=reauth got the expected URL");
+  },
+},
+{
+  desc: "Test with migrateToDevEdition enabled (success)",
+  teardown: function* () {
+    gBrowser.removeCurrentTab();
+    yield signOut();
+  },
+  run: function* ()
+  {
+    let fxAccountsCommon = {};
+    Cu.import("resource://gre/modules/FxAccountsCommon.js", fxAccountsCommon);
+    const pref = "identity.fxaccounts.migrateToDevEdition";
+    changedPrefs.add(pref);
+    Services.prefs.setBoolPref(pref, true);
+
+    // Create the signedInUser.json file that will be used as the source of
+    // migrated user data.
+    let signedInUser = {
+      version: 1,
+      accountData: {
+        email: "foo@example.com",
+        uid: "1234@lcip.org",
+        sessionToken: "dead",
+        verified: true
+      }
+    };
+    // We use a sub-dir of the real profile dir as the "pretend" profile dir
+    // for this test.
+    let profD = Services.dirsvc.get("ProfD", Ci.nsIFile);
+    let mockDir = profD.clone();
+    mockDir.append("about-accounts-mock-profd");
+    mockDir.createUnique(Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+    let fxAccountsStorage = OS.Path.join(mockDir.path, fxAccountsCommon.DEFAULT_STORAGE_FILENAME);
+    yield OS.File.writeAtomic(fxAccountsStorage, JSON.stringify(signedInUser));
+    info("Wrote file " + fxAccountsStorage);
+
+    // this is a little subtle - we load about:robots so we get a non-remote
+    // tab, then we send a message which does both (a) load the URL we want and
+    // (b) mocks the default profile path used by about:accounts.
+    let tab = yield promiseNewTabLoadEvent("about:robots");
+    let readyPromise = promiseOneMessage(tab, "test:load-with-mocked-profile-path-response");
+
+    let mm = tab.linkedBrowser.messageManager;
+    mm.sendAsyncMessage("test:load-with-mocked-profile-path", {
+      url: "about:accounts",
+      profilePath: mockDir.path,
+    });
+
+    let response = yield readyPromise;
+    // We are expecting the iframe to be on the "force reauth" URL
+    let expected = yield fxAccounts.promiseAccountsForceSigninURI();
+    is(response.data.url, expected);
+
+    let userData = yield fxAccounts.getSignedInUser();
+    SimpleTest.isDeeply(userData, signedInUser.accountData, "All account data were migrated");
+    // The migration pref will have been switched off by now.
+    is(Services.prefs.getBoolPref(pref), false, pref + " got the expected value");
+
+    yield OS.File.remove(fxAccountsStorage);
+    yield OS.File.removeEmptyDir(mockDir.path);
+  },
+},
+{
+  desc: "Test with migrateToDevEdition enabled (no user to migrate)",
+  teardown: function* () {
+    gBrowser.removeCurrentTab();
+    yield signOut();
+  },
+  run: function* ()
+  {
+    const pref = "identity.fxaccounts.migrateToDevEdition";
+    changedPrefs.add(pref);
+    Services.prefs.setBoolPref(pref, true);
+
+    let profD = Services.dirsvc.get("ProfD", Ci.nsIFile);
+    let mockDir = profD.clone();
+    mockDir.append("about-accounts-mock-profd");
+    mockDir.createUnique(Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+    // but leave it empty, so we don't think a user is logged in.
+
+    let tab = yield promiseNewTabLoadEvent("about:robots");
+    let readyPromise = promiseOneMessage(tab, "test:load-with-mocked-profile-path-response");
+
+    let mm = tab.linkedBrowser.messageManager;
+    mm.sendAsyncMessage("test:load-with-mocked-profile-path", {
+      url: "about:accounts",
+      profilePath: mockDir.path,
+    });
+
+    let response = yield readyPromise;
+    // We are expecting the iframe to be on the "signup" URL
+    let expected = yield fxAccounts.promiseAccountsSignUpURI();
+    is(response.data.url, expected);
+
+    // and expect no signed in user.
+    let userData = yield fxAccounts.getSignedInUser();
+    is(userData, null);
+    // The migration pref should have still been switched off.
+    is(Services.prefs.getBoolPref(pref), false, pref + " got the expected value");
+    yield OS.File.removeEmptyDir(mockDir.path);
   },
 },
 {
@@ -189,19 +335,83 @@ let gTests = [
     is(tab.linkedBrowser.contentDocument.location.href, "about:accounts?action=signin");
   }
 },
+{
+  desc: "Test entrypoint query string, no action, no user logged in",
+  teardown: () => gBrowser.removeCurrentTab(),
+  run: function* () {
+    // When this loads with no user logged-in, we expect the "normal" URL
+    setPref("identity.fxaccounts.remote.signup.uri", "https://example.com/");
+    let [, url] = yield promiseNewTabWithIframeLoadEvent("about:accounts?entrypoint=abouthome");
+    is(url, "https://example.com/?entrypoint=abouthome", "entrypoint=abouthome got the expected URL");
+  },
+},
+{
+  desc: "Test entrypoint query string for signin",
+  teardown: () => gBrowser.removeCurrentTab(),
+  run: function* () {
+    // When this loads with no user logged-in, we expect the "normal" URL
+    const expected_url = "https://example.com/?is_sign_in";
+    setPref("identity.fxaccounts.remote.signin.uri", expected_url);
+    let [, url] = yield promiseNewTabWithIframeLoadEvent("about:accounts?action=signin&entrypoint=abouthome");
+    is(url, expected_url + "&entrypoint=abouthome", "entrypoint=abouthome got the expected URL");
+  },
+},
+{
+  desc: "Test entrypoint query string for signup",
+  teardown: () => gBrowser.removeCurrentTab(),
+  run: function* () {
+    // When this loads with no user logged-in, we expect the "normal" URL
+    const sign_up_url = "https://example.com/?is_sign_up";
+    setPref("identity.fxaccounts.remote.signup.uri", sign_up_url);
+    let [, url] = yield promiseNewTabWithIframeLoadEvent("about:accounts?entrypoint=abouthome&action=signup");
+    is(url, sign_up_url + "&entrypoint=abouthome", "entrypoint=abouthome got the expected URL");
+  },
+},
+{
+  desc: "about:accounts URL params should be copied to remote URL params " +
+        "when remote URL has no URL params, except for 'action'",
+  teardown() {
+    gBrowser.removeCurrentTab();
+  },
+  run: function* () {
+    let signupURL = "https://example.com/";
+    setPref("identity.fxaccounts.remote.signup.uri", signupURL);
+    let queryStr = "email=foo%40example.com&foo=bar&baz=quux";
+    let [, url] =
+      yield promiseNewTabWithIframeLoadEvent("about:accounts?" + queryStr +
+                                             "&action=action");
+    is(url, signupURL + "?" + queryStr, "URL params are copied to signup URL");
+  },
+},
+{
+  desc: "about:accounts URL params should be copied to remote URL params " +
+        "when remote URL already has some URL params, except for 'action'",
+  teardown() {
+    gBrowser.removeCurrentTab();
+  },
+  run: function* () {
+    let signupURL = "https://example.com/?param";
+    setPref("identity.fxaccounts.remote.signup.uri", signupURL);
+    let queryStr = "email=foo%40example.com&foo=bar&baz=quux";
+    let [, url] =
+      yield promiseNewTabWithIframeLoadEvent("about:accounts?" + queryStr +
+                                             "&action=action");
+    is(url, signupURL + "&" + queryStr, "URL params are copied to signup URL");
+  },
+},
 ]; // gTests
 
 function test()
 {
   waitForExplicitFinish();
 
-  Task.spawn(function () {
-    for (let test of gTests) {
-      info(test.desc);
+  Task.spawn(function* () {
+    for (let testCase of gTests) {
+      info(testCase.desc);
       try {
-        yield test.run();
+        yield testCase.run();
       } finally {
-        yield test.teardown();
+        yield testCase.teardown();
       }
     }
 
@@ -284,5 +494,6 @@ function setSignedInUser(data) {
 }
 
 function signOut() {
-  return fxAccounts.signOut();
+  // we always want a "localOnly" signout here...
+  return fxAccounts.signOut(true);
 }

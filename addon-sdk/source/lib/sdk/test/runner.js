@@ -8,7 +8,9 @@ module.metadata = {
 };
 
 var { exit, stdout } = require("../system");
-var cfxArgs = require("@test/options");
+var cfxArgs = require("../test/options");
+var events = require("../system/events");
+const { resolve } = require("../core/promise");
 
 function runTests(findAndRunTests) {
   var harness = require("./harness");
@@ -18,14 +20,18 @@ function runTests(findAndRunTests) {
     var total = tests.passed + tests.failed;
     stdout.write(tests.passed + " of " + total + " tests passed.\n");
 
+    events.emit("sdk:test:results", { data: JSON.stringify(tests) });
+
     if (tests.failed == 0) {
       if (tests.passed === 0)
         stdout.write("No tests were run\n");
-      exit(0);
+      if (!cfxArgs.keepOpen)
+        exit(0);
     } else {
       if (cfxArgs.verbose || cfxArgs.parseable)
         printFailedTests(tests, stdout.write);
-      exit(1);
+      if (!cfxArgs.keepOpen)
+        exit(1);
     }
   };
 
@@ -33,35 +39,33 @@ function runTests(findAndRunTests) {
   // are not correctly updated.
   // For ex: nsIFocusManager.getFocusedElementForWindow may throw
   // NS_ERROR_ILLEGAL_VALUE exception.
-  require("../timers").setTimeout(function () {
-    harness.runTests({
-      findAndRunTests: findAndRunTests,
-      iterations: cfxArgs.iterations || 1,
-      filter: cfxArgs.filter,
-      profileMemory: cfxArgs.profileMemory,
-      stopOnError: cfxArgs.stopOnError,
-      verbose: cfxArgs.verbose,
-      parseable: cfxArgs.parseable,
-      print: stdout.write,
-      onDone: onDone
-    });
-  }, 0);
+  require("../timers").setTimeout(_ => harness.runTests({
+    findAndRunTests: findAndRunTests,
+    iterations: cfxArgs.iterations || 1,
+    filter: cfxArgs.filter,
+    profileMemory: cfxArgs.profileMemory,
+    stopOnError: cfxArgs.stopOnError,
+    verbose: cfxArgs.verbose,
+    parseable: cfxArgs.parseable,
+    print: stdout.write,
+    onDone: onDone
+  }));
 }
 
 function printFailedTests(tests, print) {
   let iterationNumber = 0;
-  let singleIteration = tests.testRuns.length == 1;
+  let singleIteration = (tests.testRuns || []).length == 1;
   let padding = singleIteration ? "" : "  ";
 
   print("\nThe following tests failed:\n");
 
-  for each (let testRun in tests.testRuns) {
+  for (let testRun of tests.testRuns) {
     iterationNumber++;
 
     if (!singleIteration)
       print("  Iteration " + iterationNumber + ":\n");
 
-    for each (let test in testRun) {
+    for (let test of testRun) {
       if (test.failed > 0) {
         print(padding + "  " + test.name + ": " + test.errors +"\n");
       }
@@ -94,7 +98,7 @@ exports.runTestsFromModule = function runTestsFromModule(module) {
   let id = module.id;
   // Make a copy of exports as it may already be frozen by module loader
   let exports = {};
-  Object.keys(module.exports).forEach(function(key) {
+  Object.keys(module.exports).forEach(key => {
     exports[key] = module.exports[key];
   });
 
@@ -102,9 +106,9 @@ exports.runTestsFromModule = function runTestsFromModule(module) {
     // Consider that all these tests are CommonJS ones
     loader.require('../../test').run(exports);
 
-    // Reproduce what is done in unit-test-finder.findTests()
+    // Reproduce what is done in sdk/deprecated/unit-test-finder.findTests()
     let tests = [];
-    for each (let name in Object.keys(exports).sort()) {
+    for (let name of Object.keys(exports).sort()) {
       tests.push({
         setup: exports.setup,
         teardown: exports.teardown,
@@ -117,7 +121,9 @@ exports.runTestsFromModule = function runTestsFromModule(module) {
     var { TestRunner } = loader.require("../deprecated/unit-test");
     var runner = new TestRunner();
     runner.startMany({
-      tests: tests,
+      tests: {
+        getNext: () => resolve(tests.shift())
+      },
       stopOnError: cfxArgs.stopOnError,
       onDone: nextIteration
     });

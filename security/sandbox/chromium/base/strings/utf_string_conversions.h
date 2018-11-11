@@ -5,6 +5,8 @@
 #ifndef BASE_STRINGS_UTF_STRING_CONVERSIONS_H_
 #define BASE_STRINGS_UTF_STRING_CONVERSIONS_H_
 
+#include <stddef.h>
+
 #include <string>
 
 #include "base/base_export.h"
@@ -24,7 +26,7 @@ BASE_EXPORT bool WideToUTF8(const wchar_t* src, size_t src_len,
 BASE_EXPORT std::string WideToUTF8(const std::wstring& wide);
 BASE_EXPORT bool UTF8ToWide(const char* src, size_t src_len,
                             std::wstring* output);
-BASE_EXPORT std::wstring UTF8ToWide(const StringPiece& utf8);
+BASE_EXPORT std::wstring UTF8ToWide(StringPiece utf8);
 
 BASE_EXPORT bool WideToUTF16(const wchar_t* src, size_t src_len,
                              string16* output);
@@ -34,39 +36,19 @@ BASE_EXPORT bool UTF16ToWide(const char16* src, size_t src_len,
 BASE_EXPORT std::wstring UTF16ToWide(const string16& utf16);
 
 BASE_EXPORT bool UTF8ToUTF16(const char* src, size_t src_len, string16* output);
-BASE_EXPORT string16 UTF8ToUTF16(const StringPiece& utf8);
+BASE_EXPORT string16 UTF8ToUTF16(StringPiece utf8);
 BASE_EXPORT bool UTF16ToUTF8(const char16* src, size_t src_len,
                              std::string* output);
-BASE_EXPORT std::string UTF16ToUTF8(const string16& utf16);
+BASE_EXPORT std::string UTF16ToUTF8(StringPiece16 utf16);
 
-// We are trying to get rid of wstring as much as possible, but it's too big
-// a mess to do it all at once.  These conversions should be used when we
-// really should just be passing a string16 around, but we haven't finished
-// porting whatever module uses wstring and the conversion is being used as a
-// stopcock.  This makes it easy to grep for the ones that should be removed.
-#if defined(OS_WIN)
-# define WideToUTF16Hack
-# define UTF16ToWideHack
-#else
-# define WideToUTF16Hack WideToUTF16
-# define UTF16ToWideHack UTF16ToWide
-#endif
+// This converts an ASCII string, typically a hardcoded constant, to a UTF16
+// string.
+BASE_EXPORT string16 ASCIIToUTF16(StringPiece ascii);
 
-// These convert an ASCII string, typically a hardcoded constant, to a
-// UTF16/Wide string.
-BASE_EXPORT std::wstring ASCIIToWide(const StringPiece& ascii);
-BASE_EXPORT string16 ASCIIToUTF16(const StringPiece& ascii);
+// Converts to 7-bit ASCII by truncating. The result must be known to be ASCII
+// beforehand.
+BASE_EXPORT std::string UTF16ToASCII(StringPiece16 utf16);
 
 }  // namespace base
-
-// TODO(brettw) remove these when callers are fixed up.
-using base::WideToUTF8;
-using base::UTF8ToWide;
-using base::WideToUTF16;
-using base::UTF16ToWide;
-using base::UTF8ToUTF16;
-using base::UTF16ToUTF8;
-using base::ASCIIToWide;
-using base::ASCIIToUTF16;
 
 #endif  // BASE_STRINGS_UTF_STRING_CONVERSIONS_H_

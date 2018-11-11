@@ -1,0 +1,18 @@
+<html>
+  <head>
+    <script>
+      function do_test(override) {
+        if (override || document.location.hash.indexOf("#auto") == 0) {
+          sendAsyncMessage("tabswitch-do-test");
+          addMessageListener("tabswitch-test-results", function onMessage(msg) {
+            let data = msg.data;
+            content.tpRecordTime(data.times.join(','), 0, data.urls.join(','));
+          });
+        }
+      }
+    </script>
+  </head>
+  <body onload="do_test(false)">
+    Hello Talos!
+  </body>
+</html>

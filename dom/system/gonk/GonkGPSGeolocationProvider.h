@@ -21,9 +21,7 @@
 #include "nsCOMPtr.h"
 #include "nsIGeolocationProvider.h"
 #include "nsIObserver.h"
-#ifdef MOZ_B2G_RIL
-#include "nsIRadioInterfaceLayer.h"
-#endif
+#include "nsIDOMGeoPosition.h"
 #include "nsISettingsService.h"
 
 class nsIThread;
@@ -63,32 +61,14 @@ private:
   static void ReleaseWakelockCallback();
   static pthread_t CreateThreadCallback(const char* name, void (*start)(void*), void* arg);
   static void RequestUtcTimeCallback();
-#ifdef MOZ_B2G_RIL
-  static void AGPSStatusCallback(AGpsStatus* status);
-  static void AGPSRILSetIDCallback(uint32_t flags);
-  static void AGPSRILRefLocCallback(uint32_t flags);
-#endif
 
   static GpsCallbacks mCallbacks;
-#ifdef MOZ_B2G_RIL
-  static AGpsCallbacks mAGPSCallbacks;
-  static AGpsRilCallbacks mAGPSRILCallbacks;
-#endif
 
   void Init();
   void StartGPS();
   void ShutdownGPS();
   void InjectLocation(double latitude, double longitude, float accuracy);
-  void RequestSettingValue(char* aKey);
-#ifdef MOZ_B2G_RIL
-  void SetupAGPS();
-  int32_t GetDataConnectionState();
-  void SetAGpsDataConn(nsAString& aApn);
-  void RequestDataConnection();
-  void ReleaseDataConnection();
-  void RequestSetID(uint32_t flags);
-  void SetReferenceLocation();
-#endif
+  void RequestSettingValue(const char* aKey);
 
   const GpsInterface* GetGPSInterface();
 
@@ -97,23 +77,15 @@ private:
   bool mStarted;
 
   bool mSupportsScheduling;
-#ifdef MOZ_B2G_RIL
-  bool mSupportsMSB;
-  bool mSupportsMSA;
-#endif
+  bool mObservingSettingsChange;
   bool mSupportsSingleShot;
   bool mSupportsTimeInjection;
 
   const GpsInterface* mGpsInterface;
-#ifdef MOZ_B2G_RIL
-  const AGpsInterface* mAGpsInterface;
-  const AGpsRilInterface* mAGpsRilInterface;
-  nsCOMPtr<nsIRadioInterface> mRadioInterface;
-#endif
   nsCOMPtr<nsIGeolocationUpdate> mLocationCallback;
-  PRTime mLastGPSDerivedLocationTime;
   nsCOMPtr<nsIThread> mInitThread;
   nsCOMPtr<nsIGeolocationProvider> mNetworkLocationProvider;
+  nsCOMPtr<nsIDOMGeoPosition> mLastGPSPosition;
 
   class NetworkLocationUpdate : public nsIGeolocationUpdate
   {

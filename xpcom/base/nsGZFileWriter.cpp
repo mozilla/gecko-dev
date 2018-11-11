@@ -18,8 +18,9 @@
 
 NS_IMPL_ISUPPORTS(nsGZFileWriter, nsIGZFileWriter)
 
-nsGZFileWriter::nsGZFileWriter()
-  : mInitialized(false)
+nsGZFileWriter::nsGZFileWriter(Operation aMode)
+  : mMode(aMode)
+  , mInitialized(false)
   , mFinished(false)
 {
 }
@@ -43,13 +44,18 @@ nsGZFileWriter::Init(nsIFile* aFile)
   // gzip can own.  Then close our FILE, leaving only gzip's fd open.
 
   FILE* file;
-  nsresult rv = aFile->OpenANSIFileDesc("wb", &file);
+  nsresult rv = aFile->OpenANSIFileDesc(mMode == Create ? "wb" : "ab", &file);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
+  return InitANSIFileDesc(file);
+}
 
-  mGZFile = gzdopen(dup(fileno(file)), "wb");
-  fclose(file);
+NS_IMETHODIMP
+nsGZFileWriter::InitANSIFileDesc(FILE* aFile)
+{
+  mGZFile = gzdopen(dup(fileno(aFile)), mMode == Create ? "wb" : "ab");
+  fclose(aFile);
 
   // gzdopen returns nullptr on error.
   if (NS_WARN_IF(!mGZFile)) {

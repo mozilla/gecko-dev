@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,12 +8,12 @@ if (typeof registerManifests === "undefined") {
   load("../unit/head_crtestutils.js");
 }
 
-let manifestFile = do_get_file("../unit/data/test_resolve_uris.manifest");
+var manifestFile = do_get_file("../unit/data/test_resolve_uris.manifest");
 
-let manifests = [ manifestFile ];
+var manifests = [ manifestFile ];
 registerManifests(manifests);
 
-let ios = Cc["@mozilla.org/network/io-service;1"].
+var ios = Cc["@mozilla.org/network/io-service;1"].
           getService(Ci.nsIIOService);
 
 function do_run_test()

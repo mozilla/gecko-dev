@@ -13,8 +13,10 @@
 #include "mozilla/ipc/SharedMemory.h"   // for SharedMemory, etc
 #include "mozilla/layers/ImageClient.h"  // for ImageClient
 #include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor, etc
-#include "mozilla/layers/TextureClient.h"  // for BufferTextureClient, etc
-#include "mozilla/layers/YCbCrImageDataSerializer.h"
+#include "mozilla/layers/TextureClient.h"
+#include "mozilla/layers/TextureClientRecycleAllocator.h"
+#include "mozilla/layers/BufferTexture.h"
+#include "mozilla/layers/ImageDataSerializer.h"
 #include "mozilla/layers/ImageBridgeChild.h"  // for ImageBridgeChild
 #include "mozilla/mozalloc.h"           // for operator delete
 #include "nsISupportsImpl.h"            // for Image::AddRef
@@ -26,10 +28,8 @@ namespace layers {
 using namespace mozilla::ipc;
 
 SharedPlanarYCbCrImage::SharedPlanarYCbCrImage(ImageClient* aCompositable)
-: PlanarYCbCrImage(nullptr)
-, mCompositable(aCompositable)
+: mCompositable(aCompositable)
 {
-  mTextureClient = aCompositable->CreateBufferTextureClient(gfx::SurfaceFormat::YUV);
   MOZ_COUNT_CTOR(SharedPlanarYCbCrImage);
 }
 
@@ -38,8 +38,11 @@ SharedPlanarYCbCrImage::~SharedPlanarYCbCrImage() {
 
   if (mCompositable->GetAsyncID() != 0 &&
       !InImageBridgeChildThread()) {
-    ImageBridgeChild::DispatchReleaseTextureClient(mTextureClient.forget().drop());
-    ImageBridgeChild::DispatchReleaseImageClient(mCompositable.forget().drop());
+    if (mTextureClient) {
+      ADDREF_MANUALLY(mTextureClient);
+      ImageBridgeChild::DispatchReleaseTextureClient(mTextureClient);
+      mTextureClient = nullptr;
+    }
   }
 }
 
@@ -50,12 +53,11 @@ SharedPlanarYCbCrImage::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
   //     at time of allocation in GfxMemoryImageReporter.
   // Not owned:
   // - mCompositable
-  size_t size = PlanarYCbCrImage::SizeOfExcludingThis(aMallocSizeOf);
-  return size;
+  return 0;
 }
 
 TextureClient*
-SharedPlanarYCbCrImage::GetTextureClient(CompositableClient* aClient)
+SharedPlanarYCbCrImage::GetTextureClient(KnowsCompositor* aForwarder)
 {
   return mTextureClient.get();
 }
@@ -63,55 +65,44 @@ SharedPlanarYCbCrImage::GetTextureClient(CompositableClient* aClient)
 uint8_t*
 SharedPlanarYCbCrImage::GetBuffer()
 {
-  return mTextureClient->GetBuffer();
+  // This should never be used
+  MOZ_ASSERT(false);
+  return nullptr;
 }
 
-TemporaryRef<gfx::SourceSurface>
+already_AddRefed<gfx::SourceSurface>
 SharedPlanarYCbCrImage::GetAsSourceSurface()
 {
-  if (!mTextureClient->IsAllocated()) {
+  if (!IsValid()) {
     NS_WARNING("Can't get as surface");
     return nullptr;
   }
   return PlanarYCbCrImage::GetAsSourceSurface();
 }
 
-void
-SharedPlanarYCbCrImage::SetData(const PlanarYCbCrData& aData)
+bool
+SharedPlanarYCbCrImage::CopyData(const PlanarYCbCrData& aData)
 {
-  // If mShmem has not been allocated (through Allocate(aData)), allocate it.
-  // This code path is slower than the one used when Allocate has been called
-  // since it will trigger a full copy.
-  if (!mTextureClient->IsAllocated()) {
-    Data data = aData;
-    if (!Allocate(data)) {
-      NS_WARNING("SharedPlanarYCbCrImage::SetData failed to allocate");
-      return;
-    }
+  // If mTextureClient has not already been allocated (through Allocate(aData))
+  // allocate it. This code path is slower than the one used when Allocate has
+  // been called since it will trigger a full copy.
+  PlanarYCbCrData data = aData;
+  if (!mTextureClient && !Allocate(data)) {
+    return false;
   }
 
-  MOZ_ASSERT(mTextureClient->AsTextureClientYCbCr());
-  if (!mTextureClient->Lock(OpenMode::OPEN_WRITE_ONLY)) {
+  TextureClientAutoLock autoLock(mTextureClient, OpenMode::OPEN_WRITE_ONLY);
+  if (!autoLock.Succeeded()) {
     MOZ_ASSERT(false, "Failed to lock the texture.");
-    return;
+    return false;
   }
-  TextureClientAutoUnlock unlock(mTextureClient);
-  if (!mTextureClient->AsTextureClientYCbCr()->UpdateYCbCr(aData)) {
-    MOZ_ASSERT(false, "Failed to copy YCbCr data into the TextureClient");
-    return;
-  }
-  // do not set mBuffer like in PlanarYCbCrImage because the later
-  // will try to manage this memory without knowing it belongs to a
-  // shmem.
-  mBufferSize = YCbCrImageDataSerializer::ComputeMinBufferSize(mData.mYSize,
-                                                               mData.mCbCrSize);
-  mSize = mData.mPicSize;
 
-  YCbCrImageDataSerializer serializer(mTextureClient->GetBuffer(), mTextureClient->GetBufferSize());
-  mData.mYChannel = serializer.GetYData();
-  mData.mCbChannel = serializer.GetCbData();
-  mData.mCrChannel = serializer.GetCrData();
+  if (!UpdateYCbCrTextureClient(mTextureClient, aData)) {
+    MOZ_ASSERT(false, "Failed to copy YCbCr data into the TextureClient");
+    return false;
+  }
   mTextureClient->MarkImmutable();
+  return true;
 }
 
 // needs to be overriden because the parent class sets mBuffer which we
@@ -119,85 +110,106 @@ SharedPlanarYCbCrImage::SetData(const PlanarYCbCrData& aData)
 uint8_t*
 SharedPlanarYCbCrImage::AllocateAndGetNewBuffer(uint32_t aSize)
 {
-  NS_ABORT_IF_FALSE(!mTextureClient->IsAllocated(), "This image already has allocated data");
-  size_t size = YCbCrImageDataSerializer::ComputeMinBufferSize(aSize);
+  MOZ_ASSERT(!mTextureClient, "This image already has allocated data");
+  size_t size = ImageDataSerializer::ComputeYCbCrBufferSize(aSize);
+  if (!size) {
+    return nullptr;
+  }
+
+  // XXX Add YUVColorSpace handling. Use YUVColorSpace::BT601 for now.
+  mTextureClient = TextureClient::CreateForYCbCrWithBufferSize(mCompositable->GetForwarder(),
+                                                               size,
+                                                               YUVColorSpace::BT601,
+                                                               mCompositable->GetTextureFlags());
 
   // get new buffer _without_ setting mBuffer.
-  if (!mTextureClient->Allocate(size)) {
+  if (!mTextureClient) {
     return nullptr;
   }
 
   // update buffer size
   mBufferSize = size;
 
-  YCbCrImageDataSerializer serializer(mTextureClient->GetBuffer(), mTextureClient->GetBufferSize());
-  return serializer.GetData();
+  MappedYCbCrTextureData mapped;
+  if (mTextureClient->BorrowMappedYCbCrData(mapped)) {
+    // The caller expects a pointer to the beginning of the writable part of the
+    // buffer which is where the y channel starts by default.
+    return mapped.y.data;
+  } else {
+    MOZ_CRASH("GFX: Cannot borrow mapped YCbCr data");
+  }
 }
 
-void
-SharedPlanarYCbCrImage::SetDataNoCopy(const Data &aData)
+bool
+SharedPlanarYCbCrImage::AdoptData(const Data &aData)
 {
+  // AdoptData is used to update YUV plane offsets without (re)allocating
+  // memory previously allocated with AllocateAndGetNewBuffer().
+
+  MOZ_ASSERT(mTextureClient, "This Image should have already allocated data");
+  if (!mTextureClient) {
+    return false;
+  }
   mData = aData;
   mSize = aData.mPicSize;
-  /* SetDataNoCopy is used to update YUV plane offsets without (re)allocating
-   * memory previously allocated with AllocateAndGetNewBuffer().
-   * serializer.GetData() returns the address of the memory previously allocated
-   * with AllocateAndGetNewBuffer(), that we subtract from the Y, Cb, Cr
-   * channels to compute 0-based offsets to pass to InitializeBufferInfo.
-   */
-  YCbCrImageDataSerializer serializer(mTextureClient->GetBuffer(), mTextureClient->GetBufferSize());
-  uint8_t *base = serializer.GetData();
+  mOrigin = gfx::IntPoint(aData.mPicX, aData.mPicY);
+
+  uint8_t *base = GetBuffer();
   uint32_t yOffset = aData.mYChannel - base;
   uint32_t cbOffset = aData.mCbChannel - base;
   uint32_t crOffset = aData.mCrChannel - base;
-  serializer.InitializeBufferInfo(yOffset,
-                                  cbOffset,
-                                  crOffset,
-                                  aData.mYStride,
-                                  aData.mCbCrStride,
-                                  aData.mYSize,
-                                  aData.mCbCrSize,
-                                  aData.mStereoMode);
-}
 
-uint8_t*
-SharedPlanarYCbCrImage::AllocateBuffer(uint32_t aSize)
-{
-  NS_ABORT_IF_FALSE(!mTextureClient->IsAllocated(),
-                    "This image already has allocated data");
-  if (!mTextureClient->Allocate(aSize)) {
-    return nullptr;
-  }
-  return mTextureClient->GetBuffer();
+  auto fwd = mCompositable->GetForwarder();
+  bool hasIntermediateBuffer = ComputeHasIntermediateBuffer(gfx::SurfaceFormat::YUV,
+                                                            fwd->GetCompositorBackendType());
+
+  static_cast<BufferTextureData*>(mTextureClient->GetInternalData())->SetDesciptor(
+    YCbCrDescriptor(aData.mYSize, aData.mCbCrSize, yOffset, cbOffset, crOffset,
+                    aData.mStereoMode, aData.mYUVColorSpace, hasIntermediateBuffer)
+  );
+
+  return true;
 }
 
 bool
 SharedPlanarYCbCrImage::IsValid() {
-  return mTextureClient->IsAllocated();
+  return mTextureClient && mTextureClient->IsValid();
 }
 
 bool
 SharedPlanarYCbCrImage::Allocate(PlanarYCbCrData& aData)
 {
-  NS_ABORT_IF_FALSE(!mTextureClient->IsAllocated(),
-                    "This image already has allocated data");
+  MOZ_ASSERT(!mTextureClient,
+             "This image already has allocated data");
+  static const uint32_t MAX_POOLED_VIDEO_COUNT = 5;
 
-  size_t size = YCbCrImageDataSerializer::ComputeMinBufferSize(aData.mYSize,
-                                                               aData.mCbCrSize);
+  if (!mCompositable->HasTextureClientRecycler()) {
+    // Initialize TextureClientRecycler
+    mCompositable->GetTextureClientRecycler()->SetMaxPoolSize(MAX_POOLED_VIDEO_COUNT);
+  }
 
-  if (AllocateBuffer(static_cast<uint32_t>(size)) == nullptr) {
+  {
+    YCbCrTextureClientAllocationHelper helper(aData, mCompositable->GetTextureFlags());
+    mTextureClient = mCompositable->GetTextureClientRecycler()->CreateOrRecycle(helper);
+  }
+
+  if (!mTextureClient) {
+    NS_WARNING("SharedPlanarYCbCrImage::Allocate failed.");
     return false;
   }
 
-  YCbCrImageDataSerializer serializer(mTextureClient->GetBuffer(), mTextureClient->GetBufferSize());
-  serializer.InitializeBufferInfo(aData.mYSize,
-                                  aData.mCbCrSize,
-                                  aData.mStereoMode);
-  MOZ_ASSERT(serializer.IsValid());
+  MappedYCbCrTextureData mapped;
+  // The locking here is sort of a lie. The SharedPlanarYCbCrImage just pulls
+  // pointers out of the TextureClient and keeps them around, which works only
+  // because the underlyin BufferTextureData is always mapped in memory even outside
+  // of the lock/unlock interval. That's sad and new code should follow this example.
+  if (!mTextureClient->Lock(OpenMode::OPEN_READ) || !mTextureClient->BorrowMappedYCbCrData(mapped)) {
+    MOZ_CRASH("GFX: Cannot lock or borrow mapped YCbCr");
+  }
 
-  aData.mYChannel = serializer.GetYData();
-  aData.mCbChannel = serializer.GetCbData();
-  aData.mCrChannel = serializer.GetCrData();
+  aData.mYChannel = mapped.y.data;
+  aData.mCbChannel = mapped.cb.data;
+  aData.mCrChannel = mapped.cr.data;
 
   // copy some of aData's values in mData (most of them)
   mData.mYChannel = aData.mYChannel;
@@ -209,6 +221,7 @@ SharedPlanarYCbCrImage::Allocate(PlanarYCbCrData& aData)
   mData.mPicY = aData.mPicY;
   mData.mPicSize = aData.mPicSize;
   mData.mStereoMode = aData.mStereoMode;
+  mData.mYUVColorSpace = aData.mYUVColorSpace;
   // those members are not always equal to aData's, due to potentially different
   // packing.
   mData.mYSkip = 0;
@@ -217,8 +230,17 @@ SharedPlanarYCbCrImage::Allocate(PlanarYCbCrData& aData)
   mData.mYStride = mData.mYSize.width;
   mData.mCbCrStride = mData.mCbCrSize.width;
 
-  return true;
+  // do not set mBuffer like in PlanarYCbCrImage because the later
+  // will try to manage this memory without knowing it belongs to a
+  // shmem.
+  mBufferSize = ImageDataSerializer::ComputeYCbCrBufferSize(mData.mYSize, mData.mCbCrSize);
+  mSize = mData.mPicSize;
+  mOrigin = gfx::IntPoint(aData.mPicX, aData.mPicY);
+
+  mTextureClient->Unlock();
+
+  return mBufferSize > 0;
 }
 
-} // namespace
-} // namespace
+} // namespace layers
+} // namespace mozilla

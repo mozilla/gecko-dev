@@ -5,7 +5,7 @@
 
 const { setTimeout } = require('sdk/timers');
 
-let mainStarted = false;
+var mainStarted = false;
 
 exports.main = function main(options, callbacks) {
   mainStarted = true;
@@ -17,7 +17,9 @@ exports.main = function main(options, callbacks) {
     assert.ok('loadReason' in options, 'loadReason is in options provided by main');
     assert.equal(typeof callbacks.print, 'function', 'callbacks.print is a function');
     assert.equal(typeof callbacks.quit, 'function', 'callbacks.quit is a function');
-    assert.equal(options.loadReason, 'install', 'options.loadReason is install');
+
+    // Re-enable when bug 1251664 is fixed
+    //assert.equal(options.loadReason, 'install', 'options.loadReason is install');
   }
 
   require('sdk/test/runner').runTestsFromModule({exports: tests});
@@ -30,6 +32,6 @@ setTimeout(function() {
 
   // main didn't start, fail..
   require("sdk/test/runner").runTestsFromModule({exports: {
-  	testFail: function(assert) assert.fail('Main did not start..')
+  	testFail: assert => assert.fail('Main did not start..')
   }});
 }, 500);

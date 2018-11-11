@@ -1,4 +1,5 @@
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,14 +18,14 @@ namespace ipc {
 // When Dispatch() is called (from main thread) this class arranges to close the
 // provided FileDescriptor on one of the socket transport service threads (to
 // avoid main thread I/O).
-class CloseFileRunnable MOZ_FINAL : public nsIRunnable
+class CloseFileRunnable final : public nsIRunnable
 {
   typedef mozilla::ipc::FileDescriptor FileDescriptor;
 
   FileDescriptor mFileDescriptor;
 
 public:
-  CloseFileRunnable(const FileDescriptor& aFileDescriptor)
+  explicit CloseFileRunnable(const FileDescriptor& aFileDescriptor)
 #ifdef DEBUG
   ;
 #else
@@ -43,8 +44,8 @@ private:
   void CloseFile();
 };
 
-// On failure, FileDescriptorToFILE closes the given descriptor; on
-// success, fclose()ing the returned FILE* will close the handle.
+// On failure, FileDescriptorToFILE returns nullptr; on success,
+// returns duplicated FILE*.
 // This is meant for use with FileDescriptors received over IPC.
 FILE* FileDescriptorToFILE(const FileDescriptor& aDesc,
                            const char* aOpenMode);

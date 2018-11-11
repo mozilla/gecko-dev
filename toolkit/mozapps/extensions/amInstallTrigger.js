@@ -18,7 +18,7 @@ const MSG_INSTALL_ADDONS   = "WebInstallerInstallAddonsFromWebpage";
 const MSG_INSTALL_CALLBACK = "WebInstallerInstallCallback";
 
 
-let log = Log.repository.getLogger("AddonManager.InstallTrigger");
+var log = Log.repository.getLogger("AddonManager.InstallTrigger");
 log.level = Log.Level[Preferences.get("extensions.logging.enabled", false) ? "Warn" : "Trace"];
 
 function CallbackObject(id, callback, urls, mediator) {
@@ -39,13 +39,19 @@ function CallbackObject(id, callback, urls, mediator) {
   };
 }
 
-function RemoteMediator(windowID) {
-  this._windowID = windowID;
+function RemoteMediator(window) {
+  window.QueryInterface(Ci.nsIInterfaceRequestor);
+  let utils = window.getInterface(Ci.nsIDOMWindowUtils);
+  this._windowID = utils.currentInnerWindowID;
+
+  this.mm = window
+    .getInterface(Ci.nsIDocShell)
+    .QueryInterface(Ci.nsIInterfaceRequestor)
+    .getInterface(Ci.nsIContentFrameMessageManager);
+  this.mm.addWeakMessageListener(MSG_INSTALL_CALLBACK, this);
+
   this._lastCallbackID = 0;
   this._callbacks = new Map();
-  this.mm = Cc["@mozilla.org/childprocessmessagemanager;1"]
-            .getService(Ci.nsISyncMessageSender);
-  this.mm.addWeakMessageListener(MSG_INSTALL_CALLBACK, this);
 }
 
 RemoteMediator.prototype = {
@@ -61,20 +67,46 @@ RemoteMediator.prototype = {
 
   enabled: function(url) {
     let params = {
-      referer: url,
       mimetype: XPINSTALL_MIMETYPE
     };
     return this.mm.sendSyncMessage(MSG_INSTALL_ENABLED, params)[0];
   },
 
-  install: function(installs, referer, callback, window) {
+  install: function(installs, principal, callback, window) {
     let callbackID = this._addCallback(callback, installs.uris);
 
     installs.mimetype = XPINSTALL_MIMETYPE;
-    installs.referer = referer;
+    installs.triggeringPrincipal = principal;
     installs.callbackID = callbackID;
 
-    return this.mm.sendSyncMessage(MSG_INSTALL_ADDONS, installs, {win: window})[0];
+    if (Services.appinfo.processType == Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
+      // When running in the main process this might be a frame inside an
+      // in-content UI page, walk up to find the first frame element in a chrome
+      // privileged document
+      let element = window.frameElement;
+      let ssm = Services.scriptSecurityManager;
+      while (element && !ssm.isSystemPrincipal(element.ownerDocument.nodePrincipal))
+        element = element.ownerDocument.defaultView.frameElement;
+
+      if (element) {
+        let listener = Cc["@mozilla.org/addons/integration;1"].
+                       getService(Ci.nsIMessageListener);
+        return listener.wrappedJSObject.receiveMessage({
+          name: MSG_INSTALL_ADDONS,
+          target: element,
+          data: installs,
+        });
+      }
+    }
+
+    // Fall back to sending through the message manager
+    let messageManager = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsIWebNavigation)
+                               .QueryInterface(Ci.nsIDocShell)
+                               .QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsIContentFrameMessageManager);
+
+    return messageManager.sendSyncMessage(MSG_INSTALL_ADDONS, installs)[0];
   },
 
   _addCallback: function(callback, urls) {
@@ -110,9 +142,13 @@ InstallTrigger.prototype = {
     this._principal = window.document.nodePrincipal;
     this._url = window.document.documentURIObject;
 
-    window.QueryInterface(Components.interfaces.nsIInterfaceRequestor);
-    let utils = window.getInterface(Components.interfaces.nsIDOMWindowUtils);
-    this._mediator = new RemoteMediator(utils.currentInnerWindowID);
+    try {
+      this._mediator = new RemoteMediator(window);
+    } catch (ex) {
+      // If we can't set up IPC (e.g., because this is a top-level window
+      // or something), then don't expose InstallTrigger.
+      return null;
+    }
 
     return window.InstallTriggerImpl._create(window, this);
   },
@@ -139,12 +175,12 @@ InstallTrigger.prototype = {
         item = { URL: item };
       }
       if (!item.URL) {
-        throw new this._window.DOMError("Error", "Missing URL property for '" + name + "'");
+        throw new this._window.Error("Missing URL property for '" + name + "'");
       }
 
       let url = this._resolveURL(item.URL);
       if (!this._checkLoadURIFromScript(url)) {
-        throw new this._window.DOMError("SecurityError", "Insufficient permissions to install: " + url.spec);
+        throw new this._window.Error("Insufficient permissions to install: " + url.spec);
       }
 
       let iconUrl = null;
@@ -161,7 +197,7 @@ InstallTrigger.prototype = {
       installData.icons.push(iconUrl ? iconUrl.spec : null);
     }
 
-    return this._mediator.install(installData, this._url.spec, callback, this._window);
+    return this._mediator.install(installData, this._principal, callback, this._window);
   },
 
   startSoftwareUpdate: function(url, flags) {
@@ -177,7 +213,7 @@ InstallTrigger.prototype = {
     return this.startSoftwareUpdate(url);
   },
 
-  _resolveURL: function (url) {
+  _resolveURL: function(url) {
     return Services.io.newURI(url, null, this._url);
   },
 
@@ -189,7 +225,7 @@ InstallTrigger.prototype = {
                                        secman.DISALLOW_INHERIT_PRINCIPAL);
       return true;
     }
-    catch(e) {
+    catch (e) {
       return false;
     }
   },

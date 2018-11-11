@@ -17,7 +17,7 @@ public:
   SVGTurbulenceRenderer(const Size &aBaseFrequency, int32_t aSeed,
                         int aNumOctaves, const Rect &aTileRect);
 
-  TemporaryRef<DataSourceSurface> Render(const IntSize &aSize, const Point &aOffset) const;
+  already_AddRefed<DataSourceSurface> Render(const IntSize &aSize, const Point &aOffset) const;
 
 private:
   /* The turbulence calculation code is an adapted version of what
@@ -55,7 +55,7 @@ namespace {
 
 struct RandomNumberSource
 {
-  RandomNumberSource(int32_t aSeed) : mLast(SetupSeed(aSeed)) {}
+  explicit RandomNumberSource(int32_t aSeed) : mLast(SetupSeed(aSeed)) {}
   int32_t Next() { mLast = Random(mLast); return mLast; }
 
 private:
@@ -125,8 +125,11 @@ SVGTurbulenceRenderer<Type,Stitch,f32x4_t,i32x4_t,u8x16_t>::InitFromSeed(int32_t
   float gradient[4][sBSize][2];
   for (int32_t k = 0; k < 4; k++) {
     for (int32_t i = 0; i < sBSize; i++) {
-      float a = float((rand.Next() % (sBSize + sBSize)) - sBSize) / sBSize;
-      float b = float((rand.Next() % (sBSize + sBSize)) - sBSize) / sBSize;
+      float a, b;
+      do {
+        a = float((rand.Next() % (sBSize + sBSize)) - sBSize) / sBSize;
+        b = float((rand.Next() % (sBSize + sBSize)) - sBSize) / sBSize;
+      } while (a == 0 && b == 0);
       float s = sqrt(a * a + b * b);
       gradient[k][i][0] = a / s;
       gradient[k][i][1] = b / s;
@@ -246,9 +249,9 @@ SVGTurbulenceRenderer<Type,Stitch,f32x4_t,i32x4_t,u8x16_t>::Noise2(Point aVec, c
   const f32x4_t* qvb = mGradient[(j + b1.y) & sBM];
 
   return BiMix(simd::WSumF32(qua[0], qua[1], r.x, r.y),
-               simd::WSumF32(qva[0], qva[1], r.x - 1, r.y),
-               simd::WSumF32(qub[0], qub[1], r.x, r.y - 1),
-               simd::WSumF32(qvb[0], qvb[1], r.x - 1, r.y - 1),
+               simd::WSumF32(qva[0], qva[1], r.x - 1.f, r.y),
+               simd::WSumF32(qub[0], qub[1], r.x, r.y - 1.f),
+               simd::WSumF32(qvb[0], qvb[1], r.x - 1.f, r.y - 1.f),
                SCurve(r));
 }
 
@@ -324,7 +327,7 @@ SVGTurbulenceRenderer<Type,Stitch,f32x4_t,i32x4_t,u8x16_t>::EquivalentNonNegativ
 }
 
 template<TurbulenceType Type, bool Stitch, typename f32x4_t, typename i32x4_t, typename u8x16_t>
-TemporaryRef<DataSourceSurface>
+already_AddRefed<DataSourceSurface>
 SVGTurbulenceRenderer<Type,Stitch,f32x4_t,i32x4_t,u8x16_t>::Render(const IntSize &aSize, const Point &aOffset) const
 {
   RefPtr<DataSourceSurface> target =
@@ -350,7 +353,7 @@ SVGTurbulenceRenderer<Type,Stitch,f32x4_t,i32x4_t,u8x16_t>::Render(const IntSize
     }
   }
 
-  return target;
+  return target.forget();
 }
 
 } // namespace gfx

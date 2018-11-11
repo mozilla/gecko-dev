@@ -1,7 +1,9 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
  ******************************************************************************
  *
- *   Copyright (C) 2000-2013, International Business Machines
+ *   Copyright (C) 2000-2016, International Business Machines
  *   Corporation and others.  All Rights Reserved.
  *
  ******************************************************************************
@@ -25,8 +27,6 @@
 #include "ustr_imp.h"
 #include "ubidi_props.h"
 #include "uassert.h"
-
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
 
 /*
  * This implementation is designed for 16-bit Unicode strings.
@@ -212,10 +212,20 @@ static const UChar araLink[178]=
   0,                            /*0x0674*/
   1            + 32,            /*0x0675*/
   1, 1,                         /*0x0676-0x0677*/
-  1+2, 1+2, 1+2, 1+2, 1+2, 1+2, /*0x0678-0x067D*/
+  1 + 2,                        /*0x0678*/
+  1 + 2 + 8        + 256 * 0x16,/*0x0679*/
+  1 + 2 + 8        + 256 * 0x0E,/*0x067A*/
+  1 + 2 + 8        + 256 * 0x02,/*0x067B*/
+  1+2, 1+2,                     /*0x67C-0x067D*/
   1+2+8+256 * 0x06, 1+2, 1+2, 1+2, 1+2, 1+2, /*0x067E-0x0683*/
   1+2, 1+2, 1+2+8+256 * 0x2A, 1+2,           /*0x0684-0x0687*/
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /*0x0688-0x0691*/
+  1     + 8        + 256 * 0x38,/*0x0688*/
+  1, 1, 1,                      /*0x0689-0x068B*/
+  1     + 8        + 256 * 0x34,/*0x068C*/
+  1     + 8        + 256 * 0x32,/*0x068D*/
+  1     + 8        + 256 * 0x36,/*0x068E*/
+  1, 1,                         /*0x068F-0x0690*/
+  1     + 8        + 256 * 0x3C,/*0x0691*/
   1, 1, 1, 1, 1, 1, 1+8+256 * 0x3A, 1,       /*0x0692-0x0699*/
   1+2, 1+2, 1+2, 1+2, 1+2, 1+2, /*0x069A-0x06A3*/
   1+2, 1+2, 1+2, 1+2,           /*0x069A-0x06A3*/
@@ -223,15 +233,29 @@ static const UChar araLink[178]=
   1+2, 1+2, 1+2, 1+2,           /*0x06A4-0x06AD*/
   1+2, 1+2+8+256 * 0x42, 1+2, 1+2, 1+2, 1+2, /*0x06AE-0x06B7*/
   1+2, 1+2, 1+2, 1+2,           /*0x06AE-0x06B7*/
-  1+2, 1+2, 1+2, 1+2, 1+2, 1+2, /*0x06B8-0x06BF*/
-  1+2, 1+2,                     /*0x06B8-0x06BF*/
-  1,                            /*0x06C0*/
-  1+2,                          /*0x06C1*/
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /*0x06C2-0x06CB*/
-  1+2+8+256 * 0xAC,             /*0x06CC*/
+  1+2, 1+2,                     /*0x06B8-0x06B9*/
+  1     + 8        + 256 * 0x4E,/*0x06BA*/
+  1 + 2 + 8        + 256 * 0x50,/*0x06BB*/
+  1+2, 1+2,                     /*0x06BC-0x06BD*/
+  1 + 2 + 8        + 256 * 0x5A,/*0x06BE*/
+  1+2,                          /*0x06BF*/
+  1     + 8        + 256 * 0x54,/*0x06C0*/
+  1 + 2 + 8        + 256 * 0x56,/*0x06C1*/
+  1, 1, 1,                      /*0x06C2-0x06C4*/
+  1     + 8        + 256 * 0x90,/*0x06C5*/
+  1     + 8        + 256 * 0x89,/*0x06C6*/
+  1     + 8        + 256 * 0x87,/*0x06C7*/
+  1     + 8        + 256 * 0x8B,/*0x06C8*/
+  1     + 8        + 256 * 0x92,/*0x06C9*/
+  1,                            /*0x06CA*/
+  1     + 8        + 256 * 0x8E,/*0x06CB*/
+  1 + 2 + 8        + 256 * 0xAC,/*0x06CC*/
   1,                            /*0x06CD*/
-  1+2, 1+2, 1+2, 1+2,           /*0x06CE-0x06D1*/
-  1, 1                          /*0x06D2-0x06D3*/
+  1+2, 1+2,                     /*0x06CE-0x06CF*/
+  1 + 2 + 8        + 256 * 0x94,/*0x06D0*/
+  1+2,                          /*0x06D1*/
+  1     + 8        + 256 * 0x5E,/*0x06D2*/
+  1     + 8        + 256 * 0x60 /*0x06D3*/
 };
 
 static const uint8_t presALink[] = {
@@ -273,16 +297,16 @@ static const uint8_t presBLink[]=
 static const UChar convertFBto06[] =
 {
 /***********0******1******2******3******4******5******6******7******8******9******A******B******C******D******E******F***/
-/*FB5*/   0x671, 0x671,     0,     0,     0,     0, 0x67E, 0x67E, 0x67E, 0x67E,     0,     0,     0,     0,     0,     0,
-/*FB6*/       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+/*FB5*/   0x671, 0x671, 0x67B, 0x67B, 0x67B, 0x67B, 0x67E, 0x67E, 0x67E, 0x67E,     0,     0,     0,     0, 0x67A, 0x67A,
+/*FB6*/   0x67A, 0x67A,     0,     0,     0,     0, 0x679, 0x679, 0x679, 0x679,     0,     0,     0,     0,     0,     0,
 /*FB7*/       0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 0x686, 0x686, 0x686, 0x686,     0,     0,
-/*FB8*/       0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 0x698, 0x698,     0,     0, 0x6A9, 0x6A9,
-/*FB9*/   0x6A9, 0x6A9, 0x6AF, 0x6AF, 0x6AF, 0x6AF,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-/*FBA*/       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-/*FBB*/       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+/*FB8*/       0,     0, 0x68D, 0x68D, 0x68C, 0x68C, 0x68E, 0x68E, 0x688, 0x688, 0x698, 0x698, 0x691, 0x691, 0x6A9, 0x6A9,
+/*FB9*/   0x6A9, 0x6A9, 0x6AF, 0x6AF, 0x6AF, 0x6AF,     0,     0,     0,     0,     0,     0,     0,     0, 0x6BA, 0x6BA,
+/*FBA*/   0x6BB, 0x6BB, 0x6BB, 0x6BB, 0x6C0, 0x6C0, 0x6C1, 0x6C1, 0x6C1, 0x6C1, 0x6BE, 0x6BE, 0x6BE, 0x6BE, 0x6d2, 0x6D2,
+/*FBB*/   0x6D3, 0x6D3,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
 /*FBC*/       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-/*FBD*/       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-/*FBE*/       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+/*FBD*/       0,     0,     0,     0,     0,     0,     0, 0x6C7, 0x6C7, 0x6C6, 0x6C6, 0x6C8, 0x6C8,     0, 0x6CB, 0x6CB,
+/*FBE*/   0x6C5, 0x6C5, 0x6C9, 0x6C9, 0x6D0, 0x6D0, 0x6D0, 0x6D0,     0,     0,     0,     0,     0,     0,     0,     0,
 /*FBF*/       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 0x6CC, 0x6CC, 0x6CC, 0x6CC
 };
 
@@ -755,7 +779,7 @@ handleGeneratedSpaces(UChar *dest, int32_t sourceLength,
             count--;
         }
 
-        uprv_memcpy(dest, tempbuffer, sourceLength*U_SIZEOF_UCHAR);
+        u_memcpy(dest, tempbuffer, sourceLength);
         destSize = u_strlen(dest);
     }
 
@@ -813,7 +837,7 @@ handleGeneratedSpaces(UChar *dest, int32_t sourceLength,
                 tempbuffer[i] = SPACE_CHAR;
         }
 
-        uprv_memcpy(dest, tempbuffer, sourceLength*U_SIZEOF_UCHAR);
+        u_memcpy(dest, tempbuffer, sourceLength);
         destSize = sourceLength;
     }
 
@@ -855,7 +879,7 @@ handleGeneratedSpaces(UChar *dest, int32_t sourceLength,
             count--;
         }
 
-        uprv_memcpy(dest,tempbuffer, sourceLength*U_SIZEOF_UCHAR);
+        u_memcpy(dest, tempbuffer, sourceLength);
         destSize = sourceLength;
     }
 
@@ -906,7 +930,7 @@ expandCompositCharAtBegin(UChar *dest, int32_t sourceLength, int32_t destSize,UE
                 tempbuffer[j] = LAM_CHAR;
                 /* to ensure the array index is within the range */
                 U_ASSERT(dest[i] >= 0xFEF5u
-                    && dest[i]-0xFEF5u < sizeof(convertLamAlef)/sizeof(convertLamAlef[0]));
+                    && dest[i]-0xFEF5u < UPRV_LENGTHOF(convertLamAlef));
                 tempbuffer[j-1] = convertLamAlef[ dest[i] - 0xFEF5 ];
                 j--;
                 countl--;
@@ -919,7 +943,7 @@ expandCompositCharAtBegin(UChar *dest, int32_t sourceLength, int32_t destSize,UE
             i--;
             j--;
         }
-        uprv_memcpy(dest, tempbuffer, sourceLength*U_SIZEOF_UCHAR);
+        u_memcpy(dest, tempbuffer, sourceLength);
 
         uprv_free(tempbuffer);
 
@@ -980,14 +1004,14 @@ expandCompositCharAtEnd(UChar *dest, int32_t sourceLength, int32_t destSize,UErr
     }
 
     if(countr > 0) {
-        uprv_memmove(tempbuffer, tempbuffer+countr, sourceLength*U_SIZEOF_UCHAR);
+        u_memmove(tempbuffer, tempbuffer+countr, sourceLength);
         if(u_strlen(tempbuffer) < sourceLength) {
             for(i=sourceLength-1;i>=sourceLength-countr;i--) {
                 tempbuffer[i] = SPACE_CHAR;
             }
         }
     }
-    uprv_memcpy(dest, tempbuffer, sourceLength*U_SIZEOF_UCHAR);
+    u_memcpy(dest, tempbuffer, sourceLength);
 
     uprv_free(tempbuffer);
 
@@ -1155,7 +1179,7 @@ expandCompositChar(UChar *dest, int32_t sourceLength,
                 j++;
             }
 
-            uprv_memcpy(dest, tempbuffer, destSize*U_SIZEOF_UCHAR);
+            u_memcpy(dest, tempbuffer, destSize);
         }
     }
 
@@ -1300,7 +1324,7 @@ shapeUnicode(UChar *dest, int32_t sourceLength,
                     } else {
                         /* to ensure the array index is within the range */
                         U_ASSERT(dest[i] >= 0x064Bu
-                            && dest[i]-0x064Bu < sizeof(IrrelevantPos)/sizeof(IrrelevantPos[0]));
+                            && dest[i]-0x064Bu < UPRV_LENGTHOF(IrrelevantPos));
                         dest[i] =  0xFE70 + IrrelevantPos[(dest[i] - 0x064B)] + Shape;
                     }
                 }else if ((currLink & APRESENT) > 0) {
@@ -1536,8 +1560,8 @@ u_shapeArabic(const UChar *source, int32_t sourceLength,
         }
 
         /* Start of Arabic letter shaping part */
-        if(outputSize<=LENGTHOF(buffer)) {
-            outputSize=LENGTHOF(buffer);
+        if(outputSize<=UPRV_LENGTHOF(buffer)) {
+            outputSize=UPRV_LENGTHOF(buffer);
             tempbuffer=buffer;
         } else {
             tempbuffer = (UChar *)uprv_malloc(outputSize*U_SIZEOF_UCHAR);
@@ -1549,7 +1573,7 @@ u_shapeArabic(const UChar *source, int32_t sourceLength,
                 return 0;
             }
         }
-        uprv_memcpy(tempbuffer, source, sourceLength*U_SIZEOF_UCHAR);
+        u_memcpy(tempbuffer, source, sourceLength);
         if (tempsource != NULL){
             uprv_free(tempsource);
         }
@@ -1615,7 +1639,7 @@ u_shapeArabic(const UChar *source, int32_t sourceLength,
             countSpaces(tempbuffer,destLength,options,&spacesCountl,&spacesCountr);
             invertBuffer(tempbuffer,destLength,options,spacesCountl,spacesCountr);
         }
-        uprv_memcpy(dest, tempbuffer, uprv_min(destLength, destCapacity)*U_SIZEOF_UCHAR);
+        u_memcpy(dest, tempbuffer, uprv_min(destLength, destCapacity));
 
         if(tempbuffer!=buffer) {
             uprv_free(tempbuffer);
@@ -1637,7 +1661,7 @@ u_shapeArabic(const UChar *source, int32_t sourceLength,
             *pErrorCode=U_BUFFER_OVERFLOW_ERROR;
             return sourceLength;
         }
-        uprv_memcpy(dest, source, sourceLength*U_SIZEOF_UCHAR);
+        u_memcpy(dest, source, sourceLength);
         destLength=sourceLength;
     }
 

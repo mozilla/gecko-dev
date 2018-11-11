@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -6,11 +6,13 @@
 
 CONFIGURE_SUBST_FILES += ['installer/Makefile']
 
-PARALLEL_DIRS += [
+SPHINX_TREES['browser'] = 'docs'
+
+DIRS += [
     'base',
     'components',
     'experiments',
-    'fuel',
+    'fonts',
     'locales',
     'modules',
     'themes',
@@ -18,15 +20,22 @@ PARALLEL_DIRS += [
 ]
 
 DIRS += [
-    'devtools',
     'app',
 ]
-
-if CONFIG['MOZ_METRO']:
-    DIRS += ['metro']
 
 if CONFIG['MAKENSISU']:
     DIRS += ['installer/windows']
 
+TEST_DIRS += [
+    'tools/mozscreenshots',
+]
+
 DIST_SUBDIR = 'browser'
 export('DIST_SUBDIR')
+
+if CONFIG['MOZ_ARTIFACT_BUILDS']:
+    # Ensure a pre-built interfaces.xpt installed to the objdir by the artifact
+    # code is included by the top-level chrome.manifest.
+    EXTRA_COMPONENTS += [
+        '../build/prebuilt-interfaces.manifest',
+    ]

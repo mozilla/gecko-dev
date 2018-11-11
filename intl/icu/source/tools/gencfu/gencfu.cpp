@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 **********************************************************************
-*   Copyright (C) 2009-2011, International Business Machines
+*   Copyright (C) 2009-2016, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 **********************************************************************
 *
@@ -14,16 +16,19 @@
 //   derived from the Unicode Consortium data described in
 //   Unicode UAX 39.
 //
-//   Usage:  gencfu [options] -r confusables-file.txt -w whole-script-confusables.txt  -o output-file.cfu
+//   Usage:  gencfu [options] -r confusables-file.txt -o output-file.cfu
 //
 //       options:   -v         verbose
 //                  -? or -h   help
 //
 //   The input rule filew is are plain text files containing confusable character
 //    definitions in the input format defined by Unicode UAX39 for the files
-//    confusables.txt and confusablesWholeScript.txt.  This source (.txt) format
+//    confusables.txt.  This source (.txt) format
 //    is also accepted direaccepted by ICU spoof detedtors.  The
 //    files must be encoded in utf-8 format, with or without a BOM.
+//
+//   The script used to compile confusablesWholeScript.txt into the CFU file
+//    until the Unicode consortium deprecated it.
 //
 //--------------------------------------------------------------------
 
@@ -51,21 +56,23 @@ static UOption options[]={
     UOPTION_HELP_QUESTION_MARK, /* 1 */
     UOPTION_VERBOSE,            /* 2 */
     { "rules", NULL, NULL, NULL, 'r', UOPT_REQUIRES_ARG, 0 },   /* 3 */
-    { "wsrules", NULL, NULL, NULL, 'w', UOPT_REQUIRES_ARG, 0},  /* 4 */
+    { "wsrules", NULL, NULL, NULL, 'w', UOPT_REQUIRES_ARG, 0},  /* 4 */  // deprecated
     { "out",   NULL, NULL, NULL, 'o', UOPT_REQUIRES_ARG, 0 },   /* 5 */
     UOPTION_ICUDATADIR,         /* 6 */
     UOPTION_DESTDIR,            /* 7 */
     UOPTION_COPYRIGHT,          /* 8 */
+    UOPTION_QUIET,              /* 9 */
 };
 
 void usageAndDie(int retCode) {
-        printf("Usage: %s [-v] [-options] -r confusablesRules.txt -w wholeScriptConfusables.txt -o output-file\n", progName);
+        printf("Usage: %s [-v] [-options] -r confusablesRules.txt -o output-file\n", progName);
         printf("\tRead in Unicode confusable character definitions and write out the binary data\n"
             "options:\n"
             "\t-h or -? or --help  this usage text\n"
             "\t-V or --version     show a version message\n"
             "\t-c or --copyright   include a copyright notice\n"
             "\t-v or --verbose     turn on verbose output\n"
+            "\t-q or --quiet       do not display warnings and progress\n"
             "\t-i or --icudatadir  directory for locating any needed intermediate data files,\n"
             "\t                    followed by path, defaults to %s\n"
             "\t-d or --destdir     destination directory, followed by the path\n",
@@ -129,7 +136,6 @@ static const char *readFile(const char *fileName, int32_t *len);
 int  main(int argc, char **argv) {
     UErrorCode  status = U_ZERO_ERROR;
     const char *confFileName;
-    const char *confWSFileName;
     const char *outFileName;
     const char *outDir = NULL;
     const char *copyright = NULL;
@@ -140,7 +146,7 @@ int  main(int argc, char **argv) {
     //
     U_MAIN_INIT_ARGS(argc, argv);
     progName = argv[0];
-    argc=u_parseArgs(argc, argv, sizeof(options)/sizeof(options[0]), options);
+    argc=u_parseArgs(argc, argv, UPRV_LENGTHOF(options), options);
     if(argc<0) {
         // Unrecognized option
         fprintf(stderr, "error in command line argument \"%s\"\n", argv[-argc]);
@@ -152,12 +158,11 @@ int  main(int argc, char **argv) {
         usageAndDie(0);
     }
 
-    if (!(options[3].doesOccur && options[4].doesOccur && options[5].doesOccur)) {
-        fprintf(stderr, "confusables file, whole script confusables file and output file must all be specified.\n");
+    if (!(options[3].doesOccur && options[5].doesOccur)) {
+        fprintf(stderr, "confusables file and output file must all be specified.\n");
         usageAndDie(U_ILLEGAL_ARGUMENT_ERROR);
     }
     confFileName   = options[3].value;
-    confWSFileName = options[4].value;
     outFileName    = options[5].value;
 
     if (options[6].doesOccur) {
@@ -172,6 +177,11 @@ int  main(int argc, char **argv) {
     }
     if (options[8].doesOccur) {
         copyright = U_COPYRIGHT_STRING;
+    }
+
+    UBool quiet = FALSE;
+    if (options[9].doesOccur) {
+      quiet = TRUE;
     }
 
 #if UCONFIG_NO_REGULAR_EXPRESSIONS || UCONFIG_NO_NORMALIZATION || UCONFIG_NO_FILE_IO
@@ -211,13 +221,6 @@ int  main(int argc, char **argv) {
         exit(-1);
     }
 
-    int32_t     wsConfusablesLen = 0;
-    const char *wsConfsables =  readFile(confWSFileName, &wsConfusablesLen);
-    if (wsConfsables == NULL) {
-        printf("gencfu: error reading file  \"%s\"\n", confFileName);
-        exit(-1);
-    }
-
     //
     //  Create the Spoof Detector from the source confusables files.
     //     This will compile the data.
@@ -227,13 +230,11 @@ int  main(int argc, char **argv) {
     parseError.offset = 0;
     int32_t errType;
     USpoofChecker *sc = uspoof_openFromSource(confusables, confusablesLen,
-                                              wsConfsables, wsConfusablesLen,
+                                              NULL, 0,
                                               &errType, &parseError, &status);
     if (U_FAILURE(status)) {
-        const char *errFile = 
-            (errType == USPOOF_WHOLE_SCRIPT_CONFUSABLE)? confWSFileName : confFileName;
         fprintf(stderr, "gencfu: uspoof_openFromSource error \"%s\"  at file %s, line %d, column %d\n",
-                u_errorName(status), errFile, (int)parseError.line, (int)parseError.offset);
+                u_errorName(status), confFileName, (int)parseError.line, (int)parseError.offset);
         exit(status);
     };
 
@@ -288,9 +289,10 @@ int  main(int argc, char **argv) {
     uspoof_close(sc);
     delete [] outData;
     delete [] confusables;
-    delete [] wsConfsables;
     u_cleanup();
-    printf("gencfu: tool completed successfully.\n");
+    if (!quiet) {
+        printf("gencfu: tool completed successfully.\n");
+    }
     return 0;
 #endif   // UCONFIG_NO_REGULAR_EXPRESSIONS
 }

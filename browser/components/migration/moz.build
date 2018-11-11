@@ -1,13 +1,62 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-DIRS += ['public', 'src']
+XPCSHELL_TESTS_MANIFESTS += ['tests/unit/xpcshell.ini']
 
-XPCSHELL_TESTS_MANIFESTS += [
-    'tests/unit/xpcshell.ini',
-]
+MARIONETTE_UNIT_MANIFESTS += ['tests/marionette/manifest.ini']
+
+BROWSER_CHROME_MANIFESTS += [ 'tests/browser/browser.ini']
 
 JAR_MANIFESTS += ['jar.mn']
+
+XPIDL_SOURCES += [
+    'nsIBrowserProfileMigrator.idl',
+]
+
+XPIDL_MODULE = 'migration'
+
+EXTRA_COMPONENTS += [
+    'ChromeProfileMigrator.js',
+    'FirefoxProfileMigrator.js',
+    'ProfileMigrator.js',
+]
+
+EXTRA_PP_COMPONENTS += [
+    'BrowserProfileMigrators.manifest',
+]
+
+EXTRA_JS_MODULES += [
+    'AutoMigrate.jsm',
+    'MigrationUtils.jsm',
+]
+
+if CONFIG['OS_ARCH'] == 'WINNT':
+    SOURCES += [
+        'nsIEHistoryEnumerator.cpp',
+    ]
+    EXTRA_COMPONENTS += [
+        '360seProfileMigrator.js',
+        'EdgeProfileMigrator.js',
+        'IEProfileMigrator.js',
+    ]
+    EXTRA_JS_MODULES += [
+        'ESEDBReader.jsm',
+        'MSMigrationUtils.jsm',
+    ]
+    DEFINES['HAS_360SE_MIGRATOR'] = True
+    DEFINES['HAS_IE_MIGRATOR'] = True
+    DEFINES['HAS_EDGE_MIGRATOR'] = True
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+    EXTRA_COMPONENTS += [
+        'SafariProfileMigrator.js',
+    ]
+    DEFINES['HAS_SAFARI_MIGRATOR'] = True
+
+FINAL_LIBRARY = 'browsercomps'
+
+with Files('**'):
+    BUG_COMPONENT = ('Firefox', 'Migration')

@@ -1,4 +1,5 @@
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 var httpserver = null;
 var simplePath = "/simple";
@@ -14,9 +15,7 @@ XPCOMUtils.defineLazyGetter(this, "uri2", function() {
 });
 
 function make_channel(url) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].
-            getService(Ci.nsIIOService);
-  return ios.newChannel(url, "", null);
+  return NetUtil.newChannel({uri: url, loadUsingSystemPrincipal: true});
 }
 
 var listener_proto = {
@@ -58,9 +57,7 @@ function run_test()
   httpserver.start(-1);
 
   var channel = make_channel(uri1);
-  channel.asyncOpen(new listener("text/plain", function() {
-	run_test2();
-      }), null);
+  channel.asyncOpen2(new listener("text/plain", function() { run_test2();}));
 
   do_test_pending();
 }
@@ -68,9 +65,9 @@ function run_test()
 function run_test2()
 {
   var channel = make_channel(uri2);
-  channel.asyncOpen(new listener("text/html", function() {
-	httpserver.stop(do_test_finished);
-      }), null);
+  channel.asyncOpen2(new listener("text/html", function() {
+	  httpserver.stop(do_test_finished);
+  }));
 }
 
 function simpleHandler(metadata, response)

@@ -10,7 +10,7 @@ function test() {
   waitForExplicitFinish();
 
   newWindowWithState(state, function (win) {
-    registerCleanupFunction(function () win.close());
+    registerCleanupFunction(() => BrowserTestUtils.closeWindow(win));
 
     is(win.gBrowser.tabs.length, 2, "two tabs were restored");
     is(win.gBrowser.visibleTabs.length, 1, "one tab is visible");
@@ -32,7 +32,7 @@ function newWindowWithState(state, callback) {
     executeSoon(function () {
       win.addEventListener("SSWindowStateReady", function onReady() {
         win.removeEventListener("SSWindowStateReady", onReady, false);
-        whenTabRestored(win.gBrowser.tabs[0], () => callback(win));
+        promiseTabRestored(win.gBrowser.tabs[0]).then(() => callback(win));
       }, false);
 
       ss.setWindowState(win, JSON.stringify(state), true);

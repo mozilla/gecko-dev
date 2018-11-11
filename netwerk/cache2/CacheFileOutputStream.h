@@ -28,15 +28,18 @@ class CacheFileOutputStream : public nsIAsyncOutputStream
   NS_DECL_NSISEEKABLESTREAM
 
 public:
-  CacheFileOutputStream(CacheFile *aFile, CacheOutputCloseListener *aCloseListener);
+  CacheFileOutputStream(CacheFile *aFile,
+                        CacheOutputCloseListener *aCloseListener,
+                        bool aAlternativeData);
 
-  NS_IMETHOD OnChunkRead(nsresult aResult, CacheFileChunk *aChunk);
-  NS_IMETHOD OnChunkWritten(nsresult aResult, CacheFileChunk *aChunk);
+  NS_IMETHOD OnChunkRead(nsresult aResult, CacheFileChunk *aChunk) override;
+  NS_IMETHOD OnChunkWritten(nsresult aResult, CacheFileChunk *aChunk) override;
   NS_IMETHOD OnChunkAvailable(nsresult aResult, uint32_t aChunkIdx,
-                              CacheFileChunk *aChunk);
-  NS_IMETHOD OnChunkUpdated(CacheFileChunk *aChunk);
+                              CacheFileChunk *aChunk) override;
+  NS_IMETHOD OnChunkUpdated(CacheFileChunk *aChunk) override;
 
   void NotifyCloseListener();
+  bool IsAlternativeData() const { return mAlternativeData; };
 
   // Memory reporting
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
@@ -50,11 +53,12 @@ private:
   void FillHole();
   void NotifyListener();
 
-  nsRefPtr<CacheFile>      mFile;
-  nsRefPtr<CacheFileChunk> mChunk;
-  nsRefPtr<CacheOutputCloseListener> mCloseListener;
+  RefPtr<CacheFile>        mFile;
+  RefPtr<CacheFileChunk> mChunk;
+  RefPtr<CacheOutputCloseListener> mCloseListener;
   int64_t                  mPos;
-  bool                     mClosed;
+  bool                     mClosed : 1;
+  bool const               mAlternativeData : 1;
   nsresult                 mStatus;
 
   nsCOMPtr<nsIOutputStreamCallback> mCallback;
@@ -63,7 +67,7 @@ private:
 };
 
 
-} // net
-} // mozilla
+} // namespace net
+} // namespace mozilla
 
 #endif

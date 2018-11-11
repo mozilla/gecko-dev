@@ -5,11 +5,16 @@
 #include "nsFontFace.h"
 #include "nsIDOMCSSFontFaceRule.h"
 #include "nsCSSRules.h"
-#include "gfxFont.h"
+#include "gfxTextRun.h"
 #include "gfxUserFontSet.h"
 #include "nsFontFaceLoader.h"
 #include "mozilla/gfx/2D.h"
+#include "decode.h"
 #include "zlib.h"
+#include "mozilla/dom/FontFaceSet.h"
+
+using namespace mozilla;
+using namespace mozilla::dom;
 
 nsFontFace::nsFontFace(gfxFontEntry*      aFontEntry,
                        gfxFontGroup*      aFontGroup,
@@ -32,7 +37,6 @@ NS_IMPL_ISUPPORTS(nsFontFace, nsIDOMFontFace)
 ////////////////////////////////////////////////////////////////////////
 // nsIDOMFontFace
 
-/* readonly attribute boolean fromFontGroup; */
 NS_IMETHODIMP
 nsFontFace::GetFromFontGroup(bool * aFromFontGroup)
 {
@@ -41,7 +45,6 @@ nsFontFace::GetFromFontGroup(bool * aFromFontGroup)
   return NS_OK;
 }
 
-/* readonly attribute boolean fromLanguagePrefs; */
 NS_IMETHODIMP
 nsFontFace::GetFromLanguagePrefs(bool * aFromLanguagePrefs)
 {
@@ -50,7 +53,6 @@ nsFontFace::GetFromLanguagePrefs(bool * aFromLanguagePrefs)
   return NS_OK;
 }
 
-/* readonly attribute boolean fromSystemFallback; */
 NS_IMETHODIMP
 nsFontFace::GetFromSystemFallback(bool * aFromSystemFallback)
 {
@@ -59,7 +61,6 @@ nsFontFace::GetFromSystemFallback(bool * aFromSystemFallback)
   return NS_OK;
 }
 
-/* readonly attribute DOMString name; */
 NS_IMETHODIMP
 nsFontFace::GetName(nsAString & aName)
 {
@@ -72,7 +73,6 @@ nsFontFace::GetName(nsAString & aName)
   return NS_OK;
 }
 
-/* readonly attribute DOMString CSSFamilyName; */
 NS_IMETHODIMP
 nsFontFace::GetCSSFamilyName(nsAString & aCSSFamilyName)
 {
@@ -80,7 +80,6 @@ nsFontFace::GetCSSFamilyName(nsAString & aCSSFamilyName)
   return NS_OK;
 }
 
-/* readonly attribute nsIDOMCSSFontFaceRule rule; */
 NS_IMETHODIMP
 nsFontFace::GetRule(nsIDOMCSSFontFaceRule **aRule)
 {
@@ -88,10 +87,13 @@ nsFontFace::GetRule(nsIDOMCSSFontFaceRule **aRule)
   // in the relevant font group's user font set
   nsCSSFontFaceRule* rule = nullptr;
   if (mFontEntry->IsUserFont()) {
-    nsUserFontSet* fontSet =
-      static_cast<nsUserFontSet*>(mFontGroup->GetUserFontSet());
+    FontFaceSet::UserFontSet* fontSet =
+      static_cast<FontFaceSet::UserFontSet*>(mFontGroup->GetUserFontSet());
     if (fontSet) {
-      rule = fontSet->FindRuleForEntry(mFontEntry);
+      FontFaceSet* fontFaceSet = fontSet->GetFontFaceSet();
+      if (fontFaceSet) {
+        rule = fontFaceSet->FindRuleForEntry(mFontEntry);
+      }
     }
   }
 
@@ -99,7 +101,6 @@ nsFontFace::GetRule(nsIDOMCSSFontFaceRule **aRule)
   return NS_OK;
 }
 
-/* readonly attribute long srcIndex; */
 NS_IMETHODIMP
 nsFontFace::GetSrcIndex(int32_t * aSrcIndex)
 {
@@ -112,7 +113,6 @@ nsFontFace::GetSrcIndex(int32_t * aSrcIndex)
   return NS_OK;
 }
 
-/* readonly attribute DOMString URI; */
 NS_IMETHODIMP
 nsFontFace::GetURI(nsAString & aURI)
 {
@@ -121,14 +121,14 @@ nsFontFace::GetURI(nsAString & aURI)
     NS_ASSERTION(mFontEntry->mUserFontData, "missing userFontData");
     if (mFontEntry->mUserFontData->mURI) {
       nsAutoCString spec;
-      mFontEntry->mUserFontData->mURI->GetSpec(spec);
+      nsresult rv = mFontEntry->mUserFontData->mURI->GetSpec(spec);
+      NS_ENSURE_SUCCESS(rv, rv);
       AppendUTF8toUTF16(spec, aURI);
     }
   }
   return NS_OK;
 }
 
-/* readonly attribute DOMString localName; */
 NS_IMETHODIMP
 nsFontFace::GetLocalName(nsAString & aLocalName)
 {
@@ -141,7 +141,6 @@ nsFontFace::GetLocalName(nsAString & aLocalName)
   return NS_OK;
 }
 
-/* readonly attribute DOMString format; */
 static void
 AppendToFormat(nsAString & aResult, const char* aFormat)
 {
@@ -176,29 +175,48 @@ nsFontFace::GetFormat(nsAString & aFormat)
     if (formatFlags & gfxUserFontSet::FLAG_FORMAT_WOFF) {
       AppendToFormat(aFormat, "woff");
     }
+    if (formatFlags & gfxUserFontSet::FLAG_FORMAT_WOFF2) {
+      AppendToFormat(aFormat, "woff2");
+    }
   }
   return NS_OK;
 }
 
-/* readonly attribute DOMString metadata; */
 NS_IMETHODIMP
 nsFontFace::GetMetadata(nsAString & aMetadata)
 {
   aMetadata.Truncate();
   if (mFontEntry->IsUserFont() && !mFontEntry->IsLocalUserFont()) {
     NS_ASSERTION(mFontEntry->mUserFontData, "missing userFontData");
-    const gfxUserFontData* userFontData = mFontEntry->mUserFontData;
+    const gfxUserFontData* userFontData = mFontEntry->mUserFontData.get();
     if (userFontData->mMetadata.Length() && userFontData->mMetaOrigLen) {
       nsAutoCString str;
       str.SetLength(userFontData->mMetaOrigLen);
       if (str.Length() == userFontData->mMetaOrigLen) {
-        uLongf destLen = userFontData->mMetaOrigLen;
-        if (uncompress((Bytef *)(str.BeginWriting()), &destLen,
-                       (const Bytef *)(userFontData->mMetadata.Elements()),
-                       userFontData->mMetadata.Length()) == Z_OK &&
-            destLen == userFontData->mMetaOrigLen)
-        {
-          AppendUTF8toUTF16(str, aMetadata);
+        switch (userFontData->mCompression) {
+        case gfxUserFontData::kZlibCompression:
+          {
+            uLongf destLen = userFontData->mMetaOrigLen;
+            if (uncompress((Bytef *)(str.BeginWriting()), &destLen,
+                           (const Bytef *)(userFontData->mMetadata.Elements()),
+                           userFontData->mMetadata.Length()) == Z_OK &&
+                destLen == userFontData->mMetaOrigLen) {
+              AppendUTF8toUTF16(str, aMetadata);
+            }
+          }
+          break;
+        case gfxUserFontData::kBrotliCompression:
+          {
+            size_t decodedSize = userFontData->mMetaOrigLen;
+            if (BrotliDecompressBuffer(userFontData->mMetadata.Length(),
+                                       userFontData->mMetadata.Elements(),
+                                       &decodedSize,
+                                       (uint8_t*)str.BeginWriting()) == 1 &&
+                decodedSize == userFontData->mMetaOrigLen) {
+              AppendUTF8toUTF16(str, aMetadata);
+            }
+          }
+          break;
         }
       }
     }

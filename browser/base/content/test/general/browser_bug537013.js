@@ -3,19 +3,20 @@
 
 /* Tests for bug 537013 to ensure proper tab-sequestration of find bar. */
 
-let tabs = [];
-let texts = [
+var tabs = [];
+var texts = [
   "This side up.",
   "The world is coming to an end. Please log off.",
   "Klein bottle for sale. Inquire within.",
   "To err is human; to forgive is not company policy."
 ];
 
-let Clipboard = Cc["@mozilla.org/widget/clipboard;1"].getService(Ci.nsIClipboard);
-let HasFindClipboard = Clipboard.supportsFindClipboard();
+var Clipboard = Cc["@mozilla.org/widget/clipboard;1"].getService(Ci.nsIClipboard);
+var HasFindClipboard = Clipboard.supportsFindClipboard();
 
 function addTabWithText(aText, aCallback) {
-  let newTab = gBrowser.addTab("data:text/html,<h1 id='h1'>" + aText + "</h1>");
+  let newTab = gBrowser.addTab("data:text/html;charset=utf-8,<h1 id='h1'>" +
+                               aText + "</h1>");
   tabs.push(newTab);
   gBrowser.selectedTab = newTab;
 }
@@ -28,7 +29,7 @@ function setFindString(aString) {
   is(gFindBar._findField.value, aString, "Set the field correctly!");
 }
 
-let newWindow;
+var newWindow;
 
 function test() {
   waitForExplicitFinish();
@@ -37,14 +38,14 @@ function test() {
       gBrowser.removeTab(tabs.pop());
     }
   });
-  texts.forEach(function(aText) addTabWithText(aText));
+  texts.forEach(aText => addTabWithText(aText));
 
   // Set up the first tab
   gBrowser.selectedTab = tabs[0];
 
   setFindString(texts[0]);
   // Turn on highlight for testing bug 891638
-  gFindBar.getElement("highlight").checked = true;
+  gFindBar.toggleHighlight(true);
 
   // Make sure the second tab is correct, then set it up
   gBrowser.selectedTab = tabs[1];
@@ -71,14 +72,19 @@ function continueTests1() {
   ok(gFindBar.getElement("highlight").checked,
      "Highlight button state persists!");
 
-  // While we're here, let's test bug 253793
+  // While we're here, let's test the backout of bug 253793.
   gBrowser.reload();
   gBrowser.addEventListener("DOMContentLoaded", continueTests2, true);
 }
 
 function continueTests2() {
   gBrowser.removeEventListener("DOMContentLoaded", continueTests2, true);
-  ok(!gFindBar.getElement("highlight").checked, "Highlight button reset!");
+  ok(gFindBar.getElement("highlight").checked, "Highlight never reset!");
+  continueTests3();
+}
+
+function continueTests3() {
+  ok(gFindBar.getElement("highlight").checked, "Highlight button reset!");
   gFindBar.close();
   ok(gFindBar.hidden, "First tab doesn't show find bar!");
   gBrowser.selectedTab = tabs[1];

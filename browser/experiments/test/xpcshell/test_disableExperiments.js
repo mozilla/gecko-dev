@@ -9,20 +9,17 @@ Cu.import("resource://testing-common/AddonManagerTesting.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Experiments",
   "resource:///modules/experiments/Experiments.jsm");
 
-const FILE_MANIFEST            = "experiments.manifest";
 const MANIFEST_HANDLER         = "manifests/handler";
 
 const SEC_IN_ONE_DAY  = 24 * 60 * 60;
 const MS_IN_ONE_DAY   = SEC_IN_ONE_DAY * 1000;
 
-let gProfileDir          = null;
-let gHttpServer          = null;
-let gHttpRoot            = null;
-let gDataRoot            = null;
-let gReporter            = null;
-let gPolicy              = null;
-let gManifestObject      = null;
-let gManifestHandlerURI  = null;
+var gHttpServer          = null;
+var gHttpRoot            = null;
+var gDataRoot            = null;
+var gPolicy              = null;
+var gManifestObject      = null;
+var gManifestHandlerURI  = null;
 
 function run_test() {
   run_next_test();
@@ -30,7 +27,6 @@ function run_test() {
 
 add_task(function* test_setup() {
   loadAddonManager();
-  gProfileDir = do_get_profile();
 
   gHttpServer = new HttpServer();
   gHttpServer.start(-1);
@@ -47,23 +43,15 @@ add_task(function* test_setup() {
   });
   do_register_cleanup(() => gHttpServer.stop(() => {}));
 
-  disableCertificateChecks();
-
   Services.prefs.setBoolPref(PREF_EXPERIMENTS_ENABLED, true);
   Services.prefs.setIntPref(PREF_LOGGING_LEVEL, 0);
   Services.prefs.setBoolPref(PREF_LOGGING_DUMP, true);
   Services.prefs.setCharPref(PREF_MANIFEST_URI, gManifestHandlerURI);
   Services.prefs.setIntPref(PREF_FETCHINTERVAL, 0);
 
-  gReporter = yield getReporter("json_payload_simple");
-  yield gReporter.collectMeasurements();
-  let payload = yield gReporter.getJSONPayload(false);
-  do_register_cleanup(() => gReporter._shutdown());
-
   gPolicy = new Experiments.Policy();
   patchPolicy(gPolicy, {
     updatechannel: () => "nightly",
-    healthReportPayload: () => Promise.resolve(payload),
     oneshotTimer: (callback, timeout, thisObj, name) => {},
   });
 });
@@ -165,8 +153,11 @@ add_task(function* test_disableExperiments() {
 
   try {
     yield experiments.updateManifest();
-  } catch (e if e.message == "experiments are disabled") {
-    // This exception is expected.
+  } catch (e) {
+    // This exception is expected, we rethrow everything else
+    if (e.message != "experiments are disabled") {
+      throw e;
+    }
   }
 
   experiments.notify();
@@ -184,6 +175,6 @@ add_task(function* test_disableExperiments() {
   // Cleanup.
 
   Services.obs.removeObserver(observer, OBSERVER_TOPIC);
-  yield experiments.uninit();
+  yield promiseRestartManager();
   yield removeCacheFile();
 });

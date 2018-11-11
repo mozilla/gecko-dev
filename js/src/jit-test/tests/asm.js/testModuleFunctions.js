@@ -1,3 +1,4 @@
+
 function testUniqueness(asmJSModule) {
     var f = asmJSModule();
     var g = asmJSModule();

@@ -1,23 +1,26 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-NO_DIST_INSTALL = True
+FINAL_TARGET = '_tests/xpcshell/xpcom/tests/unit'
+EXTRA_PP_COMPONENTS += [
+    'testcomponent.manifest',
+]
 
 SOURCES += [
     'TestComponent.cpp',
 ]
 
-LIBRARY_NAME = 'testcomponent'
-
-IS_COMPONENT = True
-
-FORCE_SHARED_LIB = True
+XPCOMBinaryComponent('testcomponent')
 
 DEFINES['LIBRARY_FILENAME'] = '%s%s%s' % (
     CONFIG['DLL_PREFIX'],
     LIBRARY_NAME,
     CONFIG['DLL_SUFFIX']
 )
+
+# Need to link with CoreFoundation on Mac
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+    OS_LIBS += CONFIG['TK_LIBS']

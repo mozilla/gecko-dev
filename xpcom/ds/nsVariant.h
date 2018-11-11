@@ -1,10 +1,8 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-/* The long avoided variant support for xpcom. */
 
 #ifndef nsVariant_h
 #define nsVariant_h
@@ -12,10 +10,9 @@
 #include "nsIVariant.h"
 #include "nsStringFwd.h"
 #include "mozilla/Attributes.h"
+#include "nsCycleCollectionParticipant.h"
 
-class nsCycleCollectionTraversalCallback;
-
-/** 
+/**
  * Map the nsAUTF8String, nsUTF8String classes to the nsACString and
  * nsCString classes respectively for now.  These defines need to be removed
  * once Jag lands his nsUTF8String implementation.
@@ -25,141 +22,196 @@ class nsCycleCollectionTraversalCallback;
 #define PromiseFlatUTF8String PromiseFlatCString
 
 /**
- * nsDiscriminatedUnion is a type that nsIVariant implementors *may* use 
- * to hold underlying data. It has no methods. So, its use requires no linkage
- * to the xpcom module.
+ * nsDiscriminatedUnion is a class that nsIVariant implementors can use
+ * to hold the underlying data.
  */
 
-struct nsDiscriminatedUnion
+class nsDiscriminatedUnion
 {
-    union {
-        int8_t         mInt8Value;
-        int16_t        mInt16Value;
-        int32_t        mInt32Value;
-        int64_t        mInt64Value;
-        uint8_t        mUint8Value;
-        uint16_t       mUint16Value;
-        uint32_t       mUint32Value;
-        uint64_t       mUint64Value;
-        float          mFloatValue;
-        double         mDoubleValue;
-        bool           mBoolValue;
-        char           mCharValue;
-        char16_t      mWCharValue;
-        nsIID          mIDValue;
-        nsAString*     mAStringValue;
-        nsAUTF8String* mUTF8StringValue;
-        nsACString*    mCStringValue;
-        struct {
-            nsISupports* mInterfaceValue;
-            nsIID        mInterfaceID;
-        } iface;
-        struct {
-            nsIID        mArrayInterfaceID;
-            void*        mArrayValue;
-            uint32_t     mArrayCount;
-            uint16_t     mArrayType;
-        } array;
-        struct {
-            char*        mStringValue;
-            uint32_t     mStringLength;
-        } str;
-        struct {
-            char16_t*   mWStringValue;
-            uint32_t     mWStringLength;
-        } wstr;
-    } u;
-    uint16_t       mType;
+public:
+
+  nsDiscriminatedUnion() : mType(nsIDataType::VTYPE_EMPTY) {}
+  nsDiscriminatedUnion(const nsDiscriminatedUnion&) = delete;
+  nsDiscriminatedUnion(nsDiscriminatedUnion&&) = delete;
+
+  ~nsDiscriminatedUnion() { Cleanup(); }
+
+  nsDiscriminatedUnion& operator=(const nsDiscriminatedUnion&) = delete;
+  nsDiscriminatedUnion& operator=(nsDiscriminatedUnion&&) = delete;
+
+  void Cleanup();
+
+  uint16_t GetType() const { return mType; }
+
+  MOZ_MUST_USE nsresult ConvertToInt8(uint8_t* aResult) const;
+  MOZ_MUST_USE nsresult ConvertToInt16(int16_t* aResult) const;
+  MOZ_MUST_USE nsresult ConvertToInt32(int32_t* aResult) const;
+  MOZ_MUST_USE nsresult ConvertToInt64(int64_t* aResult) const;
+  MOZ_MUST_USE nsresult ConvertToUint8(uint8_t* aResult) const;
+  MOZ_MUST_USE nsresult ConvertToUint16(uint16_t* aResult) const;
+  MOZ_MUST_USE nsresult ConvertToUint32(uint32_t* aResult) const;
+  MOZ_MUST_USE nsresult ConvertToUint64(uint64_t* aResult) const;
+  MOZ_MUST_USE nsresult ConvertToFloat(float* aResult) const;
+  MOZ_MUST_USE nsresult ConvertToDouble(double* aResult) const;
+  MOZ_MUST_USE nsresult ConvertToBool(bool* aResult) const;
+  MOZ_MUST_USE nsresult ConvertToChar(char* aResult) const;
+  MOZ_MUST_USE nsresult ConvertToWChar(char16_t* aResult) const;
+
+  MOZ_MUST_USE nsresult ConvertToID(nsID* aResult) const;
+
+  MOZ_MUST_USE nsresult ConvertToAString(nsAString& aResult) const;
+  MOZ_MUST_USE nsresult ConvertToAUTF8String(nsAUTF8String& aResult) const;
+  MOZ_MUST_USE nsresult ConvertToACString(nsACString& aResult) const;
+  MOZ_MUST_USE nsresult ConvertToString(char** aResult) const;
+  MOZ_MUST_USE nsresult ConvertToWString(char16_t** aResult) const;
+  MOZ_MUST_USE nsresult ConvertToStringWithSize(uint32_t* aSize, char** aStr) const;
+  MOZ_MUST_USE nsresult ConvertToWStringWithSize(uint32_t* aSize, char16_t** aStr) const;
+
+  MOZ_MUST_USE nsresult ConvertToISupports(nsISupports** aResult) const;
+  MOZ_MUST_USE nsresult ConvertToInterface(nsIID** aIID, void** aInterface) const;
+  MOZ_MUST_USE nsresult ConvertToArray(uint16_t* aType, nsIID* aIID,
+                                       uint32_t* aCount, void** aPtr) const;
+
+  MOZ_MUST_USE nsresult SetFromVariant(nsIVariant* aValue);
+
+  void SetFromInt8(uint8_t aValue);
+  void SetFromInt16(int16_t aValue);
+  void SetFromInt32(int32_t aValue);
+  void SetFromInt64(int64_t aValue);
+  void SetFromUint8(uint8_t aValue);
+  void SetFromUint16(uint16_t aValue);
+  void SetFromUint32(uint32_t aValue);
+  void SetFromUint64(uint64_t aValue);
+  void SetFromFloat(float aValue);
+  void SetFromDouble(double aValue);
+  void SetFromBool(bool aValue);
+  void SetFromChar(char aValue);
+  void SetFromWChar(char16_t aValue);
+  void SetFromID(const nsID& aValue);
+  void SetFromAString(const nsAString& aValue);
+  void SetFromDOMString(const nsAString& aValue);
+  void SetFromAUTF8String(const nsAUTF8String& aValue);
+  void SetFromACString(const nsACString& aValue);
+  MOZ_MUST_USE nsresult SetFromString(const char* aValue);
+  MOZ_MUST_USE nsresult SetFromWString(const char16_t* aValue);
+  void SetFromISupports(nsISupports* aValue);
+  void SetFromInterface(const nsIID& aIID, nsISupports* aValue);
+  MOZ_MUST_USE nsresult SetFromArray(uint16_t aType, const nsIID* aIID,
+                                     uint32_t aCount, void* aValue);
+  MOZ_MUST_USE nsresult SetFromStringWithSize(uint32_t aSize,
+                                              const char* aValue);
+  MOZ_MUST_USE nsresult SetFromWStringWithSize(uint32_t aSize,
+                                               const char16_t* aValue);
+
+  // Like SetFromWStringWithSize, but leaves the string uninitialized. It does
+  // does write the null-terminator.
+  void AllocateWStringWithSize(uint32_t aSize);
+
+  void SetToVoid();
+  void SetToEmpty();
+  void SetToEmptyArray();
+
+  void Traverse(nsCycleCollectionTraversalCallback& aCb) const;
+
+private:
+  MOZ_MUST_USE nsresult
+  ToManageableNumber(nsDiscriminatedUnion* aOutData) const;
+  void FreeArray();
+  MOZ_MUST_USE bool String2ID(nsID* aPid) const;
+  MOZ_MUST_USE nsresult ToString(nsACString& aOutString) const;
+
+public:
+  union
+  {
+    int8_t         mInt8Value;
+    int16_t        mInt16Value;
+    int32_t        mInt32Value;
+    int64_t        mInt64Value;
+    uint8_t        mUint8Value;
+    uint16_t       mUint16Value;
+    uint32_t       mUint32Value;
+    uint64_t       mUint64Value;
+    float          mFloatValue;
+    double         mDoubleValue;
+    bool           mBoolValue;
+    char           mCharValue;
+    char16_t       mWCharValue;
+    nsIID          mIDValue;
+    nsAString*     mAStringValue;
+    nsAUTF8String* mUTF8StringValue;
+    nsACString*    mCStringValue;
+    struct
+    {
+      // This is an owning reference that cannot be an nsCOMPtr because
+      // nsDiscriminatedUnion needs to be POD.  AddRef/Release are manually
+      // called on this.
+      nsISupports* MOZ_OWNING_REF mInterfaceValue;
+      nsIID        mInterfaceID;
+    } iface;
+    struct
+    {
+      nsIID        mArrayInterfaceID;
+      void*        mArrayValue;
+      uint32_t     mArrayCount;
+      uint16_t     mArrayType;
+    } array;
+    struct
+    {
+      char*        mStringValue;
+      uint32_t     mStringLength;
+    } str;
+    struct
+    {
+      char16_t*    mWStringValue;
+      uint32_t     mWStringLength;
+    } wstr;
+  } u;
+  uint16_t       mType;
 };
 
 /**
  * nsVariant implements the generic variant support. The xpcom module registers
- * a factory (see NS_VARIANT_CONTRACTID in nsIVariant.idl) that will create 
- * these objects. They are created 'empty' and 'writable'. 
+ * a factory (see NS_VARIANT_CONTRACTID in nsIVariant.idl) that will create
+ * these objects. They are created 'empty' and 'writable'.
  *
  * nsIVariant users won't usually need to see this class.
- *
- * This class also has static helper methods that nsIVariant *implementors* can
- * use to help them do all the 'standard' nsIVariant data conversions.
  */
-
-class nsVariant MOZ_FINAL : public nsIWritableVariant
+class nsVariantBase : public nsIWritableVariant
 {
 public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIVARIANT
-    NS_DECL_NSIWRITABLEVARIANT
+  NS_DECL_NSIVARIANT
+  NS_DECL_NSIWRITABLEVARIANT
 
-    nsVariant();
-
-    static nsresult Initialize(nsDiscriminatedUnion* data);
-    static nsresult Cleanup(nsDiscriminatedUnion* data);
-
-    static nsresult ConvertToInt8(const nsDiscriminatedUnion& data, uint8_t *_retval);
-    static nsresult ConvertToInt16(const nsDiscriminatedUnion& data, int16_t *_retval);
-    static nsresult ConvertToInt32(const nsDiscriminatedUnion& data, int32_t *_retval);
-    static nsresult ConvertToInt64(const nsDiscriminatedUnion& data, int64_t *_retval);
-    static nsresult ConvertToUint8(const nsDiscriminatedUnion& data, uint8_t *_retval);
-    static nsresult ConvertToUint16(const nsDiscriminatedUnion& data, uint16_t *_retval);
-    static nsresult ConvertToUint32(const nsDiscriminatedUnion& data, uint32_t *_retval);
-    static nsresult ConvertToUint64(const nsDiscriminatedUnion& data, uint64_t *_retval);
-    static nsresult ConvertToFloat(const nsDiscriminatedUnion& data, float *_retval);
-    static nsresult ConvertToDouble(const nsDiscriminatedUnion& data, double *_retval);
-    static nsresult ConvertToBool(const nsDiscriminatedUnion& data, bool *_retval);
-    static nsresult ConvertToChar(const nsDiscriminatedUnion& data, char *_retval);
-    static nsresult ConvertToWChar(const nsDiscriminatedUnion& data, char16_t *_retval);
-    static nsresult ConvertToID(const nsDiscriminatedUnion& data, nsID * _retval);
-    static nsresult ConvertToAString(const nsDiscriminatedUnion& data, nsAString & _retval);
-    static nsresult ConvertToAUTF8String(const nsDiscriminatedUnion& data, nsAUTF8String & _retval);
-    static nsresult ConvertToACString(const nsDiscriminatedUnion& data, nsACString & _retval);
-    static nsresult ConvertToString(const nsDiscriminatedUnion& data, char **_retval);
-    static nsresult ConvertToWString(const nsDiscriminatedUnion& data, char16_t **_retval);
-    static nsresult ConvertToISupports(const nsDiscriminatedUnion& data, nsISupports **_retval);
-    static nsresult ConvertToInterface(const nsDiscriminatedUnion& data, nsIID * *iid, void * *iface);
-    static nsresult ConvertToArray(const nsDiscriminatedUnion& data, uint16_t *type, nsIID* iid, uint32_t *count, void * *ptr);
-    static nsresult ConvertToStringWithSize(const nsDiscriminatedUnion& data, uint32_t *size, char **str);
-    static nsresult ConvertToWStringWithSize(const nsDiscriminatedUnion& data, uint32_t *size, char16_t **str);
-
-    static nsresult SetFromVariant(nsDiscriminatedUnion* data, nsIVariant* aValue);
-
-    static nsresult SetFromInt8(nsDiscriminatedUnion* data, uint8_t aValue);
-    static nsresult SetFromInt16(nsDiscriminatedUnion* data, int16_t aValue);
-    static nsresult SetFromInt32(nsDiscriminatedUnion* data, int32_t aValue);
-    static nsresult SetFromInt64(nsDiscriminatedUnion* data, int64_t aValue);
-    static nsresult SetFromUint8(nsDiscriminatedUnion* data, uint8_t aValue);
-    static nsresult SetFromUint16(nsDiscriminatedUnion* data, uint16_t aValue);
-    static nsresult SetFromUint32(nsDiscriminatedUnion* data, uint32_t aValue);
-    static nsresult SetFromUint64(nsDiscriminatedUnion* data, uint64_t aValue);
-    static nsresult SetFromFloat(nsDiscriminatedUnion* data, float aValue);
-    static nsresult SetFromDouble(nsDiscriminatedUnion* data, double aValue);
-    static nsresult SetFromBool(nsDiscriminatedUnion* data, bool aValue);
-    static nsresult SetFromChar(nsDiscriminatedUnion* data, char aValue);
-    static nsresult SetFromWChar(nsDiscriminatedUnion* data, char16_t aValue);
-    static nsresult SetFromID(nsDiscriminatedUnion* data, const nsID & aValue);
-    static nsresult SetFromAString(nsDiscriminatedUnion* data, const nsAString & aValue);
-    static nsresult SetFromAUTF8String(nsDiscriminatedUnion* data, const nsAUTF8String & aValue);
-    static nsresult SetFromACString(nsDiscriminatedUnion* data, const nsACString & aValue);
-    static nsresult SetFromString(nsDiscriminatedUnion* data, const char *aValue);
-    static nsresult SetFromWString(nsDiscriminatedUnion* data, const char16_t *aValue);
-    static nsresult SetFromISupports(nsDiscriminatedUnion* data, nsISupports *aValue);
-    static nsresult SetFromInterface(nsDiscriminatedUnion* data, const nsIID& iid, nsISupports *aValue);
-    static nsresult SetFromArray(nsDiscriminatedUnion* data, uint16_t type, const nsIID* iid, uint32_t count, void * aValue);
-    static nsresult SetFromStringWithSize(nsDiscriminatedUnion* data, uint32_t size, const char *aValue);
-    static nsresult SetFromWStringWithSize(nsDiscriminatedUnion* data, uint32_t size, const char16_t *aValue);
-
-    static nsresult SetToVoid(nsDiscriminatedUnion* data);
-    static nsresult SetToEmpty(nsDiscriminatedUnion* data);
-    static nsresult SetToEmptyArray(nsDiscriminatedUnion* data);
-
-    static void Traverse(const nsDiscriminatedUnion& data,
-                         nsCycleCollectionTraversalCallback &cb);
-
-private:
-    ~nsVariant();
+  nsVariantBase();
 
 protected:
-    nsDiscriminatedUnion mData;
-    bool                 mWritable;
+  ~nsVariantBase() {};
+
+  nsDiscriminatedUnion mData;
+  bool mWritable;
+};
+
+class nsVariant final : public nsVariantBase
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  nsVariant() {};
+
+private:
+  ~nsVariant() {};
+};
+
+class nsVariantCC final : public nsVariantBase
+{
+public:
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_CLASS(nsVariantCC)
+
+  nsVariantCC() {};
+
+private:
+  ~nsVariantCC() {};
 };
 
 /**

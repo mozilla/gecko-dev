@@ -2,10 +2,10 @@ try {
   // We might be running without privileges, in which case it's up to the
   // harness to give us the 'ctypes' object.
   Components.utils.import("resource://gre/modules/ctypes.jsm");
-} catch(e) {
+} catch (e) {
 }
 
-let acquire, dispose, reset_errno, dispose_errno,
+var acquire, dispose, reset_errno, dispose_errno,
   acquire_ptr, dispose_ptr,
   acquire_void_ptr, dispose_void_ptr,
   acquire_string, dispose_string;

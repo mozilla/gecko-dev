@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*  
 **********************************************************************
-*   Copyright (C) 2000-2011, International Business Machines
+*   Copyright (C) 2000-2016, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 **********************************************************************
 *   file name:  ucnv_lmb.cpp
@@ -25,7 +27,7 @@
 
 #include "unicode/utypes.h"
 
-#if !UCONFIG_NO_CONVERSION && !UCONFIG_NO_LEGACY_CONVERSION
+#if !UCONFIG_NO_CONVERSION && !UCONFIG_NO_LEGACY_CONVERSION && !UCONFIG_ONLY_HTML_CONVERSION
 
 #include "unicode/ucnv_err.h"
 #include "unicode/ucnv.h"
@@ -40,8 +42,6 @@
 #ifdef EBCDIC_RTL
     #include "ascii_a.h"
 #endif
-
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
 
 /*
   LMBCS
@@ -608,11 +608,8 @@ static const UConverterStaticData _LMBCSStaticData##n={\
     0, UCNV_IBM, UCNV_LMBCS_##n, 1, 3,\
     { 0x3f, 0, 0, 0 },1,FALSE,FALSE,0,0,{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} \
 };\
-const UConverterSharedData _LMBCSData##n={\
-    sizeof(UConverterSharedData), ~((uint32_t) 0),\
-    NULL, NULL, &_LMBCSStaticData##n, FALSE, &_LMBCSImpl##n, \
-    0 \
-};
+const UConverterSharedData _LMBCSData##n= \
+        UCNV_IMMUTABLE_SHARED_DATA_INITIALIZER(&_LMBCSStaticData##n, &_LMBCSImpl##n);
 
  /* The only function we needed to duplicate 12 times was the 'open'
 function, which will do basically the same thing except set a  different
@@ -798,12 +795,16 @@ LMBCSConversionWorker (
    {
    case 4:
       *pLMBCS++ = (ulmbcs_byte_t)(value >> 24);
-   case 3: /*fall through*/
+      U_FALLTHROUGH;
+   case 3:
       *pLMBCS++ = (ulmbcs_byte_t)(value >> 16);
-   case 2: /*fall through*/
+      U_FALLTHROUGH;
+   case 2:
       *pLMBCS++ = (ulmbcs_byte_t)(value >> 8);
-   case 1: /*fall through*/
+      U_FALLTHROUGH;
+   case 1:
       *pLMBCS++ = (ulmbcs_byte_t)value;
+      U_FALLTHROUGH;
    default:
       /* will never occur */
       break;

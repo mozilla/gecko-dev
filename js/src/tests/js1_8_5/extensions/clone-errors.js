@@ -17,9 +17,26 @@ check(new Error("oops"));
 check(this);
 check(Math);
 check(function () {});
-check(Proxy.create({enumerate: function () { return []; }}));
+check(new Proxy({}, {}));
 
 // A failing getter.
 check({get x() { throw new Error("fail"); }});
+
+// Mismatched scopes.
+for (let [write_scope, read_scope] of [['SameProcessSameThread', 'SameProcessDifferentThread'],
+                                       ['SameProcessSameThread', 'DifferentProcess'],
+                                       ['SameProcessDifferentThread', 'DifferentProcessForIndexedDB'],
+                                       ['SameProcessDifferentThread', 'DifferentProcess']])
+{
+  var ab = new ArrayBuffer(12);
+  var buffer = serialize(ab, [ab], { scope: write_scope });
+  var caught = false;
+  try {
+    deserialize(buffer, { scope: read_scope });
+  } catch (exc) {
+    caught = true;
+  }
+  assertEq(caught, true, `${write_scope} clone buffer should not be deserializable as ${read_scope}`);
+}
 
 reportCompare(0, 0, "ok");

@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -14,7 +16,9 @@ template <class> struct already_AddRefed;
 namespace mozilla {
 namespace dom {
 
+class BlobImpl;
 class ContentParent;
+class PBlobParent;
 
 } // namespace dom
 
@@ -24,11 +28,12 @@ class PBackgroundParent;
 
 // This class is not designed for public consumption beyond the few static
 // member functions.
-class BackgroundParent MOZ_FINAL
+class BackgroundParent final
 {
   friend class mozilla::dom::ContentParent;
 
   typedef base::ProcessId ProcessId;
+  typedef mozilla::dom::BlobImpl BlobImpl;
   typedef mozilla::dom::ContentParent ContentParent;
   typedef mozilla::ipc::Transport Transport;
 
@@ -50,6 +55,17 @@ public:
   // release) the returned pointer appropriately.
   static already_AddRefed<ContentParent>
   GetContentParent(PBackgroundParent* aBackgroundActor);
+
+  static mozilla::dom::PBlobParent*
+  GetOrCreateActorForBlobImpl(PBackgroundParent* aBackgroundActor,
+                              BlobImpl* aBlobImpl);
+
+  // Get a value that represents the ContentParent associated with the parent
+  // actor for comparison. The value is not guaranteed to uniquely identify the
+  // ContentParent after the ContentParent has died. This function may only be
+  // called on the background thread.
+  static intptr_t
+  GetRawContentParentForComparison(PBackgroundParent* aBackgroundActor);
 
 private:
   // Only called by ContentParent for cross-process actors.
@@ -76,6 +92,12 @@ AssertIsOnBackgroundThread()
 { }
 
 #endif // DEBUG
+
+inline void
+AssertIsInMainProcess()
+{
+  MOZ_ASSERT(XRE_IsParentProcess());
+}
 
 } // namespace ipc
 } // namespace mozilla

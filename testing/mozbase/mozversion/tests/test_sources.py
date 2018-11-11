@@ -9,13 +9,19 @@ import tempfile
 import unittest
 
 import mozfile
-from mozversion import get_version
+
+from mozversion import errors, get_version
 
 
 class SourcesTest(unittest.TestCase):
     """test getting version information from a sources xml"""
 
     application_ini = """[App]\nName = B2G\n"""
+    platform_ini = """[Build]
+BuildID = PlatformBuildID
+SourceStamp = PlatformSourceStamp
+SourceRepository = PlatformSourceRepo
+"""
     sources_xml = """<?xml version="1.0" ?><manifest>
   <project path="build" revision="build_revision" />
   <project path="gaia" revision="gaia_revision" />
@@ -35,34 +41,38 @@ class SourcesTest(unittest.TestCase):
         os.chdir(self.cwd)
         mozfile.remove(self.tempdir)
 
-    def test_sources(self):
+    def _write_conf_files(self, sources=True):
         with open(os.path.join(self.tempdir, 'application.ini'), 'w') as f:
             f.writelines(self.application_ini)
+        with open(os.path.join(self.tempdir, 'platform.ini'), 'w') as f:
+            f.writelines(self.platform_ini)
+        if sources:
+            with open(os.path.join(self.tempdir, 'sources.xml'), 'w') as f:
+                f.writelines(self.sources_xml)
 
-        sources = os.path.join(self.tempdir, 'sources.xml')
-        with open(sources, 'w') as f:
-            f.writelines(self.sources_xml)
+    def test_sources(self):
+        self._write_conf_files()
 
         os.chdir(self.tempdir)
-        self._check_version(get_version(sources=sources))
+        self._check_version(get_version(sources=os.path.join(self.tempdir,
+                                                             'sources.xml')))
 
     def test_sources_in_current_directory(self):
-        with open(os.path.join(self.tempdir, 'application.ini'), 'w') as f:
-            f.writelines(self.application_ini)
-
-        with open(os.path.join(self.tempdir, 'sources.xml'), 'w') as f:
-            f.writelines(self.sources_xml)
+        self._write_conf_files()
 
         os.chdir(self.tempdir)
         self._check_version(get_version())
 
     def test_invalid_sources_path(self):
-        v = get_version(self.binary, os.path.join(self.tempdir, 'invalid'))
-        self.assertEqual(v, {})
+        """An invalid source path should cause an exception"""
+        self.assertRaises(errors.AppNotFoundError, get_version,
+                          self.binary, os.path.join(self.tempdir, 'invalid'))
 
-    def test_missing_sources_file(self):
-        v = get_version(self.binary)
-        self.assertEqual(v, {})
+    def test_without_sources_file(self):
+        """With a missing sources file no exception should be thrown"""
+        self._write_conf_files(sources=False)
+
+        get_version(self.binary)
 
     def _check_version(self, version):
         self.assertEqual(version.get('build_changeset'), 'build_revision')

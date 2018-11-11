@@ -8,11 +8,13 @@
 
 #include "gfxAndroidPlatform.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/CountingAllocatorBase.h"
 #include "mozilla/Preferences.h"
 
 #include "gfx2DGlue.h"
 #include "gfxFT2FontList.h"
 #include "gfxImageSurface.h"
+#include "gfxTextRun.h"
 #include "mozilla/dom/ContentChild.h"
 #include "nsXULAppAPI.h"
 #include "nsIScreen.h"
@@ -21,14 +23,7 @@
 #include "nsServiceManagerUtils.h"
 #include "gfxPrefs.h"
 #include "cairo.h"
-
-#ifdef MOZ_WIDGET_ANDROID
-#include "AndroidBridge.h"
-#endif
-
-#ifdef MOZ_WIDGET_GONK
-#include <cutils/properties.h>
-#endif
+#include "VsyncSource.h"
 
 #include "ft2build.h"
 #include FT_FREETYPE_H
@@ -40,9 +35,12 @@ using namespace mozilla::gfx;
 
 static FT_Library gPlatformFTLibrary = nullptr;
 
-class FreetypeReporter MOZ_FINAL : public nsIMemoryReporter,
-                                   public CountingAllocatorBase<FreetypeReporter>
+class FreetypeReporter final : public nsIMemoryReporter,
+                               public CountingAllocatorBase<FreetypeReporter>
 {
+private:
+    ~FreetypeReporter() {}
+
 public:
     NS_DECL_ISUPPORTS
 
@@ -63,11 +61,13 @@ public:
     }
 
     NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
-                              nsISupports* aData)
+                              nsISupports* aData, bool aAnonymize) override
     {
-        return MOZ_COLLECT_REPORT(
+        MOZ_COLLECT_REPORT(
             "explicit/freetype", KIND_HEAP, UNITS_BYTES, MemoryAllocated(),
             "Memory used by Freetype.");
+
+        return NS_OK;
     }
 };
 
@@ -92,25 +92,13 @@ gfxAndroidPlatform::gfxAndroidPlatform()
 
     RegisterStrongMemoryReporter(new FreetypeReporter());
 
-    nsCOMPtr<nsIScreenManager> screenMgr = do_GetService("@mozilla.org/gfx/screenmanager;1");
-    nsCOMPtr<nsIScreen> screen;
-    screenMgr->GetPrimaryScreen(getter_AddRefs(screen));
-    mScreenDepth = 24;
-    screen->GetColorDepth(&mScreenDepth);
-
-    mOffscreenFormat = mScreenDepth == 16
-                       ? gfxImageFormat::RGB16_565
-                       : gfxImageFormat::RGB24;
+    mOffscreenFormat = GetScreenDepth() == 16
+                       ? SurfaceFormat::R5G6B5_UINT16
+                       : SurfaceFormat::X8R8G8B8_UINT32;
 
     if (gfxPrefs::AndroidRGB16Force()) {
-        mOffscreenFormat = gfxImageFormat::RGB16_565;
+        mOffscreenFormat = SurfaceFormat::R5G6B5_UINT16;
     }
-
-#ifdef MOZ_WIDGET_GONK
-    char propQemu[PROPERTY_VALUE_MAX];
-    property_get("ro.kernel.qemu", propQemu, "");
-    mIsInGonkEmulator = !strncmp(propQemu, "1", 1);
-#endif
 }
 
 gfxAndroidPlatform::~gfxAndroidPlatform()
@@ -120,12 +108,15 @@ gfxAndroidPlatform::~gfxAndroidPlatform()
 }
 
 already_AddRefed<gfxASurface>
-gfxAndroidPlatform::CreateOffscreenSurface(const IntSize& size,
-                                           gfxContentType contentType)
+gfxAndroidPlatform::CreateOffscreenSurface(const IntSize& aSize,
+                                           gfxImageFormat aFormat)
 {
-    nsRefPtr<gfxASurface> newSurface;
-    newSurface = new gfxImageSurface(ThebesIntSize(size),
-                                     OptimalFormatForContent(contentType));
+    if (!Factory::AllowedSurfaceSize(aSize)) {
+        return nullptr;
+    }
+
+    RefPtr<gfxASurface> newSurface;
+    newSurface = new gfxImageSurface(aSize, aFormat);
 
     return newSurface.forget();
 }
@@ -168,14 +159,28 @@ IsJapaneseLocale()
 }
 
 void
-gfxAndroidPlatform::GetCommonFallbackFonts(const uint32_t aCh,
-                                           int32_t aRunScript,
+gfxAndroidPlatform::GetCommonFallbackFonts(uint32_t aCh, uint32_t aNextCh,
+                                           Script aRunScript,
                                            nsTArray<const char*>& aFontList)
 {
     static const char kDroidSansJapanese[] = "Droid Sans Japanese";
     static const char kMotoyaLMaru[] = "MotoyaLMaru";
+    static const char kNotoSansCJKJP[] = "Noto Sans CJK JP";
+    static const char kNotoColorEmoji[] = "Noto Color Emoji";
 
-    if (IS_IN_BMP(aCh)) {
+    if (aNextCh == 0xfe0fu) {
+        // if char is followed by VS16, try for a color emoji glyph
+        aFontList.AppendElement(kNotoColorEmoji);
+    }
+
+    if (!IS_IN_BMP(aCh)) {
+        uint32_t p = aCh >> 16;
+        if (p == 1) { // try color emoji font, unless VS15 (text style) present
+            if (aNextCh != 0xfe0fu && aNextCh != 0xfe0eu) {
+                aFontList.AppendElement(kNotoColorEmoji);
+            }
+        }
+    } else {
         // try language-specific "Droid Sans *" and "Noto Sans *" fonts for
         // certain blocks, as most devices probably have these
         uint8_t block = (aCh >> 8) & 0xff;
@@ -208,12 +213,14 @@ gfxAndroidPlatform::GetCommonFallbackFonts(const uint32_t aCh,
         case 0xf9: case 0xfa:
             if (IsJapaneseLocale()) {
                 aFontList.AppendElement(kMotoyaLMaru);
+                aFontList.AppendElement(kNotoSansCJKJP);
                 aFontList.AppendElement(kDroidSansJapanese);
             }
             break;
         default:
             if (block >= 0x2e && block <= 0x9f && IsJapaneseLocale()) {
                 aFontList.AppendElement(kMotoyaLMaru);
+                aFontList.AppendElement(kNotoSansCJKJP);
                 aFontList.AppendElement(kDroidSansJapanese);
             }
             break;
@@ -223,35 +230,10 @@ gfxAndroidPlatform::GetCommonFallbackFonts(const uint32_t aCh,
     aFontList.AppendElement("Droid Sans Fallback");
 }
 
-nsresult
-gfxAndroidPlatform::GetFontList(nsIAtom *aLangGroup,
-                                const nsACString& aGenericFamily,
-                                nsTArray<nsString>& aListOfFonts)
-{
-    gfxPlatformFontList::PlatformFontList()->GetFontList(aLangGroup,
-                                                         aGenericFamily,
-                                                         aListOfFonts);
-    return NS_OK;
-}
-
 void
-gfxAndroidPlatform::GetFontList(InfallibleTArray<FontListEntry>* retValue)
+gfxAndroidPlatform::GetSystemFontList(InfallibleTArray<FontListEntry>* retValue)
 {
-    gfxFT2FontList::PlatformFontList()->GetFontList(retValue);
-}
-
-nsresult
-gfxAndroidPlatform::UpdateFontList()
-{
-    gfxPlatformFontList::PlatformFontList()->UpdateFontList();
-    return NS_OK;
-}
-
-nsresult
-gfxAndroidPlatform::GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName)
-{
-    gfxPlatformFontList::PlatformFontList()->GetStandardFamilyName(aFontName, aFamilyName);
-    return NS_OK;
+    gfxFT2FontList::PlatformFontList()->GetSystemFontList(retValue);
 }
 
 gfxPlatformFontList*
@@ -273,9 +255,7 @@ gfxAndroidPlatform::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlag
                  "strange font format hint set");
 
     // accept supported formats
-    if (aFormatFlags & (gfxUserFontSet::FLAG_FORMAT_OPENTYPE |
-                        gfxUserFontSet::FLAG_FORMAT_WOFF |
-                        gfxUserFontSet::FLAG_FORMAT_TRUETYPE)) {
+    if (aFormatFlags & gfxUserFontSet::FLAG_FORMATS_COMMON) {
         return true;
     }
 
@@ -290,10 +270,13 @@ gfxAndroidPlatform::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlag
 
 gfxFontGroup *
 gfxAndroidPlatform::CreateFontGroup(const FontFamilyList& aFontFamilyList,
-                                    const gfxFontStyle *aStyle,
-                                    gfxUserFontSet* aUserFontSet)
+                                    const gfxFontStyle* aStyle,
+                                    gfxTextPerfMetrics* aTextPerf,
+                                    gfxUserFontSet* aUserFontSet,
+                                    gfxFloat aDevToCssSize)
 {
-    return new gfxFontGroup(aFontFamilyList, aStyle, aUserFontSet);
+    return new gfxFontGroup(aFontFamilyList, aStyle, aTextPerf,
+                            aUserFontSet, aDevToCssSize);
 }
 
 FT_Library
@@ -302,24 +285,7 @@ gfxAndroidPlatform::GetFTLibrary()
     return gPlatformFTLibrary;
 }
 
-gfxFontEntry* 
-gfxAndroidPlatform::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                     const uint8_t *aFontData, uint32_t aLength)
-{
-    return gfxPlatformFontList::PlatformFontList()->MakePlatformFont(aProxyEntry,
-                                                                     aFontData,
-                                                                     aLength);
-}
-
-gfxFontEntry*
-gfxAndroidPlatform::LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
-                                    const nsAString& aFontName)
-{
-    return gfxPlatformFontList::PlatformFontList()->LookupLocalFont(aProxyEntry,
-                                                                    aFontName);
-}
-
-TemporaryRef<ScaledFont>
+already_AddRefed<ScaledFont>
 gfxAndroidPlatform::GetScaledFontForFont(DrawTarget* aTarget, gfxFont *aFont)
 {
     return GetScaledFontForFontWithCairoSkia(aTarget, aFont);
@@ -331,21 +297,15 @@ gfxAndroidPlatform::FontHintingEnabled()
     // In "mobile" builds, we sometimes use non-reflow-zoom, so we
     // might not want hinting.  Let's see.
 
-#ifdef MOZ_USING_ANDROID_JAVA_WIDGETS
-    // On android-java, we currently only use gecko to render web
+#ifdef MOZ_WIDGET_ANDROID
+    // On Android, we currently only use gecko to render web
     // content that can always be be non-reflow-zoomed.  So turn off
     // hinting.
     // 
     // XXX when gecko-android-java is used as an "app runtime", we may
     // want to re-enable hinting for non-browser processes there.
     return false;
-#endif //  MOZ_USING_ANDROID_JAVA_WIDGETS
-
-#ifdef MOZ_WIDGET_GONK
-    // On B2G, the UX preference is currently to keep hinting disabled
-    // for all text (see bug 829523).
-    return false;
-#endif
+#endif //  MOZ_WIDGET_ANDROID
 
     // Currently, we don't have any other targets, but if/when we do,
     // decide how to handle them here.
@@ -357,8 +317,8 @@ gfxAndroidPlatform::FontHintingEnabled()
 bool
 gfxAndroidPlatform::RequiresLinearZoom()
 {
-#ifdef MOZ_USING_ANDROID_JAVA_WIDGETS
-    // On android-java, we currently only use gecko to render web
+#ifdef MOZ_WIDGET_ANDROID
+    // On Android, we currently only use gecko to render web
     // content that can always be be non-reflow-zoomed.
     //
     // XXX when gecko-android-java is used as an "app runtime", we may
@@ -367,33 +327,12 @@ gfxAndroidPlatform::RequiresLinearZoom()
     return true;
 #endif
 
-#ifdef MOZ_WIDGET_GONK
-    // On B2G, we need linear zoom for the browser, but otherwise prefer
-    // the improved glyph spacing that results from respecting the device
-    // pixel resolution for glyph layout (see bug 816614).
-    return XRE_GetProcessType() == GeckoProcessType_Content &&
-           ContentChild::GetSingleton()->IsForBrowser();
-#endif
-
     NS_NOTREACHED("oops, what platform is this?");
     return gfxPlatform::RequiresLinearZoom();
 }
 
-int
-gfxAndroidPlatform::GetScreenDepth() const
+already_AddRefed<mozilla::gfx::VsyncSource>
+gfxAndroidPlatform::CreateHardwareVsyncSource()
 {
-    return mScreenDepth;
-}
-
-bool
-gfxAndroidPlatform::UseAcceleratedSkiaCanvas()
-{
-#ifdef MOZ_WIDGET_ANDROID
-    if (AndroidBridge::Bridge()->GetAPIVersion() < 11) {
-        // It's slower than software due to not having a compositing fast path
-        return false;
-    }
-#endif
-
-    return gfxPlatform::UseAcceleratedSkiaCanvas();
+    return gfxPlatform::CreateHardwareVsyncSource();
 }

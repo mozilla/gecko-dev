@@ -27,8 +27,7 @@
 #include "mozilla/Services.h"
 
 #ifdef ACCESSIBILITY
-#include "nsIAccessible.h"
-#include "nsIAccessibilityService.h"
+#include "nsAccessibilityService.h"
 #endif
 
 using namespace mozilla;
@@ -40,7 +39,7 @@ class inDOMViewNode
 {
 public:
   inDOMViewNode() {}
-  inDOMViewNode(nsIDOMNode* aNode);
+  explicit inDOMViewNode(nsIDOMNode* aNode);
   ~inDOMViewNode();
 
   nsCOMPtr<nsIDOMNode> node;
@@ -330,14 +329,10 @@ inDOMView::GetCellProperties(int32_t row, nsITreeColumn* col,
 
 #ifdef ACCESSIBILITY
   if (mShowAccessibleNodes) {
-    nsCOMPtr<nsIAccessibilityService> accService(
-      do_GetService("@mozilla.org/accessibilityService;1"));
+    nsAccessibilityService* accService = GetOrCreateAccService();
     NS_ENSURE_TRUE(accService, NS_ERROR_FAILURE);
 
-    nsCOMPtr<nsIAccessible> accessible;
-    nsresult rv =
-      accService->GetAccessibleFor(node->node, getter_AddRefs(accessible));
-    if (NS_SUCCEEDED(rv) && accessible)
+    if (accService->HasAccessible(node->node))
       aProps.AppendLiteral(" ACCESSIBLE_NODE");
   }
 #endif
@@ -636,7 +631,8 @@ inDOMView::NodeWillBeDestroyed(const nsINode* aNode)
 void
 inDOMView::AttributeChanged(nsIDocument* aDocument, dom::Element* aElement,
                             int32_t aNameSpaceID, nsIAtom* aAttribute,
-                            int32_t aModType)
+                            int32_t aModType,
+                            const nsAttrValue* aOldValue)
 {
   if (!mTree) {
     return;
@@ -1265,7 +1261,7 @@ inDOMView::AppendKidsToArray(nsIDOMNodeList* aKids,
         }
       }
 
-      aArray.AppendObject(kid);
+      aArray.AppendElement(kid.forget());
     }
   }
 
@@ -1281,7 +1277,7 @@ inDOMView::AppendAttrsToArray(nsIDOMMozNamedAttrMap* aAttributes,
   nsCOMPtr<nsIDOMAttr> attribute;
   for (uint32_t i = 0; i < l; ++i) {
     aAttributes->Item(i, getter_AddRefs(attribute));
-    aArray.AppendObject(attribute);
+    aArray.AppendElement(attribute.forget());
   }
   return NS_OK;
 }

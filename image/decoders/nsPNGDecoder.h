@@ -4,18 +4,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef nsPNGDecoder_h__
-#define nsPNGDecoder_h__
+#ifndef mozilla_image_decoders_nsPNGDecoder_h
+#define mozilla_image_decoders_nsPNGDecoder_h
 
 #include "Decoder.h"
-
-#include "gfxTypes.h"
-
-#include "nsCOMPtr.h"
-
 #include "png.h"
-
 #include "qcms.h"
+#include "StreamingLexer.h"
+#include "SurfacePipe.h"
 
 namespace mozilla {
 namespace image {
@@ -24,69 +20,96 @@ class RasterImage;
 class nsPNGDecoder : public Decoder
 {
 public:
-  nsPNGDecoder(RasterImage &aImage);
   virtual ~nsPNGDecoder();
 
-  virtual void InitInternal();
-  virtual void WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy);
-  virtual Telemetry::ID SpeedHistogram();
+  /// @return true if this PNG is a valid ICO resource.
+  bool IsValidICO() const;
 
-  void CreateFrame(png_uint_32 x_offset, png_uint_32 y_offset,
-                   int32_t width, int32_t height,
-                   gfx::SurfaceFormat format);
+protected:
+  nsresult InitInternal() override;
+  LexerResult DoDecode(SourceBufferIterator& aIterator,
+                       IResumable* aOnResume) override;
+
+  Maybe<Telemetry::ID> SpeedHistogram() const override;
+
+private:
+  friend class DecoderFactory;
+
+  // Decoders should only be instantiated via DecoderFactory.
+  explicit nsPNGDecoder(RasterImage* aImage);
+
+  /// The information necessary to create a frame.
+  struct FrameInfo
+  {
+    gfx::SurfaceFormat mFormat;
+    gfx::IntRect mFrameRect;
+    bool mIsInterlaced;
+  };
+
+  nsresult CreateFrame(const FrameInfo& aFrameInfo);
   void EndImageFrame();
 
-  // Check if PNG is valid ICO (32bpp RGBA)
-  // http://blogs.msdn.com/b/oldnewthing/archive/2010/10/22/10079192.aspx
-  bool IsValidICO() const
+  enum class TransparencyType
   {
-    // If there are errors in the call to png_get_IHDR, the error_callback in
-    // nsPNGDecoder.cpp is called.  In this error callback we do a longjmp, so
-    // we need to save the jump buffer here. Oterwise we'll end up without a
-    // proper callstack.
-    if (setjmp(png_jmpbuf(mPNG))) {
-      // We got here from a longjmp call indirectly from png_get_IHDR
-      return false;
-    }
+    eNone,
+    eAlpha,
+    eFrameRect
+  };
 
-    png_uint_32
-        png_width,  // Unused
-        png_height; // Unused
+  TransparencyType GetTransparencyType(gfx::SurfaceFormat aFormat,
+                                       const gfx::IntRect& aFrameRect);
+  void PostHasTransparencyIfNeeded(TransparencyType aTransparencyType);
 
-    int png_bit_depth,
-        png_color_type;
+  void PostInvalidationIfNeeded();
 
-    if (png_get_IHDR(mPNG, mInfo, &png_width, &png_height, &png_bit_depth,
-                     &png_color_type, nullptr, nullptr, nullptr)) {
+  void WriteRow(uint8_t* aRow);
 
-      return ((png_color_type == PNG_COLOR_TYPE_RGB_ALPHA ||
-               png_color_type == PNG_COLOR_TYPE_RGB) &&
-              png_bit_depth == 8);
-    } else {
-      return false;
-    }
-  }
+  // Convenience methods to make interacting with StreamingLexer from inside
+  // a libpng callback easier.
+  void DoTerminate(png_structp aPNGStruct, TerminalState aState);
+  void DoYield(png_structp aPNGStruct);
+
+  enum class State
+  {
+    PNG_DATA,
+    FINISHED_PNG_DATA
+  };
+
+  LexerTransition<State> ReadPNGData(const char* aData, size_t aLength);
+  LexerTransition<State> FinishedPNGData();
+
+  StreamingLexer<State> mLexer;
+
+  // The next lexer state transition. We need to store it here because we can't
+  // directly return arbitrary values from libpng callbacks.
+  LexerTransition<State> mNextTransition;
+
+  // We yield to the caller every time we finish decoding a frame. When this
+  // happens, we need to allocate the next frame after returning from the yield.
+  // |mNextFrameInfo| is used to store the information needed to allocate the
+  // next frame.
+  Maybe<FrameInfo> mNextFrameInfo;
+
+  // The length of the last chunk of data passed to ReadPNGData(). We use this
+  // to arrange to arrive back at the correct spot in the data after yielding.
+  size_t mLastChunkLength;
 
 public:
   png_structp mPNG;
   png_infop mInfo;
   nsIntRect mFrameRect;
-  uint8_t *mCMSLine;
-  uint8_t *interlacebuf;
-  qcms_profile *mInProfile;
-  qcms_transform *mTransform;
+  uint8_t* mCMSLine;
+  uint8_t* interlacebuf;
+  qcms_profile* mInProfile;
+  qcms_transform* mTransform;
 
   gfx::SurfaceFormat format;
-
-  // For size decodes
-  uint8_t mSizeBytes[8]; // Space for width and height, both 4 bytes
-  uint32_t mHeaderBytesRead;
 
   // whether CMS or premultiplied alpha are forced off
   uint32_t mCMSMode;
 
   uint8_t mChannels;
-  bool mFrameHasNoAlpha;
+  uint8_t mPass;
   bool mFrameIsHidden;
   bool mDisablePremultipliedAlpha;
 
@@ -97,21 +120,20 @@ public:
     AnimFrameInfo(png_structp aPNG, png_infop aInfo);
 #endif
 
-    FrameBlender::FrameDisposalMethod mDispose;
-    FrameBlender::FrameBlendMethod mBlend;
+    DisposalMethod mDispose;
+    BlendMethod mBlend;
     int32_t mTimeout;
   };
 
   AnimFrameInfo mAnimInfo;
 
+  SurfacePipe mPipe;  /// The SurfacePipe used to write to the output surface.
+
   // The number of frames we've finished.
   uint32_t mNumFrames;
-  
-  /*
-   * libpng callbacks
-   *
-   * We put these in the class so that they can access protected members.
-   */
+
+  // libpng callbacks
+  // We put these in the class so that they can access protected members.
   static void PNGAPI info_callback(png_structp png_ptr, png_infop info_ptr);
   static void PNGAPI row_callback(png_structp png_ptr, png_bytep new_row,
                                   png_uint_32 row_num, int pass);
@@ -133,4 +155,4 @@ public:
 } // namespace image
 } // namespace mozilla
 
-#endif // nsPNGDecoder_h__
+#endif // mozilla_image_decoders_nsPNGDecoder_h

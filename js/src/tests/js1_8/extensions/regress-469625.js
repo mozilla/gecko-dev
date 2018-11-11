@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /*
  * Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/licenses/publicdomain/
@@ -24,7 +24,6 @@ function test()
  
   expect = 'TypeError: [].__proto__ is not a function';
 
-  jit(true);
 
   Array.prototype.__proto__ = function () 3; 
 
@@ -36,7 +35,6 @@ function test()
   {
     print(actual = ex + '');
   }
-  jit(false);
 
   reportCompare(expect, actual, summary);
 

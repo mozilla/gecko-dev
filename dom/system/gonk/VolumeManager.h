@@ -73,7 +73,7 @@ namespace system {
 *
 ***************************************************************************/
 
-class VolumeManager MOZ_FINAL : public MessageLoopForIO::LineWatcher
+class VolumeManager final : public MessageLoopForIO::LineWatcher
 {
   virtual ~VolumeManager();
 
@@ -122,11 +122,14 @@ public:
   //-----------------------------------------------------------------------
 
   static void Start();
+  static void Dump(const char* aLabel);
 
   static VolumeArray::size_type NumVolumes();
-  static TemporaryRef<Volume> GetVolume(VolumeArray::index_type aIndex);
-  static TemporaryRef<Volume> FindVolumeByName(const nsCSubstring& aName);
-  static TemporaryRef<Volume> FindAddVolumeByName(const nsCSubstring& aName);
+  static already_AddRefed<Volume> GetVolume(VolumeArray::index_type aIndex);
+  static already_AddRefed<Volume> FindVolumeByName(const nsCSubstring& aName);
+  static already_AddRefed<Volume> FindAddVolumeByName(const nsCSubstring& aName);
+  static bool RemoveVolumeByName(const nsCSubstring& aName);
+  static void InitConfig();
 
   static void       PostCommand(VolumeCommand* aCommand);
 
@@ -135,6 +138,8 @@ protected:
   virtual void OnLineRead(int aFd, nsDependentCSubstring& aMessage);
   virtual void OnFileCanWriteWithoutBlocking(int aFd);
   virtual void OnError();
+
+  static void DefaultConfig();
 
 private:
   bool OpenSocket();

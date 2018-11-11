@@ -8,24 +8,62 @@ import unittest
 
 from mozunit import main
 
-from mozbuild.frontend.sandbox import (
-    GlobalNamespace,
-    LocalNamespace,
+from mozbuild.frontend.context import (
+    Context,
+    ContextDerivedValue,
+    ContextDerivedTypedList,
+    ContextDerivedTypedListWithItems,
 )
 
-from mozbuild.frontend.sandbox_symbols import VARIABLES
+from mozbuild.util import (
+    StrictOrderingOnAppendList,
+    StrictOrderingOnAppendListWithFlagsFactory,
+    UnsortedError,
+)
 
 
-class TestGlobalNamespace(unittest.TestCase):
-    def test_builtins(self):
-        ns = GlobalNamespace()
+class Fuga(object):
+    def __init__(self, value):
+        self.value = value
 
-        self.assertIn('__builtins__', ns)
-        self.assertEqual(ns['__builtins__']['True'], True)
 
+class Piyo(ContextDerivedValue):
+    def __init__(self, context, value):
+        if not isinstance(value, unicode):
+            raise ValueError
+        self.context = context
+        self.value = value
+
+    def lower(self):
+        return self.value.lower()
+
+    def __str__(self):
+        return self.value
+
+    def __cmp__(self, other):
+        return cmp(self.value, str(other))
+
+    def __hash__(self):
+        return hash(self.value)
+
+
+VARIABLES = {
+    'HOGE': (unicode, unicode, None),
+    'FUGA': (Fuga, unicode, None),
+    'PIYO': (Piyo, unicode, None),
+    'HOGERA': (ContextDerivedTypedList(Piyo, StrictOrderingOnAppendList),
+        list, None),
+    'HOGEHOGE': (ContextDerivedTypedListWithItems(
+        Piyo,
+        StrictOrderingOnAppendListWithFlagsFactory({
+            'foo': bool,
+        })), list, None),
+}
+
+class TestContext(unittest.TestCase):
     def test_key_rejection(self):
         # Lowercase keys should be rejected during normal operation.
-        ns = GlobalNamespace(allowed_variables=VARIABLES)
+        ns = Context(allowed_variables=VARIABLES)
 
         with self.assertRaises(KeyError) as ke:
             ns['foo'] = True
@@ -47,99 +85,123 @@ class TestGlobalNamespace(unittest.TestCase):
         self.assertTrue(e[3])
 
     def test_allowed_set(self):
-        self.assertIn('DIRS', VARIABLES)
+        self.assertIn('HOGE', VARIABLES)
 
-        ns = GlobalNamespace(allowed_variables=VARIABLES)
+        ns = Context(allowed_variables=VARIABLES)
 
-        ns['DIRS'] = ['foo']
-        self.assertEqual(ns['DIRS'], ['foo'])
+        ns['HOGE'] = 'foo'
+        self.assertEqual(ns['HOGE'], 'foo')
 
     def test_value_checking(self):
-        ns = GlobalNamespace(allowed_variables=VARIABLES)
+        ns = Context(allowed_variables=VARIABLES)
 
         # Setting to a non-allowed type should not work.
         with self.assertRaises(ValueError) as ve:
-            ns['DIRS'] = True
+            ns['HOGE'] = True
 
         e = ve.exception.args
         self.assertEqual(e[0], 'global_ns')
         self.assertEqual(e[1], 'set_type')
-        self.assertEqual(e[2], 'DIRS')
-        self.assertTrue(e[3])
-        self.assertEqual(e[4], list)
-
-    def test_allow_all_writes(self):
-        ns = GlobalNamespace(allowed_variables=VARIABLES)
-
-        with ns.allow_all_writes() as d:
-            d['foo'] = True
-            self.assertTrue(d['foo'])
-
-        with self.assertRaises(KeyError) as ke:
-            ns['bar'] = False
-
-        self.assertEqual(ke.exception.args[1], 'set_unknown')
-
-        ns['DIRS'] = []
-        with self.assertRaisesRegexp(Exception, 'Reassigning .* is forbidden') as ke:
-            ns['DIRS'] = []
-
-        with ns.allow_all_writes() as d:
-            d['DIST_SUBDIR'] = 'foo'
-
-        self.assertEqual(ns['DIST_SUBDIR'], 'foo')
-        ns['DIST_SUBDIR'] = 'bar'
-        self.assertEqual(ns['DIST_SUBDIR'], 'bar')
-        with self.assertRaisesRegexp(Exception, 'Reassigning .* is forbidden') as ke:
-            ns['DIST_SUBDIR'] = 'baz'
-
-        self.assertTrue(d['foo'])
+        self.assertEqual(e[2], 'HOGE')
+        self.assertEqual(e[3], True)
+        self.assertEqual(e[4], unicode)
 
     def test_key_checking(self):
         # Checking for existence of a key should not populate the key if it
         # doesn't exist.
-        g = GlobalNamespace(allowed_variables=VARIABLES)
+        g = Context(allowed_variables=VARIABLES)
 
-        self.assertFalse('DIRS' in g)
-        self.assertFalse('DIRS' in g)
+        self.assertFalse('HOGE' in g)
+        self.assertFalse('HOGE' in g)
 
+    def test_coercion(self):
+        ns = Context(allowed_variables=VARIABLES)
 
-class TestLocalNamespace(unittest.TestCase):
-    def test_locals(self):
-        g = GlobalNamespace(allowed_variables=VARIABLES)
-        l = LocalNamespace(g)
+        # Setting to a type different from the allowed input type should not
+        # work.
+        with self.assertRaises(ValueError) as ve:
+            ns['FUGA'] = False
 
-        l['foo'] = ['foo']
-        self.assertEqual(l['foo'], ['foo'])
+        e = ve.exception.args
+        self.assertEqual(e[0], 'global_ns')
+        self.assertEqual(e[1], 'set_type')
+        self.assertEqual(e[2], 'FUGA')
+        self.assertEqual(e[3], False)
+        self.assertEqual(e[4], unicode)
 
-        l['foo'] += ['bar']
-        self.assertEqual(l['foo'], ['foo', 'bar'])
+        ns['FUGA'] = 'fuga'
+        self.assertIsInstance(ns['FUGA'], Fuga)
+        self.assertEqual(ns['FUGA'].value, 'fuga')
 
-    def test_global_proxy_reads(self):
-        g = GlobalNamespace(allowed_variables=VARIABLES)
-        g['DIRS'] = ['foo']
+        ns['FUGA'] = Fuga('hoge')
+        self.assertIsInstance(ns['FUGA'], Fuga)
+        self.assertEqual(ns['FUGA'].value, 'hoge')
 
-        l = LocalNamespace(g)
+    def test_context_derived_coercion(self):
+        ns = Context(allowed_variables=VARIABLES)
 
-        self.assertEqual(l['DIRS'], g['DIRS'])
+        # Setting to a type different from the allowed input type should not
+        # work.
+        with self.assertRaises(ValueError) as ve:
+            ns['PIYO'] = False
 
-        # Reads to missing UPPERCASE vars should result in KeyError.
-        with self.assertRaises(KeyError) as ke:
-            v = l['FOO']
+        e = ve.exception.args
+        self.assertEqual(e[0], 'global_ns')
+        self.assertEqual(e[1], 'set_type')
+        self.assertEqual(e[2], 'PIYO')
+        self.assertEqual(e[3], False)
+        self.assertEqual(e[4], unicode)
 
-        e = ke.exception
-        self.assertEqual(e.args[0], 'global_ns')
-        self.assertEqual(e.args[1], 'get_unknown')
+        ns['PIYO'] = 'piyo'
+        self.assertIsInstance(ns['PIYO'], Piyo)
+        self.assertEqual(ns['PIYO'].value, 'piyo')
+        self.assertEqual(ns['PIYO'].context, ns)
 
-    def test_global_proxy_writes(self):
-        g = GlobalNamespace(allowed_variables=VARIABLES)
-        l = LocalNamespace(g)
+        ns['PIYO'] = Piyo(ns, 'fuga')
+        self.assertIsInstance(ns['PIYO'], Piyo)
+        self.assertEqual(ns['PIYO'].value, 'fuga')
+        self.assertEqual(ns['PIYO'].context, ns)
 
-        l['DIRS'] = ['foo']
+    def test_context_derived_typed_list(self):
+        ns = Context(allowed_variables=VARIABLES)
 
-        self.assertEqual(l['DIRS'], ['foo'])
-        self.assertEqual(g['DIRS'], ['foo'])
+        # Setting to a type that's rejected by coercion should not work.
+        with self.assertRaises(ValueError):
+            ns['HOGERA'] = [False]
 
+        ns['HOGERA'] += ['a', 'b', 'c']
+
+        self.assertIsInstance(ns['HOGERA'], VARIABLES['HOGERA'][0])
+        for n in range(0, 3):
+            self.assertIsInstance(ns['HOGERA'][n], Piyo)
+            self.assertEqual(ns['HOGERA'][n].value, ['a', 'b', 'c'][n])
+            self.assertEqual(ns['HOGERA'][n].context, ns)
+
+        with self.assertRaises(UnsortedError):
+            ns['HOGERA'] += ['f', 'e', 'd']
+
+    def test_context_derived_typed_list_with_items(self):
+        ns = Context(allowed_variables=VARIABLES)
+
+        # Setting to a type that's rejected by coercion should not work.
+        with self.assertRaises(ValueError):
+            ns['HOGEHOGE'] = [False]
+
+        values = ['a', 'b', 'c']
+        ns['HOGEHOGE'] += values
+
+        self.assertIsInstance(ns['HOGEHOGE'], VARIABLES['HOGEHOGE'][0])
+        for v in values:
+            ns['HOGEHOGE'][v].foo = True
+
+        for v, item in zip(values, ns['HOGEHOGE']):
+            self.assertIsInstance(item, Piyo)
+            self.assertEqual(v, item)
+            self.assertEqual(ns['HOGEHOGE'][v].foo, True)
+            self.assertEqual(ns['HOGEHOGE'][item].foo, True)
+
+        with self.assertRaises(UnsortedError):
+            ns['HOGEHOGE'] += ['f', 'e', 'd']
 
 if __name__ == '__main__':
     main()

@@ -49,16 +49,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "nss.h"
 #include "ssl.h"
 
-#include "mozilla/Scoped.h"
 #include "nsThreadUtils.h"
 #include "nsXPCOM.h"
 
-#include "mtransport_test_utils.h"
 #include "runnable_utils.h"
 
 #define GTEST_HAS_RTTI 0
 #include "gtest/gtest.h"
 #include "gtest_utils.h"
+
+#define USE_TURN
 
 // nICEr includes
 extern "C" {
@@ -77,23 +77,17 @@ extern "C" {
 }
 
 #include "nricemediastream.h"
-#include "nricectx.h"
+#include "nricectxhandler.h"
 
-
-MtransportTestUtils *test_utils;
 
 using namespace mozilla;
 
-std::string g_turn_server;
-std::string g_turn_user;
-std::string g_turn_password;
+static std::string kDummyTurnServer("192.0.2.1");  // From RFC 5737
 
-std::string kDummyTurnServer("192.0.2.1");  // From RFC 5737
-
-class TurnClient : public ::testing::Test {
+class TurnClient : public MtransportTest {
  public:
   TurnClient()
-      : turn_server_(g_turn_server),
+      : MtransportTest(),
         real_socket_(nullptr),
         net_socket_(nullptr),
         buffered_socket_(nullptr),
@@ -107,6 +101,10 @@ class TurnClient : public ::testing::Test {
   ~TurnClient() {
   }
 
+  static void SetUpTestCase() {
+    NrIceCtx::InitializeGlobals(false, false, false);
+  }
+
   void SetTcp() {
     protocol_ = IPPROTO_TCP;
   }
@@ -117,12 +115,12 @@ class TurnClient : public ::testing::Test {
     r = nr_ip4_port_to_transport_addr(0, 0, protocol_, &addr);
     ASSERT_EQ(0, r);
 
-    r = nr_socket_local_create(&addr, &real_socket_);
+    r = nr_socket_local_create(nullptr, &addr, &real_socket_);
     ASSERT_EQ(0, r);
 
     if (protocol_ == IPPROTO_TCP) {
       int r =
-          nr_socket_buffered_stun_create(real_socket_, 100000,
+          nr_socket_buffered_stun_create(real_socket_, 100000, TURN_TCP_FRAMING,
                                          &buffered_socket_);
       ASSERT_EQ(0, r);
       net_socket_ = buffered_socket_;
@@ -130,16 +128,16 @@ class TurnClient : public ::testing::Test {
       net_socket_ = real_socket_;
     }
 
-    r = nr_ip4_str_port_to_transport_addr(turn_server_.c_str(), 3478,
+    r = nr_str_port_to_transport_addr(turn_server_.c_str(), 3478,
       protocol_, &addr);
     ASSERT_EQ(0, r);
 
     std::vector<unsigned char> password_vec(
-        g_turn_password.begin(), g_turn_password.end());
+        turn_password_.begin(), turn_password_.end());
     Data password;
     INIT_DATA(password, &password_vec[0], password_vec.size());
     r = nr_turn_client_ctx_create("test", net_socket_,
-                                  g_turn_user.c_str(),
+                                  turn_user_.c_str(),
                                   &password,
                                   &addr, &turn_ctx_);
     ASSERT_EQ(0, r);
@@ -161,7 +159,7 @@ class TurnClient : public ::testing::Test {
   }
 
   void TearDown() {
-    RUN_ON_THREAD(test_utils->sts_target(),
+    RUN_ON_THREAD(test_utils_->sts_target(),
                   WrapRunnable(this, &TurnClient::TearDown_s),
                   NS_DISPATCH_SYNC);
   }
@@ -177,7 +175,7 @@ class TurnClient : public ::testing::Test {
   }
 
   void Allocate(bool expect_success=true) {
-    RUN_ON_THREAD(test_utils->sts_target(),
+    RUN_ON_THREAD(test_utils_->sts_target(),
                   WrapRunnable(this, &TurnClient::Allocate_s),
                   NS_DISPATCH_SYNC);
 
@@ -206,6 +204,50 @@ class TurnClient : public ::testing::Test {
     relay_addr_ = addr.as_string;
 
     std::cerr << "Allocation succeeded with addr=" << relay_addr_ << std::endl;
+  }
+
+  void Deallocate_s() {
+    ASSERT_TRUE(turn_ctx_);
+
+    std::cerr << "De-Allocating..." << std::endl;
+    int r = nr_turn_client_deallocate(turn_ctx_);
+    ASSERT_EQ(0, r);
+  }
+
+  void Deallocate() {
+    RUN_ON_THREAD(test_utils_->sts_target(),
+                  WrapRunnable(this, &TurnClient::Deallocate_s),
+                  NS_DISPATCH_SYNC);
+  }
+
+  void RequestPermission_s(const std::string& target) {
+    nr_transport_addr addr;
+    int r;
+
+    // Expected pattern here is "IP4:127.0.0.1:3487"
+    ASSERT_EQ(0, target.compare(0, 4, "IP4:"));
+
+    size_t offset = target.rfind(':');
+    ASSERT_NE(std::string::npos, offset);
+
+    std::string host = target.substr(4, offset - 4);
+    std::string port = target.substr(offset + 1);
+
+    r = nr_str_port_to_transport_addr(host.c_str(),
+                                      atoi(port.c_str()),
+                                      IPPROTO_UDP,
+                                      &addr);
+    ASSERT_EQ(0, r);
+
+    r = nr_turn_client_ensure_perm(turn_ctx_, &addr);
+    ASSERT_EQ(0, r);
+  }
+
+  void RequestPermission(const std::string& target) {
+    RUN_ON_THREAD(test_utils_->sts_target(),
+                  WrapRunnable(this, &TurnClient::RequestPermission_s, target),
+                  NS_DISPATCH_SYNC);
+
   }
 
   void Readable(NR_SOCKET s, int how, void *arg) {
@@ -265,7 +307,7 @@ class TurnClient : public ::testing::Test {
     }
   }
 
-  void SendTo_s(const std::string& target) {
+  void SendTo_s(const std::string& target, int expect_return) {
     nr_transport_addr addr;
     int r;
 
@@ -273,15 +315,15 @@ class TurnClient : public ::testing::Test {
     ASSERT_EQ(0, target.compare(0, 4, "IP4:"));
 
     size_t offset = target.rfind(':');
-    ASSERT_NE(offset, std::string::npos);
+    ASSERT_NE(std::string::npos, offset);
 
     std::string host = target.substr(4, offset - 4);
     std::string port = target.substr(offset + 1);
 
-    r = nr_ip4_str_port_to_transport_addr(host.c_str(),
-                                          atoi(port.c_str()),
-                                          IPPROTO_UDP,
-                                          &addr);
+    r = nr_str_port_to_transport_addr(host.c_str(),
+                                      atoi(port.c_str()),
+                                      IPPROTO_UDP,
+                                      &addr);
     ASSERT_EQ(0, r);
 
     unsigned char test[100];
@@ -289,15 +331,20 @@ class TurnClient : public ::testing::Test {
       test[i] = i & 0xff;
     }
 
+    std::cerr << "Sending test message to " << target << " ..." << std::endl;
+
     r = nr_turn_client_send_indication(turn_ctx_,
                                             test, sizeof(test), 0,
                                             &addr);
-    ASSERT_EQ(0, r);
+    if (expect_return >= 0) {
+      ASSERT_EQ(expect_return, r);
+    }
   }
 
-  void SendTo(const std::string& target) {
-    RUN_ON_THREAD(test_utils->sts_target(),
-                  WrapRunnable(this, &TurnClient::SendTo_s, target),
+  void SendTo(const std::string& target, int expect_return=0) {
+    RUN_ON_THREAD(test_utils_->sts_target(),
+                  WrapRunnable(this, &TurnClient::SendTo_s, target,
+                               expect_return),
                   NS_DISPATCH_SYNC);
   }
 
@@ -325,94 +372,116 @@ class TurnClient : public ::testing::Test {
 };
 
 TEST_F(TurnClient, Allocate) {
+  if (WarnIfTurnNotConfigured())
+    return;
+
   Allocate();
 }
 
 TEST_F(TurnClient, AllocateTcp) {
+  if (WarnIfTurnNotConfigured())
+    return;
+
   SetTcp();
   Allocate();
 }
 
 TEST_F(TurnClient, AllocateAndHold) {
+  if (WarnIfTurnNotConfigured())
+    return;
+
   Allocate();
   PR_Sleep(20000);
+  ASSERT_TRUE(turn_ctx_->state == NR_TURN_CLIENT_STATE_ALLOCATED);
 }
 
 TEST_F(TurnClient, SendToSelf) {
+  if (WarnIfTurnNotConfigured())
+    return;
+
   Allocate();
   SendTo(relay_addr_);
-  ASSERT_TRUE_WAIT(received() == 100, 1000);
-  PR_Sleep(10000); // Wait 10 seconds to make sure the
-                   // CreatePermission has time to complete/fail.
+  ASSERT_TRUE_WAIT(received() == 100, 5000);
   SendTo(relay_addr_);
   ASSERT_TRUE_WAIT(received() == 200, 1000);
 }
 
 
 TEST_F(TurnClient, SendToSelfTcp) {
+  if (WarnIfTurnNotConfigured())
+    return;
+
   SetTcp();
   Allocate();
   SendTo(relay_addr_);
-  ASSERT_TRUE_WAIT(received() == 100, 1000);
-  PR_Sleep(10000); // Wait 10 seconds to make sure the
-                   // CreatePermission has time to complete/fail.
+  ASSERT_TRUE_WAIT(received() == 100, 5000);
   SendTo(relay_addr_);
   ASSERT_TRUE_WAIT(received() == 200, 1000);
 }
 
+TEST_F(TurnClient, PermissionDenied) {
+  if (WarnIfTurnNotConfigured())
+    return;
+
+  Allocate();
+  RequestPermission(relay_addr_);
+  PR_Sleep(1000);
+
+  /* Fake a 403 response */
+  nr_turn_permission *perm;
+  perm = STAILQ_FIRST(&turn_ctx_->permissions);
+  ASSERT_TRUE(perm);
+  while (perm) {
+    perm->stun->last_error_code = 403;
+    std::cerr << "Set 403's on permission" << std::endl;
+    perm = STAILQ_NEXT(perm, entry);
+  }
+
+  SendTo(relay_addr_, R_NOT_PERMITTED);
+  ASSERT_TRUE(received() == 0);
+
+  //TODO: We should check if we can still send to a second destination, but
+  //      we would need a second TURN client as one client can only handle one
+  //      allocation (maybe as part of bug 1128128 ?).
+}
+
+TEST_F(TurnClient, DeallocateReceiveFailure) {
+  if (WarnIfTurnNotConfigured())
+    return;
+
+  Allocate();
+  SendTo(relay_addr_);
+  ASSERT_TRUE_WAIT(received() == 100, 5000);
+  Deallocate();
+  turn_ctx_->state = NR_TURN_CLIENT_STATE_ALLOCATED;
+  SendTo(relay_addr_);
+  PR_Sleep(1000);
+  ASSERT_TRUE(received() == 100);
+}
+
+TEST_F(TurnClient, DeallocateReceiveFailureTcp) {
+  if (WarnIfTurnNotConfigured())
+    return;
+
+  SetTcp();
+  Allocate();
+  SendTo(relay_addr_);
+  ASSERT_TRUE_WAIT(received() == 100, 5000);
+  Deallocate();
+  turn_ctx_->state = NR_TURN_CLIENT_STATE_ALLOCATED;
+  /* Either the connection got closed by the TURN server already, then the send
+   * is going to fail, which we simply ignore. Or the connection is still alive
+   * and we cand send the data, but it should not get forwarded to us. In either
+   * case we should not receive more data. */
+  SendTo(relay_addr_, -1);
+  PR_Sleep(1000);
+  ASSERT_TRUE(received() == 100);
+}
+
 TEST_F(TurnClient, AllocateDummyServer) {
+  if (WarnIfTurnNotConfigured())
+    return;
+
   turn_server_ = kDummyTurnServer;
   Allocate(false);
-}
-
-static std::string get_environment(const char *name) {
-  char *value = getenv(name);
-
-  if (!value)
-    return "";
-
-  return value;
-}
-
-int main(int argc, char **argv)
-{
-  g_turn_server = get_environment("TURN_SERVER_ADDRESS");
-  g_turn_user = get_environment("TURN_SERVER_USER");
-  g_turn_password = get_environment("TURN_SERVER_PASSWORD");
-
-  if (g_turn_server.empty() ||
-      g_turn_user.empty(),
-      g_turn_password.empty()) {
-    printf(
-        "Set TURN_SERVER_ADDRESS, TURN_SERVER_USER, and TURN_SERVER_PASSWORD\n"
-        "environment variables to run this test\n");
-    return 0;
-  }
-  {
-    nr_transport_addr addr;
-    if (nr_ip4_str_port_to_transport_addr(g_turn_server.c_str(), 3478,
-                                          IPPROTO_UDP, &addr)) {
-      printf("Invalid TURN_SERVER_ADDRESS \"%s\". Only IP numbers supported.\n",
-             g_turn_server.c_str());
-      return 0;
-    }
-  }
-  test_utils = new MtransportTestUtils();
-  NSS_NoDB_Init(nullptr);
-  NSS_SetDomesticPolicy();
-
-  // Set up the ICE registry, etc.
-  // TODO(ekr@rtfm.com): Clean up
-  std::string dummy("dummy");
-  RUN_ON_THREAD(test_utils->sts_target(),
-                WrapRunnableNM(&NrIceCtx::Create,
-                               dummy, false, false),
-                NS_DISPATCH_SYNC);
-
-  // Start the tests
-  ::testing::InitGoogleTest(&argc, argv);
-
-  int rv = RUN_ALL_TESTS();
-  delete test_utils;
-  return rv;
 }

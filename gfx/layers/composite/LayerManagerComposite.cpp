@@ -16,11 +16,13 @@
 #include "GeckoProfiler.h"              // for profiler_set_frame_number, etc
 #include "ImageLayerComposite.h"        // for ImageLayerComposite
 #include "Layers.h"                     // for Layer, ContainerLayer, etc
-#include "ThebesLayerComposite.h"       // for ThebesLayerComposite
-#include "TiledLayerBuffer.h"           // for TiledLayerComposer
+#include "LayerScope.h"                 // for LayerScope Tool
+#include "protobuf/LayerScopePacket.pb.h" // for protobuf (LayerScope)
+#include "PaintedLayerComposite.h"      // for PaintedLayerComposite
+#include "TiledContentHost.h"
 #include "Units.h"                      // for ScreenIntRect
-#include "gfx2DGlue.h"                  // for ToMatrix4x4
-#include "gfx3DMatrix.h"                // for gfx3DMatrix
+#include "UnitTransforms.h"             // for ViewAs
+#include "apz/src/AsyncPanZoomController.h"  // for AsyncPanZoomController
 #include "gfxPrefs.h"                   // for gfxPrefs
 #ifdef XP_MACOSX
 #include "gfxPlatformMac.h"
@@ -28,7 +30,7 @@
 #include "gfxRect.h"                    // for gfxRect
 #include "gfxUtils.h"                   // for frame color util
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
-#include "mozilla/RefPtr.h"             // for RefPtr, TemporaryRef
+#include "mozilla/RefPtr.h"             // for RefPtr, already_AddRefed
 #include "mozilla/gfx/2D.h"             // for DrawTarget
 #include "mozilla/gfx/Matrix.h"         // for Matrix4x4
 #include "mozilla/gfx/Point.h"          // for IntSize, Point
@@ -37,27 +39,41 @@
 #include "mozilla/layers/Compositor.h"  // for Compositor
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/Effects.h"     // for Effect, EffectChain, etc
+#include "mozilla/layers/LayerMetricsWrapper.h" // for LayerMetricsWrapper
 #include "mozilla/layers/LayersTypes.h"  // for etc
+#include "mozilla/widget/CompositorWidget.h" // for WidgetRenderingContext
 #include "ipc/CompositorBench.h"        // for CompositorBench
 #include "ipc/ShadowLayerUtils.h"
 #include "mozilla/mozalloc.h"           // for operator new, etc
-#include "nsAutoPtr.h"                  // for nsRefPtr
+#include "nsAppRunner.h"
+#include "mozilla/RefPtr.h"                   // for nsRefPtr
 #include "nsCOMPtr.h"                   // for already_AddRefed
 #include "nsDebug.h"                    // for NS_WARNING, NS_RUNTIMEABORT, etc
 #include "nsISupportsImpl.h"            // for Layer::AddRef, etc
 #include "nsIWidget.h"                  // for nsIWidget
 #include "nsPoint.h"                    // for nsIntPoint
-#include "nsRect.h"                     // for nsIntRect
+#include "nsRect.h"                     // for mozilla::gfx::IntRect
 #include "nsRegion.h"                   // for nsIntRegion, etc
 #ifdef MOZ_WIDGET_ANDROID
 #include <android/log.h>
+#include <android/native_window.h>
+#endif
+#if defined(MOZ_WIDGET_ANDROID)
+#include "opengl/CompositorOGL.h"
+#include "GLContextEGL.h"
+#include "GLContextProvider.h"
+#include "ScopedGLHelpers.h"
 #endif
 #include "GeckoProfiler.h"
 #include "TextRenderer.h"               // for TextRenderer
+#include "mozilla/layers/CompositorBridgeParent.h"
+#include "TreeTraversal.h"              // for ForEachNode
+
+#ifdef USE_SKIA
+#include "PaintCounter.h"               // For PaintCounter
+#endif
 
 class gfxContext;
-struct nsIntSize;
-
 
 namespace mozilla {
 namespace layers {
@@ -75,11 +91,12 @@ ToLayerComposite(Layer* aLayer)
 
 static void ClearSubtree(Layer* aLayer)
 {
-  ToLayerComposite(aLayer)->CleanupResources();
-  for (Layer* child = aLayer->GetFirstChild(); child;
-       child = child->GetNextSibling()) {
-    ClearSubtree(child);
-  }
+  ForEachNode<ForwardIterator>(
+      aLayer,
+      [] (Layer* layer)
+      {
+        ToLayerComposite(layer)->CleanupResources();
+      });
 }
 
 void
@@ -101,14 +118,25 @@ LayerManagerComposite::ClearCachedResources(Layer* aSubtree)
  * LayerManagerComposite
  */
 LayerManagerComposite::LayerManagerComposite(Compositor* aCompositor)
-: mCompositor(aCompositor)
+: mWarningLevel(0.0f)
+, mUnusedApzTransformWarning(false)
+, mDisabledApzWarning(false)
+, mCompositor(aCompositor)
 , mInTransaction(false)
 , mIsCompositorReady(false)
 , mDebugOverlayWantsNextFrame(false)
 , mGeometryChanged(true)
+, mLastFrameMissedHWC(false)
+, mWindowOverlayChanged(false)
+, mLastPaintTime(TimeDuration::Forever())
+, mRenderStartTime(TimeStamp::Now())
 {
   mTextRenderer = new TextRenderer(aCompositor);
   MOZ_ASSERT(aCompositor);
+
+#ifdef USE_SKIA
+  mPaintCounter = nullptr;
+#endif
 }
 
 LayerManagerComposite::~LayerManagerComposite()
@@ -116,13 +144,6 @@ LayerManagerComposite::~LayerManagerComposite()
   Destroy();
 }
 
-
-bool
-LayerManagerComposite::Initialize()
-{
-  bool result = mCompositor->Initialize();
-  return result;
-}
 
 void
 LayerManagerComposite::Destroy()
@@ -133,38 +154,47 @@ LayerManagerComposite::Destroy()
       RootLayer()->Destroy();
     }
     mRoot = nullptr;
+    mClonedLayerTreeProperties = nullptr;
     mDestroyed = true;
+
+#ifdef USE_SKIA
+    mPaintCounter = nullptr;
+#endif
   }
 }
 
 void
-LayerManagerComposite::UpdateRenderBounds(const nsIntRect& aRect)
+LayerManagerComposite::UpdateRenderBounds(const IntRect& aRect)
 {
   mRenderBounds = aRect;
 }
 
-void
+bool
+LayerManagerComposite::AreComponentAlphaLayersEnabled()
+{
+  return mCompositor->GetBackendType() != LayersBackend::LAYERS_BASIC &&
+         mCompositor->SupportsEffect(EffectTypes::COMPONENT_ALPHA) &&
+         LayerManager::AreComponentAlphaLayersEnabled();
+}
+
+bool
 LayerManagerComposite::BeginTransaction()
 {
   mInTransaction = true;
-  
-  if (!mCompositor->Ready()) {
-    return;
-  }
-  
-  mIsCompositorReady = true;
 
-  if (Compositor::GetBackend() == LayersBackend::LAYERS_OPENGL ||
-      Compositor::GetBackend() == LayersBackend::LAYERS_BASIC) {
-    mClonedLayerTreeProperties = LayerProperties::CloneFrom(GetRoot());
+  if (!mCompositor->Ready()) {
+    return false;
   }
+
+  mIsCompositorReady = true;
+  return true;
 }
 
 void
-LayerManagerComposite::BeginTransactionWithDrawTarget(DrawTarget* aTarget, const nsIntRect& aRect)
+LayerManagerComposite::BeginTransactionWithDrawTarget(DrawTarget* aTarget, const IntRect& aRect)
 {
   mInTransaction = true;
-  
+
   if (!mCompositor->Ready()) {
     return;
   }
@@ -185,28 +215,178 @@ LayerManagerComposite::BeginTransactionWithDrawTarget(DrawTarget* aTarget, const
   mTargetBounds = aRect;
 }
 
-bool
-LayerManagerComposite::EndEmptyTransaction(EndTransactionFlags aFlags)
-{
-  NS_ASSERTION(mInTransaction, "Didn't call BeginTransaction?");
-  if (!mRoot) {
-    mInTransaction = false;
-    mIsCompositorReady = false;
-    return false;
+/**
+ * Get accumulated transform of from the context creating layer to the
+ * given layer.
+ */
+static Matrix4x4
+GetAccTransformIn3DContext(Layer* aLayer) {
+  Matrix4x4 transform = aLayer->GetLocalTransform();
+  for (Layer* layer = aLayer->GetParent();
+       layer && layer->Extend3DContext();
+       layer = layer->GetParent()) {
+    transform = transform * layer->GetLocalTransform();
   }
-
-  EndTransaction(nullptr, nullptr);
-  return true;
+  return transform;
 }
 
 void
-LayerManagerComposite::EndTransaction(DrawThebesLayerCallback aCallback,
-                                      void* aCallbackData,
+LayerManagerComposite::PostProcessLayers(Layer* aLayer,
+                                         nsIntRegion& aOpaqueRegion,
+                                         LayerIntRegion& aVisibleRegion,
+                                         const Maybe<ParentLayerIntRect>& aClipFromAncestors)
+{
+  if (aLayer->Extend3DContext()) {
+    // For layers participating 3D rendering context, their visible
+    // region should be empty (invisible), so we pass through them
+    // without doing anything.
+
+    // Direct children of the establisher may have a clip, becaue the
+    // item containing it; ex. of nsHTMLScrollFrame, may give it one.
+    Maybe<ParentLayerIntRect> layerClip =
+      aLayer->AsLayerComposite()->GetShadowClipRect();
+    Maybe<ParentLayerIntRect> ancestorClipForChildren =
+      IntersectMaybeRects(layerClip, aClipFromAncestors);
+    MOZ_ASSERT(!layerClip || !aLayer->Combines3DTransformWithAncestors(),
+               "Only direct children of the establisher could have a clip");
+
+    for (Layer* child = aLayer->GetLastChild();
+         child;
+         child = child->GetPrevSibling()) {
+      PostProcessLayers(child, aOpaqueRegion, aVisibleRegion,
+                        ancestorClipForChildren);
+    }
+    return;
+  }
+
+  nsIntRegion localOpaque;
+  // Treat layers on the path to the root of the 3D rendering context as
+  // a giant layer if it is a leaf.
+  Matrix4x4 transform = GetAccTransformIn3DContext(aLayer);
+  Matrix transform2d;
+  Maybe<IntPoint> integerTranslation;
+  // If aLayer has a simple transform (only an integer translation) then we
+  // can easily convert aOpaqueRegion into pre-transform coordinates and include
+  // that region.
+  if (transform.Is2D(&transform2d)) {
+    if (transform2d.IsIntegerTranslation()) {
+      integerTranslation = Some(IntPoint::Truncate(transform2d.GetTranslation()));
+      localOpaque = aOpaqueRegion;
+      localOpaque.MoveBy(-*integerTranslation);
+    }
+  }
+
+  // Compute a clip that's the combination of our layer clip with the clip
+  // from our ancestors.
+  LayerComposite* composite = aLayer->AsLayerComposite();
+  Maybe<ParentLayerIntRect> layerClip = composite->GetShadowClipRect();
+  MOZ_ASSERT(!layerClip || !aLayer->Combines3DTransformWithAncestors(),
+             "The layer with a clip should not participate "
+             "a 3D rendering context");
+  Maybe<ParentLayerIntRect> outsideClip =
+    IntersectMaybeRects(layerClip, aClipFromAncestors);
+
+  // Convert the combined clip into our pre-transform coordinate space, so
+  // that it can later be intersected with our visible region.
+  // If our transform is a perspective, there's no meaningful insideClip rect
+  // we can compute (it would need to be a cone).
+  Maybe<LayerIntRect> insideClip;
+  if (outsideClip && !transform.HasPerspectiveComponent()) {
+    Matrix4x4 inverse = transform;
+    if (inverse.Invert()) {
+      Maybe<LayerRect> insideClipFloat =
+        UntransformBy(ViewAs<ParentLayerToLayerMatrix4x4>(inverse),
+                      ParentLayerRect(*outsideClip),
+                      LayerRect::MaxIntRect());
+      if (insideClipFloat) {
+        insideClipFloat->RoundOut();
+        LayerIntRect insideClipInt;
+        if (insideClipFloat->ToIntRect(&insideClipInt)) {
+          insideClip = Some(insideClipInt);
+        }
+      }
+    }
+  }
+
+  Maybe<ParentLayerIntRect> ancestorClipForChildren;
+  if (insideClip) {
+    ancestorClipForChildren =
+      Some(ViewAs<ParentLayerPixel>(*insideClip, PixelCastJustification::MovingDownToChildren));
+  }
+
+  // Save the value of localOpaque, which currently stores the region obscured
+  // by siblings (and uncles and such), before our descendants contribute to it.
+  nsIntRegion obscured = localOpaque;
+
+  // Recurse on our descendants, in front-to-back order. In this process:
+  //  - Occlusions are computed for them, and they contribute to localOpaque.
+  //  - They recalculate their visible regions, taking ancestorClipForChildren
+  //    into account, and accumulate them into descendantsVisibleRegion.
+  LayerIntRegion descendantsVisibleRegion;
+  bool hasPreserve3DChild = false;
+  for (Layer* child = aLayer->GetLastChild(); child; child = child->GetPrevSibling()) {
+    PostProcessLayers(child, localOpaque, descendantsVisibleRegion, ancestorClipForChildren);
+    if (child->Extend3DContext()) {
+      hasPreserve3DChild = true;
+    }
+  }
+
+  // Recalculate our visible region.
+  LayerIntRegion visible = composite->GetShadowVisibleRegion();
+
+  // If we have descendants, throw away the visible region stored on this
+  // layer, and use the region accumulated by our descendants instead.
+  if (aLayer->GetFirstChild() && !hasPreserve3DChild) {
+    visible = descendantsVisibleRegion;
+  }
+
+  // Subtract any areas that we know to be opaque.
+  if (!obscured.IsEmpty()) {
+    visible.SubOut(LayerIntRegion::FromUnknownRegion(obscured));
+  }
+
+  // Clip the visible region using the combined clip.
+  if (insideClip) {
+    visible.AndWith(*insideClip);
+  }
+  composite->SetShadowVisibleRegion(visible);
+
+  // Transform the newly calculated visible region into our parent's space,
+  // apply our clip to it (if any), and accumulate it into |aVisibleRegion|
+  // for the caller to use.
+  ParentLayerIntRegion visibleParentSpace = TransformBy(
+      ViewAs<LayerToParentLayerMatrix4x4>(transform), visible);
+  if (const Maybe<ParentLayerIntRect>& clipRect = composite->GetShadowClipRect()) {
+    visibleParentSpace.AndWith(*clipRect);
+  }
+  aVisibleRegion.OrWith(ViewAs<LayerPixel>(visibleParentSpace,
+      PixelCastJustification::MovingDownToChildren));
+
+  // If we have a simple transform, then we can add our opaque area into
+  // aOpaqueRegion.
+  if (integerTranslation &&
+      !aLayer->HasMaskLayers() &&
+      aLayer->IsOpaqueForVisibility()) {
+    if (aLayer->IsOpaque()) {
+      localOpaque.OrWith(composite->GetFullyRenderedRegion());
+    }
+    localOpaque.MoveBy(*integerTranslation);
+    if (layerClip) {
+      localOpaque.AndWith(layerClip->ToUnknownRect());
+    }
+    aOpaqueRegion.OrWith(localOpaque);
+  }
+}
+
+void
+LayerManagerComposite::EndTransaction(const TimeStamp& aTimeStamp,
                                       EndTransactionFlags aFlags)
 {
   NS_ASSERTION(mInTransaction, "Didn't call BeginTransaction?");
-  NS_ASSERTION(!aCallback && !aCallbackData, "Not expecting callbacks here");
+  NS_ASSERTION(!(aFlags & END_NO_COMPOSITE),
+               "Shouldn't get END_NO_COMPOSITE here");
   mInTransaction = false;
+  mRenderStartTime = TimeStamp::Now();
 
   if (!mIsCompositorReady) {
     return;
@@ -223,30 +403,18 @@ LayerManagerComposite::EndTransaction(DrawThebesLayerCallback aCallback,
     return;
   }
 
-  if (mRoot && mClonedLayerTreeProperties) {
-    MOZ_ASSERT(!mTarget);
-    nsIntRegion invalid =
-      mClonedLayerTreeProperties->ComputeDifferences(mRoot, nullptr, &mGeometryChanged);
-    mClonedLayerTreeProperties = nullptr;
-
-    mInvalidRegion.Or(mInvalidRegion, invalid);
-  } else if (!mTarget) {
-    mInvalidRegion.Or(mInvalidRegion, mRenderBounds);
-  }
+  // Set composition timestamp here because we need it in
+  // ComputeEffectiveTransforms (so the correct video frame size is picked) and
+  // also to compute invalid regions properly.
+  mCompositor->SetCompositionTime(aTimeStamp);
 
   if (mRoot && !(aFlags & END_NO_IMMEDIATE_REDRAW)) {
-    if (aFlags & END_NO_COMPOSITE) {
-      // Apply pending tree updates before recomputing effective
-      // properties.
-      mRoot->ApplyPendingUpdatesToSubtree();
-    }
-
-    // The results of our drawing always go directly into a pixel buffer,
-    // so we don't need to pass any global transform here.
-    mRoot->ComputeEffectiveTransforms(gfx::Matrix4x4());
-
-    Render();
-    mGeometryChanged = false;
+    MOZ_ASSERT(!aTimeStamp.IsNull());
+    UpdateAndRender();
+    mCompositor->FlushPendingNotifyNotUsed();
+  } else {
+    // Modified the layer tree.
+    mGeometryChanged = true;
   }
 
   mCompositor->ClearTargetContext();
@@ -258,25 +426,103 @@ LayerManagerComposite::EndTransaction(DrawThebesLayerCallback aCallback,
 #endif
 }
 
-TemporaryRef<DrawTarget>
+void
+LayerManagerComposite::UpdateAndRender()
+{
+  nsIntRegion invalid;
+  bool didEffectiveTransforms = false;
+
+  nsIntRegion opaque;
+  LayerIntRegion visible;
+  PostProcessLayers(mRoot, opaque, visible, Nothing());
+
+  if (mClonedLayerTreeProperties) {
+    // Effective transforms are needed by ComputeDifferences().
+    mRoot->ComputeEffectiveTransforms(gfx::Matrix4x4());
+    didEffectiveTransforms = true;
+
+    // We need to compute layer tree differences even if we're not going to
+    // immediately use the resulting damage area, since ComputeDifferences
+    // is also responsible for invalidates intermediate surfaces in
+    // ContainerLayers.
+    nsIntRegion changed = mClonedLayerTreeProperties->ComputeDifferences(mRoot, nullptr, &mGeometryChanged);
+
+    if (mTarget) {
+      // Since we're composing to an external target, we're not going to use
+      // the damage region from layers changes - we want to composite
+      // everything in the target bounds. Instead we accumulate the layers
+      // damage region for the next window composite.
+      mInvalidRegion.Or(mInvalidRegion, changed);
+    } else {
+      invalid = Move(changed);
+    }
+  }
+
+  if (mTarget) {
+    invalid.Or(invalid, mTargetBounds);
+  } else {
+    // If we didn't have a previous layer tree, invalidate the entire render
+    // area.
+    if (!mClonedLayerTreeProperties) {
+      invalid.Or(invalid, mRenderBounds);
+    }
+
+    // Add any additional invalid rects from the window manager or previous
+    // damage computed during ComposeToTarget().
+    invalid.Or(invalid, mInvalidRegion);
+    mInvalidRegion.SetEmpty();
+  }
+
+  if (invalid.IsEmpty() && !mWindowOverlayChanged) {
+    // Composition requested, but nothing has changed. Don't do any work.
+    mClonedLayerTreeProperties = LayerProperties::CloneFrom(GetRoot());
+    return;
+  }
+
+  // We don't want our debug overlay to cause more frames to happen
+  // so we will invalidate after we've decided if something changed.
+  InvalidateDebugOverlay(invalid, mRenderBounds);
+
+  if (!didEffectiveTransforms) {
+    // The results of our drawing always go directly into a pixel buffer,
+    // so we don't need to pass any global transform here.
+    mRoot->ComputeEffectiveTransforms(gfx::Matrix4x4());
+  }
+
+  Render(invalid, opaque);
+#if defined(MOZ_WIDGET_ANDROID)
+  RenderToPresentationSurface();
+#endif
+  mGeometryChanged = false;
+  mWindowOverlayChanged = false;
+
+  // Update cached layer tree information.
+  mClonedLayerTreeProperties = LayerProperties::CloneFrom(GetRoot());
+}
+
+already_AddRefed<DrawTarget>
 LayerManagerComposite::CreateOptimalMaskDrawTarget(const IntSize &aSize)
 {
   NS_RUNTIMEABORT("Should only be called on the drawing side");
   return nullptr;
 }
 
-already_AddRefed<ThebesLayer>
-LayerManagerComposite::CreateThebesLayer()
+already_AddRefed<PaintedLayer>
+LayerManagerComposite::CreatePaintedLayer()
 {
-  NS_RUNTIMEABORT("Should only be called on the drawing side");
-  return nullptr;
+  MOZ_ASSERT(gIsGtest, "Unless you're testing the compositor using GTest,"
+                       "this should only be called on the drawing side");
+  RefPtr<PaintedLayer> layer = new PaintedLayerComposite(this);
+  return layer.forget();
 }
 
 already_AddRefed<ContainerLayer>
 LayerManagerComposite::CreateContainerLayer()
 {
-  NS_RUNTIMEABORT("Should only be called on the drawing side");
-  return nullptr;
+  MOZ_ASSERT(gIsGtest, "Unless you're testing the compositor using GTest,"
+                       "this should only be called on the drawing side");
+  RefPtr<ContainerLayer> layer = new ContainerLayerComposite(this);
+  return layer.forget();
 }
 
 already_AddRefed<ImageLayer>
@@ -289,8 +535,10 @@ LayerManagerComposite::CreateImageLayer()
 already_AddRefed<ColorLayer>
 LayerManagerComposite::CreateColorLayer()
 {
-  NS_RUNTIMEABORT("Should only be called on the drawing side");
-  return nullptr;
+  MOZ_ASSERT(gIsGtest, "Unless you're testing the compositor using GTest,"
+                       "this should only be called on the drawing side");
+  RefPtr<ColorLayer> layer = new ColorLayerComposite(this);
+  return layer.forget();
 }
 
 already_AddRefed<CanvasLayer>
@@ -319,35 +567,137 @@ LayerManagerComposite::RootLayer() const
 #include "qrcode_table.h"
 #endif
 
-static uint16_t sFrameCount = 0;
 void
-LayerManagerComposite::RenderDebugOverlay(const Rect& aBounds)
+LayerManagerComposite::InvalidateDebugOverlay(nsIntRegion& aInvalidRegion, const IntRect& aBounds)
 {
   bool drawFps = gfxPrefs::LayersDrawFPS();
   bool drawFrameCounter = gfxPrefs::DrawFrameCounter();
   bool drawFrameColorBars = gfxPrefs::CompositorDrawColorBars();
 
+  if (drawFps || drawFrameCounter) {
+    aInvalidRegion.Or(aInvalidRegion, nsIntRect(0, 0, 256, 256));
+  }
+  if (drawFrameColorBars) {
+    aInvalidRegion.Or(aInvalidRegion, nsIntRect(0, 0, 10, aBounds.height));
+  }
+
+#ifdef USE_SKIA
+  bool drawPaintTimes = gfxPrefs::AlwaysPaint();
+  if (drawPaintTimes) {
+    aInvalidRegion.Or(aInvalidRegion, nsIntRect(PaintCounter::GetPaintRect()));
+  }
+#endif
+}
+
+#ifdef USE_SKIA
+void
+LayerManagerComposite::DrawPaintTimes(Compositor* aCompositor)
+{
+  if (!mPaintCounter) {
+    mPaintCounter = new PaintCounter();
+  }
+
+  TimeDuration compositeTime = TimeStamp::Now() - mRenderStartTime;
+  mPaintCounter->Draw(aCompositor, mLastPaintTime, compositeTime);
+}
+#endif
+
+static uint16_t sFrameCount = 0;
+void
+LayerManagerComposite::RenderDebugOverlay(const IntRect& aBounds)
+{
+  bool drawFps = gfxPrefs::LayersDrawFPS();
+  bool drawFrameCounter = gfxPrefs::DrawFrameCounter();
+  bool drawFrameColorBars = gfxPrefs::CompositorDrawColorBars();
+
+  TimeStamp now = TimeStamp::Now();
+
   if (drawFps) {
     if (!mFPS) {
-      mFPS = new FPSState();
+      mFPS = MakeUnique<FPSState>();
     }
 
+    float alpha = 1;
+#ifdef ANDROID
+    // Draw a translation delay warning overlay
+    int width;
+    int border;
+    if (!mWarnTime.IsNull() && (now - mWarnTime).ToMilliseconds() < kVisualWarningDuration) {
+      EffectChain effects;
+
+      // Black blorder
+      border = 4;
+      width = 6;
+      effects.mPrimaryEffect = new EffectSolidColor(gfx::Color(0, 0, 0, 1));
+      mCompositor->DrawQuad(gfx::Rect(border, border, aBounds.width - 2 * border, width),
+                            aBounds, effects, alpha, gfx::Matrix4x4());
+      mCompositor->DrawQuad(gfx::Rect(border, aBounds.height - border - width, aBounds.width - 2 * border, width),
+                            aBounds, effects, alpha, gfx::Matrix4x4());
+      mCompositor->DrawQuad(gfx::Rect(border, border + width, width, aBounds.height - 2 * border - width * 2),
+                            aBounds, effects, alpha, gfx::Matrix4x4());
+      mCompositor->DrawQuad(gfx::Rect(aBounds.width - border - width, border + width, width, aBounds.height - 2 * border - 2 * width),
+                            aBounds, effects, alpha, gfx::Matrix4x4());
+
+      // Content
+      border = 5;
+      width = 4;
+      effects.mPrimaryEffect = new EffectSolidColor(gfx::Color(1, 1.f - mWarningLevel, 0, 1));
+      mCompositor->DrawQuad(gfx::Rect(border, border, aBounds.width - 2 * border, width),
+                            aBounds, effects, alpha, gfx::Matrix4x4());
+      mCompositor->DrawQuad(gfx::Rect(border, aBounds.height - border - width, aBounds.width - 2 * border, width),
+                            aBounds, effects, alpha, gfx::Matrix4x4());
+      mCompositor->DrawQuad(gfx::Rect(border, border + width, width, aBounds.height - 2 * border - width * 2),
+                            aBounds, effects, alpha, gfx::Matrix4x4());
+      mCompositor->DrawQuad(gfx::Rect(aBounds.width - border - width, border + width, width, aBounds.height - 2 * border - 2 * width),
+                            aBounds, effects, alpha, gfx::Matrix4x4());
+      SetDebugOverlayWantsNextFrame(true);
+    }
+#endif
+
     float fillRatio = mCompositor->GetFillRatio();
-    mFPS->DrawFPS(TimeStamp::Now(), drawFrameColorBars ? 10 : 0, 0, unsigned(fillRatio), mCompositor);
+    mFPS->DrawFPS(now, drawFrameColorBars ? 10 : 1, 2, unsigned(fillRatio), mCompositor);
+
+    if (mUnusedApzTransformWarning) {
+      // If we have an unused APZ transform on this composite, draw a 20x20 red box
+      // in the top-right corner
+      EffectChain effects;
+      effects.mPrimaryEffect = new EffectSolidColor(gfx::Color(1, 0, 0, 1));
+      mCompositor->DrawQuad(gfx::Rect(aBounds.width - 20, 0, 20, 20),
+                            aBounds, effects, alpha, gfx::Matrix4x4());
+
+      mUnusedApzTransformWarning = false;
+      SetDebugOverlayWantsNextFrame(true);
+    }
+    if (mDisabledApzWarning) {
+      // If we have a disabled APZ on this composite, draw a 20x20 yellow box
+      // in the top-right corner, to the left of the unused-apz-transform
+      // warning box
+      EffectChain effects;
+      effects.mPrimaryEffect = new EffectSolidColor(gfx::Color(1, 1, 0, 1));
+      mCompositor->DrawQuad(gfx::Rect(aBounds.width - 40, 0, 20, 20),
+                            aBounds, effects, alpha, gfx::Matrix4x4());
+
+      mDisabledApzWarning = false;
+      SetDebugOverlayWantsNextFrame(true);
+    }
+
+
+    // Each frame is invalidate by the previous frame for simplicity
   } else {
     mFPS = nullptr;
   }
 
   if (drawFrameColorBars) {
-    gfx::Rect sideRect(0, 0, 10, aBounds.height);
+    gfx::IntRect sideRect(0, 0, 10, aBounds.height);
 
     EffectChain effects;
     effects.mPrimaryEffect = new EffectSolidColor(gfxUtils::GetColorForFrameNumber(sFrameCount));
-    mCompositor->DrawQuad(sideRect,
+    mCompositor->DrawQuad(Rect(sideRect),
                           sideRect,
                           effects,
                           1.0,
                           gfx::Matrix4x4());
+
   }
 
 #ifdef MOZ_PROFILING
@@ -359,7 +709,7 @@ LayerManagerComposite::RenderDebugOverlay(const Rect& aBounds)
     int padding = 2;
     float opacity = 1.0;
     const uint16_t bitWidth = 5;
-    gfx::Rect clip(0,0, bitWidth*640, bitWidth*640);
+    gfx::IntRect clip(0,0, bitWidth*640, bitWidth*640);
 
     // Draw the white squares at once
     gfx::Color bitColor(1.0, 1.0, 1.0, 1.0);
@@ -390,6 +740,7 @@ LayerManagerComposite::RenderDebugOverlay(const Rect& aBounds)
         }
       }
     }
+
   }
 #endif
 
@@ -397,99 +748,264 @@ LayerManagerComposite::RenderDebugOverlay(const Rect& aBounds)
     // We intentionally overflow at 2^16.
     sFrameCount++;
   }
+
+#ifdef USE_SKIA
+  bool drawPaintTimes = gfxPrefs::AlwaysPaint();
+  if (drawPaintTimes) {
+    DrawPaintTimes(mCompositor);
+  }
+#endif
+}
+
+RefPtr<CompositingRenderTarget>
+LayerManagerComposite::PushGroupForLayerEffects()
+{
+  // This is currently true, so just making sure that any new use of this
+  // method is flagged for investigation
+  MOZ_ASSERT(gfxPrefs::LayersEffectInvert() ||
+             gfxPrefs::LayersEffectGrayscale() ||
+             gfxPrefs::LayersEffectContrast() != 0.0);
+
+  RefPtr<CompositingRenderTarget> previousTarget = mCompositor->GetCurrentRenderTarget();
+  // make our render target the same size as the destination target
+  // so that we don't have to change size if the drawing area changes.
+  IntRect rect(previousTarget->GetOrigin(), previousTarget->GetSize());
+  // XXX: I'm not sure if this is true or not...
+  MOZ_ASSERT(rect.x == 0 && rect.y == 0);
+  if (!mTwoPassTmpTarget ||
+      mTwoPassTmpTarget->GetSize() != previousTarget->GetSize() ||
+      mTwoPassTmpTarget->GetOrigin() != previousTarget->GetOrigin()) {
+    mTwoPassTmpTarget = mCompositor->CreateRenderTarget(rect, INIT_MODE_NONE);
+  }
+  MOZ_ASSERT(mTwoPassTmpTarget);
+  mCompositor->SetRenderTarget(mTwoPassTmpTarget);
+  return previousTarget;
+}
+void
+LayerManagerComposite::PopGroupForLayerEffects(RefPtr<CompositingRenderTarget> aPreviousTarget,
+                                               IntRect aClipRect,
+                                               bool aGrayscaleEffect,
+                                               bool aInvertEffect,
+                                               float aContrastEffect)
+{
+  MOZ_ASSERT(mTwoPassTmpTarget);
+
+  // This is currently true, so just making sure that any new use of this
+  // method is flagged for investigation
+  MOZ_ASSERT(aInvertEffect || aGrayscaleEffect || aContrastEffect != 0.0);
+
+  mCompositor->SetRenderTarget(aPreviousTarget);
+
+  EffectChain effectChain(RootLayer());
+  Matrix5x4 effectMatrix;
+  if (aGrayscaleEffect) {
+    // R' = G' = B' = luminance
+    // R' = 0.2126*R + 0.7152*G + 0.0722*B
+    // G' = 0.2126*R + 0.7152*G + 0.0722*B
+    // B' = 0.2126*R + 0.7152*G + 0.0722*B
+    Matrix5x4 grayscaleMatrix(0.2126f, 0.2126f, 0.2126f, 0,
+                              0.7152f, 0.7152f, 0.7152f, 0,
+                              0.0722f, 0.0722f, 0.0722f, 0,
+                              0,       0,       0,       1,
+                              0,       0,       0,       0);
+    effectMatrix = grayscaleMatrix;
+  }
+
+  if (aInvertEffect) {
+    // R' = 1 - R
+    // G' = 1 - G
+    // B' = 1 - B
+    Matrix5x4 colorInvertMatrix(-1,  0,  0, 0,
+                                 0, -1,  0, 0,
+                                 0,  0, -1, 0,
+                                 0,  0,  0, 1,
+                                 1,  1,  1, 0);
+    effectMatrix = effectMatrix * colorInvertMatrix;
+  }
+
+  if (aContrastEffect != 0.0) {
+    // Multiplying with:
+    // R' = (1 + c) * (R - 0.5) + 0.5
+    // G' = (1 + c) * (G - 0.5) + 0.5
+    // B' = (1 + c) * (B - 0.5) + 0.5
+    float cP1 = aContrastEffect + 1;
+    float hc = 0.5*aContrastEffect;
+    Matrix5x4 contrastMatrix( cP1,   0,   0, 0,
+                                0, cP1,   0, 0,
+                                0,   0, cP1, 0,
+                                0,   0,   0, 1,
+                              -hc, -hc, -hc, 0);
+    effectMatrix = effectMatrix * contrastMatrix;
+  }
+
+  effectChain.mPrimaryEffect = new EffectRenderTarget(mTwoPassTmpTarget);
+  effectChain.mSecondaryEffects[EffectTypes::COLOR_MATRIX] = new EffectColorMatrix(effectMatrix);
+
+  mCompositor->DrawQuad(Rect(Point(0, 0), Size(mTwoPassTmpTarget->GetSize())), aClipRect, effectChain, 1.,
+                        Matrix4x4());
+}
+
+// Used to clear the 'mLayerComposited' flag at the beginning of each Render().
+static void
+ClearLayerFlags(Layer* aLayer) {
+  ForEachNode<ForwardIterator>(
+      aLayer,
+      [] (Layer* layer)
+      {
+        if (layer->AsLayerComposite()) {
+          layer->AsLayerComposite()->SetLayerComposited(false);
+        }
+      });
 }
 
 void
-LayerManagerComposite::Render()
+LayerManagerComposite::Render(const nsIntRegion& aInvalidRegion, const nsIntRegion& aOpaqueRegion)
 {
   PROFILER_LABEL("LayerManagerComposite", "Render",
     js::ProfileEntry::Category::GRAPHICS);
 
-  if (mDestroyed) {
+  if (mDestroyed || !mCompositor || mCompositor->IsDestroyed()) {
     NS_WARNING("Call on destroyed layer manager");
     return;
   }
 
+  ClearLayerFlags(mRoot);
+
+  // At this time, it doesn't really matter if these preferences change
+  // during the execution of the function; we should be safe in all
+  // permutations. However, may as well just get the values onces and
+  // then use them, just in case the consistency becomes important in
+  // the future.
+  bool invertVal = gfxPrefs::LayersEffectInvert();
+  bool grayscaleVal = gfxPrefs::LayersEffectGrayscale();
+  float contrastVal = gfxPrefs::LayersEffectContrast();
+  bool haveLayerEffects = (invertVal || grayscaleVal || contrastVal != 0.0);
+
+  // Set LayerScope begin/end frame
+  LayerScopeAutoFrame frame(PR_Now());
+
+  // Dump to console
   if (gfxPrefs::LayersDump()) {
-    this->Dump();
+    this->Dump(/* aSorted= */true);
+  } else if (profiler_feature_active("layersdump")) {
+    std::stringstream ss;
+    Dump(ss);
+    profiler_log(ss.str().c_str());
+  }
+
+  // Dump to LayerScope Viewer
+  if (LayerScope::CheckSendable()) {
+    // Create a LayersPacket, dump Layers into it and transfer the
+    // packet('s ownership) to LayerScope.
+    auto packet = MakeUnique<layerscope::Packet>();
+    layerscope::LayersPacket* layersPacket = packet->mutable_layers();
+    this->Dump(layersPacket);
+    LayerScope::SendLayerDump(Move(packet));
   }
 
   /** Our more efficient but less powerful alter ego, if one is available. */
-  nsRefPtr<Composer2D> composer2D = mCompositor->GetWidget()->GetComposer2D();
+  RefPtr<Composer2D> composer2D;
+  composer2D = mCompositor->GetWidget()->GetComposer2D();
 
-  if (!mTarget && composer2D && composer2D->TryRender(mRoot, mWorldMatrix, mGeometryChanged)) {
+  // We can't use composert2D if we have layer effects
+  if (!mTarget && !haveLayerEffects &&
+      gfxPrefs::Composer2DCompositionEnabled() &&
+      composer2D && composer2D->HasHwc() && composer2D->TryRenderWithHwc(mRoot,
+          mCompositor->GetWidget()->RealWidget(),
+          mGeometryChanged,
+          mCompositor->HasImageHostOverlays()))
+  {
+    LayerScope::SetHWComposed();
     if (mFPS) {
       double fps = mFPS->mCompositionFps.AddFrameAndGetFps(TimeStamp::Now());
       if (gfxPrefs::LayersDrawFPS()) {
         printf_stderr("HWComposer: FPS is %g\n", fps);
       }
     }
-    mCompositor->EndFrameForExternalComposition(mWorldMatrix);
+    mCompositor->EndFrameForExternalComposition(Matrix());
+    mLastFrameMissedHWC = false;
     return;
+  } else if (!mTarget && !haveLayerEffects) {
+    mLastFrameMissedHWC = !!composer2D;
   }
+
+  mozilla::widget::WidgetRenderingContext widgetContext;
+#if defined(XP_MACOSX)
+  widgetContext.mLayerManager = this;
+#elif defined(MOZ_WIDGET_ANDROID)
+  widgetContext.mCompositor = GetCompositor();
+#endif
 
   {
     PROFILER_LABEL("LayerManagerComposite", "PreRender",
       js::ProfileEntry::Category::GRAPHICS);
 
-    if (!mCompositor->GetWidget()->PreRender(this)) {
+    if (!mCompositor->GetWidget()->PreRender(&widgetContext)) {
       return;
     }
   }
 
-  nsIntRegion invalid;
-  if (mTarget) {
-    invalid = mTargetBounds;
-  } else {
-    invalid = mInvalidRegion;
-    // Reset the invalid region now that we've begun compositing.
-    mInvalidRegion.SetEmpty();
-  }
-
-  nsIntRect clipRect;
-  Rect bounds(mRenderBounds.x, mRenderBounds.y, mRenderBounds.width, mRenderBounds.height);
-  Rect actualBounds;
+  ParentLayerIntRect clipRect;
+  IntRect bounds(mRenderBounds.x, mRenderBounds.y, mRenderBounds.width, mRenderBounds.height);
+  IntRect actualBounds;
 
   CompositorBench(mCompositor, bounds);
 
+  MOZ_ASSERT(mRoot->GetOpacity() == 1);
+#if defined(MOZ_WIDGET_ANDROID)
+  LayerMetricsWrapper wrapper = GetRootContentLayer();
+  if (wrapper) {
+    mCompositor->SetClearColor(wrapper.Metadata().GetBackgroundColor());
+  } else {
+    mCompositor->SetClearColorToDefault();
+  }
+#endif
   if (mRoot->GetClipRect()) {
     clipRect = *mRoot->GetClipRect();
-    WorldTransformRect(clipRect);
-    Rect rect(clipRect.x, clipRect.y, clipRect.width, clipRect.height);
-    mCompositor->BeginFrame(invalid, &rect, mWorldMatrix, bounds, nullptr, &actualBounds);
+    IntRect rect(clipRect.x, clipRect.y, clipRect.width, clipRect.height);
+    mCompositor->BeginFrame(aInvalidRegion, &rect, bounds, aOpaqueRegion, nullptr, &actualBounds);
   } else {
-    gfx::Rect rect;
-    mCompositor->BeginFrame(invalid, nullptr, mWorldMatrix, bounds, &rect, &actualBounds);
-    clipRect = nsIntRect(rect.x, rect.y, rect.width, rect.height);
+    gfx::IntRect rect;
+    mCompositor->BeginFrame(aInvalidRegion, nullptr, bounds, aOpaqueRegion, &rect, &actualBounds);
+    clipRect = ParentLayerIntRect(rect.x, rect.y, rect.width, rect.height);
   }
 
   if (actualBounds.IsEmpty()) {
-    mCompositor->GetWidget()->PostRender(this);
+    mCompositor->GetWidget()->PostRender(&widgetContext);
     return;
   }
 
   // Allow widget to render a custom background.
-  mCompositor->GetWidget()->DrawWindowUnderlay(this, nsIntRect(actualBounds.x,
-                                                               actualBounds.y,
-                                                               actualBounds.width,
-                                                               actualBounds.height));
+  mCompositor->GetWidget()->DrawWindowUnderlay(
+    &widgetContext, LayoutDeviceIntRect::FromUnknownRect(actualBounds));
+
+  RefPtr<CompositingRenderTarget> previousTarget;
+  if (haveLayerEffects) {
+    previousTarget = PushGroupForLayerEffects();
+  } else {
+    mTwoPassTmpTarget = nullptr;
+  }
 
   // Render our layers.
-  RootLayer()->RenderLayer(clipRect);
+  RootLayer()->Prepare(ViewAs<RenderTargetPixel>(clipRect, PixelCastJustification::RenderTargetIsParentLayerForRoot));
+  RootLayer()->RenderLayer(clipRect.ToUnknownRect());
 
   if (!mRegionToClear.IsEmpty()) {
-    nsIntRegionRectIterator iter(mRegionToClear);
-    const nsIntRect *r;
-    while ((r = iter.Next())) {
-      mCompositor->ClearRect(Rect(r->x, r->y, r->width, r->height));
+    for (auto iter = mRegionToClear.RectIter(); !iter.Done(); iter.Next()) {
+      const IntRect& r = iter.Get();
+      mCompositor->ClearRect(Rect(r.x, r.y, r.width, r.height));
     }
   }
 
+  if (mTwoPassTmpTarget) {
+    MOZ_ASSERT(haveLayerEffects);
+    PopGroupForLayerEffects(previousTarget, clipRect.ToUnknownRect(),
+                            grayscaleVal, invertVal, contrastVal);
+  }
+
   // Allow widget to render a custom foreground.
-  mCompositor->GetWidget()->DrawWindowOverlay(this, nsIntRect(actualBounds.x,
-                                                              actualBounds.y,
-                                                              actualBounds.width,
-                                                              actualBounds.height));
+  mCompositor->GetWidget()->DrawWindowOverlay(
+    &widgetContext, LayoutDeviceIntRect::FromUnknownRect(actualBounds));
 
   // Debugging
   RenderDebugOverlay(actualBounds);
@@ -499,255 +1015,204 @@ LayerManagerComposite::Render()
       js::ProfileEntry::Category::GRAPHICS);
 
     mCompositor->EndFrame();
-    mCompositor->SetFBAcquireFence(mRoot);
+
+    // Call after EndFrame()
+    mCompositor->SetDispAcquireFence(mRoot);
   }
 
-  mCompositor->GetWidget()->PostRender(this);
+  if (composer2D) {
+    composer2D->Render(mCompositor->GetWidget()->RealWidget());
+  }
+
+  mCompositor->GetWidget()->PostRender(&widgetContext);
 
   RecordFrame();
 }
 
+#if defined(MOZ_WIDGET_ANDROID)
+class ScopedCompositorProjMatrix {
+public:
+  ScopedCompositorProjMatrix(CompositorOGL* aCompositor, const Matrix4x4& aProjMatrix):
+    mCompositor(aCompositor),
+    mOriginalProjMatrix(mCompositor->GetProjMatrix())
+  {
+    mCompositor->SetProjMatrix(aProjMatrix);
+  }
+
+  ~ScopedCompositorProjMatrix()
+  {
+    mCompositor->SetProjMatrix(mOriginalProjMatrix);
+  }
+private:
+  CompositorOGL* const mCompositor;
+  const Matrix4x4 mOriginalProjMatrix;
+};
+
+class ScopedCompostitorSurfaceSize {
+public:
+  ScopedCompostitorSurfaceSize(CompositorOGL* aCompositor, const gfx::IntSize& aSize) :
+    mCompositor(aCompositor),
+    mOriginalSize(mCompositor->GetDestinationSurfaceSize())
+  {
+    mCompositor->SetDestinationSurfaceSize(aSize);
+  }
+  ~ScopedCompostitorSurfaceSize()
+  {
+    mCompositor->SetDestinationSurfaceSize(mOriginalSize);
+  }
+private:
+  CompositorOGL* const mCompositor;
+  const gfx::IntSize mOriginalSize;
+};
+
+class ScopedCompositorRenderOffset {
+public:
+  ScopedCompositorRenderOffset(CompositorOGL* aCompositor, const ScreenPoint& aOffset) :
+    mCompositor(aCompositor),
+    mOriginalOffset(mCompositor->GetScreenRenderOffset())
+  {
+    mCompositor->SetScreenRenderOffset(aOffset);
+  }
+  ~ScopedCompositorRenderOffset()
+  {
+    mCompositor->SetScreenRenderOffset(mOriginalOffset);
+  }
+private:
+  CompositorOGL* const mCompositor;
+  const ScreenPoint mOriginalOffset;
+};
+
+class ScopedContextSurfaceOverride {
+public:
+  ScopedContextSurfaceOverride(GLContextEGL* aContext, void* aSurface) :
+    mContext(aContext)
+  {
+    MOZ_ASSERT(aSurface);
+    mContext->SetEGLSurfaceOverride(aSurface);
+    mContext->MakeCurrent(true);
+  }
+  ~ScopedContextSurfaceOverride()
+  {
+    mContext->SetEGLSurfaceOverride(EGL_NO_SURFACE);
+    mContext->MakeCurrent(true);
+  }
+private:
+  GLContextEGL* const mContext;
+};
+
 void
-LayerManagerComposite::SetWorldTransform(const gfx::Matrix& aMatrix)
+LayerManagerComposite::RenderToPresentationSurface()
 {
-  NS_ASSERTION(aMatrix.PreservesAxisAlignedRectangles(),
-               "SetWorldTransform only accepts matrices that satisfy PreservesAxisAlignedRectangles");
-  NS_ASSERTION(!aMatrix.HasNonIntegerScale(),
-               "SetWorldTransform only accepts matrices with integer scale");
+#ifdef MOZ_WIDGET_ANDROID
+  nsIWidget* const widget = mCompositor->GetWidget()->RealWidget();
+  auto window = static_cast<ANativeWindow*>(
+      widget->GetNativeData(NS_PRESENTATION_WINDOW));
 
-  mWorldMatrix = aMatrix;
-}
-
-gfx::Matrix&
-LayerManagerComposite::GetWorldTransform(void)
-{
-  return mWorldMatrix;
-}
-
-void
-LayerManagerComposite::WorldTransformRect(nsIntRect& aRect)
-{
-  gfx::Rect grect(aRect.x, aRect.y, aRect.width, aRect.height);
-  grect = mWorldMatrix.TransformBounds(grect);
-  aRect.SetRect(grect.X(), grect.Y(), grect.Width(), grect.Height());
-}
-
-static void
-SubtractTransformedRegion(nsIntRegion& aRegion,
-                          const nsIntRegion& aRegionToSubtract,
-                          const gfx3DMatrix& aTransform)
-{
-  if (aRegionToSubtract.IsEmpty()) {
+  if (!window) {
     return;
   }
 
-  // For each rect in the region, find out its bounds in screen space and
-  // subtract it from the screen region.
-  nsIntRegionRectIterator it(aRegionToSubtract);
-  while (const nsIntRect* rect = it.Next()) {
-    gfxRect incompleteRect = aTransform.TransformBounds(gfxRect(*rect));
-    aRegion.Sub(aRegion, nsIntRect(incompleteRect.x,
-                                   incompleteRect.y,
-                                   incompleteRect.width,
-                                   incompleteRect.height));
-  }
-}
+  EGLSurface surface = widget->GetNativeData(NS_PRESENTATION_SURFACE);
 
-/* static */ void
-LayerManagerComposite::ComputeRenderIntegrityInternal(Layer* aLayer,
-                                                      nsIntRegion& aScreenRegion,
-                                                      nsIntRegion& aLowPrecisionScreenRegion,
-                                                      const gfx3DMatrix& aTransform)
-{
-  if (aLayer->GetOpacity() <= 0.f ||
-      (aScreenRegion.IsEmpty() && aLowPrecisionScreenRegion.IsEmpty())) {
+  if (!surface) {
+    //create surface;
+    surface = GLContextProviderEGL::CreateEGLSurface(window);
+    if (!surface) {
+      return;
+    }
+
+    widget->SetNativeData(NS_PRESENTATION_SURFACE,
+                          reinterpret_cast<uintptr_t>(surface));
+  }
+
+  CompositorOGL* compositor = mCompositor->AsCompositorOGL();
+  GLContext* gl = compositor->gl();
+  GLContextEGL* egl = GLContextEGL::Cast(gl);
+
+  if (!egl) {
     return;
   }
 
-  // If the layer's a container, recurse into all of its children
-  ContainerLayer* container = aLayer->AsContainerLayer();
-  if (container) {
-    // Accumulate the transform of intermediate surfaces
-    gfx3DMatrix transform = aTransform;
-    if (container->UseIntermediateSurface()) {
-      gfx::To3DMatrix(aLayer->GetEffectiveTransform(), transform);
-      transform.PreMultiply(aTransform);
-    }
-    for (Layer* child = aLayer->GetFirstChild(); child;
-         child = child->GetNextSibling()) {
-      ComputeRenderIntegrityInternal(child, aScreenRegion, aLowPrecisionScreenRegion, transform);
-    }
+  const IntSize windowSize(ANativeWindow_getWidth(window),
+                           ANativeWindow_getHeight(window));
+
+#endif
+
+  if ((windowSize.width <= 0) || (windowSize.height <= 0)) {
     return;
   }
 
-  // Only thebes layers can be incomplete
-  ThebesLayer* thebesLayer = aLayer->AsThebesLayer();
-  if (!thebesLayer) {
-    return;
+  ScreenRotation rotation = compositor->GetScreenRotation();
+
+  const int actualWidth = windowSize.width;
+  const int actualHeight = windowSize.height;
+
+  const gfx::IntSize originalSize = compositor->GetDestinationSurfaceSize();
+  const nsIntRect originalRect = nsIntRect(0, 0, originalSize.width, originalSize.height);
+
+  int pageWidth = originalSize.width;
+  int pageHeight = originalSize.height;
+  if (rotation == ROTATION_90 || rotation == ROTATION_270) {
+    pageWidth = originalSize.height;
+    pageHeight = originalSize.width;
   }
 
-  // See if there's any incomplete rendering
-  nsIntRegion incompleteRegion = aLayer->GetEffectiveVisibleRegion();
-  incompleteRegion.Sub(incompleteRegion, thebesLayer->GetValidRegion());
+  float scale = 1.0;
 
-  if (!incompleteRegion.IsEmpty()) {
-    // Calculate the transform to get between screen and layer space
-    gfx3DMatrix transformToScreen;
-    To3DMatrix(aLayer->GetEffectiveTransform(), transformToScreen);
-    transformToScreen.PreMultiply(aTransform);
-
-    SubtractTransformedRegion(aScreenRegion, incompleteRegion, transformToScreen);
-
-    // See if there's any incomplete low-precision rendering
-    TiledLayerComposer* composer = nullptr;
-    LayerComposite* shadow = aLayer->AsLayerComposite();
-    if (shadow) {
-      composer = shadow->GetTiledLayerComposer();
-      if (composer) {
-        incompleteRegion.Sub(incompleteRegion, composer->GetValidLowPrecisionRegion());
-        if (!incompleteRegion.IsEmpty()) {
-          SubtractTransformedRegion(aLowPrecisionScreenRegion, incompleteRegion, transformToScreen);
-        }
-      }
-    }
-
-    // If we can't get a valid low precision region, assume it's the same as
-    // the high precision region.
-    if (!composer) {
-      SubtractTransformedRegion(aLowPrecisionScreenRegion, incompleteRegion, transformToScreen);
-    }
+  if ((pageWidth > actualWidth) || (pageHeight > actualHeight)) {
+    const float scaleWidth = (float)actualWidth / (float)pageWidth;
+    const float scaleHeight = (float)actualHeight / (float)pageHeight;
+    scale = scaleWidth <= scaleHeight ? scaleWidth : scaleHeight;
   }
+
+  const gfx::IntSize actualSize(actualWidth, actualHeight);
+  ScopedCompostitorSurfaceSize overrideSurfaceSize(compositor, actualSize);
+
+  const ScreenPoint offset((actualWidth - (int)(scale * pageWidth)) / 2, 0);
+  ScopedContextSurfaceOverride overrideSurface(egl, surface);
+
+  Matrix viewMatrix = ComputeTransformForRotation(originalRect,
+                                                  rotation);
+  viewMatrix.Invert(); // unrotate
+  viewMatrix.PostScale(scale, scale);
+  viewMatrix.PostTranslate(offset.x, offset.y);
+  Matrix4x4 matrix = Matrix4x4::From2D(viewMatrix);
+
+  mRoot->ComputeEffectiveTransforms(matrix);
+  nsIntRegion opaque;
+  LayerIntRegion visible;
+  PostProcessLayers(mRoot, opaque, visible, Nothing());
+
+  nsIntRegion invalid;
+  IntRect bounds = IntRect::Truncate(0, 0, scale * pageWidth, actualHeight);
+  IntRect rect, actualBounds;
+  MOZ_ASSERT(mRoot->GetOpacity() == 1);
+  mCompositor->BeginFrame(invalid, nullptr, bounds, nsIntRegion(), &rect, &actualBounds);
+
+  // The Java side of Fennec sets a scissor rect that accounts for
+  // chrome such as the URL bar. Override that so that the entire frame buffer
+  // is cleared.
+  ScopedScissorRect scissorRect(egl, 0, 0, actualWidth, actualHeight);
+  egl->fClearColor(0.0, 0.0, 0.0, 0.0);
+  egl->fClear(LOCAL_GL_COLOR_BUFFER_BIT);
+
+  const IntRect clipRect = IntRect::Truncate(0, 0, actualWidth, actualHeight);
+
+  RootLayer()->Prepare(RenderTargetIntRect::FromUnknownRect(clipRect));
+  RootLayer()->RenderLayer(clipRect);
+
+  mCompositor->EndFrame();
 }
+#endif
 
-#ifdef MOZ_ANDROID_OMTC
-static float
-GetDisplayportCoverage(const CSSRect& aDisplayPort,
-                       const gfx3DMatrix& aTransformToScreen,
-                       const nsIntRect& aScreenRect)
-{
-  gfxRect transformedDisplayport =
-    aTransformToScreen.TransformBounds(gfxRect(aDisplayPort.x,
-                                               aDisplayPort.y,
-                                               aDisplayPort.width,
-                                               aDisplayPort.height));
-  transformedDisplayport.RoundOut();
-  nsIntRect displayport = nsIntRect(transformedDisplayport.x,
-                                    transformedDisplayport.y,
-                                    transformedDisplayport.width,
-                                    transformedDisplayport.height);
-  if (!displayport.Contains(aScreenRect)) {
-    nsIntRegion coveredRegion;
-    coveredRegion.And(aScreenRect, displayport);
-    return coveredRegion.Area() / (float)(aScreenRect.width * aScreenRect.height);
-  }
-
-  return 1.0f;
-}
-#endif // MOZ_ANDROID_OMTC
-
-float
-LayerManagerComposite::ComputeRenderIntegrity()
-{
-  // We only ever have incomplete rendering when progressive tiles are enabled.
-  Layer* root = GetRoot();
-  if (!gfxPrefs::UseProgressiveTilePainting() || !root) {
-    return 1.f;
-  }
-
-  const FrameMetrics& rootMetrics = root->AsContainerLayer()->GetFrameMetrics();
-  nsIntRect screenRect(rootMetrics.mCompositionBounds.x,
-                       rootMetrics.mCompositionBounds.y,
-                       rootMetrics.mCompositionBounds.width,
-                       rootMetrics.mCompositionBounds.height);
-
-  float lowPrecisionMultiplier = 1.0f;
-  float highPrecisionMultiplier = 1.0f;
-
-#ifdef MOZ_ANDROID_OMTC
-  // Use the transform on the primary scrollable layer and its FrameMetrics
-  // to find out how much of the viewport the current displayport covers
-  Layer* primaryScrollable = GetPrimaryScrollableLayer();
-  if (primaryScrollable) {
-    // This is derived from the code in
-    // AsyncCompositionManager::TransformScrollableLayer
-    const FrameMetrics& metrics = primaryScrollable->AsContainerLayer()->GetFrameMetrics();
-    gfx3DMatrix transform;
-    gfx::To3DMatrix(primaryScrollable->GetEffectiveTransform(), transform);
-    transform.ScalePost(metrics.mResolution.scale, metrics.mResolution.scale, 1);
-
-    // Clip the screen rect to the document bounds
-    gfxRect documentBounds =
-      transform.TransformBounds(gfxRect(metrics.mScrollableRect.x - metrics.GetScrollOffset().x,
-                                        metrics.mScrollableRect.y - metrics.GetScrollOffset().y,
-                                        metrics.mScrollableRect.width,
-                                        metrics.mScrollableRect.height));
-    documentBounds.RoundOut();
-    screenRect = screenRect.Intersect(nsIntRect(documentBounds.x, documentBounds.y,
-                                                documentBounds.width, documentBounds.height));
-
-    // If the screen rect is empty, the user has scrolled entirely into
-    // over-scroll and so we can be considered to have full integrity.
-    if (screenRect.IsEmpty()) {
-      return 1.0f;
-    }
-
-    // Work out how much of the critical display-port covers the screen
-    bool hasLowPrecision = false;
-    if (!metrics.mCriticalDisplayPort.IsEmpty()) {
-      hasLowPrecision = true;
-      highPrecisionMultiplier =
-        GetDisplayportCoverage(metrics.mCriticalDisplayPort, transform, screenRect);
-    }
-
-    // Work out how much of the display-port covers the screen
-    if (!metrics.mDisplayPort.IsEmpty()) {
-      if (hasLowPrecision) {
-        lowPrecisionMultiplier =
-          GetDisplayportCoverage(metrics.mDisplayPort, transform, screenRect);
-      } else {
-        lowPrecisionMultiplier = highPrecisionMultiplier =
-          GetDisplayportCoverage(metrics.mDisplayPort, transform, screenRect);
-      }
-    }
-  }
-
-  // If none of the screen is covered, we have zero integrity.
-  if (highPrecisionMultiplier <= 0.0f && lowPrecisionMultiplier <= 0.0f) {
-    return 0.0f;
-  }
-#endif // MOZ_ANDROID_OMTC
-
-  nsIntRegion screenRegion(screenRect);
-  nsIntRegion lowPrecisionScreenRegion(screenRect);
-  gfx3DMatrix transform;
-  ComputeRenderIntegrityInternal(root, screenRegion,
-                                 lowPrecisionScreenRegion, transform);
-
-  if (!screenRegion.IsEqual(screenRect)) {
-    // Calculate the area of the region. All rects in an nsRegion are
-    // non-overlapping.
-    float screenArea = screenRect.width * screenRect.height;
-    float highPrecisionIntegrity = screenRegion.Area() / screenArea;
-    float lowPrecisionIntegrity = 1.f;
-    if (!lowPrecisionScreenRegion.IsEqual(screenRect)) {
-      lowPrecisionIntegrity = lowPrecisionScreenRegion.Area() / screenArea;
-    }
-
-    return ((highPrecisionIntegrity * highPrecisionMultiplier) +
-            (lowPrecisionIntegrity * lowPrecisionMultiplier)) / 2;
-  }
-
-  return 1.f;
-}
-
-already_AddRefed<ThebesLayerComposite>
-LayerManagerComposite::CreateThebesLayerComposite()
+already_AddRefed<PaintedLayerComposite>
+LayerManagerComposite::CreatePaintedLayerComposite()
 {
   if (mDestroyed) {
     NS_WARNING("Call on destroyed layer manager");
     return nullptr;
   }
-  return nsRefPtr<ThebesLayerComposite>(new ThebesLayerComposite(this)).forget();
+  return RefPtr<PaintedLayerComposite>(new PaintedLayerComposite(this)).forget();
 }
 
 already_AddRefed<ContainerLayerComposite>
@@ -757,7 +1222,7 @@ LayerManagerComposite::CreateContainerLayerComposite()
     NS_WARNING("Call on destroyed layer manager");
     return nullptr;
   }
-  return nsRefPtr<ContainerLayerComposite>(new ContainerLayerComposite(this)).forget();
+  return RefPtr<ContainerLayerComposite>(new ContainerLayerComposite(this)).forget();
 }
 
 already_AddRefed<ImageLayerComposite>
@@ -767,7 +1232,7 @@ LayerManagerComposite::CreateImageLayerComposite()
     NS_WARNING("Call on destroyed layer manager");
     return nullptr;
   }
-  return nsRefPtr<ImageLayerComposite>(new ImageLayerComposite(this)).forget();
+  return RefPtr<ImageLayerComposite>(new ImageLayerComposite(this)).forget();
 }
 
 already_AddRefed<ColorLayerComposite>
@@ -777,7 +1242,7 @@ LayerManagerComposite::CreateColorLayerComposite()
     NS_WARNING("Call on destroyed layer manager");
     return nullptr;
   }
-  return nsRefPtr<ColorLayerComposite>(new ColorLayerComposite(this)).forget();
+  return RefPtr<ColorLayerComposite>(new ColorLayerComposite(this)).forget();
 }
 
 already_AddRefed<CanvasLayerComposite>
@@ -787,7 +1252,7 @@ LayerManagerComposite::CreateCanvasLayerComposite()
     NS_WARNING("Call on destroyed layer manager");
     return nullptr;
   }
-  return nsRefPtr<CanvasLayerComposite>(new CanvasLayerComposite(this)).forget();
+  return RefPtr<CanvasLayerComposite>(new CanvasLayerComposite(this)).forget();
 }
 
 already_AddRefed<RefLayerComposite>
@@ -797,13 +1262,12 @@ LayerManagerComposite::CreateRefLayerComposite()
     NS_WARNING("Call on destroyed layer manager");
     return nullptr;
   }
-  return nsRefPtr<RefLayerComposite>(new RefLayerComposite(this)).forget();
+  return RefPtr<RefLayerComposite>(new RefLayerComposite(this)).forget();
 }
 
 LayerManagerComposite::AutoAddMaskEffect::AutoAddMaskEffect(Layer* aMaskLayer,
-                                                            EffectChain& aEffects,
-                                                            bool aIs3D)
-  : mCompositable(nullptr)
+                                                            EffectChain& aEffects)
+  : mCompositable(nullptr), mFailed(false)
 {
   if (!aMaskLayer) {
     return;
@@ -812,11 +1276,13 @@ LayerManagerComposite::AutoAddMaskEffect::AutoAddMaskEffect(Layer* aMaskLayer,
   mCompositable = ToLayerComposite(aMaskLayer)->GetCompositableHost();
   if (!mCompositable) {
     NS_WARNING("Mask layer with no compositable host");
+    mFailed = true;
     return;
   }
 
-  if (!mCompositable->AddMaskEffect(aEffects, aMaskLayer->GetEffectiveTransform(), aIs3D)) {
+  if (!mCompositable->AddMaskEffect(aEffects, aMaskLayer->GetEffectiveTransform())) {
     mCompositable = nullptr;
+    mFailed = true;
   }
 }
 
@@ -829,32 +1295,20 @@ LayerManagerComposite::AutoAddMaskEffect::~AutoAddMaskEffect()
   mCompositable->RemoveMaskEffect();
 }
 
-TemporaryRef<DrawTarget>
-LayerManagerComposite::CreateDrawTarget(const IntSize &aSize,
-                                        SurfaceFormat aFormat)
+void
+LayerManagerComposite::ChangeCompositor(Compositor* aNewCompositor)
 {
-#ifdef XP_MACOSX
-  // We don't want to accelerate if the surface is too small which indicates
-  // that it's likely used for an icon/static image. We also don't want to
-  // accelerate anything that is above the maximum texture size of weakest gpu.
-  // Safari uses 5000 area as the minimum for acceleration, we decided 64^2 is more logical.
-  bool useAcceleration = aSize.width <= 4096 && aSize.height <= 4096 &&
-                         aSize.width > 64 && aSize.height > 64 &&
-                         gfxPlatformMac::GetPlatform()->UseAcceleratedCanvas();
-  if (useAcceleration) {
-    return Factory::CreateDrawTarget(BackendType::COREGRAPHICS_ACCELERATED,
-                                     aSize, aFormat);
-  }
-#endif
-  return LayerManager::CreateDrawTarget(aSize, aFormat);
+  mCompositor = aNewCompositor;
+  mTextRenderer = new TextRenderer(aNewCompositor);
+  mTwoPassTmpTarget = nullptr;
 }
 
 LayerComposite::LayerComposite(LayerManagerComposite *aManager)
   : mCompositeManager(aManager)
   , mCompositor(aManager->GetCompositor())
   , mShadowOpacity(1.0)
-  , mUseShadowClipRect(false)
   , mShadowTransformSetByAnimation(false)
+  , mShadowOpacitySetByAnimation(false)
   , mDestroyed(false)
   , mLayerComposited(false)
 { }
@@ -899,6 +1353,85 @@ LayerManagerComposite::NotifyShadowTreeTransaction()
   }
 }
 
+void
+LayerComposite::SetLayerManager(LayerManagerComposite* aManager)
+{
+  mCompositeManager = aManager;
+  mCompositor = aManager->GetCompositor();
+}
+
+bool
+LayerManagerComposite::AsyncPanZoomEnabled() const
+{
+  if (CompositorBridgeParent* bridge = mCompositor->GetCompositorBridgeParent()) {
+    return bridge->AsyncPanZoomEnabled();
+  }
+  return false;
+}
+
+nsIntRegion
+LayerComposite::GetFullyRenderedRegion() {
+  if (TiledContentHost* tiled = GetCompositableHost() ? GetCompositableHost()->AsTiledContentHost()
+                                                        : nullptr) {
+    nsIntRegion shadowVisibleRegion = GetShadowVisibleRegion().ToUnknownRegion();
+    // Discard the region which hasn't been drawn yet when doing
+    // progressive drawing. Note that if the shadow visible region
+    // shrunk the tiled valig region may not have discarded this yet.
+    shadowVisibleRegion.And(shadowVisibleRegion, tiled->GetValidRegion());
+    return shadowVisibleRegion;
+  } else {
+    return GetShadowVisibleRegion().ToUnknownRegion();
+  }
+}
+
+Matrix4x4
+LayerComposite::GetShadowTransform() {
+  Matrix4x4 transform = mShadowTransform;
+  Layer* layer = GetLayer();
+
+  transform.PostScale(layer->GetPostXScale(), layer->GetPostYScale(), 1.0f);
+  if (const ContainerLayer* c = layer->AsContainerLayer()) {
+    transform.PreScale(c->GetPreXScale(), c->GetPreYScale(), 1.0f);
+  }
+
+  return transform;
+}
+
+bool
+LayerComposite::HasStaleCompositor() const
+{
+  return mCompositeManager->GetCompositor() != mCompositor;
+}
+
+static bool
+LayerHasCheckerboardingAPZC(Layer* aLayer, Color* aOutColor)
+{
+  bool answer = false;
+  for (LayerMetricsWrapper i(aLayer, LayerMetricsWrapper::StartAt::BOTTOM); i; i = i.GetParent()) {
+    if (!i.Metrics().IsScrollable()) {
+      continue;
+    }
+    if (i.GetApzc() && i.GetApzc()->IsCurrentlyCheckerboarding()) {
+      if (aOutColor) {
+        *aOutColor = i.Metadata().GetBackgroundColor();
+      }
+      answer = true;
+      break;
+    }
+    break;
+  }
+  return answer;
+}
+
+bool
+LayerComposite::NeedToDrawCheckerboarding(gfx::Color* aOutCheckerboardingColor)
+{
+  return GetLayer()->Manager()->AsyncPanZoomEnabled() &&
+         (GetLayer()->GetContentFlags() & Layer::CONTENT_OPAQUE) &&
+         GetLayer()->IsOpaqueForVisibility() &&
+         LayerHasCheckerboardingAPZC(GetLayer(), aOutCheckerboardingColor);
+}
+
 #ifndef MOZ_HAVE_PLATFORM_SPECIFIC_LAYER_BUFFERS
 
 /*static*/ bool
@@ -914,5 +1447,5 @@ LayerManagerComposite::PlatformSyncBeforeReplyUpdate()
 
 #endif  // !defined(MOZ_HAVE_PLATFORM_SPECIFIC_LAYER_BUFFERS)
 
-} /* layers */
-} /* mozilla */
+} // namespace layers
+} // namespace mozilla

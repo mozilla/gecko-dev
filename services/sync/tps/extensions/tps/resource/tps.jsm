@@ -7,20 +7,28 @@
   * listed symbols will exposed on import, and only when and where imported.
   */
 
-let EXPORTED_SYMBOLS = ["ACTIONS", "TPS"];
+var EXPORTED_SYMBOLS = ["ACTIONS", "TPS"];
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
-let module = this;
+var module = this;
 
 // Global modules
+Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/AppConstants.jsm");
+Cu.import("resource://gre/modules/PlacesUtils.jsm");
+Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://services-common/async.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/main.js");
 Cu.import("resource://services-sync/util.js");
-
+Cu.import("resource://services-sync/telemetry.js");
+Cu.import("resource://services-sync/bookmark_validator.js");
+Cu.import("resource://services-sync/engines/passwords.js");
+Cu.import("resource://services-sync/engines/forms.js");
+Cu.import("resource://services-sync/engines/addons.js");
 // TPS modules
 Cu.import("resource://tps/logger.jsm");
 
@@ -41,6 +49,11 @@ var prefs = Cc["@mozilla.org/preferences-service;1"]
 
 var mozmillInit = {};
 Cu.import('resource://mozmill/driver/mozmill.js', mozmillInit);
+
+XPCOMUtils.defineLazyGetter(this, "fileProtocolHandler", () => {
+  let fileHandler = Services.io.getProtocolHandler("file");
+  return fileHandler.QueryInterface(Ci.nsIFileProtocolHandler);
+});
 
 // Options for wiping data during a sync
 const SYNC_RESET_CLIENT = "resetClient";
@@ -77,7 +90,7 @@ const ACTIONS = [
 const OBSERVER_TOPICS = ["fxaccounts:onlogin",
                          "fxaccounts:onlogout",
                          "private-browsing",
-                         "quit-application-requested",
+                         "profile-before-change",
                          "sessionstore-windows-restored",
                          "weave:engine:start-tracking",
                          "weave:engine:stop-tracking",
@@ -89,18 +102,19 @@ const OBSERVER_TOPICS = ["fxaccounts:onlogin",
                          "weave:service:sync:start"
                         ];
 
-let TPS = {
+var TPS = {
   _currentAction: -1,
   _currentPhase: -1,
   _enabledEngines: null,
   _errors: 0,
-  _finalPhase: false,
   _isTracking: false,
   _operations_pending: 0,
   _phaseFinished: false,
   _phaselist: {},
   _setupComplete: false,
   _syncActive: false,
+  _syncCount: 0,
+  _syncsReportedViaTelemetry: 0,
   _syncErrors: 0,
   _syncWipeAction: null,
   _tabsAdded: 0,
@@ -108,6 +122,11 @@ let TPS = {
   _test: null,
   _triggeredSync: false,
   _usSinceEpoch: 0,
+  _requestedQuit: false,
+  shouldValidateAddons: false,
+  shouldValidateBookmarks: false,
+  shouldValidatePasswords: false,
+  shouldValidateForms: false,
 
   _init: function TPS__init() {
     // Check if Firefox Accounts is enabled
@@ -122,6 +141,8 @@ let TPS = {
       Services.obs.addObserver(this, aTopic, true);
     }, this);
 
+    // Configure some logging prefs for Sync itself.
+    Weave.Svc.Prefs.set("log.appender.dump", "Debug");
     // Import the appropriate authentication module
     if (this.fxaccounts_enabled) {
       Cu.import("resource://tps/auth/fxaccounts.jsm", module);
@@ -131,9 +152,16 @@ let TPS = {
     }
   },
 
-  DumpError: function TPS__DumpError(msg) {
+  DumpError(msg, exc = null) {
     this._errors++;
-    Logger.logError("[phase" + this._currentPhase + "] " + msg);
+    let errInfo;
+    if (exc) {
+      errInfo = Log.exceptionStr(exc); // includes details and stack-trace.
+    } else {
+      // always write a stack even if no error passed.
+      errInfo = Log.stackTrace(new Error());
+    }
+    Logger.logError(`[phase ${this._currentPhase}] ${msg} - ${errInfo}`);
     this.quit();
   },
 
@@ -149,14 +177,7 @@ let TPS = {
           Logger.logInfo("private browsing " + data);
           break;
 
-        case "quit-application-requested":
-          // Ensure that we eventually wipe the data on the server
-          if (this._errors || !this._phaseFinished || this._finalPhase) {
-            try {
-              this.WipeServer();
-            } catch (ex) {}
-          }
-
+        case "profile-before-change":
           OBSERVER_TOPICS.forEach(function(topic) {
             Services.obs.removeObserver(this, topic);
           }, this);
@@ -232,7 +253,7 @@ let TPS = {
       }
     }
     catch (e) {
-      this.DumpError("Exception caught: " + Utils.exceptionStr(e));
+      this.DumpError("Observer failed", e);
       return;
     }
   },
@@ -265,6 +286,7 @@ let TPS = {
   },
 
   quit: function TPS__quit() {
+    this._requestedQuit = true;
     this.goQuitApplication();
   },
 
@@ -285,7 +307,7 @@ let TPS = {
   HandleTabs: function (tabs, action) {
     this._tabsAdded = tabs.length;
     this._tabsFinished = 0;
-    for each (let tab in tabs) {
+    for (let tab of tabs) {
       Logger.logInfo("executing action " + action.toUpperCase() +
                      " on tab " + JSON.stringify(tab));
       switch(action) {
@@ -300,7 +322,12 @@ let TPS = {
             Logger.logInfo("tab for " + taburi + " finished loading");
             if (that._tabsFinished == that._tabsAdded) {
               Logger.logInfo("all tabs loaded, continuing...");
-              that.FinishAsyncOperation();
+
+              // Wait a second before continuing to be sure tabs can be synced,
+              // otherwise we can get 'error locating tab'
+              Utils.namedTimer(function () {
+                that.FinishAsyncOperation();
+              }, 1000, this, "postTabsOpening");
             }
           });
           break;
@@ -325,7 +352,7 @@ let TPS = {
   },
 
   HandlePrefs: function (prefs, action) {
-    for each (pref in prefs) {
+    for (let pref of prefs) {
       Logger.logInfo("executing action " + action.toUpperCase() +
                      " on pref " + JSON.stringify(pref));
       let preference = new Preference(pref);
@@ -344,23 +371,25 @@ let TPS = {
   },
 
   HandleForms: function (data, action) {
-    for each (datum in data) {
+    this.shouldValidateForms = true;
+    for (let datum of data) {
       Logger.logInfo("executing action " + action.toUpperCase() +
                      " on form entry " + JSON.stringify(datum));
       let formdata = new FormData(datum, this._usSinceEpoch);
       switch(action) {
         case ACTION_ADD:
-          formdata.Create();
+          Async.promiseSpinningly(formdata.Create());
           break;
         case ACTION_DELETE:
-          formdata.Remove();
+          Async.promiseSpinningly(formdata.Remove());
           break;
         case ACTION_VERIFY:
-          Logger.AssertTrue(formdata.Find(), "form data not found");
+          Logger.AssertTrue(Async.promiseSpinningly(formdata.Find()),
+                            "form data not found");
           break;
         case ACTION_VERIFY_NOT:
-          Logger.AssertTrue(!formdata.Find(),
-            "form data found, but it shouldn't be present");
+          Logger.AssertTrue(!Async.promiseSpinningly(formdata.Find()),
+                            "form data found, but it shouldn't be present");
           break;
         default:
           Logger.AssertTrue(false, "invalid action: " + action);
@@ -372,7 +401,7 @@ let TPS = {
 
   HandleHistory: function (entries, action) {
     try {
-      for each (entry in entries) {
+      for (let entry of entries) {
         Logger.logInfo("executing action " + action.toUpperCase() +
                        " on history entry " + JSON.stringify(entry));
         switch(action) {
@@ -404,31 +433,32 @@ let TPS = {
   },
 
   HandlePasswords: function (passwords, action) {
+    this.shouldValidatePasswords = true;
     try {
-      for each (password in passwords) {
+      for (let password of passwords) {
         let password_id = -1;
         Logger.logInfo("executing action " + action.toUpperCase() +
                       " on password " + JSON.stringify(password));
-        var password = new Password(password);
+        let passwordOb = new Password(password);
         switch (action) {
           case ACTION_ADD:
-            Logger.AssertTrue(password.Create() > -1, "error adding password");
+            Logger.AssertTrue(passwordOb.Create() > -1, "error adding password");
             break;
           case ACTION_VERIFY:
-            Logger.AssertTrue(password.Find() != -1, "password not found");
+            Logger.AssertTrue(passwordOb.Find() != -1, "password not found");
             break;
           case ACTION_VERIFY_NOT:
-            Logger.AssertTrue(password.Find() == -1,
+            Logger.AssertTrue(passwordOb.Find() == -1,
               "password found, but it shouldn't exist");
             break;
           case ACTION_DELETE:
-            Logger.AssertTrue(password.Find() != -1, "password not found");
-            password.Remove();
+            Logger.AssertTrue(passwordOb.Find() != -1, "password not found");
+            passwordOb.Remove();
             break;
           case ACTION_MODIFY:
-            if (password.updateProps != null) {
-              Logger.AssertTrue(password.Find() != -1, "password not found");
-              password.Update();
+            if (passwordOb.updateProps != null) {
+              Logger.AssertTrue(passwordOb.Find() != -1, "password not found");
+              passwordOb.Update();
             }
             break;
           default:
@@ -445,7 +475,8 @@ let TPS = {
   },
 
   HandleAddons: function (addons, action, state) {
-    for each (let entry in addons) {
+    this.shouldValidateAddons = true;
+    for (let entry of addons) {
       Logger.logInfo("executing action " + action.toUpperCase() +
                      " on addon " + JSON.stringify(entry));
       let addon = new Addon(this, entry);
@@ -474,11 +505,12 @@ let TPS = {
   },
 
   HandleBookmarks: function (bookmarks, action) {
+    this.shouldValidateBookmarks = true;
     try {
       let items = [];
-      for (folder in bookmarks) {
+      for (let folder in bookmarks) {
         let last_item_pos = -1;
-        for each (bookmark in bookmarks[folder]) {
+        for (let bookmark of bookmarks[folder]) {
           Logger.clearPotentialError();
           let placesItem;
           bookmark['location'] = folder;
@@ -520,7 +552,7 @@ let TPS = {
       }
 
       if (action == ACTION_DELETE || action == ACTION_MODIFY) {
-        for each (item in items) {
+        for (let item of items) {
           Logger.logInfo("executing action " + action.toUpperCase() +
                          " on bookmark " + JSON.stringify(item));
           switch(action) {
@@ -565,10 +597,163 @@ let TPS = {
     Logger.logInfo("mozmill setTest: " + obj.name);
   },
 
+  Cleanup() {
+    try {
+      this.WipeServer();
+    } catch (ex) {
+      Logger.logError("Failed to wipe server: " + Log.exceptionStr(ex));
+    }
+    try {
+      if (Authentication.isLoggedIn) {
+        // signout and wait for Sync to completely reset itself.
+        Logger.logInfo("signing out");
+        let waiter = this.createEventWaiter("weave:service:start-over:finish");
+        Authentication.signOut();
+        waiter();
+        Logger.logInfo("signout complete");
+      }
+    } catch (e) {
+      Logger.logError("Failed to sign out: " + Log.exceptionStr(e));
+    }
+  },
+
+  /**
+   * Use Sync's bookmark validation code to see if we've corrupted the tree.
+   */
+  ValidateBookmarks() {
+
+    let getServerBookmarkState = () => {
+      let bookmarkEngine = Weave.Service.engineManager.get('bookmarks');
+      let collection = bookmarkEngine.itemSource();
+      let collectionKey = bookmarkEngine.service.collectionKeys.keyForCollection(bookmarkEngine.name);
+      collection.full = true;
+      let items = [];
+      collection.recordHandler = function(item) {
+        item.decrypt(collectionKey);
+        items.push(item.cleartext);
+      };
+      collection.get();
+      return items;
+    };
+    let serverRecordDumpStr;
+    try {
+      Logger.logInfo("About to perform bookmark validation");
+      let clientTree = Async.promiseSpinningly(PlacesUtils.promiseBookmarksTree("", {
+        includeItemIds: true
+      }));
+      let serverRecords = getServerBookmarkState();
+      // We can't wait until catch to stringify this, since at that point it will have cycles.
+      serverRecordDumpStr = JSON.stringify(serverRecords);
+
+      let validator = new BookmarkValidator();
+      let {problemData} = validator.compareServerWithClient(serverRecords, clientTree);
+
+      for (let {name, count} of problemData.getSummary()) {
+        // Exclude mobile showing up on the server hackily so that we don't
+        // report it every time, see bug 1273234 and 1274394 for more information.
+        if (name === "serverUnexpected" && problemData.serverUnexpected.indexOf("mobile") >= 0) {
+          --count;
+        }
+        if (count) {
+          // Log this out before we assert. This is useful in the context of TPS logs, since we
+          // can see the IDs in the test files.
+          Logger.logInfo(`Validation problem: "${name}": ${JSON.stringify(problemData[name])}`);
+        }
+        Logger.AssertEqual(count, 0, `Bookmark validation error of type ${name}`);
+      }
+    } catch (e) {
+      // Dump the client records (should always be doable)
+      DumpBookmarks();
+      // Dump the server records if gotten them already.
+      if (serverRecordDumpStr) {
+        Logger.logInfo("Server bookmark records:\n" + serverRecordDumpStr + "\n");
+      }
+      this.DumpError("Bookmark validation failed", e);
+    }
+    Logger.logInfo("Bookmark validation finished");
+  },
+
+  ValidateCollection(engineName, ValidatorType) {
+    let serverRecordDumpStr;
+    let clientRecordDumpStr;
+    try {
+      Logger.logInfo(`About to perform validation for "${engineName}"`);
+      let engine = Weave.Service.engineManager.get(engineName);
+      let validator = new ValidatorType(engine);
+      let serverRecords = validator.getServerItems(engine);
+      let clientRecords = Async.promiseSpinningly(validator.getClientItems());
+      try {
+        // This substantially improves the logs for addons while not making a
+        // substantial difference for the other two
+        clientRecordDumpStr = JSON.stringify(clientRecords.map(r => {
+          let res = validator.normalizeClientItem(r);
+          delete res.original; // Try and prevent cyclic references
+          return res;
+        }));
+      } catch (e) {
+        // ignore the error, the dump string is just here to make debugging easier.
+        clientRecordDumpStr = "<Cyclic value>";
+      }
+      try {
+        serverRecordDumpStr = JSON.stringify(serverRecords);
+      } catch (e) {
+        // as above
+        serverRecordDumpStr = "<Cyclic value>";
+      }
+      let { problemData } = validator.compareClientWithServer(clientRecords, serverRecords);
+      for (let { name, count } of problemData.getSummary()) {
+        if (count) {
+          Logger.logInfo(`Validation problem: "${name}": ${JSON.stringify(problemData[name])}`);
+        }
+        Logger.AssertEqual(count, 0, `Validation error for "${engineName}" of type "${name}"`);
+      }
+    } catch (e) {
+      // Dump the client records if possible
+      if (clientRecordDumpStr) {
+        Logger.logInfo(`Client state for ${engineName}:\n${clientRecordDumpStr}\n`);
+      }
+      // Dump the server records if gotten them already.
+      if (serverRecordDumpStr) {
+        Logger.logInfo(`Server state for ${engineName}:\n${serverRecordDumpStr}\n`);
+      }
+      this.DumpError(`Validation failed for ${engineName}`, e);
+    }
+    Logger.logInfo(`Validation finished for ${engineName}`);
+  },
+
+  ValidatePasswords() {
+    return this.ValidateCollection("passwords", PasswordValidator);
+  },
+
+  ValidateForms() {
+    return this.ValidateCollection("forms", FormValidator);
+  },
+
+  ValidateAddons() {
+    return this.ValidateCollection("addons", AddonValidator);
+  },
+
   RunNextTestAction: function() {
     try {
       if (this._currentAction >=
-          this._phaselist["phase" + this._currentPhase].length) {
+          this._phaselist[this._currentPhase].length) {
+        // Run necessary validations and then finish up
+        if (this.shouldValidateBookmarks) {
+          this.ValidateBookmarks();
+        }
+        if (this.shouldValidatePasswords) {
+          this.ValidatePasswords();
+        }
+        if (this.shouldValidateForms) {
+          this.ValidateForms();
+        }
+        if (this.shouldValidateAddons) {
+          this.ValidateAddons();
+        }
+        // Force this early so that we run the validation and detect missing pings
+        // *before* we start shutting down, since if we do it after, the python
+        // code won't notice the failure.
+        SyncTelemetry.shutdown();
         // we're all done
         Logger.logInfo("test phase " + this._currentPhase + ": " +
                        (this._errors ? "FAIL" : "PASS"));
@@ -576,7 +761,7 @@ let TPS = {
         this.quit();
         return;
       }
-
+      this.seconds_since_epoch = prefs.getIntPref("tps.seconds_since_epoch", 0);
       if (this.seconds_since_epoch)
         this._usSinceEpoch = this.seconds_since_epoch * 1000 * 1000;
       else {
@@ -584,7 +769,7 @@ let TPS = {
         return;
       }
 
-      let phase = this._phaselist["phase" + this._currentPhase];
+      let phase = this._phaselist[this._currentPhase];
       let action = phase[this._currentAction];
       Logger.logInfo("starting action: " + action[0].name);
       action[0].apply(this, action.slice(1));
@@ -596,10 +781,62 @@ let TPS = {
       this._currentAction++;
     }
     catch(e) {
-      this.DumpError("Exception caught: " + Utils.exceptionStr(e));
+      if (Async.isShutdownException(e)) {
+        if (this._requestedQuit) {
+          Logger.logInfo("Sync aborted due to requested shutdown");
+        } else {
+          this.DumpError("Sync aborted due to shutdown, but we didn't request it");
+        }
+      } else {
+        this.DumpError("RunNextTestAction failed", e);
+      }
       return;
     }
     this.RunNextTestAction();
+  },
+
+  _getFileRelativeToSourceRoot(testFileURL, relativePath) {
+    let file = fileProtocolHandler.getFileFromURLSpec(testFileURL);
+    let root = file // <root>/services/sync/tests/tps/test_foo.js
+      .parent // <root>/services/sync/tests/tps
+      .parent // <root>/services/sync/tests
+      .parent // <root>/services/sync
+      .parent // <root>/services
+      .parent // <root>
+      ;
+    root.appendRelativePath(relativePath);
+    return root;
+  },
+
+  // Attempt to load the sync_ping_schema.json and initialize `this.pingValidator`
+  // based on the source of the tps file. Assumes that it's at "../unit/sync_ping_schema.json"
+  // relative to the directory the tps test file (testFile) is contained in.
+  _tryLoadPingSchema(testFile) {
+    try {
+      let schemaFile = this._getFileRelativeToSourceRoot(testFile,
+        "services/sync/tests/unit/sync_ping_schema.json");
+
+      let stream = Cc["@mozilla.org/network/file-input-stream;1"]
+                   .createInstance(Ci.nsIFileInputStream);
+
+      let jsonReader = Cc["@mozilla.org/dom/json;1"]
+                       .createInstance(Components.interfaces.nsIJSON);
+
+      stream.init(schemaFile, FileUtils.MODE_RDONLY, FileUtils.PERMS_FILE, 0);
+      let schema = jsonReader.decodeFromStream(stream, stream.available());
+      Logger.logInfo("Successfully loaded schema")
+
+      // Importing resource://testing-common/* isn't possible from within TPS,
+      // so we load Ajv manually.
+      let ajvFile = this._getFileRelativeToSourceRoot(testFile, "testing/modules/ajv-4.1.1.js");
+      let ajvURL = fileProtocolHandler.getURLSpecFromFile(ajvFile);
+      let ns = {};
+      Cu.import(ajvURL, ns);
+      let ajv = new ns.Ajv({ async: "co*" });
+      this.pingValidator = ajv.compile(schema);
+    } catch (e) {
+      this.DumpError(`Failed to load ping schema and AJV relative to "${testFile}".`, e);
+    }
   },
 
   /**
@@ -635,6 +872,8 @@ let TPS = {
       Logger.logInfo("Sync version: " + WEAVE_VERSION);
       Logger.logInfo("Firefox buildid: " + Services.appinfo.appBuildID);
       Logger.logInfo("Firefox version: " + Services.appinfo.version);
+      Logger.logInfo("Firefox source revision: " + (AppConstants.SOURCE_REVISION_URL || "unknown"));
+      Logger.logInfo("Firefox platform: " + AppConstants.platform);
       Logger.logInfo('Firefox Accounts enabled: ' + this.fxaccounts_enabled);
 
       // do some sync housekeeping
@@ -648,12 +887,15 @@ let TPS = {
         this.waitForEvent("weave:service:ready");
       }
 
+      // We only want to do this if we modified the bookmarks this phase.
+      this.shouldValidateBookmarks = false;
+
       // Always give Sync an extra tick to initialize. If we waited for the
       // service:ready event, this is required to ensure all handlers have
       // executed.
       Utils.nextTick(this._executeTestPhase.bind(this, file, phase, settings));
     } catch(e) {
-      this.DumpError("Exception caught: " + Utils.exceptionStr(e));
+      this.DumpError("RunTestPhase failed", e);
       return;
     }
   },
@@ -665,17 +907,28 @@ let TPS = {
    */
   _executeTestPhase: function _executeTestPhase(file, phase, settings) {
     try {
+      this.config = JSON.parse(prefs.getCharPref('tps.config'));
       // parse the test file
       Services.scriptloader.loadSubScript(file, this);
       this._currentPhase = phase;
-      let this_phase = this._phaselist["phase" + this._currentPhase];
+      if (this._currentPhase.startsWith("cleanup-")) {
+        let profileToClean = Cc["@mozilla.org/toolkit/profile-service;1"]
+                             .getService(Ci.nsIToolkitProfileService)
+                             .selectedProfile.name;
+        this.phases[this._currentPhase] = profileToClean;
+        this.Phase(this._currentPhase, [[this.Cleanup]]);
+      } else {
+        // Don't bother doing this for cleanup phases.
+        this._tryLoadPingSchema(file);
+      }
+      let this_phase = this._phaselist[this._currentPhase];
 
       if (this_phase == undefined) {
         this.DumpError("invalid phase " + this._currentPhase);
         return;
       }
 
-      if (this.phases["phase" + this._currentPhase] == undefined) {
+      if (this.phases[this._currentPhase] == undefined) {
         this.DumpError("no profile defined for phase " + this._currentPhase);
         return;
       }
@@ -684,7 +937,7 @@ let TPS = {
       // care about.
       if (settings.ignoreUnusedEngines && Array.isArray(this._enabledEngines)) {
         let names = {};
-        for each (let name in this._enabledEngines) {
+        for (let name of this._enabledEngines) {
           names[name] = true;
         }
 
@@ -695,52 +948,63 @@ let TPS = {
           }
         }
       }
+      Logger.logInfo("Starting phase " + this._currentPhase);
 
-      Logger.logInfo("Starting phase " + parseInt(phase, 10) + "/" +
-                     Object.keys(this._phaselist).length);
+      Logger.logInfo("setting client.name to " + this.phases[this._currentPhase]);
+      Weave.Svc.Prefs.set("client.name", this.phases[this._currentPhase]);
 
-      Logger.logInfo("setting client.name to " + this.phases["phase" + this._currentPhase]);
-      Weave.Svc.Prefs.set("client.name", this.phases["phase" + this._currentPhase]);
-
-      // TODO Phases should be defined in a data type that has strong
-      // ordering, not by lexical sorting.
-      let currentPhase = parseInt(this._currentPhase, 10);
-
-      // Login at the beginning of the test.
-      if (currentPhase <= 1) {
-        this_phase.unshift([this.Login]);
-      }
-
-      // Wipe the server at the end of the final test phase.
-      if (currentPhase >= Object.keys(this.phases).length) {
-        this._finalPhase = true;
-      }
-
-      // If a custom server was specified, set it now
-      if (this.config["serverURL"]) {
-        Weave.Service.serverURL = this.config.serverURL;
-        prefs.setCharPref('tps.serverURL', this.config.serverURL);
-      }
-
-      // Store account details as prefs so they're accessible to the Mozmill
-      // framework.
-      if (this.fxaccounts_enabled) {
-        prefs.setCharPref('tps.account.username', this.config.fx_account.username);
-        prefs.setCharPref('tps.account.password', this.config.fx_account.password);
-      }
-      else {
-        prefs.setCharPref('tps.account.username', this.config.sync_account.username);
-        prefs.setCharPref('tps.account.password', this.config.sync_account.password);
-        prefs.setCharPref('tps.account.passphrase', this.config.sync_account.passphrase);
-      }
+      this._interceptSyncTelemetry();
 
       // start processing the test actions
       this._currentAction = 0;
     }
     catch(e) {
-      this.DumpError("Exception caught: " + Utils.exceptionStr(e));
+      this.DumpError("_executeTestPhase failed", e);
       return;
     }
+  },
+
+  /**
+   * Override sync telemetry functions so that we can detect errors generating
+   * the sync ping, and count how many pings we report.
+   */
+  _interceptSyncTelemetry() {
+    let originalObserve = SyncTelemetry.observe;
+    let self = this;
+    SyncTelemetry.observe = function() {
+      try {
+        originalObserve.apply(this, arguments);
+      } catch (e) {
+        self.DumpError("Error when generating sync telemetry", e);
+      }
+    };
+    SyncTelemetry.submit = record => {
+      Logger.logInfo("Intercepted sync telemetry submission: " + JSON.stringify(record));
+      this._syncsReportedViaTelemetry += record.syncs.length + (record.discarded || 0);
+      if (record.discarded) {
+        if (record.syncs.length != SyncTelemetry.maxPayloadCount) {
+          this.DumpError("Syncs discarded from ping before maximum payload count reached");
+        }
+      }
+      // If this is the shutdown ping, check and see that the telemetry saw all the syncs.
+      if (record.why === "shutdown") {
+        // If we happen to sync outside of tps manually causing it, its not an
+        // error in the telemetry, so we only complain if we didn't see all of them.
+        if (this._syncsReportedViaTelemetry < this._syncCount) {
+          this.DumpError(`Telemetry missed syncs: Saw ${this._syncsReportedViaTelemetry}, should have >= ${this._syncCount}.`);
+        }
+      }
+      if (!record.syncs.length) {
+        // Note: we're overwriting submit, so this is called even for pings that
+        // may have no data (which wouldn't be submitted to telemetry and would
+        // fail validation).
+        return;
+      }
+      if (!this.pingValidator(record)) {
+        // Note that we already logged the record.
+        this.DumpError("Sync ping validation failed with errors: " + JSON.stringify(this.pingValidator.errors));
+      }
+    };
   },
 
   /**
@@ -754,6 +1018,10 @@ let TPS = {
    *         Array of functions/actions to perform.
    */
   Phase: function Test__Phase(phasename, fnlist) {
+    if (Object.keys(this._phaselist).length === 0) {
+      // This is the first phase, add that we need to login.
+      fnlist.unshift([this.Login]);
+    }
     this._phaselist[phasename] = fnlist;
   },
 
@@ -799,27 +1067,55 @@ let TPS = {
   },
 
   /**
+   * Return an object that when called, will block until the named event
+   * is observed. This is similar to waitForEvent, although is typically safer
+   * if you need to do some other work that may make the event fire.
+   *
+   * eg:
+   *    doSomething(); // causes the event to be fired.
+   *    waitForEvent("something");
+   * is risky as the call to doSomething may trigger the event before the
+   * waitForEvent call is made. Contrast with:
+   *
+   *   let waiter = createEventWaiter("something"); // does *not* block.
+   *   doSomething(); // causes the event to be fired.
+   *   waiter(); // will return as soon as the event fires, even if it fires
+   *             // before this function is called.
+   *
+   * @param aEventName
+   *        String event to wait for.
+   */
+  createEventWaiter(aEventName) {
+    Logger.logInfo("Setting up wait for " + aEventName + "...");
+    let cb = Async.makeSpinningCallback();
+    Svc.Obs.add(aEventName, cb);
+    return function() {
+      try {
+        cb.wait();
+      } finally {
+        Svc.Obs.remove(aEventName, cb);
+        Logger.logInfo(aEventName + " observed!");
+      }
+    }
+  },
+
+
+  /**
    * Synchronously wait for the named event to be observed.
    *
    * When the event is observed, the function will wait an extra tick before
    * returning.
    *
+   * Note that in general, you should probably use createEventWaiter unless you
+   * are 100% sure that the event being waited on can only be sent after this
+   * call adds the listener.
+   *
    * @param aEventName
    *        String event to wait for.
    */
   waitForEvent: function waitForEvent(aEventName) {
-    Logger.logInfo("Waiting for " + aEventName + "...");
-    let cb = Async.makeSpinningCallback();
-    Svc.Obs.add(aEventName, cb);
-    cb.wait();
-    Svc.Obs.remove(aEventName, cb);
-    Logger.logInfo(aEventName + " observed!");
-
-    let cb = Async.makeSpinningCallback();
-    Utils.nextTick(cb);
-    cb.wait();
+    this.createEventWaiter(aEventName)();
   },
-
 
   /**
    * Waits for Sync to logged in before returning
@@ -863,6 +1159,12 @@ let TPS = {
     this.waitForSetupComplete();
     Logger.AssertEqual(Weave.Status.service, Weave.STATUS_OK, "Weave status OK");
     this.waitForTracking();
+    // If fxaccounts is enabled we get an initial sync at login time - let
+    // that complete.
+    if (this.fxaccounts_enabled) {
+      this._triggeredSync = true;
+      this.waitForSyncFinished();
+    }
   },
 
   /**
@@ -887,10 +1189,12 @@ let TPS = {
     }
 
     this.Login(false);
+    ++this._syncCount;
 
     this._triggeredSync = true;
     this.StartAsyncOperation();
     Weave.Service.sync();
+    Logger.logInfo("Sync is complete");
   },
 
   WipeServer: function TPS__WipeServer() {
@@ -926,6 +1230,9 @@ var Addons = {
   verifyNot: function Addons__verifyNot(addons) {
     TPS.HandleAddons(addons, ACTION_VERIFY_NOT);
   },
+  skipValidation() {
+    TPS.shouldValidateAddons = false;
+  }
 };
 
 var Bookmarks = {
@@ -943,6 +1250,9 @@ var Bookmarks = {
   },
   verifyNot: function Bookmarks__verifyNot(bookmarks) {
     TPS.HandleBookmarks(bookmarks, ACTION_VERIFY_NOT);
+  },
+  skipValidation() {
+    TPS.shouldValidateBookmarks = false;
   }
 };
 
@@ -991,6 +1301,9 @@ var Passwords = {
   },
   verifyNot: function Passwords__verifyNot(passwords) {
     this.HandlePasswords(passwords, ACTION_VERIFY_NOT);
+  },
+  skipValidation() {
+    TPS.shouldValidatePasswords = false;
   }
 };
 

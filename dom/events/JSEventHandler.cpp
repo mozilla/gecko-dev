@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -18,12 +19,11 @@
 #include "nsDOMJSUtils.h"
 #include "WorkerPrivate.h"
 #include "mozilla/ContentEvents.h"
-#include "mozilla/CycleCollectedJSRuntime.h"
+#include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/JSEventHandler.h"
 #include "mozilla/Likely.h"
 #include "mozilla/dom/ErrorEvent.h"
-#include "mozilla/dom/UnionTypes.h"
 
 namespace mozilla {
 
@@ -143,7 +143,7 @@ JSEventHandler::HandleEvent(nsIDOMEvent* aEvent)
     ErrorEvent* scriptEvent = aEvent->InternalDOMEvent()->AsErrorEvent();
     if (scriptEvent) {
       scriptEvent->GetMessage(errorMsg);
-      msgOrEvent.SetAsString().SetData(errorMsg.Data(), errorMsg.Length());
+      msgOrEvent.SetAsString().ShareOrDependUpon(errorMsg);
 
       scriptEvent->GetFilename(file);
       fileName = &file;
@@ -154,20 +154,19 @@ JSEventHandler::HandleEvent(nsIDOMEvent* aEvent)
       columnNumber.Construct();
       columnNumber.Value() = scriptEvent->Colno();
 
-      ThreadsafeAutoJSContext cx;
-      error.Construct(cx);
-      scriptEvent->GetError(cx, &error.Value());
+      error.Construct(RootingCx());
+      scriptEvent->GetError(&error.Value());
     } else {
       msgOrEvent.SetAsEvent() = aEvent->InternalDOMEvent();
     }
 
-    nsRefPtr<OnErrorEventHandlerNonNull> handler =
+    RefPtr<OnErrorEventHandlerNonNull> handler =
       mTypedHandler.OnErrorEventHandler();
     ErrorResult rv;
     bool handled = handler->Call(mTarget, msgOrEvent, fileName, lineNumber,
                                  columnNumber, error, rv);
     if (rv.Failed()) {
-      return rv.ErrorCode();
+      return rv.StealNSResult();
     }
 
     if (handled) {
@@ -179,13 +178,13 @@ JSEventHandler::HandleEvent(nsIDOMEvent* aEvent)
   if (mTypedHandler.Type() == TypedEventHandler::eOnBeforeUnload) {
     MOZ_ASSERT(mEventName == nsGkAtoms::onbeforeunload);
 
-    nsRefPtr<OnBeforeUnloadEventHandlerNonNull> handler =
+    RefPtr<OnBeforeUnloadEventHandlerNonNull> handler =
       mTypedHandler.OnBeforeUnloadEventHandler();
     ErrorResult rv;
     nsString retval;
     handler->Call(mTarget, *(aEvent->InternalDOMEvent()), retval, rv);
     if (rv.Failed()) {
-      return rv.ErrorCode();
+      return rv.StealNSResult();
     }
 
     nsCOMPtr<nsIDOMBeforeUnloadEvent> beforeUnload = do_QueryInterface(aEvent);
@@ -210,11 +209,11 @@ JSEventHandler::HandleEvent(nsIDOMEvent* aEvent)
 
   MOZ_ASSERT(mTypedHandler.Type() == TypedEventHandler::eNormal);
   ErrorResult rv;
-  nsRefPtr<EventHandlerNonNull> handler = mTypedHandler.NormalEventHandler();
-  JS::Rooted<JS::Value> retval(CycleCollectedJSRuntime::Get()->Runtime());
+  RefPtr<EventHandlerNonNull> handler = mTypedHandler.NormalEventHandler();
+  JS::Rooted<JS::Value> retval(RootingCx());
   handler->Call(mTarget, *(aEvent->InternalDOMEvent()), &retval, rv);
   if (rv.Failed()) {
-    return rv.ErrorCode();
+    return rv.StealNSResult();
   }
 
   // If the handler returned false and its sense is not reversed,

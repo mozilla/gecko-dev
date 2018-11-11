@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,6 +10,7 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
+#include "jsprf.h"
 #include "nsIDOMWakeLockListener.h"
 #include "nsIDOMWindow.h"
 #include "nsIObserverService.h"
@@ -31,6 +33,7 @@ static void LogFunctionAndJSStack(const char* funcname) {
                       "Call to %s. The JS stack is:\n%s\n",
                       funcname,
                       jsstack ? jsstack : "<no JS stack>");
+  JS_smprintf_free(jsstack);
 }
 // bug 839452
 #define LOG_FUNCTION_AND_JS_STACK() \
@@ -58,7 +61,7 @@ PowerManagerService::GetInstance()
     ClearOnShutdown(&sSingleton);
   }
 
-  nsRefPtr<PowerManagerService> service = sSingleton.get();
+  RefPtr<PowerManagerService> service = sSingleton.get();
   return service.forget();
 }
 
@@ -109,7 +112,7 @@ PowerManagerService::Notify(const WakeLockInformation& aWakeLockInfo)
    * because the callbacks may install new listeners. We expect no
    * more than one listener per window, so it shouldn't be too long.
    */
-  nsAutoTArray<nsCOMPtr<nsIDOMMozWakeLockListener>, 2> listeners(mWakeLockListeners);
+  AutoTArray<nsCOMPtr<nsIDOMMozWakeLockListener>, 2> listeners(mWakeLockListeners);
 
   for (uint32_t i = 0; i < listeners.Length(); ++i) {
     listeners[i]->Callback(aWakeLockInfo.topic(), state);
@@ -125,7 +128,8 @@ PowerManagerService::SyncProfile()
     obsServ->NotifyObservers(nullptr, "profile-change-net-teardown", context.get());
     obsServ->NotifyObservers(nullptr, "profile-change-teardown", context.get());
     obsServ->NotifyObservers(nullptr, "profile-before-change", context.get());
-    obsServ->NotifyObservers(nullptr, "profile-before-change2", context.get());
+    obsServ->NotifyObservers(nullptr, "profile-before-change-qm", context.get());
+    obsServ->NotifyObservers(nullptr, "profile-before-change-telemetry", context.get());
   }
 }
 
@@ -207,10 +211,10 @@ PowerManagerService::GetWakeLockState(const nsAString &aTopic, nsAString &aState
 
 already_AddRefed<WakeLock>
 PowerManagerService::NewWakeLock(const nsAString& aTopic,
-                                 nsIDOMWindow* aWindow,
+                                 nsPIDOMWindowInner* aWindow,
                                  mozilla::ErrorResult& aRv)
 {
-  nsRefPtr<WakeLock> wakelock = new WakeLock();
+  RefPtr<WakeLock> wakelock = new WakeLock();
   aRv = wakelock->Init(aTopic, aWindow);
   if (aRv.Failed()) {
     return nullptr;
@@ -221,13 +225,14 @@ PowerManagerService::NewWakeLock(const nsAString& aTopic,
 
 NS_IMETHODIMP
 PowerManagerService::NewWakeLock(const nsAString &aTopic,
-                                 nsIDOMWindow *aWindow,
+                                 mozIDOMWindow *aWindow,
                                  nsISupports **aWakeLock)
 {
   mozilla::ErrorResult rv;
-  nsRefPtr<WakeLock> wakelock = NewWakeLock(aTopic, aWindow, rv);
+  RefPtr<WakeLock> wakelock =
+    NewWakeLock(aTopic, nsPIDOMWindowInner::From(aWindow), rv);
   if (rv.Failed()) {
-    return rv.ErrorCode();
+    return rv.StealNSResult();
   }
 
   nsCOMPtr<nsIDOMEventListener> eventListener = wakelock.get();
@@ -239,12 +244,12 @@ already_AddRefed<WakeLock>
 PowerManagerService::NewWakeLockOnBehalfOfProcess(const nsAString& aTopic,
                                                   ContentParent* aContentParent)
 {
-  nsRefPtr<WakeLock> wakelock = new WakeLock();
+  RefPtr<WakeLock> wakelock = new WakeLock();
   nsresult rv = wakelock->Init(aTopic, aContentParent);
   NS_ENSURE_SUCCESS(rv, nullptr);
   return wakelock.forget();
 }
 
-} // power
-} // dom
-} // mozilla
+} // namespace power
+} // namespace dom
+} // namespace mozilla

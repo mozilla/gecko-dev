@@ -20,18 +20,16 @@
 #include "nsIFile.h"
 #include "nsNetUtil.h"
 #include "nsAutoLock.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "prenv.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#if defined(PR_LOGGING)
 //
 // set NSPR_LOG_MODULES=Test:5
 //
 static PRLogModuleInfo *gTestLog = nullptr;
-#endif
-#define LOG(args) PR_LOG(gTestLog, PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(gTestLog, mozilla::LogLevel::Debug, args)
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -137,12 +135,12 @@ public:
         return mInput->AsyncWait(this, 0, 0, nullptr);
     }
 
-    static NS_METHOD FillOutputBuffer(nsIOutputStream *outStr,
-                                      void *closure,
-                                      char *buffer,
-                                      uint32_t offset,
-                                      uint32_t count,
-                                      uint32_t *countRead)
+    static nsresult FillOutputBuffer(nsIOutputStream *outStr,
+                                     void *closure,
+                                     char *buffer,
+                                     uint32_t offset,
+                                     uint32_t count,
+                                     uint32_t *countRead)
     {
         MyCopier *self = (MyCopier *) closure;
 
@@ -280,9 +278,7 @@ main(int argc, char* argv[])
         if (registrar)
             registrar->AutoRegister(nullptr);
 
-#if defined(PR_LOGGING)
         gTestLog = PR_NewLogModule("Test");
-#endif
 
         nsCOMPtr<nsIFile> srcFile;
         rv = NS_NewNativeLocalFile(nsDependentCString(fileName), false, getter_AddRefs(srcFile));

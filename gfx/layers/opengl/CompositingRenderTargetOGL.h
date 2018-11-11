@@ -9,8 +9,8 @@
 #include "GLContextTypes.h"             // for GLContext
 #include "GLDefs.h"                     // for GLenum, LOCAL_GL_FRAMEBUFFER, etc
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
-#include "mozilla/Attributes.h"         // for MOZ_OVERRIDE
-#include "mozilla/RefPtr.h"             // for RefPtr, TemporaryRef
+#include "mozilla/Attributes.h"         // for override
+#include "mozilla/RefPtr.h"             // for RefPtr, already_AddRefed
 #include "mozilla/gfx/Point.h"          // for IntSize, IntSizeTyped
 #include "mozilla/gfx/Types.h"          // for SurfaceFormat, etc
 #include "mozilla/layers/Compositor.h"  // for SurfaceInitMode, etc
@@ -26,10 +26,10 @@
 namespace mozilla {
 namespace gl {
   class BindableTexture;
-}
+} // namespace gl
 namespace gfx {
   class DataSourceSurface;
-}
+} // namespace gfx
 
 namespace layers {
 
@@ -39,15 +39,19 @@ class CompositingRenderTargetOGL : public CompositingRenderTarget
 {
   typedef mozilla::gl::GLContext GLContext;
 
+  friend class CompositorOGL;
+
   // For lazy initialisation of the GL stuff
   struct InitParams
   {
     InitParams() : mStatus(NO_PARAMS) {}
     InitParams(const gfx::IntSize& aSize,
+               const gfx::IntSize& aPhySize,
                GLenum aFBOTextureTarget,
                SurfaceInitMode aInit)
       : mStatus(READY)
       , mSize(aSize)
+      , mPhySize(aPhySize)
       , mFBOTextureTarget(aFBOTextureTarget)
       , mInit(aInit)
     {}
@@ -57,7 +61,15 @@ class CompositingRenderTargetOGL : public CompositingRenderTarget
       READY,
       INITIALIZED
     } mStatus;
-    gfx::IntSize mSize;
+    /*
+     * Users of render target would draw in logical size, but it is
+     * actually drawn to a surface in physical size.  GL surfaces have
+     * a limitation on their size, a smaller surface would be
+     * allocated for the render target if the caller requests in a
+     * size too big.
+     */
+    gfx::IntSize mSize; // Logical size, the expected by callers.
+    gfx::IntSize mPhySize; // Physical size, the real size of the surface.
     GLenum mFBOTextureTarget;
     SurfaceInitMode mInit;
   };
@@ -67,29 +79,29 @@ public:
                              GLuint aTexure, GLuint aFBO)
     : CompositingRenderTarget(aOrigin)
     , mInitParams()
-    , mTransform()
     , mCompositor(aCompositor)
     , mGL(aCompositor->gl())
     , mTextureHandle(aTexure)
     , mFBO(aFBO)
-  {}
+  {
+    MOZ_ASSERT(mGL);
+  }
 
   ~CompositingRenderTargetOGL();
+
+  virtual const char* Name() const override { return "CompositingRenderTargetOGL"; }
 
   /**
    * Create a render target around the default FBO, for rendering straight to
    * the window.
    */
-  static TemporaryRef<CompositingRenderTargetOGL>
+  static already_AddRefed<CompositingRenderTargetOGL>
   RenderTargetForWindow(CompositorOGL* aCompositor,
-                        const gfx::IntPoint& aOrigin,
-                        const gfx::IntSize& aSize,
-                        const gfx::Matrix& aTransform)
+                        const gfx::IntSize& aSize)
   {
     RefPtr<CompositingRenderTargetOGL> result
-      = new CompositingRenderTargetOGL(aCompositor, aOrigin, 0, 0);
-    result->mTransform = aTransform;
-    result->mInitParams = InitParams(aSize, 0, INIT_MODE_NONE);
+      = new CompositingRenderTargetOGL(aCompositor, gfx::IntPoint(), 0, 0);
+    result->mInitParams = InitParams(aSize, aSize, 0, INIT_MODE_NONE);
     result->mInitParams.mStatus = InitParams::INITIALIZED;
     return result.forget();
   }
@@ -101,12 +113,13 @@ public:
    * alternatively leave the FBO bound after creation.
    */
   void Initialize(const gfx::IntSize& aSize,
+                  const gfx::IntSize& aPhySize,
                   GLenum aFBOTextureTarget,
                   SurfaceInitMode aInit)
   {
     MOZ_ASSERT(mInitParams.mStatus == InitParams::NO_PARAMS, "Initialized twice?");
     // postpone initialization until we actually want to use this render target
-    mInitParams = InitParams(aSize, aFBOTextureTarget, aInit);
+    mInitParams = InitParams(aSize, aPhySize, aFBOTextureTarget, aInit);
   }
 
   void BindTexture(GLenum aTextureUnit, GLenum aTextureTarget);
@@ -115,6 +128,8 @@ public:
    * Call when we want to draw into our FBO
    */
   void BindRenderTarget();
+
+  bool IsWindow() { return GetFBO() == 0; }
 
   GLuint GetFBO() const
   {
@@ -129,33 +144,31 @@ public:
   }
 
   // TextureSourceOGL
-  TextureSourceOGL* AsSourceOGL() MOZ_OVERRIDE
+  TextureSourceOGL* AsSourceOGL() override
   {
     // XXX - Bug 900770
     MOZ_ASSERT(false, "CompositingRenderTargetOGL should not be used as a TextureSource");
     return nullptr;
   }
-  gfx::IntSize GetSize() const MOZ_OVERRIDE
+  gfx::IntSize GetSize() const override
   {
-    // XXX - Bug 900770
-    MOZ_ASSERT(false, "CompositingRenderTargetOGL should not be used as a TextureSource");
-    return gfx::IntSize(0, 0);
+    return mInitParams.mSize;
   }
 
-  gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE
+  gfx::SurfaceFormat GetFormat() const override
   {
     // XXX - Should it be implemented ? is the above assert true ?
     MOZ_ASSERT(false, "Not implemented");
     return gfx::SurfaceFormat::UNKNOWN;
   }
 
-  const gfx::Matrix& GetTransform() {
-    return mTransform;
-  }
-
 #ifdef MOZ_DUMP_PAINTING
-  virtual TemporaryRef<gfx::DataSourceSurface> Dump(Compositor* aCompositor);
+  virtual already_AddRefed<gfx::DataSourceSurface> Dump(Compositor* aCompositor) override;
 #endif
+
+  const gfx::IntSize& GetInitSize() const {
+    return mInitParams.mSize;
+  }
 
 private:
   /**
@@ -165,14 +178,18 @@ private:
   void InitializeImpl();
 
   InitParams mInitParams;
-  gfx::Matrix mTransform;
-  CompositorOGL* mCompositor;
-  GLContext* mGL;
+  /**
+   * There is temporary a cycle between the compositor and the render target,
+   * each having a strong ref to the other. The compositor's reference to
+   * the target is always cleared at the end of a frame.
+   */
+  RefPtr<CompositorOGL> mCompositor;
+  RefPtr<GLContext> mGL;
   GLuint mTextureHandle;
   GLuint mFBO;
 };
 
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 #endif /* MOZILLA_GFX_SURFACEOGL_H */

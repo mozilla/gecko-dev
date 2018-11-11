@@ -12,7 +12,7 @@
 #include <fstream>
 
 #if defined(_MSC_VER)
-#include <hash_set>
+#include <unordered_set>
 #else
 #include <set>
 #endif
@@ -26,25 +26,32 @@ class DrawEventRecorderPrivate : public DrawEventRecorder
 {
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(DrawEventRecorderPrivate)
-  DrawEventRecorderPrivate(std::ostream *aStream);
+  explicit DrawEventRecorderPrivate(std::ostream *aStream);
   virtual ~DrawEventRecorderPrivate() { }
+
+  void WriteHeader();
 
   void RecordEvent(const RecordedEvent &aEvent);
   void WritePath(const PathRecording *aPath);
 
-  void AddStoredPath(const ReferencePtr aPath) {
-    mStoredPaths.insert(aPath);
+  void AddStoredObject(const ReferencePtr aObject) {
+    mStoredObjects.insert(aObject);
   }
 
-  void RemoveStoredPath(const ReferencePtr aPath) {
-    mStoredPaths.erase(aPath);
+  void RemoveStoredObject(const ReferencePtr aObject) {
+    mStoredObjects.erase(aObject);
   }
 
-  bool HasStoredPath(const ReferencePtr aPath) {
-    if (mStoredPaths.find(aPath) != mStoredPaths.end()) {
-      return true;
-    }
-    return false;
+  bool HasStoredObject(const ReferencePtr aObject) {
+    return mStoredObjects.find(aObject) != mStoredObjects.end();
+  }
+
+  void AddStoredFontData(const uint64_t aFontDataKey) {
+    mStoredFontData.insert(aFontDataKey);
+  }
+
+  bool HasStoredFontData(const uint64_t aFontDataKey) {
+    return mStoredFontData.find(aFontDataKey) != mStoredFontData.end();
   }
 
 protected:
@@ -53,21 +60,42 @@ protected:
   virtual void Flush() = 0;
 
 #if defined(_MSC_VER)
-  typedef stdext::hash_set<const void*> ObjectSet;
+  typedef std::unordered_set<const void*> ObjectSet;
+  typedef std::unordered_set<uint64_t> Uint64Set;
 #else
   typedef std::set<const void*> ObjectSet;
+  typedef std::set<uint64_t> Uint64Set;
 #endif
 
-  ObjectSet mStoredPaths;
-  ObjectSet mStoredScaledFonts;
+  ObjectSet mStoredObjects;
+  Uint64Set mStoredFontData;
 };
 
 class DrawEventRecorderFile : public DrawEventRecorderPrivate
 {
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(DrawEventRecorderFile)
-  DrawEventRecorderFile(const char *aFilename);
+  explicit DrawEventRecorderFile(const char *aFilename);
   ~DrawEventRecorderFile();
+
+  /**
+   * Returns whether a recording file is currently open.
+   */
+  bool IsOpen();
+
+  /**
+   * Opens new file with the provided name. The recorder does NOT forget which
+   * objects it has recorded. This can be used with Close, so that a recording
+   * can be processed in chunks. The file must not already be open.
+   */
+  void OpenNew(const char *aFilename);
+
+  /**
+   * Closes the file so that it can be processed. The recorder does NOT forget
+   * which objects it has recorded. This can be used with OpenNew, so that a
+   * recording can be processed in chunks. The file must be open.
+   */
+  void Close();
 
 private:
   virtual void Flush();
@@ -75,7 +103,46 @@ private:
   std::ofstream mOutputFile;
 };
 
-}
-}
+class DrawEventRecorderMemory final : public DrawEventRecorderPrivate
+{
+public:
+  MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(DrawEventRecorderMemory)
+
+  /**
+   * Constructs a DrawEventRecorder that stores the recording in memory.
+   */
+  DrawEventRecorderMemory();
+
+  /**
+   * @return the current size of the recording (in chars).
+   */
+  size_t RecordingSize();
+
+  /**
+   * Copies at most aBufferLen chars of the recording into aBuffer.
+   *
+   * @param aBuffer buffer to receive the recording chars
+   * @param aBufferLen length of aBuffer
+   * @return true if copied successfully
+   */
+  bool CopyRecording(char* aBuffer, size_t aBufferLen);
+
+  /**
+   * Wipes the internal recording buffer, but the recorder does NOT forget which
+   * objects it has recorded. This can be used so that a recording can be copied
+   * and processed in chunks, releasing memory as it goes.
+   */
+  void WipeRecording();
+
+private:
+  ~DrawEventRecorderMemory() {};
+
+  void Flush() final;
+
+  std::stringstream mMemoryStream;
+};
+
+} // namespace gfx
+} // namespace mozilla
 
 #endif /* MOZILLA_GFX_DRAWEVENTRECORDER_H_ */

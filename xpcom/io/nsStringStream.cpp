@@ -13,6 +13,7 @@
 #include "nsStringStream.h"
 #include "nsStreamUtils.h"
 #include "nsReadableUtils.h"
+#include "nsICloneableInputStream.h"
 #include "nsISeekableStream.h"
 #include "nsISupportsPrimitives.h"
 #include "nsCRT.h"
@@ -24,16 +25,19 @@
 #include "nsIIPCSerializableInputStream.h"
 
 using namespace mozilla::ipc;
+using mozilla::Maybe;
+using mozilla::Some;
 
 //-----------------------------------------------------------------------------
 // nsIStringInputStream implementation
 //-----------------------------------------------------------------------------
 
-class nsStringInputStream MOZ_FINAL
+class nsStringInputStream final
   : public nsIStringInputStream
   , public nsISeekableStream
   , public nsISupportsCString
   , public nsIIPCSerializableInputStream
+  , public nsICloneableInputStream
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -43,10 +47,19 @@ public:
   NS_DECL_NSISUPPORTSPRIMITIVE
   NS_DECL_NSISUPPORTSCSTRING
   NS_DECL_NSIIPCSERIALIZABLEINPUTSTREAM
+  NS_DECL_NSICLONEABLEINPUTSTREAM
 
   nsStringInputStream()
   {
     Clear();
+  }
+
+  explicit nsStringInputStream(const nsStringInputStream& aOther)
+    : mOffset(aOther.mOffset)
+  {
+    // Use Assign() here because we don't want the life of the clone to be
+    // dependent on the life of the original stream.
+    mData.Assign(aOther.mData);
   }
 
 private:
@@ -90,12 +103,14 @@ NS_IMPL_QUERY_INTERFACE_CI(nsStringInputStream,
                            nsIInputStream,
                            nsISupportsCString,
                            nsISeekableStream,
-                           nsIIPCSerializableInputStream)
+                           nsIIPCSerializableInputStream,
+                           nsICloneableInputStream)
 NS_IMPL_CI_INTERFACE_GETTER(nsStringInputStream,
                             nsIStringInputStream,
                             nsIInputStream,
                             nsISupportsCString,
-                            nsISeekableStream)
+                            nsISeekableStream,
+                            nsICloneableInputStream)
 
 /////////
 // nsISupportsCString implementation
@@ -179,6 +194,14 @@ nsStringInputStream::ShareData(const char* aData, int32_t aDataLen)
   return NS_OK;
 }
 
+NS_IMETHODIMP_(size_t)
+nsStringInputStream::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf)
+{
+  size_t n = aMallocSizeOf(this);
+  n += mData.SizeOfExcludingThisIfUnshared(aMallocSizeOf);
+  return n;
+}
+
 /////////
 // nsIInputStream implementation
 /////////
@@ -231,7 +254,8 @@ nsStringInputStream::ReadSegments(nsWriteSegmentFun aWriter, void* aClosure,
   if (aCount > maxCount) {
     aCount = maxCount;
   }
-  nsresult rv = aWriter(this, aClosure, mData.BeginReading() + mOffset, 0, aCount, aResult);
+  nsresult rv = aWriter(this, aClosure, mData.BeginReading() + mOffset, 0,
+                        aCount, aResult);
   if (NS_SUCCEEDED(rv)) {
     NS_ASSERTION(*aResult <= aCount,
                  "writer should not write more than we asked it to write");
@@ -307,6 +331,10 @@ nsStringInputStream::SetEOF()
   return NS_OK;
 }
 
+/////////
+// nsIIPCSerializableInputStream implementation
+/////////
+
 void
 nsStringInputStream::Serialize(InputStreamParams& aParams,
                                FileDescriptorArray& /* aFDs */)
@@ -336,6 +364,31 @@ nsStringInputStream::Deserialize(const InputStreamParams& aParams,
   return true;
 }
 
+Maybe<uint64_t>
+nsStringInputStream::ExpectedSerializedLength()
+{
+  return Some(static_cast<uint64_t>(Length()));
+}
+
+/////////
+// nsICloneableInputStream implementation
+/////////
+
+NS_IMETHODIMP
+nsStringInputStream::GetCloneable(bool* aCloneableOut)
+{
+  *aCloneableOut = true;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsStringInputStream::Clone(nsIInputStream** aCloneOut)
+{
+  RefPtr<nsIInputStream> ref = new nsStringInputStream(*this);
+  ref.forget(aCloneOut);
+  return NS_OK;
+}
+
 nsresult
 NS_NewByteInputStream(nsIInputStream** aStreamResult,
                       const char* aStringToRead, int32_t aLength,
@@ -343,12 +396,7 @@ NS_NewByteInputStream(nsIInputStream** aStreamResult,
 {
   NS_PRECONDITION(aStreamResult, "null out ptr");
 
-  nsStringInputStream* stream = new nsStringInputStream();
-  if (! stream) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  NS_ADDREF(stream);
+  RefPtr<nsStringInputStream> stream = new nsStringInputStream();
 
   nsresult rv;
   switch (aAssignment) {
@@ -367,20 +415,11 @@ NS_NewByteInputStream(nsIInputStream** aStreamResult,
   }
 
   if (NS_FAILED(rv)) {
-    NS_RELEASE(stream);
     return rv;
   }
 
-  *aStreamResult = stream;
+  stream.forget(aStreamResult);
   return NS_OK;
-}
-
-nsresult
-NS_NewStringInputStream(nsIInputStream** aStreamResult,
-                        const nsAString& aStringToRead)
-{
-  NS_LossyConvertUTF16toASCII data(aStringToRead); // truncates high-order bytes
-  return NS_NewCStringInputStream(aStreamResult, data);
 }
 
 nsresult
@@ -389,22 +428,18 @@ NS_NewCStringInputStream(nsIInputStream** aStreamResult,
 {
   NS_PRECONDITION(aStreamResult, "null out ptr");
 
-  nsStringInputStream* stream = new nsStringInputStream();
-  if (! stream) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  NS_ADDREF(stream);
+  RefPtr<nsStringInputStream> stream = new nsStringInputStream();
 
   stream->SetData(aStringToRead);
 
-  *aStreamResult = stream;
+  stream.forget(aStreamResult);
   return NS_OK;
 }
 
 // factory method for constructing a nsStringInputStream object
 nsresult
-nsStringInputStreamConstructor(nsISupports* aOuter, REFNSIID aIID, void** aResult)
+nsStringInputStreamConstructor(nsISupports* aOuter, REFNSIID aIID,
+                               void** aResult)
 {
   *aResult = nullptr;
 
@@ -412,14 +447,6 @@ nsStringInputStreamConstructor(nsISupports* aOuter, REFNSIID aIID, void** aResul
     return NS_ERROR_NO_AGGREGATION;
   }
 
-  nsStringInputStream* inst = new nsStringInputStream();
-  if (!inst) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  NS_ADDREF(inst);
-  nsresult rv = inst->QueryInterface(aIID, aResult);
-  NS_RELEASE(inst);
-
-  return rv;
+  RefPtr<nsStringInputStream> inst = new nsStringInputStream();
+  return inst->QueryInterface(aIID, aResult);
 }

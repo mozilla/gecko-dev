@@ -19,18 +19,43 @@
 #include "webrtc/system_wrappers/interface/clock.h"
 #include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
 #include "webrtc/system_wrappers/interface/event_wrapper.h"
-#include "webrtc/system_wrappers/interface/thread_wrapper.h"
-#include "webrtc/system_wrappers/interface/trace.h"
+#include "webrtc/system_wrappers/interface/logging.h"
+#include "webrtc/system_wrappers/interface/tick_util.h"
 #include "webrtc/system_wrappers/interface/trace_event.h"
-#include "webrtc/video_engine/include/vie_base.h"
 #include "webrtc/video_engine/include/vie_image_process.h"
 #include "webrtc/video_engine/overuse_frame_detector.h"
 #include "webrtc/video_engine/vie_defines.h"
 #include "webrtc/video_engine/vie_encoder.h"
+#include "webrtc/video_engine/desktop_capture_impl.h"
 
 namespace webrtc {
 
 const int kThreadWaitTimeMs = 100;
+
+class RegistrableCpuOveruseMetricsObserver : public CpuOveruseMetricsObserver {
+ public:
+  void CpuOveruseMetricsUpdated(const CpuOveruseMetrics& metrics) override {
+    rtc::CritScope lock(&crit_);
+    if (observer_)
+      observer_->CpuOveruseMetricsUpdated(metrics);
+    metrics_ = metrics;
+  }
+
+  CpuOveruseMetrics GetCpuOveruseMetrics() const {
+    rtc::CritScope lock(&crit_);
+    return metrics_;
+  }
+
+  void Set(CpuOveruseMetricsObserver* observer) {
+    rtc::CritScope lock(&crit_);
+    observer_ = observer;
+  }
+
+ private:
+  mutable rtc::CriticalSection crit_;
+  CpuOveruseMetricsObserver* observer_ GUARDED_BY(crit_) = nullptr;
+  CpuOveruseMetrics metrics_ GUARDED_BY(crit_);
+};
 
 ViECapturer::ViECapturer(int capture_id,
                          int engine_id,
@@ -38,17 +63,21 @@ ViECapturer::ViECapturer(int capture_id,
                          ProcessThread& module_process_thread)
     : ViEFrameProviderBase(capture_id, engine_id),
       capture_cs_(CriticalSectionWrapper::CreateCriticalSection()),
-      deliver_cs_(CriticalSectionWrapper::CreateCriticalSection()),
+      effects_and_stats_cs_(CriticalSectionWrapper::CreateCriticalSection()),
       capture_module_(NULL),
-      external_capture_module_(NULL),
+      use_external_capture_(false),
       module_process_thread_(module_process_thread),
       capture_id_(capture_id),
       incoming_frame_cs_(CriticalSectionWrapper::CreateCriticalSection()),
-      capture_thread_(*ThreadWrapper::CreateThread(ViECaptureThreadFunction,
-                                                   this, kHighPriority,
-                                                   "ViECaptureThread")),
+      capture_thread_(ThreadWrapper::CreateThread(
+          ViECaptureThreadFunction, this, "ViECaptureThread")),
       capture_event_(*EventWrapper::Create()),
       deliver_event_(*EventWrapper::Create()),
+      stop_(0),
+      last_captured_timestamp_(0),
+      delta_ntp_internal_ms_(
+          Clock::GetRealTimeClock()->CurrentNtpInMilliseconds() -
+          TickTime::MillisecondTimestamp()),
       effect_filter_(NULL),
       image_proc_module_(NULL),
       image_proc_module_ref_counter_(0),
@@ -56,38 +85,24 @@ ViECapturer::ViECapturer(int capture_id,
       brightness_frame_stats_(NULL),
       current_brightness_level_(Normal),
       reported_brightness_level_(Normal),
-      denoising_enabled_(false),
       observer_cs_(CriticalSectionWrapper::CreateCriticalSection()),
       observer_(NULL),
-      overuse_detector_(new OveruseFrameDetector(Clock::GetRealTimeClock(),
-                                                 kNormalUseStdDevMs,
-                                                 kOveruseStdDevMs)) {
-  WEBRTC_TRACE(kTraceMemory, kTraceVideo, ViEId(engine_id, capture_id),
-               "ViECapturer::ViECapturer(capture_id: %d, engine_id: %d)",
-               capture_id, engine_id);
-  unsigned int t_id = 0;
-  if (capture_thread_.Start(t_id)) {
-    WEBRTC_TRACE(kTraceInfo, kTraceVideo, ViEId(engine_id, capture_id),
-                 "%s: thread started: %u", __FUNCTION__, t_id);
-  } else {
-    assert(false);
-  }
+      cpu_overuse_metrics_observer_(new RegistrableCpuOveruseMetricsObserver()),
+      overuse_detector_(
+          new OveruseFrameDetector(Clock::GetRealTimeClock(),
+                                   cpu_overuse_metrics_observer_.get())),
+      config_(config) {
+  capture_thread_->Start();
+  capture_thread_->SetPriority(kHighPriority);
   module_process_thread_.RegisterModule(overuse_detector_.get());
 }
 
 ViECapturer::~ViECapturer() {
-  WEBRTC_TRACE(kTraceMemory, kTraceVideo, ViEId(engine_id_, capture_id_),
-               "ViECapturer::~ViECapturer() - capture_id: %d, engine_id: %d",
-               capture_id_, engine_id_);
   module_process_thread_.DeRegisterModule(overuse_detector_.get());
 
   // Stop the thread.
-  deliver_cs_->Enter();
-  capture_cs_->Enter();
-  capture_thread_.SetNotAlive();
+  rtc::AtomicOps::Increment(&stop_);
   capture_event_.Set();
-  capture_cs_->Leave();
-  deliver_cs_->Leave();
 
   // Stop the camera input.
   if (capture_module_) {
@@ -96,18 +111,10 @@ ViECapturer::~ViECapturer() {
     capture_module_->Release();
     capture_module_ = NULL;
   }
-  if (capture_thread_.Stop()) {
-    // Thread stopped.
-    delete &capture_thread_;
-    delete &capture_event_;
-    delete &deliver_event_;
-  } else {
-    assert(false);
-    WEBRTC_TRACE(kTraceMemory, kTraceVideoRenderer,
-                 ViEId(engine_id_, capture_id_),
-                 "%s: Not able to stop capture thread for device %d, leaking",
-                 __FUNCTION__, capture_id_);
-  }
+
+  capture_thread_->Stop();
+  delete &capture_event_;
+  delete &deliver_event_;
 
   if (image_proc_module_) {
     VideoProcessingModule::Destroy(image_proc_module_);
@@ -139,10 +146,7 @@ int32_t ViECapturer::Init(VideoCaptureModule* capture_module) {
   capture_module_ = capture_module;
   capture_module_->RegisterCaptureDataCallback(*this);
   capture_module_->AddRef();
-  if (module_process_thread_.RegisterModule(capture_module_) != 0) {
-    return -1;
-  }
-
+  module_process_thread_.RegisterModule(capture_module_);
   return 0;
 }
 
@@ -166,26 +170,34 @@ ViECapturer* ViECapturer::CreateViECapture(
 int32_t ViECapturer::Init(const char* device_unique_idUTF8,
                           uint32_t device_unique_idUTF8Length) {
   assert(capture_module_ == NULL);
-  if (device_unique_idUTF8 == NULL) {
-    capture_module_  = VideoCaptureFactory::Create(
-        ViEModuleId(engine_id_, capture_id_), external_capture_module_);
+  CaptureDeviceType type = config_.Get<CaptureDeviceInfo>().type;
+
+  if(type != CaptureDeviceType::Camera) {
+#if !defined(ANDROID) && !defined(WEBRTC_IOS)
+    capture_module_ = DesktopCaptureImpl::Create(
+      ViEModuleId(engine_id_, capture_id_), device_unique_idUTF8, type);
+#endif
+  } else if (device_unique_idUTF8 == NULL) {
+    use_external_capture_ = true;
+    // YYY: was      ViEModuleId(engine_id_, capture_id_), external_capture_module_);
+    return 0;
   } else {
     capture_module_ = VideoCaptureFactory::Create(
-        ViEModuleId(engine_id_, capture_id_), device_unique_idUTF8);
+      ViEModuleId(engine_id_, capture_id_), device_unique_idUTF8);
   }
   if (!capture_module_) {
     return -1;
   }
   capture_module_->AddRef();
   capture_module_->RegisterCaptureDataCallback(*this);
-  if (module_process_thread_.RegisterModule(capture_module_) != 0) {
-    return -1;
-  }
+  module_process_thread_.RegisterModule(capture_module_);
 
   return 0;
 }
 
 int ViECapturer::FrameCallbackChanged() {
+  if (use_external_capture_)
+    return -1;
   if (Started() && !CaptureCapabilityFixed()) {
     // Reconfigure the camera if a new size is required and the capture device
     // does not provide encoded frames.
@@ -209,13 +221,14 @@ int ViECapturer::FrameCallbackChanged() {
 }
 
 int32_t ViECapturer::Start(const CaptureCapability& capture_capability) {
-  WEBRTC_TRACE(kTraceInfo, kTraceVideo, ViEId(engine_id_, capture_id_), "%s",
-               __FUNCTION__);
+  if (use_external_capture_)
+    return -1;
   int width;
   int height;
   int frame_rate;
   VideoCaptureCapability capability;
   requested_capability_ = capture_capability;
+  CaptureDeviceType type = config_.Get<CaptureDeviceInfo>().type;
 
   if (!CaptureCapabilityFixed()) {
     // Ask the observers for best size.
@@ -227,7 +240,11 @@ int32_t ViECapturer::Start(const CaptureCapability& capture_capability) {
       height = kViECaptureDefaultHeight;
     }
     if (frame_rate == 0) {
-      frame_rate = kViECaptureDefaultFramerate;
+      if (type == Screen || type == Window || type == Application) {
+        frame_rate = kViEScreenCaptureDefaultFramerate;
+      } else {
+        frame_rate = kViECaptureDefaultFramerate;
+      }
     }
     capability.height = height;
     capability.width = width;
@@ -247,19 +264,21 @@ int32_t ViECapturer::Start(const CaptureCapability& capture_capability) {
 }
 
 int32_t ViECapturer::Stop() {
-  WEBRTC_TRACE(kTraceInfo, kTraceVideo, ViEId(engine_id_, capture_id_), "%s",
-               __FUNCTION__);
+  if (use_external_capture_)
+    return -1;
   requested_capability_ = CaptureCapability();
   return capture_module_->StopCapture();
 }
 
 bool ViECapturer::Started() {
-  WEBRTC_TRACE(kTraceInfo, kTraceVideo, ViEId(engine_id_, capture_id_), "%s",
-               __FUNCTION__);
+  if (use_external_capture_)
+    return false;
   return capture_module_->CaptureStarted();
 }
 
 const char* ViECapturer::CurrentDeviceName() const {
+  if (use_external_capture_)
+    return "";
   return capture_module_->CurrentDeviceName();
 }
 
@@ -267,133 +286,86 @@ void ViECapturer::RegisterCpuOveruseObserver(CpuOveruseObserver* observer) {
   overuse_detector_->SetObserver(observer);
 }
 
-void ViECapturer::CpuOveruseMeasures(int* capture_jitter_ms,
-                                     int* avg_encode_time_ms,
-                                     int* encode_usage_percent,
-                                     int* capture_queue_delay_ms_per_s) const {
-  *capture_jitter_ms = overuse_detector_->last_capture_jitter_ms();
-  *avg_encode_time_ms = overuse_detector_->AvgEncodeTimeMs();
-  *encode_usage_percent = overuse_detector_->EncodeUsagePercent();
-  *capture_queue_delay_ms_per_s =
-      overuse_detector_->AvgCaptureQueueDelayMsPerS();
+void ViECapturer::SetCpuOveruseOptions(const CpuOveruseOptions& options) {
+  overuse_detector_->SetOptions(options);
+}
+
+void ViECapturer::RegisterCpuOveruseMetricsObserver(
+    CpuOveruseMetricsObserver* observer) {
+  cpu_overuse_metrics_observer_->Set(observer);
+}
+
+void ViECapturer::GetCpuOveruseMetrics(CpuOveruseMetrics* metrics) const {
+  *metrics = cpu_overuse_metrics_observer_->GetCpuOveruseMetrics();
 }
 
 int32_t ViECapturer::SetCaptureDelay(int32_t delay_ms) {
+  if (use_external_capture_)
+    return -1;
   capture_module_->SetCaptureDelay(delay_ms);
   return 0;
 }
 
-int32_t ViECapturer::SetRotateCapturedFrames(
-  const RotateCapturedFrame rotation) {
-  VideoCaptureRotation converted_rotation = kCameraRotate0;
-  switch (rotation) {
-    case RotateCapturedFrame_0:
-      converted_rotation = kCameraRotate0;
-      break;
-    case RotateCapturedFrame_90:
-      converted_rotation = kCameraRotate90;
-      break;
-    case RotateCapturedFrame_180:
-      converted_rotation = kCameraRotate180;
-      break;
-    case RotateCapturedFrame_270:
-      converted_rotation = kCameraRotate270;
-      break;
-  }
-  return capture_module_->SetCaptureRotation(converted_rotation);
+int32_t ViECapturer::SetVideoRotation(const VideoRotation rotation) {
+  if (use_external_capture_)
+    return -1;
+  return capture_module_->SetCaptureRotation(rotation);
 }
 
-int ViECapturer::IncomingFrame(unsigned char* video_frame,
-                               unsigned int video_frame_length,
-                               uint16_t width,
-                               uint16_t height,
-                               RawVideoType video_type,
-                               unsigned long long capture_time) {  // NOLINT
-  WEBRTC_TRACE(kTraceInfo, kTraceVideo, ViEId(engine_id_, capture_id_),
-               "ExternalCapture::IncomingFrame width %d, height %d, "
-               "capture_time %u", width, height, capture_time);
-
-  if (!external_capture_module_) {
-    return -1;
-  }
-  VideoCaptureCapability capability;
-  capability.width = width;
-  capability.height = height;
-  capability.rawType = video_type;
-  return external_capture_module_->IncomingFrame(video_frame,
-                                                 video_frame_length,
-                                                 capability, capture_time);
-}
-
-int ViECapturer::IncomingFrameI420(const ViEVideoFrameI420& video_frame,
-                                   unsigned long long capture_time) {  // NOLINT
-  WEBRTC_TRACE(kTraceInfo, kTraceVideo, ViEId(engine_id_, capture_id_),
-               "ExternalCapture::IncomingFrame width %d, height %d, "
-               " capture_time %u", video_frame.width, video_frame.height,
-               capture_time);
-
-  if (!external_capture_module_) {
-    return -1;
-  }
-
-  int size_y = video_frame.height * video_frame.y_pitch;
-  int size_u = video_frame.u_pitch * ((video_frame.height + 1) / 2);
-  int size_v = video_frame.v_pitch * ((video_frame.height + 1) / 2);
-  CriticalSectionScoped cs(incoming_frame_cs_.get());
-  int ret = incoming_frame_.CreateFrame(size_y,
-                                       video_frame.y_plane,
-                                       size_u,
-                                       video_frame.u_plane,
-                                       size_v,
-                                       video_frame.v_plane,
-                                       video_frame.width,
-                                       video_frame.height,
-                                       video_frame.y_pitch,
-                                       video_frame.u_pitch,
-                                       video_frame.v_pitch);
-
-  if (ret < 0) {
-    WEBRTC_TRACE(kTraceError,
-                 kTraceVideo,
-                 ViEId(engine_id_, capture_id_),
-                 "Failed to create I420VideoFrame");
-    return -1;
-  }
-
-  return external_capture_module_->IncomingI420VideoFrame(&incoming_frame_,
-                                                          capture_time);
-}
-
-void ViECapturer::SwapFrame(I420VideoFrame* frame) {
-  external_capture_module_->IncomingI420VideoFrame(frame,
-                                                   frame->render_time_ms());
+void ViECapturer::IncomingFrame(const I420VideoFrame& frame) {
+  OnIncomingCapturedFrame(-1, frame);
 }
 
 void ViECapturer::OnIncomingCapturedFrame(const int32_t capture_id,
-                                          I420VideoFrame& video_frame) {
-  WEBRTC_TRACE(kTraceStream, kTraceVideo, ViEId(engine_id_, capture_id_),
-               "%s(capture_id: %d)", __FUNCTION__, capture_id);
+                                          const I420VideoFrame& video_frame) {
+  I420VideoFrame incoming_frame = video_frame;
+
+  if (incoming_frame.ntp_time_ms() != 0) {
+    // If a NTP time stamp is set, this is the time stamp we will use.
+    incoming_frame.set_render_time_ms(
+        incoming_frame.ntp_time_ms() - delta_ntp_internal_ms_);
+  } else {  // NTP time stamp not set.
+    int64_t render_time = incoming_frame.render_time_ms() != 0 ?
+        incoming_frame.render_time_ms() : TickTime::MillisecondTimestamp();
+
+    // Make sure we render this frame earlier since we know the render time set
+    // is slightly off since it's being set when the frame was received
+    // from the camera, and not when the camera actually captured the frame.
+    render_time -= FrameDelay();
+    incoming_frame.set_render_time_ms(render_time);
+    incoming_frame.set_ntp_time_ms(
+        render_time + delta_ntp_internal_ms_);
+  }
+
+  // Convert NTP time, in ms, to RTP timestamp.
+  const int kMsToRtpTimestamp = 90;
+  incoming_frame.set_timestamp(kMsToRtpTimestamp *
+      static_cast<uint32_t>(incoming_frame.ntp_time_ms()));
+
   CriticalSectionScoped cs(capture_cs_.get());
-  // Make sure we render this frame earlier since we know the render time set
-  // is slightly off since it's being set when the frame has been received from
-  // the camera, and not when the camera actually captured the frame.
-  video_frame.set_render_time_ms(video_frame.render_time_ms() - FrameDelay());
+  if (incoming_frame.ntp_time_ms() <= last_captured_timestamp_) {
+    // We don't allow the same capture time for two frames, drop this one.
+    LOG(LS_WARNING) << "Same/old NTP timestamp for incoming frame. Dropping.";
+    return;
+  }
+
+  captured_frame_.ShallowCopy(incoming_frame);
+  last_captured_timestamp_ = incoming_frame.ntp_time_ms();
+
+  overuse_detector_->FrameCaptured(captured_frame_.width(),
+                                   captured_frame_.height(),
+                                   captured_frame_.render_time_ms());
 
   TRACE_EVENT_ASYNC_BEGIN1("webrtc", "Video", video_frame.render_time_ms(),
                            "render_time", video_frame.render_time_ms());
 
-  captured_frame_.SwapFrame(&video_frame);
   capture_event_.Set();
-  overuse_detector_->FrameCaptured(captured_frame_.width(),
-                                   captured_frame_.height());
-  return;
 }
 
 void ViECapturer::OnCaptureDelayChanged(const int32_t id,
                                         const int32_t delay) {
-  WEBRTC_TRACE(kTraceStream, kTraceVideo, ViEId(engine_id_, capture_id_),
-               "%s(capture_id: %d) delay %d", __FUNCTION__, capture_id_,
-               delay);
+  LOG(LS_INFO) << "Capture delayed change to " << delay
+               << " for device " << id;
 
   // Deliver the network delay to all registered callbacks.
   ViEFrameProviderBase::SetFrameDelay(delay);
@@ -401,28 +373,11 @@ void ViECapturer::OnCaptureDelayChanged(const int32_t id,
 
 int32_t ViECapturer::RegisterEffectFilter(
     ViEEffectFilter* effect_filter) {
-  CriticalSectionScoped cs(deliver_cs_.get());
+  CriticalSectionScoped cs(effects_and_stats_cs_.get());
 
-  if (!effect_filter) {
-    if (!effect_filter_) {
-      WEBRTC_TRACE(kTraceError, kTraceVideo, ViEId(engine_id_, capture_id_),
-                   "%s: no effect filter added for capture device %d",
-                   __FUNCTION__, capture_id_);
-      return -1;
-    }
-    WEBRTC_TRACE(kTraceInfo, kTraceVideo, ViEId(engine_id_, capture_id_),
-                 "%s: deregister effect filter for device %d", __FUNCTION__,
-                 capture_id_);
-  } else {
-    if (effect_filter_) {
-      WEBRTC_TRACE(kTraceError, kTraceVideo, ViEId(engine_id_, capture_id_),
-                   "%s: effect filter already added for capture device %d",
-                   __FUNCTION__, capture_id_);
-      return -1;
-    }
-    WEBRTC_TRACE(kTraceInfo, kTraceVideo, ViEId(engine_id_, capture_id_),
-                 "%s: register effect filter for device %d", __FUNCTION__,
-                 capture_id_);
+  if (effect_filter != NULL && effect_filter_ != NULL) {
+    LOG_F(LS_ERROR) << "Effect filter already registered.";
+    return -1;
   }
   effect_filter_ = effect_filter;
   return 0;
@@ -434,9 +389,7 @@ int32_t ViECapturer::IncImageProcRefCount() {
     image_proc_module_ = VideoProcessingModule::Create(
         ViEModuleId(engine_id_, capture_id_));
     if (!image_proc_module_) {
-      WEBRTC_TRACE(kTraceError, kTraceVideo, ViEId(engine_id_, capture_id_),
-                   "%s: could not create video processing module",
-                   __FUNCTION__);
+      LOG_F(LS_ERROR) << "Could not create video processing module.";
       return -1;
     }
   }
@@ -454,43 +407,10 @@ int32_t ViECapturer::DecImageProcRefCount() {
   return 0;
 }
 
-int32_t ViECapturer::EnableDenoising(bool enable) {
-  WEBRTC_TRACE(kTraceInfo, kTraceVideo, ViEId(engine_id_, capture_id_),
-               "%s(capture_device_id: %d, enable: %d)", __FUNCTION__,
-               capture_id_, enable);
-
-  CriticalSectionScoped cs(deliver_cs_.get());
-  if (enable) {
-    if (denoising_enabled_) {
-      // Already enabled, nothing need to be done.
-      return 0;
-    }
-    denoising_enabled_ = true;
-    if (IncImageProcRefCount() != 0) {
-      return -1;
-    }
-  } else {
-    if (denoising_enabled_ == false) {
-      // Already disabled, nothing need to be done.
-      return 0;
-    }
-    denoising_enabled_ = false;
-    DecImageProcRefCount();
-  }
-
-  return 0;
-}
-
 int32_t ViECapturer::EnableDeflickering(bool enable) {
-  WEBRTC_TRACE(kTraceInfo, kTraceVideo, ViEId(engine_id_, capture_id_),
-               "%s(capture_device_id: %d, enable: %d)", __FUNCTION__,
-               capture_id_, enable);
-
-  CriticalSectionScoped cs(deliver_cs_.get());
+  CriticalSectionScoped cs(effects_and_stats_cs_.get());
   if (enable) {
     if (deflicker_frame_stats_) {
-      WEBRTC_TRACE(kTraceError, kTraceVideo, ViEId(engine_id_, capture_id_),
-                   "%s: deflickering already enabled", __FUNCTION__);
       return -1;
     }
     if (IncImageProcRefCount() != 0) {
@@ -499,8 +419,6 @@ int32_t ViECapturer::EnableDeflickering(bool enable) {
     deflicker_frame_stats_ = new VideoProcessingModule::FrameStats();
   } else {
     if (deflicker_frame_stats_ == NULL) {
-      WEBRTC_TRACE(kTraceError, kTraceVideo, ViEId(engine_id_, capture_id_),
-                   "%s: deflickering not enabled", __FUNCTION__);
       return -1;
     }
     DecImageProcRefCount();
@@ -511,15 +429,9 @@ int32_t ViECapturer::EnableDeflickering(bool enable) {
 }
 
 int32_t ViECapturer::EnableBrightnessAlarm(bool enable) {
-  WEBRTC_TRACE(kTraceInfo, kTraceVideo, ViEId(engine_id_, capture_id_),
-               "%s(capture_device_id: %d, enable: %d)", __FUNCTION__,
-               capture_id_, enable);
-
-  CriticalSectionScoped cs(deliver_cs_.get());
+  CriticalSectionScoped cs(effects_and_stats_cs_.get());
   if (enable) {
     if (brightness_frame_stats_) {
-      WEBRTC_TRACE(kTraceError, kTraceVideo, ViEId(engine_id_, capture_id_),
-                   "%s: BrightnessAlarm already enabled", __FUNCTION__);
       return -1;
     }
     if (IncImageProcRefCount() != 0) {
@@ -529,8 +441,6 @@ int32_t ViECapturer::EnableBrightnessAlarm(bool enable) {
   } else {
     DecImageProcRefCount();
     if (brightness_frame_stats_ == NULL) {
-      WEBRTC_TRACE(kTraceError, kTraceVideo, ViEId(engine_id_, capture_id_),
-                   "%s: deflickering not enabled", __FUNCTION__);
       return -1;
     }
     delete brightness_frame_stats_;
@@ -544,15 +454,26 @@ bool ViECapturer::ViECaptureThreadFunction(void* obj) {
 }
 
 bool ViECapturer::ViECaptureProcess() {
+  int64_t capture_time = -1;
   if (capture_event_.Wait(kThreadWaitTimeMs) == kEventSignaled) {
+    if (rtc::AtomicOps::Load(&stop_))
+      return false;
+
     overuse_detector_->FrameProcessingStarted();
     int64_t encode_start_time = -1;
-    deliver_cs_->Enter();
-    if (SwapCapturedAndDeliverFrameIfAvailable()) {
-      encode_start_time = Clock::GetRealTimeClock()->TimeInMilliseconds();
-      DeliverI420Frame(&deliver_frame_);
+    I420VideoFrame deliver_frame;
+    {
+      CriticalSectionScoped cs(capture_cs_.get());
+      if (!captured_frame_.IsZeroSize()) {
+        deliver_frame = captured_frame_;
+        captured_frame_.Reset();
+      }
     }
-    deliver_cs_->Leave();
+    if (!deliver_frame.IsZeroSize()) {
+      capture_time = deliver_frame.render_time_ms();
+      encode_start_time = Clock::GetRealTimeClock()->TimeInMilliseconds();
+      DeliverI420Frame(&deliver_frame);
+    }
     if (current_brightness_level_ != reported_brightness_level_) {
       CriticalSectionScoped cs(observer_cs_.get());
       if (observer_) {
@@ -567,69 +488,65 @@ bool ViECapturer::ViECaptureProcess() {
     }
   }
   // We're done!
+  if (capture_time != -1) {
+    overuse_detector_->FrameSent(capture_time);
+  }
   return true;
 }
 
 void ViECapturer::DeliverI420Frame(I420VideoFrame* video_frame) {
-  // Apply image enhancement and effect filter.
-  if (deflicker_frame_stats_) {
-    if (image_proc_module_->GetFrameStats(deflicker_frame_stats_,
-                                          *video_frame) == 0) {
-      image_proc_module_->Deflickering(video_frame, deflicker_frame_stats_);
-    } else {
-      WEBRTC_TRACE(kTraceStream, kTraceVideo, ViEId(engine_id_, capture_id_),
-                   "%s: could not get frame stats for captured frame",
-                   __FUNCTION__);
-    }
+  if (video_frame->native_handle() != NULL) {
+    ViEFrameProviderBase::DeliverFrame(video_frame, std::vector<uint32_t>());
+    return;
   }
-  if (denoising_enabled_) {
-    image_proc_module_->Denoising(video_frame);
-  }
-  if (brightness_frame_stats_) {
-    if (image_proc_module_->GetFrameStats(brightness_frame_stats_,
-                                          *video_frame) == 0) {
-      int32_t brightness = image_proc_module_->BrightnessDetection(
-          *video_frame, *brightness_frame_stats_);
 
-      switch (brightness) {
-      case VideoProcessingModule::kNoWarning:
-        current_brightness_level_ = Normal;
-        break;
-      case VideoProcessingModule::kDarkWarning:
-        current_brightness_level_ = Dark;
-        break;
-      case VideoProcessingModule::kBrightWarning:
-        current_brightness_level_ = Bright;
-        break;
-      default:
-        WEBRTC_TRACE(kTraceInfo, kTraceVideo, ViEId(engine_id_, capture_id_),
-                     "%s: Brightness detection failed", __FUNCTION__);
+  // Apply image enhancement and effect filter.
+  {
+    CriticalSectionScoped cs(effects_and_stats_cs_.get());
+    if (deflicker_frame_stats_) {
+      if (image_proc_module_->GetFrameStats(deflicker_frame_stats_,
+                                            *video_frame) == 0) {
+        image_proc_module_->Deflickering(video_frame, deflicker_frame_stats_);
+      } else {
+        LOG_F(LS_ERROR) << "Could not get frame stats.";
       }
     }
-  }
-  if (effect_filter_) {
-    unsigned int length = CalcBufferSize(kI420,
-                                         video_frame->width(),
-                                         video_frame->height());
-    scoped_array<uint8_t> video_buffer(new uint8_t[length]);
-    ExtractBuffer(*video_frame, length, video_buffer.get());
-    effect_filter_->Transform(length, video_buffer.get(),
-                              video_frame->timestamp(), video_frame->width(),
-                              video_frame->height());
+    if (brightness_frame_stats_) {
+      if (image_proc_module_->GetFrameStats(brightness_frame_stats_,
+                                            *video_frame) == 0) {
+        int32_t brightness = image_proc_module_->BrightnessDetection(
+            *video_frame, *brightness_frame_stats_);
+
+        switch (brightness) {
+          case VideoProcessingModule::kNoWarning:
+            current_brightness_level_ = Normal;
+            break;
+          case VideoProcessingModule::kDarkWarning:
+            current_brightness_level_ = Dark;
+            break;
+          case VideoProcessingModule::kBrightWarning:
+            current_brightness_level_ = Bright;
+            break;
+          default:
+            break;
+        }
+      }
+    }
+    if (effect_filter_) {
+      size_t length =
+          CalcBufferSize(kI420, video_frame->width(), video_frame->height());
+      rtc::scoped_ptr<uint8_t[]> video_buffer(new uint8_t[length]);
+      ExtractBuffer(*video_frame, length, video_buffer.get());
+      effect_filter_->Transform(length,
+                                video_buffer.get(),
+                                video_frame->ntp_time_ms(),
+                                video_frame->timestamp(),
+                                video_frame->width(),
+                                video_frame->height());
+    }
   }
   // Deliver the captured frame to all observers (channels, renderer or file).
-  ViEFrameProviderBase::DeliverFrame(video_frame);
-}
-
-int ViECapturer::DeregisterFrameCallback(
-    const ViEFrameCallback* callbackObject) {
-  return ViEFrameProviderBase::DeregisterFrameCallback(callbackObject);
-}
-
-bool ViECapturer::IsFrameCallbackRegistered(
-    const ViEFrameCallback* callbackObject) {
-  CriticalSectionScoped cs(provider_cs_.get());
-  return ViEFrameProviderBase::IsFrameCallbackRegistered(callbackObject);
+  ViEFrameProviderBase::DeliverFrame(video_frame, std::vector<uint32_t>());
 }
 
 bool ViECapturer::CaptureCapabilityFixed() {
@@ -642,12 +559,7 @@ int32_t ViECapturer::RegisterObserver(ViECaptureObserver* observer) {
   {
     CriticalSectionScoped cs(observer_cs_.get());
     if (observer_) {
-      WEBRTC_TRACE(kTraceError,
-                   kTraceVideo,
-                   ViEId(engine_id_, capture_id_),
-                   "%s Observer already registered",
-                   __FUNCTION__,
-                   capture_id_);
+      LOG_F(LS_ERROR) << "Observer already registered.";
       return -1;
     }
     observer_ = observer;
@@ -675,31 +587,17 @@ bool ViECapturer::IsObserverRegistered() {
 
 void ViECapturer::OnCaptureFrameRate(const int32_t id,
                                      const uint32_t frame_rate) {
-  WEBRTC_TRACE(kTraceStream, kTraceVideo, ViEId(engine_id_, capture_id_),
-               "OnCaptureFrameRate %d", frame_rate);
-
   CriticalSectionScoped cs(observer_cs_.get());
   observer_->CapturedFrameRate(id_, static_cast<uint8_t>(frame_rate));
 }
 
 void ViECapturer::OnNoPictureAlarm(const int32_t id,
                                    const VideoCaptureAlarm alarm) {
-  WEBRTC_TRACE(kTraceStream, kTraceVideo, ViEId(engine_id_, capture_id_),
-               "OnNoPictureAlarm %d", alarm);
+  LOG(LS_WARNING) << "OnNoPictureAlarm " << id;
 
   CriticalSectionScoped cs(observer_cs_.get());
   CaptureAlarm vie_alarm = (alarm == Raised) ? AlarmRaised : AlarmCleared;
   observer_->NoPictureAlarm(id, vie_alarm);
-}
-
-bool ViECapturer::SwapCapturedAndDeliverFrameIfAvailable() {
-  CriticalSectionScoped cs(capture_cs_.get());
-  if (captured_frame_.IsZeroSize())
-    return false;
-
-  deliver_frame_.SwapFrame(&captured_frame_);
-  captured_frame_.ResetSize();
-  return true;
 }
 
 }  // namespace webrtc

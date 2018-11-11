@@ -9,21 +9,25 @@
  * liability, trademark and document use rules apply.
  */
 
-interface WindowProxy;
-
 interface CompositionEvent : UIEvent
 {
   readonly attribute DOMString? data;
   readonly attribute DOMString  locale;
+
+ /**
+  * ranges is trying to expose TextRangeArray in Gecko so a
+  * js-plugin couble be able to know the clauses information
+  */
+  [ChromeOnly,Cached,Pure]
+  readonly attribute sequence<TextClause> ranges;
 };
 
 partial interface CompositionEvent
 {
-  [Throws]
   void initCompositionEvent(DOMString typeArg,
                             boolean canBubbleArg,
                             boolean cancelableArg,
-                            WindowProxy? viewArg,
+                            Window? viewArg,
                             DOMString? dataArg,
                             DOMString localeArg);
 };

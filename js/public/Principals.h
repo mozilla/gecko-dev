@@ -15,24 +15,34 @@
 
 #include "jspubtd.h"
 
+#include "js/StructuredClone.h"
+
+namespace js {
+    struct JS_PUBLIC_API(PerformanceGroup);
+} // namespace js
+
 struct JSPrincipals {
     /* Don't call "destroy"; use reference counting macros below. */
-#ifdef JS_THREADSAFE
     mozilla::Atomic<int32_t> refcount;
-#else
-    int32_t refcount;
-#endif
 
 #ifdef JS_DEBUG
     /* A helper to facilitate principals debugging. */
     uint32_t    debugToken;
 #endif
 
+    JSPrincipals() : refcount(0) {}
+
     void setDebugToken(uint32_t token) {
 # ifdef JS_DEBUG
         debugToken = token;
 # endif
     }
+
+    /*
+     * Write the principals with the given |writer|. Return false on failure,
+     * true on success.
+     */
+    virtual bool write(JSContext* cx, JSStructuredCloneWriter* writer) = 0;
 
     /*
      * This is not defined by the JS engine but should be provided by the
@@ -42,23 +52,23 @@ struct JSPrincipals {
 };
 
 extern JS_PUBLIC_API(void)
-JS_HoldPrincipals(JSPrincipals *principals);
+JS_HoldPrincipals(JSPrincipals* principals);
 
 extern JS_PUBLIC_API(void)
-JS_DropPrincipals(JSRuntime *rt, JSPrincipals *principals);
+JS_DropPrincipals(JSContext* cx, JSPrincipals* principals);
 
 // Return whether the first principal subsumes the second. The exact meaning of
 // 'subsumes' is left up to the browser. Subsumption is checked inside the JS
 // engine when determining, e.g., which stack frames to display in a backtrace.
 typedef bool
-(* JSSubsumesOp)(JSPrincipals *first, JSPrincipals *second);
+(* JSSubsumesOp)(JSPrincipals* first, JSPrincipals* second);
 
 /*
  * Used to check if a CSP instance wants to disable eval() and friends.
  * See js_CheckCSPPermitsJSAction() in jsobj.
  */
 typedef bool
-(* JSCSPEvalChecker)(JSContext *cx);
+(* JSCSPEvalChecker)(JSContext* cx);
 
 struct JSSecurityCallbacks {
     JSCSPEvalChecker           contentSecurityPolicyAllows;
@@ -66,10 +76,10 @@ struct JSSecurityCallbacks {
 };
 
 extern JS_PUBLIC_API(void)
-JS_SetSecurityCallbacks(JSRuntime *rt, const JSSecurityCallbacks *callbacks);
+JS_SetSecurityCallbacks(JSContext* cx, const JSSecurityCallbacks* callbacks);
 
-extern JS_PUBLIC_API(const JSSecurityCallbacks *)
-JS_GetSecurityCallbacks(JSRuntime *rt);
+extern JS_PUBLIC_API(const JSSecurityCallbacks*)
+JS_GetSecurityCallbacks(JSContext* cx);
 
 /*
  * Code running with "trusted" principals will be given a deeper stack
@@ -77,17 +87,17 @@ JS_GetSecurityCallbacks(JSRuntime *rt);
  * untrusted script has exhausted the stack. This function sets the
  * runtime-wide trusted principal.
  *
- * This principals is not held (via JS_HoldPrincipals/JS_DropPrincipals) since
- * there is no available JSContext. Instead, the caller must ensure that the
- * given principals stays valid for as long as 'rt' may point to it. If the
- * principals would be destroyed before 'rt', JS_SetTrustedPrincipals must be
- * called again, passing nullptr for 'prin'.
+ * This principals is not held (via JS_HoldPrincipals/JS_DropPrincipals).
+ * Instead, the caller must ensure that the given principals stays valid for as
+ * long as 'cx' may point to it. If the principals would be destroyed before
+ * 'cx', JS_SetTrustedPrincipals must be called again, passing nullptr for
+ * 'prin'.
  */
 extern JS_PUBLIC_API(void)
-JS_SetTrustedPrincipals(JSRuntime *rt, const JSPrincipals *prin);
+JS_SetTrustedPrincipals(JSContext* cx, JSPrincipals* prin);
 
 typedef void
-(* JSDestroyPrincipalsOp)(JSPrincipals *principals);
+(* JSDestroyPrincipalsOp)(JSPrincipals* principals);
 
 /*
  * Initialize the callback that is called to destroy JSPrincipals instance
@@ -95,6 +105,28 @@ typedef void
  * only once per JS runtime.
  */
 extern JS_PUBLIC_API(void)
-JS_InitDestroyPrincipalsCallback(JSRuntime *rt, JSDestroyPrincipalsOp destroyPrincipals);
+JS_InitDestroyPrincipalsCallback(JSContext* cx, JSDestroyPrincipalsOp destroyPrincipals);
+
+/*
+ * Read a JSPrincipals instance from the given |reader| and initialize the out
+ * paratemer |outPrincipals| to the JSPrincipals instance read.
+ *
+ * Return false on failure, true on success. The |outPrincipals| parameter
+ * should not be modified if false is returned.
+ *
+ * The caller is not responsible for calling JS_HoldPrincipals on the resulting
+ * JSPrincipals instance, the JSReadPrincipalsOp must increment the refcount of
+ * the resulting JSPrincipals on behalf of the caller.
+ */
+using JSReadPrincipalsOp = bool (*)(JSContext* cx, JSStructuredCloneReader* reader,
+                                    JSPrincipals** outPrincipals);
+
+/*
+ * Initialize the callback that is called to read JSPrincipals instances from a
+ * buffer. The initialization can be done only once per JS runtime.
+ */
+extern JS_PUBLIC_API(void)
+JS_InitReadPrincipalsCallback(JSContext* cx, JSReadPrincipalsOp read);
+
 
 #endif  /* js_Principals_h */

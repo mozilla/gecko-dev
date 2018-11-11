@@ -5,19 +5,34 @@
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 
 notification {
+  color: -moz-gtk-info-bar-text;
+  -moz-appearance: -moz-gtk-info-bar;
+%if MOZ_WIDGET_GTK == 2
   background-color: InfoBackground;
-  color: InfoText;
+%endif
   text-shadow: none;
 }
 
 notification[type="info"] {
-  background-color: -moz-Dialog;
   color: -moz-DialogText;
+  background-color: -moz-Dialog;
+  -moz-appearance: none;
+  border-top: 1px solid ThreeDShadow;
+  border-bottom: 1px solid ThreeDShadow;
+}
+
+notificationbox[notificationside="top"] > notification[type="info"] {
+  border-top-style: none;
+}
+
+notificationbox[notificationside="bottom"] > notification[type="info"] {
+  border-bottom-style: none;
 }
 
 notification[type="critical"] {
-  background-image: linear-gradient(rgb(212,0,0), rgb(152,0,0));
   color: white;
+  background-image: linear-gradient(rgb(212,0,0), rgb(152,0,0));
+  -moz-appearance: none;
 }
 
 .notification-inner {
@@ -30,11 +45,16 @@ notification[type="critical"] {
   margin-bottom: 0 !important;
 }
 
+.messageText > .text-link {
+  color: inherit !important;
+  text-decoration: underline;
+}
+
 .messageImage {
   width: 16px;
   height: 16px;
-  -moz-margin-start: 6px;
-  -moz-margin-end: 1px;
+  margin-inline-start: 6px;
+  margin-inline-end: 1px;
 }
 
 /* Default icons for notifications */
@@ -58,18 +78,32 @@ notification[type="critical"] {
 
 /* Popup notification */
 
-.popup-notification-description {
-  max-width: 24em;
+.popup-notification-body {
+  max-width: 25em;
 }
 
-.popup-notification-learnmore-link {
-  margin-top: 1em !important;
-}
-
+.popup-notification-origin:not([value]),
 .popup-notification-learnmore-link:not([href]) {
   display: none;
 }
 
+.popup-notification-origin {
+  margin-bottom: .3em !important;
+}
+
+.popup-notification-learnmore-link {
+  margin-top: .5em !important;
+}
+
 .popup-notification-button-container {
   margin-top: 17px;
+}
+
+.popup-notification-closebutton {
+  margin-inline-end: -10px;
+  margin-top: -6px;
+}
+
+.popup-notification-menubutton > .button-menubutton-button[disabled] {
+  opacity: 0.5;
 }

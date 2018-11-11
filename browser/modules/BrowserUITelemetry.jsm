@@ -43,13 +43,14 @@ XPCOMUtils.defineLazyGetter(this, "DEFAULT_AREA_PLACEMENTS", function() {
       "find-button",
       "preferences-button",
       "add-ons-button",
+      "sync-button",
       "developer-button",
     ],
     "nav-bar": [
       "urlbar-container",
       "search-container",
-      "webrtc-status-button",
       "bookmarks-menu-button",
+      "pocket-button",
       "downloads-button",
       "home-button",
       "social-share-button",
@@ -78,10 +79,6 @@ XPCOMUtils.defineLazyGetter(this, "DEFAULT_AREA_PLACEMENTS", function() {
     result["PanelUI-contents"].push("characterencoding-button");
   }
 
-  if (Services.metro && Services.metro.supported) {
-    result["PanelUI-contents"].push("switch-to-metro-button");
-  }
-
   return result;
 });
 
@@ -95,8 +92,7 @@ XPCOMUtils.defineLazyGetter(this, "PALETTE_ITEMS", function() {
     "developer-button",
     "feed-button",
     "email-link-button",
-    "sync-button",
-    "tabview-button",
+    "containers-panelmenu",
   ];
 
   let panelPlacements = DEFAULT_AREA_PLACEMENTS["PanelUI-contents"];
@@ -104,12 +100,16 @@ XPCOMUtils.defineLazyGetter(this, "PALETTE_ITEMS", function() {
     result.push("characterencoding-button");
   }
 
+  if (Services.prefs.getBoolPref("privacy.panicButton.enabled")) {
+    result.push("panic-button");
+  }
+
   return result;
 });
 
 XPCOMUtils.defineLazyGetter(this, "DEFAULT_ITEMS", function() {
   let result = [];
-  for (let [, buttons] of Iterator(DEFAULT_AREA_PLACEMENTS)) {
+  for (let [, buttons] of Object.entries(DEFAULT_AREA_PLACEMENTS)) {
     result = result.concat(buttons);
   }
   return result;
@@ -134,6 +134,8 @@ XPCOMUtils.defineLazyGetter(this, "ALL_BUILTIN_ITEMS", function() {
     "BMB_bookmarksPopup",
     "BMB_unsortedBookmarksPopup",
     "BMB_bookmarksToolbarPopup",
+    "search-go-button",
+    "soundplaying-icon",
   ]
   return DEFAULT_ITEMS.concat(PALETTE_ITEMS)
                       .concat(SPECIAL_CASES);
@@ -171,23 +173,36 @@ this.BrowserUITelemetry = {
   init: function() {
     UITelemetry.addSimpleMeasureFunction("toolbars",
                                          this.getToolbarMeasures.bind(this));
+    UITelemetry.addSimpleMeasureFunction("contextmenu",
+                                         this.getContextMenuInfo.bind(this));
     // Ensure that UITour.jsm remains lazy-loaded, yet always registers its
     // simple measure function with UITelemetry.
     UITelemetry.addSimpleMeasureFunction("UITour",
                                          () => UITour.getTelemetry());
 
+    UITelemetry.addSimpleMeasureFunction("syncstate",
+                                         this.getSyncState.bind(this));
+
     Services.obs.addObserver(this, "sessionstore-windows-restored", false);
     Services.obs.addObserver(this, "browser-delayed-startup-finished", false);
+    Services.obs.addObserver(this, "autocomplete-did-enter-text", false);
     CustomizableUI.addListener(this);
   },
 
   observe: function(aSubject, aTopic, aData) {
-    switch(aTopic) {
+    switch (aTopic) {
       case "sessionstore-windows-restored":
         this._gatherFirstWindowMeasurements();
         break;
       case "browser-delayed-startup-finished":
         this._registerWindow(aSubject);
+        break;
+      case "autocomplete-did-enter-text":
+        let input = aSubject.QueryInterface(Ci.nsIAutoCompleteInput);
+        if (input && input.id == "urlbar" && !input.inPrivateContext &&
+            input.popup.selectedIndex != -1) {
+          this._logAwesomeBarSearchResult(input.textValue);
+        }
         break;
     }
   },
@@ -221,14 +236,16 @@ this.BrowserUITelemetry = {
    *
    * @param aKeys the Array of keys to chain Objects together with.
    * @param aEndWith the value to assign to the last key.
+   * @param aRoot the root object onto which we create/get the object chain
+   *              designated by aKeys.
    * @returns a reference to the second last object in the chain -
    *          so in our example, that'd be "b".
    */
-  _ensureObjectChain: function(aKeys, aEndWith) {
-    let current = this._countableEvents;
+  _ensureObjectChain: function(aKeys, aEndWith, aRoot) {
+    let current = aRoot;
     let parent = null;
     aKeys.unshift(this._bucket);
-    for (let [i, key] of Iterator(aKeys)) {
+    for (let [i, key] of aKeys.entries()) {
       if (!(key in current)) {
         if (i == aKeys.length - 1) {
           current[key] = aEndWith;
@@ -243,8 +260,8 @@ this.BrowserUITelemetry = {
   },
 
   _countableEvents: {},
-  _countEvent: function(aKeyArray) {
-    let countObject = this._ensureObjectChain(aKeyArray, 0);
+  _countEvent: function(aKeyArray, root=this._countableEvents) {
+    let countObject = this._ensureObjectChain(aKeyArray, 0, root);
     let lastItemKey = aKeyArray[aKeyArray.length - 1];
     countObject[lastItemKey]++;
   },
@@ -269,9 +286,13 @@ this.BrowserUITelemetry = {
       allowPopups: false,
     });
 
-    // If there are no such windows, we're out of luck. :(
-    this._firstWindowMeasurements = win ? this._getWindowMeasurements(win)
-                                        : {};
+    Services.search.init(rv => {
+      // If there are no such windows (or we've just about found one
+      // but it's closed already), we're out of luck. :(
+      let hasWindow = win && !win.closed;
+      this._firstWindowMeasurements = hasWindow ? this._getWindowMeasurements(win, rv)
+                                                : {};
+    });
   },
 
   _registerWindow: function(aWindow) {
@@ -329,7 +350,7 @@ this.BrowserUITelemetry = {
   },
 
   handleEvent: function(aEvent) {
-    switch(aEvent.type) {
+    switch (aEvent.type) {
       case "unload":
         this._unregisterWindow(aEvent.currentTarget);
         break;
@@ -423,6 +444,12 @@ this.BrowserUITelemetry = {
   _checkForBuiltinItem: function(aEvent) {
     let item = aEvent.originalTarget;
 
+    // We don't want to count clicks on the private browsing
+    // button for privacy reasons. See bug 1176391.
+    if (item.id == "privatebrowsing-button") {
+      return;
+    }
+
     // We special-case the bookmarks-menu-button, since we want to
     // monitor more than just clicks on it.
     if (item.id == "bookmarks-menu-button" ||
@@ -440,6 +467,13 @@ this.BrowserUITelemetry = {
       return;
     }
 
+    // If not, we need to check if the item's anonid is in our list
+    // of built-in items to check.
+    if (ALL_BUILTIN_ITEMS.indexOf(item.getAttribute("anonid")) != -1) {
+      this._countMouseUpEvent("click-builtin-item", item.getAttribute("anonid"), aEvent.button);
+      return;
+    }
+
     // If not, we need to check if one of the ancestors of the clicked
     // item is in our list of built-in items to check.
     let candidate = getIDBasedOnFirstIDedAncestor(item);
@@ -448,7 +482,7 @@ this.BrowserUITelemetry = {
     }
   },
 
-  _getWindowMeasurements: function(aWindow) {
+  _getWindowMeasurements: function(aWindow, searchResult) {
     let document = aWindow.document;
     let result = {};
 
@@ -504,8 +538,12 @@ this.BrowserUITelemetry = {
     // items are in there.
     let paletteItems =
       CustomizableUI.getUnusedWidgets(aWindow.gNavToolbox.palette);
-    let defaultRemoved = [item.id for (item of paletteItems)
-                          if (DEFAULT_ITEMS.indexOf(item.id) != -1)];
+    let defaultRemoved = [];
+    for (let item of paletteItems) {
+      if (DEFAULT_ITEMS.indexOf(item.id) != -1) {
+        defaultRemoved.push(item.id);
+      }
+    }
 
     result.defaultKept = defaultKept;
     result.defaultMoved = defaultMoved;
@@ -537,6 +575,10 @@ this.BrowserUITelemetry = {
     result.visibleTabs = visibleTabs;
     result.hiddenTabs = hiddenTabs;
 
+    if (Components.isSuccessCode(searchResult)) {
+      result.currentSearchEngine = Services.search.currentEngine.name;
+    }
+
     return result;
   },
 
@@ -547,8 +589,69 @@ this.BrowserUITelemetry = {
     return result;
   },
 
+  getSyncState: function() {
+    let result = {};
+    for (let sub of ["desktop", "mobile"]) {
+      let count = 0;
+      try {
+        count = Services.prefs.getIntPref("services.sync.clients.devices." + sub);
+      } catch (ex) {}
+      result[sub] = count;
+    }
+    return result;
+  },
+
   countCustomizationEvent: function(aEventType) {
     this._countEvent(["customize", aEventType]);
+  },
+
+  countSearchEvent: function(source, query, selection) {
+    this._countEvent(["search", source]);
+    if ((/^[a-zA-Z]+:[^\/\\]/).test(query)) {
+      this._countEvent(["search", "urlbar-keyword"]);
+    }
+    if (selection) {
+      this._countEvent(["search", "selection", source, selection.index, selection.kind]);
+    }
+  },
+
+  countOneoffSearchEvent: function(id, type, where) {
+    this._countEvent(["search-oneoff", id, type, where]);
+  },
+
+  countSearchSettingsEvent: function(source) {
+    this._countEvent(["click-builtin-item", source, "search-settings"]);
+  },
+
+  countPanicEvent: function(timeId) {
+    this._countEvent(["forget-button", timeId]);
+  },
+
+  countTabMutingEvent: function(action, reason) {
+    this._countEvent(["tab-audio-control", action, reason || "no reason given"]);
+  },
+
+  countSyncedTabEvent: function(what, where) {
+    // "what" will be, eg, "open"
+    // "where" will be "toolbarbutton-subview" or "sidebar"
+    this._countEvent(["synced-tabs", what, where]);
+  },
+
+  countSidebarEvent: function(sidebarID, action) {
+    // sidebarID is the ID of the sidebar (duh!)
+    // action will be "hide" or "show"
+    this._countEvent(["sidebar", sidebarID, action]);
+  },
+
+  _logAwesomeBarSearchResult: function (url) {
+    let spec = Services.search.parseSubmissionURL(url);
+    if (spec.engine) {
+      let matchedEngine = "default";
+      if (spec.engine.name !== Services.search.currentEngine.name) {
+        matchedEngine = "other";
+      }
+      this.countSearchEvent("autocomplete-" + matchedEngine);
+    }
   },
 
   _durations: {
@@ -581,24 +684,88 @@ this.BrowserUITelemetry = {
     }
   },
 
+  _contextMenuItemWhitelist: new Set([
+    "close-without-interaction", // for closing the menu without clicking it.
+    "custom-page-item", // The ID we use for page-provided items
+    "unknown", // The bucket for stuff with no id.
+    // Everything we know of so far (which will exclude add-on items):
+    "navigation", "back", "forward", "reload", "stop", "bookmarkpage",
+    "spell-no-suggestions", "spell-add-to-dictionary",
+    "spell-undo-add-to-dictionary", "openlinkincurrent", "openlinkintab",
+    "openlink",
+    // "openlinkprivate" intentionally omitted for privacy reasons. See bug 1176391.
+    "bookmarklink", "sharelink", "savelink",
+    "marklinkMenu", "copyemail", "copylink", "media-play", "media-pause",
+    "media-mute", "media-unmute", "media-playbackrate",
+    "media-playbackrate-050x", "media-playbackrate-100x",
+    "media-playbackrate-125x", "media-playbackrate-150x", "media-playbackrate-200x",
+    "media-showcontrols", "media-hidecontrols",
+    "video-fullscreen", "leave-dom-fullscreen",
+    "reloadimage", "viewimage", "viewvideo", "copyimage-contents", "copyimage",
+    "copyvideourl", "copyaudiourl", "saveimage", "shareimage", "sendimage",
+    "setDesktopBackground", "viewimageinfo", "viewimagedesc", "savevideo",
+    "sharevideo", "saveaudio", "video-saveimage", "sendvideo", "sendaudio",
+    "ctp-play", "ctp-hide", "sharepage", "savepage", "pocket", "markpageMenu",
+    "viewbgimage", "undo", "cut", "copy", "paste", "delete", "selectall",
+    "keywordfield", "searchselect", "shareselect", "frame", "showonlythisframe",
+    "openframeintab", "openframe", "reloadframe", "bookmarkframe", "saveframe",
+    "printframe", "viewframesource", "viewframeinfo",
+    "viewpartialsource-selection", "viewpartialsource-mathml",
+    "viewsource", "viewinfo", "spell-check-enabled",
+    "spell-add-dictionaries-main", "spell-dictionaries",
+    "spell-dictionaries-menu", "spell-add-dictionaries",
+    "bidi-text-direction-toggle", "bidi-page-direction-toggle", "inspect",
+    "media-eme-learn-more"
+  ]),
+
+  _contextMenuInteractions: {},
+
+  registerContextMenuInteraction: function(keys, itemID) {
+    if (itemID) {
+      if (itemID == "openlinkprivate") {
+        // Don't record anything, not even an other-item count
+        // if the user chose to open in a private window. See
+        // bug 1176391.
+        return;
+      }
+
+      if (!this._contextMenuItemWhitelist.has(itemID)) {
+        itemID = "other-item";
+      }
+      keys.push(itemID);
+    }
+
+    this._countEvent(keys, this._contextMenuInteractions);
+  },
+
+  getContextMenuInfo: function() {
+    return this._contextMenuInteractions;
+  },
+
   _bucket: BUCKET_DEFAULT,
   _bucketTimer: null,
 
   /**
    * Default bucket name, when no other bucket is active.
    */
-  get BUCKET_DEFAULT() BUCKET_DEFAULT,
+  get BUCKET_DEFAULT() {
+    return BUCKET_DEFAULT;
+  },
 
   /**
    * Bucket prefix, for named buckets.
    */
-  get BUCKET_PREFIX() BUCKET_PREFIX,
+  get BUCKET_PREFIX() {
+    return BUCKET_PREFIX;
+  },
 
   /**
    * Standard separator to use between different parts of a bucket name, such
    * as primary name and the time step string.
    */
-  get BUCKET_SEPARATOR() BUCKET_SEPARATOR,
+  get BUCKET_SEPARATOR() {
+    return BUCKET_SEPARATOR;
+  },
 
   get currentBucket() {
     return this._bucket;

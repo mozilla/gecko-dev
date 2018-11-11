@@ -5,12 +5,15 @@
 var target = {};
 var called = false;
 var handler = {
-    getOwnPropertyNames: function (target1) {
+    ownKeys: function (target1) {
         assertEq(this, handler);
         assertEq(target1, target);
         called = true;
         return [];
     }
 };
-assertEq(Object.getOwnPropertyNames(new Proxy(target, handler)).length, 0);
-assertEq(called, true);
+
+for (let p of [new Proxy(target, handler), Proxy.revocable(target, handler).proxy]) {
+    assertEq(Object.getOwnPropertyNames(p).length, 0);
+    assertEq(called, true);
+}

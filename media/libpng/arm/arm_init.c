@@ -1,9 +1,9 @@
 
 /* arm_init.c - NEON optimised filter functions
  *
- * Copyright (c) 2014 Glenn Randers-Pehrson
+ * Copyright (c) 2014,2016 Glenn Randers-Pehrson
  * Written by Mans Rullgard, 2011.
- * Last changed in libpng 1.6.10 [March 6, 2014]
+ * Last changed in libpng 1.6.22 [May 26, 2016]
  *
  * This code is released under the libpng license.
  * For conditions of distribution and use, see the disclaimer
@@ -17,12 +17,13 @@
 #include "../pngpriv.h"
 
 #ifdef PNG_READ_SUPPORTED
+
 #if PNG_ARM_NEON_OPT > 0
 #ifdef PNG_ARM_NEON_CHECK_SUPPORTED /* Do run-time checks */
 /* WARNING: it is strongly recommended that you do not build libpng with
  * run-time checks for CPU features if at all possible.  In the case of the ARM
  * NEON instructions there is no processor-specific way of detecting the
- * presense of the required support, therefore run-time detectioon is extremely
+ * presence of the required support, therefore run-time detection is extremely
  * OS specific.
  *
  * You may set the macro PNG_ARM_NEON_FILE to the file name of file containing
@@ -65,6 +66,7 @@ png_init_filter_functions_neon(png_structp pp, unsigned int bpp)
     * wrong order of the 'ON' and 'default' cases.  UNSET now defaults to OFF,
     * as documented in png.h
     */
+   png_debug(1, "in png_init_filter_functions_neon");
 #ifdef PNG_ARM_NEON_API_SUPPORTED
    switch ((pp->options >> PNG_ARM_NEON) & 3)
    {
@@ -130,4 +132,4 @@ png_init_filter_functions_neon(png_structp pp, unsigned int bpp)
    }
 }
 #endif /* PNG_ARM_NEON_OPT > 0 */
-#endif /* PNG_READ_SUPPORTED */
+#endif /* READ */

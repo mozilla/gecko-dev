@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -11,6 +11,7 @@
  */
 
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 const FLAG_RETURN_FALSE   = 1 << 0;
 const FLAG_WRONG_PASSWORD = 1 << 1;
@@ -172,6 +173,12 @@ var listener = {
       // If we expect 200, the request should have succeeded
       do_check_eq(this.expectedCode == 200, request.requestSucceeded);
 
+      var cookie = "";
+      try {
+        cookie = request.getRequestHeader("Cookie");
+      } catch (e) { }
+      do_check_eq(cookie, "");
+
     } catch (e) {
       do_throw("Unexpected exception: " + e);
     }
@@ -206,12 +213,9 @@ var listener = {
 function makeChan(url) {
   if (!url)
     url = "http://somesite/";
-  var ios = Cc["@mozilla.org/network/io-service;1"]
-                      .getService(Ci.nsIIOService);
-  var chan = ios.newChannel(url, null, null)
-                .QueryInterface(Ci.nsIHttpChannel);
 
-  return chan;
+  return NetUtil.newChannel({uri: url, loadUsingSystemPrincipal: true})
+                .QueryInterface(Ci.nsIHttpChannel);
 }
 
 var current_test = 0;
@@ -230,6 +234,9 @@ function run_test() {
   prefs.setCharPref("network.proxy.no_proxies_on", "");
   prefs.setIntPref("network.proxy.type", 1);
 
+  // Turn off the authentication dialog blocking for this test.
+  prefs.setIntPref("network.auth.subresource-http-auth-allow", 2);
+
   tests[current_test]();
 }
 
@@ -238,7 +245,7 @@ function test_proxy_returnfalse() {
   var chan = makeChan();
   chan.notificationCallbacks = new Requestor(FLAG_RETURN_FALSE, 0);
   listener.expectedCode = 407; // Proxy Unauthorized
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
 
   do_test_pending();
 }
@@ -248,7 +255,7 @@ function test_proxy_wrongpw() {
   var chan = makeChan();
   chan.notificationCallbacks = new Requestor(FLAG_WRONG_PASSWORD, 0);
   listener.expectedCode = 200; // Eventually OK
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
   do_test_pending();
 }
 
@@ -257,7 +264,26 @@ function test_all_ok() {
   var chan = makeChan();
   chan.notificationCallbacks = new Requestor(0, 0);
   listener.expectedCode = 200; // OK
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
+  do_test_pending();
+}
+
+function test_proxy_407_cookie() {
+  var chan = makeChan();
+  chan.notificationCallbacks = new Requestor(FLAG_RETURN_FALSE, 0);
+  chan.setRequestHeader("X-Set-407-Cookie", "1", false);
+  listener.expectedCode = 407; // Proxy Unauthorized
+  chan.asyncOpen2(listener);
+
+  do_test_pending();
+}
+
+function test_proxy_200_cookie() {
+  var chan = makeChan();
+  chan.notificationCallbacks = new Requestor(0, 0);
+  chan.setRequestHeader("X-Set-407-Cookie", "1", false);
+  listener.expectedCode = 200; // OK
+  chan.asyncOpen2(listener);
   do_test_pending();
 }
 
@@ -266,7 +292,7 @@ function test_host_returnfalse() {
   var chan = makeChan();
   chan.notificationCallbacks = new Requestor(0, FLAG_RETURN_FALSE);
   listener.expectedCode = 401; // Host Unauthorized
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
 
   do_test_pending();
 }
@@ -276,7 +302,7 @@ function test_host_wrongpw() {
   var chan = makeChan();
   chan.notificationCallbacks = new Requestor(0, FLAG_WRONG_PASSWORD);
   listener.expectedCode = 200; // Eventually OK
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
   do_test_pending();
 }
 
@@ -286,7 +312,7 @@ function test_proxy_wrongpw_host_wrongpw() {
   chan.notificationCallbacks =
       new Requestor(FLAG_WRONG_PASSWORD, FLAG_WRONG_PASSWORD);
   listener.expectedCode = 200; // OK
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
   do_test_pending();
 }
 
@@ -296,11 +322,12 @@ function test_proxy_wrongpw_host_returnfalse() {
   chan.notificationCallbacks =
       new Requestor(FLAG_WRONG_PASSWORD, FLAG_RETURN_FALSE);
   listener.expectedCode = 401; // Host Unauthorized
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
   do_test_pending();
 }
 
 var tests = [test_proxy_returnfalse, test_proxy_wrongpw, test_all_ok,
+        test_proxy_407_cookie, test_proxy_200_cookie,
         test_host_returnfalse, test_host_wrongpw,
         test_proxy_wrongpw_host_wrongpw, test_proxy_wrongpw_host_returnfalse];
 
@@ -331,6 +358,9 @@ function proxyAuthHandler(metadata, response) {
           "Unauthorized by HTTP proxy");
       response.setHeader("Proxy-Authenticate",
           'Basic realm="' + realm + '"', false);
+      if (metadata.hasHeader("X-Set-407-Cookie")) {
+          response.setHeader("Set-Cookie", "chewy", false);
+      }
       body = "failed";
       response.bodyOutputStream.write(body, body.length);
     }

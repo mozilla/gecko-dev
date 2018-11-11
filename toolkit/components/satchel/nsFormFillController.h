@@ -16,11 +16,11 @@
 #include "nsCOMPtr.h"
 #include "nsDataHashtable.h"
 #include "nsIDocShell.h"
-#include "nsIDOMWindow.h"
 #include "nsIDOMHTMLInputElement.h"
 #include "nsILoginManager.h"
 #include "nsIMutationObserver.h"
 #include "nsTArray.h"
+#include "nsCycleCollectionParticipant.h"
 
 // X.h defines KeyPress
 #ifdef KeyPress
@@ -29,16 +29,17 @@
 
 class nsFormHistory;
 class nsINode;
+class nsPIDOMWindowOuter;
 
-class nsFormFillController : public nsIFormFillController,
-                             public nsIAutoCompleteInput,
-                             public nsIAutoCompleteSearch,
-                             public nsIDOMEventListener,
-                             public nsIFormAutoCompleteObserver,
-                             public nsIMutationObserver
+class nsFormFillController final : public nsIFormFillController,
+                                   public nsIAutoCompleteInput,
+                                   public nsIAutoCompleteSearch,
+                                   public nsIDOMEventListener,
+                                   public nsIFormAutoCompleteObserver,
+                                   public nsIMutationObserver
 {
 public:
-  NS_DECL_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSIFORMFILLCONTROLLER
   NS_DECL_NSIAUTOCOMPLETESEARCH
   NS_DECL_NSIAUTOCOMPLETEINPUT
@@ -46,37 +47,44 @@ public:
   NS_DECL_NSIDOMEVENTLISTENER
   NS_DECL_NSIMUTATIONOBSERVER
 
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsFormFillController, nsIFormFillController)
+
   nsresult Focus(nsIDOMEvent* aEvent);
   nsresult KeyPress(nsIDOMEvent* aKeyEvent);
   nsresult MouseDown(nsIDOMEvent* aMouseEvent);
 
   nsFormFillController();
-  virtual ~nsFormFillController();
 
 protected:
-  void AddWindowListeners(nsIDOMWindow *aWindow);
-  void RemoveWindowListeners(nsIDOMWindow *aWindow);
+  virtual ~nsFormFillController();
+
+  void AddWindowListeners(nsPIDOMWindowOuter* aWindow);
+  void RemoveWindowListeners(nsPIDOMWindowOuter* aWindow);
 
   void AddKeyListener(nsINode* aInput);
   void RemoveKeyListener();
 
   void StartControllingInput(nsIDOMHTMLInputElement *aInput);
   void StopControllingInput();
+  /**
+   * Checks that aElement is a type of element we want to fill, then calls
+   * StartControllingInput on it.
+   */
+  void MaybeStartControllingInput(nsIDOMHTMLInputElement* aElement);
 
-  nsresult PerformInputListAutoComplete(nsIAutoCompleteResult* aPreviousResult);
+  nsresult PerformInputListAutoComplete(const nsAString& aSearch,
+                                        nsIAutoCompleteResult** aResult);
 
   void RevalidateDataList();
   bool RowMatch(nsFormHistory *aHistory, uint32_t aIndex, const nsAString &aInputName, const nsAString &aInputValue);
 
   inline nsIDocShell *GetDocShellForInput(nsIDOMHTMLInputElement *aInput);
-  inline nsIDOMWindow *GetWindowForDocShell(nsIDocShell *aDocShell);
+  inline nsPIDOMWindowOuter *GetWindowForDocShell(nsIDocShell *aDocShell);
   inline int32_t GetIndexOfDocShell(nsIDocShell *aDocShell);
 
   void MaybeRemoveMutationObserver(nsINode* aNode);
 
-  static PLDHashOperator RemoveForDocumentEnumerator(const nsINode* aKey,
-                                                     bool& aEntry,
-                                                     void* aUserData);
+  void RemoveForDocument(nsIDocument* aDoc);
   bool IsEventTrusted(nsIDOMEvent *aEvent);
   // members //////////////////////////////////////////
 
@@ -93,9 +101,6 @@ protected:
   nsTArray<nsCOMPtr<nsIDocShell> > mDocShells;
   nsTArray<nsCOMPtr<nsIAutoCompletePopup> > mPopups;
 
-  //these are used to dynamically update the autocomplete
-  nsCOMPtr<nsIAutoCompleteResult> mLastSearchResult;
-
   // The observer passed to StartSearch. It will be notified when the search is
   // complete or the data from a datalist changes.
   nsCOMPtr<nsIAutoCompleteObserver> mLastListener;
@@ -109,6 +114,7 @@ protected:
   uint32_t mTimeout;
   uint32_t mMinResultsForPopup;
   uint32_t mMaxRows;
+  bool mContextMenuFiredBeforeFocus;
   bool mDisableAutoComplete;
   bool mCompleteDefaultIndex;
   bool mCompleteSelectedIndex;

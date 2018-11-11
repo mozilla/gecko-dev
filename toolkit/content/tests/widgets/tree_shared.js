@@ -43,7 +43,7 @@ function testtag_tree(treeid, treerowinfoid, seltype, columnstype, testid)
   is(tree.selType, seltype == "multiple" ? "" : seltype, testid + " seltype");
 
   // note: the functions below should be in this order due to changes made in later tests
-  
+
   // select the first column in cell selection mode so that the selection
   // functions can be tested
   if (seltype == "cell")
@@ -74,8 +74,8 @@ function testtag_tree(treeid, treerowinfoid, seltype, columnstype, testid)
   var ecolumn = tree.columns[0];
   ok(!tree.startEditing(1, ecolumn), "non-editable trees shouldn't start editing");
   is(tree.editingRow, -1, testid + " failed startEditing shouldn't set editingRow");
-  is(tree.editingColumn, null, testid + " failed startEditing shouldn't set editingColumn");  
-  
+  is(tree.editingColumn, null, testid + " failed startEditing shouldn't set editingColumn");
+
   tree.editable = true;
 
   ok(tree.startEditing(1, ecolumn), "startEditing should have returned true");
@@ -244,7 +244,7 @@ function testtag_tree_TreeSelection(tree, testid, multiple)
   // selectAll has no effect on single selection trees
   selection.currentIndex = 1;
   selection.selectAll();
-  testtag_tree_TreeSelection_State(tree, testid + "selectAll 1", 1, multiple ? [0, 1, 2, 3, 4, 5, 6 , 7] : []);
+  testtag_tree_TreeSelection_State(tree, testid + "selectAll 1", 1, multiple ? [0, 1, 2, 3, 4, 5, 6, 7] : []);
   selection.toggleSelect(2);
   testtag_tree_TreeSelection_State(tree, testid + "toggleSelect after selectAll", 2,
                                    multiple ? [0, 1, 3, 4, 5, 6, 7] : [2]);
@@ -372,7 +372,7 @@ function testtag_tree_TreeSelection_UI(tree, testid, multiple)
   selection.select(3);
   synthesizeKeyExpectEvent("VK_DOWN", {}, tree, "!select", "key down with scroll");
   is(tree.treeBoxObject.getFirstVisibleRow(), 1, testid + "key down with scroll");
-  
+
   // accel key and cursor movement adjust currentIndex but should not change
   // the selection. In single selection mode, the selection will not change,
   // but instead will just scroll up or down a line
@@ -392,8 +392,12 @@ function testtag_tree_TreeSelection_UI(tree, testid, multiple)
 
   // do this three times, one for each state of pageUpOrDownMovesSelection,
   // and then once with the accel key pressed
-  for (var t = 0; t < 3; t++) {
-    var testidmod = (t == 2) ? " with accel" : (t == 1) ? " rev" : "";
+  for (let t = 0; t < 3; t++) {
+    let testidmod = "";
+    if (t == 2)
+      testidmod = " with accel"
+    else if (t == 1)
+      testidmod = " rev";
     var keymod = (t == 2) ? { accelKey: true } : { };
 
     var moveselection = tree.pageUpOrDownMovesSelection;
@@ -486,8 +490,8 @@ function testtag_tree_TreeSelection_UI(tree, testid, multiple)
   // when selecting with the shift key, pageUpOrDownMovesSelection is ignored
   // and the selection always changes
   var lastidx = tree.view.rowCount - 1;
-  for (var t = 0; t < 2; t++) {
-    var testidmod = (t == 0) ? "" : " rev";
+  for (let t = 0; t < 2; t++) {
+    let testidmod = (t == 0) ? "" : " rev";
 
     // If the top or bottom visible row is the current row, pressing shift and
     // page down / page up selects one page up or one page down. Otherwise, the
@@ -722,7 +726,7 @@ function testtag_tree_TreeSelection_UI_cell(tree, testid, rowInfo)
   }
 
   tree.focus();
- 
+
   // selection is set, so it should move when the left and right cursor keys are pressed
   tree.treeBoxObject.scrollToRow(0);
   selection.select(1);
@@ -780,7 +784,7 @@ function testtag_tree_TreeSelection_UI_cell(tree, testid, rowInfo)
     tree.treeBoxObject.scrollToRow(1);
     selection.select(1);
     selection.currentIndex = 1;
-    var expectedrow = tree.pageUpOrDownMovesSelection ? 4 : 1;
+    expectedrow = tree.pageUpOrDownMovesSelection ? 4 : 1;
     synthesizeKeyExpectEvent("VK_PAGE_DOWN", {}, tree, "!select", "key page down");
     testtag_tree_TreeSelection_State(tree, testid + "key page down" + testidmod,
                                      expectedrow, [expectedrow],
@@ -1099,47 +1103,47 @@ function testtag_tree_column_reorder()
   var numColumns = tree.columns.count;
 
   var reference = [];
-  for (var i = 0; i < numColumns; i++) {
+  for (let i = 0; i < numColumns; i++) {
     reference.push("col_" + i);
   }
 
   // Drag the first column to each position
-  for (var i = 0; i < numColumns - 1; i++) {
+  for (let i = 0; i < numColumns - 1; i++) {
     synthesizeColumnDrag(tree, i, i + 1, true);
     arrayMove(reference, i, i + 1, true);
     checkColumns(tree, reference, "drag first column right");
   }
 
   // And back
-  for (var i = numColumns - 1; i >= 1; i--) {
+  for (let i = numColumns - 1; i >= 1; i--) {
     synthesizeColumnDrag(tree, i, i - 1, false);
     arrayMove(reference, i, i - 1, false);
     checkColumns(tree, reference, "drag last column left");
   }
 
   // Drag each column one column left
-  for (var i = 1; i < numColumns; i++) {
+  for (let i = 1; i < numColumns; i++) {
     synthesizeColumnDrag(tree, i, i - 1, false);
     arrayMove(reference, i, i - 1, false);
     checkColumns(tree, reference, "drag each column left");
   }
 
   // And back
-  for (var i = numColumns - 2; i >= 0; i--) {
+  for (let i = numColumns - 2; i >= 0; i--) {
     synthesizeColumnDrag(tree, i, i + 1, true);
     arrayMove(reference, i, i + 1, true);
     checkColumns(tree, reference, "drag each column right");
   }
 
   // Drag each column 5 to the right
-  for (var i = 0; i < numColumns - 5; i++) {
+  for (let i = 0; i < numColumns - 5; i++) {
     synthesizeColumnDrag(tree, i, i + 5, true);
     arrayMove(reference, i, i + 5, true);
     checkColumns(tree, reference, "drag each column 5 to the right");
   }
 
   // And to the left
-  for (var i = numColumns - 6; i >= 5; i--) {
+  for (let i = numColumns - 6; i >= 5; i--) {
     synthesizeColumnDrag(tree, i, i - 5, false);
     arrayMove(reference, i, i - 5, false);
     checkColumns(tree, reference, "drag each column 5 to the left");
@@ -1164,10 +1168,20 @@ function testtag_tree_wheel(aTree)
   function helper(aStart, aDelta, aIntDelta, aDeltaMode)
   {
     aTree.treeBoxObject.scrollToRow(aStart);
-    var expected = !aIntDelta ? aStart :
-          aDeltaMode != WheelEvent.DOM_DELTA_PAGE ? aStart + aIntDelta :
-          aIntDelta > 0 ? aStart + aTree.treeBoxObject.getPageLength() :
-                          aStart - aTree.treeBoxObject.getPageLength();
+    var expected;
+    if (!aIntDelta) {
+      expected = aStart;
+    }
+    else if (aDeltaMode != WheelEvent.DOM_DELTA_PAGE) {
+      expected = aStart + aIntDelta;
+    }
+    else if (aIntDelta > 0) {
+      expected = aStart + aTree.treeBoxObject.getPageLength();
+    }
+    else {
+      expected = aStart - aTree.treeBoxObject.getPageLength();
+    }
+
     if (expected < 0) {
       expected = 0;
     }
@@ -1235,14 +1249,14 @@ function synthesizeColumnDrag(aTree, aMouseDownColumnNumber, aMouseUpColumnNumbe
   }
 
   if (aMouseUpColumnNumber > aMouseDownColumnNumber) {
-    for (var i = aMouseDownColumnNumber; i <= aMouseUpColumnNumber; i++) {
-      var move = columns[i].element;
+    for (let i = aMouseDownColumnNumber; i <= aMouseUpColumnNumber; i++) {
+      let move = columns[i].element;
       synthesizeMouse(move, offsetX, 3, { type: "mousemove"});
     }
   }
   else {
-    for (var i = aMouseDownColumnNumber; i >= aMouseUpColumnNumber; i--) {
-      var move = columns[i].element;
+    for (let i = aMouseDownColumnNumber; i >= aMouseUpColumnNumber; i--) {
+      let move = columns[i].element;
       synthesizeMouse(move, offsetX, 3, { type: "mousemove"});
     }
   }
@@ -1267,17 +1281,17 @@ function arrayMove(aArray, aFrom, aTo, aAfter)
 function getSortedColumnArray(aTree)
 {
   var columns = aTree.columns;
-  var a = [];
-  for (var i = 0; i < columns.length; i++) {
-    a.push(columns.getColumnAt(i));
+  var array = [];
+  for (let i = 0; i < columns.length; i++) {
+    array.push(columns.getColumnAt(i));
   }
 
-  a.sort(function(a, b) {
+  array.sort(function(a, b) {
     var o1 = parseInt(a.element.getAttribute("ordinal"));
     var o2 = parseInt(b.element.getAttribute("ordinal"));
     return o1 - o2;
   });
-  return a;
+  return array;
 }
 
 function checkColumns(aTree, aReference, aMessage)
@@ -1292,10 +1306,9 @@ function checkColumns(aTree, aReference, aMessage)
 
 function mouseOnCell(tree, row, column, testname)
 {
-  var x = {}, y = {}, width = {}, height = {};
-  tree.boxObject.getCoordsForCellItem(row, column, "text", x, y, width, height);
+  var rect = tree.boxObject.getCoordsForCellItem(row, column, "text");
 
-  synthesizeMouseExpectEvent(tree.body, x.value, y.value, {}, tree, "select", testname);
+  synthesizeMouseExpectEvent(tree.body, rect.x, rect.y, {}, tree, "select", testname);
 }
 
 function mouseClickOnColumnHeader(aColumns, aColumnIndex, aButton, aClickCount)
@@ -1305,7 +1318,7 @@ function mouseClickOnColumnHeader(aColumns, aColumnIndex, aButton, aClickCount)
   var columnWidth = columnHeaderRect.right - columnHeaderRect.left;
   // For multiple click we send separate click events, with increasing
   // clickCount.  This simulates the common behavior of multiple clicks.
-  for (var i = 1; i <= aClickCount; i++) {
+  for (let i = 1; i <= aClickCount; i++) {
     // Target the middle of the column header.
     synthesizeMouse(columnHeader, columnWidth / 2, 3,
                     { button: aButton,
@@ -1321,10 +1334,9 @@ function mouseDblClickOnCell(tree, row, column, testname)
   tree.treeBoxObject.ensureRowIsVisible(row);
 
   // get cell coordinates
-  var x = {}, y = {}, width = {}, height = {};
-  tree.treeBoxObject.getCoordsForCellItem(row, column, "text", x, y, width, height);
+  var rect = tree.treeBoxObject.getCoordsForCellItem(row, column, "text");
 
-  synthesizeMouse(tree.body, x.value, y.value, { clickCount: 2 }, null);
+  synthesizeMouse(tree.body, rect.x, rect.y, { clickCount: 2 }, null);
 }
 
 function compareArrays(arr1, arr2)
@@ -1332,7 +1344,7 @@ function compareArrays(arr1, arr2)
   if (arr1.length != arr2.length)
     return false;
 
-  for (var i = 0; i < arr1.length; i++) {
+  for (let i = 0; i < arr1.length; i++) {
     if (arr1[i] != arr2[i])
       return false;
   }
@@ -1344,7 +1356,7 @@ function convertProperties(arr)
 {
   var results = [];
   var count = arr.Count();
-  for (var i = 0; i < count; i++)
+  for (let i = 0; i < count; i++)
     results.push(arr.GetElementAt(i).QueryInterface(Components.interfaces.nsIAtom).toString());
 
   results.sort();

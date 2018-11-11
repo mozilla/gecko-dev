@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "js/HashTable.h"
+#include "js/Utility.h"
 #include "jsapi-tests/tests.h"
 
 //#define FUZZ
@@ -53,7 +54,7 @@ struct LowToHighWithRemoval
 };
 
 static bool
-MapsAreEqual(IntMap &am, IntMap &bm)
+MapsAreEqual(IntMap& am, IntMap& bm)
 {
     bool equal = true;
     if (am.count() != bm.count()) {
@@ -76,7 +77,7 @@ MapsAreEqual(IntMap &am, IntMap &bm)
 }
 
 static bool
-SetsAreEqual(IntSet &am, IntSet &bm)
+SetsAreEqual(IntSet& am, IntSet& bm)
 {
     bool equal = true;
     if (am.count() != bm.count()) {
@@ -99,7 +100,7 @@ SetsAreEqual(IntSet &am, IntSet &bm)
 }
 
 static bool
-AddLowKeys(IntMap *am, IntMap *bm, int seed)
+AddLowKeys(IntMap* am, IntMap* bm, int seed)
 {
     size_t i = 0;
     srand(seed);
@@ -108,8 +109,9 @@ AddLowKeys(IntMap *am, IntMap *bm, int seed)
         if (!am->has(n)) {
             if (bm->has(n))
                 return false;
-            am->putNew(n, n);
-            bm->putNew(n, n);
+
+            if (!am->putNew(n, n) || !bm->putNew(n, n))
+                return false;
             i++;
         }
     }
@@ -117,7 +119,7 @@ AddLowKeys(IntMap *am, IntMap *bm, int seed)
 }
 
 static bool
-AddLowKeys(IntSet *as, IntSet *bs, int seed)
+AddLowKeys(IntSet* as, IntSet* bs, int seed)
 {
     size_t i = 0;
     srand(seed);
@@ -126,8 +128,8 @@ AddLowKeys(IntSet *as, IntSet *bs, int seed)
         if (!as->has(n)) {
             if (bs->has(n))
                 return false;
-            as->putNew(n);
-            bs->putNew(n);
+            if (!as->putNew(n) || !bs->putNew(n))
+                return false;
             i++;
         }
     }
@@ -136,9 +138,10 @@ AddLowKeys(IntSet *as, IntSet *bs, int seed)
 
 template <class NewKeyFunction>
 static bool
-SlowRekey(IntMap *m) {
+SlowRekey(IntMap* m) {
     IntMap tmp;
-    tmp.init();
+    if (!tmp.init())
+        return false;
 
     for (IntMap::Range r = m->all(); !r.empty(); r.popFront()) {
         if (NewKeyFunction::shouldBeRemoved(r.front().key()))
@@ -146,12 +149,14 @@ SlowRekey(IntMap *m) {
         uint32_t hi = NewKeyFunction::rekey(r.front().key());
         if (tmp.has(hi))
             return false;
-        tmp.putNew(hi, r.front().value());
+        if (!tmp.putNew(hi, r.front().value()))
+            return false;
     }
 
     m->clear();
     for (IntMap::Range r = tmp.all(); !r.empty(); r.popFront()) {
-        m->putNew(r.front().key(), r.front().value());
+        if (!m->putNew(r.front().key(), r.front().value()))
+            return false;
     }
 
     return true;
@@ -159,9 +164,10 @@ SlowRekey(IntMap *m) {
 
 template <class NewKeyFunction>
 static bool
-SlowRekey(IntSet *s) {
+SlowRekey(IntSet* s) {
     IntSet tmp;
-    tmp.init();
+    if (!tmp.init())
+        return false;
 
     for (IntSet::Range r = s->all(); !r.empty(); r.popFront()) {
         if (NewKeyFunction::shouldBeRemoved(r.front()))
@@ -169,12 +175,14 @@ SlowRekey(IntSet *s) {
         uint32_t hi = NewKeyFunction::rekey(r.front());
         if (tmp.has(hi))
             return false;
-        tmp.putNew(hi);
+        if (!tmp.putNew(hi))
+            return false;
     }
 
     s->clear();
     for (IntSet::Range r = tmp.all(); !r.empty(); r.popFront()) {
-        s->putNew(r.front());
+        if (!s->putNew(r.front()))
+            return false;
     }
 
     return true;
@@ -183,8 +191,8 @@ SlowRekey(IntSet *s) {
 BEGIN_TEST(testHashRekeyManual)
 {
     IntMap am, bm;
-    am.init();
-    bm.init();
+    CHECK(am.init());
+    CHECK(bm.init());
     for (size_t i = 0; i < TestIterations; ++i) {
 #ifdef FUZZ
         fprintf(stderr, "map1: %lu\n", i);
@@ -205,8 +213,8 @@ BEGIN_TEST(testHashRekeyManual)
     }
 
     IntSet as, bs;
-    as.init();
-    bs.init();
+    CHECK(as.init());
+    CHECK(bs.init());
     for (size_t i = 0; i < TestIterations; ++i) {
 #ifdef FUZZ
         fprintf(stderr, "set1: %lu\n", i);
@@ -233,8 +241,8 @@ END_TEST(testHashRekeyManual)
 BEGIN_TEST(testHashRekeyManualRemoval)
 {
     IntMap am, bm;
-    am.init();
-    bm.init();
+    CHECK(am.init());
+    CHECK(bm.init());
     for (size_t i = 0; i < TestIterations; ++i) {
 #ifdef FUZZ
         fprintf(stderr, "map2: %lu\n", i);
@@ -259,8 +267,8 @@ BEGIN_TEST(testHashRekeyManualRemoval)
     }
 
     IntSet as, bs;
-    as.init();
-    bs.init();
+    CHECK(as.init());
+    CHECK(bs.init());
     for (size_t i = 0; i < TestIterations; ++i) {
 #ifdef FUZZ
         fprintf(stderr, "set1: %lu\n", i);
@@ -287,3 +295,96 @@ BEGIN_TEST(testHashRekeyManualRemoval)
     return true;
 }
 END_TEST(testHashRekeyManualRemoval)
+
+// A type that is not copyable, only movable.
+struct MoveOnlyType {
+    uint32_t val;
+
+    explicit MoveOnlyType(uint32_t val) : val(val) { }
+
+    MoveOnlyType(MoveOnlyType&& rhs) {
+        val = rhs.val;
+    }
+
+    MoveOnlyType& operator=(MoveOnlyType&& rhs) {
+        MOZ_ASSERT(&rhs != this);
+        this->~MoveOnlyType();
+        new(this) MoveOnlyType(mozilla::Move(rhs));
+        return *this;
+    }
+
+    struct HashPolicy {
+        typedef MoveOnlyType Lookup;
+
+        static js::HashNumber hash(const Lookup& lookup) {
+            return lookup.val;
+        }
+
+        static bool match(const MoveOnlyType& existing, const Lookup& lookup) {
+            return existing.val == lookup.val;
+        }
+    };
+
+  private:
+    MoveOnlyType(const MoveOnlyType&) = delete;
+    MoveOnlyType& operator=(const MoveOnlyType&) = delete;
+};
+
+BEGIN_TEST(testHashSetOfMoveOnlyType)
+{
+    typedef js::HashSet<MoveOnlyType, MoveOnlyType::HashPolicy, js::SystemAllocPolicy> Set;
+
+    Set set;
+    CHECK(set.init());
+
+    MoveOnlyType a(1);
+
+    CHECK(set.put(mozilla::Move(a))); // This shouldn't generate a compiler error.
+
+    return true;
+}
+END_TEST(testHashSetOfMoveOnlyType)
+
+#if defined(DEBUG)
+
+// Add entries to a HashMap using lookupWithDefault until either we get an OOM,
+// or the table has been resized a few times.
+static bool
+LookupWithDefaultUntilResize() {
+    IntMap m;
+
+    if (!m.init())
+        return false;
+
+    // Add entries until we've resized the table four times.
+    size_t lastCapacity = m.capacity();
+    size_t resizes = 0;
+    uint32_t key = 0;
+    while (resizes < 4) {
+        if (!m.lookupWithDefault(key++, 0))
+            return false;
+
+        size_t capacity = m.capacity();
+        if (capacity != lastCapacity) {
+            resizes++;
+            lastCapacity = capacity;
+        }
+    }
+
+    return true;
+}
+
+BEGIN_TEST(testHashMapLookupWithDefaultOOM)
+{
+    uint32_t timeToFail;
+    for (timeToFail = 1; timeToFail < 1000; timeToFail++) {
+        js::oom::SimulateOOMAfter(timeToFail, js::oom::THREAD_TYPE_MAIN, false);
+        LookupWithDefaultUntilResize();
+    }
+
+    js::oom::ResetSimulatedOOM();
+    return true;
+}
+
+END_TEST(testHashMapLookupWithDefaultOOM)
+#endif // defined(DEBUG)

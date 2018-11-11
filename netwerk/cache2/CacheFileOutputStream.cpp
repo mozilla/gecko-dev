@@ -27,7 +27,7 @@ CacheFileOutputStream::Release()
     mRefCnt = 1;
     {
       CacheFileAutoLock lock(mFile);
-      mFile->RemoveOutput(this);
+      mFile->RemoveOutput(this, mStatus);
     }
     delete (this);
     return 0;
@@ -45,16 +45,22 @@ NS_INTERFACE_MAP_BEGIN(CacheFileOutputStream)
 NS_INTERFACE_MAP_END_THREADSAFE
 
 CacheFileOutputStream::CacheFileOutputStream(CacheFile *aFile,
-                                             CacheOutputCloseListener *aCloseListener)
+                                             CacheOutputCloseListener *aCloseListener,
+                                             bool aAlternativeData)
   : mFile(aFile)
   , mCloseListener(aCloseListener)
   , mPos(0)
   , mClosed(false)
+  , mAlternativeData(aAlternativeData)
   , mStatus(NS_OK)
   , mCallbackFlags(0)
 {
   LOG(("CacheFileOutputStream::CacheFileOutputStream() [this=%p]", this));
   MOZ_COUNT_CTOR(CacheFileOutputStream);
+
+  if (mAlternativeData) {
+    mPos = mFile->mAltDataOffset;
+  }
 }
 
 CacheFileOutputStream::~CacheFileOutputStream()
@@ -94,9 +100,21 @@ CacheFileOutputStream::Write(const char * aBuf, uint32_t aCount,
     return NS_FAILED(mStatus) ? mStatus : NS_BASE_STREAM_CLOSED;
   }
 
-  if (CacheObserver::EntryIsTooBig(mPos + aCount, !mFile->mMemoryOnly)) {
+  if (!mFile->mSkipSizeCheck && CacheObserver::EntryIsTooBig(mPos + aCount, !mFile->mMemoryOnly)) {
     LOG(("CacheFileOutputStream::Write() - Entry is too big, failing and "
          "dooming the entry. [this=%p]", this));
+
+    mFile->DoomLocked(nullptr);
+    CloseWithStatusLocked(NS_ERROR_FILE_TOO_BIG);
+    return NS_ERROR_FILE_TOO_BIG;
+  }
+
+  // We use 64-bit offset when accessing the file, unfortunatelly we use 32-bit
+  // metadata offset, so we cannot handle data bigger than 4GB.
+  if (mPos + aCount > PR_UINT32_MAX) {
+    LOG(("CacheFileOutputStream::Write() - Entry's size exceeds 4GB while it "
+         "isn't too big according to CacheObserver::EntryIsTooBig(). Failing "
+         "and dooming the entry. [this=%p]", this));
 
     mFile->DoomLocked(nullptr);
     CloseWithStatusLocked(NS_ERROR_FILE_TOO_BIG);
@@ -107,22 +125,31 @@ CacheFileOutputStream::Write(const char * aBuf, uint32_t aCount,
 
   while (aCount) {
     EnsureCorrectChunk(false);
-    if (NS_FAILED(mStatus))
+    if (NS_FAILED(mStatus)) {
       return mStatus;
+    }
 
     FillHole();
+    if (NS_FAILED(mStatus)) {
+      return mStatus;
+    }
 
     uint32_t chunkOffset = mPos - (mPos / kChunkSize) * kChunkSize;
     uint32_t canWrite = kChunkSize - chunkOffset;
     uint32_t thisWrite = std::min(static_cast<uint32_t>(canWrite), aCount);
-    mChunk->EnsureBufSize(chunkOffset + thisWrite);
-    memcpy(mChunk->BufForWriting() + chunkOffset, aBuf, thisWrite);
+
+    CacheFileChunkWriteHandle hnd = mChunk->GetWriteHandle(chunkOffset + thisWrite);
+    if (!hnd.Buf()) {
+      CloseWithStatusLocked(NS_ERROR_OUT_OF_MEMORY);
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+
+    memcpy(hnd.Buf() + chunkOffset, aBuf, thisWrite);
+    hnd.UpdateDataSize(chunkOffset, thisWrite);
 
     mPos += thisWrite;
     aBuf += thisWrite;
     aCount -= thisWrite;
-
-    mChunk->UpdateDataSize(chunkOffset, thisWrite, false);
   }
 
   EnsureCorrectChunk(true);
@@ -194,7 +221,7 @@ CacheFileOutputStream::CloseWithStatusLocked(nsresult aStatus)
     NotifyListener();
   }
 
-  mFile->RemoveOutput(this);
+  mFile->RemoveOutput(this, mStatus);
 
   return NS_OK;
 }
@@ -242,12 +269,19 @@ CacheFileOutputStream::Seek(int32_t whence, int64_t offset)
   int64_t newPos = offset;
   switch (whence) {
     case NS_SEEK_SET:
+      if (mAlternativeData) {
+        newPos += mFile->mAltDataOffset;
+      }
       break;
     case NS_SEEK_CUR:
       newPos += mPos;
       break;
     case NS_SEEK_END:
-      newPos += mFile->mDataSize;
+      if (mAlternativeData) {
+        newPos += mFile->mDataSize;
+      } else {
+        newPos += mFile->mAltDataOffset;
+      }
       break;
     default:
       NS_ERROR("invalid whence");
@@ -271,6 +305,10 @@ CacheFileOutputStream::Tell(int64_t *_retval)
   }
 
   *_retval = mPos;
+
+  if (mAlternativeData) {
+    *_retval -= mFile->mAltDataOffset;
+  }
 
   LOG(("CacheFileOutputStream::Tell() [this=%p, retval=%lld]", this, *_retval));
   return NS_OK;
@@ -322,7 +360,7 @@ CacheFileOutputStream::OnChunkUpdated(CacheFileChunk *aChunk)
 
 void CacheFileOutputStream::NotifyCloseListener()
 {
-  nsRefPtr<CacheOutputCloseListener> listener;
+  RefPtr<CacheOutputCloseListener> listener;
   listener.swap(mCloseListener);
   if (!listener)
     return;
@@ -336,7 +374,7 @@ CacheFileOutputStream::ReleaseChunk()
   LOG(("CacheFileOutputStream::ReleaseChunk() [this=%p, idx=%d]",
        this, mChunk->Index()));
 
-  mFile->ReleaseOutsideLock(mChunk.forget().take());
+  mFile->ReleaseOutsideLock(mChunk.forget());
 }
 
 void
@@ -390,11 +428,15 @@ CacheFileOutputStream::FillHole()
   LOG(("CacheFileOutputStream::FillHole() - Zeroing hole in chunk %d, range "
        "%d-%d [this=%p]", mChunk->Index(), mChunk->DataSize(), pos - 1, this));
 
-  mChunk->EnsureBufSize(pos);
-  memset(mChunk->BufForWriting() + mChunk->DataSize(), 0,
-         pos - mChunk->DataSize());
+  CacheFileChunkWriteHandle hnd = mChunk->GetWriteHandle(pos);
+  if (!hnd.Buf()) {
+    CloseWithStatusLocked(NS_ERROR_OUT_OF_MEMORY);
+    return;
+  }
 
-  mChunk->UpdateDataSize(mChunk->DataSize(), pos - mChunk->DataSize(), false);
+  uint32_t offset = hnd.DataSize();
+  memset(hnd.Buf() + offset, 0, pos - offset);
+  hnd.UpdateDataSize(offset, pos - offset);
 }
 
 void
@@ -406,8 +448,14 @@ CacheFileOutputStream::NotifyListener()
 
   MOZ_ASSERT(mCallback);
 
-  if (!mCallbackTarget)
-    mCallbackTarget = NS_GetCurrentThread();
+  if (!mCallbackTarget) {
+    mCallbackTarget = CacheFileIOManager::IOTarget();
+    if (!mCallbackTarget) {
+      LOG(("CacheFileOutputStream::NotifyListener() - Cannot get Cache I/O "
+           "thread! Using main thread for callback."));
+      mCallbackTarget = do_GetMainThread();
+    }
+  }
 
   nsCOMPtr<nsIOutputStreamCallback> asyncCallback =
     NS_NewOutputStreamReadyEvent(mCallback, mCallbackTarget);
@@ -431,5 +479,5 @@ CacheFileOutputStream::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) c
   return mallocSizeOf(this);
 }
 
-} // net
-} // mozilla
+} // namespace net
+} // namespace mozilla

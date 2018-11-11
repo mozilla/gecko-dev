@@ -15,10 +15,12 @@ function waitForBookmarkNotification(aNotification, aCallback, aProperty)
 
     // nsINavBookmarkObserver
     QueryInterface: XPCOMUtils.generateQI([Ci.nsINavBookmarkObserver]),
-    onBeginUpdateBatch: function onBeginUpdateBatch()
-      this.validate(arguments.callee.name, arguments),
-    onEndUpdateBatch: function onEndUpdateBatch()
-      this.validate(arguments.callee.name, arguments),
+    onBeginUpdateBatch: function onBeginUpdateBatch() {
+      return this.validate(arguments.callee.name, arguments);
+    },
+    onEndUpdateBatch: function onEndUpdateBatch() {
+      return this.validate(arguments.callee.name, arguments);
+    },
     onItemAdded: function onItemAdded(aItemId, aParentId, aIndex, aItemType,
                                       aURI, aTitle)
     {
@@ -28,24 +30,32 @@ function waitForBookmarkNotification(aNotification, aCallback, aProperty)
                                                     url: aURI ? aURI.spec : null,
                                                     title: aTitle });
     },
-    onItemRemoved: function onItemRemoved()
-      this.validate(arguments.callee.name, arguments),
-    onItemChanged: function onItemChanged(aItemId, aProperty, aIsAnno,
-                                          aNewValue, aLastModified, aItemType)
+    onItemRemoved: function onItemRemoved() {
+      return this.validate(arguments.callee.name, arguments);
+    },
+    onItemChanged: function onItemChanged(id, property, aIsAnno,
+                                          aNewValue, aLastModified, type)
     {
       return this.validate(arguments.callee.name,
-                           { id: aItemId,
-                             get index() PlacesUtils.bookmarks.getItemIndex(this.id),
-                             type: aItemType,
-                             property: aProperty,
-                             get url() aItemType == PlacesUtils.bookmarks.TYPE_BOOKMARK ?
-                                                PlacesUtils.bookmarks.getBookmarkURI(this.id).spec :
-                                                null,
-                             get title() PlacesUtils.bookmarks.getItemTitle(this.id),
+                           { id,
+                             get index() {
+                               return PlacesUtils.bookmarks.getItemIndex(this.id);
+                             },
+                             type,
+                             property,
+                             get url() {
+                               return type == PlacesUtils.bookmarks.TYPE_BOOKMARK ?
+                                      PlacesUtils.bookmarks.getBookmarkURI(this.id).spec :
+                                      null;
+                             },
+                             get title() {
+                               return PlacesUtils.bookmarks.getItemTitle(this.id);
+                             },
                            });
     },
-    onItemVisited: function onItemVisited()
-      this.validate(arguments.callee.name, arguments),
+    onItemVisited: function onItemVisited() {
+      return this.validate(arguments.callee.name, arguments);
+    },
     onItemMoved: function onItemMoved(aItemId, aOldParentId, aOldIndex,
                                       aNewParentId, aNewIndex, aItemType)
     {
@@ -111,30 +121,30 @@ add_test(function test_container()
 {
   const TEST_TITLE = "Places folder"
 
-  waitForBookmarkNotification("onItemChanged", function(aData)
+  waitForBookmarkNotification("onItemChanged", function(aChangedData)
   {
-    do_check_eq(aData.title, TEST_TITLE);
-    do_check_eq(aData.type, PlacesUtils.bookmarks.TYPE_FOLDER);
-    do_check_eq(aData.index, 1);
+    do_check_eq(aChangedData.title, TEST_TITLE);
+    do_check_eq(aChangedData.type, PlacesUtils.bookmarks.TYPE_FOLDER);
+    do_check_eq(aChangedData.index, 1);
 
-    waitForBookmarkNotification("onItemAdded", function(aData)
+    waitForBookmarkNotification("onItemAdded", function(aAddedData)
     {
-      do_check_eq(aData.title, TEST_TITLE);
-      do_check_eq(aData.type, PlacesUtils.bookmarks.TYPE_FOLDER);
-      do_check_eq(aData.index, 2);
-      let id = aData.id;
+      do_check_eq(aAddedData.title, TEST_TITLE);
+      do_check_eq(aAddedData.type, PlacesUtils.bookmarks.TYPE_FOLDER);
+      do_check_eq(aAddedData.index, 2);
+      let id = aAddedData.id;
 
-      waitForBookmarkNotification("onItemMoved", function(aData)
+      waitForBookmarkNotification("onItemMoved", function(aMovedData)
       {
-        do_check_eq(aData.id, id);
-        do_check_eq(aData.type, PlacesUtils.bookmarks.TYPE_FOLDER);
-        do_check_eq(aData.index, 1);
+        do_check_eq(aMovedData.id, id);
+        do_check_eq(aMovedData.type, PlacesUtils.bookmarks.TYPE_FOLDER);
+        do_check_eq(aMovedData.index, 1);
 
         run_next_test();
       });
 
       let txn = PlacesUIUtils.makeTransaction(
-        wrapNodeByIdAndParent(aData.id, PlacesUtils.unfiledBookmarksFolderId),
+        wrapNodeByIdAndParent(aAddedData.id, PlacesUtils.unfiledBookmarksFolderId),
         0, // Unused for real nodes.
         PlacesUtils.unfiledBookmarksFolderId,
         1, // Move to position 1.
@@ -145,14 +155,14 @@ add_test(function test_container()
 
     try {
     let txn = PlacesUIUtils.makeTransaction(
-      wrapNodeByIdAndParent(aData.id, PlacesUtils.unfiledBookmarksFolderId),
+      wrapNodeByIdAndParent(aChangedData.id, PlacesUtils.unfiledBookmarksFolderId),
       0, // Unused for real nodes.
       PlacesUtils.unfiledBookmarksFolderId,
       PlacesUtils.bookmarks.DEFAULT_INDEX,
       true
     );
     PlacesUtils.transactionManager.doTransaction(txn);
-    } catch(ex) {
+    } catch (ex) {
       do_throw(ex);
     }
   }, "random-anno");
@@ -171,28 +181,28 @@ add_test(function test_container()
 
 add_test(function test_separator()
 {
-  waitForBookmarkNotification("onItemChanged", function(aData)
+  waitForBookmarkNotification("onItemChanged", function(aChangedData)
   {
-    do_check_eq(aData.type, PlacesUtils.bookmarks.TYPE_SEPARATOR);
-    do_check_eq(aData.index, 3);
+    do_check_eq(aChangedData.type, PlacesUtils.bookmarks.TYPE_SEPARATOR);
+    do_check_eq(aChangedData.index, 3);
 
-    waitForBookmarkNotification("onItemAdded", function(aData)
+    waitForBookmarkNotification("onItemAdded", function(aAddedData)
     {
-      do_check_eq(aData.type, PlacesUtils.bookmarks.TYPE_SEPARATOR);
-      do_check_eq(aData.index, 4);
-      let id = aData.id;
+      do_check_eq(aAddedData.type, PlacesUtils.bookmarks.TYPE_SEPARATOR);
+      do_check_eq(aAddedData.index, 4);
+      let id = aAddedData.id;
 
-      waitForBookmarkNotification("onItemMoved", function(aData)
+      waitForBookmarkNotification("onItemMoved", function(aMovedData)
       {
-        do_check_eq(aData.id, id);
-        do_check_eq(aData.type, PlacesUtils.bookmarks.TYPE_SEPARATOR);
-        do_check_eq(aData.index, 1);
+        do_check_eq(aMovedData.id, id);
+        do_check_eq(aMovedData.type, PlacesUtils.bookmarks.TYPE_SEPARATOR);
+        do_check_eq(aMovedData.index, 1);
 
         run_next_test();
       });
 
       let txn = PlacesUIUtils.makeTransaction(
-        wrapNodeByIdAndParent(aData.id, PlacesUtils.unfiledBookmarksFolderId),
+        wrapNodeByIdAndParent(aAddedData.id, PlacesUtils.unfiledBookmarksFolderId),
         0, // Unused for real nodes.
         PlacesUtils.unfiledBookmarksFolderId,
         1, // Move to position 1.
@@ -203,14 +213,14 @@ add_test(function test_separator()
 
     try {
     let txn = PlacesUIUtils.makeTransaction(
-      wrapNodeByIdAndParent(aData.id, PlacesUtils.unfiledBookmarksFolderId),
+      wrapNodeByIdAndParent(aChangedData.id, PlacesUtils.unfiledBookmarksFolderId),
       0, // Unused for real nodes.
       PlacesUtils.unfiledBookmarksFolderId,
       PlacesUtils.bookmarks.DEFAULT_INDEX,
       true
     );
     PlacesUtils.transactionManager.doTransaction(txn);
-    } catch(ex) {
+    } catch (ex) {
       do_throw(ex);
     }
   }, "random-anno");
@@ -218,7 +228,7 @@ add_test(function test_separator()
   let id = PlacesUtils.bookmarks.insertSeparator(PlacesUtils.unfiledBookmarksFolderId,
                                                  PlacesUtils.bookmarks.DEFAULT_INDEX);
   PlacesUtils.annotations.setItemAnnotation(id, "random-anno",
-                                            "random-value", 0, 
+                                            "random-value", 0,
                                             PlacesUtils.annotations.EXPIRE_NEVER);
 });
 
@@ -227,32 +237,32 @@ add_test(function test_bookmark()
   const TEST_URL = "http://places.moz.org/"
   const TEST_TITLE = "Places bookmark"
 
-  waitForBookmarkNotification("onItemChanged", function(aData)
+  waitForBookmarkNotification("onItemChanged", function(aChangedData)
   {
-    do_check_eq(aData.title, TEST_TITLE);
-    do_check_eq(aData.url, TEST_URL);
-    do_check_eq(aData.type, PlacesUtils.bookmarks.TYPE_BOOKMARK);
-    do_check_eq(aData.index, 5);
+    do_check_eq(aChangedData.title, TEST_TITLE);
+    do_check_eq(aChangedData.url, TEST_URL);
+    do_check_eq(aChangedData.type, PlacesUtils.bookmarks.TYPE_BOOKMARK);
+    do_check_eq(aChangedData.index, 5);
 
-    waitForBookmarkNotification("onItemAdded", function(aData)
+    waitForBookmarkNotification("onItemAdded", function(aAddedData)
     {
-      do_check_eq(aData.title, TEST_TITLE);
-      do_check_eq(aData.url, TEST_URL);
-      do_check_eq(aData.type, PlacesUtils.bookmarks.TYPE_BOOKMARK);
-      do_check_eq(aData.index, 6);
-      let id = aData.id;
+      do_check_eq(aAddedData.title, TEST_TITLE);
+      do_check_eq(aAddedData.url, TEST_URL);
+      do_check_eq(aAddedData.type, PlacesUtils.bookmarks.TYPE_BOOKMARK);
+      do_check_eq(aAddedData.index, 6);
+      let id = aAddedData.id;
 
-      waitForBookmarkNotification("onItemMoved", function(aData)
+      waitForBookmarkNotification("onItemMoved", function(aMovedData)
       {
-        do_check_eq(aData.id, id);
-        do_check_eq(aData.type, PlacesUtils.bookmarks.TYPE_BOOKMARK);
-        do_check_eq(aData.index, 1);
+        do_check_eq(aMovedData.id, id);
+        do_check_eq(aMovedData.type, PlacesUtils.bookmarks.TYPE_BOOKMARK);
+        do_check_eq(aMovedData.index, 1);
 
         run_next_test();
       });
 
       let txn = PlacesUIUtils.makeTransaction(
-        wrapNodeByIdAndParent(aData.id, PlacesUtils.unfiledBookmarksFolderId),
+        wrapNodeByIdAndParent(aAddedData.id, PlacesUtils.unfiledBookmarksFolderId),
         0, // Unused for real nodes.
         PlacesUtils.unfiledBookmarksFolderId,
         1, // Move to position 1.
@@ -263,14 +273,14 @@ add_test(function test_bookmark()
 
     try {
     let txn = PlacesUIUtils.makeTransaction(
-      wrapNodeByIdAndParent(aData.id, PlacesUtils.unfiledBookmarksFolderId),
+      wrapNodeByIdAndParent(aChangedData.id, PlacesUtils.unfiledBookmarksFolderId),
       0, // Unused for real nodes.
       PlacesUtils.unfiledBookmarksFolderId,
       PlacesUtils.bookmarks.DEFAULT_INDEX,
       true
     );
     PlacesUtils.transactionManager.doTransaction(txn);
-    } catch(ex) {
+    } catch (ex) {
       do_throw(ex);
     }
   }, "random-anno");
@@ -292,24 +302,24 @@ add_test(function test_visit()
   const TEST_URL = "http://places.moz.org/"
   const TEST_TITLE = "Places bookmark"
 
-  waitForBookmarkNotification("onItemAdded", function(aData)
+  waitForBookmarkNotification("onItemAdded", function(aAddedData)
   {
-    do_check_eq(aData.title, TEST_TITLE);
-    do_check_eq(aData.url, TEST_URL);
-    do_check_eq(aData.type, PlacesUtils.bookmarks.TYPE_BOOKMARK);
-    do_check_eq(aData.index, 7);
+    do_check_eq(aAddedData.title, TEST_TITLE);
+    do_check_eq(aAddedData.url, TEST_URL);
+    do_check_eq(aAddedData.type, PlacesUtils.bookmarks.TYPE_BOOKMARK);
+    do_check_eq(aAddedData.index, 7);
 
-    waitForBookmarkNotification("onItemAdded", function(aData)
+    waitForBookmarkNotification("onItemAdded", function(aAddedData2)
     {
-      do_check_eq(aData.title, TEST_TITLE);
-      do_check_eq(aData.url, TEST_URL);
-      do_check_eq(aData.type, PlacesUtils.bookmarks.TYPE_BOOKMARK);
-      do_check_eq(aData.index, 8);
+      do_check_eq(aAddedData2.title, TEST_TITLE);
+      do_check_eq(aAddedData2.url, TEST_URL);
+      do_check_eq(aAddedData2.type, PlacesUtils.bookmarks.TYPE_BOOKMARK);
+      do_check_eq(aAddedData2.index, 8);
       run_next_test();
     });
 
     try {
-    let node = wrapNodeByIdAndParent(aData.id, PlacesUtils.unfiledBookmarksFolderId);
+    let node = wrapNodeByIdAndParent(aAddedData.id, PlacesUtils.unfiledBookmarksFolderId);
     // Simulate a not-bookmarked node, will copy it to a new bookmark.
     node.id = -1;
     let txn = PlacesUIUtils.makeTransaction(
@@ -320,7 +330,7 @@ add_test(function test_visit()
       true
     );
     PlacesUtils.transactionManager.doTransaction(txn);
-    } catch(ex) {
+    } catch (ex) {
       do_throw(ex);
     }
   });

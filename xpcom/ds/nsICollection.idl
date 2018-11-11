@@ -7,7 +7,7 @@
 
 interface nsIEnumerator;
 
-[scriptable, uuid(83b6019c-cbc4-11d2-8cca-0060b0fc14a3)]
+[deprecated, scriptable, uuid(83b6019c-cbc4-11d2-8cca-0060b0fc14a3)]
 interface nsICollection : nsISerializable
 {
 
@@ -19,6 +19,12 @@ interface nsICollection : nsISerializable
   void AppendElement(in nsISupports item);
   void RemoveElement(in nsISupports item);
 
+  /**
+   * This clashes with |nsISimpleEnumerator nsIArray.enumerate()| (only on the
+   * binary side), so it is renamed with a 'Deprecated' prefix in favor of the
+   * non-deprecated |nsIArray.enumerate|.
+   */
+  [binaryname(DeprecatedEnumerate)]
   nsIEnumerator Enumerate();
 
   void Clear();
@@ -31,7 +37,7 @@ interface nsICollection : nsISerializable
 #include "nsCOMPtr.h"
 #endif
 
-class nsQueryElementAt : public nsCOMPtr_helper
+class MOZ_STACK_CLASS nsQueryElementAt : public nsCOMPtr_helper
   {
     public:
       nsQueryElementAt( nsICollection* aCollection, uint32_t aIndex, nsresult* aErrorPtr )
@@ -42,10 +48,11 @@ class nsQueryElementAt : public nsCOMPtr_helper
           // nothing else to do here
         }
 
-      virtual nsresult NS_FASTCALL operator()( const nsIID& aIID, void** ) const;
+      virtual nsresult NS_FASTCALL operator()( const nsIID& aIID, void** )
+        const override;
 
     private:
-      nsICollection*  mCollection;
+      nsICollection* MOZ_NON_OWNING_REF mCollection;
       uint32_t        mIndex;
       nsresult*       mErrorPtr;
   };

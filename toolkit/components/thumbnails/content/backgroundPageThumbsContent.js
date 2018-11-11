@@ -2,17 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-(function () { // bug 673569 workaround :(
+var { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
-const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
+Cu.importGlobalProperties(['Blob', 'FileReader']);
 
-Cu.import("resource://gre/modules/PageThumbs.jsm");
+Cu.import("resource://gre/modules/PageThumbUtils.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
 const STATE_LOADING = 1;
 const STATE_CAPTURING = 2;
 const STATE_CANCELED = 3;
+
+// NOTE: Copied from nsSandboxFlags.h
+/**
+ * This flag prevents content from creating new auxiliary browsing contexts,
+ * e.g. using the target attribute, the window.open() method, or the
+ * showModalDialog() method.
+ */
+const SANDBOXED_AUXILIARY_NAVIGATION = 0x2;
 
 const backgroundPageThumbsContent = {
 
@@ -33,6 +41,7 @@ const backgroundPageThumbsContent = {
                        Ci.nsIRequest.INHIBIT_CACHING |
                        Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_HISTORY;
     docShell.defaultLoadFlags = defaultFlags;
+    docShell.sandboxFlags |= SANDBOXED_AUXILIARY_NAVIGATION;
 
     addMessageListener("BackgroundPageThumbs:capture",
                        this._onCapture.bind(this));
@@ -47,7 +56,7 @@ const backgroundPageThumbsContent = {
     // in the parent (eg, auth) aren't prevented, but alert() etc are.
     // disableDialogs only works on the current inner window, so it has
     // to be called every page load, but before scripts run.
-    if (subj == content.document) {
+    if (content && subj == content.document) {
       content.
         QueryInterface(Ci.nsIInterfaceRequestor).
         getInterface(Ci.nsIDOMWindowUtils).
@@ -84,9 +93,16 @@ const backgroundPageThumbsContent = {
     delete this._nextCapture;
     this._state = STATE_LOADING;
     this._currentCapture.pageLoadStartDate = new Date();
-    this._webNav.loadURI(this._currentCapture.url,
-                         Ci.nsIWebNavigation.LOAD_FLAGS_STOP_CONTENT,
-                         null, null, null);
+
+    try {
+      this._webNav.loadURI(this._currentCapture.url,
+                           Ci.nsIWebNavigation.LOAD_FLAGS_STOP_CONTENT,
+                           null, null, null);
+    } catch (e) {
+      this._failCurrentCapture("BAD_URI");
+      delete this._currentCapture;
+      this._startNextCapture();
+    }
   },
 
   onStateChange: function (webProgress, req, flags, status) {
@@ -101,16 +117,29 @@ const backgroundPageThumbsContent = {
           this._startNextCapture();
         }
         else if (this._state == STATE_CANCELED) {
-          // A capture request was received while the current capture's page
-          // was still loading.
           delete this._currentCapture;
           this._startNextCapture();
         }
       }
-      else if (this._state == STATE_LOADING) {
+      else if (this._state == STATE_LOADING &&
+               Components.isSuccessCode(status)) {
         // The requested page has loaded.  Capture it.
         this._state = STATE_CAPTURING;
         this._captureCurrentPage();
+      }
+      else if (this._state != STATE_CANCELED) {
+        // Something went wrong.  Cancel the capture.  Loading about:blank
+        // while onStateChange is still on the stack does not actually stop
+        // the request if it redirects, so do it asyncly.
+        this._state = STATE_CANCELED;
+        if (!this._cancelTimer) {
+          this._cancelTimer =
+            Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+          this._cancelTimer.init(() => {
+            this._loadAboutBlank();
+            delete this._cancelTimer;
+          }, 0, Ci.nsITimer.TYPE_ONE_SHOT);
+        }
       }
     }
   },
@@ -120,13 +149,13 @@ const backgroundPageThumbsContent = {
     capture.finalURL = this._webNav.currentURI.spec;
     capture.pageLoadTime = new Date() - capture.pageLoadStartDate;
 
-    let canvas = PageThumbs._createCanvas(content);
     let canvasDrawDate = new Date();
-    PageThumbs._captureToCanvas(content, canvas);
+
+    let finalCanvas = PageThumbUtils.createSnapshotThumbnail(content, null);
     capture.canvasDrawTime = new Date() - canvasDrawDate;
 
-    canvas.toBlob(blob => {
-      capture.imageBlob = blob;
+    finalCanvas.toBlob(blob => {
+      capture.imageBlob = new Blob([blob]);
       // Load about:blank to finish the capture and wait for onStateChange.
       this._loadAboutBlank();
     });
@@ -134,8 +163,7 @@ const backgroundPageThumbsContent = {
 
   _finishCurrentCapture: function () {
     let capture = this._currentCapture;
-    let fileReader = Cc["@mozilla.org/files/filereader;1"].
-                     createInstance(Ci.nsIDOMFileReader);
+    let fileReader = new FileReader();
     fileReader.onloadend = () => {
       sendAsyncMessage("BackgroundPageThumbs:didCapture", {
         id: capture.id,
@@ -148,6 +176,14 @@ const backgroundPageThumbsContent = {
       });
     };
     fileReader.readAsArrayBuffer(capture.imageBlob);
+  },
+
+  _failCurrentCapture: function (reason) {
+    let capture = this._currentCapture;
+    sendAsyncMessage("BackgroundPageThumbs:didCapture", {
+      id: capture.id,
+      failReason: reason,
+    });
   },
 
   // We load about:blank to finish all captures, even canceled captures.  Two
@@ -167,5 +203,3 @@ const backgroundPageThumbsContent = {
 };
 
 backgroundPageThumbsContent.init();
-
-})();

@@ -11,6 +11,7 @@
 #include "nsXPIDLString.h"
 #include "nsReadableUtils.h"
 #include "nsCOMPtr.h"
+#include "nsContentUtils.h"
 #include "nsIServiceManager.h"
 #include "nsServiceManagerUtils.h"
 #include "nsIInterfaceRequestor.h"
@@ -19,30 +20,40 @@
 #include "nsIPrefService.h"
 #include "nsIPrompt.h"
 #include "nsNetUtil.h"
+#include "nsContentSecurityManager.h"
 #include "nsExternalHelperAppService.h"
 
 // used to dispatch urls to default protocol handlers
 #include "nsCExternalHandlerService.h"
 #include "nsIExternalProtocolService.h"
+#include "nsIChildChannel.h"
+#include "nsIParentChannel.h"
+
+class nsILoadInfo;
 
 ////////////////////////////////////////////////////////////////////////
 // a stub channel implemenation which will map calls to AsyncRead and OpenInputStream
 // to calls in the OS for loading the url.
 ////////////////////////////////////////////////////////////////////////
 
-class nsExtProtocolChannel : public nsIChannel
+class nsExtProtocolChannel : public nsIChannel,
+                             public nsIChildChannel,
+                             public nsIParentChannel
 {
 public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSICHANNEL
+    NS_DECL_NSIREQUESTOBSERVER
+    NS_DECL_NSISTREAMLISTENER
     NS_DECL_NSIREQUEST
+    NS_DECL_NSICHILDCHANNEL
+    NS_DECL_NSIPARENTCHANNEL
 
-    nsExtProtocolChannel();
-    virtual ~nsExtProtocolChannel();
-
-    nsresult SetURI(nsIURI*);
+    nsExtProtocolChannel(nsIURI* aURI, nsILoadInfo* aLoadInfo);
 
 private:
+    virtual ~nsExtProtocolChannel();
+
     nsresult OpenURL();
     void Finish(nsresult aResult);
     
@@ -51,9 +62,15 @@ private:
     nsresult mStatus;
     nsLoadFlags mLoadFlags;
     bool mWasOpened;
+    // Set true (as a result of ConnectParent invoked from child process)
+    // when this channel is on the parent process and is being used as
+    // a redirect target channel.  It turns AsyncOpen into a no-op since
+    // we do it on the child.
+    bool mConnectedParent;
     
     nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
     nsCOMPtr<nsILoadGroup> mLoadGroup;
+    nsCOMPtr<nsILoadInfo> mLoadInfo;
 };
 
 NS_IMPL_ADDREF(nsExtProtocolChannel)
@@ -63,10 +80,21 @@ NS_INTERFACE_MAP_BEGIN(nsExtProtocolChannel)
    NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIChannel)
    NS_INTERFACE_MAP_ENTRY(nsIChannel)
    NS_INTERFACE_MAP_ENTRY(nsIRequest)
+   NS_INTERFACE_MAP_ENTRY(nsIChildChannel)
+   NS_INTERFACE_MAP_ENTRY(nsIParentChannel)
+   NS_INTERFACE_MAP_ENTRY(nsIStreamListener)
+   NS_INTERFACE_MAP_ENTRY(nsIRequestObserver)
 NS_INTERFACE_MAP_END_THREADSAFE
 
-nsExtProtocolChannel::nsExtProtocolChannel() : mStatus(NS_OK), 
-                                               mWasOpened(false)
+nsExtProtocolChannel::nsExtProtocolChannel(nsIURI* aURI,
+                                           nsILoadInfo* aLoadInfo)
+  : mUrl(aURI)
+  , mOriginalURI(aURI)
+  , mStatus(NS_OK)
+  , mLoadFlags(nsIRequest::LOAD_NORMAL)
+  , mWasOpened(false)
+  , mConnectedParent(false)
+  , mLoadInfo(aLoadInfo)
 {
 }
 
@@ -124,12 +152,6 @@ NS_IMETHODIMP nsExtProtocolChannel::GetURI(nsIURI* *aURI)
   return NS_OK; 
 }
  
-nsresult nsExtProtocolChannel::SetURI(nsIURI* aURI)
-{
-  mUrl = aURI;
-  return NS_OK; 
-}
-
 nsresult nsExtProtocolChannel::OpenURL()
 {
   nsresult rv = NS_ERROR_FAILURE;
@@ -162,7 +184,7 @@ nsresult nsExtProtocolChannel::OpenURL()
   }
 
 finish:
-  mCallbacks = 0;
+  mCallbacks = nullptr;
   return rv;
 }
 
@@ -171,14 +193,41 @@ NS_IMETHODIMP nsExtProtocolChannel::Open(nsIInputStream **_retval)
   return OpenURL();
 }
 
+NS_IMETHODIMP nsExtProtocolChannel::Open2(nsIInputStream** aStream)
+{
+  nsCOMPtr<nsIStreamListener> listener;
+  nsresult rv = nsContentSecurityManager::doContentSecurityCheck(this, listener);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return Open(aStream);
+}
+
 NS_IMETHODIMP nsExtProtocolChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *ctxt)
 {
+  if (mConnectedParent) {
+    return NS_OK;
+  }
+
+  MOZ_ASSERT(!mLoadInfo ||
+             mLoadInfo->GetSecurityMode() == 0 ||
+             mLoadInfo->GetInitialSecurityCheckDone() ||
+             (mLoadInfo->GetSecurityMode() == nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL &&
+              nsContentUtils::IsSystemPrincipal(mLoadInfo->LoadingPrincipal())),
+             "security flags in loadInfo but asyncOpen2() not called");
+
   NS_ENSURE_ARG_POINTER(listener);
   NS_ENSURE_TRUE(!mWasOpened, NS_ERROR_ALREADY_OPENED);
 
   mWasOpened = true;
 
   return OpenURL();
+}
+
+NS_IMETHODIMP nsExtProtocolChannel::AsyncOpen2(nsIStreamListener *aListener)
+{
+  nsCOMPtr<nsIStreamListener> listener = aListener;
+  nsresult rv = nsContentSecurityManager::doContentSecurityCheck(this, listener);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return AsyncOpen(listener, nullptr);
 }
 
 NS_IMETHODIMP nsExtProtocolChannel::GetLoadFlags(nsLoadFlags *aLoadFlags)
@@ -253,14 +302,24 @@ nsExtProtocolChannel::SetContentLength(int64_t aContentLength)
 
 NS_IMETHODIMP nsExtProtocolChannel::GetOwner(nsISupports * *aPrincipal)
 {
-  NS_NOTREACHED("GetOwner");
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP nsExtProtocolChannel::SetOwner(nsISupports * aPrincipal)
 {
-  NS_NOTREACHED("SetOwner");
   return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP nsExtProtocolChannel::GetLoadInfo(nsILoadInfo **aLoadInfo)
+{
+  NS_IF_ADDREF(*aLoadInfo = mLoadInfo);
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsExtProtocolChannel::SetLoadInfo(nsILoadInfo *aLoadInfo)
+{
+  mLoadInfo = aLoadInfo;
+  return NS_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -300,6 +359,81 @@ NS_IMETHODIMP nsExtProtocolChannel::Resume()
 {
   NS_NOTREACHED("Resume");
   return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+///////////////////////////////////////////////////////////////////////
+// From nsIChildChannel
+//////////////////////////////////////////////////////////////////////
+
+NS_IMETHODIMP nsExtProtocolChannel::ConnectParent(uint32_t registrarId)
+{
+  mozilla::dom::ContentChild::GetSingleton()->
+    SendExtProtocolChannelConnectParent(registrarId);
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsExtProtocolChannel::CompleteRedirectSetup(nsIStreamListener *listener,
+                                                          nsISupports *context)
+{
+  // For redirects to external protocols we AsyncOpen on the child
+  // (not the parent) because child channel has the right docshell
+  // (which is needed for the select dialog).
+  return AsyncOpen(listener, context);
+}
+
+///////////////////////////////////////////////////////////////////////
+// From nsIParentChannel (derives from nsIStreamListener)
+//////////////////////////////////////////////////////////////////////
+
+NS_IMETHODIMP nsExtProtocolChannel::SetParentListener(HttpChannelParentListener* aListener)
+{
+  // This is called as part of the connect parent operation from
+  // ContentParent::RecvExtProtocolChannelConnectParent.  Setting
+  // this flag tells this channel to not proceed and makes AsyncOpen
+  // just no-op.  Actual operation will happen from the child process
+  // via CompleteRedirectSetup call on the child channel.
+  mConnectedParent = true;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsExtProtocolChannel::NotifyTrackingProtectionDisabled()
+{
+  // nothing to do
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsExtProtocolChannel::Delete()
+{
+  // nothing to do
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsExtProtocolChannel::OnStartRequest(nsIRequest *aRequest,
+                                                   nsISupports *aContext)
+{
+  // no data is expected
+  MOZ_CRASH("No data expected from external protocol channel");
+  return NS_ERROR_UNEXPECTED;
+}
+
+NS_IMETHODIMP nsExtProtocolChannel::OnStopRequest(nsIRequest *aRequest,
+                                                  nsISupports *aContext,
+                                                  nsresult aStatusCode)
+{
+  // no data is expected
+  MOZ_CRASH("No data expected from external protocol channel");
+  return NS_ERROR_UNEXPECTED;
+}
+
+NS_IMETHODIMP nsExtProtocolChannel::OnDataAvailable(nsIRequest *aRequest,
+                                                    nsISupports *aContext,
+                                                    nsIInputStream *aInputStream,
+                                                    uint64_t aOffset,
+                                                    uint32_t aCount)
+{
+  // no data is expected
+  MOZ_CRASH("No data expected from external protocol channel");
+  return NS_ERROR_UNEXPECTED;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -347,16 +481,17 @@ nsExternalProtocolHandler::AllowPort(int32_t port, const char *scheme, bool *_re
 // returns TRUE if the OS can handle this protocol scheme and false otherwise.
 bool nsExternalProtocolHandler::HaveExternalProtocolHandler(nsIURI * aURI)
 {
-  bool haveHandler = false;
-  if (aURI)
-  {
-    nsAutoCString scheme;
-    aURI->GetScheme(scheme);
-    nsCOMPtr<nsIExternalProtocolService> extProtSvc(do_GetService(NS_EXTERNALPROTOCOLSERVICE_CONTRACTID));
-    if (extProtSvc)
-      extProtSvc->ExternalProtocolHandlerExists(scheme.get(), &haveHandler);
+  MOZ_ASSERT(aURI);
+  nsAutoCString scheme;
+  aURI->GetScheme(scheme);
+
+  nsCOMPtr<nsIExternalProtocolService> extProtSvc(do_GetService(NS_EXTERNALPROTOCOLSERVICE_CONTRACTID));
+  if (!extProtSvc) {
+    return false;
   }
 
+  bool haveHandler = false;
+  extProtSvc->ExternalProtocolHandlerExists(scheme.get(), &haveHandler);
   return haveHandler;
 }
 
@@ -384,30 +519,30 @@ NS_IMETHODIMP nsExternalProtocolHandler::NewURI(const nsACString &aSpec,
   return NS_OK;
 }
 
-NS_IMETHODIMP nsExternalProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **_retval)
+NS_IMETHODIMP
+nsExternalProtocolHandler::NewChannel2(nsIURI* aURI,
+                                       nsILoadInfo* aLoadInfo,
+                                       nsIChannel** aRetval)
 {
+  NS_ENSURE_TRUE(aURI, NS_ERROR_UNKNOWN_PROTOCOL);
+  NS_ENSURE_TRUE(aRetval, NS_ERROR_UNKNOWN_PROTOCOL);
+
   // Only try to return a channel if we have a protocol handler for the url.
   // nsOSHelperAppService::LoadUriInternal relies on this to check trustedness
   // for some platforms at least.  (win uses ::ShellExecute and unix uses
   // gnome_url_show.)
-  bool haveExternalHandler = HaveExternalProtocolHandler(aURI);
-  if (haveExternalHandler)
-  {
-    nsCOMPtr<nsIChannel> channel = new nsExtProtocolChannel();
-    if (!channel) return NS_ERROR_OUT_OF_MEMORY;
-
-    ((nsExtProtocolChannel*) channel.get())->SetURI(aURI);
-    channel->SetOriginalURI(aURI);
-
-    if (_retval)
-    {
-      *_retval = channel;
-      NS_IF_ADDREF(*_retval);
-      return NS_OK;
-    }
+  if (!HaveExternalProtocolHandler(aURI)) {
+    return NS_ERROR_UNKNOWN_PROTOCOL;
   }
 
-  return NS_ERROR_UNKNOWN_PROTOCOL;
+  nsCOMPtr<nsIChannel> channel = new nsExtProtocolChannel(aURI, aLoadInfo);
+  channel.forget(aRetval);
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsExternalProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **_retval)
+{
+  return NewChannel2(aURI, nullptr, _retval);
 }
 
 ///////////////////////////////////////////////////////////////////////

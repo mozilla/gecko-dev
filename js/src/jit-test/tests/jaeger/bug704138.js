@@ -1,16 +1,20 @@
-function TestCase(n, d, e, a)
+load(libdir + "immutable-prototype.js");
+
+function TestCase(n, d, e, a) {
   this.name=n;
+  return n;
+}
+
 function reportCompare (expected, actual, description) {
   new TestCase
 }
+
 reportCompare(true, "isGenerator" in Function, "Function.prototype.isGenerator present");
-var p = Proxy.create({
-    has : function(id) {}
-});
+var p = new Proxy({}, {});
 function test() {
-    Object.prototype.__proto__=null
+    TestCase.prototype.__proto__=null
     if (new TestCase)
-        Object.prototype.__proto__=p
+        TestCase.prototype.__proto__=p
 }
 test();
 new TestCase;

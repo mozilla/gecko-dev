@@ -45,7 +45,6 @@
 #include <gtk/gtk.h>
 #include <unistd.h>
 
-#include "mozilla/NullPtr.h"
 #include "mozilla/IntentionalCrash.h"
 
  using namespace std;
@@ -71,12 +70,6 @@ pluginSupportsWindowlessMode()
   return true;
 }
 
-bool
-pluginSupportsAsyncBitmapDrawing()
-{
-  return false;
-}
-
 NPError
 pluginInstanceInit(InstanceData* instanceData)
 {
@@ -88,7 +81,7 @@ pluginInstanceInit(InstanceData* instanceData)
 
   instanceData->platformData->display = nullptr;
   instanceData->platformData->visual = nullptr;
-  instanceData->platformData->colormap = None;  
+  instanceData->platformData->colormap = X11None;
   instanceData->platformData->plug = nullptr;
 
   return NPERR_NO_ERROR;
@@ -104,7 +97,7 @@ pluginInstanceShutdown(InstanceData* instanceData)
   if (instanceData->hasWidget) {
     Window window = reinterpret_cast<XID>(instanceData->window.window);
 
-    if (window != None) {
+    if (window != X11None) {
       // This window XID should still be valid.
       // See bug 429604 and bug 454756.
       XWindowAttributes attributes;
@@ -478,8 +471,7 @@ int32_t pluginGetEdge(InstanceData* instanceData, RectEdge edge)
   case EDGE_BOTTOM:
     return pluginY + pluginHeight;
   }
-
-  return NPTEST_INT32_ERROR;
+  MOZ_CRASH("Unexpected RectEdge?!");
 }
 
 #ifdef MOZ_X11
@@ -740,6 +732,19 @@ pluginCrashInNestedLoop(InstanceData* instanceData)
   } else {
     g_warning("ProcessBrowserEvents did not fire");
   }
+
+  // if we get here without crashing, then we'll trigger a test failure
+  return true;
+}
+
+bool
+pluginTriggerXError(InstanceData* instanceData)
+{
+  mozilla::NoteIntentionalCrash("plugin");
+  int num_prop_return;
+  // Window parameter is None to generate a fatal error, and this function
+  // should not return.
+  XListProperties(GDK_DISPLAY(), X11None, &num_prop_return);
 
   // if we get here without crashing, then we'll trigger a test failure
   return true;

@@ -20,6 +20,9 @@
 #include "nsMimeTypes.h"
 #include <algorithm>
 
+namespace mozilla {
+namespace net {
+
 nsBinHexDecoder::nsBinHexDecoder() :
   mState(0), mCRC(0), mFileCRC(0), mOctetin(26),
   mDonePos(3), mInCRC(0), mCount(0), mMarker(0), mPosInbuff(0),
@@ -27,6 +30,8 @@ nsBinHexDecoder::nsBinHexDecoder() :
 {
   mDataBuffer = nullptr;
   mOutgoingBuffer = nullptr;
+  mPosInDataBuffer = 0;
+  mRlebuf = 0;
 
   mOctetBuf.val = 0;
   mHeader.type = 0;
@@ -39,9 +44,9 @@ nsBinHexDecoder::nsBinHexDecoder() :
 nsBinHexDecoder::~nsBinHexDecoder()
 {
   if (mDataBuffer)
-    nsMemory::Free(mDataBuffer);
+    free(mDataBuffer);
   if (mOutgoingBuffer)
-    nsMemory::Free(mOutgoingBuffer);
+    free(mOutgoingBuffer);
 }
 
 NS_IMPL_ADDREF(nsBinHexDecoder)
@@ -170,7 +175,9 @@ nsresult nsBinHexDecoder::ProcessNextState(nsIRequest * aRequest, nsISupports * 
       break;
 
     case BINHEX_STATE_FNAME:
-      mName.BeginWriting()[mCount] = c;
+      if (mCount < mName.Length()) {
+        mName.BeginWriting()[mCount] = c;
+      }
 
       if (++mCount > mName.Length())
       {
@@ -269,7 +276,7 @@ nsresult nsBinHexDecoder::ProcessNextState(nsIRequest * aRequest, nsISupports * 
         {
           // when we reach the finished state...fire an on stop request on the event listener...
           mNextListener->OnStopRequest(aRequest, aContext, NS_OK);
-          mNextListener = 0;
+          mNextListener = nullptr;
 
           /*   now We are done with everything.  */
           ++mState;
@@ -442,8 +449,8 @@ nsBinHexDecoder::OnStartRequest(nsIRequest* request, nsISupports *aCtxt)
 
   NS_ENSURE_TRUE(mNextListener, NS_ERROR_FAILURE);
 
-  mDataBuffer = (char *) moz_malloc((sizeof(char) * nsIOService::gDefaultSegmentSize));
-  mOutgoingBuffer = (char *) moz_malloc((sizeof(char) * nsIOService::gDefaultSegmentSize));
+  mDataBuffer = (char *) malloc((sizeof(char) * nsIOService::gDefaultSegmentSize));
+  mOutgoingBuffer = (char *) malloc((sizeof(char) * nsIOService::gDefaultSegmentSize));
   if (!mDataBuffer || !mOutgoingBuffer) return NS_ERROR_FAILURE; // out of memory;
 
   // now we want to create a pipe which we'll use to write our converted data...
@@ -508,3 +515,6 @@ nsBinHexDecoder::OnStopRequest(nsIRequest* request, nsISupports *aCtxt,
 
   return rv;
 }
+
+} // namespace net
+} // namespace mozilla

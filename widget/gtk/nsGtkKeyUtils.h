@@ -124,10 +124,22 @@ public:
                              GdkEventKey* aGdkKeyEvent);
 
     /**
-     * IsKeyPressEventNecessary() returns TRUE when aGdkKeyEvent should cause
-     * a DOM keypress event.  Otherwise, FALSE.
+     * WillDispatchKeyboardEvent() is called via
+     * TextEventDispatcherListener::WillDispatchKeyboardEvent().
+     *
+     * @param aKeyEvent         An instance of KeyboardEvent which will be
+     *                          dispatched.  This method should set charCode
+     *                          and alternative char codes if it's necessary.
+     * @param aGdkKeyEvent      A GdkEventKey instance which caused the
+     *                          aKeyEvent.
      */
-    static bool IsKeyPressEventNecessary(GdkEventKey* aGdkKeyEvent);
+    static void WillDispatchKeyboardEvent(WidgetKeyboardEvent& aKeyEvent,
+                                          GdkEventKey* aGdkKeyEvent);
+
+    /**
+     * Destroys the singleton KeymapWrapper instance, if it exists.
+     */
+    static void Shutdown();
 
 protected:
 
@@ -157,7 +169,7 @@ protected:
         guint mHardwareKeycode;
         guint mMask;
 
-        ModifierKey(guint aHardwareKeycode) :
+        explicit ModifierKey(guint aHardwareKeycode) :
           mHardwareKeycode(aHardwareKeycode), mMask(0)
         {
         }
@@ -198,9 +210,7 @@ protected:
      */
     static Modifier GetModifierForGDKKeyval(guint aGdkKeyval);
 
-#ifdef PR_LOGGING
     static const char* GetModifierName(Modifier aModifier);
-#endif // PR_LOGGING
 
     /**
      * mGdkKeymap is a wrapped instance by this class.
@@ -247,8 +257,8 @@ protected:
      * Signal handlers.
      */
     static void OnKeysChanged(GdkKeymap* aKeymap, KeymapWrapper* aKeymapWrapper);
-    static void OnDestroyKeymap(KeymapWrapper* aKeymapWrapper,
-                                GdkKeymap *aGdkKeymap);
+    static void OnDirectionChanged(GdkKeymap *aGdkKeymap,
+                                   KeymapWrapper* aKeymapWrapper);
 
     /**
      * GetCharCodeFor() Computes what character is inputted by the key event
@@ -329,19 +339,6 @@ protected:
     static uint32_t GetDOMKeyCodeFromKeyPairs(guint aGdkKeyval);
 
     /**
-     * InitKeypressEvent() intializes keyCode, charCode and
-     * alternativeCharCodes of keypress event.
-     *
-     * @param aKeyEvent         An NS_KEY_PRESS event, must not be nullptr.
-     *                          The modifier related members and keyCode must
-     *                          be initialized already.
-     * @param aGdkKeyEvent      A native key event which causes dispatching
-     *                          aKeyEvent.
-     */
-    void InitKeypressEvent(WidgetKeyboardEvent& aKeyEvent,
-                           GdkEventKey* aGdkKeyEvent);
-
-    /**
      * FilterEvents() listens all events on all our windows.
      * Be careful, this may make damage to performance if you add expensive
      * code in this method.
@@ -349,6 +346,12 @@ protected:
     static GdkFilterReturn FilterEvents(GdkXEvent* aXEvent,
                                         GdkEvent* aGdkEvent,
                                         gpointer aData);
+
+    /**
+     * See the document of WillDispatchKeyboardEvent().
+     */
+    void WillDispatchKeyboardEventInternal(WidgetKeyboardEvent& aKeyEvent,
+                                           GdkEventKey* aGdkKeyEvent);
 };
 
 } // namespace widget

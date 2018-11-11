@@ -1,4 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -21,13 +22,13 @@ namespace {
 #ifdef BUILD_CTYPES
 
 char*
-UnicodeToNative(JSContext* aCx, const jschar* aSource, size_t aSourceLen)
+UnicodeToNative(JSContext* aCx, const char16_t* aSource, size_t aSourceLen)
 {
   nsDependentString unicode(aSource, aSourceLen);
 
   nsAutoCString native;
   if (NS_FAILED(NS_CopyUnicodeToNative(unicode, native))) {
-    JS_ReportError(aCx, "Could not convert string to native charset!");
+    JS_ReportErrorASCII(aCx, "Could not convert string to native charset!");
     return nullptr;
   }
 
@@ -43,7 +44,7 @@ UnicodeToNative(JSContext* aCx, const jschar* aSource, size_t aSourceLen)
 
 #endif // BUILD_CTYPES
 
-} // anonymous namespace
+} // namespace
 
 BEGIN_WORKERS_NAMESPACE
 
@@ -59,7 +60,7 @@ DefineChromeWorkerFunctions(JSContext* aCx, JS::Handle<JSObject*> aGlobal)
       return false;
     }
 
-    static JSCTypesCallbacks callbacks = {
+    static const JSCTypesCallbacks callbacks = {
       UnicodeToNative
     };
 

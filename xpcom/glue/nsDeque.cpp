@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,63 +11,37 @@
 #include <stdio.h>
 #endif
 
-/**
- * 07/02/2001  09:17p 509,104 clangref.pdf from openwatcom's site
- * Watcom C Language Reference Edition 11.0c
- * page 118 of 297
- *
- * The % symbol yields the remainder from the division of the first operand
- * by the second operand. The operands of % must have integral type.
- *
- * When both operands of % are positive, the result is a positive value
- * smaller than the second operand. When one or both operands is negative,
- * whether the result is positive or negative is implementation-defined.
- *
- */
-/* Ok, so first of all, C is underspecified. joy.
- * The following functions do not provide a correct implementation of modulus
- * They provide functionality for x>-y.
- * There are risks of 2*y being greater than max int, which is part of the
- * reason no multiplication is used and other operations are avoided.
- *
- * modasgn
- * @param x variable
- * @param y expression
- * approximately equivalent to x %= y
- *
- * modulus
- * @param x expression
- * @param y expression
- * approximately equivalent to x % y
- */
-#define modasgn(x,y) if (x<0) x+=y; x%=y
-#define modulus(x,y) ((x<0)?(x+y)%(y):(x)%(y))
+#include "mozilla/CheckedInt.h"
+
+#define modulus(x,y) ((x)%(y))
 
 /**
  * Standard constructor
  * @param deallocator, called by Erase and ~nsDeque
  */
-nsDeque::nsDeque(nsDequeFunctor* aDeallocator) {
+nsDeque::nsDeque(nsDequeFunctor* aDeallocator)
+{
   MOZ_COUNT_CTOR(nsDeque);
-  mDeallocator=aDeallocator;
-  mOrigin=mSize=0;
-  mData=mBuffer; // don't allocate space until you must
-  mCapacity=sizeof(mBuffer)/sizeof(mBuffer[0]);
-  memset(mData, 0, mCapacity*sizeof(mBuffer[0]));
+  mDeallocator = aDeallocator;
+  mOrigin = mSize = 0;
+  mData = mBuffer; // don't allocate space until you must
+  mCapacity = sizeof(mBuffer) / sizeof(mBuffer[0]);
+  memset(mData, 0, mCapacity * sizeof(mBuffer[0]));
 }
 
 /**
  * Destructor
  */
-nsDeque::~nsDeque() {
+nsDeque::~nsDeque()
+{
   MOZ_COUNT_DTOR(nsDeque);
 
 #ifdef DEBUG_rickg
   char buffer[30];
   printf("Capacity: %i\n", mCapacity);
 
-  static int mCaps[15] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  switch(mCapacity) {
+  static int mCaps[15] = {0};
+  switch (mCapacity) {
     case 4:     mCaps[0]++; break;
     case 8:     mCaps[1]++; break;
     case 16:    mCaps[2]++; break;
@@ -84,14 +59,16 @@ nsDeque::~nsDeque() {
 #endif
 
   Erase();
-  if (mData && (mData!=mBuffer)) {
+  if (mData && mData != mBuffer) {
     free(mData);
   }
-  mData=0;
+  mData = 0;
   SetDeallocator(0);
 }
 
-size_t nsDeque::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
+size_t
+nsDeque::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+{
   size_t size = 0;
   if (mData != mBuffer) {
     size += aMallocSizeOf(mData);
@@ -104,7 +81,9 @@ size_t nsDeque::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
   return size;
 }
 
-size_t nsDeque::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
+size_t
+nsDeque::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+{
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
@@ -114,26 +93,32 @@ size_t nsDeque::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
  *
  * @param   aDeallocator functor object for use by Erase()
  */
-void nsDeque::SetDeallocator(nsDequeFunctor* aDeallocator){
+void
+nsDeque::SetDeallocator(nsDequeFunctor* aDeallocator)
+{
   delete mDeallocator;
-  mDeallocator=aDeallocator;
+  mDeallocator = aDeallocator;
 }
 
 /**
  * Remove all items from container without destroying them.
  */
-void nsDeque::Empty() {
+void
+nsDeque::Empty()
+{
   if (mSize && mData) {
-    memset(mData, 0, mCapacity*sizeof(mData));
+    memset(mData, 0, mCapacity * sizeof(*mData));
   }
-  mSize=0;
-  mOrigin=0;
+  mSize = 0;
+  mOrigin = 0;
 }
 
 /**
  * Remove and delete all items from container
  */
-void nsDeque::Erase() {
+void
+nsDeque::Erase()
+{
   if (mDeallocator && mSize) {
     ForEach(*mDeallocator);
   }
@@ -147,14 +132,30 @@ void nsDeque::Erase() {
  *
  * @return  whether growing succeeded
  */
-bool nsDeque::GrowCapacity() {
-  int32_t theNewSize=mCapacity<<2;
-  NS_ASSERTION(theNewSize>mCapacity, "Overflow");
-  if (theNewSize<=mCapacity)
+bool
+nsDeque::GrowCapacity()
+{
+  mozilla::CheckedInt<size_t> newCapacity = mCapacity;
+  newCapacity *= 4;
+
+  NS_ASSERTION(newCapacity.isValid(), "Overflow");
+  if (!newCapacity.isValid()) {
     return false;
-  void** temp=(void**)malloc(theNewSize * sizeof(void*));
-  if (!temp)
+  }
+
+  // Sanity check the new byte size.
+  mozilla::CheckedInt<size_t> newByteSize = newCapacity;
+  newByteSize *= sizeof(void*);
+
+  NS_ASSERTION(newByteSize.isValid(), "Overflow");
+  if (!newByteSize.isValid()) {
     return false;
+  }
+
+  void** temp = (void**)malloc(newByteSize.value());
+  if (!temp) {
+    return false;
+  }
 
   //Here's the interesting part: You can't just move the elements
   //directly (in situ) from the old buffer to the new one.
@@ -168,9 +169,9 @@ bool nsDeque::GrowCapacity() {
     free(mData);
   }
 
-  mCapacity=theNewSize;
-  mOrigin=0; //now realign the origin...
-  mData=temp;
+  mCapacity = newCapacity.value();
+  mOrigin = 0; //now realign the origin...
+  mData = temp;
 
   return true;
 }
@@ -182,11 +183,13 @@ bool nsDeque::GrowCapacity() {
  *
  * @param   aItem: new item to be added to deque
  */
-bool nsDeque::Push(void* aItem, const fallible_t&) {
-  if (mSize==mCapacity && !GrowCapacity()) {
+bool
+nsDeque::Push(void* aItem, const fallible_t&)
+{
+  if (mSize == mCapacity && !GrowCapacity()) {
     return false;
   }
-  mData[modulus(mOrigin + mSize, mCapacity)]=aItem;
+  mData[modulus(mOrigin + mSize, mCapacity)] = aItem;
   mSize++;
   return true;
 }
@@ -223,17 +226,24 @@ bool nsDeque::Push(void* aItem, const fallible_t&) {
  * --
  * @param   aItem: new item to be added to deque
  */
-bool nsDeque::PushFront(void* aItem, const fallible_t&) {
-  mOrigin--;
-  modasgn(mOrigin,mCapacity);
-  if (mSize==mCapacity) {
+bool
+nsDeque::PushFront(void* aItem, const fallible_t&)
+{
+  
+  if (mOrigin == 0) {
+    mOrigin = mCapacity - 1;
+  } else {
+    mOrigin--;
+  }
+  
+  if (mSize == mCapacity) {
     if (!GrowCapacity()) {
       return false;
     }
     /* Comments explaining this are above*/
-    mData[mSize]=mData[mOrigin];
+    mData[mSize] = mData[mOrigin];
   }
-  mData[mOrigin]=aItem;
+  mData[mOrigin] = aItem;
   mSize++;
   return true;
 }
@@ -243,15 +253,17 @@ bool nsDeque::PushFront(void* aItem, const fallible_t&) {
  *
  * @return  ptr to last item in container
  */
-void* nsDeque::Pop() {
-  void* result=0;
-  if (mSize>0) {
+void*
+nsDeque::Pop()
+{
+  void* result = 0;
+  if (mSize > 0) {
     --mSize;
-    int32_t offset=modulus(mSize + mOrigin, mCapacity);
-    result=mData[offset];
-    mData[offset]=0;
+    size_t offset = modulus(mSize + mOrigin, mCapacity);
+    result = mData[offset];
+    mData[offset] = 0;
     if (!mSize) {
-      mOrigin=0;
+      mOrigin = 0;
     }
   }
   return result;
@@ -263,17 +275,19 @@ void* nsDeque::Pop() {
  *
  * @return  last item in container
  */
-void* nsDeque::PopFront() {
-  void* result=0;
-  if (mSize>0) {
+void*
+nsDeque::PopFront()
+{
+  void* result = 0;
+  if (mSize > 0) {
     NS_ASSERTION(mOrigin < mCapacity, "Error: Bad origin");
-    result=mData[mOrigin];
-    mData[mOrigin++]=0;     //zero it out for debugging purposes.
+    result = mData[mOrigin];
+    mData[mOrigin++] = 0;   //zero it out for debugging purposes.
     mSize--;
     // Cycle around if we pop off the end
     // and reset origin if when we pop the last element
-    if (mCapacity==mOrigin || !mSize) {
-      mOrigin=0;
+    if (mCapacity == mOrigin || !mSize) {
+      mOrigin = 0;
     }
   }
   return result;
@@ -285,13 +299,15 @@ void* nsDeque::PopFront() {
  *
  * @return  last item in container
  */
-void* nsDeque::Peek() {
-  void* result=0;
-  if (mSize>0) {
+void*
+nsDeque::Peek() const
+{
+  void* result = 0;
+  if (mSize > 0) {
     result = mData[modulus(mSize - 1 + mOrigin, mCapacity)];
   }
   return result;
-} 
+}
 
 /**
  * This method gets called you want to peek at the topmost
@@ -299,10 +315,12 @@ void* nsDeque::Peek() {
  *
  * @return  last item in container
  */
-void* nsDeque::PeekFront() {
-  void* result=0;
-  if (mSize>0) {
-    result=mData[mOrigin];
+void*
+nsDeque::PeekFront() const
+{
+  void* result = 0;
+  if (mSize > 0) {
+    result = mData[mOrigin];
   }
   return result;
 }
@@ -316,55 +334,14 @@ void* nsDeque::PeekFront() {
  * @param   aIndex : 0 relative offset of item you want
  * @return  void* or null
  */
-void* nsDeque::ObjectAt(int32_t aIndex) const {
-  void* result=0;
-  if ((aIndex>=0) && (aIndex<mSize)) {
-    result=mData[modulus(mOrigin + aIndex, mCapacity)];
+void*
+nsDeque::ObjectAt(size_t aIndex) const
+{
+  void* result = 0;
+  if (aIndex < mSize) {
+    result = mData[modulus(mOrigin + aIndex, mCapacity)];
   }
   return result;
-}
-
-void* nsDeque::RemoveObjectAt(int32_t aIndex) {
-  if ((aIndex<0) || (aIndex>=mSize)) {
-    return 0;
-  }
-  void* result=mData[modulus(mOrigin + aIndex, mCapacity)];
-
-  // "Shuffle down" all elements in the array by 1, overwritting the element
-  // being removed.
-  for (int32_t i=aIndex; i<mSize; i++) {
-    mData[modulus(mOrigin + i, mCapacity)] = mData[modulus(mOrigin + i + 1, mCapacity)];
-  }
-  mSize--;
-
-  return result;
-}
-
-/**
- * Create and return an iterator pointing to
- * the beginning of the queue. Note that this
- * takes the circular buffer semantics into account.
- *
- * @return  new deque iterator, init'ed to 1st item
- */
-nsDequeIterator nsDeque::Begin() const{
-  return nsDequeIterator(*this, 0);
-}
-
-/**
- * Create and return an iterator pointing to
- * the last item in the deque.
- * Note that this takes the circular buffer semantics
- * into account.
- *
- * @return  new deque iterator, init'ed to the last item
- */
-nsDequeIterator nsDeque::End() const{
-  return nsDequeIterator(*this, mSize - 1);
-}
-
-void* nsDeque::Last() const {
-  return End().GetCurrent();
 }
 
 /**
@@ -375,236 +352,10 @@ void* nsDeque::Last() const {
  * @param   aFunctor object to call for each member
  * @return  *this
  */
-void nsDeque::ForEach(nsDequeFunctor& aFunctor) const{
-  for (int32_t i=0; i<mSize; i++) {
+void
+nsDeque::ForEach(nsDequeFunctor& aFunctor) const
+{
+  for (size_t i = 0; i < mSize; ++i) {
     aFunctor(ObjectAt(i));
   }
-}
-
-/**
- * Call this method when you want to iterate all the
- * members of the container, calling the functor you 
- * passed with each member. This process will interrupt
- * if your function returns non 0 to this method.
- *
- * @param   aFunctor object to call for each member
- * @return  first nonzero result of aFunctor or 0.
- */
-const void* nsDeque::FirstThat(nsDequeFunctor& aFunctor) const{
-  for (int32_t i=0; i<mSize; i++) {
-    void* obj=aFunctor(ObjectAt(i));
-    if (obj) {
-      return obj;
-    }
-  }
-  return 0;
-}
-
-/******************************************************
- * Here comes the nsDequeIterator class...
- ******************************************************/
-
-/**
- * DequeIterator is an object that knows how to iterate (forward and backward)
- * through a Deque. Normally, you don't need to do this, but there are some special
- * cases where it is pretty handy, so here you go.
- *
- * This is a standard dequeiterator constructor
- *
- * @param   aQueue is the deque object to be iterated
- * @param   aIndex is the starting position for your iteration
- */
-nsDequeIterator::nsDequeIterator(const nsDeque& aQueue, int aIndex)
-: mIndex(aIndex),
-  mDeque(aQueue)
-{
-}
-
-/**
- * Create a copy of a DequeIterator
- *
- * @param   aCopy is another iterator to copy from
- */
-nsDequeIterator::nsDequeIterator(const nsDequeIterator& aCopy)
-: mIndex(aCopy.mIndex),
-  mDeque(aCopy.mDeque)
-{
-}
-
-/**
- * Moves iterator to first element in deque
- * @return  *this
- */
-nsDequeIterator& nsDequeIterator::First(){
-  mIndex=0;
-  return *this;
-}
-
-/**
- * Standard assignment operator for dequeiterator
- *
- * @param   aCopy is an iterator to be copied from
- * @return  *this
- */
-nsDequeIterator& nsDequeIterator::operator=(const nsDequeIterator& aCopy) {
-  NS_ASSERTION(&mDeque==&aCopy.mDeque,"you can't change the deque that an interator is iterating over, sorry.");
-  mIndex=aCopy.mIndex;
-  return *this;
-}
-
-/**
- * preform ! operation against to iterators to test for equivalence
- * (or lack thereof)!
- *
- * @param   aIter is the object to be compared to
- * @return  TRUE if NOT equal.
- */
-bool nsDequeIterator::operator!=(nsDequeIterator& aIter) {
-  return bool(!this->operator==(aIter));
-}
-
-/**
- * Compare two iterators for increasing order.
- *
- * @param   aIter is the other iterator to be compared to
- * @return  TRUE if this object points to an element before
- *          the element pointed to by aIter.
- *          FALSE if this and aIter are not iterating over the same deque.
- */
-bool nsDequeIterator::operator<(nsDequeIterator& aIter) {
-  return bool(((mIndex<aIter.mIndex) && (&mDeque==&aIter.mDeque)));
-}
-
-/**
- * Compare two iterators for equivalence.
- *
- * @param   aIter is the other iterator to be compared to
- * @return  TRUE if EQUAL
- */
-bool nsDequeIterator::operator==(nsDequeIterator& aIter) {
-  return bool(((mIndex==aIter.mIndex) && (&mDeque==&aIter.mDeque)));
-}
-
-/**
- * Compare two iterators for non strict decreasing order.
- *
- * @param   aIter is the other iterator to be compared to
- * @return  TRUE if this object points to the same element, or
- *          an element after the element pointed to by aIter.
- *          FALSE if this and aIter are not iterating over the same deque.
- */
-bool nsDequeIterator::operator>=(nsDequeIterator& aIter) {
-  return bool(((mIndex>=aIter.mIndex) && (&mDeque==&aIter.mDeque)));
-}
-
-/**
- * Pre-increment operator
- *
- * @return  object at post-incremented index
- */
-void* nsDequeIterator::operator++() {
-  NS_ASSERTION(mIndex<mDeque.mSize,
-    "You have reached the end of the Internet."\
-    "You have seen everything there is to see. Please go back. Now."
-  );
-#ifndef TIMELESS_LIGHTWEIGHT
-  if (mIndex>=mDeque.mSize) return 0;
-#endif
-  return mDeque.ObjectAt(++mIndex);
-}
-
-/**
- * Post-increment operator
- *
- * @param   param is ignored
- * @return  object at pre-incremented index
- */
-void* nsDequeIterator::operator++(int) {
-  NS_ASSERTION(mIndex<=mDeque.mSize,
-    "You have already reached the end of the Internet."\
-    "You have seen everything there is to see. Please go back. Now."
-  );
-#ifndef TIMELESS_LIGHTWEIGHT
-  if (mIndex>mDeque.mSize) return 0;
-#endif
-  return mDeque.ObjectAt(mIndex++);
-}
-
-/**
- * Pre-decrement operator
- *
- * @return  object at pre-decremented index
- */
-void* nsDequeIterator::operator--() {
-  NS_ASSERTION(mIndex>=0,
-    "You have reached the beginning of the Internet."\
-    "You have seen everything there is to see. Please go forward. Now."
-  );
-#ifndef TIMELESS_LIGHTWEIGHT
-  if (mIndex<0) return 0;
-#endif
-  return mDeque.ObjectAt(--mIndex);
-}
-
-/**
- * Post-decrement operator
- *
- * @param   param is ignored
- * @return  object at post-decremented index
- */
-void* nsDequeIterator::operator--(int) {
-  NS_ASSERTION(mIndex>=0,
-    "You have already reached the beginning of the Internet."\
-    "You have seen everything there is to see. Please go forward. Now."
-  );
-#ifndef TIMELESS_LIGHTWEIGHT
-  if (mIndex<0) return 0;
-#endif
-  return mDeque.ObjectAt(mIndex--);
-}
-
-/**
- * Dereference operator
- * Note that the iterator floats, so you don't need to do:
- * <code>++iter; aDeque.PopFront();</code>
- * Unless you actually want your iterator to jump 2 spaces.
- *
- * Picture: [1 2I 3 4]
- * PopFront()
- * Picture: [2 3I 4]
- * Note that I still happily points to object at the second index
- *
- * @return  object at ith index
- */
-void* nsDequeIterator::GetCurrent() {
-  NS_ASSERTION(mIndex<mDeque.mSize&&mIndex>=0,"Current is out of bounds");
-#ifndef TIMELESS_LIGHTWEIGHT
-  if (mIndex>=mDeque.mSize||mIndex<0) return 0;
-#endif
-  return mDeque.ObjectAt(mIndex);
-}
-
-/**
- * Call this method when you want to iterate all the
- * members of the container, passing a functor along
- * to call your code.
- *
- * @param   aFunctor object to call for each member
- * @return  *this
- */
-void nsDequeIterator::ForEach(nsDequeFunctor& aFunctor) const{
-  mDeque.ForEach(aFunctor);
-}
-
-/**
- * Call this method when you want to iterate all the
- * members of the container, calling the functor you 
- * passed with each member. This process will interrupt
- * if your function returns non 0 to this method.
- *
- * @param   aFunctor object to call for each member
- * @return  first nonzero result of aFunctor or 0.
- */
-const void* nsDequeIterator::FirstThat(nsDequeFunctor& aFunctor) const{
-  return mDeque.FirstThat(aFunctor);
 }

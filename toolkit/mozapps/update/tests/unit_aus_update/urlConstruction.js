@@ -5,93 +5,107 @@
 
 /* General URL Construction Tests */
 
-Components.utils.import("resource://gre/modules/ctypes.jsm")
-
 const URL_PREFIX = URL_HOST + "/";
 
 var gAppInfo;
 
+// Since gUpdateChecker.checkForUpdates uses XMLHttpRequest and XMLHttpRequest
+// can be slow it combines the checks whenever possible.
 function run_test() {
   // This test needs access to omni.ja to read the update.locale file so don't
   // use a custom directory for the application directory.
   gUseTestAppDir = false;
   setupTestCommon();
 
-  // The mock XMLHttpRequest is MUCH faster
-  overrideXHR(callHandleEvent);
   standardInit();
-  gAppInfo = AUS_Cc["@mozilla.org/xre/app-info;1"].
-             getService(AUS_Ci.nsIXULAppInfo).
-             QueryInterface(AUS_Ci.nsIXULRuntime);
+  gAppInfo = Cc["@mozilla.org/xre/app-info;1"].
+             getService(Ci.nsIXULAppInfo).
+             QueryInterface(Ci.nsIXULRuntime);
   do_execute_soon(run_test_pt1);
 }
 
-// Callback function used by the custom XMLHttpRequest implementation to
-// call the nsIDOMEventListener's handleEvent method for onload.
-function callHandleEvent() {
-  var e = { target: gXHR };
-  gXHR.onload(e);
-}
 
-// Helper function for parsing the result from the contructed url
-function getResult(url) {
-  return url.substr(URL_PREFIX.length).split("/")[0];
-}
-
-// url constructed with %PRODUCT%
+// url constructed with:
+// %PRODUCT%
+// %VERSION%
+// %BUILD_ID%
+// %BUILD_TARGET%
+// %LOCALE%
+// %CHANNEL%
+// %PLATFORM_VERSION%
+// %OS_VERSION%
+// %SYSTEM_CAPABILITIES%
+// %DISTRIBUTION%
+// %DISTRIBUTION_VERSION%
 function run_test_pt1() {
   gCheckFunc = check_test_pt1;
-  var url = URL_PREFIX + "%PRODUCT%/";
-  logTestInfo("testing url constructed with %PRODUCT% - " + url);
-  setUpdateURLOverride(url);
-  gUpdateChecker.checkForUpdates(updateCheckListener, true);
+  // The code that gets the locale accesses the profile which is only available
+  // after calling do_get_profile in xpcshell tests. This prevents an error from
+  // being logged.
+  do_get_profile();
+
+  setUpdateChannel("test_channel");
+  gDefaultPrefBranch.setCharPref(PREF_DISTRIBUTION_ID, "test_distro");
+  gDefaultPrefBranch.setCharPref(PREF_DISTRIBUTION_VERSION, "test_distro_version");
+
+  let url = URL_PREFIX + "%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/" +
+            "%LOCALE%/%CHANNEL%/%PLATFORM_VERSION%/%OS_VERSION%/" +
+            "%SYSTEM_CAPABILITIES%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/" +
+            "updates.xml";
+  debugDump("testing url construction - url: " + url);
+  setUpdateURL(url);
+  try {
+    gUpdateChecker.checkForUpdates(updateCheckListener, true);
+  } catch (e) {
+    debugDump("The following error is most likely due to a missing " +
+              "update.locale file");
+    do_throw(e);
+  }
 }
 
 function check_test_pt1() {
-  do_check_eq(getResult(gRequestURL), gAppInfo.name);
+  let url = URL_PREFIX + gAppInfo.name + "/" + gAppInfo.version + "/" +
+            gAppInfo.appBuildID + "/" + gAppInfo.OS + "_" + getABI() + "/" +
+            INSTALL_LOCALE + "/test_channel/" + gAppInfo.platformVersion + "/" +
+            getOSVersion() + "/" + getSystemCapabilities() +
+            "/test_distro/test_distro_version/updates.xml?force=1";
+  // Log the urls since Assert.equal won't print the entire urls to the log.
+  if (gRequestURL != url) {
+    logTestInfo("expected url: " + url);
+    logTestInfo("returned url: " + gRequestURL);
+  }
+  Assert.equal(gRequestURL, url,
+               "the url" + MSG_SHOULD_EQUAL);
   run_test_pt2();
 }
 
-// url constructed with %VERSION%
+// url constructed with:
+// %CHANNEL% with distribution partners
+// %CUSTOM% parameter
+// force param when there already is a param - bug 454357
 function run_test_pt2() {
   gCheckFunc = check_test_pt2;
-  var url = URL_PREFIX + "%VERSION%/";
-  logTestInfo("testing url constructed with %VERSION% - " + url);
-  setUpdateURLOverride(url);
+  let url = URL_PREFIX + "%CHANNEL%/updates.xml?custom=%CUSTOM%";
+  debugDump("testing url constructed with %CHANNEL% - " + url);
+  setUpdateURL(url);
+  gDefaultPrefBranch.setCharPref(PREFBRANCH_APP_PARTNER + "test_partner1",
+                                 "test_partner1");
+  gDefaultPrefBranch.setCharPref(PREFBRANCH_APP_PARTNER + "test_partner2",
+                                 "test_partner2");
+  Services.prefs.setCharPref("app.update.custom", "custom");
   gUpdateChecker.checkForUpdates(updateCheckListener, true);
 }
 
 function check_test_pt2() {
-  do_check_eq(getResult(gRequestURL), gAppInfo.version);
-  run_test_pt3();
+  let url = URL_PREFIX + "test_channel-cck-test_partner1-test_partner2/" +
+            "updates.xml?custom=custom&force=1";
+  Assert.equal(gRequestURL, url,
+               "the url" + MSG_SHOULD_EQUAL);
+  doTestFinish();
 }
 
-// url constructed with %BUILD_ID%
-function run_test_pt3() {
-  gCheckFunc = check_test_pt3;
-  var url = URL_PREFIX + "%BUILD_ID%/";
-  logTestInfo("testing url constructed with %BUILD_ID% - " + url);
-  setUpdateURLOverride(url);
-  gUpdateChecker.checkForUpdates(updateCheckListener, true);
-}
-
-function check_test_pt3() {
-  do_check_eq(getResult(gRequestURL), gAppInfo.appBuildID);
-  run_test_pt4();
-}
-
-// url constructed with %BUILD_TARGET%
-// XXX TODO - it might be nice if we tested the actual ABI
-function run_test_pt4() {
-  gCheckFunc = check_test_pt4;
-  var url = URL_PREFIX + "%BUILD_TARGET%/";
-  logTestInfo("testing url constructed with %BUILD_TARGET% - " + url);
-  setUpdateURLOverride(url);
-  gUpdateChecker.checkForUpdates(updateCheckListener, true);
-}
-
-function check_test_pt4() {
-  var abi;
+function getABI() {
+  let abi;
   try {
     abi = gAppInfo.XPCOMABI;
   } catch (e) {
@@ -102,205 +116,24 @@ function check_test_pt4() {
     // Mac universal build should report a different ABI than either macppc
     // or mactel. This is necessary since nsUpdateService.js will set the ABI to
     // Universal-gcc3 for Mac universal builds.
-    var macutils = AUS_Cc["@mozilla.org/xpcom/mac-utils;1"].
-                   getService(AUS_Ci.nsIMacUtils);
+    let macutils = Cc["@mozilla.org/xpcom/mac-utils;1"].
+                   getService(Ci.nsIMacUtils);
 
-    if (macutils.isUniversalBinary)
+    if (macutils.isUniversalBinary) {
       abi += "-u-" + macutils.architecturesInBinary;
-    if (IS_SHARK) {
-      // Disambiguate optimised and shark nightlies
-      abi += "-shark"
     }
-
+  } else if (IS_WIN) {
+    // Windows build should report the CPU architecture that it's running on.
+    abi += "-" + getProcArchitecture();
   }
-
-  do_check_eq(getResult(gRequestURL), gAppInfo.OS + "_" + abi);
-  run_test_pt5();
+  return abi;
 }
 
-// url constructed with %LOCALE%
-// Bug 488936 added the update.locale file that stores the update locale
-function run_test_pt5() {
-  gCheckFunc = check_test_pt5;
-  var url = URL_PREFIX + "%LOCALE%/";
-  logTestInfo("testing url constructed with %LOCALE% - " + url);
-  setUpdateURLOverride(url);
-  try {
-    gUpdateChecker.checkForUpdates(updateCheckListener, true);
-  } catch (e) {
-    logTestInfo("The following error is most likely due to a missing " +
-                "update.locale file");
-    do_throw(e);
-  }
-}
+function getOSVersion() {
+  let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
+  let osVersion = sysInfo.getProperty("name") + " " + sysInfo.getProperty("version");
 
-function check_test_pt5() {
-  do_check_eq(getResult(gRequestURL), INSTALL_LOCALE);
-  run_test_pt6();
-}
-
-// url constructed with %CHANNEL%
-function run_test_pt6() {
-  gCheckFunc = check_test_pt6;
-  var url = URL_PREFIX + "%CHANNEL%/";
-  logTestInfo("testing url constructed with %CHANNEL% - " + url);
-  setUpdateURLOverride(url);
-  setUpdateChannel("test_channel");
-  gUpdateChecker.checkForUpdates(updateCheckListener, true);
-}
-
-function check_test_pt6() {
-  do_check_eq(getResult(gRequestURL), "test_channel");
-  run_test_pt7();
-}
-
-// url constructed with %CHANNEL% with distribution partners
-function run_test_pt7() {
-  gCheckFunc = check_test_pt7;
-  var url = URL_PREFIX + "%CHANNEL%/";
-  logTestInfo("testing url constructed with %CHANNEL% - " + url);
-  setUpdateURLOverride(url);
-  gDefaultPrefBranch.setCharPref(PREF_APP_PARTNER_BRANCH + "test_partner1", "test_partner1");
-  gDefaultPrefBranch.setCharPref(PREF_APP_PARTNER_BRANCH + "test_partner2", "test_partner2");
-  gUpdateChecker.checkForUpdates(updateCheckListener, true);
-}
-
-function check_test_pt7() {
-  do_check_eq(getResult(gRequestURL), "test_channel-cck-test_partner1-test_partner2");
-  run_test_pt8();
-}
-
-// url constructed with %PLATFORM_VERSION%
-function run_test_pt8() {
-  gCheckFunc = check_test_pt8;
-  var url = URL_PREFIX + "%PLATFORM_VERSION%/";
-  logTestInfo("testing url constructed with %PLATFORM_VERSION% - " + url);
-  setUpdateURLOverride(url);
-  gUpdateChecker.checkForUpdates(updateCheckListener, true);
-}
-
-function check_test_pt8() {
-  do_check_eq(getResult(gRequestURL), gAppInfo.platformVersion);
-  run_test_pt9();
-}
-
-// url constructed with %OS_VERSION%
-function run_test_pt9() {
-  gCheckFunc = check_test_pt9;
-  var url = URL_PREFIX + "%OS_VERSION%/";
-  logTestInfo("testing url constructed with %OS_VERSION% - " + url);
-  setUpdateURLOverride(url);
-  gUpdateChecker.checkForUpdates(updateCheckListener, true);
-}
-
-function getServicePack() {
-  // NOTE: This function is a helper function and not a test.  Thus,
-  // it uses throw() instead of do_throw().  Any tests that use this function
-  // should catch exceptions thrown in this function and deal with them
-  // appropriately (usually by calling do_throw).
-  const BYTE = ctypes.uint8_t;
-  const WORD = ctypes.uint16_t;
-  const DWORD = ctypes.uint32_t;
-  const WCHAR = ctypes.jschar;
-  const BOOL = ctypes.int;
-
-  // This structure is described at:
-  // http://msdn.microsoft.com/en-us/library/ms724833%28v=vs.85%29.aspx
-  const SZCSDVERSIONLENGTH = 128;
-  const OSVERSIONINFOEXW = new ctypes.StructType('OSVERSIONINFOEXW',
-      [
-      {dwOSVersionInfoSize: DWORD},
-      {dwMajorVersion: DWORD},
-      {dwMinorVersion: DWORD},
-      {dwBuildNumber: DWORD},
-      {dwPlatformId: DWORD},
-      {szCSDVersion: ctypes.ArrayType(WCHAR, SZCSDVERSIONLENGTH)},
-      {wServicePackMajor: WORD},
-      {wServicePackMinor: WORD},
-      {wSuiteMask: WORD},
-      {wProductType: BYTE},
-      {wReserved: BYTE}
-      ]);
-
-  let kernel32 = ctypes.open("kernel32");
-  try {
-    let GetVersionEx = kernel32.declare("GetVersionExW",
-                                        ctypes.default_abi,
-                                        BOOL,
-                                        OSVERSIONINFOEXW.ptr);
-    let winVer = OSVERSIONINFOEXW();
-    winVer.dwOSVersionInfoSize = OSVERSIONINFOEXW.size;
-
-    if(0 === GetVersionEx(winVer.address())) {
-      // Using "throw" instead of "do_throw" (see NOTE above)
-      throw("Failure in GetVersionEx (returned 0)");
-    }
-
-    return winVer.wServicePackMajor + "." + winVer.wServicePackMinor;
-  } finally {
-    kernel32.close();
-  }
-}
-
-function getProcArchitecture() {
-  // NOTE: This function is a helper function and not a test.  Thus,
-  // it uses throw() instead of do_throw().  Any tests that use this function
-  // should catch exceptions thrown in this function and deal with them
-  // appropriately (usually by calling do_throw).
-  const WORD = ctypes.uint16_t;
-  const DWORD = ctypes.uint32_t;
-
-  // This structure is described at:
-  // http://msdn.microsoft.com/en-us/library/ms724958%28v=vs.85%29.aspx
-  const SYSTEM_INFO = new ctypes.StructType('SYSTEM_INFO',
-      [
-      {wProcessorArchitecture: WORD},
-      {wReserved: WORD},
-      {dwPageSize: DWORD},
-      {lpMinimumApplicationAddress: ctypes.voidptr_t},
-      {lpMaximumApplicationAddress: ctypes.voidptr_t},
-      {dwActiveProcessorMask: DWORD.ptr},
-      {dwNumberOfProcessors: DWORD},
-      {dwProcessorType: DWORD},
-      {dwAllocationGranularity: DWORD},
-      {wProcessorLevel: WORD},
-      {wProcessorRevision: WORD}
-      ]);
-
-  let kernel32 = ctypes.open("kernel32");
-  try {
-    let GetNativeSystemInfo = kernel32.declare("GetNativeSystemInfo",
-                                               ctypes.default_abi,
-                                               ctypes.void_t,
-                                               SYSTEM_INFO.ptr);
-    let sysInfo = SYSTEM_INFO();
-    // Default to unknown
-    sysInfo.wProcessorArchitecture = 0xffff;
-
-    GetNativeSystemInfo(sysInfo.address());
-    switch(sysInfo.wProcessorArchitecture) {
-      case 9:
-        return "x64";
-      case 6:
-        return "IA64";
-      case 0:
-        return "x86";
-      default:
-        // Using "throw" instead of "do_throw" (see NOTE above)
-        throw("Unknown architecture returned from GetNativeSystemInfo: " + sysInfo.wProcessorArchitecture);
-    }
-  } finally {
-    kernel32.close();
-  }
-}
-
-function check_test_pt9() {
-  var osVersion;
-  var sysInfo = AUS_Cc["@mozilla.org/system-info;1"].
-                getService(AUS_Ci.nsIPropertyBag2);
-  osVersion = sysInfo.getProperty("name") + " " + sysInfo.getProperty("version");
-
-  if(IS_WIN) {
+  if (IS_WIN) {
     try {
       let servicePack = getServicePack();
       osVersion += "." + servicePack;
@@ -308,7 +141,7 @@ function check_test_pt9() {
       do_throw("Failure obtaining service pack: " + e);
     }
 
-    if("5.0" === sysInfo.getProperty("version")) { // Win2K
+    if ("5.0" === sysInfo.getProperty("version")) { // Win2K
       osVersion += " (unknown)";
     } else {
       try {
@@ -328,81 +161,145 @@ function check_test_pt9() {
     }
     osVersion = encodeURIComponent(osVersion);
   }
-
-  do_check_eq(getResult(gRequestURL), osVersion);
-  run_test_pt10();
+  return osVersion;
 }
 
-// url constructed with %DISTRIBUTION%
-function run_test_pt10() {
-  gCheckFunc = check_test_pt10;
-  var url = URL_PREFIX + "%DISTRIBUTION%/";
-  logTestInfo("testing url constructed with %DISTRIBUTION% - " + url);
-  setUpdateURLOverride(url);
-  gDefaultPrefBranch.setCharPref(PREF_DISTRIBUTION_ID, "test_distro");
-  gUpdateChecker.checkForUpdates(updateCheckListener, true);
+function getServicePack() {
+  // NOTE: This function is a helper function and not a test.  Thus,
+  // it uses throw() instead of do_throw().  Any tests that use this function
+  // should catch exceptions thrown in this function and deal with them
+  // appropriately (usually by calling do_throw).
+  const BYTE = ctypes.uint8_t;
+  const WORD = ctypes.uint16_t;
+  const DWORD = ctypes.uint32_t;
+  const WCHAR = ctypes.char16_t;
+  const BOOL = ctypes.int;
+
+  // This structure is described at:
+  // http://msdn.microsoft.com/en-us/library/ms724833%28v=vs.85%29.aspx
+  const SZCSDVERSIONLENGTH = 128;
+  const OSVERSIONINFOEXW = new ctypes.StructType('OSVERSIONINFOEXW',
+    [
+      {dwOSVersionInfoSize: DWORD},
+      {dwMajorVersion: DWORD},
+      {dwMinorVersion: DWORD},
+      {dwBuildNumber: DWORD},
+      {dwPlatformId: DWORD},
+      {szCSDVersion: ctypes.ArrayType(WCHAR, SZCSDVERSIONLENGTH)},
+      {wServicePackMajor: WORD},
+      {wServicePackMinor: WORD},
+      {wSuiteMask: WORD},
+      {wProductType: BYTE},
+      {wReserved: BYTE}
+    ]);
+
+  let kernel32 = ctypes.open("kernel32");
+  try {
+    let GetVersionEx = kernel32.declare("GetVersionExW",
+                                        ctypes.default_abi,
+                                        BOOL,
+                                        OSVERSIONINFOEXW.ptr);
+    let winVer = OSVERSIONINFOEXW();
+    winVer.dwOSVersionInfoSize = OSVERSIONINFOEXW.size;
+
+    if (0 === GetVersionEx(winVer.address())) {
+      // Using "throw" instead of "do_throw" (see NOTE above)
+      throw ("Failure in GetVersionEx (returned 0)");
+    }
+
+    return winVer.wServicePackMajor + "." + winVer.wServicePackMinor;
+  } finally {
+    kernel32.close();
+  }
 }
 
-function check_test_pt10() {
-  do_check_eq(getResult(gRequestURL), "test_distro");
-  run_test_pt11();
+function getProcArchitecture() {
+  // NOTE: This function is a helper function and not a test.  Thus,
+  // it uses throw() instead of do_throw().  Any tests that use this function
+  // should catch exceptions thrown in this function and deal with them
+  // appropriately (usually by calling do_throw).
+  const WORD = ctypes.uint16_t;
+  const DWORD = ctypes.uint32_t;
+
+  // This structure is described at:
+  // http://msdn.microsoft.com/en-us/library/ms724958%28v=vs.85%29.aspx
+  const SYSTEM_INFO = new ctypes.StructType('SYSTEM_INFO',
+    [
+      {wProcessorArchitecture: WORD},
+      {wReserved: WORD},
+      {dwPageSize: DWORD},
+      {lpMinimumApplicationAddress: ctypes.voidptr_t},
+      {lpMaximumApplicationAddress: ctypes.voidptr_t},
+      {dwActiveProcessorMask: DWORD.ptr},
+      {dwNumberOfProcessors: DWORD},
+      {dwProcessorType: DWORD},
+      {dwAllocationGranularity: DWORD},
+      {wProcessorLevel: WORD},
+      {wProcessorRevision: WORD}
+    ]);
+
+  let kernel32 = ctypes.open("kernel32");
+  try {
+    let GetNativeSystemInfo = kernel32.declare("GetNativeSystemInfo",
+                                               ctypes.default_abi,
+                                               ctypes.void_t,
+                                               SYSTEM_INFO.ptr);
+    let sysInfo = SYSTEM_INFO();
+    // Default to unknown
+    sysInfo.wProcessorArchitecture = 0xffff;
+
+    GetNativeSystemInfo(sysInfo.address());
+    switch (sysInfo.wProcessorArchitecture) {
+      case 9:
+        return "x64";
+      case 6:
+        return "IA64";
+      case 0:
+        return "x86";
+      default:
+        // Using "throw" instead of "do_throw" (see NOTE above)
+        throw ("Unknown architecture returned from GetNativeSystemInfo: " + sysInfo.wProcessorArchitecture);
+    }
+  } finally {
+    kernel32.close();
+  }
 }
 
-// url constructed with %DISTRIBUTION_VERSION%
-function run_test_pt11() {
-  gCheckFunc = check_test_pt11;
-  var url = URL_PREFIX + "%DISTRIBUTION_VERSION%/";
-  logTestInfo("testing url constructed with %DISTRIBUTION_VERSION% - " + url);
-  setUpdateURLOverride(url);
-  gDefaultPrefBranch.setCharPref(PREF_DISTRIBUTION_VERSION, "test_distro_version");
-  gUpdateChecker.checkForUpdates(updateCheckListener, true);
-}
+/**
+ * Provides system capability information for application update though it may
+ * be used by other consumers.
+ */
+function getSystemCapabilities() {
+  if (IS_WIN) {
+    const PF_MMX_INSTRUCTIONS_AVAILABLE = 3; // MMX
+    const PF_XMMI_INSTRUCTIONS_AVAILABLE = 6; // SSE
+    const PF_XMMI64_INSTRUCTIONS_AVAILABLE = 10; // SSE2
+    const PF_SSE3_INSTRUCTIONS_AVAILABLE = 13; // SSE3
 
-function check_test_pt11() {
-  do_check_eq(getResult(gRequestURL), "test_distro_version");
-  run_test_pt12();
-}
+    let lib = ctypes.open("kernel32.dll");
+    let IsProcessorFeaturePresent = lib.declare("IsProcessorFeaturePresent",
+                                                ctypes.winapi_abi,
+                                                ctypes.int32_t, /* success */
+                                                ctypes.uint32_t); /* DWORD */
+    let instructionSet = "unknown";
+    try {
+      if (IsProcessorFeaturePresent(PF_SSE3_INSTRUCTIONS_AVAILABLE)) {
+        instructionSet = "SSE3";
+      } else if (IsProcessorFeaturePresent(PF_XMMI64_INSTRUCTIONS_AVAILABLE)) {
+        instructionSet = "SSE2";
+      } else if (IsProcessorFeaturePresent(PF_XMMI_INSTRUCTIONS_AVAILABLE)) {
+        instructionSet = "SSE";
+      } else if (IsProcessorFeaturePresent(PF_MMX_INSTRUCTIONS_AVAILABLE)) {
+        instructionSet = "MMX";
+      }
+    } catch (e) {
+      Cu.reportError("Error getting processor instruction set. " +
+                     "Exception: " + e);
+    }
 
-// url with force param that doesn't already have a param - bug 454357
-function run_test_pt12() {
-  gCheckFunc = check_test_pt12;
-  var url = URL_PREFIX;
-  logTestInfo("testing url with force param that doesn't already have a " +
-              "param - " + url);
-  setUpdateURLOverride(url);
-  gUpdateChecker.checkForUpdates(updateCheckListener, true);
-}
+    lib.close();
+    return instructionSet;
+  }
 
-function check_test_pt12() {
-  do_check_eq(getResult(gRequestURL), "?force=1");
-  run_test_pt13();
-}
-
-// url with force param that already has a param - bug 454357
-function run_test_pt13() {
-  gCheckFunc = check_test_pt13;
-  var url = URL_PREFIX + "?extra=param";
-  logTestInfo("testing url with force param that already has a param - " + url);
-  logTestInfo("testing url constructed that has a parameter - " + url);
-  setUpdateURLOverride(url);
-  gUpdateChecker.checkForUpdates(updateCheckListener, true);
-}
-
-function check_test_pt13() {
-  do_check_eq(getResult(gRequestURL), "?extra=param&force=1");
-  run_test_pt14();
-}
-
-function run_test_pt14() {
-  Services.prefs.setCharPref("app.update.custom", "custom");
-  gCheckFunc = check_test_pt14;
-  var url = URL_PREFIX + "?custom=%CUSTOM%";
-  logTestInfo("testing url constructed with %CUSTOM% - " + url);
-  setUpdateURLOverride(url);
-  gUpdateChecker.checkForUpdates(updateCheckListener, true);
-}
-
-function check_test_pt14() {
-  do_check_eq(getResult(gRequestURL), "?custom=custom&force=1");
-  doTestFinish();
+  return "NA";
 }

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!--
- Copyright (c) 2010 International Business Machines Corporation and others. All rights reserved.
+ Copyright (C) 2016 and later: Unicode, Inc. and others.
+ License & terms of use: http://www.unicode.org/copyright.html
+ Copyright (c) 2010-2015 International Business Machines Corporation and others. All rights reserved.
 -->
 <!DOCTYPE ldml SYSTEM "http://www.unicode.org/repos/cldr/trunk/common/dtd/ldml.dtd"
 [
@@ -11,7 +13,6 @@
 <ldml>
     <identity>
         <version number="$Revision: 1.1 $"/>
-        <generation date="$Date: 2006/04/21 00:54:06 $"/>
         <language type="en"/> 
         <territory type="US"/>
     </identity>

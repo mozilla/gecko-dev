@@ -7,6 +7,7 @@
 #define GFX_WINDOWSDWRITEFONTS_H
 
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/UniquePtr.h"
 #include <dwrite.h>
 
 #include "gfxFont.h"
@@ -28,56 +29,50 @@ public:
                   AntialiasOption = kAntialiasDefault);
     ~gfxDWriteFont();
 
-    virtual gfxFont* CopyWithAntialiasOption(AntialiasOption anAAOption);
+    virtual gfxFont*
+    CopyWithAntialiasOption(AntialiasOption anAAOption) override;
 
-    virtual const gfxFont::Metrics& GetMetrics();
+    virtual uint32_t GetSpaceGlyph() override;
 
-    virtual uint32_t GetSpaceGlyph();
+    virtual bool SetupCairoFont(DrawTarget* aDrawTarget) override;
 
-    virtual bool SetupCairoFont(gfxContext *aContext);
+    virtual bool AllowSubpixelAA() override
+    { return mAllowManualShowGlyphs; }
 
-    virtual bool AllowSubpixelAA() { return mAllowManualShowGlyphs; }
-
-    virtual bool IsValid();
-
-    gfxFloat GetAdjustedSize() {
-        return mAdjustedSize;
-    }
+    bool IsValid() const;
 
     IDWriteFontFace *GetFontFace();
 
     /* override Measure to add padding for antialiasing */
-    virtual RunMetrics Measure(gfxTextRun *aTextRun,
+    virtual RunMetrics Measure(const gfxTextRun *aTextRun,
                                uint32_t aStart, uint32_t aEnd,
                                BoundingBoxType aBoundingBoxType,
-                               gfxContext *aContextForTightBoundingBox,
-                               Spacing *aSpacing);
+                               DrawTarget *aDrawTargetForTightBoundingBox,
+                               Spacing *aSpacing,
+                               uint16_t aOrientation) override;
 
-    virtual bool ProvidesGlyphWidths() const;
+    virtual bool ProvidesGlyphWidths() const override;
 
-    virtual int32_t GetGlyphWidth(gfxContext *aCtx, uint16_t aGID);
+    virtual int32_t GetGlyphWidth(DrawTarget& aDrawTarget,
+                                  uint16_t aGID) override;
 
-    virtual mozilla::TemporaryRef<mozilla::gfx::GlyphRenderingOptions> GetGlyphRenderingOptions();
+    virtual already_AddRefed<mozilla::gfx::GlyphRenderingOptions>
+    GetGlyphRenderingOptions(const TextRunDrawParams* aRunParams = nullptr) override;
 
     virtual void AddSizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf,
-                                        FontCacheSizes* aSizes) const;
+                                        FontCacheSizes* aSizes) const override;
     virtual void AddSizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf,
-                                        FontCacheSizes* aSizes) const;
+                                        FontCacheSizes* aSizes) const override;
 
-    virtual FontType GetType() const { return FONT_TYPE_DWRITE; }
+    virtual FontType GetType() const override { return FONT_TYPE_DWRITE; }
 
-    virtual mozilla::TemporaryRef<mozilla::gfx::ScaledFont> GetScaledFont(mozilla::gfx::DrawTarget *aTarget);
+    virtual already_AddRefed<mozilla::gfx::ScaledFont>
+    GetScaledFont(mozilla::gfx::DrawTarget *aTarget) override;
 
-    virtual cairo_scaled_font_t *GetCairoScaledFont();
+    virtual cairo_scaled_font_t *GetCairoScaledFont() override;
 
 protected:
-    virtual bool ShapeText(gfxContext     *aContext,
-                           const char16_t *aText,
-                           uint32_t        aOffset,
-                           uint32_t        aLength,
-                           int32_t         aScript,
-                           gfxShapedText  *aShapedText,
-                           bool            aPreferPlatformShaping = false);
+    virtual const Metrics& GetHorizontalMetrics() override;
 
     bool GetFakeMetricsForArialBlack(DWRITE_FONT_METRICS *aFontMetrics);
 
@@ -92,13 +87,15 @@ protected:
     DWRITE_MEASURING_MODE GetMeasuringMode();
     bool GetForceGDIClassic();
 
-    nsRefPtr<IDWriteFontFace> mFontFace;
+    RefPtr<IDWriteFontFace> mFontFace;
     cairo_font_face_t *mCairoFontFace;
 
-    gfxFont::Metrics          *mMetrics;
+    Metrics *mMetrics;
 
     // cache of glyph widths in 16.16 fixed-point pixels
-    nsAutoPtr<nsDataHashtable<nsUint32HashKey,int32_t> > mGlyphWidths;
+    mozilla::UniquePtr<nsDataHashtable<nsUint32HashKey,int32_t>> mGlyphWidths;
+
+    uint32_t mSpaceGlyph;
 
     bool mNeedsOblique;
     bool mNeedsBold;

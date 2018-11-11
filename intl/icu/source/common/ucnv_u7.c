@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*  
 **********************************************************************
-*   Copyright (C) 2002-2011, International Business Machines
+*   Copyright (C) 2002-2016, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 **********************************************************************
 *   file name:  ucnv_u7.c
@@ -16,8 +18,9 @@
 
 #include "unicode/utypes.h"
 
-#if !UCONFIG_NO_CONVERSION
+#if !UCONFIG_NO_CONVERSION && !UCONFIG_ONLY_HTML_CONVERSION
 
+#include "cmemory.h"
 #include "unicode/ucnv.h"
 #include "ucnv_bld.h"
 #include "ucnv_cnv.h"
@@ -487,7 +490,7 @@ _UTF7FromUnicodeWithOffsets(UConverterFromUnicodeArgs *pArgs,
         inDirectMode=(UBool)((status>>24)&1);
         base64Counter=(int8_t)(status>>16);
         bits=(uint8_t)status;
-        U_ASSERT(bits<=sizeof(toBase64)/sizeof(toBase64[0]));
+        U_ASSERT(bits<=UPRV_LENGTHOF(toBase64));
     }
 
     /* UTF-7 always encodes UTF-16 code units, therefore we need only a simple sourceIndex */
@@ -759,7 +762,10 @@ static const UConverterImpl _UTF7Impl={
     _UTF7GetName,
     NULL, /* we don't need writeSub() because we never call a callback at fromUnicode() */
     NULL,
-    ucnv_getCompleteUnicodeSet
+    ucnv_getCompleteUnicodeSet,
+
+    NULL,
+    NULL
 };
 
 static const UConverterStaticData _UTF7StaticData={
@@ -775,11 +781,8 @@ static const UConverterStaticData _UTF7StaticData={
     { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 } /* reserved */
 };
 
-const UConverterSharedData _UTF7Data={
-    sizeof(UConverterSharedData), ~((uint32_t)0),
-    NULL, NULL, &_UTF7StaticData, FALSE, &_UTF7Impl,
-    0
-};
+const UConverterSharedData _UTF7Data=
+        UCNV_IMMUTABLE_SHARED_DATA_INITIALIZER(&_UTF7StaticData, &_UTF7Impl);
 
 /* IMAP mailbox name encoding ----------------------------------------------- */
 
@@ -1475,10 +1478,7 @@ static const UConverterStaticData _IMAPStaticData={
     { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 } /* reserved */
 };
 
-const UConverterSharedData _IMAPData={
-    sizeof(UConverterSharedData), ~((uint32_t)0),
-    NULL, NULL, &_IMAPStaticData, FALSE, &_IMAPImpl,
-    0
-};
+const UConverterSharedData _IMAPData=
+        UCNV_IMMUTABLE_SHARED_DATA_INITIALIZER(&_IMAPStaticData, &_IMAPImpl);
 
 #endif

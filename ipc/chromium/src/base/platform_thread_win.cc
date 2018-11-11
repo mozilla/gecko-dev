@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 // Copyright (c) 2006-2008 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -46,6 +48,7 @@ void PlatformThread::Sleep(int duration_ms) {
 
 // static
 void PlatformThread::SetName(const char* name) {
+#ifdef HAVE_SEH_EXCEPTIONS
   // The debugger needs to be around to catch the name in the exception.  If
   // there isn't a debugger, we are just needlessly throwing an exception.
   if (!::IsDebuggerPresent())
@@ -62,13 +65,14 @@ void PlatformThread::SetName(const char* name) {
                    reinterpret_cast<DWORD_PTR*>(&info));
   } MOZ_SEH_EXCEPT(EXCEPTION_CONTINUE_EXECUTION) {
   }
+#endif
 }
 
 // static
 bool PlatformThread::Create(size_t stack_size, Delegate* delegate,
                             PlatformThreadHandle* thread_handle) {
   unsigned int flags = 0;
-  if (stack_size > 0 && win_util::GetWinVersion() >= win_util::WINVERSION_XP) {
+  if (stack_size > 0) {
     flags = STACK_SIZE_PARAM_IS_A_RESERVATION;
   } else {
     stack_size = 0;

@@ -10,12 +10,10 @@
 #include "gfxMatrix.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/RefPtr.h"
+#include "nsAutoPtr.h"
 #include "nsSVGPaintServerFrame.h"
 
-class gfxASurface;
-class gfxContext;
 class nsIFrame;
-class nsSVGElement;
 class nsSVGLength2;
 class nsSVGPathGeometryFrame;
 class nsSVGViewBox;
@@ -25,13 +23,11 @@ class SVGAnimatedPreserveAspectRatio;
 class nsSVGAnimatedTransformList;
 } // namespace mozilla
 
-typedef nsSVGPaintServerFrame  nsSVGPatternFrameBase;
-
 /**
  * Patterns can refer to other patterns. We create an nsSVGPaintingProperty
  * with property type nsGkAtoms::href to track the referenced pattern.
  */
-class nsSVGPatternFrame : public nsSVGPatternFrameBase
+class nsSVGPatternFrame : public nsSVGPaintServerFrame
 {
   typedef mozilla::gfx::SourceSurface SourceSurface;
 
@@ -41,32 +37,32 @@ public:
   friend nsIFrame* NS_NewSVGPatternFrame(nsIPresShell* aPresShell,
                                          nsStyleContext* aContext);
 
-  nsSVGPatternFrame(nsStyleContext* aContext);
+  explicit nsSVGPatternFrame(nsStyleContext* aContext);
 
   // nsSVGPaintServerFrame methods:
   virtual already_AddRefed<gfxPattern>
     GetPaintServerPattern(nsIFrame *aSource,
+                          const DrawTarget* aDrawTarget,
                           const gfxMatrix& aContextMatrix,
                           nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                           float aOpacity,
-                          const gfxRect *aOverrideBounds) MOZ_OVERRIDE;
+                          const gfxRect *aOverrideBounds) override;
 
 public:
   typedef mozilla::SVGAnimatedPreserveAspectRatio SVGAnimatedPreserveAspectRatio;
 
   // nsSVGContainerFrame methods:
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor,
-                                nsIFrame* aTransformRoot = nullptr) MOZ_OVERRIDE;
+  virtual gfxMatrix GetCanvasTM() override;
 
   // nsIFrame interface:
   virtual nsresult AttributeChanged(int32_t         aNameSpaceID,
                                     nsIAtom*        aAttribute,
-                                    int32_t         aModType) MOZ_OVERRIDE;
+                                    int32_t         aModType) override;
 
 #ifdef DEBUG
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
+                    nsIFrame*         aPrevInFlow) override;
 #endif
 
   /**
@@ -74,10 +70,10 @@ public:
    *
    * @see nsGkAtoms::svgPatternFrame
    */
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE
+  virtual nsresult GetFrameName(nsAString& aResult) const override
   {
     return MakeFrameName(NS_LITERAL_STRING("SVGPattern"), aResult);
   }
@@ -112,14 +108,25 @@ protected:
     return GetLengthValue(aIndex, mContent);
   }
 
-  mozilla::TemporaryRef<SourceSurface>
-  PaintPattern(Matrix *patternMatrix,
+  already_AddRefed<SourceSurface>
+  PaintPattern(const DrawTarget* aDrawTarget,
+               Matrix *patternMatrix,
                const Matrix &aContextMatrix,
                nsIFrame *aSource,
                nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                float aGraphicOpacity,
                const gfxRect *aOverrideBounds);
-  nsIFrame*  GetPatternFirstChild();
+
+  /**
+   * A <pattern> element may reference another <pattern> element using
+   * xlink:href and, if it doesn't have any child content of its own, then it
+   * will "inherit" the children of the referenced pattern (which may itself be
+   * inheriting its children if it references another <pattern>).  This
+   * function returns this nsSVGPatternFrame or the first pattern along the
+   * reference chain (if there is one) to have children.
+   */
+  nsSVGPatternFrame* GetPatternWithChildren();
+
   gfxRect    GetPatternRect(uint16_t aPatternUnits,
                             const gfxRect &bbox,
                             const Matrix &callerCTM,

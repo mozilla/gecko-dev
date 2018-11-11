@@ -31,7 +31,7 @@ GetMaskData(Layer* aMaskLayer,
       Matrix4x4 effectiveTransform = aMaskLayer->GetEffectiveTransform();
       DebugOnly<bool> maskIs2D = effectiveTransform.CanDraw2D(&transform);
       NS_ASSERTION(maskIs2D, "How did we end up with a 3D transform here?!");
-      transform.Translate(-aDeviceOffset.x, -aDeviceOffset.y);
+      transform.PostTranslate(-aDeviceOffset.x, -aDeviceOffset.y);
       aMaskData->Construct(transform, surface);
       return true;
     }
@@ -39,18 +39,32 @@ GetMaskData(Layer* aMaskLayer,
   return false;
 }
 
+already_AddRefed<SourceSurface>
+GetMaskForLayer(Layer* aLayer, Matrix* aMaskTransform)
+{
+  if (!aLayer->GetMaskLayer()) {
+    return nullptr;
+  }
+
+  MOZ_ASSERT(aMaskTransform);
+
+  AutoMoz2DMaskData mask;
+  if (GetMaskData(aLayer->GetMaskLayer(), Point(), &mask)) {
+    *aMaskTransform = mask.GetTransform();
+    RefPtr<SourceSurface> surf = mask.GetSurface();
+    return surf.forget();
+  }
+
+  return nullptr;
+}
+
 void
 PaintWithMask(gfxContext* aContext, float aOpacity, Layer* aMaskLayer)
 {
   AutoMoz2DMaskData mask;
   if (GetMaskData(aMaskLayer, Point(), &mask)) {
-    if (aOpacity < 1.0) {
-      aContext->PushGroup(gfxContentType::COLOR_ALPHA);
-      aContext->Paint(aOpacity);
-      aContext->PopGroupToSource();
-    }
     aContext->SetMatrix(ThebesMatrix(mask.GetTransform()));
-    aContext->Mask(mask.GetSurface());
+    aContext->Mask(mask.GetSurface(), aOpacity);
     return;
   }
 
@@ -101,7 +115,7 @@ void
 FillRectWithMask(DrawTarget* aDT,
                  const Rect& aRect,
                  SourceSurface* aSurface,
-                 Filter aFilter,
+                 SamplingFilter aSamplingFilter,
                  const DrawOptions& aOptions,
                  ExtendMode aExtendMode,
                  SourceSurface* aMaskSource,
@@ -120,7 +134,7 @@ FillRectWithMask(DrawTarget* aDT,
       transform = (*aSurfaceTransform) * transform;
     }
 
-    SurfacePattern source(aSurface, aExtendMode, transform, aFilter);
+    SurfacePattern source(aSurface, aExtendMode, transform, aSamplingFilter);
 
     aDT->SetTransform(*aMaskTransform);
     aDT->MaskSurface(source, aMaskSource, Point(0, 0), aOptions);
@@ -132,7 +146,7 @@ FillRectWithMask(DrawTarget* aDT,
   aDT->FillRect(aRect,
                 SurfacePattern(aSurface, aExtendMode,
                                aSurfaceTransform ? (*aSurfaceTransform) : Matrix(),
-                               aFilter), aOptions);
+                               aSamplingFilter), aOptions);
 }
 
 void
@@ -140,19 +154,21 @@ FillRectWithMask(DrawTarget* aDT,
                  const gfx::Point& aDeviceOffset,
                  const Rect& aRect,
                  SourceSurface* aSurface,
-                 Filter aFilter,
+                 SamplingFilter aSamplingFilter,
                  const DrawOptions& aOptions,
                  Layer* aMaskLayer)
 {
   AutoMoz2DMaskData mask;
   if (GetMaskData(aMaskLayer, aDeviceOffset, &mask)) {
     const Matrix& maskTransform = mask.GetTransform();
-    FillRectWithMask(aDT, aRect, aSurface, aFilter, aOptions, ExtendMode::CLAMP,
+    FillRectWithMask(aDT, aRect, aSurface, aSamplingFilter, aOptions,
+                     ExtendMode::CLAMP,
                      mask.GetSurface(), &maskTransform);
     return;
   }
 
-  FillRectWithMask(aDT, aRect, aSurface, aFilter, aOptions, ExtendMode::CLAMP);
+  FillRectWithMask(aDT, aRect, aSurface, aSamplingFilter, aOptions,
+                   ExtendMode::CLAMP);
 }
 
 BasicImplData*
@@ -183,13 +199,13 @@ bool
 ShouldShadow(Layer* aLayer)
 {
   if (!ToShadowable(aLayer)) {
-    NS_ABORT_IF_FALSE(aLayer->GetType() == Layer::TYPE_READBACK,
-                      "Only expect not to shadow ReadbackLayers");
+    MOZ_ASSERT(aLayer->GetType() == Layer::TYPE_READBACK,
+               "Only expect not to shadow ReadbackLayers");
     return false;
   }
   return true;
 }
 
 
-}
-}
+} // namespace layers
+} // namespace mozilla

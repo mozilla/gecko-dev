@@ -16,15 +16,17 @@
 #include "nsIURL.h"
 #include "nsIFileURL.h"
 #include "nsNetUtil.h"
+#include "nsIChannel.h"
 #include "nsCOMPtr.h"
-#include "nsAutoPtr.h"
 #include "nsString.h"
 #include "nsDirectoryService.h"
 #include "nsDirectoryServiceDefs.h"
 #include "mozilla/FileUtils.h"
 #include "mozilla/Services.h"
+#include "mozilla/Unused.h"
 #include "nsIStringBundle.h"
 #include "nsIXULAppInfo.h"
+#include "nsContentUtils.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -69,7 +71,7 @@ static ca_proplist_sets_fn ca_proplist_sets;
 static ca_context_play_full_fn ca_context_play_full;
 
 struct ScopedCanberraFile {
-    ScopedCanberraFile(nsIFile *file): mFile(file) {};
+    explicit ScopedCanberraFile(nsIFile *file): mFile(file) {};
 
     ~ScopedCanberraFile() {
         if (mFile) {
@@ -78,7 +80,7 @@ struct ScopedCanberraFile {
     }
 
     void forget() {
-        mFile.forget();
+        mozilla::Unused << mFile.forget();
     }
     nsIFile* operator->() { return mFile; }
     operator nsIFile*() { return mFile; }
@@ -128,7 +130,7 @@ ca_context_get_default()
                                     getter_AddRefs(brandingBundle));
         if (brandingBundle) {
             nsAutoString wbrand;
-            brandingBundle->GetStringFromName(MOZ_UTF16("brandShortName"),
+            brandingBundle->GetStringFromName(u"brandShortName",
                                               getter_Copies(wbrand));
             NS_ConvertUTF16toUTF8 brand(wbrand);
 
@@ -182,7 +184,7 @@ nsSound::Init()
 {
     // This function is designed so that no library is compulsory, and
     // one library missing doesn't cause the other(s) to not be used.
-    if (mInited) 
+    if (mInited)
         return NS_OK;
 
     mInited = true;
@@ -235,12 +237,11 @@ NS_IMETHODIMP nsSound::OnStreamComplete(nsIStreamLoader *aLoader,
                 nsCOMPtr<nsIURI> uri;
                 nsCOMPtr<nsIChannel> channel = do_QueryInterface(request);
                 if (channel) {
-                      channel->GetURI(getter_AddRefs(uri));
-                      if (uri) {
-                            nsAutoCString uriSpec;
-                            uri->GetSpec(uriSpec);
-                            printf("Failed to load %s\n", uriSpec.get());
-                      }
+                    channel->GetURI(getter_AddRefs(uri));
+                    if (uri) {
+                        printf("Failed to load %s\n",
+                               uri->GetSpecOrDefault().get());
+                    }
                 }
             }
         }
@@ -309,13 +310,13 @@ NS_IMETHODIMP nsSound::OnStreamComplete(nsIStreamLoader *aLoader,
     return NS_OK;
 }
 
-NS_METHOD nsSound::Beep()
+NS_IMETHODIMP nsSound::Beep()
 {
     ::gdk_beep();
     return NS_OK;
 }
 
-NS_METHOD nsSound::Play(nsIURL *aURL)
+NS_IMETHODIMP nsSound::Play(nsIURL *aURL)
 {
     if (!mInited)
         Init();
@@ -345,7 +346,12 @@ NS_METHOD nsSound::Play(nsIURL *aURL)
         g_free(path);
     } else {
         nsCOMPtr<nsIStreamLoader> loader;
-        rv = NS_NewStreamLoader(getter_AddRefs(loader), aURL, this);
+        rv = NS_NewStreamLoader(getter_AddRefs(loader),
+                                aURL,
+                                this, // aObserver
+                                nsContentUtils::GetSystemPrincipal(),
+                                nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                                nsIContentPolicy::TYPE_OTHER);
     }
 
     return rv;
@@ -422,7 +428,7 @@ NS_IMETHODIMP nsSound::PlaySystemSound(const nsAString &aSoundAlias)
 
     // create a nsIFile and then a nsIFileURL from that
     nsCOMPtr <nsIFile> soundFile;
-    rv = NS_NewLocalFile(aSoundAlias, true, 
+    rv = NS_NewLocalFile(aSoundAlias, true,
                          getter_AddRefs(soundFile));
     NS_ENSURE_SUCCESS(rv,rv);
 

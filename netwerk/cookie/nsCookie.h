@@ -11,6 +11,10 @@
 #include "nsString.h"
 
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/BasePrincipal.h"
+#include "mozilla/Preferences.h"
+
+using mozilla::OriginAttributes;
 
 /** 
  * The nsCookie class is the main cookie storage medium for use within cookie
@@ -43,7 +47,8 @@ class nsCookie : public nsICookie2
              int64_t         aCreationTime,
              bool            aIsSession,
              bool            aIsSecure,
-             bool            aIsHttpOnly)
+             bool            aIsHttpOnly,
+             const OriginAttributes& aOriginAttributes)
      : mName(aName)
      , mValue(aValue)
      , mHost(aHost)
@@ -52,9 +57,12 @@ class nsCookie : public nsICookie2
      , mExpiry(aExpiry)
      , mLastAccessed(aLastAccessed)
      , mCreationTime(aCreationTime)
-     , mIsSession(aIsSession != false)
-     , mIsSecure(aIsSecure != false)
-     , mIsHttpOnly(aIsHttpOnly != false)
+       // Defaults to 60s
+     , mCookieStaleThreshold(mozilla::Preferences::GetInt("network.cookie.staleThreshold", 60))
+     , mIsSession(aIsSession)
+     , mIsSecure(aIsSecure)
+     , mIsHttpOnly(aIsHttpOnly)
+     , mOriginAttributes(aOriginAttributes)
     {
     }
 
@@ -74,9 +82,8 @@ class nsCookie : public nsICookie2
                              int64_t           aCreationTime,
                              bool              aIsSession,
                              bool              aIsSecure,
-                             bool              aIsHttpOnly);
-
-    virtual ~nsCookie() {}
+                             bool              aIsHttpOnly,
+                             const OriginAttributes& aOriginAttributes);
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
@@ -97,12 +104,17 @@ class nsCookie : public nsICookie2
     // setters
     inline void SetExpiry(int64_t aExpiry)        { mExpiry = aExpiry; }
     inline void SetLastAccessed(int64_t aTime)    { mLastAccessed = aTime; }
-    inline void SetIsSession(bool aIsSession)   { mIsSession = (bool) aIsSession; }
+    inline void SetIsSession(bool aIsSession)     { mIsSession = aIsSession; }
     // Set the creation time manually, overriding the monotonicity checks in
     // Create(). Use with caution!
     inline void SetCreationTime(int64_t aTime)    { mCreationTime = aTime; }
 
+    bool IsStale() const;
+
   protected:
+    virtual ~nsCookie() {}
+
+  private:
     // member variables
     // we use char* ptrs to store the strings in a contiguous block,
     // so we save on the overhead of using nsCStrings. However, we
@@ -118,9 +130,11 @@ class nsCookie : public nsICookie2
     int64_t      mExpiry;
     int64_t      mLastAccessed;
     int64_t      mCreationTime;
+    int64_t      mCookieStaleThreshold;
     bool mIsSession;
     bool mIsSecure;
     bool mIsHttpOnly;
+    mozilla::OriginAttributes mOriginAttributes;
 };
 
 #endif // nsCookie_h__

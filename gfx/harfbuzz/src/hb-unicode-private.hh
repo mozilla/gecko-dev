@@ -102,72 +102,72 @@ HB_UNICODE_FUNCS_IMPLEMENT_CALLBACKS_SIMPLE
   }
 
 
-  unsigned int
+  inline unsigned int
   modified_combining_class (hb_codepoint_t unicode)
   {
     /* XXX This hack belongs to the Myanmar shaper. */
-    if (unlikely (unicode == 0x1037)) unicode = 0x103A;
+    if (unlikely (unicode == 0x1037u)) unicode = 0x103Au;
 
     /* XXX This hack belongs to the SEA shaper (for Tai Tham):
      * Reorder SAKOT to ensure it comes after any tone marks. */
-    if (unlikely (unicode == 0x1A60)) return 254;
+    if (unlikely (unicode == 0x1A60u)) return 254;
+
+    /* XXX This hack belongs to the Tibetan shaper:
+     * Reorder PADMA to ensure it comes after any vowel marks. */
+    if (unlikely (unicode == 0x0FC6u)) return 254;
+    /* Reorder TSA -PHRU to reorder before U+0F74 */
+    if (unlikely (unicode == 0x0F39u)) return 127;
 
     return _hb_modified_combining_class[combining_class (unicode)];
   }
 
-  inline hb_bool_t
+  static inline hb_bool_t
   is_variation_selector (hb_codepoint_t unicode)
   {
-    return unlikely (hb_in_ranges<hb_codepoint_t> (unicode,
-						   0x180B, 0x180D, /* MONGOLIAN FREE VARIATION SELECTOR ONE..THREE */
-						   0xFE00, 0xFE0F, /* VARIATION SELECTOR-1..16 */
-						   0xE0100, 0xE01EF));  /* VARIATION SELECTOR-17..256 */
+    /* U+180B..180D MONGOLIAN FREE VARIATION SELECTORs are handled in the
+     * Arabic shaper.  No need to match them here. */
+    return unlikely (hb_in_ranges (unicode,
+				   0xFE00u, 0xFE0Fu, /* VARIATION SELECTOR-1..16 */
+				   0xE0100u, 0xE01EFu));  /* VARIATION SELECTOR-17..256 */
   }
 
   /* Default_Ignorable codepoints:
-   *
-   * Note that as of Oct 2012 (Unicode 6.2), U+180E MONGOLIAN VOWEL SEPARATOR
-   * is NOT Default_Ignorable, but it really behaves in a way that it should
-   * be.  That has been reported to the Unicode Technical Committee for
-   * consideration.  As such, we include it here, since Uniscribe removes it.
-   * It *is* in Unicode 6.3 however.  U+061C ARABIC LETTER MARK from Unicode
-   * 6.3 is also added manually.  The new Unicode 6.3 bidi formatting
-   * characters are encoded in a block that was Default_Ignorable already.
    *
    * Note: While U+115F, U+1160, U+3164 and U+FFA0 are Default_Ignorable,
    * we do NOT want to hide them, as the way Uniscribe has implemented them
    * is with regular spacing glyphs, and that's the way fonts are made to work.
    * As such, we make exceptions for those four.
    *
-   * Gathered from:
-   * http://unicode.org/cldr/utility/list-unicodeset.jsp?a=[:DI:]&abb=on&ucd=on&esc=on
-   *
-   * Last updated to the page with the following versions:
-   * Version 3.6; ICU version: 50.0.1.0; Unicode version: 6.1.0.0
-   *
-   * 4,167 Code Points
-   *
-   * [\u00AD\u034F\u115F\u1160\u17B4\u17B5\u180B-\u180D\u200B-\u200F\u202A-\u202E\u2060-\u206F\u3164\uFE00-\uFE0F\uFEFF\uFFA0\uFFF0-\uFFF8\U0001D173-\U0001D17A\U000E0000-\U000E0FFF]
-   *
-   * 00AD ;SOFT HYPHEN
-   * 034F ;COMBINING GRAPHEME JOINER
-   * #115F ;HANGUL CHOSEONG FILLER
-   * #1160 ;HANGUL JUNGSEONG FILLER
-   * 17B4 ;KHMER VOWEL INHERENT AQ
-   * 17B5 ;KHMER VOWEL INHERENT AA
-   * 180B..180D ;MONGOLIAN FREE VARIATION SELECTOR THREE
-   * 200B..200F ;RIGHT-TO-LEFT MARK
-   * 202A..202E ;RIGHT-TO-LEFT OVERRIDE
-   * 2060..206F ;NOMINAL DIGIT SHAPES
-   * #3164 ;HANGUL FILLER
-   * FE00..FE0F ;VARIATION SELECTOR-16
-   * FEFF ;ZERO WIDTH NO-BREAK SPACE
-   * #FFA0 ;HALFWIDTH HANGUL FILLER
-   * FFF0..FFF8 ;<unassigned-FFF8>
-   * 1D173..1D17A ;MUSICAL SYMBOL END PHRASE
-   * E0000..E0FFF ;<unassigned-E0FFF>
+   * Unicode 7.0:
+   * $ grep '; Default_Ignorable_Code_Point ' DerivedCoreProperties.txt | sed 's/;.*#/#/'
+   * 00AD          # Cf       SOFT HYPHEN
+   * 034F          # Mn       COMBINING GRAPHEME JOINER
+   * 061C          # Cf       ARABIC LETTER MARK
+   * 115F..1160    # Lo   [2] HANGUL CHOSEONG FILLER..HANGUL JUNGSEONG FILLER
+   * 17B4..17B5    # Mn   [2] KHMER VOWEL INHERENT AQ..KHMER VOWEL INHERENT AA
+   * 180B..180D    # Mn   [3] MONGOLIAN FREE VARIATION SELECTOR ONE..MONGOLIAN FREE VARIATION SELECTOR THREE
+   * 180E          # Cf       MONGOLIAN VOWEL SEPARATOR
+   * 200B..200F    # Cf   [5] ZERO WIDTH SPACE..RIGHT-TO-LEFT MARK
+   * 202A..202E    # Cf   [5] LEFT-TO-RIGHT EMBEDDING..RIGHT-TO-LEFT OVERRIDE
+   * 2060..2064    # Cf   [5] WORD JOINER..INVISIBLE PLUS
+   * 2065          # Cn       <reserved-2065>
+   * 2066..206F    # Cf  [10] LEFT-TO-RIGHT ISOLATE..NOMINAL DIGIT SHAPES
+   * 3164          # Lo       HANGUL FILLER
+   * FE00..FE0F    # Mn  [16] VARIATION SELECTOR-1..VARIATION SELECTOR-16
+   * FEFF          # Cf       ZERO WIDTH NO-BREAK SPACE
+   * FFA0          # Lo       HALFWIDTH HANGUL FILLER
+   * FFF0..FFF8    # Cn   [9] <reserved-FFF0>..<reserved-FFF8>
+   * 1BCA0..1BCA3  # Cf   [4] SHORTHAND FORMAT LETTER OVERLAP..SHORTHAND FORMAT UP STEP
+   * 1D173..1D17A  # Cf   [8] MUSICAL SYMBOL BEGIN BEAM..MUSICAL SYMBOL END PHRASE
+   * E0000         # Cn       <reserved-E0000>
+   * E0001         # Cf       LANGUAGE TAG
+   * E0002..E001F  # Cn  [30] <reserved-E0002>..<reserved-E001F>
+   * E0020..E007F  # Cf  [96] TAG SPACE..CANCEL TAG
+   * E0080..E00FF  # Cn [128] <reserved-E0080>..<reserved-E00FF>
+   * E0100..E01EF  # Mn [240] VARIATION SELECTOR-17..VARIATION SELECTOR-256
+   * E01F0..E0FFF  # Cn [3600] <reserved-E01F0>..<reserved-E0FFF>
    */
-  inline hb_bool_t
+  static inline hb_bool_t
   is_default_ignorable (hb_codepoint_t ch)
   {
     hb_codepoint_t plane = ch >> 16;
@@ -176,16 +176,16 @@ HB_UNICODE_FUNCS_IMPLEMENT_CALLBACKS_SIMPLE
       /* BMP */
       hb_codepoint_t page = ch >> 8;
       switch (page) {
-	case 0x00: return unlikely (ch == 0x00AD);
-	case 0x03: return unlikely (ch == 0x034F);
-	case 0x06: return unlikely (ch == 0x061C);
-	case 0x17: return hb_in_range<hb_codepoint_t> (ch, 0x17B4, 0x17B5);
-	case 0x18: return hb_in_range<hb_codepoint_t> (ch, 0x180B, 0x180E);
-	case 0x20: return hb_in_ranges<hb_codepoint_t> (ch, 0x200B, 0x200F,
-							    0x202A, 0x202E,
-							    0x2060, 0x206F);
-	case 0xFE: return hb_in_range<hb_codepoint_t> (ch, 0xFE00, 0xFE0F) || ch == 0xFEFF;
-	case 0xFF: return hb_in_range<hb_codepoint_t> (ch, 0xFFF0, 0xFFF8);
+	case 0x00: return unlikely (ch == 0x00ADu);
+	case 0x03: return unlikely (ch == 0x034Fu);
+	case 0x06: return unlikely (ch == 0x061Cu);
+	case 0x17: return hb_in_range (ch, 0x17B4u, 0x17B5u);
+	case 0x18: return hb_in_range (ch, 0x180Bu, 0x180Eu);
+	case 0x20: return hb_in_ranges (ch, 0x200Bu, 0x200Fu,
+					    0x202Au, 0x202Eu,
+					    0x2060u, 0x206Fu);
+	case 0xFE: return hb_in_range (ch, 0xFE00u, 0xFE0Fu) || ch == 0xFEFFu;
+	case 0xFF: return hb_in_range (ch, 0xFFF0u, 0xFFF8u);
 	default: return false;
       }
     }
@@ -193,13 +193,58 @@ HB_UNICODE_FUNCS_IMPLEMENT_CALLBACKS_SIMPLE
     {
       /* Other planes */
       switch (plane) {
-	case 0x01: return hb_in_range<hb_codepoint_t> (ch, 0x0001D173, 0x0001D17A);
-	case 0x0E: return hb_in_range<hb_codepoint_t> (ch, 0x000E0000, 0x000E0FFF);
+	case 0x01: return hb_in_ranges (ch, 0x1BCA0u, 0x1BCA3u,
+					    0x1D173u, 0x1D17Au);
+	case 0x0E: return hb_in_range (ch, 0xE0000u, 0xE0FFFu);
 	default: return false;
       }
     }
   }
 
+  /* Space estimates based on:
+   * http://www.unicode.org/charts/PDF/U2000.pdf
+   * https://www.microsoft.com/typography/developers/fdsspec/spaces.aspx
+   */
+  enum space_t {
+    NOT_SPACE = 0,
+    SPACE_EM   = 1,
+    SPACE_EM_2 = 2,
+    SPACE_EM_3 = 3,
+    SPACE_EM_4 = 4,
+    SPACE_EM_5 = 5,
+    SPACE_EM_6 = 6,
+    SPACE_EM_16 = 16,
+    SPACE_4_EM_18,	/* 4/18th of an EM! */
+    SPACE,
+    SPACE_FIGURE,
+    SPACE_PUNCTUATION,
+    SPACE_NARROW,
+  };
+  static inline space_t
+  space_fallback_type (hb_codepoint_t u)
+  {
+    switch (u)
+    {
+      /* All GC=Zs chars that can use a fallback. */
+      default:	    return NOT_SPACE;	/* U+1680 OGHAM SPACE MARK */
+      case 0x0020u: return SPACE;	/* U+0020 SPACE */
+      case 0x00A0u: return SPACE;	/* U+00A0 NO-BREAK SPACE */
+      case 0x2000u: return SPACE_EM_2;	/* U+2000 EN QUAD */
+      case 0x2001u: return SPACE_EM;	/* U+2001 EM QUAD */
+      case 0x2002u: return SPACE_EM_2;	/* U+2002 EN SPACE */
+      case 0x2003u: return SPACE_EM;	/* U+2003 EM SPACE */
+      case 0x2004u: return SPACE_EM_3;	/* U+2004 THREE-PER-EM SPACE */
+      case 0x2005u: return SPACE_EM_4;	/* U+2005 FOUR-PER-EM SPACE */
+      case 0x2006u: return SPACE_EM_6;	/* U+2006 SIX-PER-EM SPACE */
+      case 0x2007u: return SPACE_FIGURE;	/* U+2007 FIGURE SPACE */
+      case 0x2008u: return SPACE_PUNCTUATION;	/* U+2008 PUNCTUATION SPACE */
+      case 0x2009u: return SPACE_EM_5;		/* U+2009 THIN SPACE */
+      case 0x200Au: return SPACE_EM_16;		/* U+200A HAIR SPACE */
+      case 0x202Fu: return SPACE_NARROW;	/* U+202F NARROW NO-BREAK SPACE */
+      case 0x205Fu: return SPACE_4_EM_18;	/* U+205F MEDIUM MATHEMATICAL SPACE */
+      case 0x3000u: return SPACE_EM;		/* U+3000 IDEOGRAPHIC SPACE */
+    }
+  }
 
   struct {
 #define HB_UNICODE_FUNC_IMPLEMENT(name) hb_unicode_##name##_func_t name;
@@ -300,19 +345,26 @@ extern HB_INTERNAL const hb_unicode_funcs_t _hb_unicode_funcs_nil;
 #define HB_MODIFIED_COMBINING_CLASS_CCC118 118 /* sign u / sign uu */
 #define HB_MODIFIED_COMBINING_CLASS_CCC122 122 /* mai * */
 
-/* Tibetan */
+/* Tibetan
+ * Modify U+0F74 (ccc=132) to reorder before ccc=130 marks.
+ */
 #define HB_MODIFIED_COMBINING_CLASS_CCC129 129 /* sign aa */
 #define HB_MODIFIED_COMBINING_CLASS_CCC130 130 /* sign i */
-#define HB_MODIFIED_COMBINING_CLASS_CCC132 132 /* sign u */
+#define HB_MODIFIED_COMBINING_CLASS_CCC132 128 /* sign u */
 
 
 /* Misc */
 
 #define HB_UNICODE_GENERAL_CATEGORY_IS_MARK(gen_cat) \
-	(FLAG (gen_cat) & \
+	(FLAG_SAFE (gen_cat) & \
 	 (FLAG (HB_UNICODE_GENERAL_CATEGORY_SPACING_MARK) | \
 	  FLAG (HB_UNICODE_GENERAL_CATEGORY_ENCLOSING_MARK) | \
 	  FLAG (HB_UNICODE_GENERAL_CATEGORY_NON_SPACING_MARK)))
 
+#define HB_UNICODE_GENERAL_CATEGORY_IS_NON_ENCLOSING_MARK_OR_MODIFIER_SYMBOL(gen_cat) \
+	(FLAG_SAFE (gen_cat) & \
+	 (FLAG (HB_UNICODE_GENERAL_CATEGORY_SPACING_MARK) | \
+	  FLAG (HB_UNICODE_GENERAL_CATEGORY_NON_SPACING_MARK) | \
+	  FLAG (HB_UNICODE_GENERAL_CATEGORY_MODIFIER_SYMBOL)))
 
 #endif /* HB_UNICODE_PRIVATE_HH */

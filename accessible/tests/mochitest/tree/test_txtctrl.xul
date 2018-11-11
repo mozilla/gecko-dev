@@ -18,6 +18,9 @@
 
   <script type="application/javascript">
   <![CDATA[
+    //gA11yEventDumpToConsole = true;
+    //enableLogging("tree,verbose"); // debug stuff
+
     ////////////////////////////////////////////////////////////////////////////
     // Test
 
@@ -40,6 +43,15 @@
 
       //////////////////////////////////////////////////////////////////////////
       // search textbox
+      accTree =
+        { SECTION: [
+          { ENTRY: [ { TEXT_LEAF: [] } ] },
+          { MENUPOPUP: [] }
+        ] };
+      testAccessibleTree("txc_search", accTree);
+
+      //////////////////////////////////////////////////////////////////////////
+      // search textbox with search button
 
       if (MAC) {
         accTree =
@@ -56,7 +68,7 @@
           ] };
       }
 
-      testAccessibleTree("txc_search", accTree);
+      testAccessibleTree("txc_search_searchbutton", accTree);
 
       //////////////////////////////////////////////////////////////////////////
       // number textbox
@@ -151,6 +163,7 @@
         SimpleTest.ok(true, "Testing (New) Toolkit autocomplete widget.");
 
         // Dumb access to trigger popup lazy creation.
+        dump("Trigget popup lazy creation");
         waitForEvent(EVENT_REORDER, txc, test_AutocompleteControl);
         txc.popup;
 
@@ -195,6 +208,7 @@
     <vbox flex="1">
       <textbox id="txc" value="hello"/>
       <textbox id="txc_search" type="search" value="hello"/>
+      <textbox id="txc_search_searchbutton" searchbutton="true" type="search" value="hello"/>
       <textbox id="txc_number" type="number" value="44"/>
       <textbox id="txc_password" type="password" value="hello"/>
       <textbox id="txc_multiline" multiline="true" value="hello"/>

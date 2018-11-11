@@ -12,14 +12,14 @@
  * this document.
  */
 
+[Exposed=(Worker)]
 interface WorkerGlobalScope : EventTarget {
+  [Constant, Cached]
   readonly attribute WorkerGlobalScope self;
-
-  [Replaceable]
-  readonly attribute Console console;
 
   readonly attribute WorkerLocation location;
 
+  [Throws]
   void close();
   attribute OnErrorEventHandler onerror;
 
@@ -35,12 +35,18 @@ partial interface WorkerGlobalScope {
   readonly attribute WorkerNavigator navigator;
 };
 
-WorkerGlobalScope implements WindowTimers;
-WorkerGlobalScope implements WindowBase64;
+WorkerGlobalScope implements GlobalCrypto;
+WorkerGlobalScope implements WindowOrWorkerGlobalScope;
+
+// Not implemented yet: bug 1072107.
+// WorkerGlobalScope implements FontFaceSource;
 
 // Mozilla extensions
 partial interface WorkerGlobalScope {
-  attribute EventHandler onclose;
 
   void dump(optional DOMString str);
+
+  // XXXbz no spec for this yet, because the webperf WG is a bit dysfunctional
+  [Constant, Cached]
+  readonly attribute Performance performance;
 };

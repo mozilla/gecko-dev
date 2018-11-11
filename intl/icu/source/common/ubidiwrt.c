@@ -1,7 +1,9 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 ******************************************************************************
 *
-*   Copyright (C) 2000-2011, International Business Machines
+*   Copyright (C) 2000-2015, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *
 ******************************************************************************
@@ -16,11 +18,6 @@
 * This file contains implementations for BiDi functions that use
 * the core algorithm and core API to write reordered text.
 */
-
-/* set import/export definitions */
-#ifndef U_COMMON_IMPLEMENTATION
-#   define U_COMMON_IMPLEMENTATION
-#endif
 
 #include "unicode/utypes.h"
 #include "unicode/ustring.h"

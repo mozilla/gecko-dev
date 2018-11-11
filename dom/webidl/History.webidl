@@ -11,16 +11,20 @@
  * and create derivative works of this document.
  */
 
+enum ScrollRestoration { "auto", "manual" };
+
 interface History {
   [Throws]
   readonly attribute unsigned long length;
   [Throws]
+  attribute ScrollRestoration scrollRestoration;
+  [Throws]
   readonly attribute any state;
-  [Throws]
+  [Throws, UnsafeInPrerendering]
   void go(optional long delta = 0);
-  [Throws]
+  [Throws, UnsafeInPrerendering]
   void back();
-  [Throws]
+  [Throws, UnsafeInPrerendering]
   void forward();
   [Throws]
   void pushState(any data, DOMString title, optional DOMString? url = null);

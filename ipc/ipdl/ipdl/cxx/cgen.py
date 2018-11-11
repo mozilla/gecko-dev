@@ -20,7 +20,10 @@ class CxxCodeGen(CodePrinter, Visitor):
         self.write(ws.ws)
 
     def visitCppDirective(self, cd):
-        self.println('#%s %s'% (cd.directive, cd.rest))
+        if cd.rest:
+            self.println('#%s %s'% (cd.directive, cd.rest))
+        else:
+            self.println('#%s'% (cd.directive))
 
     def visitNamespace(self, ns):
         self.println('namespace '+ ns.name +' {')
@@ -44,7 +47,7 @@ class CxxCodeGen(CodePrinter, Visitor):
         elif t.ptrptr:       ts += '**'
         elif t.ptrconstptr:  ts += '* const*'
 
-        if t.ref:  ts += '&'
+        ts += '&' * t.ref
 
         self.write(ts)
 
@@ -83,9 +86,16 @@ class CxxCodeGen(CodePrinter, Visitor):
 
 
     def visitTypedef(self, td):
-        self.printdent('typedef ')
-        td.fromtype.accept(self)
-        self.println(' '+ td.totypename +';')
+        if td.templateargs:
+            formals = ', '.join([ 'class ' + T for T in td.templateargs ])
+            args = ', '.join(td.templateargs)
+            self.printdent('template<' + formals + '> using ' + td.totypename + ' = ')
+            td.fromtype.accept(self)
+            self.println('<' + args + '>;')
+        else:
+            self.printdent('typedef ')
+            td.fromtype.accept(self)
+            self.println(' '+ td.totypename +';')
 
     def visitUsing(self, us):
         self.printdent('using ')
@@ -122,20 +132,14 @@ class CxxCodeGen(CodePrinter, Visitor):
     def visitClass(self, c):
         if c.specializes is not None:
             self.printdentln('template<>')
-        
+
         if c.struct:
             self.printdent('struct')
         else:
             self.printdent('class')
-        if c.interface:
-            # FIXME/cjones: turn this "on" when we get the analysis
-            self.write(' /*NS_INTERFACE_CLASS*/')
-        if c.abstract:
-            # FIXME/cjones: turn this "on" when we get the analysis
-            self.write(' /*NS_ABSTRACT_CLASS*/')
         self.write(' '+ c.name)
         if c.final:
-            self.write(' MOZ_FINAL')
+            self.write(' final')
 
         if c.specializes is not None:
             self.write(' <')
@@ -180,9 +184,11 @@ class CxxCodeGen(CodePrinter, Visitor):
             self.println('>')
             self.printdent()
 
+        if md.warn_unused:
+            self.write('MOZ_MUST_USE ')
         if md.inline:
             self.write('inline ')
-        if md.inline:
+        if md.never_inline:
             self.write('MOZ_NEVER_INLINE ')
         if md.static:
             self.write('static ')
@@ -210,8 +216,6 @@ class CxxCodeGen(CodePrinter, Visitor):
         if md.ret and md.only_for_definition:
             self.write(' -> ')
             md.ret.accept(self)
-        if md.warn_unused:
-            self.write(' NS_WARN_UNUSED_RESULT')
         if md.pure:
             self.write(' = 0')
 
@@ -234,6 +238,8 @@ class CxxCodeGen(CodePrinter, Visitor):
     def visitConstructorDecl(self, cd):
         if cd.explicit:
             self.write('explicit ')
+        else:
+            self.write('MOZ_IMPLICIT ')
         self.visitMethodDecl(cd)
 
     def visitConstructorDefn(self, cd):
@@ -352,6 +358,9 @@ class CxxCodeGen(CodePrinter, Visitor):
         self.writeExprList(ec.args)
         self.write(')')
 
+    def visitExprMove(self, em):
+        self.visitExprCall(em)
+
     def visitExprNew(self, en):
         self.write('new ')
         if en.newargs is not None:
@@ -423,6 +432,19 @@ class CxxCodeGen(CodePrinter, Visitor):
 
         self.indent()
         self.visitBlock(sf)
+        self.dedent()
+        self.printdentln('}')
+
+
+    def visitStmtRangedFor(self, rf):
+        self.printdent('for (auto& ')
+        rf.var.accept(self)
+        self.write(' : ')
+        rf.iteree.accept(self)
+        self.println(') {')
+
+        self.indent()
+        self.visitBlock(rf)
         self.dedent()
         self.printdentln('}')
 

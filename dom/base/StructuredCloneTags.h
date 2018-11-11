@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -15,7 +17,6 @@ namespace dom {
 enum StructuredCloneTags {
   SCTAG_BASE = JS_SCTAG_USER_MIN,
 
-  // These tags are used only for main thread structured clone.
   SCTAG_DOM_BLOB,
 
   // This tag is obsolete and exists only for backwards compatibility with
@@ -26,6 +27,10 @@ enum StructuredCloneTags {
   SCTAG_DOM_MUTABLEFILE,
   SCTAG_DOM_FILE,
 
+  SCTAG_DOM_WASM,
+
+  // New IDB tags go here!
+
   // These tags are used for both main thread and workers.
   SCTAG_DOM_IMAGEDATA,
   SCTAG_DOM_MAP_MESSAGEPORT,
@@ -34,6 +39,32 @@ enum StructuredCloneTags {
 
   // This tag is for WebCrypto keys
   SCTAG_DOM_WEBCRYPTO_KEY,
+
+  SCTAG_DOM_NULL_PRINCIPAL,
+  SCTAG_DOM_SYSTEM_PRINCIPAL,
+  SCTAG_DOM_CONTENT_PRINCIPAL,
+
+  SCTAG_DOM_IMAGEBITMAP,
+
+  SCTAG_DOM_RTC_CERTIFICATE,
+
+  SCTAG_DOM_FORMDATA,
+
+  // This tag is for OffscreenCanvas.
+  SCTAG_DOM_CANVAS,
+
+  SCTAG_DOM_EXPANDED_PRINCIPAL,
+
+  SCTAG_DOM_DIRECTORY,
+
+  // This tag is used by both main thread and workers.
+  SCTAG_DOM_URLSEARCHPARAMS,
+
+  // When adding a new tag for IDB, please don't add it to the end of the list!
+  // Tags that are supported by IDB must not ever change. See the static assert
+  // in IDBObjectStore.cpp, method CommonStructuredCloneReadCallback.
+  // Adding to the end of the list would make removing of other tags harder in
+  // future.
 
   SCTAG_DOM_MAX
 };

@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsGIOService.h"
-#include "nsStringAPI.h"
+#include "nsString.h"
 #include "nsIURI.h"
 #include "nsTArray.h"
 #include "nsIStringEnumerator.h"
@@ -18,38 +18,17 @@
 #endif
 
 
-char *
-get_content_type_from_mime_type(const char *mimeType)
-{
-  GList* contentTypes = g_content_types_get_registered();
-  GList* ct_ptr = contentTypes;
-  char* foundContentType = nullptr;
-
-  while (ct_ptr) {
-    char *mimeTypeFromContentType =  g_content_type_get_mime_type((char*)ct_ptr->data);
-    if (strcmp(mimeTypeFromContentType, mimeType) == 0) {
-      foundContentType = g_strdup((char*)ct_ptr->data);
-      g_free(mimeTypeFromContentType);
-      break;
-    }
-    g_free(mimeTypeFromContentType);
-    ct_ptr = ct_ptr->next;
-  }
-  g_list_foreach(contentTypes, (GFunc) g_free, nullptr);
-  g_list_free(contentTypes);
-  return foundContentType;
-}
-
-class nsGIOMimeApp MOZ_FINAL : public nsIGIOMimeApp
+class nsGIOMimeApp final : public nsIGIOMimeApp
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIGIOMIMEAPP
 
-  nsGIOMimeApp(GAppInfo* aApp) : mApp(aApp) {}
-  ~nsGIOMimeApp() { g_object_unref(mApp); }
+  explicit nsGIOMimeApp(GAppInfo* aApp) : mApp(aApp) {}
 
 private:
+  ~nsGIOMimeApp() { g_object_unref(mApp); }
+
   GAppInfo *mApp;
 };
 
@@ -90,7 +69,7 @@ NS_IMETHODIMP
 nsGIOMimeApp::Launch(const nsACString& aUri)
 {
   GList uris = { 0 };
-  PromiseFlatCString flatUri(aUri);
+  nsPromiseFlatCString flatUri(aUri);
   uris.data = const_cast<char*>(flatUri.get());
 
   GError *error = nullptr;
@@ -105,11 +84,12 @@ nsGIOMimeApp::Launch(const nsACString& aUri)
   return NS_OK;
 }
 
-class GIOUTF8StringEnumerator MOZ_FINAL : public nsIUTF8StringEnumerator
+class GIOUTF8StringEnumerator final : public nsIUTF8StringEnumerator
 {
+  ~GIOUTF8StringEnumerator() { }
+
 public:
   GIOUTF8StringEnumerator() : mIndex(0) { }
-  ~GIOUTF8StringEnumerator() { }
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIUTF8STRINGENUMERATOR
@@ -143,7 +123,7 @@ nsGIOMimeApp::GetSupportedURISchemes(nsIUTF8StringEnumerator** aSchemes)
 {
   *aSchemes = nullptr;
 
-  nsRefPtr<GIOUTF8StringEnumerator> array = new GIOUTF8StringEnumerator();
+  RefPtr<GIOUTF8StringEnumerator> array = new GIOUTF8StringEnumerator();
   NS_ENSURE_TRUE(array, NS_ERROR_OUT_OF_MEMORY);
 
   GVfs *gvfs = g_vfs_get_default();
@@ -162,7 +142,7 @@ nsGIOMimeApp::GetSupportedURISchemes(nsIUTF8StringEnumerator** aSchemes)
     uri_schemes++;
   }
 
-  NS_ADDREF(*aSchemes = array);
+  array.forget(aSchemes);
   return NS_OK;
 }
 
@@ -170,7 +150,7 @@ NS_IMETHODIMP
 nsGIOMimeApp::SetAsDefaultForMimeType(nsACString const& aMimeType)
 {
   char *content_type =
-    get_content_type_from_mime_type(PromiseFlatCString(aMimeType).get());
+    g_content_type_from_mime_type(PromiseFlatCString(aMimeType).get());
   if (!content_type)
     return NS_ERROR_FAILURE;
   GError *error = nullptr;
@@ -308,7 +288,7 @@ nsGIOService::GetAppForMimeType(const nsACString& aMimeType,
 {
   *aApp = nullptr;
   char *content_type =
-    get_content_type_from_mime_type(PromiseFlatCString(aMimeType).get());
+    g_content_type_from_mime_type(PromiseFlatCString(aMimeType).get());
   if (!content_type)
     return NS_ERROR_FAILURE;
 
@@ -330,7 +310,7 @@ nsGIOService::GetDescriptionForMimeType(const nsACString& aMimeType,
                                               nsACString& aDescription)
 {
   char *content_type =
-    get_content_type_from_mime_type(PromiseFlatCString(aMimeType).get());
+    g_content_type_from_mime_type(PromiseFlatCString(aMimeType).get());
   if (!content_type)
     return NS_ERROR_FAILURE;
 
@@ -350,7 +330,8 @@ NS_IMETHODIMP
 nsGIOService::ShowURI(nsIURI* aURI)
 {
   nsAutoCString spec;
-  aURI->GetSpec(spec);
+  nsresult rv = aURI->GetSpec(spec);
+  NS_ENSURE_SUCCESS(rv, rv);
   GError *error = nullptr;
   if (!g_app_info_launch_default_for_uri(spec.get(), nullptr, &error)) {
     g_warning("Could not launch default application for URI: %s", error->message);

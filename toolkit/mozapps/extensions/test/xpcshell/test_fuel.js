@@ -101,7 +101,7 @@ function run_test() {
 
       // PREF TESTING
       // Reset the install event preference, so that we can test it again later
-      //inspector.prefs.get("install-event-fired").reset();
+      // inspector.prefs.get("install-event-fired").reset();
 
       // test the value of the preference root
       do_check_eq(extensions.all[0].prefs.root, "extensions.addon1@tests.mozilla.org.");
@@ -129,7 +129,7 @@ function run_test() {
 
       // test resetting a pref [since there is no default value, the pref should disappear]
       inspector.prefs.get(testdata.dummy).reset();
-      var itemValue = inspector.prefs.getValue(testdata.dummy, "default");
+      itemValue = inspector.prefs.getValue(testdata.dummy, "default");
       do_check_eq(itemValue, "default");
 
       // test to see if a non-existant property exists
@@ -141,6 +141,7 @@ function run_test() {
   });
 }
 
+var gLastEvent;
 function onGenericEvent(event) {
   gLastEvent = event.type;
 }

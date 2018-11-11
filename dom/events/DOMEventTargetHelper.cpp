@@ -1,11 +1,12 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsContentUtils.h"
 #include "nsIDocument.h"
-#include "prprf.h"
+#include "mozilla/Sprintf.h"
 #include "nsGlobalWindow.h"
 #include "ScriptSettings.h"
 #include "mozilla/DOMEventTargetHelper.h"
@@ -28,10 +29,15 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(DOMEventTargetHelper)
     char name[512];
     nsAutoString uri;
     if (tmp->mOwnerWindow && tmp->mOwnerWindow->GetExtantDoc()) {
-      tmp->mOwnerWindow->GetExtantDoc()->GetDocumentURI(uri);
+      Unused << tmp->mOwnerWindow->GetExtantDoc()->GetDocumentURI(uri);
     }
-    PR_snprintf(name, sizeof(name), "DOMEventTargetHelper %s",
-                NS_ConvertUTF16toUTF8(uri).get());
+
+    nsXPCOMCycleCollectionParticipant* participant = nullptr;
+    CallQueryInterface(tmp, &participant);
+
+    SprintfLiteral(name, "%s %s",
+                   participant->ClassName(),
+                   NS_ConvertUTF16toUTF8(uri).get());
     cb.DescribeRefCountedNode(tmp->mRefCnt.get(), name);
   } else {
     NS_IMPL_CYCLE_COLLECTION_DESCRIBE(DOMEventTargetHelper, tmp->mRefCnt.get())
@@ -47,9 +53,13 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMEventTargetHelper)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(DOMEventTargetHelper)
-  if (tmp->IsBlack()) {
+  if (tmp->IsBlack() || tmp->IsCertainlyAliveForCC()) {
     if (tmp->mListenerManager) {
       tmp->mListenerManager->MarkForCC();
+    }
+    if (!tmp->IsBlack() && tmp->PreservingWrapper()) {
+      // This marks the wrapper black.
+      tmp->GetWrapper();
     }
     return true;
   }
@@ -79,8 +89,8 @@ NS_IMPL_DOMTARGET_DEFAULTS(DOMEventTargetHelper)
 
 DOMEventTargetHelper::~DOMEventTargetHelper()
 {
-  if (nsPIDOMWindow* owner = GetOwner()) {
-    static_cast<nsGlobalWindow*>(owner)->RemoveEventTargetObject(this);
+  if (nsPIDOMWindowInner* owner = GetOwner()) {
+    nsGlobalWindow::Cast(owner)->RemoveEventTargetObject(this);
   }
   if (mListenerManager) {
     mListenerManager->Disconnect();
@@ -89,9 +99,8 @@ DOMEventTargetHelper::~DOMEventTargetHelper()
 }
 
 void
-DOMEventTargetHelper::BindToOwner(nsPIDOMWindow* aOwner)
+DOMEventTargetHelper::BindToOwner(nsPIDOMWindowInner* aOwner)
 {
-  MOZ_ASSERT_IF(aOwner, aOwner->IsInnerWindow());
   nsCOMPtr<nsIGlobalObject> glob = do_QueryInterface(aOwner);
   BindToOwner(glob);
 }
@@ -99,22 +108,23 @@ DOMEventTargetHelper::BindToOwner(nsPIDOMWindow* aOwner)
 void
 DOMEventTargetHelper::BindToOwner(nsIGlobalObject* aOwner)
 {
-  if (mParentObject) {
+  nsCOMPtr<nsIGlobalObject> parentObject = do_QueryReferent(mParentObject);
+  if (parentObject) {
     if (mOwnerWindow) {
-      static_cast<nsGlobalWindow*>(mOwnerWindow)->RemoveEventTargetObject(this);
+      nsGlobalWindow::Cast(mOwnerWindow)->RemoveEventTargetObject(this);
       mOwnerWindow = nullptr;
     }
     mParentObject = nullptr;
     mHasOrHasHadOwnerWindow = false;
   }
   if (aOwner) {
-    mParentObject = aOwner;
+    mParentObject = do_GetWeakReference(aOwner);
+    MOZ_ASSERT(mParentObject, "All nsIGlobalObjects must support nsISupportsWeakReference");
     // Let's cache the result of this QI for fast access and off main thread usage
-    mOwnerWindow = nsCOMPtr<nsPIDOMWindow>(do_QueryInterface(aOwner)).get();
+    mOwnerWindow = nsCOMPtr<nsPIDOMWindowInner>(do_QueryInterface(aOwner)).get();
     if (mOwnerWindow) {
-      MOZ_ASSERT(mOwnerWindow->IsInnerWindow());
       mHasOrHasHadOwnerWindow = true;
-      static_cast<nsGlobalWindow*>(mOwnerWindow)->AddEventTargetObject(this);
+      nsGlobalWindow::Cast(mOwnerWindow)->AddEventTargetObject(this);
     }
   }
 }
@@ -123,7 +133,7 @@ void
 DOMEventTargetHelper::BindToOwner(DOMEventTargetHelper* aOther)
 {
   if (mOwnerWindow) {
-    static_cast<nsGlobalWindow*>(mOwnerWindow)->RemoveEventTargetObject(this);
+    nsGlobalWindow::Cast(mOwnerWindow)->RemoveEventTargetObject(this);
     mOwnerWindow = nullptr;
     mParentObject = nullptr;
     mHasOrHasHadOwnerWindow = false;
@@ -131,13 +141,13 @@ DOMEventTargetHelper::BindToOwner(DOMEventTargetHelper* aOther)
   if (aOther) {
     mHasOrHasHadOwnerWindow = aOther->HasOrHasHadOwner();
     if (aOther->GetParentObject()) {
-      mParentObject = aOther->GetParentObject();
+      mParentObject = do_GetWeakReference(aOther->GetParentObject());
+      MOZ_ASSERT(mParentObject, "All nsIGlobalObjects must support nsISupportsWeakReference");
       // Let's cache the result of this QI for fast access and off main thread usage
-      mOwnerWindow = nsCOMPtr<nsPIDOMWindow>(do_QueryInterface(mParentObject)).get();
+      mOwnerWindow = nsCOMPtr<nsPIDOMWindowInner>(do_QueryInterface(aOther->GetParentObject())).get();
       if (mOwnerWindow) {
-        MOZ_ASSERT(mOwnerWindow->IsInnerWindow());
         mHasOrHasHadOwnerWindow = true;
-        static_cast<nsGlobalWindow*>(mOwnerWindow)->AddEventTargetObject(this);
+        nsGlobalWindow::Cast(mOwnerWindow)->AddEventTargetObject(this);
       }
     }
   }
@@ -153,6 +163,27 @@ DOMEventTargetHelper::DisconnectFromOwner()
     mListenerManager->Disconnect();
     mListenerManager = nullptr;
   }
+}
+
+nsPIDOMWindowInner*
+DOMEventTargetHelper::GetWindowIfCurrent() const
+{
+  if (NS_FAILED(CheckInnerWindowCorrectness())) {
+    return nullptr;
+  }
+
+  return GetOwner();
+}
+
+nsIDocument*
+DOMEventTargetHelper::GetDocumentIfCurrent() const
+{
+  nsPIDOMWindowInner* win = GetWindowIfCurrent();
+  if (!win) {
+    return nullptr;
+  }
+
+  return win->GetDoc();
 }
 
 NS_IMETHODIMP
@@ -196,7 +227,7 @@ DOMEventTargetHelper::AddEventListener(const nsAString& aType,
 void
 DOMEventTargetHelper::AddEventListener(const nsAString& aType,
                                        EventListener* aListener,
-                                       bool aUseCapture,
+                                       const AddEventListenerOptionsOrBoolean& aOptions,
                                        const Nullable<bool>& aWantsUntrusted,
                                        ErrorResult& aRv)
 {
@@ -216,7 +247,8 @@ DOMEventTargetHelper::AddEventListener(const nsAString& aType,
     aRv.Throw(NS_ERROR_UNEXPECTED);
     return;
   }
-  elm->AddEventListener(aType, aListener, aUseCapture, wantsUntrusted);
+
+  elm->AddEventListener(aType, aListener, aOptions, wantsUntrusted);
 }
 
 NS_IMETHODIMP
@@ -254,10 +286,8 @@ DOMEventTargetHelper::DispatchEvent(nsIDOMEvent* aEvent, bool* aRetVal)
 nsresult
 DOMEventTargetHelper::DispatchTrustedEvent(const nsAString& aEventName)
 {
-  nsCOMPtr<nsIDOMEvent> event;
-  NS_NewDOMEvent(getter_AddRefs(event), this, nullptr, nullptr);
-  nsresult rv = event->InitEvent(aEventName, false, false);
-  NS_ENSURE_SUCCESS(rv, rv);
+  RefPtr<Event> event = NS_NewDOMEvent(this, nullptr, nullptr);
+  event->InitEvent(aEventName, false, false);
 
   return DispatchTrustedEvent(event);
 }
@@ -276,11 +306,10 @@ DOMEventTargetHelper::SetEventHandler(nsIAtom* aType,
                                       JSContext* aCx,
                                       const JS::Value& aValue)
 {
-  nsRefPtr<EventHandlerNonNull> handler;
+  RefPtr<EventHandlerNonNull> handler;
   JS::Rooted<JSObject*> callable(aCx);
-  if (aValue.isObject() &&
-      JS_ObjectIsCallable(aCx, callable = &aValue.toObject())) {
-    handler = new EventHandlerNonNull(callable, dom::GetIncumbentGlobal());
+  if (aValue.isObject() && JS::IsCallable(callable = &aValue.toObject())) {
+    handler = new EventHandlerNonNull(aCx, callable, dom::GetIncumbentGlobal());
   }
   SetEventHandler(aType, EmptyString(), handler);
   return NS_OK;
@@ -346,19 +375,18 @@ DOMEventTargetHelper::GetContextForEventHandlers(nsresult* aRv)
   if (NS_FAILED(*aRv)) {
     return nullptr;
   }
-  nsPIDOMWindow* owner = GetOwner();
-  return owner ? static_cast<nsGlobalWindow*>(owner)->GetContextInternal()
+  nsPIDOMWindowInner* owner = GetOwner();
+  return owner ? nsGlobalWindow::Cast(owner)->GetContextInternal()
                : nullptr;
 }
 
 nsresult
 DOMEventTargetHelper::WantsUntrusted(bool* aRetVal)
 {
-  nsresult rv;
-  nsIScriptContext* context = GetContextForEventHandlers(&rv);
+  nsresult rv = CheckInnerWindowCorrectness();
   NS_ENSURE_SUCCESS(rv, rv);
-  nsCOMPtr<nsIDocument> doc =
-    nsContentUtils::GetDocumentFromScriptContext(context);
+  
+  nsCOMPtr<nsIDocument> doc = GetDocumentIfCurrent();
   // We can let listeners on workers to always handle all the events.
   *aRetVal = (doc && !nsContentUtils::IsChromeDoc(doc)) || !NS_IsMainThread();
   return rv;

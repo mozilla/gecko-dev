@@ -36,6 +36,7 @@
 #ifndef PROCESSOR_STACKWALKER_UNITTEST_UTILS_H_
 #define PROCESSOR_STACKWALKER_UNITTEST_UTILS_H_
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string>
 #include <vector>
@@ -47,6 +48,7 @@
 #include "google_breakpad/processor/memory_region.h"
 #include "google_breakpad/processor/symbol_supplier.h"
 #include "google_breakpad/processor/system_info.h"
+#include "processor/linked_ptr.h"
 
 class MockMemoryRegion: public google_breakpad::MemoryRegion {
  public:
@@ -74,6 +76,9 @@ class MockMemoryRegion: public google_breakpad::MemoryRegion {
   }
   bool GetMemoryAtAddress(uint64_t address, uint64_t *value) const {
     return GetMemoryLittleEndian(address, value);
+  }
+  void Print() const {
+    assert(false);
   }
 
  private:
@@ -110,9 +115,11 @@ class MockCodeModule: public google_breakpad::CodeModule {
   string debug_file()       const { return code_file_; }
   string debug_identifier() const { return code_file_; }
   string version()          const { return version_; }
-  const google_breakpad::CodeModule *Copy() const {
+  google_breakpad::CodeModule *Copy() const {
     abort(); // Tests won't use this.
   }
+  virtual uint64_t shrink_down_delta() const { return 0; }
+  virtual void SetShrinkDownDelta(uint64_t shrink_down_delta) {}
 
  private:
   uint64_t base_address_;
@@ -122,11 +129,11 @@ class MockCodeModule: public google_breakpad::CodeModule {
 };
 
 class MockCodeModules: public google_breakpad::CodeModules {
- public:  
+ public:
   typedef google_breakpad::CodeModule CodeModule;
   typedef google_breakpad::CodeModules CodeModules;
 
-  void Add(const MockCodeModule *module) { 
+  void Add(const MockCodeModule *module) {
     modules_.push_back(module);
   }
 
@@ -153,9 +160,19 @@ class MockCodeModules: public google_breakpad::CodeModules {
     return modules_.at(index);
   }
 
-  const CodeModules *Copy() const { abort(); } // Tests won't use this.
+  CodeModules *Copy() const { abort(); }  // Tests won't use this
 
- private:  
+  virtual std::vector<google_breakpad::linked_ptr<const CodeModule> >
+  GetShrunkRangeModules() const {
+    return std::vector<google_breakpad::linked_ptr<const CodeModule> >();
+  }
+
+  // Returns true, if module address range shrink is enabled.
+  bool IsModuleShrinkEnabled() const {
+    return false;
+  }
+
+ private:
   typedef std::vector<const MockCodeModule *> ModuleVector;
   ModuleVector modules_;
 };
@@ -171,18 +188,21 @@ class MockSymbolSupplier: public google_breakpad::SymbolSupplier {
                                            const SystemInfo *system_info,
                                            string *symbol_file,
                                            string *symbol_data));
-  MOCK_METHOD4(GetCStringSymbolData, SymbolResult(const CodeModule *module,
+  MOCK_METHOD5(GetCStringSymbolData, SymbolResult(const CodeModule *module,
                                                   const SystemInfo *system_info,
                                                   string *symbol_file,
-                                                  char **symbol_data));
+                                                  char **symbol_data,
+                                                  size_t *symbol_data_size));
   MOCK_METHOD1(FreeSymbolData, void(const CodeModule *module));
 
   // Copies the passed string contents into a newly allocated buffer.
   // The newly allocated buffer will be freed during destruction.
-  char* CopySymbolDataAndOwnTheCopy(const std::string &info) {
-    unsigned int buffer_size = info.size() + 1;
-    char *symbol_data = new char [buffer_size];
-    strcpy(symbol_data, info.c_str());
+  char* CopySymbolDataAndOwnTheCopy(const std::string &info,
+                                    size_t *symbol_data_size) {
+    *symbol_data_size = info.size() + 1;
+    char *symbol_data = new char[*symbol_data_size];
+    memcpy(symbol_data, info.c_str(), info.size());
+    symbol_data[info.size()] = '\0';
     symbol_data_to_free_.push_back(symbol_data);
     return symbol_data;
   }

@@ -8,26 +8,26 @@
 
 #include <stdint.h>                     // for uint32_t, uint64_t
 #include <sys/types.h>                  // for int32_t
-#include "mozilla/Attributes.h"         // for MOZ_OVERRIDE
-#include "mozilla/RefPtr.h"             // for RefPtr, TemporaryRef
+#include "mozilla/Attributes.h"         // for override
+#include "mozilla/RefPtr.h"             // for RefPtr, already_AddRefed
 #include "mozilla/gfx/Types.h"          // for SurfaceFormat
-#include "mozilla/layers/AsyncTransactionTracker.h" // for AsyncTransactionTracker
 #include "mozilla/layers/CompositableClient.h"  // for CompositableClient
 #include "mozilla/layers/CompositorTypes.h"  // for CompositableType, etc
 #include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor
 #include "mozilla/layers/TextureClient.h"  // for TextureClient, etc
 #include "mozilla/mozalloc.h"           // for operator delete
 #include "nsCOMPtr.h"                   // for already_AddRefed
-#include "nsRect.h"                     // for nsIntRect
+#include "nsRect.h"                     // for mozilla::gfx::IntRect
 
 namespace mozilla {
 namespace layers {
 
+class ClientLayer;
 class CompositableForwarder;
-class AsyncTransactionTracker;
 class Image;
 class ImageContainer;
 class ShadowableLayer;
+class ImageClientSingle;
 
 /**
  * Image clients are used by basic image layers on the content thread, they
@@ -42,7 +42,7 @@ public:
    * message will be sent to the compositor to create a corresponding image
    * host.
    */
-  static TemporaryRef<ImageClient> CreateImageClient(CompositableType aImageHostType,
+  static already_AddRefed<ImageClient> CreateImageClient(CompositableType aImageHostType,
                                                      CompositableForwarder* aFwd,
                                                      TextureFlags aFlags);
 
@@ -55,38 +55,28 @@ public:
    */
   virtual bool UpdateImage(ImageContainer* aContainer, uint32_t aContentFlags) = 0;
 
-  /**
-   * The picture rect is the area of the texture which makes up the image. That
-   * is, the area that should be composited. In texture space.
-   */
-  virtual void UpdatePictureRect(nsIntRect aPictureRect);
-
-  virtual already_AddRefed<Image> CreateImage(ImageFormat aFormat) = 0;
-
-  /**
-   * Create AsyncTransactionTracker that is used for FlushAllImagesAsync().
-   */
-  virtual TemporaryRef<AsyncTransactionTracker> PrepareFlushAllImages() { return nullptr; }
+  void SetLayer(ClientLayer* aLayer) { mLayer = aLayer; }
+  ClientLayer* GetLayer() const { return mLayer; }
 
   /**
    * asynchronously remove all the textures used by the image client.
    *
    */
-  virtual void FlushAllImages(bool aExceptFront,
-                              AsyncTransactionTracker* aAsyncTransactionTracker) {}
+  virtual void FlushAllImages() {}
 
-  virtual void RemoveTexture(TextureClient* aTexture) MOZ_OVERRIDE;
+  virtual void RemoveTexture(TextureClient* aTexture) override;
 
-  void RemoveTextureWithTracker(TextureClient* aTexture,
-                                AsyncTransactionTracker* aAsyncTransactionTracker = nullptr);
+  virtual ImageClientSingle* AsImageClientSingle() { return nullptr; }
+
+  static already_AddRefed<TextureClient> CreateTextureClientForImage(Image* aImage, KnowsCompositor* aForwarder);
 
 protected:
   ImageClient(CompositableForwarder* aFwd, TextureFlags aFlags,
               CompositableType aType);
 
+  ClientLayer* mLayer;
   CompositableType mType;
-  int32_t mLastPaintedImageSerial;
-  nsIntRect mPictureRect;
+  uint32_t mLastUpdateGenerationCounter;
 };
 
 /**
@@ -99,47 +89,24 @@ public:
                     TextureFlags aFlags,
                     CompositableType aType);
 
-  virtual bool UpdateImage(ImageContainer* aContainer, uint32_t aContentFlags);
+  virtual bool UpdateImage(ImageContainer* aContainer, uint32_t aContentFlags) override;
 
-  virtual void OnDetach() MOZ_OVERRIDE;
+  virtual void OnDetach() override;
 
-  virtual bool AddTextureClient(TextureClient* aTexture) MOZ_OVERRIDE;
+  virtual bool AddTextureClient(TextureClient* aTexture) override;
 
-  virtual TextureInfo GetTextureInfo() const MOZ_OVERRIDE;
+  virtual TextureInfo GetTextureInfo() const override;
 
-  virtual already_AddRefed<Image> CreateImage(ImageFormat aFormat) MOZ_OVERRIDE;
+  virtual void FlushAllImages() override;
 
-  virtual TemporaryRef<AsyncTransactionTracker> PrepareFlushAllImages() MOZ_OVERRIDE;
-
-  virtual void FlushAllImages(bool aExceptFront,
-                              AsyncTransactionTracker* aAsyncTransactionTracker) MOZ_OVERRIDE;
+  ImageClientSingle* AsImageClientSingle() override { return this; }
 
 protected:
-  virtual bool UpdateImageInternal(ImageContainer* aContainer, uint32_t aContentFlags, bool* aIsSwapped);
-
-protected:
-  RefPtr<TextureClient> mFrontBuffer;
-};
-
-/**
- * An image client which uses two texture clients.
- */
-class ImageClientBuffered : public ImageClientSingle
-{
-public:
-  ImageClientBuffered(CompositableForwarder* aFwd,
-                      TextureFlags aFlags,
-                      CompositableType aType);
-
-  virtual bool UpdateImage(ImageContainer* aContainer, uint32_t aContentFlags);
-
-  virtual void OnDetach() MOZ_OVERRIDE;
-
-  virtual void FlushAllImages(bool aExceptFront,
-                              AsyncTransactionTracker* aAsyncTransactionTracker) MOZ_OVERRIDE;
-
-protected:
-  RefPtr<TextureClient> mBackBuffer;
+  struct Buffer {
+    RefPtr<TextureClient> mTextureClient;
+    int32_t mImageSerial;
+  };
+  nsTArray<Buffer> mBuffers;
 };
 
 /**
@@ -153,36 +120,19 @@ public:
   ImageClientBridge(CompositableForwarder* aFwd,
                     TextureFlags aFlags);
 
-  virtual bool UpdateImage(ImageContainer* aContainer, uint32_t aContentFlags);
-  virtual bool Connect() { return false; }
-  virtual void Updated() {}
-  void SetLayer(ShadowableLayer* aLayer)
-  {
-    mLayer = aLayer;
-  }
+  virtual bool UpdateImage(ImageContainer* aContainer, uint32_t aContentFlags) override;
+  virtual bool Connect(ImageContainer* aImageContainer) override { return false; }
 
-  virtual TextureInfo GetTextureInfo() const MOZ_OVERRIDE
+  virtual TextureInfo GetTextureInfo() const override
   {
     return TextureInfo(mType);
   }
 
-  virtual void SetIPDLActor(CompositableChild* aChild) MOZ_OVERRIDE
-  {
-    MOZ_ASSERT(!aChild, "ImageClientBridge should not have IPDL actor");
-  }
-
-  virtual already_AddRefed<Image> CreateImage(ImageFormat aFormat) MOZ_OVERRIDE
-  {
-    NS_WARNING("Should not create an image through an ImageClientBridge");
-    return nullptr;
-  }
-
 protected:
   uint64_t mAsyncContainerID;
-  ShadowableLayer* mLayer;
 };
 
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 #endif

@@ -77,18 +77,18 @@ public:
   bool DecompressChunk(void *where, size_t chunk, size_t length = 0);
  
   /* Returns the uncompressed size of the complete zstream */
-  const size_t GetUncompressedSize() const
+  size_t GetUncompressedSize() const
   {
     return (offsetTable.numElements() - 1) * chunkSize + lastChunkSize;
   }
 
   /* Returns the chunk size of the given chunk */
-  const size_t GetChunkSize(size_t chunk = 0) const {
+  size_t GetChunkSize(size_t chunk = 0) const {
     return (chunk == offsetTable.numElements() - 1) ? lastChunkSize : chunkSize;
   }
 
   /* Returns the number of chunks */
-  const size_t GetChunksNum() const {
+  size_t GetChunksNum() const {
     return offsetTable.numElements();
   }
 
@@ -139,6 +139,9 @@ private:
 
   /* Deflate dictionary */
   Array<unsigned char> dictionary;
+
+  /* Special allocator for inflate to use the same buffers for every chunk */
+  zxx_stream::StaticAllocator allocator;
 };
 
 inline void

@@ -1,5 +1,4 @@
-# Copyright (c) 2010, Google Inc.
-# All rights reserved.
+# Copyright 2010 Google Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -27,18 +26,50 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# We only use this file to ease the steps of generating projects after
-# syncing, if we use gclient. All dependencies are svn:externals instead.
-# If you're not using gclient, you need to run the gyp python script to
-# generate the projects.
-# This can be done by the following command (assuming current directory):
-#   src\tools\gyp\gyp.bat src\client\windows\breakpad_client.gyp
+# This is used to mimic the svn:externals mechanism for gclient (both Git and
+# SVN) based checkouts of Breakpad. As such, its use is entirely optional. If
+# using a manually managed SVN checkout as opposed to a gclient managed checkout
+# you can still use the hooks mechanism for generating project files by calling
+# 'gclient runhooks' rather than 'gclient sync'.
+
+deps = {
+  # Logging code.
+  "src/src/third_party/glog":
+    "https://github.com/google/glog.git" +
+      "@v0.3.4",
+
+  # Testing libraries and utilities.
+  "src/src/testing":
+    "https://github.com/google/googlemock.git" +
+      "@release-1.7.0",
+  "src/src/testing/gtest":
+    "https://github.com/google/googletest.git" +
+      "@release-1.7.0",
+
+  # Protobuf.
+  "src/src/third_party/protobuf/protobuf":
+    "https://github.com/google/protobuf.git" +
+      "@cb6dd4ef5f82e41e06179dcd57d3b1d9246ad6ac",
+
+  # GYP project generator.
+  "src/src/tools/gyp":
+    "https://chromium.googlesource.com/external/gyp/" +
+      "@e8ab0833a42691cd2184bd4c45d779e43821d3e0",
+
+  # Linux syscall support.
+  "src/src/third_party/lss":
+    "https://chromium.googlesource.com/linux-syscall-support/" +
+      "@3f6478ac95edf86cd3da300c2c0d34a438f5dbeb",
+}
+
 hooks = [
   {
-    # A change to a .gyp, .gypi, or to GYP itself should run the generator.
+    # TODO(chrisha): Fix the GYP files so that they work without
+    # --no-circular-check.
     "pattern": ".",
     "action": ["python",
-               "src/src/tools/gyp/gyp",
+               "src/src/tools/gyp/gyp_main.py",
+               "--no-circular-check",
                "src/src/client/windows/breakpad_client.gyp"],
   },
 ]

@@ -26,7 +26,9 @@
 #define XmlGetInternalEncoding XmlGetUtf16InternalEncoding
 #define XmlGetInternalEncodingNS XmlGetUtf16InternalEncodingNS
 #define XmlEncode XmlUtf16Encode
-#define MUST_CONVERT(enc, s) (!(enc)->isUtf16 || (((unsigned long)s) & 1))
+
+/* Using pointer subtraction to convert to integer type. */
+#define MUST_CONVERT(enc, s) (!(enc)->isUtf16 || (((char *)(s) - (char *)NULL) & 1))
 typedef unsigned short ICHAR;
 #else
 #define XML_ENCODE_MAX XML_UTF8_ENCODE_MAX
@@ -137,7 +139,7 @@ typedef struct {
 #define INIT_ATTS_SIZE 16
 #define INIT_ATTS_VERSION 0xFFFFFFFF
 /* BEGIN MOZILLA CHANGE (Avoid slop in poolGrow() allocations) */
-#define INIT_BLOCK_SIZE (1024 - (offsetof(BLOCK, s) / sizeof(XML_Char)))
+#define INIT_BLOCK_SIZE ((int)(1024 - (offsetof(BLOCK, s) / sizeof(XML_Char))))
 /* END MOZILLA CHANGE */
 #define INIT_BUFFER_SIZE 1024
 
@@ -390,8 +392,10 @@ setContext(XML_Parser parser, const XML_Char *context);
 static void FASTCALL normalizePublicId(XML_Char *s);
 
 static DTD * dtdCreate(const XML_Memory_Handling_Suite *ms);
+/* BEGIN MOZILLA CHANGE (unused API) */
 /* do not call if parentParser != NULL */
-static void dtdReset(DTD *p, const XML_Memory_Handling_Suite *ms);
+//static void dtdReset(DTD *p, const XML_Memory_Handling_Suite *ms);
+/* END MOZILLA CHANGE */
 static void
 dtdDestroy(DTD *p, XML_Bool isDocEntity, const XML_Memory_Handling_Suite *ms);
 static int
@@ -403,7 +407,9 @@ static NAMED *
 lookup(HASH_TABLE *table, KEY name, size_t createSize);
 static void FASTCALL
 hashTableInit(HASH_TABLE *, const XML_Memory_Handling_Suite *ms);
-static void FASTCALL hashTableClear(HASH_TABLE *);
+/* BEGIN MOZILLA CHANGE (unused API) */
+//static void FASTCALL hashTableClear(HASH_TABLE *);
+/* END MOZILLA CHANGE */
 static void FASTCALL hashTableDestroy(HASH_TABLE *);
 static void FASTCALL
 hashTableIterInit(HASH_TABLE_ITER *, const HASH_TABLE *);
@@ -878,6 +884,8 @@ parserInit(XML_Parser parser, const XML_Char *encodingName)
 #endif
 }
 
+/* BEGIN MOZILLA CHANGE (unused API) */
+#if 0
 /* moves list of bindings to freeBindingList */
 static void FASTCALL
 moveToFreeBindingList(XML_Parser parser, BINDING *bindings)
@@ -890,8 +898,6 @@ moveToFreeBindingList(XML_Parser parser, BINDING *bindings)
   }
 }
 
-/* BEGIN MOZILLA CHANGE (unused API) */
-#if 0
 XML_Bool XMLCALL
 XML_ParserReset(XML_Parser parser, const XML_Char *encodingName)
 {
@@ -1559,6 +1565,8 @@ XML_Parse(XML_Parser parser, const char *s, int len, int isFinal)
     nLeftOver = s + len - end;
     if (nLeftOver) {
       if (buffer == NULL || nLeftOver > bufferLim - buffer) {
+/* BEGIN MOZILLA CHANGE (check for overflow) */
+#if 0
         /* FIXME avoid integer overflow */
         char *temp;
         temp = (buffer == NULL
@@ -1576,6 +1584,30 @@ XML_Parse(XML_Parser parser, const char *s, int len, int isFinal)
           return XML_STATUS_ERROR;
         }
         bufferLim = buffer + len * 2;
+#else
+        char *temp;
+        int newLen = len * 2;
+        if (newLen < 0) {
+          errorCode = XML_ERROR_NO_MEMORY;
+          return XML_STATUS_ERROR;
+        }
+        temp = (buffer == NULL
+                ? (char *)MALLOC(newLen)
+                : (char *)REALLOC(buffer, newLen));
+        if (temp == NULL) {
+          errorCode = XML_ERROR_NO_MEMORY;
+          return XML_STATUS_ERROR;
+        }
+        buffer = temp;
+        if (!buffer) {
+          errorCode = XML_ERROR_NO_MEMORY;
+          eventPtr = eventEndPtr = NULL;
+          processor = errorProcessor;
+          return XML_STATUS_ERROR;
+        }
+        bufferLim = buffer + newLen;
+#endif
+/* END MOZILLA CHANGE */
       }
       memcpy(buffer, end, nLeftOver);
     }
@@ -1653,6 +1685,12 @@ XML_ParseBuffer(XML_Parser parser, int len, int isFinal)
 void * XMLCALL
 XML_GetBuffer(XML_Parser parser, int len)
 {
+/* BEGIN MOZILLA CHANGE (sanity check len) */
+  if (len < 0) {
+    errorCode = XML_ERROR_NO_MEMORY;
+    return NULL;
+  }
+/* END MOZILLA CHANGE */
   switch (ps_parsing) {
   case XML_SUSPENDED:
     errorCode = XML_ERROR_SUSPENDED;
@@ -1664,8 +1702,13 @@ XML_GetBuffer(XML_Parser parser, int len)
   }
 
   if (len > bufferLim - bufferEnd) {
-    /* FIXME avoid integer overflow */
     int neededSize = len + (int)(bufferEnd - bufferPtr);
+/* BEGIN MOZILLA CHANGE (sanity check neededSize) */
+    if (neededSize < 0) {
+      errorCode = XML_ERROR_NO_MEMORY;
+      return NULL;
+    }
+/* END MOZILLA CHANGE */
 #ifdef XML_CONTEXT_BYTES
     int keep = (int)(bufferPtr - buffer);
 
@@ -1694,7 +1737,15 @@ XML_GetBuffer(XML_Parser parser, int len)
         bufferSize = INIT_BUFFER_SIZE;
       do {
         bufferSize *= 2;
-      } while (bufferSize < neededSize);
+/* BEGIN MOZILLA CHANGE (prevent infinite loop on overflow) */
+      } while (bufferSize < neededSize && bufferSize > 0);
+/* END MOZILLA CHANGE */
+/* BEGIN MOZILLA CHANGE (sanity check bufferSize) */
+      if (bufferSize <= 0) {
+        errorCode = XML_ERROR_NO_MEMORY;
+        return NULL;
+      }
+/* END MOZILLA CHANGE */
       newBuf = (char *)MALLOC(bufferSize);
       if (newBuf == 0) {
         errorCode = XML_ERROR_NO_MEMORY;
@@ -2969,7 +3020,6 @@ storeAtts(XML_Parser parser, const ENCODING *enc,
         static const XML_Char xmlnsPrefix[] = {
           'x', 'm', 'l', 'n', 's', '\0'
         };
-        XML_Bool appendXMLNS = XML_TRUE;
 
         ((XML_Char *)s)[-1] = 0;  /* clear flag */
         if (!poolAppendString(&tempPool, xmlnsNamespace)
@@ -4856,7 +4906,29 @@ processInternalEntity(XML_Parser parser, ENTITY *entity,
     }
     else {
       entity->open = XML_FALSE;
+/* BEGIN MOZILLA CHANGE (Deal with parser interruption from nested entities) */
+#if 0
       openInternalEntities = openEntity->next;
+#else
+      if (openInternalEntities == openEntity) {
+        openInternalEntities = openEntity->next;
+      }
+      else {
+        /* openEntity should be closed, but it contains an inner entity that is
+           still open. Remove openEntity from the openInternalEntities linked
+           list by looking for the inner entity in the list that links to
+           openEntity and fixing up its 'next' member
+        */
+        OPEN_INTERNAL_ENTITY *innerOpenEntity = openInternalEntities;
+        do {
+          if (innerOpenEntity->next == openEntity) {
+            innerOpenEntity->next = openEntity->next;
+            break;
+          }
+        } while ((innerOpenEntity = innerOpenEntity->next));
+      }
+#endif
+/* END MOZILLA CHANGE */
       /* put openEntity back in list of free instances */
       openEntity->next = freeInternalEntities;
       freeInternalEntities = openEntity;
@@ -5697,6 +5769,8 @@ dtdCreate(const XML_Memory_Handling_Suite *ms)
   return p;
 }
 
+/* BEGIN MOZILLA CHANGE (unused API) */
+#if 0
 static void
 dtdReset(DTD *p, const XML_Memory_Handling_Suite *ms)
 {
@@ -5738,6 +5812,8 @@ dtdReset(DTD *p, const XML_Memory_Handling_Suite *ms)
   p->hasParamEntityRefs = XML_FALSE;
   p->standalone = XML_FALSE;
 }
+#endif
+/* END MOZILLA CHANGE */
 
 static void
 dtdDestroy(DTD *p, XML_Bool isDocEntity, const XML_Memory_Handling_Suite *ms)
@@ -6065,6 +6141,8 @@ lookup(HASH_TABLE *table, KEY name, size_t createSize)
   return table->v[i];
 }
 
+/* BEGIN MOZILLA CHANGE (unused API) */
+#if 0
 static void FASTCALL
 hashTableClear(HASH_TABLE *table)
 {
@@ -6075,6 +6153,8 @@ hashTableClear(HASH_TABLE *table)
   }
   table->used = 0;
 }
+#endif
+/* END MOZILLA CHANGE */
 
 static void FASTCALL
 hashTableDestroy(HASH_TABLE *table)
@@ -6254,6 +6334,9 @@ poolGrow(STRING_POOL *pool)
   }
   if (pool->blocks && pool->start == pool->blocks->s) {
     int blockSize = (int)(pool->end - pool->start)*2;
+    if (blockSize < 0)
+      return XML_FALSE;
+
     pool->blocks = (BLOCK *)
       pool->mem->realloc_fcn(pool->blocks,
                              (offsetof(BLOCK, s)
@@ -6268,10 +6351,17 @@ poolGrow(STRING_POOL *pool)
   else {
     BLOCK *tem;
     int blockSize = (int)(pool->end - pool->start);
+    if (blockSize < 0)
+      return XML_FALSE;
+
     if (blockSize < INIT_BLOCK_SIZE)
       blockSize = INIT_BLOCK_SIZE;
     else
       blockSize *= 2;
+
+    if (blockSize < 0)
+      return XML_FALSE;
+
     tem = (BLOCK *)pool->mem->malloc_fcn(offsetof(BLOCK, s)
                                         + blockSize * sizeof(XML_Char));
     if (!tem)

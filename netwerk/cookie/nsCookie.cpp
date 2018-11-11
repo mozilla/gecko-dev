@@ -3,6 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/dom/ToJSValue.h"
+#include "nsAutoPtr.h"
 #include "nsCookie.h"
 #include "nsUTF8ConverterService.h"
 #include <stdlib.h>
@@ -76,13 +78,14 @@ nsCookie::Create(const nsACString &aName,
                  int64_t           aCreationTime,
                  bool              aIsSession,
                  bool              aIsSecure,
-                 bool              aIsHttpOnly)
+                 bool              aIsHttpOnly,
+                 const OriginAttributes& aOriginAttributes)
 {
   // Ensure mValue contains a valid UTF-8 sequence. Otherwise XPConnect will
   // truncate the string after the first invalid octet.
-  nsUTF8ConverterService converter;
+  RefPtr<nsUTF8ConverterService> converter = new nsUTF8ConverterService();
   nsAutoCString aUTF8Value;
-  converter.ConvertStringToUTF8(aValue, "UTF-8", false, true, 1, aUTF8Value);
+  converter->ConvertStringToUTF8(aValue, "UTF-8", false, true, 1, aUTF8Value);
 
   // find the required string buffer size, adding 4 for the terminating nulls
   const uint32_t stringLength = aName.Length() + aUTF8Value.Length() +
@@ -108,7 +111,8 @@ nsCookie::Create(const nsACString &aName,
   // construct the cookie. placement new, oh yeah!
   return new (place) nsCookie(name, value, host, path, end,
                               aExpiry, aLastAccessed, aCreationTime,
-                              aIsSession, aIsSecure, aIsHttpOnly);
+                              aIsSession, aIsSecure, aIsHttpOnly,
+                              aOriginAttributes);
 }
 
 size_t
@@ -117,6 +121,14 @@ nsCookie::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
     // There is no need to measure the sizes of the individual string
     // members, since the strings are stored in-line with the nsCookie.
     return aMallocSizeOf(this);
+}
+
+bool
+nsCookie::IsStale() const
+{
+  int64_t currentTimeInUsec = PR_Now();
+
+  return currentTimeInUsec - LastAccessed() > mCookieStaleThreshold * PR_USEC_PER_SEC;
 }
 
 /******************************************************************************
@@ -139,6 +151,15 @@ NS_IMETHODIMP nsCookie::GetStatus(nsCookieStatus *aStatus) { *aStatus = 0;      
 NS_IMETHODIMP nsCookie::GetPolicy(nsCookiePolicy *aPolicy) { *aPolicy = 0;              return NS_OK; }
 NS_IMETHODIMP nsCookie::GetCreationTime(int64_t *aCreation){ *aCreation = CreationTime(); return NS_OK; }
 NS_IMETHODIMP nsCookie::GetLastAccessed(int64_t *aTime)    { *aTime = LastAccessed();   return NS_OK; }
+
+NS_IMETHODIMP
+nsCookie::GetOriginAttributes(JSContext *aCx, JS::MutableHandle<JS::Value> aVal)
+{
+  if (NS_WARN_IF(!ToJSValue(aCx, mOriginAttributes, aVal))) {
+    return NS_ERROR_FAILURE;
+  }
+  return NS_OK;
+}
 
 // compatibility method, for use with the legacy nsICookie interface.
 // here, expires == 0 denotes a session cookie.

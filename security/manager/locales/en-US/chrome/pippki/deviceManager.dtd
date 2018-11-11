@@ -3,19 +3,15 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY devmgr.title                           "Device Manager">
-<!-- LOCALIZATION NOTE (devmgr.style): This is CSS style for Device Manager
+<!-- LOCALIZATION NOTE (devmgr.style2): This is CSS style for Device Manager
      window size. Don't translate "width" nor "height". Adjust the numbers
      to make window contents fit. -->
-<!ENTITY devmgr.style                           "width: 52em; height: 32em;">
+<!ENTITY devmgr.style2                          "width: 67em; height: 32em;">
 
 <!ENTITY devmgr.devlist.label                   "Security Modules and Devices">
 <!ENTITY devmgr.details.title                   "Details">
 <!ENTITY devmgr.details.title2                  "Value">
-<!ENTITY devmgr.status.label                    "Status">
-<!ENTITY devmgr.version.label                   "Version">
 
-<!ENTITY devmgr.button.changeslotname.label     "Change Slot Name">
-<!ENTITY devmgr.button.changeslotname.accesskey "C">
 <!ENTITY devmgr.button.login.label              "Log In">
 <!ENTITY devmgr.button.login.accesskey          "n">
 <!ENTITY devmgr.button.logout.label             "Log Out">

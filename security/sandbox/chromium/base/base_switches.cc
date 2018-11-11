@@ -3,23 +3,41 @@
 // found in the LICENSE file.
 
 #include "base/base_switches.h"
+#include "build/build_config.h"
 
 namespace switches {
-
-// If the program includes base/debug/debug_on_start_win.h, the process will
-// (on Windows only) start the JIT system-registered debugger on itself and
-// will wait for 60 seconds for the debugger to attach to itself. Then a break
-// point will be hit.
-const char kDebugOnStart[]                  = "debug-on-start";
 
 // Disables the crash reporting.
 const char kDisableBreakpad[]               = "disable-breakpad";
 
-// Enable DCHECKs in release mode.
-const char kEnableDCHECK[]                  = "enable-dcheck";
+// Indicates that crash reporting should be enabled. On platforms where helper
+// processes cannot access to files needed to make this decision, this flag is
+// generated internally.
+const char kEnableCrashReporter[]           = "enable-crash-reporter";
+
+// Makes memory allocators keep track of their allocations and context, so a
+// detailed breakdown of memory usage can be presented in chrome://tracing when
+// the memory-infra category is enabled.
+const char kEnableHeapProfiling[]           = "enable-heap-profiling";
 
 // Generates full memory crash dump.
 const char kFullMemoryCrashReport[]         = "full-memory-crash-report";
+
+// Force low-end device mode when set.
+const char kEnableLowEndDeviceMode[]        = "enable-low-end-device-mode";
+
+// Force disabling of low-end device mode when set.
+const char kDisableLowEndDeviceMode[]       = "disable-low-end-device-mode";
+
+// This option can be used to force field trials when testing changes locally.
+// The argument is a list of name and value pairs, separated by slashes. If a
+// trial name is prefixed with an asterisk, that trial will start activated.
+// For example, the following argument defines two trials, with the second one
+// activated: "GoogleNow/Enable/*MaterialDesignNTP/Default/" This option can
+// also be used by the browser process to send the list of trials to a
+// non-browser process, using the same format. See
+// FieldTrialList::CreateTrialsFromString() in field_trial.h for details.
+const char kForceFieldTrials[]              = "force-fieldtrials";
 
 // Suppresses all error dialogs when present.
 const char kNoErrorDialogs[]                = "noerrdialogs";
@@ -46,15 +64,32 @@ const char kVModule[]                       = "vmodule";
 // Will wait for 60 seconds for a debugger to come to attach to the process.
 const char kWaitForDebugger[]               = "wait-for-debugger";
 
-// Sends a pretty-printed version of tracing info to the console.
-const char kTraceToConsole[]                = "trace-to-console";
+// Sends trace events from these categories to a file.
+// --trace-to-file on its own sends to default categories.
+const char kTraceToFile[]                   = "trace-to-file";
+
+// Specifies the file name for --trace-to-file. If unspecified, it will
+// go to a default file name.
+const char kTraceToFileName[]               = "trace-to-file-name";
+
+// Configure whether chrome://profiler will contain timing information. This
+// option is enabled by default. A value of "0" will disable profiler timing,
+// while all other values will enable it.
+const char kProfilerTiming[]                = "profiler-timing";
+// Value of the --profiler-timing flag that will disable timing information for
+// chrome://profiler.
+const char kProfilerTimingDisabledValue[]   = "0";
+
+#if defined(OS_WIN)
+// Disables the USB keyboard detection for blocking the OSK on Win8+.
+const char kDisableUsbKeyboardDetect[]      = "disable-usb-keyboard-detect";
+#endif
 
 #if defined(OS_POSIX)
-// A flag, generated internally for renderer and other helper process command
-// lines on Linux and Mac. It tells the helper process to enable crash dumping
-// and reporting, because helpers cannot access the files needed to make this
-// decision.
-const char kEnableCrashReporter[]           = "enable-crash-reporter";
+// Used for turning on Breakpad crash reporting in a debug environment where
+// crash reporting is typically compiled but disabled.
+const char kEnableCrashReporterForTesting[] =
+    "enable-crash-reporter-for-testing";
 #endif
 
 }  // namespace switches

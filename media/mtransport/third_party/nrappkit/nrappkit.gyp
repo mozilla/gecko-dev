@@ -42,8 +42,6 @@
               './src/util/libekr/r_assoc.c',
               './src/util/libekr/r_assoc.h',
 #              './src/util/libekr/r_assoc_test.c',
-              './src/util/libekr/r_bitfield.c',
-              './src/util/libekr/r_bitfield.h',
               './src/util/libekr/r_common.h',
               './src/util/libekr/r_crc32.c',
               './src/util/libekr/r_crc32.h',
@@ -155,7 +153,7 @@
                     'BSD',
                 ],
               }],
-              [ 'OS == "mac" or os_bsd == 1', {
+              [ 'OS == "mac" or OS == "ios" or os_bsd == 1', {
                 'cflags_mozilla': [
                     '-Wall',
                     '-Wno-parentheses',

@@ -39,21 +39,21 @@
 #include <string.h>
 
 #include <algorithm>
+#include <string>
 
+#include "common/linux/elf_gnu_compat.h"
 #include "common/linux/elfutils.h"
 #include "common/linux/linux_libc_support.h"
 #include "common/linux/memory_mapped_file.h"
+#include "common/using_std_string.h"
 #include "third_party/lss/linux_syscall_support.h"
 
 namespace google_breakpad {
 
-#ifndef NT_GNU_BUILD_ID
-#define NT_GNU_BUILD_ID 3
-#endif
+// Used in a few places for backwards-compatibility.
+const size_t kMDGUIDSize = sizeof(MDGUID);
 
-FileID::FileID(const char* path) {
-  strncpy(path_, path, sizeof(path_));
-}
+FileID::FileID(const char* path) : path_(path) {}
 
 // ELF note name and desc are 32-bits word padded.
 #define NOTE_PADDING(a) ((a + 3) & ~3)
@@ -62,8 +62,8 @@ FileID::FileID(const char* path) {
 // and use the syscall/libc wrappers instead of direct syscalls or libc.
 
 template<typename ElfClass>
-static bool ElfClassBuildIDNoteIdentifier(const void *section, int length,
-                                          uint8_t identifier[kMDGUIDSize]) {
+static bool ElfClassBuildIDNoteIdentifier(const void *section, size_t length,
+                                          wasteful_vector<uint8_t>& identifier) {
   typedef typename ElfClass::Nhdr Nhdr;
 
   const void* section_end = reinterpret_cast<const char*>(section) + length;
@@ -81,23 +81,22 @@ static bool ElfClassBuildIDNoteIdentifier(const void *section, int length,
     return false;
   }
 
-  const char* build_id = reinterpret_cast<const char*>(note_header) +
+  const uint8_t* build_id = reinterpret_cast<const uint8_t*>(note_header) +
     sizeof(Nhdr) + NOTE_PADDING(note_header->n_namesz);
-  // Copy as many bits of the build ID as will fit
-  // into the GUID space.
-  my_memset(identifier, 0, kMDGUIDSize);
-  memcpy(identifier, build_id,
-         std::min(kMDGUIDSize, (size_t)note_header->n_descsz));
+  identifier.insert(identifier.end(),
+                    build_id,
+                    build_id + note_header->n_descsz);
 
   return true;
 }
 
 // Attempt to locate a .note.gnu.build-id section in an ELF binary
-// and copy as many bytes of it as will fit into |identifier|.
-static bool FindElfBuildIDNote(const void *elf_mapped_base,
-                               uint8_t identifier[kMDGUIDSize]) {
+// and copy it into |identifier|.
+static bool FindElfBuildIDNote(const void* elf_mapped_base,
+                               wasteful_vector<uint8_t>& identifier) {
   void* note_section;
-  int note_size, elfclass;
+  size_t note_size;
+  int elfclass;
   if ((!FindElfSegment(elf_mapped_base, PT_NOTE,
                        (const void**)&note_section, &note_size, &elfclass) ||
       note_size == 0)  &&
@@ -120,19 +119,23 @@ static bool FindElfBuildIDNote(const void *elf_mapped_base,
 
 // Attempt to locate the .text section of an ELF binary and generate
 // a simple hash by XORing the first page worth of bytes into |identifier|.
-static bool HashElfTextSection(const void *elf_mapped_base,
-                               uint8_t identifier[kMDGUIDSize]) {
+static bool HashElfTextSection(const void* elf_mapped_base,
+                               wasteful_vector<uint8_t>& identifier) {
+  identifier.resize(kMDGUIDSize);
+
   void* text_section;
-  int text_size;
+  size_t text_size;
   if (!FindElfSection(elf_mapped_base, ".text", SHT_PROGBITS,
                       (const void**)&text_section, &text_size, NULL) ||
       text_size == 0) {
     return false;
   }
 
-  my_memset(identifier, 0, kMDGUIDSize);
+  // Only provide |kMDGUIDSize| bytes to keep identifiers produced by this
+  // function backwards-compatible.
+  my_memset(&identifier[0], 0, kMDGUIDSize);
   const uint8_t* ptr = reinterpret_cast<const uint8_t*>(text_section);
-  const uint8_t* ptr_end = ptr + std::min(text_size, 4096);
+  const uint8_t* ptr_end = ptr + std::min(text_size, static_cast<size_t>(4096));
   while (ptr < ptr_end) {
     for (unsigned i = 0; i < kMDGUIDSize; i++)
       identifier[i] ^= ptr[i];
@@ -143,7 +146,7 @@ static bool HashElfTextSection(const void *elf_mapped_base,
 
 // static
 bool FileID::ElfFileIdentifierFromMappedFile(const void* base,
-                                             uint8_t identifier[kMDGUIDSize]) {
+                                             wasteful_vector<uint8_t>& identifier) {
   // Look for a build id note first.
   if (FindElfBuildIDNote(base, identifier))
     return true;
@@ -152,21 +155,34 @@ bool FileID::ElfFileIdentifierFromMappedFile(const void* base,
   return HashElfTextSection(base, identifier);
 }
 
-bool FileID::ElfFileIdentifier(uint8_t identifier[kMDGUIDSize]) {
-  MemoryMappedFile mapped_file(path_);
+bool FileID::ElfFileIdentifier(wasteful_vector<uint8_t>& identifier) {
+  MemoryMappedFile mapped_file(path_.c_str(), 0);
   if (!mapped_file.data())  // Should probably check if size >= ElfW(Ehdr)?
     return false;
 
   return ElfFileIdentifierFromMappedFile(mapped_file.data(), identifier);
 }
 
+// These three functions are not ever called in an unsafe context, so it's OK
+// to allocate memory and use libc.
+static string bytes_to_hex_string(const uint8_t* bytes, size_t count) {
+  string result;
+  for (unsigned int idx = 0; idx < count; ++idx) {
+    char buf[3];
+    snprintf(buf, sizeof(buf), "%02X", bytes[idx]);
+    result.append(buf);
+  }
+  return result;
+}
+
 // static
-void FileID::ConvertIdentifierToString(const uint8_t identifier[kMDGUIDSize],
-                                       char* buffer, int buffer_length) {
-  uint8_t identifier_swapped[kMDGUIDSize];
+string FileID::ConvertIdentifierToUUIDString(
+    const wasteful_vector<uint8_t>& identifier) {
+  uint8_t identifier_swapped[kMDGUIDSize] = { 0 };
 
   // Endian-ness swap to match dump processor expectation.
-  memcpy(identifier_swapped, identifier, kMDGUIDSize);
+  memcpy(identifier_swapped, &identifier[0],
+         std::min(kMDGUIDSize, identifier.size()));
   uint32_t* data1 = reinterpret_cast<uint32_t*>(identifier_swapped);
   *data1 = htonl(*data1);
   uint16_t* data2 = reinterpret_cast<uint16_t*>(identifier_swapped + 4);
@@ -174,22 +190,13 @@ void FileID::ConvertIdentifierToString(const uint8_t identifier[kMDGUIDSize],
   uint16_t* data3 = reinterpret_cast<uint16_t*>(identifier_swapped + 6);
   *data3 = htons(*data3);
 
-  int buffer_idx = 0;
-  for (unsigned int idx = 0;
-       (buffer_idx < buffer_length) && (idx < kMDGUIDSize);
-       ++idx) {
-    int hi = (identifier_swapped[idx] >> 4) & 0x0F;
-    int lo = (identifier_swapped[idx]) & 0x0F;
+  return bytes_to_hex_string(identifier_swapped, kMDGUIDSize);
+}
 
-    if (idx == 4 || idx == 6 || idx == 8 || idx == 10)
-      buffer[buffer_idx++] = '-';
-
-    buffer[buffer_idx++] = (hi >= 10) ? 'A' + hi - 10 : '0' + hi;
-    buffer[buffer_idx++] = (lo >= 10) ? 'A' + lo - 10 : '0' + lo;
-  }
-
-  // NULL terminate
-  buffer[(buffer_idx < buffer_length) ? buffer_idx : buffer_idx - 1] = 0;
+// static
+string FileID::ConvertIdentifierToString(
+    const wasteful_vector<uint8_t>& identifier) {
+  return bytes_to_hex_string(&identifier[0], identifier.size());
 }
 
 }  // namespace google_breakpad

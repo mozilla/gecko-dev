@@ -67,30 +67,4 @@ interface nsIBrowserHistory : nsISupports
      */
     void removePagesByTimeframe(in PRTime aBeginTime,
                                 in PRTime aEndTime);
-
-    /**
-     * Removes all visits in a given timeframe.
-     * Limits are included: aBeginTime <= timeframe <= aEndTime.
-     * Any pages that becomes unvisited as a result will also be deleted.
-     *
-     * @param aBeginTime
-     *        Microseconds from epoch, representing the initial time.
-     * @param aEndTime
-     *        Microseconds from epoch, representing the final time.
-     *
-     * @note The removal happens in a batch.
-     */
-    void removeVisitsByTimeframe(in PRTime aBeginTime,
-                                 in PRTime aEndTime);
-
-    /**
-     * Removes all existing pages from global history.
-     * Visits are removed synchronously, but pages are expired asynchronously
-     * off the main-thread.
-     *
-     * @note The removal happens in a batch. Single removals are not notified,
-     *       instead an onClearHistory notification is sent to
-     *       nsINavHistoryObserver implementers.
-     */
-    void removeAllPages();
 };

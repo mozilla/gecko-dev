@@ -1,0 +1,89 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# NOTE: please write a description of this kind in taskcluster/docs/kinds.rst
+
+implementation: taskgraph.task.transform:TransformTask
+
+transforms:
+   - taskgraph.transforms.l10n:transforms
+   - taskgraph.transforms.build_attrs:transforms
+   - taskgraph.transforms.job:transforms
+   - taskgraph.transforms.task:transforms
+
+job-defaults:
+    index:
+        product: firefox
+    treeherder:
+        kind: build
+        tier: 2
+    worker-type: aws-provisioner-v1/gecko-{level}-b-linux
+    worker:
+        implementation: docker-worker
+        docker-image: {in-tree: desktop-build}
+        max-run-time: 36000
+
+    # don't run anywhere by default, but still available via try
+    run-on-projects: []
+    run:
+        # NOTE: this should really be a different "using" since it's using
+        # build-l10n.sh instead of build-linux.sh.  Preferably, build-linux.sh
+        # and the mozharness run implementation should be modified to support
+        # the functionality that l10n needs
+        using: mozharness
+        job-script: taskcluster/scripts/builder/build-l10n.sh
+    when:
+        files-changed:
+            - browser/locales/all-locales
+            - python/compare-locales/**
+            - testing/mozharness/configs/single_locale/**
+            - testing/mozharness/mozharness/mozilla/l10n/locales.py
+            - testing/mozharness/scripts/desktop_l10n.py
+            - toolkit/locales/**
+            - toolkit/mozapps/installer/**
+
+jobs:
+    linux-l10n/opt:
+        description: "Localization"
+        index:
+            job-name:
+                gecko-v2: linux32-l10n-opt
+        treeherder:
+            platform: linux32/opt
+            symbol: tc(L10n)
+        run:
+            script: mozharness/scripts/desktop_l10n.py
+            actions: [clone-locales list-locales setup repack summary]
+            config:
+                - single_locale/tc_linux32.py
+            options:
+                - environment-config=single_locale/production.py
+                - branch-config=single_locale/{project}.py
+                - platform-config=single_locale/linux32.py
+                - total-chunks=1
+                - this-chunk=1
+            tooltool-downloads: public
+            need-xvfb: true
+
+    linux64-l10n/opt:
+        description: "Localization"
+        index:
+            job-name:
+                gecko-v2: linux64-l10n-opt
+        treeherder:
+            platform: linux64/opt
+            symbol: tc(L10n)
+        run:
+            script: mozharness/scripts/desktop_l10n.py
+            actions: [clone-locales list-locales setup repack summary]
+            config:
+                - single_locale/tc_linux64.py
+            options:
+                - environment-config=single_locale/production.py
+                - branch-config=single_locale/{project}.py
+                - platform-config=single_locale/linux64.py
+                - total-chunks=1
+                - this-chunk=1
+            tooltool-downloads: public
+            need-xvfb: true

@@ -10,17 +10,17 @@
 #include "nsIMutableArray.h"
 #include "nsAndroidHandlerApp.h"
 
-class nsMIMEInfoAndroid MOZ_FINAL : public nsIMIMEInfo
+class nsMIMEInfoAndroid final : public nsIMIMEInfo
 {
 public:
-  static bool
+  static MOZ_MUST_USE bool
   GetMimeInfoForMimeType(const nsACString& aMimeType, 
                          nsMIMEInfoAndroid** aMimeInfo);
-  static bool
+  static MOZ_MUST_USE bool
   GetMimeInfoForFileExt(const nsACString& aFileExt, 
                         nsMIMEInfoAndroid** aMimeInfo);
 
-  static nsresult 
+  static MOZ_MUST_USE nsresult
   GetMimeInfoForURL(const nsACString &aURL, bool *found,
                     nsIHandlerInfo **info);
 
@@ -30,9 +30,11 @@ public:
 
   nsMIMEInfoAndroid(const nsACString& aMIMEType);
 
-protected:
-  virtual nsresult LaunchDefaultWithFile(nsIFile* aFile);
-  virtual nsresult LoadUriInternal(nsIURI *aURI);
+private:
+  ~nsMIMEInfoAndroid() {}
+
+  virtual MOZ_MUST_USE nsresult LaunchDefaultWithFile(nsIFile* aFile);
+  virtual MOZ_MUST_USE nsresult LoadUriInternal(nsIURI *aURI);
   nsCOMPtr<nsIMutableArray> mHandlerApps;
   nsCString mType;
   nsTArray<nsCString> mExtensions;
@@ -40,16 +42,18 @@ protected:
   nsHandlerInfoAction mPrefAction;
   nsString mDescription;
   nsCOMPtr<nsIHandlerApp> mPrefApp;
-  
-  class SystemChooser MOZ_FINAL : public nsIHandlerApp {
+
+public:
+  class SystemChooser final : public nsIHandlerApp {
   public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIHANDLERAPP
-    SystemChooser(nsMIMEInfoAndroid* aOuter): mOuter(aOuter) {};
-    
+    SystemChooser(nsMIMEInfoAndroid* aOuter): mOuter(aOuter) {}
+
   private:
+    ~SystemChooser() {}
+
     nsMIMEInfoAndroid* mOuter;
-    
   };
 };
 

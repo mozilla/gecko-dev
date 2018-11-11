@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -33,6 +33,10 @@ var _fromToTestLists = {
     new AnimTestcaseFromTo("currentColor", "rgb(100, 100, 100)",
                            { fromComp: "rgb(50, 50, 50)",
                              midComp: "rgb(75, 75, 75)" }),
+    new AnimTestcaseFromTo("rgba(10, 20, 30, 0.2)", "rgba(50, 50, 50, 1)",
+                             // (rgb(10, 20, 30) * 0.2 * 0.5 + rgb(50, 50, 50) * 1.0 * 0.5) * (1 / 0.6)
+                           { midComp: "rgba(43, 45, 47, 0.6)",
+                             toComp:  "rgb(50, 50, 50)"}),
   ],
   colorFromInheritBlack: [
     new AnimTestcaseFromTo("inherit", "rgb(200, 200, 200)",
@@ -103,6 +107,20 @@ var _fromToTestLists = {
     new AnimTestcaseFromTo("10px", "20px", { midComp: "15px"}),
     new AnimTestcaseFromTo("41px", "1px", { midComp: "21px"}),
   ],
+  lengthPxSVG: [
+    new AnimTestcaseFromTo("0px", "12px", { fromComp: "0",
+                                            midComp:  "6",
+                                            toComp:  "12"}),
+    new AnimTestcaseFromTo("16px", "0px", { fromComp: "16",
+                                            midComp:   "8",
+                                            toComp:    "0"}),
+    new AnimTestcaseFromTo("10px", "20px", { fromComp: "10",
+                                             midComp:  "15",
+                                             toComp:   "20"}),
+    new AnimTestcaseFromTo("41px", "1px", { fromComp: "41",
+                                            midComp:  "21",
+                                            toComp:    "1"}),
+  ],
   lengthPctSVG: [
     new AnimTestcaseFromTo("20.5%", "0.5%", { midComp: "10.5%" }),
   ],
@@ -110,6 +128,14 @@ var _fromToTestLists = {
     new AnimTestcaseFromTo("10px", "10%", { midComp: "15px"},
                            "need support for interpolating between " +
                            "px and percent values"),
+  ],
+  lengthPxNoUnitsSVG: [
+    new AnimTestcaseFromTo("10", "20px", { fromComp: "10",
+                                           midComp:  "15",
+                                           toComp:   "20"}),
+    new AnimTestcaseFromTo("10px", "20", { fromComp: "10",
+                                           midComp:  "15",
+                                           toComp:   "20"}),
   ],
   opacity: [
     new AnimTestcaseFromTo("1", "0", { midComp: "0.5" }),
@@ -132,12 +158,12 @@ var _fromToTestLists = {
   ],
   URIsAndNone: [
     new AnimTestcaseFromTo("url(#idA)", "url(#idB)",
-                           { fromComp: "url(\"" + document.URL + "#idA\")",
-                             toComp: "url(\"" + document.URL + "#idB\")"}),
+                           { fromComp: "url(\"#idA\")",
+                             toComp: "url(\"#idB\")"}),
     new AnimTestcaseFromTo("none", "url(#idB)",
-                           { toComp: "url(\"" + document.URL + "#idB\")"}),
+                           { toComp: "url(\"#idB\")"}),
     new AnimTestcaseFromTo("url(#idB)", "inherit",
-                           { fromComp: "url(\"" + document.URL + "#idB\")",
+                           { fromComp: "url(\"#idB\")",
                              toComp: "none"}),
   ],
 };
@@ -385,9 +411,10 @@ var gFromToBundles = [
   ])),
   new TestcaseBundle(gPropList.stroke_dashoffset,
                      [].concat(_fromToTestLists.lengthNoUnitsSVG,
-                               _fromToTestLists.lengthPx,
+                               _fromToTestLists.lengthPxSVG,
                                _fromToTestLists.lengthPxPctSVG,
-                               _fromToTestLists.lengthPctSVG)),
+                               _fromToTestLists.lengthPctSVG,
+                               _fromToTestLists.lengthPxNoUnitsSVG)),
   new TestcaseBundle(gPropList.stroke_linecap, [
     new AnimTestcaseFromTo("butt", "round"),
     new AnimTestcaseFromTo("round", "square"),
@@ -403,11 +430,12 @@ var gFromToBundles = [
   new TestcaseBundle(gPropList.stroke_opacity, _fromToTestLists.opacity),
   new TestcaseBundle(gPropList.stroke_width,
                      [].concat(_fromToTestLists.lengthNoUnitsSVG,
-                               _fromToTestLists.lengthPx,
+                               _fromToTestLists.lengthPxSVG,
                                _fromToTestLists.lengthPxPctSVG,
-                               _fromToTestLists.lengthPctSVG, [
+                               _fromToTestLists.lengthPctSVG,
+                               _fromToTestLists.lengthPxNoUnitsSVG, [
     new AnimTestcaseFromTo("inherit", "7px",
-                           { fromComp: "1px", midComp: "4px"}),
+                           { fromComp: "1", midComp: "4", toComp: "7" }),
   ])),
   new TestcaseBundle(gPropList.text_anchor, [
     new AnimTestcaseFromTo("start", "middle"),

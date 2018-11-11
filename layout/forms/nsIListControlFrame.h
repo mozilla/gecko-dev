@@ -16,7 +16,7 @@ class HTMLOptionElement;
 } // namespace dom
 } // namespace mozilla
 
-/** 
+/**
   * nsIListControlFrame is the interface for frame-based listboxes.
   */
 class nsIListControlFrame : public nsQueryFrame
@@ -54,10 +54,10 @@ public:
   virtual void CaptureMouseEvents(bool aGrabMouseEvents) = 0;
 
   /**
-   * Returns the height of a single row in the list.  This is the
-   * maximum of the heights of all the options/optgroups.
+   * Returns the block size of a single row in the list.  This is the
+   * maximum of the block sizes of all the options/optgroups.
    */
-  virtual nscoord GetHeightOfARow() = 0;
+  virtual nscoord GetBSizeOfARow() = 0;
 
   /**
    * Returns the number of options in the listbox
@@ -76,9 +76,9 @@ public:
   virtual void AboutToRollup() = 0;
 
   /**
-   * Fire on change (used by combobox)
+   * Fire on input and on change (used by combobox)
    */
-  virtual void FireOnChange() = 0;
+  virtual void FireOnInputAndOnChange() = 0;
 
   /**
    * Tell the selected list to roll up and ensure that the proper index is

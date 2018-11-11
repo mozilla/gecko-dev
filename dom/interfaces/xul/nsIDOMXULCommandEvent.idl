@@ -11,7 +11,7 @@
 
 #include "nsIDOMUIEvent.idl"
 
-[builtinclass, uuid(2d5b6e19-74bb-40af-9aac-59a1e53e3fcc)]
+[builtinclass, uuid(564496b4-1174-48ec-927d-edeb66b86757)]
 interface nsIDOMXULCommandEvent : nsIDOMUIEvent
 {
   /**
@@ -36,7 +36,7 @@ interface nsIDOMXULCommandEvent : nsIDOMUIEvent
   void initCommandEvent(in DOMString typeArg,
                         in boolean canBubbleArg,
                         in boolean cancelableArg,
-                        in nsIDOMWindow viewArg,
+                        in mozIDOMWindow viewArg,
                         in long detailArg,
                         in boolean ctrlKeyArg,
                         in boolean altKeyArg,

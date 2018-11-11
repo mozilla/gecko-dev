@@ -18,7 +18,12 @@ namespace gfx {
  */
 template <class T, class Sub>
 struct BasePoint3D {
-  T x, y, z;
+  union {
+    struct {
+      T x, y, z;
+    };
+    T components[3];
+  };
 
   // Constructors
   BasePoint3D() : x(0), y(0), z(0) {}
@@ -111,7 +116,7 @@ struct BasePoint3D {
   }
 };
 
-}
-}
+} // namespace gfx
+} // namespace mozilla
 
 #endif /* MOZILLA_BASEPOINT3D_H_ */

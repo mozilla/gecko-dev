@@ -183,7 +183,7 @@ public:
         return false;
     }
 
-    virtual bool SupportsLangGroup(nsIAtom* aLangGroup) const {
+    virtual bool SupportsLangGroup(nsIAtom* aLangGroup) const override {
         if (!aLangGroup || aLangGroup == nsGkAtoms::Unicode) {
             return true;
         }
@@ -197,30 +197,20 @@ public:
             bit = SHIFTJIS_CHARSET;
         } else if (aLangGroup == nsGkAtoms::ko) {
             bit = HANGEUL_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::ko_xxx) {
-            bit = JOHAB_CHARSET;
         } else if (aLangGroup == nsGkAtoms::zh_cn) {
             bit = GB2312_CHARSET;
         } else if (aLangGroup == nsGkAtoms::zh_tw) {
             bit = CHINESEBIG5_CHARSET;
         } else if (aLangGroup == nsGkAtoms::el_) {
             bit = GREEK_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::tr) {
-            bit = TURKISH_CHARSET;
         } else if (aLangGroup == nsGkAtoms::he) {
             bit = HEBREW_CHARSET;
         } else if (aLangGroup == nsGkAtoms::ar) {
             bit = ARABIC_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::x_baltic) {
-            bit = BALTIC_CHARSET;
         } else if (aLangGroup == nsGkAtoms::x_cyrillic) {
             bit = RUSSIAN_CHARSET;
         } else if (aLangGroup == nsGkAtoms::th) {
             bit = THAI_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::x_central_euro) {
-            bit = EASTEUROPE_CHARSET;
-        } else if (aLangGroup == nsGkAtoms::x_symbol) {
-            bit = SYMBOL_CHARSET;
         }
 
         if (bit != -1) {
@@ -246,14 +236,16 @@ public:
     // create a font entry for a font with a given name
     static GDIFontEntry* CreateFontEntry(const nsAString& aName,
                                          gfxWindowsFontType aFontType,
-                                         bool aItalic,
+                                         uint8_t aStyle,
                                          uint16_t aWeight, int16_t aStretch,
                                          gfxUserFontData* aUserFontData,
                                          bool aFamilyHasItalicFace);
 
     // create a font entry for a font referenced by its fullname
-    static GDIFontEntry* LoadLocalFont(const gfxProxyFontEntry &aProxyEntry,
-                                       const nsAString& aFullname);
+    static GDIFontEntry* LoadLocalFont(const nsAString& aFontName,
+                                       uint16_t aWeight,
+                                       int16_t aStretch,
+                                       uint8_t aStyle);
 
     uint8_t mWindowsFamily;
     uint8_t mWindowsPitch;
@@ -274,7 +266,7 @@ protected:
     friend class gfxWindowsFont;
 
     GDIFontEntry(const nsAString& aFaceName, gfxWindowsFontType aFontType,
-                 bool aItalic, uint16_t aWeight, int16_t aStretch,
+                 uint8_t aStyle, uint16_t aWeight, int16_t aStretch,
                  gfxUserFontData *aUserFontData, bool aFamilyHasItalicFace);
 
     void InitLogFont(const nsAString& aName, gfxWindowsFontType aFontType);
@@ -282,7 +274,7 @@ protected:
     virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle, bool aNeedsBold);
 
     virtual nsresult CopyFontTable(uint32_t aTableTag,
-                                   FallibleTArray<uint8_t>& aBuffer) MOZ_OVERRIDE;
+                                   nsTArray<uint8_t>& aBuffer) override;
 
     LOGFONTW mLogFont;
 };
@@ -309,22 +301,33 @@ public:
     }
 
     // initialize font lists
-    virtual nsresult InitFontList();
+    virtual nsresult InitFontListForPlatform() override;
 
-    virtual gfxFontFamily* GetDefaultFont(const gfxFontStyle* aStyle);
+    bool FindAndAddFamilies(const nsAString& aFamily,
+                            nsTArray<gfxFontFamily*>* aOutput,
+                            gfxFontStyle* aStyle = nullptr,
+                            gfxFloat aDevToCssSize = 1.0) override;
 
-    virtual gfxFontFamily* FindFamily(const nsAString& aFamily);
+    virtual gfxFontEntry* LookupLocalFont(const nsAString& aFontName,
+                                          uint16_t aWeight,
+                                          int16_t aStretch,
+                                          uint8_t aStyle);
 
-    virtual gfxFontEntry* LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
-                                          const nsAString& aFontName);
-
-    virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                           const uint8_t *aFontData, uint32_t aLength);
+    virtual gfxFontEntry* MakePlatformFont(const nsAString& aFontName,
+                                           uint16_t aWeight,
+                                           int16_t aStretch,
+                                           uint8_t aStyle,
+                                           const uint8_t* aFontData,
+                                           uint32_t aLength);
 
     virtual void AddSizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf,
                                         FontListSizes* aSizes) const;
     virtual void AddSizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf,
                                         FontListSizes* aSizes) const;
+
+protected:
+    virtual gfxFontFamily*
+    GetDefaultFontForPlatform(const gfxFontStyle* aStyle) override;
 
 private:
     friend class gfxWindowsPlatform;
@@ -344,9 +347,7 @@ private:
     void ActivateBundledFonts();
 #endif
 
-    typedef nsRefPtrHashtable<nsStringHashKey, gfxFontFamily> FontTable;
-
-    FontTable mFontSubstitutes;
+    FontFamilyTable mFontSubstitutes;
     nsTArray<nsString> mNonExistingFonts;
 };
 

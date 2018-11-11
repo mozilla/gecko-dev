@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80 filetype=javascript: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,8 +26,7 @@ this.EXPORTED_SYMBOLS = [
   "DownloadSummary",
 ];
 
-////////////////////////////////////////////////////////////////////////////////
-//// Globals
+// Globals
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -41,8 +40,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "Promise",
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
 
-////////////////////////////////////////////////////////////////////////////////
-//// DownloadList
+// DownloadList
 
 /**
  * Represents a collection of Download objects that can be viewed and managed by
@@ -233,7 +231,7 @@ this.DownloadList.prototype = {
    *        additional filter.
    */
   removeFinished: function DL_removeFinished(aFilterFn) {
-    Task.spawn(function() {
+    Task.spawn(function* () {
       let list = yield this.getAll();
       for (let download of list) {
         // Remove downloads that have been canceled, even if the cancellation
@@ -255,8 +253,7 @@ this.DownloadList.prototype = {
   },
 };
 
-////////////////////////////////////////////////////////////////////////////////
-//// DownloadCombinedList
+// DownloadCombinedList
 
 /**
  * Provides a unified, unordered list combining public and private downloads.
@@ -312,9 +309,8 @@ this.DownloadCombinedList.prototype = {
   {
     if (aDownload.source.isPrivate) {
       return this._privateList.add(aDownload);
-    } else {
-      return this._publicList.add(aDownload);
     }
+    return this._publicList.add(aDownload);
   },
 
   /**
@@ -337,13 +333,11 @@ this.DownloadCombinedList.prototype = {
   {
     if (aDownload.source.isPrivate) {
       return this._privateList.remove(aDownload);
-    } else {
-      return this._publicList.remove(aDownload);
     }
+    return this._publicList.remove(aDownload);
   },
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// DownloadList view
+  // DownloadList view
 
   onDownloadAdded: function (aDownload)
   {
@@ -366,8 +360,7 @@ this.DownloadCombinedList.prototype = {
   },
 };
 
-////////////////////////////////////////////////////////////////////////////////
-//// DownloadSummary
+// DownloadSummary
 
 /**
  * Provides an aggregated view on the contents of a DownloadList.
@@ -540,8 +533,7 @@ this.DownloadSummary.prototype = {
     }
   },
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// DownloadList view
+  // DownloadList view
 
   onDownloadAdded: function (aDownload)
   {

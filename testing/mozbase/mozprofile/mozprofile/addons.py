@@ -10,15 +10,15 @@ import urllib2
 import zipfile
 from xml.dom import minidom
 
-from manifestparser import ManifestParser
 import mozfile
-import mozlog
+from mozlog.unstructured import getLogger
 
-# Needed for the AMO's rest API - https://developer.mozilla.org/en/addons.mozilla.org_%28AMO%29_API_Developers%27_Guide/The_generic_AMO_API
+# Needed for the AMO's rest API -
+# https://developer.mozilla.org/en/addons.mozilla.org_%28AMO%29_API_Developers%27_Guide/The_generic_AMO_API
 AMO_API_VERSION = "1.5"
 
 # Logger for 'mozprofile.addons' module
-module_logger = mozlog.getLogger(__name__)
+module_logger = getLogger(__name__)
 
 
 class AddonFormatError(Exception):
@@ -74,7 +74,7 @@ class AddonManager(object):
             # about the exception
             try:
                 self.remove_addon(addon)
-            except IOError, e:
+            except IOError:
                 pass
 
         # Remove all downloaded add-ons
@@ -153,9 +153,9 @@ class AddonManager(object):
         :param addon_path: path to the add-on directory or XPI
         """
         try:
-            details = self.addon_details(addon_path)
+            self.addon_details(addon_path)
             return True
-        except AddonFormatError, e:
+        except AddonFormatError:
             return False
 
     def install_addons(self, addons=None, manifests=None):
@@ -185,6 +185,14 @@ class AddonManager(object):
         Installs addons from a manifest
         :param filepath: path to the manifest of addons to install
         """
+        try:
+            from manifestparser import ManifestParser
+        except ImportError:
+            module_logger.critical(
+                "Installing addons from manifest requires the"
+                " manifestparser package to be installed.")
+            raise
+
         manifest = ManifestParser()
         manifest.read(filepath)
         addons = manifest.get()
@@ -196,11 +204,14 @@ class AddonManager(object):
 
             # No path specified, try to grab it off AMO
             locale = addon.get('amo_locale', 'en_US')
-            query = 'https://services.addons.mozilla.org/' + locale + '/firefox/api/' + AMO_API_VERSION + '/'
+            query = 'https://services.addons.mozilla.org/' + locale + '/firefox/api/' \
+                    + AMO_API_VERSION + '/'
             if 'amo_id' in addon:
-                query += 'addon/' + addon['amo_id']                 # this query grabs information on the addon base on its id
+                # this query grabs information on the addon base on its id
+                query += 'addon/' + addon['amo_id']
             else:
-                query += 'search/' + addon['name'] + '/default/1'   # this query grabs information on the first addon returned from a search
+                # this query grabs information on the first addon returned from a search
+                query += 'search/' + addon['name'] + '/default/1'
             install_path = AddonManager.get_amo_install_path(query)
             self.install_from_path(install_path)
 
@@ -213,7 +224,7 @@ class AddonManager(object):
 
         :param query: query-documentation_
 
-        .. _query-documentation: https://developer.mozilla.org/en/addons.mozilla.org_%28AMO%29_API_Developers%27_Guide/The_generic_AMO_API
+        .. _query-documentation: https://developer.mozilla.org/en/addons.mozilla.org_%28AMO%29_API_Developers%27_Guide/The_generic_AMO_API # noqa
         """
         response = urllib2.urlopen(query)
         dom = minidom.parseString(response.read())
@@ -279,8 +290,8 @@ class AddonManager(object):
                     manifest = f.read()
             else:
                 raise IOError('Add-on path is neither an XPI nor a directory: %s' % addon_path)
-        except (IOError, KeyError), e:
-            raise AddonFormatError, str(e), sys.exc_info()[2]
+        except (IOError, KeyError) as e:
+            raise AddonFormatError(str(e)), None, sys.exc_info()[2]
 
         try:
             doc = minidom.parseString(manifest)
@@ -290,13 +301,18 @@ class AddonManager(object):
             rdf = get_namespace_id(doc, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#')
 
             description = doc.getElementsByTagName(rdf + 'Description').item(0)
+            for entry, value in description.attributes.items():
+                # Remove the namespace prefix from the tag for comparison
+                entry = entry.replace(em, "")
+                if entry in details.keys():
+                    details.update({entry: value})
             for node in description.childNodes:
                 # Remove the namespace prefix from the tag for comparison
                 entry = node.nodeName.replace(em, "")
                 if entry in details.keys():
                     details.update({entry: get_text(node)})
-        except Exception, e:
-            raise AddonFormatError, str(e), sys.exc_info()[2]
+        except Exception as e:
+            raise AddonFormatError(str(e)), None, sys.exc_info()[2]
 
         # turn unpack into a true/false value
         if isinstance(details['unpack'], basestring):
@@ -327,7 +343,7 @@ class AddonManager(object):
         # if path is not an add-on, try to install all contained add-ons
         try:
             self.addon_details(path)
-        except AddonFormatError, e:
+        except AddonFormatError as e:
             module_logger.warning('Could not install %s: %s' % (path, str(e)))
 
             # If the path doesn't exist, then we don't really care, just return

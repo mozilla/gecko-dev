@@ -72,6 +72,11 @@ onconnect = function(event) {
     throw new Error("'connect' event has data: " + event.data);
   }
 
+  // The expression closures should trigger a warning in debug builds, but NOT
+  // fire error events at us. If we ever actually remove expression closures
+  // (in bug 1083458), we'll need something else to test this case.
+  (function() "Expected console warning: expression closures are deprecated");
+
   event.ports[0].onmessage = function(event) {
     if (!(event instanceof MessageEvent)) {
       throw new Error("'message' event is not a MessageEvent!");
@@ -79,8 +84,8 @@ onconnect = function(event) {
     if (!("ports" in event)) {
       throw new Error("'message' event doesn't have a 'ports' property!");
     }
-    if (!(event.ports === null)) {
-      throw new Error("'message' event has a non-null 'ports' property!");
+    if (event.ports === null) {
+      throw new Error("'message' event has a null 'ports' property!");
     }
     event.target.postMessage(event.data);
     throw new Error(event.data);

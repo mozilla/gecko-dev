@@ -1,4 +1,4 @@
-/* -*- Mode: Javasript; indent-tab-mode: nil; js-indent-level: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 
 Cu.import("resource://testing-common/httpd.js");
 
@@ -102,6 +102,7 @@ function do_app_cache(manifestURL, pageURL) {
   let update =
     update_service.scheduleUpdate(manifestURL,
                                   pageURL,
+                                  Services.scriptSecurityManager.getSystemPrincipal(),
                                   null); /* no window */
 
   return update;

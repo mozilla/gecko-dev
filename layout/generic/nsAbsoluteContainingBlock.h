@@ -13,9 +13,9 @@
 
 #include "nsFrameList.h"
 #include "nsIFrame.h"
+#include "mozilla/TypedEnumBits.h"
 
 class nsContainerFrame;
-class nsHTMLReflowState;
 class nsPresContext;
 
 /**
@@ -33,10 +33,12 @@ class nsPresContext;
  */
 class nsAbsoluteContainingBlock
 {
+  using ReflowInput = mozilla::ReflowInput;
+
 public:
   typedef nsIFrame::ChildListID ChildListID;
 
-  nsAbsoluteContainingBlock(ChildListID aChildListID)
+  explicit nsAbsoluteContainingBlock(ChildListID aChildListID)
 #ifdef DEBUG
     : mChildListID(aChildListID)
 #endif
@@ -68,6 +70,14 @@ public:
                    ChildListID    aListID,
                    nsIFrame*      aOldFrame);
 
+  enum class AbsPosReflowFlags {
+    eConstrainHeight   = 0x1,
+    eCBWidthChanged    = 0x2,
+    eCBHeightChanged   = 0x4,
+    eCBWidthAndHeightChanged = eCBWidthChanged | eCBHeightChanged,
+    eIsGridContainerCB = 0x8,
+  };
+
   /**
    * Called by the delegating frame after it has done its reflow first. This
    * function will reflow any absolutely positioned child frames that need to
@@ -81,15 +91,15 @@ public:
    * @param aReflowStatus is assumed to be already-initialized, e.g. with the
    * status of the delegating frame's main reflow. This function merges in the
    * statuses of the absolutely positioned children's reflows.
+   *
+   * @param aFlags zero or more AbsPosReflowFlags
    */
   void Reflow(nsContainerFrame*        aDelegatingFrame,
               nsPresContext*           aPresContext,
-              const nsHTMLReflowState& aReflowState,
+              const ReflowInput& aReflowInput,
               nsReflowStatus&          aReflowStatus,
               const nsRect&            aContainingBlock,
-              bool                     aConstrainHeight,
-              bool                     aCBWidthChanged,
-              bool                     aCBHeightChanged,
+              AbsPosReflowFlags        aFlags,
               nsOverflowAreas*         aOverflowAreas);
 
   void DestroyFrames(nsIFrame* aDelegatingFrame,
@@ -117,11 +127,27 @@ protected:
   bool FrameDependsOnContainer(nsIFrame* aFrame, bool aCBWidthChanged,
                                bool aCBHeightChanged);
 
+  /**
+   * After an abspos child's size is known, this method can be used to
+   * resolve size-dependent values in the ComputedLogicalOffsets on its
+   * reflow state. (This may involve resolving the inline dimension of
+   * aLogicalCBSize, too; hence, that variable is an in/outparam.)
+   *
+   * aKidSize, aMargin, aOffsets, and aLogicalCBSize are all expected to be
+   * represented in terms of the absolute containing block's writing-mode.
+   */
+  void ResolveSizeDependentOffsets(nsPresContext* aPresContext,
+                                   ReflowInput& aKidReflowInput,
+                                   const mozilla::LogicalSize& aKidSize,
+                                   const mozilla::LogicalMargin& aMargin,
+                                   mozilla::LogicalMargin* aOffsets,
+                                   mozilla::LogicalSize* aLogicalCBSize);
+
   void ReflowAbsoluteFrame(nsIFrame*                aDelegatingFrame,
                            nsPresContext*           aPresContext,
-                           const nsHTMLReflowState& aReflowState,
+                           const ReflowInput& aReflowInput,
                            const nsRect&            aContainingBlockRect,
-                           bool                     aConstrainHeight,
+                           AbsPosReflowFlags        aFlags,
                            nsIFrame*                aKidFrame,
                            nsReflowStatus&          aStatus,
                            nsOverflowAreas*         aOverflowAreas);
@@ -142,4 +168,7 @@ protected:
 #endif
 };
 
+namespace mozilla {
+  MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(nsAbsoluteContainingBlock::AbsPosReflowFlags)
+}
 #endif /* nsnsAbsoluteContainingBlock_h___ */

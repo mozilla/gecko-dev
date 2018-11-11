@@ -6,6 +6,7 @@
 #ifndef nsNPAPIPluginInstance_h_
 #define nsNPAPIPluginInstance_h_
 
+#include "nsSize.h"
 #include "nsCOMPtr.h"
 #include "nsTArray.h"
 #include "nsPIDOMWindow.h"
@@ -13,23 +14,24 @@
 #include "nsIPluginInstanceOwner.h"
 #include "nsIURI.h"
 #include "nsIChannel.h"
-#include "nsInterfaceHashtable.h"
 #include "nsHashKeys.h"
 #include <prinrval.h>
 #include "js/TypeDecls.h"
+#include "nsIAudioChannelAgent.h"
 #ifdef MOZ_WIDGET_ANDROID
-#include "nsAutoPtr.h"
 #include "nsIRunnable.h"
 #include "GLContextTypes.h"
-#include "nsSurfaceTexture.h"
+#include "AndroidSurfaceTexture.h"
 #include "AndroidBridge.h"
 #include <map>
 class PluginEventRunnable;
-class SharedPluginTexture;
 #endif
 
+#include "mozilla/EventForwards.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/PluginLibrary.h"
+#include "mozilla/RefPtr.h"
+#include "mozilla/WeakPtr.h"
 
 class nsPluginStreamListenerPeer; // browser-initiated stream class
 class nsNPAPIPluginStreamListener; // plugin-initiated stream class
@@ -74,15 +76,20 @@ public:
   bool needUnschedule;
 };
 
-class nsNPAPIPluginInstance : public nsISupports
+class nsNPAPIPluginInstance final : public nsIAudioChannelAgentCallback
+                                  , public mozilla::SupportsWeakPtr<nsNPAPIPluginInstance>
 {
 private:
   typedef mozilla::PluginLibrary PluginLibrary;
 
 public:
-  NS_DECL_THREADSAFE_ISUPPORTS
+  typedef mozilla::gfx::DrawTarget DrawTarget;
 
-  nsresult Initialize(nsNPAPIPlugin *aPlugin, nsPluginInstanceOwner* aOwner, const char* aMIMEType);
+  MOZ_DECLARE_WEAKREFERENCE_TYPENAME(nsNPAPIPluginInstance)
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSIAUDIOCHANNELAGENTCALLBACK
+
+  nsresult Initialize(nsNPAPIPlugin *aPlugin, nsPluginInstanceOwner* aOwner, const nsACString& aMIMEType);
   nsresult Start();
   nsresult Stop();
   nsresult SetWindow(NPWindow* window);
@@ -94,6 +101,7 @@ public:
   nsresult GetDrawingModel(int32_t* aModel);
   nsresult IsRemoteDrawingCoreAnimation(bool* aDrawing);
   nsresult ContentsScaleFactorChanged(double aContentsScaleFactor);
+  nsresult CSSZoomFactorChanged(float aCSSZoomFactor);
   nsresult GetJSObject(JSContext *cx, JSObject** outObject);
   bool ShouldCache();
   nsresult IsWindowless(bool* isWindowless);
@@ -103,8 +111,8 @@ public:
   nsresult NotifyPainted(void);
   nsresult GetIsOOP(bool* aIsOOP);
   nsresult SetBackgroundUnknown();
-  nsresult BeginUpdateBackground(nsIntRect* aRect, gfxContext** aContext);
-  nsresult EndUpdateBackground(gfxContext* aContext, nsIntRect* aRect);
+  nsresult BeginUpdateBackground(nsIntRect* aRect, DrawTarget** aContext);
+  nsresult EndUpdateBackground(nsIntRect* aRect);
   nsresult IsTransparent(bool* isTransparent);
   nsresult GetFormValue(nsAString& aValue);
   nsresult PushPopupsEnabledState(bool aEnabled);
@@ -113,10 +121,24 @@ public:
   nsresult InvalidateRect(NPRect *invalidRect);
   nsresult InvalidateRegion(NPRegion invalidRegion);
   nsresult GetMIMEType(const char* *result);
-  nsresult GetJSContext(JSContext* *outContext);
+#if defined(XP_WIN)
+  nsresult GetScrollCaptureContainer(mozilla::layers::ImageContainer **aContainer);
+#endif
+  nsresult HandledWindowedPluginKeyEvent(
+             const mozilla::NativeEventData& aKeyEventData,
+             bool aIsConsumed);
   nsPluginInstanceOwner* GetOwner();
   void SetOwner(nsPluginInstanceOwner *aOwner);
-  nsresult ShowStatus(const char* message);
+  void DidComposite();
+
+  bool HasAudioChannelAgent() const
+  {
+    return !!mAudioChannelAgent;
+  }
+
+  nsresult GetOrCreateAudioChannelAgent(nsIAudioChannelAgent** aAgent);
+
+  nsresult SetMuted(bool aIsMuted);
 
   nsNPAPIPlugin* GetPlugin();
 
@@ -135,6 +157,10 @@ public:
   void RedrawPlugin();
 #ifdef XP_MACOSX
   void SetEventModel(NPEventModel aModel);
+
+  void* GetCurrentEvent() {
+    return mCurrentPluginEvent;
+  }
 #endif
 
 #ifdef MOZ_WIDGET_ANDROID
@@ -185,18 +211,15 @@ public:
     GLuint mInternalFormat;
   };
 
-  TextureInfo LockContentTexture();
-  void ReleaseContentTexture(TextureInfo& aTextureInfo);
-
   // For ANPNativeWindow
   void* AcquireContentWindow();
 
-  mozilla::gl::SharedTextureHandle CreateSharedHandle();
+  mozilla::gl::AndroidSurfaceTexture* AsSurfaceTexture();
 
   // For ANPVideo
   class VideoInfo {
   public:
-    VideoInfo(nsSurfaceTexture* aSurfaceTexture) :
+    VideoInfo(mozilla::gl::AndroidSurfaceTexture* aSurfaceTexture) :
       mSurfaceTexture(aSurfaceTexture)
     {
     }
@@ -206,7 +229,7 @@ public:
       mSurfaceTexture = nullptr;
     }
 
-    nsRefPtr<nsSurfaceTexture> mSurfaceTexture;
+    RefPtr<mozilla::gl::AndroidSurfaceTexture> mSurfaceTexture;
     gfxRect mDimensions;
   };
 
@@ -216,8 +239,10 @@ public:
 
   void GetVideos(nsTArray<VideoInfo*>& aVideos);
 
-  void SetInverted(bool aInverted);
-  bool Inverted() { return mInverted; }
+  void SetOriginPos(mozilla::gl::OriginPos aOriginPos) {
+    mOriginPos = aOriginPos;
+  }
+  mozilla::gl::OriginPos OriginPos() const { return mOriginPos; }
 
   static nsNPAPIPluginInstance* GetFromNPP(NPP npp);
 #endif
@@ -226,7 +251,6 @@ public:
                              nsNPAPIPluginStreamListener** listener);
 
   nsNPAPIPluginInstance();
-  virtual ~nsNPAPIPluginInstance();
 
   // To be called when an instance becomes orphaned, when
   // it's plugin is no longer guaranteed to be around.
@@ -251,7 +275,7 @@ public:
   // cache this NPAPI plugin
   void SetCached(bool aCache);
 
-  already_AddRefed<nsPIDOMWindow> GetDOMWindow();
+  already_AddRefed<nsPIDOMWindowOuter> GetDOMWindow();
 
   nsresult PrivateModeStateChanged(bool aEnabled);
 
@@ -262,7 +286,6 @@ public:
   nsNPAPITimer* TimerWithID(uint32_t id, uint32_t* index);
   uint32_t      ScheduleTimer(uint32_t interval, NPBool repeat, void (*timerFunc)(NPP npp, uint32_t timerID));
   void          UnscheduleTimer(uint32_t timerID);
-  NPError       PopUpContextMenu(NPMenu* menu);
   NPBool        ConvertPoint(double sourceX, double sourceY, NPCoordinateSpace sourceSpace, double *destX, double *destY, NPCoordinateSpace destSpace);
 
 
@@ -286,6 +309,11 @@ public:
   // Returns the contents scale factor of the screen the plugin is drawn on.
   double GetContentsScaleFactor();
 
+  // Returns the css zoom factor of the document the plugin is drawn on.
+  float GetCSSZoomFactor();
+
+  nsresult GetRunID(uint32_t *aRunID);
+
   static bool InPluginCallUnsafeForReentry() { return gInUnsafePluginCalls > 0; }
   static void BeginPluginCall(NSPluginCallReentry aReentryState)
   {
@@ -303,11 +331,9 @@ public:
 
 protected:
 
+  virtual ~nsNPAPIPluginInstance();
+
   nsresult GetTagType(nsPluginTagType *result);
-  nsresult GetAttributes(uint16_t& n, const char*const*& names,
-                         const char*const*& values);
-  nsresult GetParameters(uint16_t& n, const char*const*& names,
-                         const char*const*& values);
   nsresult GetMode(int32_t *result);
 
   // check if this is a Java applet and affected by bug 750480
@@ -326,17 +352,16 @@ protected:
 
   friend class PluginEventRunnable;
 
-  nsTArray<nsRefPtr<PluginEventRunnable>> mPostedEvents;
+  nsTArray<RefPtr<PluginEventRunnable>> mPostedEvents;
   void PopPostedEvent(PluginEventRunnable* r);
   void OnSurfaceTextureFrameAvailable();
 
   uint32_t mFullScreenOrientation;
   bool mWakeLocked;
   bool mFullScreen;
-  bool mInverted;
+  mozilla::gl::OriginPos mOriginPos;
 
-  nsRefPtr<SharedPluginTexture> mContentTexture;
-  nsRefPtr<nsSurfaceTexture> mContentSurface;
+  RefPtr<mozilla::gl::AndroidSurfaceTexture> mContentSurface;
 #endif
 
   enum {
@@ -360,7 +385,7 @@ public:
   nsXPIDLCString mFakeURL;
 
 private:
-  nsNPAPIPlugin* mPlugin;
+  RefPtr<nsNPAPIPlugin> mPlugin;
 
   nsTArray<nsNPAPIPluginStreamListener*> mStreamListeners;
 
@@ -376,16 +401,17 @@ private:
 
   nsTArray<nsNPAPITimer*> mTimers;
 
+#ifdef XP_MACOSX
   // non-null during a HandleEvent call
   void* mCurrentPluginEvent;
+#endif
 
   // Timestamp for the last time this plugin was stopped.
   // This is only valid when the plugin is actually stopped!
   mozilla::TimeStamp mStopTime;
 
 #ifdef MOZ_WIDGET_ANDROID
-  void EnsureSharedTexture();
-  nsSurfaceTexture* CreateSurfaceTexture();
+  already_AddRefed<mozilla::gl::AndroidSurfaceTexture> CreateSurfaceTexture();
 
   std::map<void*, VideoInfo*> mVideos;
   bool mOnScreen;
@@ -397,6 +423,15 @@ private:
   bool mHaveJavaC2PJSObjectQuirk;
 
   static uint32_t gInUnsafePluginCalls;
+
+  // The arrays can only be released when the plugin instance is destroyed,
+  // because the plugin, in in-process mode, might keep a reference to them.
+  uint32_t mCachedParamLength;
+  char **mCachedParamNames;
+  char **mCachedParamValues;
+
+  nsCOMPtr<nsIAudioChannelAgent> mAudioChannelAgent;
+  bool mMuted;
 };
 
 // On Android, we need to guard against plugin code leaking entries in the local
@@ -407,23 +442,23 @@ private:
   #define MAIN_THREAD_JNI_REF_GUARD
 #endif
 
-PRIntervalTime NS_NotifyBeginPluginCall(NSPluginCallReentry aReentryState);
-void NS_NotifyPluginCall(PRIntervalTime aTime, NSPluginCallReentry aReentryState);
+void NS_NotifyBeginPluginCall(NSPluginCallReentry aReentryState);
+void NS_NotifyPluginCall(NSPluginCallReentry aReentryState);
 
 #define NS_TRY_SAFE_CALL_RETURN(ret, fun, pluginInst, pluginCallReentry) \
 PR_BEGIN_MACRO                                     \
   MAIN_THREAD_JNI_REF_GUARD;                       \
-  PRIntervalTime startTime = NS_NotifyBeginPluginCall(pluginCallReentry); \
+  NS_NotifyBeginPluginCall(pluginCallReentry); \
   ret = fun;                                       \
-  NS_NotifyPluginCall(startTime, pluginCallReentry); \
+  NS_NotifyPluginCall(pluginCallReentry); \
 PR_END_MACRO
 
 #define NS_TRY_SAFE_CALL_VOID(fun, pluginInst, pluginCallReentry) \
 PR_BEGIN_MACRO                                     \
   MAIN_THREAD_JNI_REF_GUARD;                       \
-  PRIntervalTime startTime = NS_NotifyBeginPluginCall(pluginCallReentry); \
+  NS_NotifyBeginPluginCall(pluginCallReentry); \
   fun;                                             \
-  NS_NotifyPluginCall(startTime, pluginCallReentry); \
+  NS_NotifyPluginCall(pluginCallReentry); \
 PR_END_MACRO
 
 #endif // nsNPAPIPluginInstance_h_

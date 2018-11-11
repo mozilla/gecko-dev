@@ -1,0 +1,53 @@
+/* vim:set ts=2 sw=2 sts=2 et: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * Frame Component
+ * Styles for React component at `devtools/client/shared/components/frame.js`
+ */
+
+.frame-link {
+  display: flex;
+  justify-content: space-between;
+}
+
+.frame-link-async-cause {
+  color: var(--theme-body-color-inactive);
+}
+
+.frame-link .frame-link-source {
+  flex: initial;
+  color: var(--theme-highlight-blue);
+}
+
+.frame-link a.frame-link-source {
+  cursor: pointer;
+  text-decoration: none;
+  font-style: normal;
+}
+
+.frame-link a.frame-link-source:hover {
+  text-decoration: underline;
+}
+
+.frame-link .frame-link-host {
+  margin-inline-start: 5px;
+  font-size: 90%;
+  color: var(--theme-content-color2);
+}
+
+.frame-link .frame-link-function-display-name {
+  margin-inline-end: 5px;
+}
+
+.frame-link .frame-link-line {
+  color: var(--theme-highlight-orange);
+}
+
+.focused .frame-link .frame-link-source,
+.focused .frame-link .frame-link-line,
+.focused .frame-link .frame-link-host {
+  color: var(--theme-selection-color);
+}

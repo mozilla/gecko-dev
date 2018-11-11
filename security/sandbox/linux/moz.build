@@ -1,25 +1,116 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-FAIL_ON_WARNINGS = True
+SharedLibrary('mozsandbox')
+
+# Depend on mozglue if and only if it's a shared library;
+# this needs to match mozglue/build/moz.build:
+if CONFIG['OS_TARGET'] == 'Android':
+    USE_LIBS += [
+        'mozglue',
+    ]
 
 EXPORTS.mozilla += [
     'Sandbox.h',
+    'SandboxInfo.h',
 ]
 
 SOURCES += [
-    '../chromium/sandbox/linux/seccomp-bpf/basicblock.cc',
-    '../chromium/sandbox/linux/seccomp-bpf/codegen.cc',
+    '../chromium-shim/base/logging.cpp',
+    '../chromium/base/at_exit.cc',
+    '../chromium/base/callback_internal.cc',
+    '../chromium/base/lazy_instance.cc',
+    '../chromium/base/memory/ref_counted.cc',
+    '../chromium/base/memory/singleton.cc',
+    '../chromium/base/strings/safe_sprintf.cc',
+    '../chromium/base/strings/string16.cc',
+    '../chromium/base/strings/string_piece.cc',
+    '../chromium/base/strings/string_util.cc',
+    '../chromium/base/strings/string_util_constants.cc',
+    '../chromium/base/strings/stringprintf.cc',
+    '../chromium/base/strings/utf_string_conversion_utils.cc',
+    '../chromium/base/strings/utf_string_conversions.cc',
+    '../chromium/base/synchronization/condition_variable_posix.cc',
+    '../chromium/base/synchronization/lock.cc',
+    '../chromium/base/synchronization/lock_impl_posix.cc',
+    '../chromium/base/synchronization/waitable_event_posix.cc',
+    '../chromium/base/third_party/icu/icu_utf.cc',
+    '../chromium/base/threading/platform_thread_internal_posix.cc',
+    '../chromium/base/threading/platform_thread_linux.cc',
+    '../chromium/base/threading/platform_thread_posix.cc',
+    '../chromium/base/threading/thread_collision_warner.cc',
+    '../chromium/base/threading/thread_id_name_manager.cc',
+    '../chromium/base/threading/thread_local_posix.cc',
+    '../chromium/base/threading/thread_restrictions.cc',
+    '../chromium/base/time/time.cc',
+    '../chromium/base/time/time_posix.cc',
+    '../chromium/sandbox/linux/bpf_dsl/bpf_dsl.cc',
+    '../chromium/sandbox/linux/bpf_dsl/codegen.cc',
+    '../chromium/sandbox/linux/bpf_dsl/dump_bpf.cc',
+    '../chromium/sandbox/linux/bpf_dsl/policy.cc',
+    '../chromium/sandbox/linux/bpf_dsl/policy_compiler.cc',
+    '../chromium/sandbox/linux/bpf_dsl/syscall_set.cc',
+    '../chromium/sandbox/linux/seccomp-bpf/die.cc',
+    '../chromium/sandbox/linux/seccomp-bpf/syscall.cc',
+    '../chromium/sandbox/linux/seccomp-bpf/trap.cc',
+    '../chromium/sandbox/linux/services/syscall_wrappers.cc',
+    'broker/SandboxBrokerCommon.cpp',
+    'LinuxCapabilities.cpp',
     'Sandbox.cpp',
-    'SandboxAssembler.cpp',
+    'SandboxBrokerClient.cpp',
+    'SandboxChroot.cpp',
     'SandboxFilter.cpp',
+    'SandboxFilterUtil.cpp',
+    'SandboxHooks.cpp',
+    'SandboxInfo.cpp',
+    'SandboxLogging.cpp',
+    'SandboxUtil.cpp',
 ]
 
+# This copy of SafeSPrintf doesn't need to avoid the Chromium logging
+# dependency like the one in libxul does, but this way the behavior is
+# consistent.  See also the comment in SandboxLogging.h.
+SOURCES['../chromium/base/strings/safe_sprintf.cc'].flags += ['-DNDEBUG']
+
+# Keep clang from warning about intentional 'switch' fallthrough in icu_utf.cc:
+if CONFIG['CLANG_CXX']:
+    SOURCES['../chromium/base/third_party/icu/icu_utf.cc'].flags += ['-Wno-implicit-fallthrough']
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wno-shadow']
+    SOURCES['../chromium/sandbox/linux/services/syscall_wrappers.cc'].flags += [
+        '-Wno-empty-body',
+    ]
+
+# gcc lto likes to put the top level asm in syscall.cc in a different partition
+# from the function using it which breaks the build.  Work around that by
+# forcing there to be only one partition.
+if '-flto' in CONFIG['OS_CXXFLAGS'] and not CONFIG['CLANG_CXX']:
+    LDFLAGS += ['--param lto-partitions=1']
+
+DEFINES['NS_NO_XPCOM'] = True
+DISABLE_STL_WRAPPING = True
+
+LOCAL_INCLUDES += ['/security/sandbox/linux']
+LOCAL_INCLUDES += ['/security/sandbox/chromium-shim']
 LOCAL_INCLUDES += ['/security/sandbox/chromium']
+LOCAL_INCLUDES += ['/nsprpub']
 
-include('/ipc/chromium/chromium-config.mozbuild')
 
-FINAL_LIBRARY = 'xul'
+if CONFIG['OS_TARGET'] != 'Android':
+    # Needed for clock_gettime with glibc < 2.17:
+    OS_LIBS += [
+        'rt',
+    ]
+
+DIRS += [
+    'broker',
+    'glue',
+]
+
+TEST_DIRS += [
+    'gtest',
+]

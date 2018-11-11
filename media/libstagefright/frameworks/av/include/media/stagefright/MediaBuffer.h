@@ -22,6 +22,7 @@
 
 #include <utils/Errors.h>
 #include <utils/RefBase.h>
+#include "nsTArray.h"
 
 namespace stagefright {
 
@@ -54,8 +55,8 @@ public:
 
     MediaBuffer(const sp<ABuffer> &buffer);
 
-    // Decrements the reference count and returns the buffer to its
-    // associated MediaBufferGroup if the reference count drops to 0.
+    // Decrements the reference count and deletes it if the reference
+    // count drops to 0.
     void release();
 
     // Increments the reference count.
@@ -84,6 +85,8 @@ public:
     MediaBuffer *clone();
 
     int refcount() const;
+
+    bool ensuresize(size_t length);
 
 protected:
     virtual ~MediaBuffer();
@@ -116,6 +119,8 @@ private:
 
     MediaBuffer(const MediaBuffer &);
     MediaBuffer &operator=(const MediaBuffer &);
+
+    FallibleTArray<uint8_t> mBufferBackend;
 };
 
 }  // namespace stagefright

@@ -42,7 +42,7 @@ add_test(function test_working_bid_exchange() {
   client.getTokenFromBrowserIDAssertion(url, "assertion", cb);
   let result = cb.wait();
   do_check_eq("object", typeof(result));
-  do_check_attribute_count(result, 5);
+  do_check_attribute_count(result, 6);
   do_check_eq(service, result.endpoint);
   do_check_eq("id", result.id);
   do_check_eq("key", result.key);
@@ -60,7 +60,7 @@ add_test(function test_invalid_arguments() {
     ["http://example.com/", "assertion", null]
   ];
 
-  for each (let arg in args) {
+  for (let arg of args) {
     try {
       let client = new TokenServerClient();
       client.getTokenFromBrowserIDAssertion(arg[0], arg[1], arg[2]);
@@ -100,6 +100,8 @@ add_test(function test_conditions_required_response_handling() {
   function onResponse(error, token) {
     do_check_true(error instanceof TokenServerClientServerError);
     do_check_eq(error.cause, "conditions-required");
+    // Check a JSON.stringify works on our errors as our logging will try and use it.
+    do_check_true(JSON.stringify(error), "JSON.stringify worked");
     do_check_null(token);
 
     do_check_eq(error.urls.tos, tosURL);

@@ -4,9 +4,9 @@
 Test that frames playing audio get BACKGROUND_PERCEIVABLE priority.
 -->
 <head>
-  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="application/javascript" src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
   <script type="application/javascript" src="../browserElementTestHelpers.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+  <link rel="stylesheet" type="text/css" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
 </head>
 <body>
 
@@ -15,7 +15,6 @@ Test that frames playing audio get BACKGROUND_PERCEIVABLE priority.
 
 SimpleTest.waitForExplicitFinish();
 browserElementTestHelpers.setEnabledPref(true);
-browserElementTestHelpers.addPermission();
 browserElementTestHelpers.enableProcessPriorityManager();
 
 function runTest() {
@@ -24,16 +23,15 @@ function runTest() {
   iframe.src = 'file_Audio.html';
 
   var childID = null;
-  expectOnlyOneProcessCreated().then(function(chid) {
-    childID = chid;
-    return Promise.all(
-      [expectPriorityChange(childID, 'FOREGROUND'),
-       expectMozbrowserEvent(iframe, 'loadend'),
-       expectMozbrowserEvent(iframe, 'showmodalprompt').then(function(e) {
-         is(e.detail.message, 'onplay', 'showmodalprompt message');
-       })]
-    );
-  }).then(function() {
+  Promise.all([
+    expectOnlyOneProcessCreated("FOREGROUND").then(function(chid) {
+      childID = chid;
+    }),
+    expectMozbrowserEvent(iframe, 'loadend'),
+    expectMozbrowserEvent(iframe, 'showmodalprompt').then(function(e) {
+      is(e.detail.message, 'onplay', 'showmodalprompt message');
+    })
+  ]).then(function() {
     // Send the child process into the background.  Because it's playing audio,
     // it should get priority BACKGROUND_PERCEIVABLE, not vanilla BACKGROUND.
     var p = expectPriorityChange(childID, 'BACKGROUND_PERCEIVABLE');
@@ -48,12 +46,7 @@ function runTest() {
   document.body.appendChild(iframe);
 }
 
-// This test relies on <audio> elements interacting with the audio channel
-// service.  This is controled by the media.useAudioChannelService pref.
-addEventListener('testready', function() {
-  SpecialPowers.pushPrefEnv({set: [['media.useAudioChannelService', true]]},
-                            runTest);
-});
+addEventListener('testready', runTest);
 
 </script>
 </body>

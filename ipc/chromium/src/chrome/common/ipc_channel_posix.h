@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 // Copyright (c) 2008 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -15,7 +17,12 @@
 #include <list>
 
 #include "base/message_loop.h"
+#include "base/task.h"
 #include "chrome/common/file_descriptor_set_posix.h"
+
+#include "nsAutoPtr.h"
+
+#include "mozilla/Maybe.h"
 
 namespace IPC {
 
@@ -79,13 +86,10 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
   // Indicates whether we're currently blocked waiting for a write to complete.
   bool is_blocked_on_write_;
 
-  // If sending a message blocks then we use this variable
-  // to keep track of where we are.
-  size_t message_send_bytes_written_;
-
-  // If the kTestingChannelID flag is specified, we use a FIFO instead of
-  // a socketpair().
-  bool uses_fifo_;
+  // If sending a message blocks then we use this iterator to keep track of
+  // where in the message we are. It gets reset when the message is finished
+  // sending.
+  mozilla::Maybe<Pickle::BufferList::IterImpl> partial_write_iter_;
 
   int server_listen_pipe_;
   int pipe_;
@@ -102,25 +106,33 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
 
   // We read from the pipe into this buffer
   char input_buf_[Channel::kReadBufferSize];
+  size_t input_buf_offset_;
 
+  // We want input_cmsg_buf_ to be big enough to hold
+  // CMSG_SPACE(Channel::kReadBufferSize) bytes (see the comment below for an
+  // explanation of where Channel::kReadBufferSize comes from). However,
+  // CMSG_SPACE is apparently not a constant on Macs, so we can't use it in the
+  // array size. Consequently, we pick a number here that is at least
+  // CMSG_SPACE(0) on all platforms. And we assert at runtime, in
+  // Channel::ChannelImpl::Init, that it's big enough.
   enum {
-    // We assume a worst case: kReadBufferSize bytes of messages, where each
-    // message has no payload and a full complement of descriptors.
-    MAX_READ_FDS = (Channel::kReadBufferSize / sizeof(IPC::Message::Header)) *
-                   FileDescriptorSet::MAX_DESCRIPTORS_PER_MESSAGE
+    kControlBufferSlopBytes = 32
   };
 
-  // This is a control message buffer large enough to hold kMaxReadFDs
-#if defined(OS_MACOSX) || defined(OS_NETBSD)
-  // TODO(agl): OSX appears to have non-constant CMSG macros!
-  char input_cmsg_buf_[1024];
-#else
-  char input_cmsg_buf_[CMSG_SPACE(sizeof(int) * MAX_READ_FDS)];
-#endif
+  // This is a control message buffer large enough to hold all the file
+  // descriptors that will be read in when reading Channel::kReadBufferSize
+  // bytes of data. Message::WriteFileDescriptor always writes one word of
+  // data for every file descriptor added to the message, so kReadBufferSize
+  // bytes of data can never be accompanied by more than
+  // kReadBufferSize / sizeof(int) file descriptors. Since a file descriptor
+  // takes sizeof(int) bytes, the control buffer must be
+  // Channel::kReadBufferSize bytes. We add kControlBufferSlopBytes bytes
+  // for the control header.
+  char input_cmsg_buf_[Channel::kReadBufferSize + kControlBufferSlopBytes];
 
-  // Large messages that span multiple pipe buffers, get built-up using
-  // this buffer.
-  std::string input_overflow_buf_;
+  // Large incoming messages that span multiple pipe buffers get built-up in the
+  // buffers of this message.
+  mozilla::Maybe<Message> incoming_message_;
   std::vector<int> input_overflow_fds_;
 
   // In server-mode, we have to wait for the client to connect before we
@@ -139,7 +151,7 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
 #if defined(OS_MACOSX)
   struct PendingDescriptors {
     uint32_t id;
-    scoped_refptr<FileDescriptorSet> fds;
+    RefPtr<FileDescriptorSet> fds;
 
     PendingDescriptors() : id(0) { }
     PendingDescriptors(uint32_t id, FileDescriptorSet *fds)

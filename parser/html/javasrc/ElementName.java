@@ -328,8 +328,8 @@ public final class ElementName
 //                return "H1_OR_H2_OR_H3_OR_H4_OR_H5_OR_H6";
 //            case TreeBuilder.OBJECT:
 //                return "OBJECT";
-//            case TreeBuilder.OUTPUT_OR_LABEL:
-//                return "OUTPUT_OR_LABEL";
+//            case TreeBuilder.OUTPUT:
+//                return "OUTPUT";
 //            case TreeBuilder.MARQUEE_OR_APPLET:
 //                return "MARQUEE_OR_APPLET";
 //            case TreeBuilder.PRE_OR_LISTING:
@@ -356,6 +356,8 @@ public final class ElementName
 //                return "ADDRESS_OR_ARTICLE_OR_ASIDE_OR_DETAILS_OR_DIR_OR_FIGCAPTION_OR_FIGURE_OR_FOOTER_OR_HEADER_OR_HGROUP_OR_MAIN_OR_NAV_OR_SECTION_OR_SUMMARY";
 //            case TreeBuilder.RUBY_OR_SPAN_OR_SUB_OR_SUP_OR_VAR:
 //                return "RUBY_OR_SPAN_OR_SUB_OR_SUP_OR_VAR";
+//            case TreeBuilder.RB_OR_RTC:
+//                return "RB_OR_RTC";
 //            case TreeBuilder.RT_OR_RP:
 //                return "RT_OR_RP";
 //            case TreeBuilder.PARAM_OR_SOURCE_OR_TRACK:
@@ -445,6 +447,7 @@ public final class ElementName
     public static final ElementName OL = new ElementName("ol", "ol", TreeBuilder.UL_OR_OL_OR_DL | SPECIAL);
     public static final ElementName OR = new ElementName("or", "or", TreeBuilder.OTHER);
     public static final ElementName PI = new ElementName("pi", "pi", TreeBuilder.OTHER);
+    public static final ElementName RB = new ElementName("rb", "rb", TreeBuilder.RB_OR_RTC | OPTIONAL_END_TAG);
     public static final ElementName RP = new ElementName("rp", "rp", TreeBuilder.RT_OR_RP | OPTIONAL_END_TAG);
     public static final ElementName RT = new ElementName("rt", "rt", TreeBuilder.RT_OR_RP | OPTIONAL_END_TAG);
     public static final ElementName TD = new ElementName("td", "td", TreeBuilder.TD_OR_TH | SPECIAL | SCOPING | OPTIONAL_END_TAG);
@@ -484,6 +487,7 @@ public final class ElementName
     public static final ElementName NOT = new ElementName("not", "not", TreeBuilder.OTHER);
     public static final ElementName NAV = new ElementName("nav", "nav", TreeBuilder.ADDRESS_OR_ARTICLE_OR_ASIDE_OR_DETAILS_OR_DIR_OR_FIGCAPTION_OR_FIGURE_OR_FOOTER_OR_HEADER_OR_HGROUP_OR_MAIN_OR_NAV_OR_SECTION_OR_SUMMARY | SPECIAL);
     public static final ElementName PRE = new ElementName("pre", "pre", TreeBuilder.PRE_OR_LISTING | SPECIAL);
+    public static final ElementName RTC = new ElementName("rtc", "rtc", TreeBuilder.RB_OR_RTC | OPTIONAL_END_TAG);
     public static final ElementName REM = new ElementName("rem", "rem", TreeBuilder.OTHER);
     public static final ElementName SUB = new ElementName("sub", "sub", TreeBuilder.RUBY_OR_SPAN_OR_SUB_OR_SUP_OR_VAR);
     public static final ElementName SEC = new ElementName("sec", "sec", TreeBuilder.OTHER);
@@ -568,7 +572,7 @@ public final class ElementName
     public static final ElementName IMAGE = new ElementName("image", "image", TreeBuilder.IMAGE);
     public static final ElementName IDENT = new ElementName("ident", "ident", TreeBuilder.OTHER);
     public static final ElementName INPUT = new ElementName("input", "input", TreeBuilder.INPUT | SPECIAL);
-    public static final ElementName LABEL = new ElementName("label", "label", TreeBuilder.OUTPUT_OR_LABEL);
+    public static final ElementName LABEL = new ElementName("label", "label", TreeBuilder.OTHER);
     public static final ElementName LIMIT = new ElementName("limit", "limit", TreeBuilder.OTHER);
     public static final ElementName MFRAC = new ElementName("mfrac", "mfrac", TreeBuilder.OTHER);
     public static final ElementName MPATH = new ElementName("mpath", "mpath", TreeBuilder.OTHER);
@@ -636,7 +640,7 @@ public final class ElementName
     public static final ElementName MATRIX = new ElementName("matrix", "matrix", TreeBuilder.OTHER);
     public static final ElementName OPTION = new ElementName("option", "option", TreeBuilder.OPTION | OPTIONAL_END_TAG);
     public static final ElementName OBJECT = new ElementName("object", "object", TreeBuilder.OBJECT | SPECIAL | SCOPING);
-    public static final ElementName OUTPUT = new ElementName("output", "output", TreeBuilder.OUTPUT_OR_LABEL);
+    public static final ElementName OUTPUT = new ElementName("output", "output", TreeBuilder.OUTPUT);
     public static final ElementName PRIMES = new ElementName("primes", "primes", TreeBuilder.OTHER);
     public static final ElementName SOURCE = new ElementName("source", "source", TreeBuilder.PARAM_OR_SOURCE_OR_TRACK);
     public static final ElementName STRIKE = new ElementName("strike", "strike", TreeBuilder.B_OR_BIG_OR_CODE_OR_EM_OR_I_OR_S_OR_SMALL_OR_STRIKE_OR_STRONG_OR_TT_OR_U);
@@ -689,6 +693,7 @@ public final class ElementName
     public static final ElementName NOEMBED = new ElementName("noembed", "noembed", TreeBuilder.NOEMBED | SPECIAL);
     public static final ElementName POLYGON = new ElementName("polygon", "polygon", TreeBuilder.OTHER);
     public static final ElementName PATTERN = new ElementName("pattern", "pattern", TreeBuilder.OTHER);
+    public static final ElementName PICTURE = new ElementName("picture", "picture", TreeBuilder.OTHER);
     public static final ElementName PRODUCT = new ElementName("product", "product", TreeBuilder.OTHER);
     public static final ElementName SETDIFF = new ElementName("setdiff", "setdiff", TreeBuilder.OTHER);
     public static final ElementName SECTION = new ElementName("section", "section", TreeBuilder.ADDRESS_OR_ARTICLE_OR_ASIDE_OR_DETAILS_OR_DIR_OR_FIGCAPTION_OR_FIGURE_OR_FOOTER_OR_HEADER_OR_HGROUP_OR_MAIN_OR_NAV_OR_SECTION_OR_SUMMARY | SPECIAL);
@@ -840,6 +845,7 @@ public final class ElementName
     OL,
     OR,
     PI,
+    RB,
     RP,
     RT,
     TD,
@@ -879,6 +885,7 @@ public final class ElementName
     NOT,
     NAV,
     PRE,
+    RTC,
     REM,
     SUB,
     SEC,
@@ -1084,6 +1091,7 @@ public final class ElementName
     NOEMBED,
     POLYGON,
     PATTERN,
+    PICTURE,
     PRODUCT,
     SETDIFF,
     SECTION,
@@ -1236,6 +1244,7 @@ public final class ElementName
     81295,
     81487,
     82224,
+    84050,
     84498,
     84626,
     86164,
@@ -1275,6 +1284,7 @@ public final class ElementName
     3625454,
     3627054,
     3675728,
+    3739282,
     3749042,
     3771059,
     3771571,
@@ -1480,6 +1490,7 @@ public final class ElementName
     249697357,
     252132601,
     252135604,
+    251841204,
     252317348,
     255007012,
     255278388,

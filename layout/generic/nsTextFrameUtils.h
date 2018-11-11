@@ -7,6 +7,8 @@
 #define NSTEXTFRAMEUTILS_H_
 
 #include "gfxSkipChars.h"
+#include "nsBidiUtils.h"
+#include "nsUnicodeProperties.h"
 
 class nsIContent;
 struct nsStyleText;
@@ -48,7 +50,10 @@ public:
     // NS_FRAME_IS_IN_SINGLE_CHAR_MI flag is set.  This occurs if the textframe
     // belongs to a MathML <mi> element whose embedded text consists of a
     // single character.
-    TEXT_IS_SINGLE_CHAR_MI   = 0x8000000
+    TEXT_IS_SINGLE_CHAR_MI   = 0x8000000,
+
+    // This is set if the text run might be observing for glyph changes.
+    TEXT_MIGHT_HAVE_GLYPH_CHANGES = 0x10000000,
 
     // The following are defined by gfxTextRunWordCache rather than here,
     // so that it also has access to the _INCOMING flag
@@ -69,13 +74,18 @@ public:
 
   /**
    * Returns true if aChars/aLength are something that make a space
-   * character not be whitespace when they follow the space character.
-   * For now, this is true if and only if aChars starts with a ZWJ. (This
-   * is what Uniscribe assumes.)
+   * character not be whitespace when they follow the space character
+   * (combining mark or join control, ignoring intervening direction
+   * controls).
    */
   static bool
   IsSpaceCombiningSequenceTail(const char16_t* aChars, int32_t aLength) {
-    return aLength > 0 && aChars[0] == 0x200D; // ZWJ
+    return aLength > 0 &&
+      (mozilla::unicode::IsClusterExtender(aChars[0]) ||
+       (IsBidiControl(aChars[0]) &&
+        IsSpaceCombiningSequenceTail(aChars + 1, aLength - 1)
+       )
+      );
   }
 
   enum CompressionMode {

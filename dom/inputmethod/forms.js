@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- /
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- /
 /* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -8,9 +8,10 @@
 
 dump("###################################### forms.js loaded\n");
 
-let Ci = Components.interfaces;
-let Cc = Components.classes;
-let Cu = Components.utils;
+var Ci = Components.interfaces;
+var Cc = Components.classes;
+var Cu = Components.utils;
+var Cr = Components.results;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import('resource://gre/modules/XPCOMUtils.jsm');
@@ -18,10 +19,50 @@ XPCOMUtils.defineLazyServiceGetter(Services, "fm",
                                    "@mozilla.org/focus-manager;1",
                                    "nsIFocusManager");
 
-XPCOMUtils.defineLazyGetter(this, "domWindowUtils", function () {
-  return content.QueryInterface(Ci.nsIInterfaceRequestor)
-                .getInterface(Ci.nsIDOMWindowUtils);
-});
+/*
+ * A WeakMap to map window to objects keeping it's TextInputProcessor instance.
+ */
+var WindowMap = {
+  // WeakMap of <window, object> pairs.
+  _map: null,
+
+  /*
+   * Set the object associated to the window and return it.
+   */
+  _getObjForWin: function(win) {
+    if (!this._map) {
+      this._map = new WeakMap();
+    }
+    if (this._map.has(win)) {
+      return this._map.get(win);
+    } else {
+      let obj = {
+        tip: null
+      };
+      this._map.set(win, obj);
+
+      return obj;
+    }
+  },
+
+  getTextInputProcessor: function(win) {
+    if (!win) {
+      return;
+    }
+    let obj = this._getObjForWin(win);
+    let tip = obj.tip
+
+    if (!tip) {
+      tip = obj.tip = Cc["@mozilla.org/text-input-processor;1"]
+        .createInstance(Ci.nsITextInputProcessor);
+    }
+
+    if (!tip.beginInputTransaction(win, textInputProcessorCallback)) {
+      tip = obj.tip = null;
+    }
+    return tip;
+  }
+};
 
 const RESIZE_SCROLL_DELAY = 20;
 // In content editable node, when there are hidden elements such as <br>, it
@@ -31,17 +72,162 @@ const RESIZE_SCROLL_DELAY = 20;
 // the selection range any more.
 const MAX_BLOCKED_COUNT = 20;
 
-let HTMLDocument = Ci.nsIDOMHTMLDocument;
-let HTMLHtmlElement = Ci.nsIDOMHTMLHtmlElement;
-let HTMLBodyElement = Ci.nsIDOMHTMLBodyElement;
-let HTMLIFrameElement = Ci.nsIDOMHTMLIFrameElement;
-let HTMLInputElement = Ci.nsIDOMHTMLInputElement;
-let HTMLTextAreaElement = Ci.nsIDOMHTMLTextAreaElement;
-let HTMLSelectElement = Ci.nsIDOMHTMLSelectElement;
-let HTMLOptGroupElement = Ci.nsIDOMHTMLOptGroupElement;
-let HTMLOptionElement = Ci.nsIDOMHTMLOptionElement;
+var HTMLDocument = Ci.nsIDOMHTMLDocument;
+var HTMLHtmlElement = Ci.nsIDOMHTMLHtmlElement;
+var HTMLBodyElement = Ci.nsIDOMHTMLBodyElement;
+var HTMLIFrameElement = Ci.nsIDOMHTMLIFrameElement;
+var HTMLInputElement = Ci.nsIDOMHTMLInputElement;
+var HTMLTextAreaElement = Ci.nsIDOMHTMLTextAreaElement;
+var HTMLSelectElement = Ci.nsIDOMHTMLSelectElement;
+var HTMLOptGroupElement = Ci.nsIDOMHTMLOptGroupElement;
+var HTMLOptionElement = Ci.nsIDOMHTMLOptionElement;
 
-let FormVisibility = {
+function guessKeyNameFromKeyCode(KeyboardEvent, aKeyCode) {
+  switch (aKeyCode) {
+    case KeyboardEvent.DOM_VK_CANCEL:
+      return "Cancel";
+    case KeyboardEvent.DOM_VK_HELP:
+      return "Help";
+    case KeyboardEvent.DOM_VK_BACK_SPACE:
+      return "Backspace";
+    case KeyboardEvent.DOM_VK_TAB:
+      return "Tab";
+    case KeyboardEvent.DOM_VK_CLEAR:
+      return "Clear";
+    case KeyboardEvent.DOM_VK_RETURN:
+      return "Enter";
+    case KeyboardEvent.DOM_VK_SHIFT:
+      return "Shift";
+    case KeyboardEvent.DOM_VK_CONTROL:
+      return "Control";
+    case KeyboardEvent.DOM_VK_ALT:
+      return "Alt";
+    case KeyboardEvent.DOM_VK_PAUSE:
+      return "Pause";
+    case KeyboardEvent.DOM_VK_EISU:
+      return "Eisu";
+    case KeyboardEvent.DOM_VK_ESCAPE:
+      return "Escape";
+    case KeyboardEvent.DOM_VK_CONVERT:
+      return "Convert";
+    case KeyboardEvent.DOM_VK_NONCONVERT:
+      return "NonConvert";
+    case KeyboardEvent.DOM_VK_ACCEPT:
+      return "Accept";
+    case KeyboardEvent.DOM_VK_MODECHANGE:
+      return "ModeChange";
+    case KeyboardEvent.DOM_VK_PAGE_UP:
+      return "PageUp";
+    case KeyboardEvent.DOM_VK_PAGE_DOWN:
+      return "PageDown";
+    case KeyboardEvent.DOM_VK_END:
+      return "End";
+    case KeyboardEvent.DOM_VK_HOME:
+      return "Home";
+    case KeyboardEvent.DOM_VK_LEFT:
+      return "ArrowLeft";
+    case KeyboardEvent.DOM_VK_UP:
+      return "ArrowUp";
+    case KeyboardEvent.DOM_VK_RIGHT:
+      return "ArrowRight";
+    case KeyboardEvent.DOM_VK_DOWN:
+      return "ArrowDown";
+    case KeyboardEvent.DOM_VK_SELECT:
+      return "Select";
+    case KeyboardEvent.DOM_VK_PRINT:
+      return "Print";
+    case KeyboardEvent.DOM_VK_EXECUTE:
+      return "Execute";
+    case KeyboardEvent.DOM_VK_PRINTSCREEN:
+      return "PrintScreen";
+    case KeyboardEvent.DOM_VK_INSERT:
+      return "Insert";
+    case KeyboardEvent.DOM_VK_DELETE:
+      return "Delete";
+    case KeyboardEvent.DOM_VK_WIN:
+      return "OS";
+    case KeyboardEvent.DOM_VK_CONTEXT_MENU:
+      return "ContextMenu";
+    case KeyboardEvent.DOM_VK_SLEEP:
+      return "Standby";
+    case KeyboardEvent.DOM_VK_F1:
+      return "F1";
+    case KeyboardEvent.DOM_VK_F2:
+      return "F2";
+    case KeyboardEvent.DOM_VK_F3:
+      return "F3";
+    case KeyboardEvent.DOM_VK_F4:
+      return "F4";
+    case KeyboardEvent.DOM_VK_F5:
+      return "F5";
+    case KeyboardEvent.DOM_VK_F6:
+      return "F6";
+    case KeyboardEvent.DOM_VK_F7:
+      return "F7";
+    case KeyboardEvent.DOM_VK_F8:
+      return "F8";
+    case KeyboardEvent.DOM_VK_F9:
+      return "F9";
+    case KeyboardEvent.DOM_VK_F10:
+      return "F10";
+    case KeyboardEvent.DOM_VK_F11:
+      return "F11";
+    case KeyboardEvent.DOM_VK_F12:
+      return "F12";
+    case KeyboardEvent.DOM_VK_F13:
+      return "F13";
+    case KeyboardEvent.DOM_VK_F14:
+      return "F14";
+    case KeyboardEvent.DOM_VK_F15:
+      return "F15";
+    case KeyboardEvent.DOM_VK_F16:
+      return "F16";
+    case KeyboardEvent.DOM_VK_F17:
+      return "F17";
+    case KeyboardEvent.DOM_VK_F18:
+      return "F18";
+    case KeyboardEvent.DOM_VK_F19:
+      return "F19";
+    case KeyboardEvent.DOM_VK_F20:
+      return "F20";
+    case KeyboardEvent.DOM_VK_F21:
+      return "F21";
+    case KeyboardEvent.DOM_VK_F22:
+      return "F22";
+    case KeyboardEvent.DOM_VK_F23:
+      return "F23";
+    case KeyboardEvent.DOM_VK_F24:
+      return "F24";
+    case KeyboardEvent.DOM_VK_NUM_LOCK:
+      return "NumLock";
+    case KeyboardEvent.DOM_VK_SCROLL_LOCK:
+      return "ScrollLock";
+    case KeyboardEvent.DOM_VK_VOLUME_MUTE:
+      return "AudioVolumeMute";
+    case KeyboardEvent.DOM_VK_VOLUME_DOWN:
+      return "AudioVolumeDown";
+    case KeyboardEvent.DOM_VK_VOLUME_UP:
+      return "AudioVolumeUp";
+    case KeyboardEvent.DOM_VK_META:
+      return "Meta";
+    case KeyboardEvent.DOM_VK_ALTGR:
+      return "AltGraph";
+    case KeyboardEvent.DOM_VK_ATTN:
+      return "Attn";
+    case KeyboardEvent.DOM_VK_CRSEL:
+      return "CrSel";
+    case KeyboardEvent.DOM_VK_EXSEL:
+      return "ExSel";
+    case KeyboardEvent.DOM_VK_EREOF:
+      return "EraseEof";
+    case KeyboardEvent.DOM_VK_PLAY:
+      return "Play";
+    default:
+      return "Unidentified";
+  }
+}
+
+var FormVisibility = {
   /**
    * Searches upwards in the DOM for an element that has been scrolled.
    *
@@ -75,7 +261,7 @@ let FormVisibility = {
     // we also care about the window this is the more
     // common case where the content is larger then
     // the viewport/screen.
-    if (win.scrollMaxX || win.scrollMaxY) {
+    if (win.scrollMaxX != win.scrollMinX || win.scrollMaxY != win.scrollMinY) {
       return win;
     }
 
@@ -120,7 +306,7 @@ let FormVisibility = {
       let visible = this.yAxisVisible(
         adjustedTop,
         pos.height,
-        pos.width
+        offset.height
       );
 
       if (!visible)
@@ -184,12 +370,49 @@ let FormVisibility = {
   }
 };
 
-let FormAssistant = {
+// This object implements nsITextInputProcessorCallback
+var textInputProcessorCallback = {
+  onNotify: function(aTextInputProcessor, aNotification) {
+    try {
+      switch (aNotification.type) {
+        case "request-to-commit":
+          // TODO: Send a notification through asyncMessage to the keyboard here.
+          aTextInputProcessor.commitComposition();
+
+          break;
+        case "request-to-cancel":
+          // TODO: Send a notification through asyncMessage to the keyboard here.
+          aTextInputProcessor.cancelComposition();
+
+          break;
+
+        case "notify-detached":
+          // TODO: Send a notification through asyncMessage to the keyboard here.
+          break;
+
+        // TODO: Manage _focusedElement for text input from here instead.
+        //       (except for <select> which will be need to handled elsewhere)
+        case "notify-focus":
+          break;
+
+        case "notify-blur":
+          break;
+      }
+    } catch (e) {
+      return false;
+    }
+    return true;
+  }
+};
+
+var FormAssistant = {
   init: function fa_init() {
     addEventListener("focus", this, true, false);
     addEventListener("blur", this, true, false);
     addEventListener("resize", this, true, false);
-    addEventListener("submit", this, true, false);
+    // We should not blur the fucus if the submit event is cancelled,
+    // therefore we are binding our event listener in the bubbling phase here.
+    addEventListener("submit", this, false, false);
     addEventListener("pagehide", this, true, false);
     addEventListener("beforeunload", this, true, false);
     addEventListener("input", this, true, false);
@@ -200,7 +423,6 @@ let FormAssistant = {
     addMessageListener("Forms:Select:Blur", this);
     addMessageListener("Forms:SetSelectionRange", this);
     addMessageListener("Forms:ReplaceSurroundingText", this);
-    addMessageListener("Forms:GetText", this);
     addMessageListener("Forms:Input:SendKey", this);
     addMessageListener("Forms:GetContext", this);
     addMessageListener("Forms:SetComposition", this);
@@ -212,18 +434,20 @@ let FormAssistant = {
     'range'
   ]),
 
-  isKeyboardOpened: false,
+  isHandlingFocus: false,
   selectionStart: -1,
   selectionEnd: -1,
-  textBeforeCursor: "",
-  textAfterCursor: "",
+  text: "",
+
   scrollIntoViewTimeout: null,
   _focusedElement: null,
   _focusCounter: 0, // up one for every time we focus a new element
-  _observer: null,
+  _focusDeleteObserver: null,
+  _focusContentObserver: null,
   _documentEncoder: null,
   _editor: null,
   _editing: false,
+  _selectionPrivate: null,
 
   get focusedElement() {
     if (this._focusedElement && Cu.isDeadWrapper(this._focusedElement))
@@ -244,15 +468,18 @@ let FormAssistant = {
       return;
 
     if (this.focusedElement) {
-      this.focusedElement.removeEventListener('mousedown', this);
-      this.focusedElement.removeEventListener('mouseup', this);
       this.focusedElement.removeEventListener('compositionend', this);
-      if (this._observer) {
-        this._observer.disconnect();
-        this._observer = null;
+      if (this._focusDeleteObserver) {
+        this._focusDeleteObserver.disconnect();
+        this._focusDeleteObserver = null;
       }
-      if (!element) {
-        this.focusedElement.blur();
+      if (this._focusContentObserver) {
+        this._focusContentObserver.disconnect();
+        this._focusContentObserver = null;
+      }
+      if (this._selectionPrivate) {
+        this._selectionPrivate.removeSelectionListener(this);
+        this._selectionPrivate = null;
       }
     }
 
@@ -269,8 +496,6 @@ let FormAssistant = {
     }
 
     if (element) {
-      element.addEventListener('mousedown', this);
-      element.addEventListener('mouseup', this);
       element.addEventListener('compositionend', this);
       if (isContentEditable(element)) {
         this._documentEncoder = getDocumentEncoder(element);
@@ -280,29 +505,51 @@ let FormAssistant = {
         // Add a nsIEditorObserver to monitor the text content of the focused
         // element.
         this._editor.addEditorObserver(this);
+
+        let selection = this._editor.selection;
+        if (selection) {
+          this._selectionPrivate = selection.QueryInterface(Ci.nsISelectionPrivate);
+          this._selectionPrivate.addSelectionListener(this);
+        }
       }
 
       // If our focusedElement is removed from DOM we want to handle it properly
       let MutationObserver = element.ownerDocument.defaultView.MutationObserver;
-      this._observer = new MutationObserver(function(mutations) {
+      this._focusDeleteObserver = new MutationObserver(function(mutations) {
         var del = [].some.call(mutations, function(m) {
           return [].some.call(m.removedNodes, function(n) {
             return n.contains(element);
           });
         });
         if (del && element === self.focusedElement) {
-          // item was deleted, fake a blur so all state gets set correctly
-          self.handleEvent({ target: element, type: "blur" });
+          self.unhandleFocus();
         }
       });
 
-      this._observer.observe(element.ownerDocument.body, {
+      this._focusDeleteObserver.observe(element.ownerDocument.body, {
         childList: true,
         subtree: true
       });
+
+      // If contenteditable, also add a mutation observer on its content and
+      // call selectionChanged when a change occurs
+      if (isContentEditable(element)) {
+        this._focusContentObserver = new MutationObserver(function() {
+          this.updateSelection();
+        }.bind(this));
+
+        this._focusContentObserver.observe(element, {
+          childList: true,
+          subtree: true
+        });
+      }
     }
 
     this.focusedElement = element;
+  },
+
+  notifySelectionChanged: function(aDocument, aSelection, aReason) {
+    this.updateSelection();
   },
 
   get documentEncoder() {
@@ -317,14 +564,14 @@ let FormAssistant = {
   // Implements nsIEditorObserver get notification when the text content of
   // current input field has changed.
   EditAction: function fa_editAction() {
-    if (this._editing) {
+    if (this._editing || !this.isHandlingFocus) {
       return;
     }
-    this.sendKeyboardState(this.focusedElement);
+    this.sendInputState(this.focusedElement);
   },
 
   handleEvent: function fa_handleEvent(evt) {
-    let target = evt.target;
+    let target = evt.composedTarget;
 
     let range = null;
     switch (evt.type) {
@@ -348,13 +595,13 @@ let FormAssistant = {
         }
 
         if (isContentEditable(target)) {
-          this.showKeyboard(this.getTopLevelEditable(target));
+          this.handleFocus(this.getTopLevelEditable(target));
           this.updateSelection();
           break;
         }
 
         if (this.isFocusableElement(target)) {
-          this.showKeyboard(target);
+          this.handleFocus(target);
           this.updateSelection();
         }
         break;
@@ -367,43 +614,20 @@ let FormAssistant = {
           break;
         }
         // fall through
-      case "blur":
       case "submit":
+        if (this.focusedElement && !evt.defaultPrevented) {
+          this.focusedElement.blur();
+        }
+        break;
+
+      case "blur":
         if (this.focusedElement) {
-          this.hideKeyboard();
-          this.selectionStart = -1;
-          this.selectionEnd = -1;
-        }
-        break;
-
-      case 'mousedown':
-         if (!this.focusedElement) {
-          break;
-        }
-
-        // We only listen for this event on the currently focused element.
-        // When the mouse goes down, note the cursor/selection position
-        this.updateSelection();
-        break;
-
-      case 'mouseup':
-        if (!this.focusedElement) {
-          break;
-        }
-
-        // We only listen for this event on the currently focused element.
-        // When the mouse goes up, see if the cursor has moved (or the
-        // selection changed) since the mouse went down. If it has, we
-        // need to tell the keyboard about it
-        range = getSelectionRange(this.focusedElement);
-        if (range[0] !== this.selectionStart ||
-            range[1] !== this.selectionEnd) {
-          this.updateSelection();
+          this.unhandleFocus();
         }
         break;
 
       case "resize":
-        if (!this.isKeyboardOpened)
+        if (!this.isHandlingFocus)
           return;
 
         if (this.scrollIntoViewTimeout) {
@@ -423,34 +647,20 @@ let FormAssistant = {
         }
         break;
 
-      case "input":
-        if (this.focusedElement) {
-          // When the text content changes, notify the keyboard
-          this.updateSelection();
-        }
-        break;
-
       case "keydown":
-        if (!this.focusedElement) {
+        if (!this.focusedElement || this._editing) {
           break;
         }
 
         CompositionManager.endComposition('');
-
-        // We use 'setTimeout' to wait until the input element accomplishes the
-        // change in selection range.
-        content.setTimeout(function() {
-          this.updateSelection();
-        }.bind(this), 0);
         break;
 
       case "keyup":
-        if (!this.focusedElement) {
+        if (!this.focusedElement || this._editing) {
           break;
         }
 
         CompositionManager.endComposition('');
-
         break;
 
       case "compositionend":
@@ -481,14 +691,6 @@ let FormAssistant = {
     }
 
     if (!target) {
-      switch (msg.name) {
-      case "Forms:GetText":
-        sendAsyncMessage("Forms:GetText:Result:Error", {
-          requestId: json.requestId,
-          error: "No focused element"
-        });
-        break;
-      }
       return;
     }
 
@@ -508,32 +710,132 @@ let FormAssistant = {
       case "Forms:Input:SendKey":
         CompositionManager.endComposition('');
 
-        this._editing = true;
-        let doKeypress = domWindowUtils.sendKeyEvent('keydown', json.keyCode,
-                                  json.charCode, json.modifiers);
-        if (doKeypress) {
-          domWindowUtils.sendKeyEvent('keypress', json.keyCode,
-                                  json.charCode, json.modifiers);
+        let win = target.ownerDocument.defaultView;
+        let tip = WindowMap.getTextInputProcessor(win);
+        if (!tip) {
+          if (json.requestId) {
+            sendAsyncMessage("Forms:SendKey:Result:Error", {
+              requestId: json.requestId,
+              error: "Unable to start input transaction."
+            });
+          }
+
+          break;
         }
 
-        if(!json.repeat) {
-          domWindowUtils.sendKeyEvent('keyup', json.keyCode,
-                                    json.charCode, json.modifiers);
+        // If we receive a keyboardEventDict from json, that means the user
+        // is calling the method with the new arguments.
+        // Otherwise, we would have to construct our own keyboardEventDict
+        // based on legacy values we have received.
+        let keyboardEventDict = json.keyboardEventDict;
+        let flags = 0;
+
+        if (keyboardEventDict) {
+          if ('flags' in keyboardEventDict) {
+            flags = keyboardEventDict.flags;
+          }
+        } else {
+          // The naive way to figure out if the key to dispatch is printable.
+          let printable = !!json.charCode;
+
+          // For printable keys, the value should be the actual character.
+          // For non-printable keys, it should be a value in the D3E spec.
+          // Here we make some educated guess for it.
+          let key = printable ?
+              String.fromCharCode(json.charCode) :
+              guessKeyNameFromKeyCode(win.KeyboardEvent, json.keyCode);
+
+          // keyCode from content is only respected when the key is not an
+          // an alphanumeric character. We also ask TextInputProcessor not to
+          // infer this value for non-printable keys to keep the original
+          // behavior.
+          let keyCode = (printable && /^[a-zA-Z0-9]$/.test(key)) ?
+              key.toUpperCase().charCodeAt(0) :
+              json.keyCode;
+
+          keyboardEventDict = {
+            key: key,
+            keyCode: keyCode,
+            // We don't have any information to tell the virtual key the
+            // user have interacted with.
+            code: "",
+            // We do not have the information to infer location of the virtual key
+            // either (and we would need TextInputProcessor not to compute it).
+            location: 0,
+            // This indicates the key is triggered for repeats.
+            repeat: json.repeat
+          };
+
+          flags = tip.KEY_KEEP_KEY_LOCATION_STANDARD;
+          if (!printable) {
+            flags |= tip.KEY_NON_PRINTABLE_KEY;
+          }
+          if (!keyboardEventDict.keyCode) {
+            flags |= tip.KEY_KEEP_KEYCODE_ZERO;
+          }
         }
 
-        this._editing = false;
+        let keyboardEvent = new win.KeyboardEvent("", keyboardEventDict);
 
-        if (json.requestId && doKeypress) {
-          sendAsyncMessage("Forms:SendKey:Result:OK", {
-            requestId: json.requestId
-          });
+        let keydownDefaultPrevented = false;
+        try {
+          switch (json.method) {
+            case 'sendKey': {
+              let consumedFlags = tip.keydown(keyboardEvent, flags);
+              keydownDefaultPrevented =
+                !!(tip.KEYDOWN_IS_CONSUMED & consumedFlags);
+              if (!keyboardEventDict.repeat) {
+                tip.keyup(keyboardEvent, flags);
+              }
+              break;
+            }
+            case 'keydown': {
+              let consumedFlags = tip.keydown(keyboardEvent, flags);
+              keydownDefaultPrevented =
+                !!(tip.KEYDOWN_IS_CONSUMED & consumedFlags);
+              break;
+            }
+            case 'keyup': {
+              tip.keyup(keyboardEvent, flags);
+
+              break;
+            }
+          }
+        } catch (err) {
+          dump("forms.js:" + err.toString() + "\n");
+
+          if (json.requestId) {
+            if (err instanceof Ci.nsIException &&
+                err.result == Cr.NS_ERROR_ILLEGAL_VALUE) {
+              sendAsyncMessage("Forms:SendKey:Result:Error", {
+                requestId: json.requestId,
+                error: "The values specified are illegal."
+              });
+            } else {
+              sendAsyncMessage("Forms:SendKey:Result:Error", {
+                requestId: json.requestId,
+                error: "Unable to type into destroyed input."
+              });
+            }
+          }
+
+          break;
         }
-        else if (json.requestId && !doKeypress) {
-          sendAsyncMessage("Forms:SendKey:Result:Error", {
-            requestId: json.requestId,
-            error: "Keydown event got canceled"
-          });
+
+        if (json.requestId) {
+          if (keydownDefaultPrevented) {
+            sendAsyncMessage("Forms:SendKey:Result:Error", {
+              requestId: json.requestId,
+              error: "Key event(s) was cancelled."
+            });
+          } else {
+            sendAsyncMessage("Forms:SendKey:Result:OK", {
+              requestId: json.requestId,
+              selectioninfo: this.getSelectionInfo()
+            });
+          }
         }
+
         break;
 
       case "Forms:Select:Choice":
@@ -563,7 +865,10 @@ let FormAssistant = {
         break;
 
       case "Forms:Select:Blur": {
-        this.setFocusedElement(null);
+        if (this.focusedElement) {
+          this.focusedElement.blur();
+        }
+
         break;
       }
 
@@ -583,8 +888,6 @@ let FormAssistant = {
           break;
         }
 
-        this.updateSelection();
-
         if (json.requestId) {
           sendAsyncMessage("Forms:SetSelectionRange:Result:OK", {
             requestId: json.requestId,
@@ -597,11 +900,8 @@ let FormAssistant = {
       case "Forms:ReplaceSurroundingText": {
         CompositionManager.endComposition('');
 
-        let selectionRange = getSelectionRange(target);
         if (!replaceSurroundingText(target,
                                     json.text,
-                                    selectionRange[0],
-                                    selectionRange[1],
                                     json.offset,
                                     json.length)) {
           if (json.requestId) {
@@ -622,24 +922,6 @@ let FormAssistant = {
         break;
       }
 
-      case "Forms:GetText": {
-        let value = isContentEditable(target) ? getContentEditableText(target)
-                                              : target.value;
-
-        if (json.offset && json.length) {
-          value = value.substr(json.offset, json.length);
-        }
-        else if (json.offset) {
-          value = value.substr(json.offset);
-        }
-
-        sendAsyncMessage("Forms:GetText:Result:OK", {
-          requestId: json.requestId,
-          text: value
-        });
-        break;
-      }
-
       case "Forms:GetContext": {
         let obj = getJSON(target, this._focusCounter);
         sendAsyncMessage("Forms:GetContext:Result:OK", obj);
@@ -648,17 +930,19 @@ let FormAssistant = {
 
       case "Forms:SetComposition": {
         CompositionManager.setComposition(target, json.text, json.cursor,
-                                          json.clauses);
+                                          json.clauses, json.keyboardEventDict);
         sendAsyncMessage("Forms:SetComposition:Result:OK", {
           requestId: json.requestId,
+          selectioninfo: this.getSelectionInfo()
         });
         break;
       }
 
       case "Forms:EndComposition": {
-        CompositionManager.endComposition(json.text);
+        CompositionManager.endComposition(json.text, json.keyboardEventDict);
         sendAsyncMessage("Forms:EndComposition:Result:OK", {
           requestId: json.requestId,
+          selectioninfo: this.getSelectionInfo()
         });
         break;
       }
@@ -667,7 +951,7 @@ let FormAssistant = {
 
   },
 
-  showKeyboard: function fa_showKeyboard(target) {
+  handleFocus: function fa_handleFocus(target) {
     if (this.focusedElement === target)
       return;
 
@@ -675,16 +959,17 @@ let FormAssistant = {
       target = target.parentNode;
 
     this.setFocusedElement(target);
-
-    let kbOpened = this.sendKeyboardState(target);
-    if (this.isTextInputElement(target))
-      this.isKeyboardOpened = kbOpened;
+    this.sendInputState(target);
+    this.isHandlingFocus = true;
   },
 
-  hideKeyboard: function fa_hideKeyboard() {
-    sendAsyncMessage("Forms:Input", { "type": "blur" });
-    this.isKeyboardOpened = false;
+  unhandleFocus: function fa_unhandleFocus() {
     this.setFocusedElement(null);
+    this.isHandlingFocus = false;
+    this.selectionStart = -1;
+    this.selectionEnd = -1;
+    this.text = "";
+    sendAsyncMessage("Forms:Blur", {});
   },
 
   isFocusableElement: function fa_isFocusableElement(element) {
@@ -697,13 +982,8 @@ let FormAssistant = {
       return true;
 
     return (element instanceof HTMLInputElement &&
-            !this.ignoredInputTypes.has(element.type));
-  },
-
-  isTextInputElement: function fa_isTextInputElement(element) {
-    return element instanceof HTMLInputElement ||
-           element instanceof HTMLTextAreaElement ||
-           isContentEditable(element);
+            !this.ignoredInputTypes.has(element.type) &&
+            !element.readOnly);
   },
 
   getTopLevelEditable: function fa_getTopLevelEditable(element) {
@@ -717,16 +997,8 @@ let FormAssistant = {
     return retrieveTopLevelEditable(element) || element;
   },
 
-  sendKeyboardState: function(element) {
-    // FIXME/bug 729623: work around apparent bug in the IME manager
-    // in gecko.
-    let readonly = element.getAttribute("readonly");
-    if (readonly) {
-      return false;
-    }
-
-    sendAsyncMessage("Forms:Input", getJSON(element, this._focusCounter));
-    return true;
+  sendInputState: function(element) {
+    sendAsyncMessage("Forms:Focus", getJSON(element, this._focusCounter));
   },
 
   getSelectionInfo: function fa_getSelectionInfo() {
@@ -736,36 +1008,45 @@ let FormAssistant = {
     let text = isContentEditable(element) ? getContentEditableText(element)
                                           : element.value;
 
-    let textAround = getTextAroundCursor(text, range);
-
     let changed = this.selectionStart !== range[0] ||
       this.selectionEnd !== range[1] ||
-      this.textBeforeCursor !== textAround.before ||
-      this.textAfterCursor !== textAround.after;
+      this.text !== text;
 
     this.selectionStart = range[0];
     this.selectionEnd = range[1];
-    this.textBeforeCursor = textAround.before;
-    this.textAfterCursor = textAround.after;
+    this.text = text;
 
     return {
       selectionStart: range[0],
       selectionEnd: range[1],
-      textBeforeCursor: textAround.before,
-      textAfterCursor: textAround.after,
+      text: text,
       changed: changed
     };
   },
 
+  _selectionTimeout: null,
+
   // Notify when the selection range changes
   updateSelection: function fa_updateSelection() {
-    if (!this.focusedElement) {
-      return;
+    // A call to setSelectionRange on input field causes 2 selection changes
+    // one to [0,0] and one to actual value. Both are sent in same tick.
+    // Prevent firing two events in that scenario, always only use the last 1.
+    //
+    // It is also a workaround for Bug 1053048, which prevents
+    // getSelectionInfo() accessing selectionStart or selectionEnd in the
+    // callback function of nsISelectionListener::NotifySelectionChanged().
+    if (this._selectionTimeout) {
+      content.clearTimeout(this._selectionTimeout);
     }
-    let selectionInfo = this.getSelectionInfo();
-    if (selectionInfo.changed) {
-      sendAsyncMessage("Forms:SelectionChange", this.getSelectionInfo());
-    }
+    this._selectionTimeout = content.setTimeout(function() {
+      if (!this.focusedElement) {
+        return;
+      }
+      let selectionInfo = this.getSelectionInfo();
+      if (selectionInfo.changed) {
+        sendAsyncMessage("Forms:SelectionChange", selectionInfo);
+      }
+    }.bind(this), 0);
   }
 };
 
@@ -799,28 +1080,32 @@ function getJSON(element, focusCounter) {
   // need it's number control here in order to get the correct 'type' etc.:
   element = element.ownerNumberControl || element;
 
-  let type = element.type || "";
+  let type = element.tagName.toLowerCase();
+  let inputType = (element.type || "").toLowerCase();
   let value = element.value || "";
   let max = element.max || "";
   let min = element.min || "";
 
-  // Treat contenteditble element as a special text area field
+  // Treat contenteditable element as a special text area field
   if (isContentEditable(element)) {
-    type = "textarea";
+    type = "contenteditable";
+    inputType = "textarea";
     value = getContentEditableText(element);
   }
 
   // Until the input type=date/datetime/range have been implemented
   // let's return their real type even if the platform returns 'text'
-  let attributeType = element.getAttribute("type") || "";
+  let attributeInputType = element.getAttribute("type") || "";
 
-  if (attributeType) {
-    var typeLowerCase = attributeType.toLowerCase();
-    switch (typeLowerCase) {
+  if (attributeInputType) {
+    let inputTypeLowerCase = attributeInputType.toLowerCase();
+    switch (inputTypeLowerCase) {
       case "datetime":
       case "datetime-local":
+      case "month":
+      case "week":
       case "range":
-        type = typeLowerCase;
+        inputType = inputTypeLowerCase;
         break;
     }
   }
@@ -831,45 +1116,29 @@ function getJSON(element, focusCounter) {
   // inputmode for fields. This shouldn't be used outside of pre-installed
   // apps because the attribute is going to disappear as soon as a definitive
   // solution will be find.
-  let inputmode = element.getAttribute('x-inputmode');
-  if (inputmode) {
-    inputmode = inputmode.toLowerCase();
+  let inputMode = element.getAttribute('x-inputmode');
+  if (inputMode) {
+    inputMode = inputMode.toLowerCase();
   } else {
-    inputmode = '';
+    inputMode = '';
   }
 
   let range = getSelectionRange(element);
-  let textAround = getTextAroundCursor(value, range);
 
   return {
     "contextId": focusCounter,
 
-    "type": type.toLowerCase(),
+    "type": type,
+    "inputType": inputType,
+    "inputMode": inputMode,
+
     "choices": getListForElement(element),
     "value": value,
-    "inputmode": inputmode,
     "selectionStart": range[0],
     "selectionEnd": range[1],
     "max": max,
     "min": min,
-    "lang": element.lang || "",
-    "textBeforeCursor": textAround.before,
-    "textAfterCursor": textAround.after
-  };
-}
-
-function getTextAroundCursor(value, range) {
-  let textBeforeCursor = range[0] < 100 ?
-    value.substr(0, range[0]) :
-    value.substr(range[0] - 100, 100);
-
-  let textAfterCursor = range[1] + 100 > value.length ?
-    value.substr(range[0], value.length) :
-    value.substr(range[0], range[1] - range[0] + 100);
-
-  return {
-    before: textBeforeCursor,
-    after: textAfterCursor
+    "lang": element.lang || ""
   };
 }
 
@@ -1115,31 +1384,50 @@ function getPlaintextEditor(element) {
   return editor;
 }
 
-function replaceSurroundingText(element, text, selectionStart, selectionEnd,
-                                offset, length) {
+function replaceSurroundingText(element, text, offset, length) {
   let editor = FormAssistant.editor;
   if (!editor) {
     return false;
   }
 
   // Check the parameters.
-  let start = selectionStart + offset;
-  if (start < 0) {
-    start = 0;
-  }
   if (length < 0) {
     length = 0;
   }
-  let end = start + length;
 
-  if (selectionStart != start || selectionEnd != end) {
-    // Change selection range before replacing.
-    if (!setSelectionRange(element, start, end)) {
-      return false;
+  // Change selection range before replacing. For content editable element,
+  // searching the node for setting selection range is not needed when the
+  // selection is collapsed within a text node.
+  let fastPathHit = false;
+  if (!isPlainTextField(element)) {
+    let sel = element.ownerDocument.defaultView.getSelection();
+    let node = sel.anchorNode;
+    if (sel.isCollapsed && node && node.nodeType == 3 /* TEXT_NODE */) {
+      let start = sel.anchorOffset + offset;
+      let end = start + length;
+      // Fallback to setSelectionRange() if the replacement span multiple nodes.
+      if (start >= 0 && end <= node.textContent.length) {
+        fastPathHit = true;
+        sel.collapse(node, start);
+        sel.extend(node, end);
+      }
+    }
+  }
+  if (!fastPathHit) {
+    let range = getSelectionRange(element);
+    let start = range[0] + offset;
+    if (start < 0) {
+      start = 0;
+    }
+    let end = start + length;
+    if (start != range[0] || end != range[1]) {
+      if (!setSelectionRange(element, start, end)) {
+        return false;
+      }
     }
   }
 
-  if (start != end) {
+  if (length) {
     // Delete the selected text.
     editor.deleteSelection(Ci.nsIEditor.ePrevious, Ci.nsIEditor.eStrip);
   }
@@ -1154,21 +1442,22 @@ function replaceSurroundingText(element, text, selectionStart, selectionEnd,
   return true;
 }
 
-let CompositionManager =  {
+var CompositionManager =  {
   _isStarted: false,
-  _text: '',
+  _tip: null,
+  _KeyboardEventForWin: null,
   _clauseAttrMap: {
     'raw-input':
-      Ci.nsICompositionStringSynthesizer.ATTR_RAWINPUT,
+      Ci.nsITextInputProcessor.ATTR_RAW_CLAUSE,
     'selected-raw-text':
-      Ci.nsICompositionStringSynthesizer.ATTR_SELECTEDRAWTEXT,
+      Ci.nsITextInputProcessor.ATTR_SELECTED_RAW_CLAUSE,
     'converted-text':
-      Ci.nsICompositionStringSynthesizer.ATTR_CONVERTEDTEXT,
+      Ci.nsITextInputProcessor.ATTR_CONVERTED_CLAUSE,
     'selected-converted-text':
-      Ci.nsICompositionStringSynthesizer.ATTR_SELECTEDCONVERTEDTEXT
+      Ci.nsITextInputProcessor.ATTR_SELECTED_CLAUSE
   },
 
-  setComposition: function cm_setComposition(element, text, cursor, clauses) {
+  setComposition: function cm_setComposition(element, text, cursor, clauses, dict) {
     // Check parameters.
     if (!element) {
       return;
@@ -1192,7 +1481,7 @@ let CompositionManager =  {
           remainingLength -= clauseLength;
           clauseLens.push(clauseLength);
           clauseAttrs.push(this._clauseAttrMap[clauses[i].selectionType] ||
-                           Ci.nsICompositionStringSynthesizer.ATTR_RAWINPUT);
+                           Ci.nsITextInputProcessor.ATTR_RAW_CLAUSE);
         }
       }
       // If the total clauses length is less than that of the composition
@@ -1202,49 +1491,61 @@ let CompositionManager =  {
       }
     } else {
       clauseLens.push(len);
-      clauseAttrs.push(Ci.nsICompositionStringSynthesizer.ATTR_RAWINPUT);
+      clauseAttrs.push(Ci.nsITextInputProcessor.ATTR_RAW_CLAUSE);
     }
 
-    // Start composition if need to.
-    if (!this._isStarted) {
-      this._isStarted = true;
-      domWindowUtils.sendCompositionEvent('compositionstart', '', '');
-      this._text = '';
-    }
-
-    // Update the composing text.
-    if (this._text !== text) {
-      this._text = text;
-      domWindowUtils.sendCompositionEvent('compositionupdate', text, '');
-    }
-    let compositionString = domWindowUtils.createCompositionStringSynthesizer();
-    compositionString.setString(text);
-    for (var i = 0; i < clauseLens.length; i++) {
-      compositionString.appendClause(clauseLens[i], clauseAttrs[i]);
-    }
-    if (cursor >= 0) {
-      compositionString.setCaret(cursor, 0);
-    }
-    compositionString.dispatchEvent();
-  },
-
-  endComposition: function cm_endComposition(text) {
-    if (!this._isStarted) {
+    let win = element.ownerDocument.defaultView;
+    let tip = WindowMap.getTextInputProcessor(win);
+    if (!tip) {
       return;
     }
     // Update the composing text.
-    if (this._text !== text) {
-      domWindowUtils.sendCompositionEvent('compositionupdate', text, '');
+    tip.setPendingCompositionString(text);
+    for (var i = 0; i < clauseLens.length; i++) {
+      if (!clauseLens[i]) {
+        continue;
+      }
+      tip.appendClauseToPendingComposition(clauseLens[i], clauseAttrs[i]);
     }
-    let compositionString = domWindowUtils.createCompositionStringSynthesizer();
-    compositionString.setString(text);
-    // Set the cursor position to |text.length| so that the text will be
-    // committed before the cursor position.
-    compositionString.setCaret(text.length, 0);
-    compositionString.dispatchEvent();
-    domWindowUtils.sendCompositionEvent('compositionend', text, '');
-    this._text = '';
+    if (cursor >= 0) {
+      tip.setCaretInPendingComposition(cursor);
+    }
+
+    if (!dict) {
+      this._isStarted = tip.flushPendingComposition();
+    } else {
+      let keyboardEvent = new win.KeyboardEvent("", dict);
+      let flags = dict.flags;
+      this._isStarted = tip.flushPendingComposition(keyboardEvent, flags);
+    }
+
+    if (this._isStarted) {
+      this._tip = tip;
+      this._KeyboardEventForWin = win.KeyboardEvent;
+    }
+  },
+
+  endComposition: function cm_endComposition(text, dict) {
+    if (!this._isStarted) {
+      return;
+    }
+    let tip = this._tip;
+    if (!tip) {
+      return;
+    }
+
+    text = text || "";
+    if (!dict) {
+      tip.commitCompositionWith(text);
+    } else {
+      let keyboardEvent = new this._KeyboardEventForWin("", dict);
+      let flags = dict.flags;
+      tip.commitCompositionWith(text, keyboardEvent, flags);
+    }
+
     this._isStarted = false;
+    this._tip = null;
+    this._KeyboardEventForWin = null;
   },
 
   // Composition ends due to external actions.
@@ -1253,7 +1554,8 @@ let CompositionManager =  {
       return;
     }
 
-    this._text = '';
     this._isStarted = false;
+    this._tip = null;
+    this._KeyboardEventForWin = null;
   }
 };

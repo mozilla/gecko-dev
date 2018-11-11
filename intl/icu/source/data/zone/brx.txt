@@ -1,16 +1,7 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/brx.xml
-// *
-// ***************************************************************************
-/**
- * ICU <specials> source: <path>/common/main/brx.xml
- */
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 brx{
-    Version{"2.0.92.87"}
+    Version{"2.1.28.76"}
     zoneStrings{
         "Africa:Abidjan"{
             ec{"अबिद्जान"}
@@ -432,9 +423,6 @@ brx{
         "America:Montevideo"{
             ec{"मोन्टेवीडिओ"}
         }
-        "America:Montreal"{
-            ec{"मोंट्रियोल"}
-        }
         "America:Montserrat"{
             ec{"मॉंसेरा"}
         }
@@ -513,9 +501,6 @@ brx{
         "America:Scoresbysund"{
             ec{"स्कोर्सबाइसुंड"}
         }
-        "America:Shiprock"{
-            ec{"शिपरॉक"}
-        }
         "America:St_Johns"{
             ec{"सेंट जोन्स"}
         }
@@ -585,9 +570,6 @@ brx{
         "Antarctica:Rothera"{
             ec{"रोथेरा"}
         }
-        "Antarctica:South_Pole"{
-            ec{"साऊथ पोल"}
-        }
         "Antarctica:Syowa"{
             ec{"स्योवा"}
         }
@@ -639,9 +621,6 @@ brx{
         "Asia:Choibalsan"{
             ec{"चोइबालसन"}
         }
-        "Asia:Chongqing"{
-            ec{"चोंग्क़ींग"}
-        }
         "Asia:Colombo"{
             ec{"कोलंबो"}
         }
@@ -662,9 +641,6 @@ brx{
         }
         "Asia:Gaza"{
             ec{"गाज़ा"}
-        }
-        "Asia:Harbin"{
-            ec{"हर्बिन"}
         }
         "Asia:Hong_Kong"{
             ec{"हाँगकाँग"}
@@ -692,9 +668,6 @@ brx{
         }
         "Asia:Karachi"{
             ec{"कराची"}
-        }
-        "Asia:Kashgar"{
-            ec{"काश्गर"}
         }
         "Asia:Katmandu"{
             ec{"काठमांडौ"}

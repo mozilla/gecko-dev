@@ -11,7 +11,6 @@
 #include "nsWeakPtr.h"
 #include "txOutputFormat.h"
 
-class nsIDOMCharacterData;
 class nsIDOMDocument;
 class nsIDOMDocumentFragment;
 class nsITransformObserver;
@@ -21,8 +20,8 @@ class nsIContent;
 class txMozillaTextOutput : public txAOutputXMLEventHandler
 {
 public:
-    txMozillaTextOutput(nsITransformObserver* aObserver);
-    txMozillaTextOutput(nsIDOMDocumentFragment* aDest);
+    explicit txMozillaTextOutput(nsITransformObserver* aObserver);
+    explicit txMozillaTextOutput(nsIDOMDocumentFragment* aDest);
     virtual ~txMozillaTextOutput();
 
     TX_DECL_TXAXMLEVENTHANDLER

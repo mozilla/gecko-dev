@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -13,7 +14,6 @@
 #include "nsSMILTimeValue.h"
 #include "nsSMILKeySpline.h"
 #include "nsSMILValue.h"
-#include "nsAutoPtr.h"
 #include "nsTArray.h"
 #include "nsAttrValue.h"
 #include "nsSMILTypes.h"
@@ -21,8 +21,8 @@
 namespace mozilla {
 namespace dom {
 class SVGAnimationElement;
-}
-}
+} // namespace dom
+} // namespace mozilla
 
 //----------------------------------------------------------------------
 // nsSMILAnimationFunction
@@ -206,10 +206,10 @@ public:
    */
   void ClearHasChanged()
   {
-    NS_ABORT_IF_FALSE(HasChanged(),
-                      "clearing mHasChanged flag, when it's already false");
-    NS_ABORT_IF_FALSE(!IsActiveOrFrozen(),
-                      "clearing mHasChanged flag for active animation");
+    MOZ_ASSERT(HasChanged(),
+               "clearing mHasChanged flag, when it's already false");
+    MOZ_ASSERT(!IsActiveOrFrozen(),
+               "clearing mHasChanged flag for active animation");
     mHasChanged = false;
   }
 
@@ -245,6 +245,14 @@ public:
     mWasSkippedInPrevSample = true;
   }
 
+  /**
+   * Returns true if we need to recalculate the animation value on every sample.
+   * (e.g. because it depends on context like the font-size)
+   */
+  bool ValueNeedsReparsingEverySample() const {
+    return mValueNeedsReparsingEverySample;
+  }
+
   // Comparator utility class, used for sorting nsSMILAnimationFunctions
   class Comparator {
     public:
@@ -263,7 +271,7 @@ protected:
   typedef FallibleTArray<nsSMILValue> nsSMILValueArray;
 
   // Types
-  enum nsSMILCalcMode
+  enum nsSMILCalcMode : uint8_t
   {
     CALC_LINEAR,
     CALC_DISCRETE,

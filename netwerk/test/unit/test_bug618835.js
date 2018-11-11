@@ -12,14 +12,13 @@
 //
 
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 var httpserv;
 
 function setupChannel(path) {
-    var ios =
-        Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
-    return chan = ios.newChannel(path, "", null)
-                                .QueryInterface(Ci.nsIHttpChannel);
+  return NetUtil.newChannel({uri: path, loadUsingSystemPrincipal: true})
+                .QueryInterface(Ci.nsIHttpChannel);
 }
 
 // Verify that Content-Location-URI has been loaded once, load post_target
@@ -32,7 +31,7 @@ InitialListener.prototype = {
             var channel = setupChannel("http://localhost:" +
                                        httpserv.identity.primaryPort + "/post");
             channel.requestMethod = "POST";
-            channel.asyncOpen(new RedirectingListener(), null);
+            channel.asyncOpen2(new RedirectingListener());
         });
     }
 };
@@ -47,7 +46,7 @@ RedirectingListener.prototype = {
             var channel = setupChannel("http://localhost:" +
                                        httpserv.identity.primaryPort + "/post");
             channel.requestMethod = "POST";
-            channel.asyncOpen(new VerifyingListener(), null);
+            channel.asyncOpen2(new VerifyingListener());
         });
     }
 };
@@ -61,7 +60,7 @@ VerifyingListener.prototype = {
         do_check_eq(2, numberOfHandlerCalls);
         var channel = setupChannel("http://localhost:" +
                                    httpserv.identity.primaryPort + "/cl");
-        channel.asyncOpen(new FinalListener(), null);
+        channel.asyncOpen2(new FinalListener());
     }
 };
 
@@ -89,7 +88,7 @@ function run_test() {
   // Load Content-Location URI into cache and start the chain of loads
   var channel = setupChannel("http://localhost:" +
                              httpserv.identity.primaryPort + "/cl");
-  channel.asyncOpen(new InitialListener(), null);
+  channel.asyncOpen2(new InitialListener());
 
   do_test_pending();
 }

@@ -2,28 +2,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-ifdef MOZ_CONTENT_SANDBOX
-ifeq ($(OS_ARCH),WINNT)
-  SHARED_LIBRARY_LIBS += ../../security/sandbox/win/src/sandboxbroker/$(LIB_PREFIX)sandboxbroker.$(LIB_SUFFIX)
-endif
-endif
+include $(topsrcdir)/toolkit/library/libxul.mk
 
-# COMPONENT_LIBS is mosly useless since bug 935881, but is kept for
-# MOZ_APP_COMPONENT_LIBS, used by comm-central, and gtest linking.
-SHARED_LIBRARY_LIBS += \
-  $(foreach component,$(COMPONENT_LIBS),$(DEPTH)/staticlib/$(LIB_PREFIX)$(component).$(LIB_SUFFIX)) \
-  $(NULL)
+include $(topsrcdir)/config/config.mk
 
-ifdef MOZ_APP_COMPONENT_LIBS
-COMPONENT_LIBS += $(MOZ_APP_COMPONENT_LIBS)
-endif
-
-ifeq ($(MOZ_WIDGET_TOOLKIT),cocoa)
-CXXFLAGS += $(TK_CFLAGS)
-endif
+# Wrap linker to print linking status periodically to prevent the linking
+# process from getting killed
+EXPAND_LIBS_EXEC := $(PYTHON) $(topsrcdir)/config/link.py
 
 include $(topsrcdir)/config/rules.mk
 
 .PHONY: gtestxul
 gtestxul:
-	$(MAKE) -C gtest libs LINK_GTEST=1
+	$(MAKE) -C $(DEPTH) toolkit/library/gtest/target LINK_GTEST=1

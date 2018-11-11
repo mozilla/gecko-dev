@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,18 +10,20 @@
 
 #include "mozilla/EventForwards.h"
 #include "nsCOMPtr.h"
+#include "nsTArray.h"
 
 // Microsoft's API Name hackery sucks
 #undef CreateEvent
 
+class nsIContent;
 class nsIDOMEvent;
-class nsIScriptGlobalObject;
 class nsPresContext;
 
 template<class E> class nsCOMArray;
 
 namespace mozilla {
 namespace dom {
+class Event;
 class EventTarget;
 } // namespace dom
 
@@ -193,12 +196,19 @@ public:
    * which should be used when the event is handled at mParentTarget.
    */
   dom::EventTarget* mEventTargetAtParent;
+
+  /**
+   * An array of destination insertion points that need to be inserted
+   * into the event path of nodes that are distributed by the
+   * web components distribution algorithm.
+   */
+  nsTArray<nsIContent*> mDestInsertionPoints;
 };
 
 class EventChainPostVisitor : public mozilla::EventChainVisitor
 {
 public:
-  EventChainPostVisitor(EventChainVisitor& aOther)
+  explicit EventChainPostVisitor(EventChainVisitor& aOther)
     : EventChainVisitor(aOther.mPresContext, aOther.mEvent,
                         aOther.mDOMEvent, aOther.mEventStatus)
   {
@@ -230,14 +240,14 @@ public:
    * aEvent is used as the target (unless there is event
    * retargeting) and the originalTarget of the DOM Event.
    * aTarget is always used as the starting point for constructing the event
-   * target chain, no matter what the value of aEvent->target is.
-   * In other words, aEvent->target is only a property of the event and it has
+   * target chain, no matter what the value of aEvent->mTarget is.
+   * In other words, aEvent->mTarget is only a property of the event and it has
    * nothing to do with the construction of the event target chain.
    * Neither aTarget nor aEvent is allowed to be nullptr.
    *
    * If aTargets is non-null, event target chain will be created, but
-   * event won't be handled. In this case aEvent->message should be
-   * NS_EVENT_NULL.
+   * event won't be handled. In this case aEvent->mMessage should be
+   * eVoidEvent.
    * @note Use this method when dispatching a WidgetEvent.
    */
   static nsresult Dispatch(nsISupports* aTarget,
@@ -246,7 +256,7 @@ public:
                            nsIDOMEvent* aDOMEvent = nullptr,
                            nsEventStatus* aEventStatus = nullptr,
                            EventDispatchingCallback* aCallback = nullptr,
-                           nsCOMArray<dom::EventTarget>* aTargets = nullptr);
+                           nsTArray<dom::EventTarget*>* aTargets = nullptr);
 
   /**
    * Dispatches an event.
@@ -263,13 +273,12 @@ public:
                                    nsEventStatus* aEventStatus);
 
   /**
-   * Creates a DOM Event.
+   * Creates a DOM Event.  Returns null if the event type is unsupported.
    */
-  static nsresult CreateEvent(dom::EventTarget* aOwner,
-                              nsPresContext* aPresContext,
-                              WidgetEvent* aEvent,
-                              const nsAString& aEventType,
-                              nsIDOMEvent** aDOMEvent);
+  static already_AddRefed<dom::Event> CreateEvent(dom::EventTarget* aOwner,
+                                                  nsPresContext* aPresContext,
+                                                  WidgetEvent* aEvent,
+                                                  const nsAString& aEventType);
 
   /**
    * Called at shutting down.

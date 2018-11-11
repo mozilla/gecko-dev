@@ -16,6 +16,7 @@
 using namespace mozilla;
 
 #define MAC_OS_X_PAGE_SETUP_PREFNAME    "print.macosx.pagesetup-2"
+#define COCOA_PAPER_UNITS_PER_INCH      72.0
 
 NS_IMPL_ISUPPORTS_INHERITED(nsPrintSettingsX, nsPrintSettings, nsPrintSettingsX)
 
@@ -24,6 +25,8 @@ nsPrintSettingsX::nsPrintSettingsX()
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
   mPrintInfo = [[NSPrintInfo sharedPrintInfo] copy];
+  mWidthScale = COCOA_PAPER_UNITS_PER_INCH;
+  mHeightScale = COCOA_PAPER_UNITS_PER_INCH;
 
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
@@ -65,6 +68,7 @@ nsresult nsPrintSettingsX::Init()
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
   InitUnwriteableMargin();
+  InitAdjustedPaperSize();
 
   return NS_OK;
 
@@ -91,10 +95,30 @@ NS_IMETHODIMP nsPrintSettingsX::InitUnwriteableMargin()
   NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;  
 }
 
+NS_IMETHODIMP nsPrintSettingsX::InitAdjustedPaperSize()
+{
+  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
+
+  PMPageFormat pageFormat = GetPMPageFormat();
+
+  PMRect paperRect;
+  ::PMGetAdjustedPaperRect(pageFormat, &paperRect);
+
+  mAdjustedPaperWidth = paperRect.right - paperRect.left;
+  mAdjustedPaperHeight = paperRect.bottom - paperRect.top;
+
+  return NS_OK;
+
+  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
+}
+
 void
 nsPrintSettingsX::SetCocoaPrintInfo(NSPrintInfo* aPrintInfo)
 {
-  mPrintInfo = aPrintInfo;
+  if (mPrintInfo != aPrintInfo) {
+    [mPrintInfo release];
+    mPrintInfo = [aPrintInfo retain];
+  }
 }
 
 NS_IMETHODIMP nsPrintSettingsX::ReadPageFormatFromPrefs()
@@ -197,3 +221,52 @@ nsPrintSettingsX::SetPMPageFormat(PMPageFormat aPageFormat)
   [mPrintInfo updateFromPMPageFormat];
 }
 
+void
+nsPrintSettingsX::SetInchesScale(float aWidthScale, float aHeightScale)
+{
+  if (aWidthScale > 0 && aHeightScale > 0) {
+    mWidthScale = aWidthScale;
+    mHeightScale = aHeightScale;
+  }
+}
+
+void
+nsPrintSettingsX::GetInchesScale(float *aWidthScale, float *aHeightScale)
+{
+  *aWidthScale = mWidthScale;
+  *aHeightScale = mHeightScale;
+}
+
+NS_IMETHODIMP nsPrintSettingsX::SetPaperWidth(double aPaperWidth)
+{
+  mPaperWidth = aPaperWidth;
+  mAdjustedPaperWidth = aPaperWidth * mWidthScale;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsPrintSettingsX::SetPaperHeight(double aPaperHeight)
+{
+  mPaperHeight = aPaperHeight;
+  mAdjustedPaperHeight = aPaperHeight * mHeightScale;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsPrintSettingsX::GetEffectivePageSize(double *aWidth, double *aHeight)
+{
+  *aWidth  = NS_INCHES_TO_TWIPS(mAdjustedPaperWidth / mWidthScale);
+  *aHeight = NS_INCHES_TO_TWIPS(mAdjustedPaperHeight / mHeightScale);
+  return NS_OK;
+}
+
+void nsPrintSettingsX::SetAdjustedPaperSize(double aWidth, double aHeight)
+{
+  mAdjustedPaperWidth = aWidth;
+  mAdjustedPaperHeight = aHeight;
+}
+
+void nsPrintSettingsX::GetAdjustedPaperSize(double *aWidth, double *aHeight)
+{
+  *aWidth = mAdjustedPaperWidth;
+  *aHeight = mAdjustedPaperHeight;
+}

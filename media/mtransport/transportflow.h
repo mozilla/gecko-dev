@@ -15,7 +15,7 @@
 
 #include "nscore.h"
 #include "nsISupportsImpl.h"
-#include "mozilla/Scoped.h"
+#include "mozilla/UniquePtr.h"
 #include "transportlayer.h"
 #include "m_cpp_utils.h"
 #include "nsAutoPtr.h"
@@ -49,19 +49,17 @@
 
 namespace mozilla {
 
-class TransportFlow : public nsISupports,
-                      public sigslot::has_slots<> {
+class TransportFlow final : public nsISupports,
+                            public sigslot::has_slots<> {
  public:
   TransportFlow()
     : id_("(anonymous)"),
       state_(TransportLayer::TS_NONE),
       layers_(new std::deque<TransportLayer *>) {}
-  TransportFlow(const std::string id)
+  explicit TransportFlow(const std::string id)
     : id_(id),
       state_(TransportLayer::TS_NONE),
       layers_(new std::deque<TransportLayer *>) {}
-
-  ~TransportFlow();
 
   const std::string& id() const { return id_; }
 
@@ -102,6 +100,8 @@ class TransportFlow : public nsISupports,
   NS_DECL_THREADSAFE_ISUPPORTS
 
  private:
+  ~TransportFlow();
+
   DISALLOW_COPY_ASSIGN(TransportFlow);
 
   // Check if we are on the right thread
@@ -135,7 +135,7 @@ class TransportFlow : public nsISupports,
 
   std::string id_;
   TransportLayer::State state_;
-  ScopedDeletePtr<std::deque<TransportLayer *> > layers_;
+  UniquePtr<std::deque<TransportLayer *>> layers_;
   nsCOMPtr<nsIEventTarget> target_;
 };
 

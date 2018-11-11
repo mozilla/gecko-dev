@@ -38,12 +38,7 @@ function run_test() {
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9");
 
   // We cannot force the blocklist to update so just copy our test list to the profile
-  var blocklistFile = gProfD.clone();
-  blocklistFile.append("blocklist.xml");
-  if (blocklistFile.exists())
-    blocklistFile.remove(false);
-  var source = do_get_file("data/test_bug468528.xml");
-  source.copyTo(gProfD, "blocklist.xml");
+  copyBlocklistToProfile(do_get_file("data/test_bug468528.xml"));
 
   var blocklist = Components.classes["@mozilla.org/extensions/blocklist;1"]
                             .getService(nsIBLS);
@@ -53,7 +48,7 @@ function run_test() {
 
   // not blocked - won't match due to invalid regexp
   do_check_true(blocklist.getPluginBlocklistState(PLUGINS[1], "1", "1.9") == nsIBLS.STATE_NOT_BLOCKED);
-  
+
   // blocked - the invalid regexp for the previous item shouldn't affect this one
   do_check_true(blocklist.getPluginBlocklistState(PLUGINS[2], "1", "1.9") == nsIBLS.STATE_BLOCKED);
 

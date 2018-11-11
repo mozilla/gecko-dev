@@ -1,3 +1,5 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 *******************************************************************************
 * Copyright (C) 2008-2013, International Business Machines Corporation and
@@ -29,7 +31,7 @@ class GenderInfoTest;
 U_NAMESPACE_BEGIN
 
 // Forward Declaration
-void GenderInfo_initCache(UErrorCode &status);
+void U_CALLCONV GenderInfo_initCache(UErrorCode &status);
 
 /**
  * GenderInfo computes the gender of a list as a whole given the gender of
@@ -100,7 +102,7 @@ private:
     static const GenderInfo* loadInstance(const Locale& locale, UErrorCode& status);
 
     friend class ::GenderInfoTest;
-    friend void GenderInfo_initCache(UErrorCode &status);
+    friend void U_CALLCONV GenderInfo_initCache(UErrorCode &status);
 };
 
 U_NAMESPACE_END

@@ -16,6 +16,12 @@ interface nsIFaviconService : nsISupports
   const unsigned long FAVICON_LOAD_NON_PRIVATE = 2;
 
   /**
+   * The limit in bytes of the size of favicons in memory and passed via the
+   * favicon protocol.
+   */
+  const unsigned long MAX_FAVICON_BUFFER_SIZE = 10240;
+
+  /**
    * For a given icon URI, this will return a URI that will result in the image.
    * In most cases, this is an annotation URI.  For chrome URIs, this will do
    * nothing but returning the input URI.

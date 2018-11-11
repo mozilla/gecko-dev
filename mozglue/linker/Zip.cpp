@@ -12,7 +12,7 @@
 #include "Logging.h"
 #include "Zip.h"
 
-mozilla::TemporaryRef<Zip>
+already_AddRefed<Zip>
 Zip::Create(const char *filename)
 {
   /* Open and map the file in memory */
@@ -41,10 +41,10 @@ Zip::Create(const char *filename)
   return Create(filename, mapped, size);
 }
 
-mozilla::TemporaryRef<Zip>
+already_AddRefed<Zip>
 Zip::Create(const char *filename, void *mapped, size_t size)
 {
-  mozilla::RefPtr<Zip> zip = new Zip(filename, mapped, size);
+  RefPtr<Zip> zip = new Zip(filename, mapped, size);
 
   // If neither the first Local File entry nor central directory entries
   // have been found, the zip was invalid.
@@ -54,7 +54,7 @@ Zip::Create(const char *filename, void *mapped, size_t size)
   }
 
   ZipCollection::Singleton.Register(zip);
-  return zip;
+  return zip.forget();
 }
 
 Zip::Zip(const char *filename, void *mapped, size_t size)
@@ -65,6 +65,7 @@ Zip::Zip(const char *filename, void *mapped, size_t size)
 , nextDir(nullptr)
 , entries(nullptr)
 {
+  pthread_mutex_init(&mutex, nullptr);
   // If the first local file entry couldn't be found (which can happen
   // with optimized jars), check the first central directory entry.
   if (!nextFile)
@@ -79,11 +80,14 @@ Zip::~Zip()
     DEBUG_LOG("Unmapped %s @%p", name, mapped);
     free(name);
   }
+  pthread_mutex_destroy(&mutex);
 }
 
 bool
 Zip::GetStream(const char *path, Zip::Stream *out) const
 {
+  AutoLock lock(&mutex);
+
   DEBUG_LOG("%s - GetFile %s", name, path);
   /* Fast path: if the Local File header on store matches, we can return the
    * corresponding stream right away.
@@ -103,6 +107,7 @@ Zip::GetStream(const char *path, Zip::Stream *out) const
     out->compressedBuf = data;
     out->compressedSize = nextFile->compressedSize;
     out->uncompressedSize = nextFile->uncompressedSize;
+    out->CRC32 = nextFile->CRC32;
     out->type = static_cast<Stream::Type>(uint16_t(nextFile->compression));
 
     /* Find the next Local File header. It is usually simply following the
@@ -145,6 +150,7 @@ Zip::GetStream(const char *path, Zip::Stream *out) const
   out->compressedBuf = data;
   out->compressedSize = nextDir->compressedSize;
   out->uncompressedSize = nextDir->uncompressedSize;
+  out->CRC32 = nextDir->CRC32;
   out->type = static_cast<Stream::Type>(uint16_t(nextDir->compression));
 
   /* Store the next directory entry */
@@ -181,14 +187,21 @@ Zip::GetFirstEntry() const
 
 ZipCollection ZipCollection::Singleton;
 
-mozilla::TemporaryRef<Zip>
+static pthread_mutex_t sZipCollectionMutex = PTHREAD_MUTEX_INITIALIZER;
+
+already_AddRefed<Zip>
 ZipCollection::GetZip(const char *path)
 {
-  /* Search the list of Zips we already have for a match */
-  for (std::vector<Zip *>::iterator it = Singleton.zips.begin();
-       it < Singleton.zips.end(); ++it) {
-    if ((*it)->GetName() && (strcmp((*it)->GetName(), path) == 0))
-      return *it;
+  {
+    AutoLock lock(&sZipCollectionMutex);
+    /* Search the list of Zips we already have for a match */
+    for (std::vector<Zip *>::iterator it = Singleton.zips.begin();
+         it < Singleton.zips.end(); ++it) {
+      if ((*it)->GetName() && (strcmp((*it)->GetName(), path) == 0)) {
+        RefPtr<Zip> zip = *it;
+        return zip.forget();
+      }
+    }
   }
   return Zip::Create(path);
 }
@@ -196,12 +209,15 @@ ZipCollection::GetZip(const char *path)
 void
 ZipCollection::Register(Zip *zip)
 {
+  AutoLock lock(&sZipCollectionMutex);
+  DEBUG_LOG("ZipCollection::Register(\"%s\")", zip->GetName());
   Singleton.zips.push_back(zip);
 }
 
 void
 ZipCollection::Forget(Zip *zip)
 {
+  AutoLock lock(&sZipCollectionMutex);
   DEBUG_LOG("ZipCollection::Forget(\"%s\")", zip->GetName());
   std::vector<Zip *>::iterator it = std::find(Singleton.zips.begin(),
                                               Singleton.zips.end(), zip);

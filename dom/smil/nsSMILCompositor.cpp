@@ -1,12 +1,14 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsSMILCompositor.h"
-#include "nsSMILCSSProperty.h"
+
 #include "nsCSSProps.h"
 #include "nsHashKeys.h"
+#include "nsSMILCSSProperty.h"
 
 // PLDHashEntryHdr methods
 bool
@@ -48,7 +50,7 @@ nsSMILCompositor::AddAnimationFunction(nsSMILAnimationFunction* aFunc)
 }
 
 void
-nsSMILCompositor::ComposeAttribute()
+nsSMILCompositor::ComposeAttribute(bool& aMightHavePendingStyleUpdates)
 {
   if (!mKey.mElement)
     return;
@@ -64,6 +66,8 @@ nsSMILCompositor::ComposeAttribute()
     // No active animation functions. (We can still have a nsSMILCompositor in
     // that case if an animation function has *just* become inactive)
     smilAttr->ClearAnimValue();
+    // Removing the animation effect may require a style update.
+    aMightHavePendingStyleUpdates = true;
     return;
   }
 
@@ -87,6 +91,7 @@ nsSMILCompositor::ComposeAttribute()
   }
 
   // FIFTH: Compose animation functions
+  aMightHavePendingStyleUpdates = true;
   uint32_t length = mAnimationFunctions.Length();
   for (uint32_t i = firstFuncToCompose; i < length; ++i) {
     mAnimationFunctions[i]->ComposeResult(*smilAttr, sandwichResultValue);
@@ -123,9 +128,9 @@ nsISMILAttr*
 nsSMILCompositor::CreateSMILAttr()
 {
   if (mKey.mIsCSS) {
-    nsCSSProperty propId =
+    nsCSSPropertyID propId =
       nsCSSProps::LookupProperty(nsDependentAtomString(mKey.mAttributeName),
-                                 nsCSSProps::eEnabledForAllContent);
+                                 CSSEnabledState::eForAllContent);
     if (nsSMILCSSProperty::IsPropertyAnimatable(propId)) {
       return new nsSMILCSSProperty(propId, mKey.mElement.get());
     }
@@ -139,6 +144,18 @@ nsSMILCompositor::CreateSMILAttr()
 uint32_t
 nsSMILCompositor::GetFirstFuncToAffectSandwich()
 {
+  // For performance reasons, we throttle most animations on elements in
+  // display:none subtrees. (We can't throttle animations that target the
+  // "display" property itself, though -- if we did, display:none elements
+  // could never be dynamically displayed via animations.)
+  // To determine whether we're in a display:none subtree, we will check the
+  // element's primary frame since element in display:none subtree doesn't have
+  // a primary frame. Before this process, we will construct frame when we
+  // append an element to subtree. So we will not need to worry about pending
+  // frame construction in this step.
+  bool canThrottle = mKey.mAttributeName != nsGkAtoms::display &&
+                     !mKey.mElement->GetPrimaryFrame();
+
   uint32_t i;
   for (i = mAnimationFunctions.Length(); i > 0; --i) {
     nsSMILAnimationFunction* curAnimFunc = mAnimationFunctions[i-1];
@@ -149,7 +166,7 @@ nsSMILCompositor::GetFirstFuncToAffectSandwich()
     // changes to the target in subsequent samples.
     mForceCompositing |=
       curAnimFunc->UpdateCachedTarget(mKey) ||
-      curAnimFunc->HasChanged() ||
+      (curAnimFunc->HasChanged() && !canThrottle) ||
       curAnimFunc->WasSkippedInPrevSample();
 
     if (curAnimFunc->WillReplace()) {
@@ -157,6 +174,7 @@ nsSMILCompositor::GetFirstFuncToAffectSandwich()
       break;
     }
   }
+
   // Mark remaining animation functions as having been skipped so if we later
   // use them we'll know to force compositing.
   // Note that we only really need to do this if something has changed
@@ -176,7 +194,7 @@ nsSMILCompositor::UpdateCachedBaseValue(const nsSMILValue& aBaseValue)
   if (!mCachedBaseValue) {
     // We don't have last sample's base value cached. Assume it's changed.
     mCachedBaseValue = new nsSMILValue(aBaseValue);
-    NS_WARN_IF_FALSE(mCachedBaseValue, "failed to cache base value (OOM?)");
+    NS_WARNING_ASSERTION(mCachedBaseValue, "failed to cache base value (OOM?)");
     mForceCompositing = true;
   } else if (*mCachedBaseValue != aBaseValue) {
     // Base value has changed since last sample.

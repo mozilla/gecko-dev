@@ -1,7 +1,9 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 ******************************************************************************
 *
-*   Copyright (C) 1999-2012, International Business Machines
+*   Copyright (C) 1999-2015, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *
 ******************************************************************************
@@ -13,7 +15,7 @@
 *   created on: 1999sep13
 *   created by: Markus W. Scherer
 *
-*   This file defines basic types and constants for utf.h to be
+*   This file defines basic types and constants for ICU to be
 *   platform-independent. umachine.h and utf.h are included into
 *   utypes.h to provide all the general definitions for ICU.
 *   All of these definitions used to be in utypes.h before
@@ -48,6 +50,29 @@
  * stddef.h defines wchar_t
  */
 #include <stddef.h>
+
+#ifndef U_HIDE_INTERNAL_API
+/*
+ *  U_USE_CHAR16_T
+ *     When defined, force use of char16_t for UChar.
+ *     Note: char16_t is expected to become the default and required in the future,
+ *           and this option will be removed.
+ *     @internal
+ */
+#ifdef U_USE_CHAR16_T
+#ifdef UCHAR_TYPE
+#undef UCHAR_TYPE
+#endif
+#define UCHAR_TYPE char16_t
+
+/*
+ * In plain C, <uchar.h> is needed for the definition of char16_t
+ */
+#ifndef __cplusplus
+#include <uchar.h>
+#endif
+#endif
+#endif  /* U_HIDE_INTERNAL_API */
 
 /*==========================================================================*/
 /* For C wrappers, we use the symbol U_STABLE.                                */
@@ -115,6 +140,40 @@
 #define U_OBSOLETE U_CAPI
 /** This is used to declare a function as an internal ICU C API  */
 #define U_INTERNAL U_CAPI
+
+/**
+ * \def U_OVERRIDE
+ * Defined to the C++11 "override" keyword if available.
+ * Denotes a class or member which is an override of the base class.
+ * May result in an error if it applied to something not an override.
+ * @internal
+ */
+
+/**
+ * \def U_FINAL
+ * Defined to the C++11 "final" keyword if available.
+ * Denotes a class or member which may not be overridden in subclasses.
+ * May result in an error if subclasses attempt to override.
+ * @internal
+ */
+
+#if U_CPLUSPLUS_VERSION >= 11
+/* C++11 */
+#ifndef U_OVERRIDE
+#define U_OVERRIDE override
+#endif
+#ifndef U_FINAL
+#define U_FINAL final
+#endif
+#else
+/* not C++11 - define to nothing */
+#ifndef U_OVERRIDE
+#define U_OVERRIDE
+#endif
+#ifndef U_FINAL
+#define U_FINAL
+#endif
+#endif
 
 /*==========================================================================*/
 /* limits for int32_t etc., like in POSIX inttypes.h                        */

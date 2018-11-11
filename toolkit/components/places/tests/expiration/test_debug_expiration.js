@@ -8,20 +8,26 @@
  * only expire orphan entries, unless -1 is passed as limit.
  */
 
-let gNow = getExpirablePRTime();
+var gNow = getExpirablePRTime(60);
 
-add_task(function test_expire_orphans()
+add_task(function* test_expire_orphans()
 {
   // Add visits to 2 pages and force a orphan expiration. Visits should survive.
-  yield promiseAddVisits({ uri: uri("http://page1.mozilla.org/"),
-                           visitDate: gNow++ });
-  yield promiseAddVisits({ uri: uri("http://page2.mozilla.org/"),
-                           visitDate: gNow++ });
+  yield PlacesTestUtils.addVisits({
+    uri: uri("http://page1.mozilla.org/"),
+    visitDate: gNow++
+  });
+  yield PlacesTestUtils.addVisits({
+    uri: uri("http://page2.mozilla.org/"),
+    visitDate: gNow++
+  });
   // Create a orphan place.
-  let id = PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
-                                                NetUtil.newURI("http://page3.mozilla.org/"),
-                                                PlacesUtils.bookmarks.DEFAULT_INDEX, "");
-  PlacesUtils.bookmarks.removeItem(id);
+  let bm = yield PlacesUtils.bookmarks.insert({
+    parentGuid: PlacesUtils.bookmarks.unfiledGuid,
+    url: "http://page3.mozilla.org/",
+    title: ""
+  });
+  yield PlacesUtils.bookmarks.remove(bm);
 
   // Expire now.
   yield promiseForceExpirationStep(0);
@@ -32,21 +38,27 @@ add_task(function test_expire_orphans()
   do_check_false(page_in_database("http://page3.mozilla.org/"));
 
   // Clean up.
-  yield promiseClearHistory();
+  yield PlacesTestUtils.clearHistory();
 });
 
-add_task(function test_expire_orphans_optionalarg()
+add_task(function* test_expire_orphans_optionalarg()
 {
   // Add visits to 2 pages and force a orphan expiration. Visits should survive.
-  yield promiseAddVisits({ uri: uri("http://page1.mozilla.org/"),
-                           visitDate: gNow++ });
-  yield promiseAddVisits({ uri: uri("http://page2.mozilla.org/"),
-                           visitDate: gNow++ });
+  yield PlacesTestUtils.addVisits({
+    uri: uri("http://page1.mozilla.org/"),
+    visitDate: gNow++
+  });
+  yield PlacesTestUtils.addVisits({
+    uri: uri("http://page2.mozilla.org/"),
+    visitDate: gNow++
+  });
   // Create a orphan place.
-  let id = PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
-                                                NetUtil.newURI("http://page3.mozilla.org/"),
-                                                PlacesUtils.bookmarks.DEFAULT_INDEX, "");
-  PlacesUtils.bookmarks.removeItem(id);
+  let bm = yield PlacesUtils.bookmarks.insert({
+    parentGuid: PlacesUtils.bookmarks.unfiledGuid,
+    url: "http://page3.mozilla.org/",
+    title: ""
+  });
+  yield PlacesUtils.bookmarks.remove(bm);
 
   // Expire now.
   yield promiseForceExpirationStep();
@@ -57,47 +69,149 @@ add_task(function test_expire_orphans_optionalarg()
   do_check_false(page_in_database("http://page3.mozilla.org/"));
 
   // Clean up.
-  yield promiseClearHistory();
+  yield PlacesTestUtils.clearHistory();
 });
 
-add_task(function test_expire_limited()
+add_task(function* test_expire_limited()
 {
-  // Add visits to 2 pages and force a single expiration.
-  // Only 1 page should survive.
-  yield promiseAddVisits({ uri: uri("http://page1.mozilla.org/"),
-                           visitDate: gNow++ });
-  yield promiseAddVisits({ uri: uri("http://page2.mozilla.org/"),
-                           visitDate: gNow++ });
+  yield PlacesTestUtils.addVisits([
+    { // Should be expired cause it's the oldest visit
+      uri: "http://old.mozilla.org/",
+      visitDate: gNow++
+    },
+    { // Should not be expired cause we limit 1
+      uri: "http://new.mozilla.org/",
+      visitDate: gNow++
+    },
+  ]);
 
   // Expire now.
   yield promiseForceExpirationStep(1);
 
-  // Check that visits to the more recent page survived.
-  do_check_false(page_in_database("http://page1.mozilla.org/"));
-  do_check_eq(visits_in_database("http://page2.mozilla.org/"), 1);
+  // Check that newer visit survived.
+  do_check_eq(visits_in_database("http://new.mozilla.org/"), 1);
+  // Other visits should have been expired.
+  do_check_false(page_in_database("http://old.mozilla.org/"));
 
   // Clean up.
-  yield promiseClearHistory();
+  yield PlacesTestUtils.clearHistory();
 });
 
-add_task(function test_expire_unlimited()
+add_task(function* test_expire_limited_longurl()
 {
-  // Add visits to 2 pages and force a single expiration.
-  // Only 1 page should survive.
-  yield promiseAddVisits({ uri: uri("http://page1.mozilla.org/"),
-                           visitDate: gNow++ });
-  yield promiseAddVisits({ uri: uri("http://page2.mozilla.org/"),
-                           visitDate: gNow++ });
+  let longurl = "http://long.mozilla.org/" + "a".repeat(232);
+  yield PlacesTestUtils.addVisits([
+    { // Should be expired cause it's the oldest visit
+      uri: "http://old.mozilla.org/",
+      visitDate: gNow++
+    },
+    { // Should be expired cause it's a long url older than 60 days.
+      uri: longurl,
+      visitDate: gNow++
+    },
+    { // Should not be expired cause younger than 60 days.
+      uri: longurl,
+      visitDate: getExpirablePRTime(58)
+    }
+  ]);
 
-  // Expire now.
-  yield promiseForceExpirationStep(-1);
+  yield promiseForceExpirationStep(1);
 
-  // Check that visits to the more recent page survived.
-  do_check_false(page_in_database("http://page1.mozilla.org/"));
-  do_check_false(page_in_database("http://page2.mozilla.org/"));
+  // Check that some visits survived.
+  do_check_eq(visits_in_database(longurl), 1);
+  // Other visits should have been expired.
+  do_check_false(page_in_database("http://old.mozilla.org/"));
 
   // Clean up.
-  yield promiseClearHistory();
+  yield PlacesTestUtils.clearHistory();
+});
+
+add_task(function* test_expire_limited_exoticurl()
+{
+  yield PlacesTestUtils.addVisits([
+    { // Should be expired cause it's the oldest visit
+      uri: "http://old.mozilla.org/",
+      visitDate: gNow++
+    },
+    { // Should be expired cause it's a long url older than 60 days.
+      uri: "http://download.mozilla.org",
+      visitDate: gNow++,
+      transition: 7
+    },
+    { // Should not be expired cause younger than 60 days.
+      uri: "http://nonexpirable-download.mozilla.org",
+      visitDate: getExpirablePRTime(58),
+      transition: 7
+    }
+  ]);
+
+  yield promiseForceExpirationStep(1);
+
+  // Check that some visits survived.
+  do_check_eq(visits_in_database("http://nonexpirable-download.mozilla.org/"), 1);
+  // The visits are gone, the url is not yet, cause we limited the expiration
+  // to one entry, and we already removed http://old.mozilla.org/.
+  // The page normally would be expired by the next expiration run.
+  do_check_eq(visits_in_database("http://download.mozilla.org/"), 0);
+  // Other visits should have been expired.
+  do_check_false(page_in_database("http://old.mozilla.org/"));
+
+  // Clean up.
+  yield PlacesTestUtils.clearHistory();
+});
+
+add_task(function* test_expire_unlimited()
+{
+  let longurl = "http://long.mozilla.org/" + "a".repeat(232);
+  yield PlacesTestUtils.addVisits([
+    {
+      uri: "http://old.mozilla.org/",
+      visitDate: gNow++
+    },
+    {
+      uri: "http://new.mozilla.org/",
+      visitDate: gNow++
+    },
+    // Add expirable visits.
+    {
+      uri: "http://download.mozilla.org/",
+      visitDate: gNow++,
+      transition: PlacesUtils.history.TRANSITION_DOWNLOAD
+    },
+    {
+      uri: longurl,
+      visitDate: gNow++
+    },
+
+    // Add non-expirable visits
+    {
+      uri: "http://nonexpirable.mozilla.org/",
+      visitDate: getExpirablePRTime(5)
+    },
+    {
+      uri: "http://nonexpirable-download.mozilla.org/",
+      visitDate: getExpirablePRTime(5),
+      transition: PlacesUtils.history.TRANSITION_DOWNLOAD
+    },
+    {
+      uri: longurl,
+      visitDate: getExpirablePRTime(5)
+    }
+  ]);
+
+  yield promiseForceExpirationStep(-1);
+
+  // Check that some visits survived.
+  do_check_eq(visits_in_database("http://nonexpirable.mozilla.org/"), 1);
+  do_check_eq(visits_in_database("http://nonexpirable-download.mozilla.org/"), 1);
+  do_check_eq(visits_in_database(longurl), 1);
+  // Other visits should have been expired.
+  do_check_false(page_in_database("http://old.mozilla.org/"));
+  do_check_false(page_in_database("http://download.mozilla.org/"));
+  do_check_false(page_in_database("http://new.mozilla.org/"));
+
+  // Clean up.
+  yield PlacesTestUtils.clearHistory();
 });
 
 function run_test()

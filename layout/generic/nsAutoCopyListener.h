@@ -10,11 +10,15 @@
 #include "nsISelectionPrivate.h"
 #include "mozilla/Attributes.h"
 
-class nsAutoCopyListener MOZ_FINAL : public nsISelectionListener
+class nsAutoCopyListener final : public nsISelectionListener
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSISELECTIONLISTENER
+
+  explicit nsAutoCopyListener(int16_t aClipboardID)
+    : mCachedClipboard(aClipboardID)
+  {}
 
   void Listen(nsISelectionPrivate *aSelection)
   {
@@ -22,10 +26,10 @@ public:
       aSelection->AddSelectionListener(this);
   }
 
-  static nsAutoCopyListener* GetInstance()
+  static nsAutoCopyListener* GetInstance(int16_t aClipboardID)
   {
     if (!sInstance) {
-      sInstance = new nsAutoCopyListener();
+      sInstance = new nsAutoCopyListener(aClipboardID);
 
       NS_ADDREF(sInstance);
     }
@@ -39,7 +43,10 @@ public:
   }
 
 private:
+  ~nsAutoCopyListener() {}
+
   static nsAutoCopyListener* sInstance;
+  int16_t mCachedClipboard;
 };
 
 #endif

@@ -6,8 +6,9 @@
 #include "nsIChannel.idl"
 
 interface nsIFile;
+interface nsIZipEntry;
 
-[scriptable, builtinclass, uuid(063e9698-ec67-4fe2-aa19-d21505beaa61)]
+[scriptable, builtinclass, uuid(e72b179b-d5df-4d87-b5de-fd73a65c60f6)]
 interface nsIJARChannel : nsIChannel
 {
     /**
@@ -19,12 +20,13 @@ interface nsIJARChannel : nsIChannel
     [infallible] readonly attribute boolean isUnsafe;
 
     /**
-     * Forces the uri to be a app:// uri.
-     */
-    void setAppURI(in nsIURI uri);
-
-    /**
-     * Returns the JAR file.
+     * Returns the JAR file.  May be null if the jar is remote.
      */
     readonly attribute nsIFile jarFile;
+
+    /**
+     * Returns the zip entry if the file is synchronously accessible.
+     * This will work even without opening the channel.
+     */
+    readonly attribute nsIZipEntry zipEntry;
 };

@@ -27,11 +27,12 @@ public:
   NS_DECL_NSIOBSERVER
 
   CookieServiceChild();
-  virtual ~CookieServiceChild();
 
   static CookieServiceChild* GetSingleton();
 
 protected:
+  virtual ~CookieServiceChild();
+
   void SerializeURIs(nsIURI *aHostURI,
                      nsIChannel *aChannel,
                      nsCString &aHostSpec,
@@ -59,8 +60,8 @@ protected:
   bool mThirdPartySession;
 };
 
-}
-}
+} // namespace net
+} // namespace mozilla
 
 #endif // mozilla_net_CookieServiceChild_h__
 

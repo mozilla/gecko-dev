@@ -1,4 +1,4 @@
 function callback(obj) {}
-setObjectMetadataCallback(callback);
+enableShellAllocationMetadataBuilder();
 gczeal(7);
 var statusitems = [];

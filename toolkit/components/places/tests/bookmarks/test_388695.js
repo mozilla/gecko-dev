@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,7 @@
 try {
   var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
               getService(Ci.nsINavBookmarksService);
-} catch(ex) {
+} catch (ex) {
   do_throw("Could not get nav-bookmarks-service\n");
 }
 
@@ -35,7 +35,7 @@ function run_test() {
 }
 
 function phase2() {
-  gItemId2 = bmsvc.insertBookmark(gTestRoot, gURI, bmsvc.DEFAULT_INDEX, "");  
+  gItemId2 = bmsvc.insertBookmark(gTestRoot, gURI, bmsvc.DEFAULT_INDEX, "");
   var b = bmsvc.getBookmarkIdsForURI(gURI);
   do_check_eq(b[0], gItemId2);
   do_check_eq(b[1], gItemId1);

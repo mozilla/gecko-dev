@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,6 +11,7 @@
 #include "nsHTMLCSSStyleSheet.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/css/StyleRule.h"
+#include "mozilla/DeclarationBlockInlines.h"
 #include "nsIStyleRuleProcessor.h"
 #include "nsPresContext.h"
 #include "nsRuleWalker.h"
@@ -17,26 +19,12 @@
 #include "mozilla/dom/Element.h"
 #include "nsAttrValue.h"
 #include "nsAttrValueInlines.h"
+#include "nsCSSPseudoElements.h"
+#include "mozilla/RestyleManagerHandle.h"
+#include "mozilla/RestyleManagerHandleInlines.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
-
-namespace {
-
-PLDHashOperator
-ClearAttrCache(const nsAString& aKey, MiscContainer*& aValue, void*)
-{
-  // Ideally we'd just call MiscContainer::Evict, but we can't do that since
-  // we're iterating the hashtable.
-  MOZ_ASSERT(aValue->mType == nsAttrValue::eCSSStyleRule);
-
-  aValue->mValue.mCSSStyleRule->SetHTMLCSSStyleSheet(nullptr);
-  aValue->mValue.mCached = 0;
-
-  return PL_DHASH_REMOVE;
-}
-
-} // anonymous namespace
 
 nsHTMLCSSStyleSheet::nsHTMLCSSStyleSheet()
 {
@@ -46,7 +34,21 @@ nsHTMLCSSStyleSheet::~nsHTMLCSSStyleSheet()
 {
   // We may go away before all of our cached style attributes do,
   // so clean up any that are left.
-  mCachedStyleAttrs.Enumerate(ClearAttrCache, nullptr);
+  for (auto iter = mCachedStyleAttrs.Iter(); !iter.Done(); iter.Next()) {
+    MiscContainer*& value = iter.Data();
+
+    // Ideally we'd just call MiscContainer::Evict, but we can't do that since
+    // we're iterating the hashtable.
+    if (value->mType == nsAttrValue::eCSSDeclaration) {
+      DeclarationBlock* declaration = value->mValue.mCSSDeclaration;
+      declaration->SetHTMLCSSStyleSheet(nullptr);
+    } else {
+      MOZ_ASSERT_UNREACHABLE("unexpected cached nsAttrValue type");
+    }
+
+    value->mValue.mCached = 0;
+    iter.Remove();
+  }
 }
 
 NS_IMPL_ISUPPORTS(nsHTMLCSSStyleSheet, nsIStyleRuleProcessor)
@@ -54,47 +56,62 @@ NS_IMPL_ISUPPORTS(nsHTMLCSSStyleSheet, nsIStyleRuleProcessor)
 /* virtual */ void
 nsHTMLCSSStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
 {
-  Element* element = aData->mElement;
+  ElementRulesMatching(aData->mPresContext, aData->mElement,
+                       aData->mRuleWalker);
+}
 
+void
+nsHTMLCSSStyleSheet::ElementRulesMatching(nsPresContext* aPresContext,
+                                          Element* aElement,
+                                          nsRuleWalker* aRuleWalker)
+{
   // just get the one and only style rule from the content's STYLE attribute
-  css::StyleRule* rule = element->GetInlineStyleRule();
-  if (rule) {
-    rule->RuleMatched();
-    aData->mRuleWalker->Forward(rule);
+  DeclarationBlock* declaration = aElement->GetInlineStyleDeclaration();
+  if (declaration) {
+    declaration->SetImmutable();
+    aRuleWalker->Forward(declaration->AsGecko());
   }
 
-  rule = element->GetSMILOverrideStyleRule();
-  if (rule) {
-    if (aData->mPresContext->IsProcessingRestyles() &&
-        !aData->mPresContext->IsProcessingAnimationStyleChange()) {
-      // Non-animation restyle -- don't process SMIL override style, because we
-      // don't want SMIL animation to trigger new CSS transitions. Instead,
-      // request an Animation restyle, so we still get noticed.
-      aData->mPresContext->PresShell()->RestyleForAnimation(element,
-                                                            eRestyle_Self);
-    } else {
+  declaration = aElement->GetSMILOverrideStyleDeclaration();
+  if (declaration) {
+    MOZ_ASSERT(aPresContext->RestyleManager()->IsGecko(),
+               "stylo: ElementRulesMatching must not be called when we have "
+               "a Servo-backed style system");
+    RestyleManager* restyleManager = aPresContext->RestyleManager()->AsGecko();
+    if (!restyleManager->SkipAnimationRules()) {
       // Animation restyle (or non-restyle traversal of rules)
       // Now we can walk SMIL overrride style, without triggering transitions.
-      rule->RuleMatched();
-      aData->mRuleWalker->Forward(rule);
+      declaration->SetImmutable();
+      aRuleWalker->Forward(declaration->AsGecko());
     }
+  }
+}
+
+void
+nsHTMLCSSStyleSheet::PseudoElementRulesMatching(Element* aPseudoElement,
+                                                CSSPseudoElementType
+                                                  aPseudoType,
+                                                nsRuleWalker* aRuleWalker)
+{
+  MOZ_ASSERT(nsCSSPseudoElements::
+               PseudoElementSupportsStyleAttribute(aPseudoType));
+  MOZ_ASSERT(aPseudoElement);
+
+  // just get the one and only style rule from the content's STYLE attribute
+  DeclarationBlock* declaration = aPseudoElement->GetInlineStyleDeclaration();
+  if (declaration) {
+    declaration->SetImmutable();
+    aRuleWalker->Forward(declaration->AsGecko());
   }
 }
 
 /* virtual */ void
 nsHTMLCSSStyleSheet::RulesMatching(PseudoElementRuleProcessorData* aData)
 {
-  if (nsCSSPseudoElements::PseudoElementSupportsStyleAttribute(aData->mPseudoType)) {
-    MOZ_ASSERT(aData->mPseudoElement,
-        "If pseudo element is supposed to support style attribute, it must "
-        "have a pseudo element set");
-
-    // just get the one and only style rule from the content's STYLE attribute
-    css::StyleRule* rule = aData->mPseudoElement->GetInlineStyleRule();
-    if (rule) {
-      rule->RuleMatched();
-      aData->mRuleWalker->Forward(rule);
-    }
+  if (nsCSSPseudoElements::PseudoElementSupportsStyleAttribute(aData->mPseudoType) &&
+      aData->mPseudoElement) {
+    PseudoElementRulesMatching(aData->mPseudoElement, aData->mPseudoType,
+                               aData->mRuleWalker);
   }
 }
 
@@ -131,12 +148,14 @@ nsHTMLCSSStyleSheet::HasDocumentStateDependentStyle(StateRuleProcessorData* aDat
 
 // Test if style is dependent on attribute
 /* virtual */ nsRestyleHint
-nsHTMLCSSStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aData)
+nsHTMLCSSStyleSheet::HasAttributeDependentStyle(
+    AttributeRuleProcessorData* aData,
+    RestyleHintData& aRestyleHintDataResult)
 {
   // Perhaps should check that it's XUL, SVG, (or HTML) namespace, but
   // it doesn't really matter.
   if (aData->mAttrHasChanged && aData->mAttribute == nsGkAtoms::style) {
-    return eRestyle_Self;
+    return eRestyle_StyleAttribute;
   }
 
   return nsRestyleHint(0);
@@ -151,7 +170,18 @@ nsHTMLCSSStyleSheet::MediumFeaturesChanged(nsPresContext* aPresContext)
 /* virtual */ size_t
 nsHTMLCSSStyleSheet::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 {
-  return 0;
+  // The size of mCachedStyleAttrs's mTable member (a PLDHashTable) is
+  // significant in itself, but more significant is the size of the nsString
+  // members of the nsStringHashKeys.
+  size_t n = 0;
+  n += mCachedStyleAttrs.ShallowSizeOfExcludingThis(aMallocSizeOf);
+  for (auto iter = mCachedStyleAttrs.ConstIter(); !iter.Done(); iter.Next()) {
+    // We don't own the MiscContainers (the hash table values) so we don't
+    // count them. We do care about the size of the nsString members in the
+    // keys though.
+    n += iter.Key().SizeOfExcludingThisIfUnshared(aMallocSizeOf);
+  }
+  return n;
 }
 
 /* virtual */ size_t
@@ -173,7 +203,7 @@ nsHTMLCSSStyleSheet::EvictStyleAttr(const nsAString& aSerialized,
 {
 #ifdef DEBUG
   {
-    NS_ASSERTION(aValue = mCachedStyleAttrs.Get(aSerialized),
+    NS_ASSERTION(aValue == mCachedStyleAttrs.Get(aSerialized),
                  "Cached value does not match?!");
   }
 #endif

@@ -14,8 +14,8 @@
     </resources>
     <content>
       <xul:box anonid="viewContainer" class="panel-viewcontainer" xbl:inherits="panelopen,viewtype,transitioning">
-        <xul:stack anonid="viewStack" xbl:inherits="viewtype" viewtype="main" class="panel-viewstack">
-          <xul:vbox anonid="mainViewContainer" class="panel-mainview"/>
+        <xul:stack anonid="viewStack" xbl:inherits="viewtype,transitioning" viewtype="main" class="panel-viewstack">
+          <xul:vbox anonid="mainViewContainer" class="panel-mainview" xbl:inherits="viewtype"/>
 
           <!-- Used to capture click events over the PanelUI-mainView if we're in
                subview mode. That way, any click on the PanelUI-mainView causes us
@@ -163,13 +163,7 @@
 
             this._subViewObserver.disconnect();
 
-            this._transitioning = true;
-
-            this._viewContainer.addEventListener("transitionend", function trans() {
-              this._viewContainer.removeEventListener("transitionend", trans);
-              this._transitioning = false;
-            }.bind(this));
-            this._viewContainer.style.height = this._mainViewHeight + "px";
+            this._setViewContainerHeight(this._mainViewHeight);
 
             this.setAttribute("viewtype", "main");
           }
@@ -182,50 +176,80 @@
         <parameter name="aViewId"/>
         <parameter name="aAnchor"/>
         <body><![CDATA[
-          let viewNode = this.querySelector("#" + aViewId);
-          viewNode.setAttribute("current", true);
-          // Emit the ViewShowing event so that the widget definition has a chance
-          // to lazily populate the subview with things.
-          let evt = document.createEvent("CustomEvent");
-          evt.initCustomEvent("ViewShowing", true, true, viewNode);
-          viewNode.dispatchEvent(evt);
-          if (evt.defaultPrevented) {
-            return;
-          }
+          Task.spawn(function*() {
+            let viewNode = this.querySelector("#" + aViewId);
+            viewNode.setAttribute("current", true);
+            // Emit the ViewShowing event so that the widget definition has a chance
+            // to lazily populate the subview with things.
+            let detail = {
+              blockers: new Set(),
+              addBlocker(aPromise) {
+                this.blockers.add(aPromise);
+              },
+            };
 
-          this._currentSubView = viewNode;
+            let evt = new CustomEvent("ViewShowing", { bubbles: true, cancelable: true, detail });
+            viewNode.dispatchEvent(evt);
 
-          // Now we have to transition the panel. There are a few parts to this:
-          //
-          // 1) The main view content gets shifted so that the center of the anchor
-          //    node is at the left-most edge of the panel.
-          // 2) The subview deck slides in so that it takes up almost all of the
-          //    panel.
-          // 3) If the subview is taller then the main panel contents, then the panel
-          //    must grow to meet that new height. Otherwise, it must shrink.
-          //
-          // All three of these actions make use of CSS transformations, so they
-          // should all occur simultaneously.
-          this.setAttribute("viewtype", "subview");
-          this._shiftMainView(aAnchor);
+            let cancel = evt.defaultPrevented;
+            if (detail.blockers.size) {
+              try {
+                let results = yield Promise.all(detail.blockers);
+                cancel = cancel || results.some(val => val === false);
+              } catch (e) {
+                Components.utils.reportError(e);
+                cancel = true;
+              }
+            }
 
-          this._mainViewHeight = this._viewStack.clientHeight;
+            if (cancel) {
+              return;
+            }
 
-          this._transitioning = true;
-          this._viewContainer.addEventListener("transitionend", function trans() {
-            this._viewContainer.removeEventListener("transitionend", trans);
-            this._transitioning = false;
+            this._currentSubView = viewNode;
+
+            // Now we have to transition the panel. There are a few parts to this:
+            //
+            // 1) The main view content gets shifted so that the center of the anchor
+            //    node is at the left-most edge of the panel.
+            // 2) The subview deck slides in so that it takes up almost all of the
+            //    panel.
+            // 3) If the subview is taller then the main panel contents, then the panel
+            //    must grow to meet that new height. Otherwise, it must shrink.
+            //
+            // All three of these actions make use of CSS transformations, so they
+            // should all occur simultaneously.
+            this.setAttribute("viewtype", "subview");
+            this._shiftMainView(aAnchor);
+
+            this._mainViewHeight = this._viewStack.clientHeight;
+
+            let newHeight = this._heightOfSubview(viewNode, this._subViews);
+            this._setViewContainerHeight(newHeight);
+
+            this._subViewObserver.observe(viewNode, {
+              attributes: true,
+              characterData: true,
+              childList: true,
+              subtree: true
+            });
           }.bind(this));
+        ]]></body>
+      </method>
 
-          let newHeight = this._heightOfSubview(viewNode, this._subViews);
-          this._viewContainer.style.height = newHeight + "px";
+      <method name="_setViewContainerHeight">
+        <parameter name="aHeight"/>
+        <body><![CDATA[
+          let container = this._viewContainer;
+          this._transitioning = true;
 
-          this._subViewObserver.observe(viewNode, {
-            attributes: true,
-            characterData: true,
-            childList: true,
-            subtree: true
-          });
+          let onTransitionEnd = () => {
+            container.removeEventListener("transitionend", onTransitionEnd);
+            this._transitioning = false;
+          };
+
+          container.addEventListener("transitionend", onTransitionEnd);
+          container.style.height = `${aHeight}px`;
         ]]></body>
       </method>
 
@@ -240,15 +264,24 @@
             let mainViewRect = this._mainViewContainer.getBoundingClientRect();
             let center = aAnchor.clientWidth / 2;
             let direction = aAnchor.ownerDocument.defaultView.getComputedStyle(aAnchor, null).direction;
-            let edge, target;
+            let edge;
             if (direction == "ltr") {
               edge = anchorRect.left - mainViewRect.left;
-              target = "-" + (edge + center);
             } else {
               edge = mainViewRect.right - anchorRect.right;
-              target = edge + center;
             }
-            this._mainViewContainer.style.transform = "translateX(" + target + "px)";
+
+            // If the anchor is an element on the far end of the mainView we
+            // don't want to shift the mainView too far, we would reveal empty
+            // space otherwise.
+            let cstyle = window.getComputedStyle(document.documentElement, null);
+            let exitSubViewGutterWidth =
+              cstyle.getPropertyValue("--panel-ui-exit-subview-gutter-width");
+            let maxShift = mainViewRect.width - parseInt(exitSubViewGutterWidth);
+            let target = Math.min(maxShift, edge + center);
+
+            let neg = direction == "ltr" ? "-" : "";
+            this._mainViewContainer.style.transform = `translateX(${neg}${target}px)`;
             aAnchor.setAttribute("panel-multiview-anchor", true);
           } else {
             this._mainViewContainer.style.transform = "";
@@ -313,6 +346,12 @@
         ]]></body>
       </method>
 
+      <method name="_shouldSetPosition">
+        <body><![CDATA[
+          return this.getAttribute("nosubviews") == "true";
+        ]]></body>
+      </method>
+
       <method name="_shouldSetHeight">
         <body><![CDATA[
           return this.getAttribute("nosubviews") != "true";
@@ -332,6 +371,19 @@
           this.ignoreMutations = false;
         ]]></body>
       </method>
+      <method name="_adjustContainerHeight">
+        <body><![CDATA[
+          if (!this.ignoreMutations && !this.showingSubView && !this._transitioning) {
+            let height;
+            if (this.showingSubViewAsMainView) {
+              height = this._heightOfSubview(this._mainView);
+            } else {
+              height = this._mainView.scrollHeight;
+            }
+            this._viewContainer.style.height = height + "px";
+          }
+        ]]></body>
+      </method>
       <method name="_syncContainerWithSubView">
         <body><![CDATA[
           // Check that this panel is still alive:
@@ -348,19 +400,44 @@
       <method name="_syncContainerWithMainView">
         <body><![CDATA[
           // Check that this panel is still alive:
-          if (!this._panel || !this._panel.parentNode || !this._shouldSetHeight()) {
+          if (!this._panel || !this._panel.parentNode) {
             return;
           }
 
-          if (!this.ignoreMutations && !this.showingSubView && !this._transitioning) {
-            let height;
-            if (this.showingSubViewAsMainView) {
-              height = this._heightOfSubview(this._mainView);
-            } else {
-              height = this._mainView.scrollHeight;
-            }
-            this._viewContainer.style.height = height + "px";
+          if (this._shouldSetPosition()) {
+            this._panel.adjustArrowPosition();
           }
+
+          if (this._shouldSetHeight()) {
+            this._adjustContainerHeight();
+          }
+        ]]></body>
+      </method>
+
+      <!-- Call this when the height of one of your views (the main view or a
+           subview) changes and you want the heights of the multiview and panel
+           to be the same as the view's height.
+           If the caller can give a hint of the expected height change with the
+           optional aExpectedChange parameter, it prevents flicker. -->
+      <method name="setHeightToFit">
+        <parameter name="aExpectedChange"/>
+        <body><![CDATA[
+          // Set the max-height to zero, wait until the height is actually
+          // updated, and then remove it.  If it's not removed, weird things can
+          // happen, like widgets in the panel won't respond to clicks even
+          // though they're visible.
+          let count = 5;
+          let height = getComputedStyle(this).height;
+          if (aExpectedChange)
+            this.style.maxHeight = (parseInt(height) + aExpectedChange) + "px";
+          else
+            this.style.maxHeight = "0";
+          let interval = setInterval(() => {
+            if (height != getComputedStyle(this).height || --count == 0) {
+              clearInterval(interval);
+              this.style.removeProperty("max-height");
+            }
+          }, 0);
         ]]></body>
       </method>
 
@@ -369,7 +446,7 @@
         <parameter name="aContainerToCheck"/>
         <body><![CDATA[
           function getFullHeight(element) {
-            //XXXgijs: unfortunately, scrollHeight rounds values, and there's no alternative
+            // XXXgijs: unfortunately, scrollHeight rounds values, and there's no alternative
             // that works with overflow: auto elements. Fortunately for us,
             // we have exactly 1 (potentially) scrolling element in here (the subview body),
             // and rounding 1 value is OK - rounding more than 1 and adding them means we get
@@ -409,7 +486,7 @@
             let containerCS = win.getComputedStyle(aContainerToCheck);
             height += parseFloat(containerCS.paddingTop) + parseFloat(containerCS.paddingBottom);
           }
-          return Math.round(height);
+          return Math.ceil(height);
         ]]></body>
       </method>
 

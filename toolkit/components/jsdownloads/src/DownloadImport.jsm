@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80 filetype=javascript: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,8 +10,7 @@ this.EXPORTED_SYMBOLS = [
   "DownloadImport",
 ];
 
-////////////////////////////////////////////////////////////////////////////////
-//// Globals
+// Globals
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -42,8 +41,7 @@ const DOWNLOAD_DOWNLOADING = 0;
 const DOWNLOAD_PAUSED = 4;
 const DOWNLOAD_QUEUED = 5;
 
-////////////////////////////////////////////////////////////////////////////////
-//// DownloadImport
+// DownloadImport
 
 /**
  * Provides an object that has a method to import downloads
@@ -71,7 +69,7 @@ this.DownloadImport.prototype = {
    *           the DownloadList)
    */
   import: function () {
-    return Task.spawn(function task_DI_import() {
+    return Task.spawn(function* task_DI_import() {
       let connection = yield Sqlite.openConnection({ path: this.path });
 
       try {
@@ -174,7 +172,7 @@ this.DownloadImport.prototype = {
             yield this.list.add(download);
 
             if (resumeDownload) {
-              download.start();
+              download.start().catch(() => {});
             } else {
               yield download.refresh();
             }

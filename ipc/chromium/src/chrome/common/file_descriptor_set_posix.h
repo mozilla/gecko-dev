@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 // Copyright (c) 2006-2009 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -9,28 +11,22 @@
 
 #include "base/basictypes.h"
 #include "base/file_descriptor_posix.h"
-#include "base/ref_counted.h"
+#include "nsISupportsImpl.h"
 
 // -----------------------------------------------------------------------------
 // A FileDescriptorSet is an ordered set of POSIX file descriptors. These are
 // associated with IPC messages so that descriptors can be transmitted over a
 // UNIX domain socket.
 // -----------------------------------------------------------------------------
-class FileDescriptorSet : public base::RefCountedThreadSafe<FileDescriptorSet> {
+class FileDescriptorSet {
  public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(FileDescriptorSet)
   FileDescriptorSet();
-  ~FileDescriptorSet();
 
-  // This is the maximum number of descriptors per message. We need to know this
-  // because the control message kernel interface has to be given a buffer which
-  // is large enough to store all the descriptor numbers. Otherwise the kernel
-  // tells us that it truncated the control data and the extra descriptors are
-  // lost.
-  //
-  // In debugging mode, it's a fatal error to try and add more than this number
-  // of descriptors to a FileDescriptorSet.
+  // Mac and Linux both limit the number of file descriptors per message to
+  // slightly more than 250.
   enum {
-    MAX_DESCRIPTORS_PER_MESSAGE = 7
+    MAX_DESCRIPTORS_PER_MESSAGE = 250
   };
 
   // ---------------------------------------------------------------------------
@@ -90,6 +86,8 @@ class FileDescriptorSet : public base::RefCountedThreadSafe<FileDescriptorSet> {
   // ---------------------------------------------------------------------------
 
  private:
+  ~FileDescriptorSet();
+
   // A vector of descriptors and close flags. If this message is sent, then
   // these descriptors are sent as control data. After sending, any descriptors
   // with a true flag are closed. If this message has been received, then these

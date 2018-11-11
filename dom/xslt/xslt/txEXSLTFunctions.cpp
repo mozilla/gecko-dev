@@ -110,7 +110,7 @@ createDocFragment(txIEvalContext *aContext)
 
     const txXPathNode& document = es->getSourceDocument();
     nsIDocument *doc = txXPathNativeNode::getDocument(document);
-    nsRefPtr<DocumentFragment> fragment =
+    RefPtr<DocumentFragment> fragment =
       new DocumentFragment(doc->NodeInfoManager());
 
     return fragment.forget();
@@ -125,15 +125,13 @@ createAndAddToResult(nsIAtom* aName, const nsSubstring& aValue,
                  "invalid result-holder");
 
     nsIDocument* doc = aResultHolder->OwnerDoc();
-    nsCOMPtr<nsIContent> elem;
-    nsresult rv = doc->CreateElem(nsDependentAtomString(aName),
-                                  nullptr, kNameSpaceID_None,
-                                  getter_AddRefs(elem));
-    NS_ENSURE_SUCCESS(rv, rv);
+    nsCOMPtr<Element> elem = doc->CreateElem(nsDependentAtomString(aName),
+                                             nullptr, kNameSpaceID_None);
+    NS_ENSURE_TRUE(elem, NS_ERROR_NULL_POINTER);
 
-    nsRefPtr<nsTextNode> text = new nsTextNode(doc->NodeInfoManager());
+    RefPtr<nsTextNode> text = new nsTextNode(doc->NodeInfoManager());
 
-    rv = text->SetText(aValue, false);
+    nsresult rv = text->SetText(aValue, false);
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = elem->AppendChildTo(text, false);
@@ -170,8 +168,8 @@ struct txEXSLTFunctionDescriptor
     int8_t mMinParams;
     int8_t mMaxParams;
     Expr::ResultType mReturnType;
-    nsIAtom** mName;
     int32_t mNamespaceID;
+    nsIAtom** mName;
     const char* mNamespaceURI;
 };
 
@@ -185,22 +183,22 @@ static const char kEXSLTDatesAndTimesNS[] = "http://exslt.org/dates-and-times";
 // txEXSLTFunctionCall::eType enum
 static txEXSLTFunctionDescriptor descriptTable[] =
 {
-    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::nodeSet, 0, kEXSLTCommonNS }, // NODE_SET
-    { 1, 1, Expr::STRING_RESULT,  &nsGkAtoms::objectType, 0, kEXSLTCommonNS }, // OBJECT_TYPE
-    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::difference, 0, kEXSLTSetsNS }, // DIFFERENCE
-    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::distinct, 0, kEXSLTSetsNS }, // DISTINCT
-    { 2, 2, Expr::BOOLEAN_RESULT, &nsGkAtoms::hasSameNode, 0, kEXSLTSetsNS }, // HAS_SAME_NODE
-    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::intersection, 0, kEXSLTSetsNS }, // INTERSECTION
-    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::leading, 0, kEXSLTSetsNS }, // LEADING
-    { 2, 2, Expr::NODESET_RESULT, &nsGkAtoms::trailing, 0, kEXSLTSetsNS }, // TRAILING
-    { 1, 1, Expr::STRING_RESULT,  &nsGkAtoms::concat, 0, kEXSLTStringsNS }, // CONCAT
-    { 1, 2, Expr::STRING_RESULT,  &nsGkAtoms::split, 0, kEXSLTStringsNS }, // SPLIT
-    { 1, 2, Expr::STRING_RESULT,  &nsGkAtoms::tokenize, 0, kEXSLTStringsNS }, // TOKENIZE
-    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::max, 0, kEXSLTMathNS }, // MAX
-    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::min, 0, kEXSLTMathNS }, // MIN
-    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::highest, 0, kEXSLTMathNS }, // HIGHEST
-    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::lowest, 0, kEXSLTMathNS }, // LOWEST
-    { 0, 0, Expr::STRING_RESULT,  &nsGkAtoms::dateTime, 0, kEXSLTDatesAndTimesNS }, // DATE_TIME
+    { 1, 1, Expr::NODESET_RESULT, 0, &nsGkAtoms::nodeSet, kEXSLTCommonNS }, // NODE_SET
+    { 1, 1, Expr::STRING_RESULT, 0, &nsGkAtoms::objectType, kEXSLTCommonNS }, // OBJECT_TYPE
+    { 2, 2, Expr::NODESET_RESULT, 0, &nsGkAtoms::difference, kEXSLTSetsNS }, // DIFFERENCE
+    { 1, 1, Expr::NODESET_RESULT, 0, &nsGkAtoms::distinct, kEXSLTSetsNS }, // DISTINCT
+    { 2, 2, Expr::BOOLEAN_RESULT, 0, &nsGkAtoms::hasSameNode, kEXSLTSetsNS }, // HAS_SAME_NODE
+    { 2, 2, Expr::NODESET_RESULT, 0, &nsGkAtoms::intersection, kEXSLTSetsNS }, // INTERSECTION
+    { 2, 2, Expr::NODESET_RESULT, 0, &nsGkAtoms::leading, kEXSLTSetsNS }, // LEADING
+    { 2, 2, Expr::NODESET_RESULT, 0, &nsGkAtoms::trailing, kEXSLTSetsNS }, // TRAILING
+    { 1, 1, Expr::STRING_RESULT, 0, &nsGkAtoms::concat, kEXSLTStringsNS }, // CONCAT
+    { 1, 2, Expr::STRING_RESULT, 0, &nsGkAtoms::split, kEXSLTStringsNS }, // SPLIT
+    { 1, 2, Expr::STRING_RESULT, 0, &nsGkAtoms::tokenize, kEXSLTStringsNS }, // TOKENIZE
+    { 1, 1, Expr::NUMBER_RESULT, 0, &nsGkAtoms::max, kEXSLTMathNS }, // MAX
+    { 1, 1, Expr::NUMBER_RESULT, 0, &nsGkAtoms::min, kEXSLTMathNS }, // MIN
+    { 1, 1, Expr::NODESET_RESULT, 0, &nsGkAtoms::highest, kEXSLTMathNS }, // HIGHEST
+    { 1, 1, Expr::NODESET_RESULT, 0, &nsGkAtoms::lowest, kEXSLTMathNS }, // LOWEST
+    { 0, 0, Expr::STRING_RESULT, 0, &nsGkAtoms::dateTime, kEXSLTDatesAndTimesNS }, // DATE_TIME
 
 };
 
@@ -228,8 +226,8 @@ public:
         LOWEST,
         DATE_TIME
     };
-    
-    txEXSLTFunctionCall(eType aType)
+
+    explicit txEXSLTFunctionCall(eType aType)
       : mType(aType)
     {
     }
@@ -255,15 +253,15 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
     switch (mType) {
         case NODE_SET:
         {
-            nsRefPtr<txAExprResult> exprResult;
+            RefPtr<txAExprResult> exprResult;
             rv = mParams[0]->evaluate(aContext, getter_AddRefs(exprResult));
             NS_ENSURE_SUCCESS(rv, rv);
 
             if (exprResult->getResultType() == txAExprResult::NODESET) {
-                exprResult.swap(*aResult);
+                exprResult.forget(aResult);
             }
             else {
-                nsRefPtr<txNodeSet> resultSet;
+                RefPtr<txNodeSet> resultSet;
                 rv = aContext->recycler()->
                     getNodeSet(getter_AddRefs(resultSet));
                 NS_ENSURE_SUCCESS(rv, rv);
@@ -303,12 +301,12 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
         }
         case OBJECT_TYPE:
         {
-            nsRefPtr<txAExprResult> exprResult;
+            RefPtr<txAExprResult> exprResult;
             nsresult rv = mParams[0]->evaluate(aContext,
                                                getter_AddRefs(exprResult));
             NS_ENSURE_SUCCESS(rv, rv);
 
-            nsRefPtr<StringResult> strRes;
+            RefPtr<StringResult> strRes;
             rv = aContext->recycler()->getStringResult(getter_AddRefs(strRes));
             NS_ENSURE_SUCCESS(rv, rv);
 
@@ -322,17 +320,17 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
         case DIFFERENCE:
         case INTERSECTION:
         {
-            nsRefPtr<txNodeSet> nodes1;
+            RefPtr<txNodeSet> nodes1;
             rv = evaluateToNodeSet(mParams[0], aContext,
                                    getter_AddRefs(nodes1));
             NS_ENSURE_SUCCESS(rv, rv);
 
-            nsRefPtr<txNodeSet> nodes2;
+            RefPtr<txNodeSet> nodes2;
             rv = evaluateToNodeSet(mParams[1], aContext,
                                    getter_AddRefs(nodes2));
             NS_ENSURE_SUCCESS(rv, rv);
 
-            nsRefPtr<txNodeSet> resultSet;
+            RefPtr<txNodeSet> resultSet;
             rv = aContext->recycler()->getNodeSet(getter_AddRefs(resultSet));
             NS_ENSURE_SUCCESS(rv, rv);
 
@@ -359,12 +357,12 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
         }
         case DISTINCT:
         {
-            nsRefPtr<txNodeSet> nodes;
+            RefPtr<txNodeSet> nodes;
             rv = evaluateToNodeSet(mParams[0], aContext,
                                    getter_AddRefs(nodes));
             NS_ENSURE_SUCCESS(rv, rv);
 
-            nsRefPtr<txNodeSet> resultSet;
+            RefPtr<txNodeSet> resultSet;
             rv = aContext->recycler()->getNodeSet(getter_AddRefs(resultSet));
             NS_ENSURE_SUCCESS(rv, rv);
 
@@ -388,12 +386,12 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
         }
         case HAS_SAME_NODE:
         {
-            nsRefPtr<txNodeSet> nodes1;
+            RefPtr<txNodeSet> nodes1;
             rv = evaluateToNodeSet(mParams[0], aContext,
                                    getter_AddRefs(nodes1));
             NS_ENSURE_SUCCESS(rv, rv);
 
-            nsRefPtr<txNodeSet> nodes2;
+            RefPtr<txNodeSet> nodes2;
             rv = evaluateToNodeSet(mParams[1], aContext,
                                    getter_AddRefs(nodes2));
             NS_ENSURE_SUCCESS(rv, rv);
@@ -414,12 +412,12 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
         case LEADING:
         case TRAILING:
         {
-            nsRefPtr<txNodeSet> nodes1;
+            RefPtr<txNodeSet> nodes1;
             rv = evaluateToNodeSet(mParams[0], aContext,
                                    getter_AddRefs(nodes1));
             NS_ENSURE_SUCCESS(rv, rv);
 
-            nsRefPtr<txNodeSet> nodes2;
+            RefPtr<txNodeSet> nodes2;
             rv = evaluateToNodeSet(mParams[1], aContext,
                                    getter_AddRefs(nodes2));
             NS_ENSURE_SUCCESS(rv, rv);
@@ -431,7 +429,7 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
                 return NS_OK;
             }
 
-            nsRefPtr<txNodeSet> resultSet;
+            RefPtr<txNodeSet> resultSet;
             rv = aContext->recycler()->getNodeSet(getter_AddRefs(resultSet));
             NS_ENSURE_SUCCESS(rv, rv);
 
@@ -454,7 +452,7 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
         }
         case CONCAT:
         {
-            nsRefPtr<txNodeSet> nodes;
+            RefPtr<txNodeSet> nodes;
             rv = evaluateToNodeSet(mParams[0], aContext,
                                    getter_AddRefs(nodes));
             NS_ENSURE_SUCCESS(rv, rv);
@@ -488,10 +486,10 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
             }
 
             // Set up holders for the result
-            nsRefPtr<DocumentFragment> docFrag = createDocFragment(aContext);
+            RefPtr<DocumentFragment> docFrag = createDocFragment(aContext);
             NS_ENSURE_STATE(docFrag);
 
-            nsRefPtr<txNodeSet> resultSet;
+            RefPtr<txNodeSet> resultSet;
             rv = aContext->recycler()->getNodeSet(getter_AddRefs(resultSet));
             NS_ENSURE_SUCCESS(rv, rv);
 
@@ -561,7 +559,7 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
         case MAX:
         case MIN:
         {
-            nsRefPtr<txNodeSet> nodes;
+            RefPtr<txNodeSet> nodes;
             rv = evaluateToNodeSet(mParams[0], aContext,
                                    getter_AddRefs(nodes));
             NS_ENSURE_SUCCESS(rv, rv);
@@ -595,7 +593,7 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
         case HIGHEST:
         case LOWEST:
         {
-            nsRefPtr<txNodeSet> nodes;
+            RefPtr<txNodeSet> nodes;
             rv = evaluateToNodeSet(mParams[0], aContext,
                                    getter_AddRefs(nodes));
             NS_ENSURE_SUCCESS(rv, rv);
@@ -606,7 +604,7 @@ txEXSLTFunctionCall::evaluate(txIEvalContext *aContext,
                 return NS_OK;
             }
 
-            nsRefPtr<txNodeSet> resultSet;
+            RefPtr<txNodeSet> resultSet;
             rv = aContext->recycler()->getNodeSet(getter_AddRefs(resultSet));
             NS_ENSURE_SUCCESS(rv, rv);
 
@@ -710,8 +708,7 @@ TX_ConstructEXSLTFunction(nsIAtom *aName,
         if (aName == *desc.mName && aNamespaceID == desc.mNamespaceID) {
             *aResult = new txEXSLTFunctionCall(
                 static_cast<txEXSLTFunctionCall::eType>(i));
-
-            return *aResult ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+            return NS_OK;
         }
     }
 

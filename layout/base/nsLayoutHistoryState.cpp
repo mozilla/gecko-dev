@@ -14,8 +14,8 @@
 #include "nsPresState.h"
 #include "mozilla/Attributes.h"
 
-class nsLayoutHistoryState MOZ_FINAL : public nsILayoutHistoryState,
-                                       public nsSupportsWeakReference
+class nsLayoutHistoryState final : public nsILayoutHistoryState,
+                                   public nsSupportsWeakReference
 {
 public:
   nsLayoutHistoryState()
@@ -27,16 +27,17 @@ public:
 
   // nsILayoutHistoryState
   virtual void
-  AddState(const nsCString& aKey, nsPresState* aState) MOZ_OVERRIDE;
+  AddState(const nsCString& aKey, nsPresState* aState) override;
   virtual nsPresState*
-  GetState(const nsCString& aKey) MOZ_OVERRIDE;
+  GetState(const nsCString& aKey) override;
   virtual void
-  RemoveState(const nsCString& aKey) MOZ_OVERRIDE;
+  RemoveState(const nsCString& aKey) override;
   virtual bool
-  HasStates() const MOZ_OVERRIDE;
+  HasStates() const override;
   virtual void
-  SetScrollPositionOnly(const bool aFlag) MOZ_OVERRIDE;
-
+  SetScrollPositionOnly(const bool aFlag) override;
+  virtual void
+  ResetScrollState() override;
 
 private:
   ~nsLayoutHistoryState() {}
@@ -49,7 +50,7 @@ private:
 already_AddRefed<nsILayoutHistoryState>
 NS_NewLayoutHistoryState()
 {
-  nsRefPtr<nsLayoutHistoryState> state = new nsLayoutHistoryState();
+  RefPtr<nsLayoutHistoryState> state = new nsLayoutHistoryState();
   return state.forget();
 }
 
@@ -93,4 +94,15 @@ void
 nsLayoutHistoryState::SetScrollPositionOnly(const bool aFlag)
 {
   mScrollPositionOnly = aFlag;
+}
+
+void
+nsLayoutHistoryState::ResetScrollState()
+{
+  for (auto iter = mStates.Iter(); !iter.Done(); iter.Next()) {
+    nsPresState* state = iter.UserData();
+    if (state) {
+      state->SetScrollState(nsPoint(0, 0));
+    }
+  }
 }

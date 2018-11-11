@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,7 +10,7 @@ var testData = [
     title: "bmoz",
     uri: "http://foo.com/",
     isBookmark: true,
-    isTag: true, 
+    isTag: true,
     tagArray: ["bugzilla"] },
 
   { isInQuery: true,
@@ -18,15 +18,15 @@ var testData = [
     title: "C Moz",
     uri: "http://foo.com/changeme1.html",
     isBookmark: true,
-    isTag: true, 
-    tagArray: ["moz","bugzilla"] },
+    isTag: true,
+    tagArray: ["moz", "bugzilla"] },
 
   { isInQuery: false,
     isDetails: true,
     title: "amo",
     uri: "http://foo2.com/",
     isBookmark: true,
-    isTag: true, 
+    isTag: true,
     tagArray: ["moz"] },
 
   { isInQuery: false,
@@ -42,7 +42,7 @@ function getIdForTag(aTagName) {
   query.setFolders([PlacesUtils.tagsFolderId], 1);
   var options = PlacesUtils.history.getNewQueryOptions();
   var root = PlacesUtils.history.executeQuery(query, options).root;
-  root.containerOpen = true;  
+  root.containerOpen = true;
   var cc = root.childCount;
   do_check_eq(root.childCount, 2);
   for (let i = 0; i < cc; i++) {
@@ -64,7 +64,7 @@ function run_test()
   run_next_test();
 }
 
-add_task(function test_results_as_tag_contents_query()
+add_task(function* test_results_as_tag_contents_query()
 {
   yield task_populateDB(testData);
 
@@ -97,14 +97,14 @@ add_task(function test_results_as_tag_contents_query()
                   isBookmark: true,
                   isTag: true,
                   tagArray: ["moz", "bugzilla"] };
-  LOG("Adding item to query")
+  do_print("Adding item to query");
   yield task_populateDB([change1]);
-  LOG("These results should have been LIVE UPDATED with the new addition");
+  do_print("These results should have been LIVE UPDATED with the new addition");
   displayResultSet(root);
   do_check_true(isInResult(change1, root));
 
   // Add one by adding a tag, remove one by removing search term.
-  LOG("Updating items");
+  do_print("Updating items");
   var change2 = [{ isDetails: true,
                    uri: "http://foo3.com/",
                    title: "foo"},
@@ -119,7 +119,7 @@ add_task(function test_results_as_tag_contents_query()
   do_check_true(isInResult({uri: "http://foo.com/changeme2.html"}, root));
 
   // Test removing a tag updates us.
-  LOG("Deleting item");
+  do_print("Deleting item");
   PlacesUtils.tagging.untagURI(uri("http://foo.com/changeme2.html"), ["bugzilla"]);
   do_check_false(isInResult({uri: "http://foo.com/changeme2.html"}, root));
 

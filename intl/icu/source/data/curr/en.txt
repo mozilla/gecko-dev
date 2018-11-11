@@ -1,14 +1,5 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/en.xml
-// *
-// ***************************************************************************
-/**
- * ICU <specials> source: <path>/common/main/en.xml
- */
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 en{
     Currencies{
         ADP{
@@ -225,11 +216,15 @@ en{
         }
         BYB{
             "BYB",
-            "Belarusian New Ruble (1994–1999)",
+            "Belarusian Ruble (1994–1999)",
+        }
+        BYN{
+            "BYN",
+            "Belarusian Ruble",
         }
         BYR{
             "BYR",
-            "Belarusian Ruble",
+            "Belarusian Ruble (2000–2016)",
         }
         BZD{
             "BZD",
@@ -397,7 +392,7 @@ en{
         }
         GBP{
             "£",
-            "British Pound Sterling",
+            "British Pound",
         }
         GEK{
             "GEK",
@@ -493,11 +488,11 @@ en{
         }
         ILR{
             "ILR",
-            "Israeli Sheqel (1980–1985)",
+            "Israeli Shekel (1980–1985)",
         }
         ILS{
             "₪",
-            "Israeli New Sheqel",
+            "Israeli New Shekel",
         }
         INR{
             "₹",
@@ -701,7 +696,7 @@ en{
         }
         MVP{
             "MVP",
-            "Maldivian Rupee",
+            "Maldivian Rupee (1947–1981)",
         }
         MVR{
             "MVR",
@@ -785,7 +780,7 @@ en{
         }
         PEN{
             "PEN",
-            "Peruvian Nuevo Sol",
+            "Peruvian Sol",
         }
         PES{
             "PES",
@@ -885,7 +880,7 @@ en{
         }
         SHP{
             "SHP",
-            "Saint Helena Pound",
+            "St. Helena Pound",
         }
         SIT{
             "SIT",
@@ -917,7 +912,7 @@ en{
         }
         STD{
             "STD",
-            "São Tomé and Príncipe Dobra",
+            "São Tomé & Príncipe Dobra",
         }
         SUR{
             "SUR",
@@ -936,7 +931,7 @@ en{
             "Swazi Lilangeni",
         }
         THB{
-            "฿",
+            "THB",
             "Thai Baht",
         }
         TJR{
@@ -977,7 +972,7 @@ en{
         }
         TTD{
             "TTD",
-            "Trinidad and Tobago Dollar",
+            "Trinidad & Tobago Dollar",
         }
         TWD{
             "NT$",
@@ -1029,7 +1024,7 @@ en{
         }
         UZS{
             "UZS",
-            "Uzbekistan Som",
+            "Uzbekistani Som",
         }
         VEB{
             "VEB",
@@ -1057,7 +1052,7 @@ en{
         }
         XAF{
             "FCFA",
-            "CFA Franc BEAC",
+            "Central African CFA Franc",
         }
         XAG{
             "XAG",
@@ -1105,7 +1100,7 @@ en{
         }
         XOF{
             "CFA",
-            "CFA Franc BCEAO",
+            "West African CFA Franc",
         }
         XPD{
             "XPD",
@@ -1414,12 +1409,16 @@ en{
             other{"Botswanan pulas"}
         }
         BYB{
-            one{"Belarusian new ruble (1994–1999)"}
-            other{"Belarusian new rubles (1994–1999)"}
+            one{"Belarusian ruble (1994–1999)"}
+            other{"Belarusian rubles (1994–1999)"}
         }
-        BYR{
+        BYN{
             one{"Belarusian ruble"}
             other{"Belarusian rubles"}
+        }
+        BYR{
+            one{"Belarusian ruble (2000–2016)"}
+            other{"Belarusian rubles (2000–2016)"}
         }
         BZD{
             one{"Belize dollar"}
@@ -1586,8 +1585,8 @@ en{
             other{"French francs"}
         }
         GBP{
-            one{"British pound sterling"}
-            other{"British pounds sterling"}
+            one{"British pound"}
+            other{"British pounds"}
         }
         GEK{
             one{"Georgian kupon larit"}
@@ -1682,12 +1681,12 @@ en{
             other{"Israeli pounds"}
         }
         ILR{
-            one{"Israeli sheqel (1980–1985)"}
-            other{"Israeli sheqels (1980–1985)"}
+            one{"Israeli shekel (1980–1985)"}
+            other{"Israeli shekels (1980–1985)"}
         }
         ILS{
-            one{"Israeli new sheqel"}
-            other{"Israeli new sheqels"}
+            one{"Israeli new shekel"}
+            other{"Israeli new shekels"}
         }
         INR{
             one{"Indian rupee"}
@@ -1842,8 +1841,8 @@ en{
             other{"Moldovan lei"}
         }
         MGA{
-            one{"Malagasy Ariary"}
-            other{"Malagasy Ariaries"}
+            one{"Malagasy ariary"}
+            other{"Malagasy ariaries"}
         }
         MGF{
             one{"Malagasy franc"}
@@ -1890,16 +1889,16 @@ en{
             other{"Mauritian rupees"}
         }
         MVP{
-            one{"Maldivian rupee"}
-            other{"Maldivian rupees"}
+            one{"Maldivian rupee (1947–1981)"}
+            other{"Maldivian rupees (1947–1981)"}
         }
         MVR{
             one{"Maldivian rufiyaa"}
             other{"Maldivian rufiyaas"}
         }
         MWK{
-            one{"Malawian Kwacha"}
-            other{"Malawian Kwachas"}
+            one{"Malawian kwacha"}
+            other{"Malawian kwachas"}
         }
         MXN{
             one{"Mexican peso"}
@@ -1974,8 +1973,8 @@ en{
             other{"Peruvian intis"}
         }
         PEN{
-            one{"Peruvian nuevo sol"}
-            other{"Peruvian nuevos soles"}
+            one{"Peruvian sol"}
+            other{"Peruvian soles"}
         }
         PES{
             one{"Peruvian sol (1863–1965)"}
@@ -2074,8 +2073,8 @@ en{
             other{"Singapore dollars"}
         }
         SHP{
-            one{"Saint Helena pound"}
-            other{"Saint Helena pounds"}
+            one{"St. Helena pound"}
+            other{"St. Helena pounds"}
         }
         SIT{
             one{"Slovenian tolar"}
@@ -2106,8 +2105,8 @@ en{
             other{"South Sudanese pounds"}
         }
         STD{
-            one{"São Tomé and Príncipe dobra"}
-            other{"São Tomé and Príncipe dobras"}
+            one{"São Tomé & Príncipe dobra"}
+            other{"São Tomé & Príncipe dobras"}
         }
         SUR{
             one{"Soviet rouble"}
@@ -2166,8 +2165,8 @@ en{
             other{"Turkish Lira"}
         }
         TTD{
-            one{"Trinidad and Tobago dollar"}
-            other{"Trinidad and Tobago dollars"}
+            one{"Trinidad & Tobago dollar"}
+            other{"Trinidad & Tobago dollars"}
         }
         TWD{
             one{"New Taiwan dollar"}
@@ -2218,8 +2217,8 @@ en{
             other{"Uruguayan pesos"}
         }
         UZS{
-            one{"Uzbekistan som"}
-            other{"Uzbekistan som"}
+            one{"Uzbekistani som"}
+            other{"Uzbekistani som"}
         }
         VEB{
             one{"Venezuelan bolívar (1871–2008)"}
@@ -2246,8 +2245,8 @@ en{
             other{"Samoan tala"}
         }
         XAF{
-            one{"CFA franc BEAC"}
-            other{"CFA francs BEAC"}
+            one{"Central African CFA franc"}
+            other{"Central African CFA francs"}
         }
         XAG{
             one{"troy ounce of silver"}
@@ -2294,8 +2293,8 @@ en{
             other{"French UIC-francs"}
         }
         XOF{
-            one{"CFA franc BCEAO"}
-            other{"CFA francs BCEAO"}
+            one{"West African CFA franc"}
+            other{"West African CFA francs"}
         }
         XPD{
             one{"troy ounce of palladium"}
@@ -2394,5 +2393,5 @@ en{
         one{"{0} {1}"}
         other{"{0} {1}"}
     }
-    Version{"2.0.92.87"}
+    Version{"2.1.30.50"}
 }

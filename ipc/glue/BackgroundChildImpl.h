@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,10 +9,20 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/ipc/PBackgroundChild.h"
-
-template <class> class nsAutoPtr;
+#include "nsAutoPtr.h"
 
 namespace mozilla {
+namespace dom {
+
+class FileHandleBase;
+
+namespace indexedDB {
+
+class ThreadLocal;
+
+} // namespace indexedDB
+} // namespace dom
+
 namespace ipc {
 
 // Instances of this class should never be created directly. This class is meant
@@ -33,20 +45,148 @@ protected:
   virtual ~BackgroundChildImpl();
 
   virtual void
-  ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
+  ProcessingError(Result aCode, const char* aReason) override;
+
+  virtual void
+  ActorDestroy(ActorDestroyReason aWhy) override;
 
   virtual PBackgroundTestChild*
-  AllocPBackgroundTestChild(const nsCString& aTestArg) MOZ_OVERRIDE;
+  AllocPBackgroundTestChild(const nsCString& aTestArg) override;
 
   virtual bool
-  DeallocPBackgroundTestChild(PBackgroundTestChild* aActor) MOZ_OVERRIDE;
+  DeallocPBackgroundTestChild(PBackgroundTestChild* aActor) override;
+
+  virtual PBackgroundIDBFactoryChild*
+  AllocPBackgroundIDBFactoryChild(const LoggingInfo& aLoggingInfo) override;
+
+  virtual bool
+  DeallocPBackgroundIDBFactoryChild(PBackgroundIDBFactoryChild* aActor)
+                                    override;
+
+  virtual PBackgroundIndexedDBUtilsChild*
+  AllocPBackgroundIndexedDBUtilsChild() override;
+
+  virtual bool
+  DeallocPBackgroundIndexedDBUtilsChild(PBackgroundIndexedDBUtilsChild* aActor)
+                                        override;
+
+  virtual PBlobChild*
+  AllocPBlobChild(const BlobConstructorParams& aParams) override;
+
+  virtual bool
+  DeallocPBlobChild(PBlobChild* aActor) override;
+
+  virtual PFileDescriptorSetChild*
+  AllocPFileDescriptorSetChild(const FileDescriptor& aFileDescriptor)
+                               override;
+
+  virtual bool
+  DeallocPFileDescriptorSetChild(PFileDescriptorSetChild* aActor) override;
+
+  virtual PCamerasChild*
+  AllocPCamerasChild() override;
+
+  virtual bool
+  DeallocPCamerasChild(PCamerasChild* aActor) override;
+
+  virtual PVsyncChild*
+  AllocPVsyncChild() override;
+
+  virtual bool
+  DeallocPVsyncChild(PVsyncChild* aActor) override;
+
+  virtual PUDPSocketChild*
+  AllocPUDPSocketChild(const OptionalPrincipalInfo& aPrincipalInfo,
+                       const nsCString& aFilter) override;
+  virtual bool
+  DeallocPUDPSocketChild(PUDPSocketChild* aActor) override;
+
+  virtual PBroadcastChannelChild*
+  AllocPBroadcastChannelChild(const PrincipalInfo& aPrincipalInfo,
+                              const nsCString& aOrigin,
+                              const nsString& aChannel) override;
+
+  virtual bool
+  DeallocPBroadcastChannelChild(PBroadcastChannelChild* aActor) override;
+
+  virtual PServiceWorkerManagerChild*
+  AllocPServiceWorkerManagerChild() override;
+
+  virtual bool
+  DeallocPServiceWorkerManagerChild(PServiceWorkerManagerChild* aActor) override;
+
+  virtual dom::cache::PCacheStorageChild*
+  AllocPCacheStorageChild(const dom::cache::Namespace& aNamespace,
+                          const PrincipalInfo& aPrincipalInfo) override;
+
+  virtual bool
+  DeallocPCacheStorageChild(dom::cache::PCacheStorageChild* aActor) override;
+
+  virtual dom::cache::PCacheChild* AllocPCacheChild() override;
+
+  virtual bool
+  DeallocPCacheChild(dom::cache::PCacheChild* aActor) override;
+
+  virtual dom::cache::PCacheStreamControlChild*
+  AllocPCacheStreamControlChild() override;
+
+  virtual bool
+  DeallocPCacheStreamControlChild(dom::cache::PCacheStreamControlChild* aActor) override;
+
+  virtual PMessagePortChild*
+  AllocPMessagePortChild(const nsID& aUUID, const nsID& aDestinationUUID,
+                         const uint32_t& aSequenceID) override;
+
+  virtual bool
+  DeallocPMessagePortChild(PMessagePortChild* aActor) override;
+
+  virtual PSendStreamChild*
+  AllocPSendStreamChild() override;
+
+  virtual bool
+  DeallocPSendStreamChild(PSendStreamChild* aActor) override;
+
+  virtual PAsmJSCacheEntryChild*
+  AllocPAsmJSCacheEntryChild(const dom::asmjscache::OpenMode& aOpenMode,
+                             const dom::asmjscache::WriteParams& aWriteParams,
+                             const PrincipalInfo& aPrincipalInfo) override;
+
+  virtual bool
+  DeallocPAsmJSCacheEntryChild(PAsmJSCacheEntryChild* aActor) override;
+
+  virtual PQuotaChild*
+  AllocPQuotaChild() override;
+
+  virtual bool
+  DeallocPQuotaChild(PQuotaChild* aActor) override;
+
+  virtual PFileSystemRequestChild*
+  AllocPFileSystemRequestChild(const FileSystemParams&) override;
+
+  virtual bool
+  DeallocPFileSystemRequestChild(PFileSystemRequestChild*) override;
+
+  // Gamepad API Background IPC
+  virtual PGamepadEventChannelChild*
+  AllocPGamepadEventChannelChild() override;
+
+  virtual bool
+  DeallocPGamepadEventChannelChild(PGamepadEventChannelChild* aActor) override;
+
+  virtual PGamepadTestChannelChild*
+  AllocPGamepadTestChannelChild() override;
+
+  virtual bool
+  DeallocPGamepadTestChannelChild(PGamepadTestChannelChild* aActor) override;
 };
 
-class BackgroundChildImpl::ThreadLocal
+class BackgroundChildImpl::ThreadLocal final
 {
   friend class nsAutoPtr<ThreadLocal>;
 
-  // Add any members needed here.
+public:
+  nsAutoPtr<mozilla::dom::indexedDB::ThreadLocal> mIndexedDBThreadLocal;
+  mozilla::dom::FileHandleBase* mCurrentFileHandle;
 
 public:
   ThreadLocal();

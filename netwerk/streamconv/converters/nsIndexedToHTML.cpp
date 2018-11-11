@@ -8,10 +8,10 @@
 #include "nsNetUtil.h"
 #include "netCore.h"
 #include "nsStringStream.h"
+#include "nsIFile.h"
 #include "nsIFileURL.h"
 #include "nsEscape.h"
 #include "nsIDirIndex.h"
-#include "nsDateTimeFormatCID.h"
 #include "nsURLHelper.h"
 #include "nsIPlatformCharset.h"
 #include "nsIPrefService.h"
@@ -23,6 +23,7 @@
 #include "nsITextToSubURI.h"
 #include "nsXPIDLString.h"
 #include <algorithm>
+#include "nsIChannel.h"
 
 NS_IMPL_ISUPPORTS(nsIndexedToHTML,
                   nsIDirIndexListener,
@@ -68,9 +69,9 @@ nsIndexedToHTML::Init(nsIStreamListener* aListener) {
 
     mListener = aListener;
 
-    mDateTime = do_CreateInstance(NS_DATETIMEFORMAT_CONTRACTID, &rv);
-    if (NS_FAILED(rv))
-      return rv;
+    mDateTime = nsIDateTimeFormat::Create();
+    if (!mDateTime)
+      return NS_ERROR_FAILURE;
 
     nsCOMPtr<nsIStringBundleService> sbs =
         do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv);
@@ -266,7 +267,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
                          "table[order] > thead > tr > th::after {\n"
                          "  display: none;\n"
                          "  width: .8em;\n"
-                         "  -moz-margin-end: -.8em;\n"
+                         "  margin-inline-end: -.8em;\n"
                          "  text-align: end;\n"
                          "}\n"
                          "table[order=\"asc\"] > thead > tr > th::after {\n"
@@ -304,24 +305,24 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
                          "/* name */\n"
                          "/* name */\n"
                          "th:first-child {\n"
-                         "  -moz-padding-end: 2em;\n"
+                         "  padding-inline-end: 2em;\n"
                          "}\n"
                          "/* size */\n"
                          "th:first-child + th {\n"
-                         "  -moz-padding-end: 1em;\n"
+                         "  padding-inline-end: 1em;\n"
                          "}\n"
                          "td:first-child + td {\n"
                          "  text-align: end;\n"
-                         "  -moz-padding-end: 1em;\n"
+                         "  padding-inline-end: 1em;\n"
                          "}\n"
                          "/* date */\n"
                          "td:first-child + td + td {\n"
-                         "  -moz-padding-start: 1em;\n"
-                         "  -moz-padding-end: .5em;\n"
+                         "  padding-inline-start: 1em;\n"
+                         "  padding-inline-end: .5em;\n"
                          "}\n"
                          "/* time */\n"
                          "td:first-child + td + td + td {\n"
-                         "  -moz-padding-start: .5em;\n"
+                         "  padding-inline-start: .5em;\n"
                          "}\n"
                          ".symlink {\n"
                          "  font-style: italic;\n"
@@ -329,12 +330,12 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
                          ".dir ,\n"
                          ".symlink ,\n"
                          ".file {\n"
-                         "  -moz-margin-start: 20px;\n"
+                         "  margin-inline-start: 20px;\n"
                          "}\n"
                          ".dir::before ,\n"
                          ".file > img {\n"
-                         "  -moz-margin-end: 4px;\n"
-                         "  -moz-margin-start: -20px;\n"
+                         "  margin-inline-end: 4px;\n"
+                         "  margin-inline-start: -20px;\n"
                          "  max-width: 16px;\n"
                          "  max-height: 16px;\n"
                          "  vertical-align: middle;\n"
@@ -346,6 +347,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
                          "<link rel=\"stylesheet\" media=\"screen, projection\" type=\"text/css\""
                          " href=\"chrome://global/skin/dirListing/dirListing.css\">\n"
                          "<script type=\"application/javascript\">\n"
+                         "'use strict';\n"
                          "var gTable, gOrderBy, gTBody, gRows, gUI_showHidden;\n"
                          "document.addEventListener(\"DOMContentLoaded\", function() {\n"
                          "  gTable = document.getElementsByTagName(\"table\")[0];\n"
@@ -370,7 +372,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
                          "  }\n"
                          "  if (gUI_showHidden) {\n"
                          "    gRows = Array.slice(gTBody.rows);\n"
-                         "    hiddenObjects = gRows.some(function (row) row.className == \"hidden-object\");\n"
+                         "    hiddenObjects = gRows.some(row => row.className == \"hidden-object\");\n"
                          "  }\n"
                          "  gTable.setAttribute(\"order\", \"\");\n"
                          "  if (hiddenObjects) {\n"
@@ -519,7 +521,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
         htmlEscSpec.get()
     };
 
-    rv = mBundle->FormatStringFromName(MOZ_UTF16("DirTitle"),
+    rv = mBundle->FormatStringFromName(u"DirTitle",
                                        formatTitle,
                                        sizeof(formatTitle)/sizeof(char16_t*),
                                        getter_Copies(title));
@@ -540,15 +542,23 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
     // trying to play nice and escaping the quotes.  See bug
     // 358128.
 
-    if (baseUri.FindChar('"') == kNotFound)
+    if (!baseUri.Contains('"'))
     {
         // Great, the baseUri does not contain a char that
         // will prematurely close the string.  Go ahead an
-        // add a base href.
-        buffer.AppendLiteral("<base href=\"");
-        nsAdoptingCString htmlEscapedUri(nsEscapeHTML(baseUri.get()));
-        buffer.Append(htmlEscapedUri);
-        buffer.AppendLiteral("\" />\n");
+        // add a base href, but only do so if we're not
+        // dealing with a resource URI.
+        nsCOMPtr<nsIURI> originalUri;
+        rv = channel->GetOriginalURI(getter_AddRefs(originalUri));
+        bool wasResource = false;
+        if (NS_FAILED(rv) ||
+            NS_FAILED(originalUri->SchemeIs("resource", &wasResource)) ||
+            !wasResource) {
+            buffer.AppendLiteral("<base href=\"");
+            nsAdoptingCString htmlEscapedUri(nsEscapeHTML(baseUri.get()));
+            buffer.Append(htmlEscapedUri);
+            buffer.AppendLiteral("\" />\n");
+        }
     }
     else
     {
@@ -574,7 +584,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
         htmlEscSpec.get()
     };
 
-    rv = mBundle->FormatStringFromName(MOZ_UTF16("DirTitle"),
+    rv = mBundle->FormatStringFromName(u"DirTitle",
                                        formatHeading,
                                        sizeof(formatHeading)/sizeof(char16_t*),
                                        getter_Copies(title));
@@ -585,7 +595,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
 
     if (!parentStr.IsEmpty()) {
         nsXPIDLString parentText;
-        rv = mBundle->GetStringFromName(MOZ_UTF16("DirGoUp"),
+        rv = mBundle->GetStringFromName(u"DirGoUp",
                                         getter_Copies(parentText));
         if (NS_FAILED(rv)) return rv;
 
@@ -600,7 +610,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
 
     if (isSchemeFile) {
         nsXPIDLString showHiddenText;
-        rv = mBundle->GetStringFromName(MOZ_UTF16("ShowHidden"),
+        rv = mBundle->GetStringFromName(u"ShowHidden",
                                         getter_Copies(showHiddenText));
         if (NS_FAILED(rv)) return rv;
 
@@ -617,21 +627,21 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
                          "  <tr>\n"
                          "   <th>");
 
-    rv = mBundle->GetStringFromName(MOZ_UTF16("DirColName"),
+    rv = mBundle->GetStringFromName(u"DirColName",
                                     getter_Copies(columnText));
     if (NS_FAILED(rv)) return rv;
     AppendNonAsciiToNCR(columnText, buffer);
     buffer.AppendLiteral("</th>\n"
                          "   <th>");
 
-    rv = mBundle->GetStringFromName(MOZ_UTF16("DirColSize"),
+    rv = mBundle->GetStringFromName(u"DirColSize",
                                     getter_Copies(columnText));
     if (NS_FAILED(rv)) return rv;
     AppendNonAsciiToNCR(columnText, buffer);
     buffer.AppendLiteral("</th>\n"
                          "   <th colspan=\"2\">");
 
-    rv = mBundle->GetStringFromName(MOZ_UTF16("DirColMTime"),
+    rv = mBundle->GetStringFromName(u"DirColMTime",
                                     getter_Copies(columnText));
     if (NS_FAILED(rv)) return rv;
     AppendNonAsciiToNCR(columnText, buffer);
@@ -655,7 +665,7 @@ nsIndexedToHTML::OnStopRequest(nsIRequest* request, nsISupports *aContext,
     }
 
     mParser->OnStopRequest(request, aContext, aStatus);
-    mParser = 0;
+    mParser = nullptr;
     
     return mListener->OnStopRequest(request, aContext, aStatus);
 }
@@ -697,7 +707,11 @@ nsIndexedToHTML::OnIndexAvailable(nsIRequest *aRequest,
 
     // Adjust the length in case unescaping shortened the string.
     loc.Truncate(nsUnescapeCount(loc.BeginWriting()));
-    if (loc.First() == PRUnichar('.'))
+
+    if (loc.IsEmpty()) {
+        return NS_ERROR_ILLEGAL_VALUE;
+    }
+    if (loc.First() == char16_t('.'))
         pushBuffer.AppendLiteral(" class=\"hidden-object\"");
 
     pushBuffer.AppendLiteral(">\n <td sortable-data=\"");
@@ -749,8 +763,10 @@ nsIndexedToHTML::OnIndexAvailable(nsIRequest *aRequest,
     // for some protocols, we expect the location to be absolute.
     // if so, and if the location indeed appears to be a valid URI, then go
     // ahead and treat it like one.
+
+    nsAutoCString scheme;
     if (mExpectAbsLoc &&
-        NS_SUCCEEDED(net_ExtractURLScheme(loc, nullptr, nullptr, nullptr))) {
+        NS_SUCCEEDED(net_ExtractURLScheme(loc, scheme))) {
         // escape as absolute 
         escFlags = esc_Forced | esc_AlwaysCopy | esc_Minimal;
     }
@@ -784,7 +800,7 @@ nsIndexedToHTML::OnIndexAvailable(nsIRequest *aRequest,
         pushBuffer.AppendLiteral("?size=16\" alt=\"");
 
         nsXPIDLString altText;
-        rv = mBundle->GetStringFromName(MOZ_UTF16("DirFileLabel"),
+        rv = mBundle->GetStringFromName(u"DirFileLabel",
                                         getter_Copies(altText));
         if (NS_FAILED(rv)) return rv;
         AppendNonAsciiToNCR(altText, pushBuffer);
@@ -816,7 +832,7 @@ nsIndexedToHTML::OnIndexAvailable(nsIRequest *aRequest,
     PRTime t;
     aIndex->GetLastModified(&t);
 
-    if (t == -1) {
+    if (t == -1LL) {
         pushBuffer.AppendLiteral("></td>\n <td>");
     } else {
         pushBuffer.AppendLiteral(" sortable-data=\"");

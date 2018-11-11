@@ -10,17 +10,16 @@ var EXPORTED_SYMBOLS = ["applicationName", "assert", "Copy", "getBrowserObject",
                         "unwrapNode", "waitFor"
                        ];
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
 
 
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
 const applicationIdMap = {
-  '{ec8030f7-c20a-464f-9b0e-13a3a9e97384}': 'Firefox',
-  '{99bceaaa-e3c6-48c1-b981-ef9b46b67d60}': 'MetroFirefox'
+  '{ec8030f7-c20a-464f-9b0e-13a3a9e97384}': 'Firefox'
 }
 const applicationName = applicationIdMap[Services.appinfo.ID] || Services.appinfo.name;
 
@@ -49,13 +48,7 @@ function Copy (obj) {
  * @returns {Object} The browser element
  */
 function getBrowserObject(aWindow) {
-  switch(applicationName) {
-    case "MetroFirefox":
-      return aWindow.Browser;
-    case "Firefox":
-    default:
-      return aWindow.gBrowser;
-  }
+  return aWindow.gBrowser;
 }
 
 function getChromeWindow(aWindow) {
@@ -90,7 +83,7 @@ function getWindows(type) {
 }
 
 function getMethodInWindows(methodName) {
-  for each (var w in getWindows()) {
+  for (var w of getWindows()) {
     if (w[methodName] != undefined) {
       return w[methodName];
     }
@@ -100,7 +93,7 @@ function getMethodInWindows(methodName) {
 }
 
 function getWindowByTitle(title) {
-  for each (var w in getWindows()) {
+  for (var w of getWindows()) {
     if (w.document.title && w.document.title == title) {
       return w;
     }

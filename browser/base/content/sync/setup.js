@@ -1,12 +1,12 @@
-// -*- Mode: js2; tab-width: 2; indent-tabs-mode: nil; js2-basic-offset: 2; js2-skip-preprocessor-directives: t; -*-
+// -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const Ci = Components.interfaces;
-const Cc = Components.classes;
-const Cr = Components.results;
-const Cu = Components.utils;
+var Ci = Components.interfaces;
+var Cc = Components.classes;
+var Cr = Components.results;
+var Cu = Components.utils;
 
 // page consts
 
@@ -51,7 +51,9 @@ var gSyncSetup = {
     server: false
   },
 
-  get _remoteSites() [Weave.Service.serverURL, RECAPTCHA_DOMAIN],
+  get _remoteSites() {
+    return [Weave.Service.serverURL, RECAPTCHA_DOMAIN];
+  },
 
   get _usingMainServers() {
     if (this._settingUpNew)
@@ -70,7 +72,7 @@ var gSyncSetup = {
     let self = this;
     let addRem = function(add) {
       obs.forEach(function([topic, func]) {
-        //XXXzpao This should use Services.obs.* but Weave's Obs does nice handling
+        // XXXzpao This should use Services.obs.* but Weave's Obs does nice handling
         //        of `this`. Fix in a followup. (bug 583347)
         if (add)
           Weave.Svc.Obs.add(topic, self[func], self);
@@ -79,7 +81,7 @@ var gSyncSetup = {
       });
     };
     addRem(true);
-    window.addEventListener("unload", function() addRem(false), false);
+    window.addEventListener("unload", () => addRem(false), false);
 
     window.setTimeout(function () {
       // Force Service to be loaded so that engines are registered.
@@ -121,14 +123,14 @@ var gSyncSetup = {
 
   startNewAccountSetup: function () {
     if (!Weave.Utils.ensureMPUnlocked())
-      return false;
+      return;
     this._settingUpNew = true;
     this.wizard.pageIndex = NEW_ACCOUNT_START_PAGE;
   },
 
   useExistingAccount: function () {
     if (!Weave.Utils.ensureMPUnlocked())
-      return false;
+      return;
     this._settingUpNew = false;
     if (this.wizardType == "pair") {
       // We're already pairing, so there's no point in pairing again.
@@ -472,13 +474,6 @@ var gSyncSetup = {
           Weave.Service.identity.syncKey = Weave.Utils.generatePassphrase();
           this._handleNoScript(false);
           Weave.Svc.Prefs.set("firstSync", "newAccount");
-#ifdef XP_WIN
-#ifdef MOZ_METRO
-          if (document.getElementById("metroSetupCheckbox").checked) {
-            Services.metro.storeSyncInfo(email, password, Weave.Service.identity.syncKey);
-          }
-#endif
-#endif
           this.wizardFinish();
           return false;
         }
@@ -517,7 +512,6 @@ var gSyncSetup = {
   onWizardBack: function () {
     switch (this.wizard.pageIndex) {
       case NEW_ACCOUNT_START_PAGE:
-      case EXISTING_ACCOUNT_LOGIN_PAGE:
         this.wizard.pageIndex = INTRO_PAGE;
         return false;
       case EXISTING_ACCOUNT_CONNECT_PAGE:
@@ -564,8 +558,6 @@ var gSyncSetup = {
 
       Weave.Service.persistLogin();
       Weave.Svc.Obs.notify("weave:service:setup-complete");
-
-      gSyncUtils.openFirstSyncProgressPage();
     }
     Weave.Utils.nextTick(Weave.Service.sync, Weave.Service);
     window.close();
@@ -805,7 +797,6 @@ var gSyncSetup = {
     let el = document.getElementById("server");
     let valid = false;
     let feedback = document.getElementById("serverFeedbackRow");
-    let str = "";
     if (el.value) {
       valid = this._validateServer(el);
       let str = valid ? "" : "serverInvalid.label";
@@ -941,12 +932,7 @@ var gSyncSetup = {
         let addonsEngine = Weave.Service.engineManager.get("addons");
         if (addonsEngine.enabled) {
           let ids = addonsEngine._store.getAllIDs();
-          let blessedcount = 0;
-          for each (let i in ids) {
-            if (i) {
-              blessedcount++;
-            }
-          }
+          let blessedcount = Object.keys(ids).filter(id => ids[id]).length;
           // bug 600141 does not apply, as this does not have to support existing strings
           document.getElementById("addonCount").value =
             PluralForm.get(blessedcount,
@@ -970,7 +956,7 @@ var gSyncSetup = {
           box.appendChild(node);
         }
 
-        for each (let name in Weave.Service.clientsEngine.stats.names) {
+        for (let name of Weave.Service.clientsEngine.stats.names) {
           // Don't list the current client
           if (name == Weave.Service.clientsEngine.localName)
             continue;
@@ -1012,7 +998,7 @@ var gSyncSetup = {
     if (string) {
       try {
         str = this._stringBundle.GetStringFromName(string);
-      } catch(e) {}
+      } catch (e) {}
 
       if (!str)
         str = Weave.Utils.getErrorString(string);
@@ -1041,7 +1027,7 @@ var gSyncSetup = {
     // If we didn't find a captcha, assume it's not needed and don't show it.
     let responseStatus = request.QueryInterface(Ci.nsIHttpChannel).responseStatus;
     setVisibility(this.captchaBrowser, responseStatus != 404);
-    //XXX TODO we should really log any responseStatus other than 200
+    // XXX TODO we should really log any responseStatus other than 200
   },
   onProgressChange: function() {},
   onStatusChange: function() {},

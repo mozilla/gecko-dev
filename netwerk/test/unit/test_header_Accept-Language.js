@@ -2,6 +2,8 @@
 //  HTTP Accept-Language header test
 //
 
+Cu.import("resource://gre/modules/NetUtil.jsm");
+
 var testpath = "/bug672448";
 
 function run_test() {
@@ -78,8 +80,12 @@ function test_accepted_languages() {
 }
 
 function setupChannel(path) {
-  let ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
-  let chan = ios.newChannel("http://localhost:4444" + path, "", null);
+
+  let chan = NetUtil.newChannel ({
+    uri: "http://localhost:4444" + path,
+    loadUsingSystemPrincipal: true
+  });
+
   chan.QueryInterface(Ci.nsIHttpChannel);
   return chan;
 }

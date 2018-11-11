@@ -4,11 +4,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsIProxiedChannel.idl"
+#include "nsIRequest.idl"
 
 interface nsILoadGroup;
 interface nsIURI;
 interface nsIInterfaceRequestor;
-typedef unsigned long nsLoadFlags;
 
 [scriptable, uuid(701093ac-5c7f-429c-99e3-423b041fccb4)]
 interface nsIHttpAuthenticableChannel : nsIProxiedChannel
@@ -105,4 +105,18 @@ interface nsIHttpAuthenticableChannel : nsIProxiedChannel
      *        If the user was cancelled has cancelled the authentication prompt.
      */
     void onAuthCancelled(in boolean userCancel);
+
+    /**
+     * Tells the channel to drop and close any sticky connection, since this
+     * connection oriented schema cannot be negotiated second time on
+     * the same connection.
+     */
+    void closeStickyConnection();
+
+    /**
+     * Tells the channel to mark the connection as allowed to restart on
+     * authentication retry.  This is allowed when the request is a start
+     * of a new authentication round.
+     */
+    void connectionRestartable(in boolean restartable);
 };

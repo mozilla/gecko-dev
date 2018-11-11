@@ -2,12 +2,12 @@
 .\"     Title: CERTUTIL
 .\"    Author: [see the "Authors" section]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date:  5 June 2014
+.\"      Date:  8 September 2016
 .\"    Manual: NSS Security Tools
 .\"    Source: nss-tools
 .\"  Language: English
 .\"
-.TH "CERTUTIL" "1" "5 June 2014" "nss-tools" "NSS Security Tools"
+.TH "CERTUTIL" "1" "8 September 2016" "nss-tools" "NSS Security Tools"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -78,6 +78,11 @@ prompts for a filename\&.
 \-D
 .RS 4
 Delete a certificate from the certificate database\&.
+.RE
+.PP
+\-\-rename
+.RS 4
+Change the database nickname of a certificate\&.
 .RE
 .PP
 \-E
@@ -250,6 +255,11 @@ If no prefix is specified the default type is retrieved from NSS_DEFAULT_DB_TYPE
 is the default\&.
 .RE
 .PP
+\-\-dump\-ext\-val OID
+.RS 4
+For single cert, print binary DER encoding of extension OID\&.
+.RE
+.PP
 \-e
 .RS 4
 Check a certificate\*(Aqs signature during the process of validating a certificate\&.
@@ -260,6 +270,44 @@ Check a certificate\*(Aqs signature during the process of validating a certifica
 Specify the email address of a certificate to list\&. Used with the \-L command option\&.
 .RE
 .PP
+\-\-extGeneric OID:critical\-flag:filename[,OID:critical\-flag:filename]\&.\&.\&.
+.RS 4
+Add one or multiple extensions that certutil cannot encode yet, by loading their encodings from external files\&.
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+OID (example): 1\&.2\&.3\&.4
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+critical\-flag: critical or not\-critical
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+filename: full path to a file containing an encoded extension
+.RE
+.RE
+.PP
 \-f password\-file
 .RS 4
 Specify a file that will automatically supply the password to include in a certificate or to access a certificate database\&. This is a plain\-text file containing one password\&. Be sure to prevent unauthorized access to this file\&.
@@ -267,7 +315,7 @@ Specify a file that will automatically supply the password to include in a certi
 .PP
 \-g keysize
 .RS 4
-Set a key size to use when generating new public and private key pairs\&. The minimum is 512 bits and the maximum is 16384 bits\&. The default is 1024 bits\&. Any size between the minimum and maximum is allowed\&.
+Set a key size to use when generating new public and private key pairs\&. The minimum is 512 bits and the maximum is 16384 bits\&. The default is 2048 bits\&. Any size between the minimum and maximum is allowed\&.
 .RE
 .PP
 \-h tokenname
@@ -323,9 +371,9 @@ Read an alternate PQG value from the specified file when generating DSA key pair
 \fBcertutil\fR
 generates its own PQG value\&. PQG files are created with a separate DSA utility\&.
 .sp
-Elliptic curve name is one of the ones from SUITE B: nistp256, nistp384, nistp521
+Elliptic curve name is one of the ones from nistp256, nistp384, nistp521, curve25519.
 .sp
-If NSS has been compiled with support curves outside of SUITE B: sect163k1, nistk163, sect163r1, sect163r2, nistb163, sect193r1, sect193r2, sect233k1, nistk233, sect233r1, nistb233, sect239k1, sect283k1, nistk283, sect283r1, nistb283, sect409k1, nistk409, sect409r1, nistb409, sect571k1, nistk571, sect571r1, nistb571, secp160k1, secp160r1, secp160r2, secp192k1, secp192r1, nistp192, secp224k1, secp224r1, nistp224, secp256k1, secp256r1, secp384r1, secp521r1, prime192v1, prime192v2, prime192v3, prime239v1, prime239v2, prime239v3, c2pnb163v1, c2pnb163v2, c2pnb163v3, c2pnb176v1, c2tnb191v1, c2tnb191v2, c2tnb191v3, c2pnb208w1, c2tnb239v1, c2tnb239v2, c2tnb239v3, c2pnb272w1, c2pnb304w1, c2tnb359w1, c2pnb368w1, c2tnb431r1, secp112r1, secp112r2, secp128r1, secp128r2, sect113r1, sect113r2 sect131r1, sect131r2
+If a token is available that supports more curves, the foolowing curves are supported as well: sect163k1, nistk163, sect163r1, sect163r2, nistb163,  sect193r1, sect193r2, sect233k1, nistk233, sect233r1, nistb233, sect239k1, sect283k1, nistk283, sect283r1, nistb283, sect409k1, nistk409, sect409r1, nistb409,  sect571k1, nistk571, sect571r1, nistb571, secp160k1, secp160r1, secp160r2, secp192k1, secp192r1, nistp192,  secp224k1, secp224r1, nistp224, secp256k1, secp256r1, secp384r1, secp521r1, prime192v1, prime192v2, prime192v3, prime239v1, prime239v2, prime239v3, c2pnb163v1, c2pnb163v2, c2pnb163v3, c2pnb176v1, c2tnb191v1, c2tnb191v2, c2tnb191v3, c2pnb208w1, c2tnb239v1, c2tnb239v2, c2tnb239v3, c2pnb272w1, c2pnb304w1, c2tnb359w1, c2pnb368w1, c2tnb431r1, secp112r1, secp112r2, secp128r1, secp128r2, sect113r1, sect113r2, sect131r1, sect131r2
 .RE
 .PP
 \-r
@@ -388,7 +436,7 @@ for each trust setting\&. In each category position, use none, any, or all of th
 .sp -1
 .IP \(bu 2.3
 .\}
-\fBT\fR
+\fBC\fR
 \- Trusted CA (implies c)
 .RE
 .sp
@@ -400,27 +448,17 @@ for each trust setting\&. In each category position, use none, any, or all of th
 .sp -1
 .IP \(bu 2.3
 .\}
-\fBC\fR
+\fBT\fR
 \- trusted CA for client authentication (ssl server only)
-.RE
-.sp
-.RS 4
-.ie n \{\
-\h'-04'\(bu\h'+03'\c
-.\}
-.el \{\
-.sp -1
-.IP \(bu 2.3
-.\}
-\fBu\fR
-\- user
 .RE
 .sp
 The attribute codes for the categories are separated by commas, and the entire set of attributes enclosed by quotation marks\&. For example:
 .sp
-\fB\-t "TCu,Cu,Tu"\fR
+\fB\-t "TC,C,T"\fR
 .sp
 Use the \-L option to see a list of the current certificates and trust attributes in a certificate database\&.
+.sp
+Note that the output of the \-L option may include "u" flag, which means that there is a private key associated with the certificate\&. It is a dynamic flag and you cannot set it with certutil\&.
 .RE
 .PP
 \-u certusage
@@ -451,6 +489,42 @@ The contexts are the following:
 .\}
 \fBV\fR
 (as an SSL server)
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fBL\fR
+(as an SSL CA)
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fBA\fR
+(as Any CA)
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fBY\fR
+(Verify CA)
 .RE
 .sp
 .RS 4
@@ -538,6 +612,99 @@ Set an alternate exponent value to use in generating a new RSA public key for th
 \-z noise\-file
 .RS 4
 Read a seed value from the specified file to generate a new private and public key pair\&. This argument makes it possible to use hardware\-generated seed values or manually create a value from the keyboard\&. The minimum file size is 20 bytes\&.
+.RE
+.PP
+\-Z hashAlg
+.RS 4
+Specify the hash algorithm to use with the \-C, \-S or \-R command options\&. Possible keywords:
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+MD2
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+MD4
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+MD5
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+SHA1
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+SHA224
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+SHA256
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+SHA384
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+SHA512
+.RE
 .RE
 .PP
 \-0 SSO_password
@@ -914,6 +1081,13 @@ Add the Subject Key ID extension to the certificate\&. X\&.509 certificate exten
 Add a Name Constraint extension to the certificate\&. X\&.509 certificate extensions are described in RFC 5280\&.
 .RE
 .PP
+\-\-extSAN type:name[,type:name]\&.\&.\&.
+.RS 4
+Create a Subject Alt Name extension with one or multiple names\&.
+.sp
+\-type: directory, dn, dns, edi, ediparty, email, ip, ipaddr, other, registerid, rfc822, uri, x400, x400addr
+.RE
+.PP
 \-\-empty\-password
 .RS 4
 Use empty password when creating new certificate database with \-N\&.
@@ -927,6 +1101,11 @@ PKCS #11 key Attributes\&. Comma separated list of key attribute flags, selected
 \-\-keyOpFlagsOn opflags, \-\-keyOpFlagsOff opflags
 .RS 4
 PKCS #11 key Operation Flags\&. Comma separated list of one or more of the following: {token | session} {public | private} {sensitive | insensitive} {modifiable | unmodifiable} {extractable | unextractable}
+.RE
+.PP
+\-\-new\-n nickname
+.RS 4
+A new nickname, used when renaming a certificate\&.
 .RE
 .PP
 \-\-source\-dir certdir
@@ -1133,7 +1312,7 @@ From there, new certificates can reference the self\-signed certificate:
 .RS 4
 .\}
 .nf
-$ certutil \-S \-s "CN=My Server Cert" \-n my\-server\-cert \-c "my\-ca\-cert" \-t "u,u,u" \-1 \-5 \-6 \-8 \-m 730
+$ certutil \-S \-s "CN=My Server Cert" \-n my\-server\-cert \-c "my\-ca\-cert" \-t ",," \-1 \-5 \-6 \-8 \-m 730
 .fi
 .if n \{\
 .RE
@@ -1409,7 +1588,7 @@ For example:
 .RS 4
 .\}
 .nf
-$ certutil \-A \-n "CN=My SSL Certificate" \-t "u,u,u" \-d sql:/home/my/sharednssdb \-i /home/example\-certs/cert\&.cer
+$ certutil \-A \-n "CN=My SSL Certificate" \-t ",," \-d sql:/home/my/sharednssdb \-i /home/example\-certs/cert\&.cer
 .fi
 .if n \{\
 .RE
@@ -1427,7 +1606,7 @@ command\&. The trust arguments for certificates have the format
 .RS 4
 .\}
 .nf
-$ certutil \-E \-n "CN=John Smith Email Cert" \-t ",Pu," \-d sql:/home/my/sharednssdb \-i /home/example\-certs/email\&.cer
+$ certutil \-E \-n "CN=John Smith Email Cert" \-t ",P," \-d sql:/home/my/sharednssdb \-i /home/example\-certs/email\&.cer
 .fi
 .if n \{\
 .RE
@@ -1509,7 +1688,7 @@ For example:
 .RS 4
 .\}
 .nf
-$ certutil \-M \-n "My CA Certificate" \-d sql:/home/my/sharednssdb \-t "CTu,CTu,CTu"
+$ certutil \-M \-n "My CA Certificate" \-d sql:/home/my/sharednssdb \-t "CT,CT,CT"
 .fi
 .if n \{\
 .RE

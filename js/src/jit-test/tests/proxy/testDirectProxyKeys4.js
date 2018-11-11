@@ -1,10 +1,5 @@
 load(libdir + "asserts.js");
 
-// Throw a TypeError if the trap reports the same property twice
-assertThrowsInstanceOf(function () {
-    Object.keys(new Proxy({}, {
-        keys: function (target) {
-            return [ 'foo', 'foo' ];
-        }
-    }));
-}, TypeError);
+var handler = { ownKeys: () => [ 'foo', 'foo' ] };
+for (let p of [new Proxy({}, handler), Proxy.revocable({}, handler).proxy])
+    assertDeepEq(Object.keys(p), []); // Properties are not enumerable.

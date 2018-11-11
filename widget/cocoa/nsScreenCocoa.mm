@@ -7,11 +7,14 @@
 #include "nsObjCExceptions.h"
 #include "nsCocoaUtils.h"
 
+static uint32_t sScreenId = 0;
+
 nsScreenCocoa::nsScreenCocoa (NSScreen *screen)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
   mScreen = [screen retain];
+  mId = ++sScreenId;
 
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
@@ -26,11 +29,23 @@ nsScreenCocoa::~nsScreenCocoa ()
 }
 
 NS_IMETHODIMP
+nsScreenCocoa::GetId(uint32_t *outId)
+{
+  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
+
+  *outId = mId;
+  return NS_OK;
+
+  NS_OBJC_END_TRY_ABORT_BLOCK;
+}
+
+NS_IMETHODIMP
 nsScreenCocoa::GetRect(int32_t *outX, int32_t *outY, int32_t *outWidth, int32_t *outHeight)
 {
   NSRect frame = [mScreen frame];
 
-  nsIntRect r = nsCocoaUtils::CocoaRectToGeckoRectDevPix(frame, BackingScaleFactor());
+  mozilla::LayoutDeviceIntRect r =
+    nsCocoaUtils::CocoaRectToGeckoRectDevPix(frame, BackingScaleFactor());
 
   *outX = r.x;
   *outY = r.y;
@@ -45,7 +60,8 @@ nsScreenCocoa::GetAvailRect(int32_t *outX, int32_t *outY, int32_t *outWidth, int
 {
   NSRect frame = [mScreen visibleFrame];
 
-  nsIntRect r = nsCocoaUtils::CocoaRectToGeckoRectDevPix(frame, BackingScaleFactor());
+  mozilla::LayoutDeviceIntRect r =
+    nsCocoaUtils::CocoaRectToGeckoRectDevPix(frame, BackingScaleFactor());
 
   *outX = r.x;
   *outY = r.y;
@@ -60,7 +76,7 @@ nsScreenCocoa::GetRectDisplayPix(int32_t *outX, int32_t *outY, int32_t *outWidth
 {
   NSRect frame = [mScreen frame];
 
-  nsIntRect r = nsCocoaUtils::CocoaRectToGeckoRect(frame);
+  mozilla::DesktopIntRect r = nsCocoaUtils::CocoaRectToGeckoRect(frame);
 
   *outX = r.x;
   *outY = r.y;
@@ -75,7 +91,7 @@ nsScreenCocoa::GetAvailRectDisplayPix(int32_t *outX, int32_t *outY, int32_t *out
 {
   NSRect frame = [mScreen visibleFrame];
 
-  nsIntRect r = nsCocoaUtils::CocoaRectToGeckoRect(frame);
+  mozilla::DesktopIntRect r = nsCocoaUtils::CocoaRectToGeckoRect(frame);
 
   *outX = r.x;
   *outY = r.y;

@@ -1,18 +1,19 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  * vim: sw=2 ts=2 et lcs=trail\:.,tab\:>~ :
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const Ci = Components.interfaces;
-const Cc = Components.classes;
-const Cr = Components.results;
-const Cu = Components.utils;
+var Ci = Components.interfaces;
+var Cc = Components.classes;
+var Cr = Components.results;
+var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
 
 // Import common head.
-let (commonFile = do_get_file("../head_common.js", false)) {
+{
+  let commonFile = do_get_file("../head_common.js", false);
   let uri = Services.io.newFileURI(commonFile);
   Services.scriptloader.loadSubScript(uri.spec, this);
 }
@@ -33,7 +34,9 @@ function shutdownExpiration()
  * history notification.
  */
 function force_expiration_start() {
-  Cc["@mozilla.org/places/expiration;1"].getService(Ci.nsISupports);
+  Cc["@mozilla.org/places/expiration;1"]
+    .getService(Ci.nsIObserver)
+    .observe(null, "testing-mode", null);
 }
 
 
@@ -70,7 +73,7 @@ function clearInterval() {
   try {
     Services.prefs.clearUserPref("places.history.expiration.interval_seconds");
   }
-  catch(ex) {}
+  catch (ex) {}
 }
 
 
@@ -84,7 +87,7 @@ function clearMaxPages() {
   try {
     Services.prefs.clearUserPref("places.history.expiration.max_pages");
   }
-  catch(ex) {}
+  catch (ex) {}
 }
 
 
@@ -98,22 +101,24 @@ function clearHistoryEnabled() {
   try {
     Services.prefs.clearUserPref("places.history.enabled");
   }
-  catch(ex) {}
+  catch (ex) {}
 }
 
 /**
  * Returns a PRTime in the past usable to add expirable visits.
  *
- * @note Expiration ignores any visit added in the last 7 days, but it's
- *       better be safe against DST issues, by going back one day more.
+ * param [optional] daysAgo
+ *       Expiration ignores any visit added in the last 7 days, so by default
+ *       this will be set to 7.
+ * @note to be safe against DST issues we go back one day more.
  */
-function getExpirablePRTime() {
+function getExpirablePRTime(daysAgo = 7) {
   let dateObj = new Date();
   // Normalize to midnight
   dateObj.setHours(0);
   dateObj.setMinutes(0);
   dateObj.setSeconds(0);
   dateObj.setMilliseconds(0);
-  dateObj = new Date(dateObj.getTime() - 8 * 86400000);
+  dateObj = new Date(dateObj.getTime() - (daysAgo + 1) * 86400000);
   return dateObj.getTime() * 1000;
 }

@@ -9,6 +9,8 @@
 #include "nsString.h"
 #include "nsThreadUtils.h"
 #include "nsHtml5ViewSourceUtils.h"
+
+#include "mozilla/Attributes.h"
 #include "mozilla/Preferences.h"
 
 using namespace mozilla;
@@ -53,14 +55,13 @@ nsHtml5Highlighter::nsHtml5Highlighter(nsAHtml5TreeOpSink* aOpSink)
  , mInlinesOpen(0)
  , mInCharacters(false)
  , mBuffer(nullptr)
- , mSyntaxHighlight(Preferences::GetBool("view_source.syntax_highlight",
-                                         true))
  , mOpSink(aOpSink)
  , mCurrentRun(nullptr)
  , mAmpersand(nullptr)
  , mSlash(nullptr)
- , mHandles(new nsIContent*[NS_HTML5_HIGHLIGHTER_HANDLE_ARRAY_LENGTH])
+ , mHandles(MakeUnique<nsIContent*[]>(NS_HTML5_HIGHLIGHTER_HANDLE_ARRAY_LENGTH))
  , mHandlesUsed(0)
+ , mSeenBase(false)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 }
@@ -78,7 +79,7 @@ nsHtml5Highlighter::Start(const nsAutoString& aTitle)
 
   mOpQueue.AppendElement()->Init(STANDARDS_MODE);
 
-  nsIContent** root = CreateElement(nsHtml5Atoms::html, nullptr);
+  nsIContent** root = CreateElement(nsHtml5Atoms::html, nullptr, nullptr);
   mOpQueue.AppendElement()->Init(eTreeOpAppendToDocument, root);
   mStack.AppendElement(root);
 
@@ -105,7 +106,7 @@ nsHtml5Highlighter::Start(const nsAutoString& aTitle)
 
   nsHtml5HtmlAttributes* preAttrs = new nsHtml5HtmlAttributes(0);
   nsString* preId = new nsString(NS_LITERAL_STRING("line1"));
-  preAttrs->addAttribute(nsHtml5AttributeName::ATTR_ID, preId);
+  preAttrs->addAttribute(nsHtml5AttributeName::ATTR_ID, preId, -1);
   Push(nsGkAtoms::pre, preAttrs);
 
   StartCharacters();
@@ -569,7 +570,7 @@ nsHtml5Highlighter::FlushChars()
           // the input data, because there are no reparses in the View Source
           // case, so we won't need the original data in the buffer anymore.
           buf[i] = '\n';
-          // fall through
+          MOZ_FALLTHROUGH;
         case '\n': {
           ++i;
           if (mCStart < i) {
@@ -642,19 +643,20 @@ nsIContent**
 nsHtml5Highlighter::AllocateContentHandle()
 {
   if (mHandlesUsed == NS_HTML5_HIGHLIGHTER_HANDLE_ARRAY_LENGTH) {
-    mOldHandles.AppendElement(mHandles.forget());
-    mHandles = new nsIContent*[NS_HTML5_HIGHLIGHTER_HANDLE_ARRAY_LENGTH];
+    mOldHandles.AppendElement(Move(mHandles));
+    mHandles = MakeUnique<nsIContent*[]>(NS_HTML5_HIGHLIGHTER_HANDLE_ARRAY_LENGTH);
     mHandlesUsed = 0;
   }
 #ifdef DEBUG
-  mHandles[mHandlesUsed] = (nsIContent*)0xC0DEDBAD;
+  mHandles[mHandlesUsed] = reinterpret_cast<nsIContent*>(uintptr_t(0xC0DEDBAD));
 #endif
   return &mHandles[mHandlesUsed++];
 }
 
 nsIContent**
 nsHtml5Highlighter::CreateElement(nsIAtom* aName,
-                                  nsHtml5HtmlAttributes* aAttributes)
+                                  nsHtml5HtmlAttributes* aAttributes,
+                                  nsIContent** aIntendedParent)
 {
   NS_PRECONDITION(aName, "Got null name.");
   nsIContent** content = AllocateContentHandle();
@@ -662,6 +664,7 @@ nsHtml5Highlighter::CreateElement(nsIAtom* aName,
                                  aName,
                                  aAttributes,
                                  content,
+                                 aIntendedParent,
                                  true);
   return content;
 }
@@ -678,7 +681,7 @@ nsHtml5Highlighter::Push(nsIAtom* aName,
                          nsHtml5HtmlAttributes* aAttributes)
 {
   NS_PRECONDITION(mStack.Length() >= 1, "Pushing without root.");
-  nsIContent** elt = CreateElement(aName, aAttributes); // Don't inline below!
+  nsIContent** elt = CreateElement(aName, aAttributes, CurrentNode()); // Don't inline below!
   mOpQueue.AppendElement()->Init(eTreeOpAppend, elt, CurrentNode());
   mStack.AppendElement(elt);
 }
@@ -710,9 +713,6 @@ nsHtml5Highlighter::AppendCharacters(const char16_t* aBuffer,
 void
 nsHtml5Highlighter::AddClass(const char16_t* aClass)
 {
-  if (!mSyntaxHighlight) {
-    return;
-  }
   mOpQueue.AppendElement()->InitAddClass(CurrentNode(), aClass);
 }
 
@@ -730,11 +730,24 @@ nsHtml5Highlighter::AddViewSourceHref(const nsString& aValue)
 }
 
 void
-nsHtml5Highlighter::AddErrorToCurrentNode(const char* aMsgId)
+nsHtml5Highlighter::AddBase(const nsString& aValue)
 {
-  if (!mSyntaxHighlight) {
+  if(mSeenBase) {
     return;
   }
+  mSeenBase = true;
+  char16_t* bufferCopy = new char16_t[aValue.Length() + 1];
+  memcpy(bufferCopy, aValue.get(), aValue.Length() * sizeof(char16_t));
+  bufferCopy[aValue.Length()] = 0;
+
+  mOpQueue.AppendElement()->Init(eTreeOpAddViewSourceBase,
+                                 bufferCopy,
+                                 aValue.Length());
+}
+
+void
+nsHtml5Highlighter::AddErrorToCurrentNode(const char* aMsgId)
+{
   nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
   NS_ASSERTION(treeOp, "Tree op allocation failed.");
   treeOp->Init(CurrentNode(), aMsgId);
@@ -743,9 +756,6 @@ nsHtml5Highlighter::AddErrorToCurrentNode(const char* aMsgId)
 void
 nsHtml5Highlighter::AddErrorToCurrentRun(const char* aMsgId)
 {
-  if (!mSyntaxHighlight) {
-    return;
-  }
   NS_PRECONDITION(mCurrentRun, "Adding error to run without one!");
   nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
   NS_ASSERTION(treeOp, "Tree op allocation failed.");
@@ -756,9 +766,6 @@ void
 nsHtml5Highlighter::AddErrorToCurrentRun(const char* aMsgId,
                                          nsIAtom* aName)
 {
-  if (!mSyntaxHighlight) {
-    return;
-  }
   NS_PRECONDITION(mCurrentRun, "Adding error to run without one!");
   nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
   NS_ASSERTION(treeOp, "Tree op allocation failed.");
@@ -770,9 +777,6 @@ nsHtml5Highlighter::AddErrorToCurrentRun(const char* aMsgId,
                                          nsIAtom* aName,
                                          nsIAtom* aOther)
 {
-  if (!mSyntaxHighlight) {
-    return;
-  }
   NS_PRECONDITION(mCurrentRun, "Adding error to run without one!");
   nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
   NS_ASSERTION(treeOp, "Tree op allocation failed.");
@@ -782,9 +786,6 @@ nsHtml5Highlighter::AddErrorToCurrentRun(const char* aMsgId,
 void
 nsHtml5Highlighter::AddErrorToCurrentAmpersand(const char* aMsgId)
 {
-  if (!mSyntaxHighlight) {
-    return;
-  }
   NS_PRECONDITION(mAmpersand, "Adding error to ampersand without one!");
   nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
   NS_ASSERTION(treeOp, "Tree op allocation failed.");
@@ -794,9 +795,6 @@ nsHtml5Highlighter::AddErrorToCurrentAmpersand(const char* aMsgId)
 void
 nsHtml5Highlighter::AddErrorToCurrentSlash(const char* aMsgId)
 {
-  if (!mSyntaxHighlight) {
-    return;
-  }
   NS_PRECONDITION(mSlash, "Adding error to slash without one!");
   nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
   NS_ASSERTION(treeOp, "Tree op allocation failed.");

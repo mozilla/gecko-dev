@@ -8,6 +8,8 @@
 #include "nsCOMPtr.h"
 #include "nsCocoaUtils.h"
 
+using namespace mozilla;
+
 NS_IMPL_ISUPPORTS(nsScreenManagerCocoa, nsIScreenManager)
 
 nsScreenManagerCocoa::nsScreenManagerCocoa()
@@ -30,19 +32,46 @@ nsScreenManagerCocoa::ScreenForCocoaScreen(NSScreen *screen)
     }
 
     // didn't find it; create and insert
-    nsRefPtr<nsScreenCocoa> sc = new nsScreenCocoa(screen);
+    RefPtr<nsScreenCocoa> sc = new nsScreenCocoa(screen);
     mScreenList.AppendElement(sc);
     return sc.get();
 }
 
 NS_IMETHODIMP
-nsScreenManagerCocoa::ScreenForRect (int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
+nsScreenManagerCocoa::ScreenForId (uint32_t aId, nsIScreen **outScreen)
+{
+    NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT
+
+    *outScreen = nullptr;
+
+    for (uint32_t i = 0; i < mScreenList.Length(); ++i) {
+        nsScreenCocoa* sc = mScreenList[i];
+        uint32_t id;
+        nsresult rv = sc->GetId(&id);
+
+        if (NS_SUCCEEDED(rv) && id == aId) {
+            *outScreen = sc;
+            NS_ADDREF(*outScreen);
+            return NS_OK;
+        }
+    }
+
+    return NS_ERROR_FAILURE;
+
+    NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
+}
+
+NS_IMETHODIMP
+nsScreenManagerCocoa::ScreenForRect (int32_t aX, int32_t aY,
+                                     int32_t aWidth, int32_t aHeight,
                                      nsIScreen **outScreen)
 {
     NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
     NSEnumerator *screenEnum = [[NSScreen screens] objectEnumerator];
-    NSRect inRect = nsCocoaUtils::GeckoRectToCocoaRect(nsIntRect(aX, aY, aWidth, aHeight));
+    NSRect inRect =
+      nsCocoaUtils::GeckoRectToCocoaRect(DesktopIntRect(aX, aY,
+                                                        aWidth, aHeight));
     NSScreen *screenWindowIsOn = [NSScreen mainScreen];
     float greatestArea = 0;
 

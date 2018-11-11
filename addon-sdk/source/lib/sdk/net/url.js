@@ -8,11 +8,13 @@ module.metadata = {
   "stability": "experimental"
 };
 
-const { Cu, components } = require("chrome");
+const { Ci, Cu, components } = require("chrome");
+
 const { defer } = require("../core/promise");
 const { merge } = require("../util/object");
 
 const { NetUtil } = Cu.import("resource://gre/modules/NetUtil.jsm", {});
+const { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
 
 /**
  * Reads a URI and returns a promise.
@@ -33,7 +35,9 @@ function readURI(uri, options) {
   options = options || {};
   let charset = options.charset || 'UTF-8';
 
-  let channel = NetUtil.newChannel(uri, charset, null);
+  let channel = NetUtil.newChannel({
+    uri: NetUtil.newURI(uri, charset),
+    loadUsingSystemPrincipal: true});
 
   let { promise, resolve, reject } = defer();
 
@@ -74,8 +78,10 @@ exports.readURI = readURI;
 function readURISync(uri, charset) {
   charset = typeof charset === "string" ? charset : "UTF-8";
 
-  let channel = NetUtil.newChannel(uri, charset, null);
-  let stream = channel.open();
+  let channel = NetUtil.newChannel({
+    uri: NetUtil.newURI(uri, charset),
+    loadUsingSystemPrincipal: true});
+  let stream = channel.open2();
 
   let count = stream.available();
   let data = NetUtil.readInputStreamToString(stream, count, { charset : charset });

@@ -1,0 +1,10 @@
+*#
+.coverage*
+htmlcov/
+coverage.xml
+.tox
+*.py[co]
+*.sw[po]
+*~
+\#*
+runner/MANIFEST.json

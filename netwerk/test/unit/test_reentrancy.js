@@ -1,4 +1,5 @@
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "URL", function() {
   return "http://localhost:" + httpserver.identity.primaryPort;
@@ -41,11 +42,11 @@ var listener = {
       case 1:
         request.suspend();
         syncXHR();
-        do_execute_soon(function() request.resume());
+        do_execute_soon(function() { request.resume(); });
         break;
       case 2:
-        do_execute_soon(function() request.suspend());
-        do_execute_soon(function() request.resume());
+        do_execute_soon(function() { request.suspend(); });
+        do_execute_soon(function() { request.resume(); });
         syncXHR();
         break;
     }
@@ -76,16 +77,15 @@ var listener = {
 };
 
 function makeChan(url) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
-  var chan = ios.newChannel(url, null, null).QueryInterface(Ci.nsIHttpChannel);
-  return chan;
+  return NetUtil.newChannel({uri: url, loadUsingSystemPrincipal: true})
+                .QueryInterface(Ci.nsIHttpChannel);
 }
 
 function next_test()
 {
   var chan = makeChan(URL + testpath);
   chan.QueryInterface(Ci.nsIRequest);
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
 }
 
 function run_test()

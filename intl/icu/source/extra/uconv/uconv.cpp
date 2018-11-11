@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*****************************************************************************
 *
-*   Copyright (C) 1999-2013, International Business Machines
+*   Copyright (C) 1999-2016, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *
 ******************************************************************************/
@@ -65,8 +67,6 @@ U_NAMESPACE_USE
 #include "unicode/udata.h"
 U_CFUNC char uconvmsg_dat[];
 #endif
-
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
 
 #define DEFAULT_BUFSZ   4096
 #define UCONVMSG "uconvmsg"
@@ -175,7 +175,7 @@ static struct callback_ent {
 
 static const struct callback_ent *findCallback(const char *name) {
     int i, count =
-        sizeof(transcode_callbacks) / sizeof(*transcode_callbacks);
+        UPRV_LENGTHOF(transcode_callbacks);
 
     /* We'll do a linear search, there aren't many of them and bsearch()
        may not be that portable. */
@@ -659,9 +659,9 @@ ConvertFile::convertFile(const char *pname,
         parse.line = -1;
 
         if (uprv_strchr(translit, ':') || uprv_strchr(translit, '>') || uprv_strchr(translit, '<') || uprv_strchr(translit, '>')) {
-            t = Transliterator::createFromRules("Uconv", str, UTRANS_FORWARD, parse, err);
+            t = Transliterator::createFromRules(UNICODE_STRING_SIMPLE("Uconv"), str, UTRANS_FORWARD, parse, err);
         } else {
-            t = Transliterator::createInstance(translit, UTRANS_FORWARD, err);
+            t = Transliterator::createInstance(UnicodeString(translit, -1, US_INV), UTRANS_FORWARD, err);
         }
 
         if (U_FAILURE(err)) {
@@ -946,7 +946,7 @@ ConvertFile::convertFile(const char *pname,
                     int8_t i, length, errorLength;
 
                     UErrorCode localError = U_ZERO_ERROR;
-                    errorLength = (int8_t)LENGTHOF(errorUChars);
+                    errorLength = UPRV_LENGTHOF(errorUChars);
                     ucnv_getInvalidUChars(convto, errorUChars, &errorLength, &localError);
                     if (U_FAILURE(localError) || errorLength == 0) {
                         // need at least 1 so that we don't access beyond the length of fromoffsets[]
@@ -1084,7 +1084,7 @@ static void usage(const char *pname, int ecode) {
             /* Now dump callbacks and finish. */
 
             int i, count =
-                sizeof(transcode_callbacks) / sizeof(*transcode_callbacks);
+                UPRV_LENGTHOF(transcode_callbacks);
             for (i = 0; i < count; ++i) {
                 fprintf(fp, " %s", transcode_callbacks[i].name);
             }

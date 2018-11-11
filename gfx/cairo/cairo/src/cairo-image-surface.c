@@ -875,7 +875,7 @@ _nearest_sample (cairo_filter_t filter, double *tx, double *ty)
     return fabs (*tx) < PIXMAN_MAX_INT && fabs (*ty) < PIXMAN_MAX_INT;
 }
 
-#if HAS_ATOMIC_OPS
+#if PIXMAN_HAS_ATOMIC_OPS
 static pixman_image_t *__pixman_transparent_image;
 static pixman_image_t *__pixman_black_image;
 static pixman_image_t *__pixman_white_image;
@@ -969,23 +969,6 @@ _pixman_white_image (void)
 
     return image;
 }
-#else
-static pixman_image_t *
-_pixman_transparent_image (void)
-{
-    return _pixman_image_for_solid (&_cairo_pattern_clear);
-}
-static pixman_image_t *
-_pixman_black_image (void)
-{
-    return _pixman_image_for_solid (&_cairo_pattern_black);
-}
-static pixman_image_t *
-_pixman_white_image (void)
-{
-    return _pixman_image_for_solid (&_cairo_pattern_white);
-}
-#endif
 
 static uint32_t
 hars_petruska_f54_1_random (void)
@@ -1002,13 +985,33 @@ static struct {
 } cache[16];
 static int n_cached;
 
+#else  /* !PIXMAN_HAS_ATOMIC_OPS */
+static pixman_image_t *
+_pixman_transparent_image (void)
+{
+    return _pixman_image_for_solid (&_cairo_pattern_clear);
+}
+
+static pixman_image_t *
+_pixman_black_image (void)
+{
+    return _pixman_image_for_solid (&_cairo_pattern_black);
+}
+
+static pixman_image_t *
+_pixman_white_image (void)
+{
+    return _pixman_image_for_solid (&_cairo_pattern_white);
+}
+#endif /* !PIXMAN_HAS_ATOMIC_OPS */
+
 void
 _cairo_image_reset_static_data (void)
 {
+#if PIXMAN_HAS_ATOMIC_OPS
     while (n_cached)
 	pixman_image_unref (cache[--n_cached].image);
 
-#if HAS_ATOMIC_OPS
     if (__pixman_transparent_image) {
 	pixman_image_unref (__pixman_transparent_image);
 	__pixman_transparent_image = NULL;
@@ -1031,9 +1034,10 @@ _pixman_image_for_solid (const cairo_solid_pattern_t *pattern)
 {
     pixman_color_t color;
     pixman_image_t *image;
+
+#if PIXMAN_HAS_ATOMIC_OPS
     int i;
 
-#if HAS_ATOMIC_OPS
     if (pattern->color.alpha_short <= 0x00ff)
 	return _pixman_transparent_image ();
 
@@ -1052,7 +1056,6 @@ _pixman_image_for_solid (const cairo_solid_pattern_t *pattern)
 	    return _pixman_white_image ();
 	}
     }
-#endif
 
     CAIRO_MUTEX_LOCK (_cairo_image_solid_cache_mutex);
     for (i = 0; i < n_cached; i++) {
@@ -1061,6 +1064,7 @@ _pixman_image_for_solid (const cairo_solid_pattern_t *pattern)
 	    goto UNLOCK;
 	}
     }
+#endif
 
     color.red   = pattern->color.red_short;
     color.green = pattern->color.green_short;
@@ -1068,6 +1072,7 @@ _pixman_image_for_solid (const cairo_solid_pattern_t *pattern)
     color.alpha = pattern->color.alpha_short;
 
     image = pixman_image_create_solid_fill (&color);
+#if PIXMAN_HAS_ATOMIC_OPS
     if (image == NULL)
 	goto UNLOCK;
 
@@ -1082,7 +1087,14 @@ _pixman_image_for_solid (const cairo_solid_pattern_t *pattern)
 
 UNLOCK:
     CAIRO_MUTEX_UNLOCK (_cairo_image_solid_cache_mutex);
+#endif
     return image;
+}
+
+static double
+clamp (double val, double min, double max)
+{
+    return val < min ? min : (val > max ? max : val);
 }
 
 static pixman_image_t *
@@ -1115,37 +1127,40 @@ _pixman_image_for_gradient (const cairo_gradient_pattern_t *pattern,
     if (pattern->base.type == CAIRO_PATTERN_TYPE_LINEAR) {
 	cairo_linear_pattern_t *linear = (cairo_linear_pattern_t *) pattern;
 	pixman_point_fixed_t p1, p2;
-	cairo_fixed_t xdim, ydim;
-
-	xdim = fabs (linear->p2.x - linear->p1.x);
-	ydim = fabs (linear->p2.y - linear->p1.y);
+	double x0, y0, x1, y1, maxabs;
 
 	/*
 	 * Transform the matrix to avoid overflow when converting between
 	 * cairo_fixed_t and pixman_fixed_t (without incurring performance
 	 * loss when the transformation is unnecessary).
 	 *
-	 * XXX: Consider converting out-of-range co-ordinates and transforms.
 	 * Having a function to compute the required transformation to
 	 * "normalize" a given bounding box would be generally useful -
 	 * cf linear patterns, gradient patterns, surface patterns...
 	 */
-	if (_cairo_fixed_integer_ceil (xdim) > PIXMAN_MAX_INT ||
-	    _cairo_fixed_integer_ceil (ydim) > PIXMAN_MAX_INT)
+	x0 = _cairo_fixed_to_double (linear->p1.x);
+	y0 = _cairo_fixed_to_double (linear->p1.y);
+	x1 = _cairo_fixed_to_double (linear->p2.x);
+	y1 = _cairo_fixed_to_double (linear->p2.y);
+	cairo_matrix_transform_point (&matrix, &x0, &y0);
+	cairo_matrix_transform_point (&matrix, &x1, &y1);
+	maxabs = MAX (MAX (fabs (x0), fabs (x1)), MAX (fabs (y0), fabs (y1)));
+
+	if (maxabs > PIXMAN_MAX_INT)
 	{
 	    double sf;
+	    cairo_matrix_t scale;
 
-	    if (xdim > ydim)
-		sf = PIXMAN_MAX_INT / _cairo_fixed_to_double (xdim);
-	    else
-		sf = PIXMAN_MAX_INT / _cairo_fixed_to_double (ydim);
+	    sf = PIXMAN_MAX_INT / maxabs;
 
 	    p1.x = _cairo_fixed_16_16_from_double (_cairo_fixed_to_double (linear->p1.x) * sf);
 	    p1.y = _cairo_fixed_16_16_from_double (_cairo_fixed_to_double (linear->p1.y) * sf);
 	    p2.x = _cairo_fixed_16_16_from_double (_cairo_fixed_to_double (linear->p2.x) * sf);
 	    p2.y = _cairo_fixed_16_16_from_double (_cairo_fixed_to_double (linear->p2.y) * sf);
 
-	    cairo_matrix_scale (&matrix, sf, sf);
+	    /* cairo_matrix_scale does a pre-scale, we want a post-scale */
+	    cairo_matrix_init_scale (&scale, sf, sf);
+	    cairo_matrix_multiply (&matrix, &matrix, &scale);
 	}
 	else
 	{
@@ -1182,9 +1197,9 @@ _pixman_image_for_gradient (const cairo_gradient_pattern_t *pattern,
     if (unlikely (pixman_image == NULL))
 	return NULL;
 
-    tx = pattern->base.matrix.x0;
-    ty = pattern->base.matrix.y0;
-    if (! _cairo_matrix_is_translation (&pattern->base.matrix) ||
+    tx = matrix.x0;
+    ty = matrix.y0;
+    if (! _cairo_matrix_is_translation (&matrix) ||
 	! _nearest_sample (pattern->base.filter, &tx, &ty))
     {
 	pixman_transform_t pixman_transform;
@@ -1192,21 +1207,30 @@ _pixman_image_for_gradient (const cairo_gradient_pattern_t *pattern,
 	if (tx != 0. || ty != 0.) {
 	    cairo_matrix_t m, inv;
 	    cairo_status_t status;
-	    double x, y;
+	    double x, y, max_x, max_y;
 
-	    /* pixman also limits the [xy]_offset to 16 bits so evenly
-	     * spread the bits between the two.
+	    /* Pixman also limits the [xy]_offset to 16 bits. We try to evenly
+	     * spread the bits between the two, but we need to ensure that
+	     * fabs (tx + extents->x + extents->width) < PIXMAN_MAX_INT &&
+	     * fabs (ty + extents->y + extents->height) < PIXMAN_MAX_INT,
+	     * otherwise the gradient won't render.
 	     */
-	    inv = pattern->base.matrix;
+	    inv = matrix;
 	    status = cairo_matrix_invert (&inv);
 	    assert (status == CAIRO_STATUS_SUCCESS);
 
 	    x = _cairo_lround (inv.x0 / 2);
 	    y = _cairo_lround (inv.y0 / 2);
+
+	    max_x = PIXMAN_MAX_INT - 1 - fabs (extents->x + extents->width);
+	    x = clamp(x, -max_x, max_x);
+	    max_y = PIXMAN_MAX_INT - 1 - fabs (extents->y + extents->height);
+	    y = clamp(y, -max_y, max_y);
+
 	    tx = -x;
 	    ty = -y;
 	    cairo_matrix_init_translate (&inv, x, y);
-	    cairo_matrix_multiply (&m, &inv, &pattern->base.matrix);
+	    cairo_matrix_multiply (&m, &inv, &matrix);
 	    _cairo_matrix_to_pixman_matrix (&m, &pixman_transform,
 					    extents->x + extents->width/2.,
 					    extents->y + extents->height/2.);
@@ -1410,6 +1434,7 @@ _pixman_image_for_surface (const cairo_surface_pattern_t *pattern,
 		}
 	    }
 
+#if PIXMAN_HAS_ATOMIC_OPS
 	    /* avoid allocating a 'pattern' image if we can reuse the original */
 	    if (extend == CAIRO_EXTEND_NONE &&
 		_cairo_matrix_is_translation (&pattern->base.matrix) &&
@@ -1419,6 +1444,7 @@ _pixman_image_for_surface (const cairo_surface_pattern_t *pattern,
 		*iy = ty;
 		return pixman_image_ref (source->pixman_image);
 	    }
+#endif
 
 	    pixman_image = pixman_image_create_bits (source->pixman_format,
 						     source->width,
@@ -1453,6 +1479,7 @@ _pixman_image_for_surface (const cairo_surface_pattern_t *pattern,
 		}
 	    }
 
+#if PIXMAN_HAS_ATOMIC_OPS
 	    if (is_contained &&
 		_cairo_matrix_is_translation (&pattern->base.matrix) &&
 		_nearest_sample (filter, &tx, &ty))
@@ -1461,13 +1488,17 @@ _pixman_image_for_surface (const cairo_surface_pattern_t *pattern,
 		*iy = ty + sub->extents.y;
 		return pixman_image_ref (source->pixman_image);
 	    }
+#endif
 
 	    /* Avoid sub-byte offsets, force a copy in that case. */
 	    if (PIXMAN_FORMAT_BPP (source->pixman_format) >= 8) {
+		void *data = source->data
+		    + sub->extents.x * PIXMAN_FORMAT_BPP(source->pixman_format)/8
+		    + sub->extents.y * source->stride;
 		pixman_image = pixman_image_create_bits (source->pixman_format,
 							 sub->extents.width,
 							 sub->extents.height,
-							 (uint32_t *) (source->data + sub->extents.x * PIXMAN_FORMAT_BPP(source->pixman_format)/8 + sub->extents.y * source->stride),
+							 data,
 							 source->stride);
 		if (unlikely (pixman_image == NULL))
 		    return NULL;
@@ -3565,9 +3596,11 @@ _clip_and_composite_polygon (cairo_image_surface_t *dst,
 	return status;
     }
 
-    _cairo_box_round_to_rectangle (&polygon->extents, &extents->mask);
-    if (! _cairo_rectangle_intersect (&extents->bounded, &extents->mask))
-	return CAIRO_STATUS_SUCCESS;
+    if (_cairo_operator_bounded_by_mask(op)) {
+	_cairo_box_round_to_rectangle (&polygon->extents, &extents->mask);
+	if (! _cairo_rectangle_intersect (&extents->bounded, &extents->mask))
+	    return CAIRO_STATUS_SUCCESS;
+    }
 
     if (antialias != CAIRO_ANTIALIAS_NONE) {
 	composite_spans_info_t info;

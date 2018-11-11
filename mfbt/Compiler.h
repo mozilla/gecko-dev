@@ -9,23 +9,31 @@
 #ifndef mozilla_Compiler_h
 #define mozilla_Compiler_h
 
+#define MOZ_IS_GCC 0
+#define MOZ_IS_MSVC 0
+
 #if !defined(__clang__) && defined(__GNUC__)
 
+#  undef MOZ_IS_GCC
 #  define MOZ_IS_GCC 1
    /*
-    * This macro should simplify gcc version checking. For example, to check
-    * for gcc 4.5.1 or later, check `#if MOZ_GCC_VERSION_AT_LEAST(4, 5, 1)`.
+    * These macros should simplify gcc version checking. For example, to check
+    * for gcc 4.7.1 or later, check `#if MOZ_GCC_VERSION_AT_LEAST(4, 7, 1)`.
     */
 #  define MOZ_GCC_VERSION_AT_LEAST(major, minor, patchlevel)          \
      ((__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) \
       >= ((major) * 10000 + (minor) * 100 + (patchlevel)))
-#  if !MOZ_GCC_VERSION_AT_LEAST(4, 4, 0)
-#    error "mfbt (and Gecko) require at least gcc 4.4 to build."
+#  define MOZ_GCC_VERSION_AT_MOST(major, minor, patchlevel)           \
+     ((__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) \
+      <= ((major) * 10000 + (minor) * 100 + (patchlevel)))
+#  if !MOZ_GCC_VERSION_AT_LEAST(4, 8, 0)
+#    error "mfbt (and Gecko) require at least gcc 4.8 to build."
 #  endif
 
-#else
+#elif defined(_MSC_VER)
 
-#  define MOZ_IS_GCC 0
+#  undef MOZ_IS_MSVC
+#  define MOZ_IS_MSVC 1
 
 #endif
 

@@ -6,12 +6,13 @@
  * var uri.
  */
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-const Cr = Components.results;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
+var Cr = Components.results;
 
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 var server = new HttpServer();
 server.registerDirectory("/", do_get_file(''));
@@ -96,7 +97,7 @@ function checkSecondLoad()
   var listener = new ImageListener(checkClone, secondLoadDone);
   var outer = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools)
                 .createScriptedObserver(listener);
-  requests.push(gCurrentLoader.loadImageXPCOM(uri, null, null, null, null, outer, null, 0, null, null));
+  requests.push(gCurrentLoader.loadImageXPCOM(uri, null, null, "default", null, null, outer, null, 0, null));
   listener.synchronous = false;
 }
 
@@ -105,20 +106,6 @@ function firstLoadDone(oldlistener, aRequest)
   checkSecondLoad(uri);
 
   do_test_finished();
-}
-
-// Return a closure that allows us to check the stream listener's status when the
-// image starts loading.
-function getChannelLoadImageStartCallback(streamlistener)
-{
-  return function channelLoadStart(imglistener, aRequest) {
-    // We must not have received all status before we get this start callback.
-    // If we have, we've broken people's expectations by delaying events from a
-    // channel we were given.
-    do_check_eq(streamlistener.requestStatus & STOP_REQUEST, 0);
-
-    checkClone(imglistener, aRequest);
-  }
 }
 
 // Return a closure that allows us to check the stream listener's status when the
@@ -138,13 +125,11 @@ function getChannelLoadImageStopCallback(streamlistener, next)
 function checkSecondChannelLoad()
 {
   do_test_pending();
-
-  var ioService = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);  
-  var channel = ioService.newChannelFromURI(uri);
+  var channel = NetUtil.newChannel({uri: uri, loadUsingSystemPrincipal: true});
   var channellistener = new ChannelListener();
-  channel.asyncOpen(channellistener, null);
+  channel.asyncOpen2(channellistener);
 
-  var listener = new ImageListener(getChannelLoadImageStartCallback(channellistener),
+  var listener = new ImageListener(null,
                                    getChannelLoadImageStopCallback(channellistener,
                                                                    all_done_callback));
   var outer = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools)
@@ -162,13 +147,11 @@ function run_loadImageWithChannel_tests()
   gCurrentLoader = Cc["@mozilla.org/image/loader;1"].createInstance(Ci.imgILoader);
 
   do_test_pending();
-
-  var ioService = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);  
-  var channel = ioService.newChannelFromURI(uri);
+  var channel =  NetUtil.newChannel({uri: uri, loadUsingSystemPrincipal: true});
   var channellistener = new ChannelListener();
-  channel.asyncOpen(channellistener, null);
+  channel.asyncOpen2(channellistener);
 
-  var listener = new ImageListener(getChannelLoadImageStartCallback(channellistener),
+  var listener = new ImageListener(null,
                                    getChannelLoadImageStopCallback(channellistener,
                                                                    checkSecondChannelLoad));
   var outer = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools)
@@ -194,7 +177,7 @@ function startImageCallback(otherCb)
     var listener2 = new ImageListener(null, function(foo, bar) { do_test_finished(); });
     var outer = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools)
                   .createScriptedObserver(listener2);
-    requests.push(gCurrentLoader.loadImageXPCOM(uri, null, null, null, null, outer, null, 0, null, null));
+    requests.push(gCurrentLoader.loadImageXPCOM(uri, null, null, "default", null, null, outer, null, 0, null));
     listener2.synchronous = false;
 
     // Now that we've started another load, chain to the callback.
@@ -221,7 +204,7 @@ function run_test()
   var listener = new ImageListener(startImageCallback(checkClone), firstLoadDone);
   var outer = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools)
                 .createScriptedObserver(listener);
-  var req = gCurrentLoader.loadImageXPCOM(uri, null, null, null, null, outer, null, 0, null, null);
+  var req = gCurrentLoader.loadImageXPCOM(uri, null, null, "default", null, null, outer, null, 0, null);
   requests.push(req);
 
   // Ensure that we don't cause any mayhem when we lock an image.

@@ -1,13 +1,35 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files('**'):
+    BUG_COMPONENT = ('Core', 'CSS Parsing and Computation')
+
+with Files('nsComputedDOMStyle.*'):
+    BUG_COMPONENT = ('Core', 'DOM: CSS Object Model')
+
+with Files('nsROCSSPrimitiveValue.*'):
+    BUG_COMPONENT = ('Core', 'DOM: CSS Object Model')
+
+with Files('CSSRuleList.*'):
+    BUG_COMPONENT = ('Core', 'DOM: CSS Object Model')
+
+with Files('nsDOM*'):
+    BUG_COMPONENT = ('Core', 'DOM: CSS Object Model')
+
 DIRS += ['xbl-marquee']
-TEST_TOOL_DIRS += ['test']
+TEST_DIRS += ['test']
+
+XPIDL_SOURCES += [
+    'nsICSSUnprefixingService.idl',
+]
+
+XPIDL_MODULE = 'layout_base'
 
 EXPORTS += [
+    '!nsStyleStructList.h',
     'AnimationCommon.h',
     'CounterStyleManager.h',
     'nsAnimationManager.h',
@@ -20,8 +42,10 @@ EXPORTS += [
     'nsCSSKeywords.h',
     'nsCSSParser.h',
     'nsCSSPropAliasList.h',
-    'nsCSSProperty.h',
+    'nsCSSPropertyID.h',
+    'nsCSSPropertyIDSet.h',
     'nsCSSPropList.h',
+    'nsCSSPropLogicalGroupList.h',
     'nsCSSProps.h',
     'nsCSSPseudoClasses.h',
     'nsCSSPseudoClassList.h',
@@ -29,7 +53,6 @@ EXPORTS += [
     'nsCSSPseudoElements.h',
     'nsCSSRuleProcessor.h',
     'nsCSSScanner.h',
-    'nsCSSStyleSheet.h',
     'nsCSSValue.h',
     'nsDOMCSSAttrDeclaration.h',
     'nsDOMCSSDeclaration.h',
@@ -40,13 +63,11 @@ EXPORTS += [
     'nsICSSStyleRuleDOMWrapper.h',
     'nsIStyleRule.h',
     'nsIStyleRuleProcessor.h',
-    'nsIStyleSheet.h',
     'nsLayoutStylesheetCache.h',
     'nsRuleData.h',
     'nsRuleNode.h',
     'nsRuleProcessorData.h',
     'nsRuleWalker.h',
-    'nsStyleAnimation.h',
     'nsStyleConsts.h',
     'nsStyleContext.h',
     'nsStyleCoord.h',
@@ -59,15 +80,49 @@ EXPORTS += [
 ]
 
 EXPORTS.mozilla += [
+    'AnimationCollection.h',
+    'CSSEnabledState.h',
+    'CSSStyleSheet.h',
     'CSSVariableDeclarations.h',
     'CSSVariableResolver.h',
     'CSSVariableValues.h',
+    'DeclarationBlock.h',
+    'DeclarationBlockInlines.h',
+    'HandleRefPtr.h',
+    'IncrementalClearCOMRuleArray.h',
+    'LayerAnimationInfo.h',
+    'RuleNodeCacheConditions.h',
+    'RuleProcessorCache.h',
+    'ServoBindingList.h',
+    'ServoBindings.h',
+    'ServoBindingTypes.h',
+    'ServoDeclarationBlock.h',
+    'ServoElementSnapshot.h',
+    'ServoStyleSet.h',
+    'ServoStyleSheet.h',
+    'ServoTypes.h',
+    'ServoUtils.h',
+    'SheetType.h',
+    'StyleAnimationValue.h',
+    'StyleBackendType.h',
+    'StyleComplexColor.h',
+    'StyleContextSource.h',
+    'StyleSetHandle.h',
+    'StyleSetHandleInlines.h',
+    'StyleSheet.h',
+    'StyleSheetInfo.h',
+    'StyleSheetInlines.h',
+    'StyleStructContext.h',
 ]
 
 EXPORTS.mozilla.dom += [
     'CSS.h',
+    'CSSLexer.h',
     'CSSRuleList.h',
     'CSSValue.h',
+    'FontFace.h',
+    'FontFaceSet.h',
+    'FontFaceSetIterator.h',
     'MediaQueryList.h',
 ]
 
@@ -80,20 +135,29 @@ EXPORTS.mozilla.css += [
     'Loader.h',
     'NameSpaceRule.h',
     'Rule.h',
+    'SheetParsingMode.h',
     'StyleRule.h',
 ]
 
 UNIFIED_SOURCES += [
+    'AnimationCollection.cpp',
     'AnimationCommon.cpp',
     'CounterStyleManager.cpp',
     'CSS.cpp',
+    'CSSLexer.cpp',
     'CSSRuleList.cpp',
+    'CSSStyleSheet.cpp',
     'CSSVariableDeclarations.cpp',
     'CSSVariableResolver.cpp',
     'CSSVariableValues.cpp',
     'Declaration.cpp',
     'ErrorReporter.cpp',
+    'FontFace.cpp',
+    'FontFaceSet.cpp',
+    'FontFaceSetIterator.cpp',
     'ImageLoader.cpp',
+    'IncrementalClearCOMRuleArray.cpp',
+    'LayerAnimationInfo.cpp',
     'Loader.cpp',
     'MediaQueryList.cpp',
     'nsAnimationManager.cpp',
@@ -107,22 +171,21 @@ UNIFIED_SOURCES += [
     'nsCSSPseudoElements.cpp',
     'nsCSSRules.cpp',
     'nsCSSScanner.cpp',
-    'nsCSSStyleSheet.cpp',
     'nsCSSValue.cpp',
     'nsDOMCSSAttrDeclaration.cpp',
     'nsDOMCSSDeclaration.cpp',
     'nsDOMCSSRect.cpp',
     'nsDOMCSSRGBColor.cpp',
     'nsDOMCSSValueList.cpp',
+    'nsFontFaceLoader.cpp',
+    'nsFontFaceUtils.cpp',
     'nsHTMLCSSStyleSheet.cpp',
     'nsHTMLStyleSheet.cpp',
-    'nsLayoutStylesheetCache.cpp',
     'nsMediaFeatures.cpp',
     'nsNthIndexCache.cpp',
     'nsROCSSPrimitiveValue.cpp',
     'nsRuleData.cpp',
     'nsRuleNode.cpp',
-    'nsStyleAnimation.cpp',
     'nsStyleContext.cpp',
     'nsStyleCoord.cpp',
     'nsStyleSet.cpp',
@@ -130,33 +193,46 @@ UNIFIED_SOURCES += [
     'nsStyleTransformMatrix.cpp',
     'nsStyleUtil.cpp',
     'nsTransitionManager.cpp',
+    'RuleNodeCacheConditions.cpp',
+    'RuleProcessorCache.cpp',
+    'ServoBindings.cpp',
+    'ServoDeclarationBlock.cpp',
+    'ServoElementSnapshot.cpp',
+    'ServoStyleSet.cpp',
+    'ServoStyleSheet.cpp',
+    'StyleAnimationValue.cpp',
     'StyleRule.cpp',
+    'StyleSheet.cpp',
+    'SVGAttrAnimationRuleProcessor.cpp',
 ]
 
 # nsCSSRuleProcessor.cpp needs to be built separately because it uses plarena.h.
-# nsFontFaceLoader.cpp needs to be built separately because it forces NSPR logging.
+# nsLayoutStylesheetCache.cpp needs to be built separately because it uses
+# nsExceptionHandler.h, which includes windows.h.
 SOURCES += [
     'nsCSSRuleProcessor.cpp',
-    'nsFontFaceLoader.cpp',
+    'nsLayoutStylesheetCache.cpp',
 ]
 
-FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
+EXTRA_COMPONENTS += [
+    'CSSUnprefixingService.js',
+    'CSSUnprefixingService.manifest',
+]
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
-FINAL_LIBRARY = 'gklayout'
+FINAL_LIBRARY = 'xul'
 
 LOCAL_INCLUDES += [
-    '../../content/base/src',
-    '../../content/html/content/src',
-    '../../content/xul/document/src',
     '../base',
     '../generic',
+    '../svg',
     '../xul',
     '/dom/base',
+    '/dom/html',
     '/dom/xbl',
+    '/dom/xul',
+    '/image',
 ]
 
 JAR_MANIFESTS += ['jar.mn']
@@ -168,3 +244,21 @@ RESOURCE_FILES += [
     'TopLevelImageDocument.css',
     'TopLevelVideoDocument.css',
 ]
+
+GENERATED_FILES += [
+    'nsStyleStructList.h',
+]
+
+style_struct_list = GENERATED_FILES['nsStyleStructList.h']
+style_struct_list.script = 'generate-stylestructlist.py'
+
+if CONFIG['COMPILE_ENVIRONMENT']:
+    GENERATED_FILES += [
+        'nsCSSPropsGenerated.inc',
+    ]
+    css_props = GENERATED_FILES['nsCSSPropsGenerated.inc']
+    css_props.script = 'GenerateCSSPropsGenerated.py:generate'
+    css_props.inputs = [
+        'nsCSSPropsGenerated.inc.in',
+        'PythonCSSProps.h',
+    ]

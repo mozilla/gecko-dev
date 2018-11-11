@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=2 ts=8 et ft=cpp : */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,7 +12,7 @@
 namespace mozilla {
 namespace dom {
 class ContentParent;
-}
+} // namespace dom
 
 /**
  * This class sets the priority of subprocesses in response to explicit
@@ -27,7 +27,7 @@ class ContentParent;
  * set their initial priority.  The ProcessPriorityManager takes care of the
  * rest.
  */
-class ProcessPriorityManager MOZ_FINAL
+class ProcessPriorityManager final
 {
 public:
   /**
@@ -73,18 +73,6 @@ public:
    * present, false otherwise.
    */
   static bool AnyProcessHasHighPriority();
-
-  /**
-   * Used to remove a ContentParent from background LRU pool when
-   * it is destroyed or its priority changed from BACKGROUND to others.
-   */
-  static void RemoveFromBackgroundLRUPool(dom::ContentParent* aContentParent);
-
-  /**
-   * Used to add a ContentParent into background LRU pool when
-   * its priority changed to BACKGROUND from others.
-   */
-  static void AddIntoBackgroundLRUPool(dom::ContentParent* aContentParent);
 
 private:
   ProcessPriorityManager();

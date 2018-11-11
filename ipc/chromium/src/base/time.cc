@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 // Copyright (c) 2006-2008 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -51,7 +53,7 @@ int64_t TimeDelta::InMicroseconds() const {
 Time Time::FromTimeT(time_t tt) {
   if (tt == 0)
     return Time();  // Preserve 0 so we can tell it doesn't exist.
-  return (tt * kMicrosecondsPerSecond) + kTimeTToMicrosecondsOffset;
+  return Time((tt * kMicrosecondsPerSecond) + kTimeTToMicrosecondsOffset);
 }
 
 time_t Time::ToTimeT() const {
@@ -62,8 +64,8 @@ time_t Time::ToTimeT() const {
 
 // static
 Time Time::FromDoubleT(double dt) {
-  return (dt * static_cast<double>(kMicrosecondsPerSecond)) +
-      kTimeTToMicrosecondsOffset;
+  return Time((dt * static_cast<double>(kMicrosecondsPerSecond)) +
+      kTimeTToMicrosecondsOffset);
 }
 
 double Time::ToDoubleT() const {

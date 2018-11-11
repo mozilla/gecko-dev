@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
@@ -9,8 +9,7 @@
 
 "use strict";
 
-////////////////////////////////////////////////////////////////////////////////
-//// Globals
+// Globals
 
 Cu.import("resource://gre/modules/Task.jsm");
 
@@ -36,7 +35,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "gUUIDGenerator",
  */
 function promiseCreateDatabaseSchema(aConnection)
 {
-  return Task.spawn(function () {
+  return Task.spawn(function* () {
     yield aConnection.setSchemaVersion(5);
     yield aConnection.execute("CREATE TABLE moz_logins (" +
                               "id                  INTEGER PRIMARY KEY," +
@@ -107,13 +106,12 @@ function promiseInsertDisabledHost(aConnection, aHostname)
                              "VALUES (?)", [aHostname]);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//// Tests
+// Tests
 
 /**
  * Imports login data from a SQLite file constructed using the test data.
  */
-add_task(function test_import()
+add_task(function* test_import()
 {
   let store = new LoginStore(getTempFile("test-import.json").path);
   let loginsSqlite = getTempFile("test-logins.sqlite").path;
@@ -177,11 +175,10 @@ add_task(function test_import()
 /**
  * Tests imports of NULL values due to a downgraded database.
  */
-add_task(function test_import_downgraded()
+add_task(function* test_import_downgraded()
 {
   let store = new LoginStore(getTempFile("test-import-downgraded.json").path);
   let loginsSqlite = getTempFile("test-logins-downgraded.sqlite").path;
-  let loginList = TestData.loginList();
 
   // Create and populate the SQLite database first.
   let connection = yield Sqlite.openConnection({ path: loginsSqlite });
@@ -206,7 +203,7 @@ add_task(function test_import_downgraded()
   // Verify that the missing metadata was generated correctly.
   let loginItem = store.data.logins[0];
   let creationTime = loginItem.timeCreated;
-  LoginTest.assertTimeIsAboutNow(creationTime);
+  LoginTestUtils.assertTimeIsAboutNow(creationTime);
   do_check_eq(loginItem.timeLastUsed, creationTime);
   do_check_eq(loginItem.timePasswordChanged, creationTime);
   do_check_eq(loginItem.timesUsed, 1);
@@ -215,7 +212,7 @@ add_task(function test_import_downgraded()
 /**
  * Verifies that importing from a SQLite file with database version 2 fails.
  */
-add_task(function test_import_v2()
+add_task(function* test_import_v2()
 {
   let store = new LoginStore(getTempFile("test-import-v2.json").path);
   let loginsSqlite = do_get_file("data/signons-v2.sqlite").path;
@@ -231,7 +228,7 @@ add_task(function test_import_v2()
 /**
  * Imports login data from a SQLite file, with database version 3.
  */
-add_task(function test_import_v3()
+add_task(function* test_import_v3()
 {
   let store = new LoginStore(getTempFile("test-import-v3.json").path);
   let loginsSqlite = do_get_file("data/signons-v3.sqlite").path;

@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,7 +17,7 @@ const URIS = [
 
 const TOPIC_CONNECTION_CLOSED = "places-connection-closed";
 
-let EXPECTED_NOTIFICATIONS = [
+var EXPECTED_NOTIFICATIONS = [
   "places-shutdown"
 , "places-will-close-connection"
 , "places-expiration-finished"
@@ -28,69 +28,31 @@ const UNEXPECTED_NOTIFICATIONS = [
   "xpcom-shutdown"
 ];
 
-const URL = "ftp://localhost/clearHistoryOnShutdown/";
+const FTP_URL = "ftp://localhost/clearHistoryOnShutdown/";
 
 // Send the profile-after-change notification to the form history component to ensure
 // that it has been initialized.
 var formHistoryStartup = Cc["@mozilla.org/satchel/form-history-startup;1"].
                          getService(Ci.nsIObserver);
 formHistoryStartup.observe(null, "profile-after-change", null);
+XPCOMUtils.defineLazyModuleGetter(this, "FormHistory",
+                                  "resource://gre/modules/FormHistory.jsm");
 
-let notificationIndex = 0;
-
-let notificationsObserver = {
-  observe: function observe(aSubject, aTopic, aData) {
-    print("Received notification: " + aTopic);
-
-    // Note that some of these notifications could arrive multiple times, for
-    // example in case of sync, we allow that.
-    if (EXPECTED_NOTIFICATIONS[notificationIndex] != aTopic)
-      notificationIndex++;
-    do_check_eq(EXPECTED_NOTIFICATIONS[notificationIndex], aTopic);
-
-    if (aTopic != TOPIC_CONNECTION_CLOSED)
-      return;
-
-    getDistinctNotifications().forEach(
-      function (topic) Services.obs.removeObserver(notificationsObserver, topic)
-    );
-
-    print("Looking for uncleared stuff.");
-
-    let stmt = DBConn().createStatement(
-      "SELECT id FROM moz_places WHERE url = :page_url "
-    );
-
-    try {
-      URIS.forEach(function(aUrl) {
-        stmt.params.page_url = aUrl;
-        do_check_false(stmt.executeStep());
-        stmt.reset();
-      });
-    } finally {
-      stmt.finalize();
-    }
-
-    // Check cache.
-    checkCache(URL);
-  }
-}
-
-let timeInMicroseconds = Date.now() * 1000;
+var timeInMicroseconds = Date.now() * 1000;
 
 function run_test() {
   run_next_test();
 }
 
-add_task(function test_execute() {
-  do_test_pending();
-
-  print("Initialize browserglue before Places");
+add_task(function* test_execute() {
+  do_print("Initialize browserglue before Places");
 
   // Avoid default bookmarks import.
   let glue = Cc["@mozilla.org/browser/browserglue;1"].
              getService(Ci.nsIObserver);
   glue.observe(null, "initial-migration-will-import-default-bookmarks", null);
+  glue.observe(null, "test-initialize-sanitizer", null);
+
 
   Services.prefs.setBoolPref("privacy.clearOnShutdown.cache", true);
   Services.prefs.setBoolPref("privacy.clearOnShutdown.cookies", true);
@@ -99,70 +61,104 @@ add_task(function test_execute() {
   Services.prefs.setBoolPref("privacy.clearOnShutdown.downloads", true);
   Services.prefs.setBoolPref("privacy.clearOnShutdown.cookies", true);
   Services.prefs.setBoolPref("privacy.clearOnShutdown.formData", true);
-  Services.prefs.setBoolPref("privacy.clearOnShutdown.passwords", true);
   Services.prefs.setBoolPref("privacy.clearOnShutdown.sessions", true);
   Services.prefs.setBoolPref("privacy.clearOnShutdown.siteSettings", true);
 
   Services.prefs.setBoolPref("privacy.sanitize.sanitizeOnShutdown", true);
 
-  print("Add visits.");
+  do_print("Add visits.");
   for (let aUrl of URIS) {
-    yield promiseAddVisits({uri: uri(aUrl), visitDate: timeInMicroseconds++,
-                            transition: PlacesUtils.history.TRANSITION_TYPED})
+    yield PlacesTestUtils.addVisits({
+      uri: uri(aUrl), visitDate: timeInMicroseconds++,
+      transition: PlacesUtils.history.TRANSITION_TYPED
+    });
   }
-  print("Add cache.");
-  storeCache(URL, "testData");
-});
+  do_print("Add cache.");
+  yield storeCache(FTP_URL, "testData");
+  do_print("Add form history.");
+  yield addFormHistory();
+  Assert.equal((yield getFormHistoryCount()), 1, "Added form history");
 
-function run_test_continue()
-{
-  print("Simulate and wait shutdown.");
-  getDistinctNotifications().forEach(
-    function (topic)
-      Services.obs.addObserver(notificationsObserver, topic, false)
+  do_print("Simulate and wait shutdown.");
+  yield shutdownPlaces();
+
+  Assert.equal((yield getFormHistoryCount()), 0, "Form history cleared");
+
+  let stmt = DBConn(true).createStatement(
+    "SELECT id FROM moz_places WHERE url = :page_url "
   );
 
-  shutdownPlaces();
+  try {
+    URIS.forEach(function(aUrl) {
+      stmt.params.page_url = aUrl;
+      do_check_false(stmt.executeStep());
+      stmt.reset();
+    });
+  } finally {
+    stmt.finalize();
+  }
 
-  // Shutdown the download manager.
-  Services.obs.notifyObservers(null, "quit-application", null);
+  do_print("Check cache");
+  // Check cache.
+  yield checkCache(FTP_URL);
+});
+
+function addFormHistory() {
+  return new Promise(resolve => {
+    let now = Date.now() * 1000;
+    FormHistory.update({ op: "add",
+                         fieldname: "testfield",
+                         value: "test",
+                         timesUsed: 1,
+                         firstUsed: now,
+                         lastUsed: now
+                       },
+                       { handleCompletion(reason) { resolve(); } });
+  });
 }
 
-function getDistinctNotifications() {
-  let ar = EXPECTED_NOTIFICATIONS.concat(UNEXPECTED_NOTIFICATIONS);
-  return [ar[i] for (i in ar) if (ar.slice(0, i).indexOf(ar[i]) == -1)];
+function getFormHistoryCount() {
+  return new Promise((resolve, reject) => {
+    let count = -1;
+    FormHistory.count({ fieldname: "testfield" },
+                      { handleResult(result) { count = result; },
+                        handleCompletion(reason) { resolve(count); }
+                      });
+  });
 }
 
 function storeCache(aURL, aContent) {
   let cache = Services.cache2;
   let storage = cache.diskCacheStorage(LoadContextInfo.default, false);
 
-  var storeCacheListener = {
-    onCacheEntryCheck: function (entry, appcache) {
-      return Ci.nsICacheEntryOpenCallback.ENTRY_WANTED;
-    },
+  return new Promise(resolve => {
+    let storeCacheListener = {
+      onCacheEntryCheck: function (entry, appcache) {
+        return Ci.nsICacheEntryOpenCallback.ENTRY_WANTED;
+      },
 
-    onCacheEntryAvailable: function (entry, isnew, appcache, status) {
-      do_check_eq(status, Cr.NS_OK);
+      onCacheEntryAvailable: function (entry, isnew, appcache, status) {
+        do_check_eq(status, Cr.NS_OK);
 
-      entry.setMetaDataElement("servertype", "0");
-      var os = entry.openOutputStream(0);
+        entry.setMetaDataElement("servertype", "0");
+        var os = entry.openOutputStream(0);
 
-      var written = os.write(aContent, aContent.length);
-      if (written != aContent.length) {
-        do_throw("os.write has not written all data!\n" +
-                 "  Expected: " + written  + "\n" +
-                 "  Actual: " + aContent.length + "\n");
+        var written = os.write(aContent, aContent.length);
+        if (written != aContent.length) {
+          do_throw("os.write has not written all data!\n" +
+                   "  Expected: " + written  + "\n" +
+                   "  Actual: " + aContent.length + "\n");
+        }
+        os.close();
+        entry.close();
+        resolve();
       }
-      os.close();
-      entry.close();
-      do_execute_soon(run_test_continue);
-    }
-  };
+    };
 
-  storage.asyncOpenURI(Services.io.newURI(aURL, null, null), "",
-                       Ci.nsICacheStorage.OPEN_NORMALLY,
-                       storeCacheListener);
+    storage.asyncOpenURI(Services.io.newURI(aURL, null, null), "",
+                         Ci.nsICacheStorage.OPEN_NORMALLY,
+                         storeCacheListener);
+  });
 }
 
 
@@ -170,14 +166,16 @@ function checkCache(aURL) {
   let cache = Services.cache2;
   let storage = cache.diskCacheStorage(LoadContextInfo.default, false);
 
-  var checkCacheListener = {
-    onCacheEntryAvailable: function (entry, isnew, appcache, status) {
-      do_check_eq(status, Cr.NS_ERROR_CACHE_KEY_NOT_FOUND);
-      do_test_finished();
-    }
-  };
+  return new Promise(resolve => {
+    let checkCacheListener = {
+      onCacheEntryAvailable: function (entry, isnew, appcache, status) {
+        do_check_eq(status, Cr.NS_ERROR_CACHE_KEY_NOT_FOUND);
+        resolve();
+      }
+    };
 
-  storage.asyncOpenURI(Services.io.newURI(aURL, null, null), "",
-                       Ci.nsICacheStorage.OPEN_READONLY,
-                       checkCacheListener);
+    storage.asyncOpenURI(Services.io.newURI(aURL, null, null), "",
+                        Ci.nsICacheStorage.OPEN_READONLY,
+                        checkCacheListener);
+  });
 }

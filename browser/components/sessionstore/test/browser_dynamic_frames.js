@@ -9,14 +9,14 @@
  */
 add_task(function () {
   // This URL has the following frames:
-  //  + about:mozilla (static)
-  //  + about:robots (static)
-  //  + about:rights (dynamic iframe)
+  //  + data:text/html,A (static)
+  //  + data:text/html,B (static)
+  //  + data:text/html,C (dynamic iframe)
   const URL = "data:text/html;charset=utf-8," +
-              "<frameset cols=50%25,50%25><frame src=about%3Amozilla>" +
-              "<frame src=about%3Arobots></frameset>" +
+              "<frameset cols=50%25,50%25><frame src='data:text/html,A'>" +
+              "<frame src='data:text/html,B'></frameset>" +
               "<script>var i=document.createElement('iframe');" +
-              "i.setAttribute('src', 'about%3Arights');" +
+              "i.setAttribute('src', 'data:text/html,C');" +
               "document.body.appendChild(i);</script>";
 
   // Add a new tab with two "static" and one "dynamic" frame.
@@ -24,13 +24,13 @@ add_task(function () {
   let browser = tab.linkedBrowser;
   yield promiseBrowserLoaded(browser);
 
-  SyncHandlers.get(browser).flush();
+  yield TabStateFlusher.flush(browser);
   let {entries} = JSON.parse(ss.getTabState(tab));
 
   // Check URLs.
   ok(entries[0].url.startsWith("data:text/html"), "correct root url");
-  is(entries[0].children[0].url, "about:mozilla", "correct url for 1st frame");
-  is(entries[0].children[1].url, "about:robots", "correct url for 2nd frame");
+  is(entries[0].children[0].url, "data:text/html,A", "correct url for 1st frame");
+  is(entries[0].children[1].url, "data:text/html,B", "correct url for 2nd frame");
 
   // Check the number of children.
   is(entries.length, 1, "there is one root entry ...");
@@ -47,13 +47,13 @@ add_task(function () {
  */
 add_task(function () {
   // This URL has the following frames:
-  //  + about:mozilla (static iframe)
-  //  + about:rights (dynamic iframe)
+  //  + data:text/html,A (static)
+  //  + data:text/html,C (dynamic iframe)
   const URL = "data:text/html;charset=utf-8," +
-              "<iframe name=t src=about%3Amozilla></iframe>" +
-              "<a id=lnk href=about%3Arobots target=t>clickme</a>" +
+              "<iframe name=t src='data:text/html,A'></iframe>" +
+              "<a id=lnk href='data:text/html,B' target=t>clickme</a>" +
               "<script>var i=document.createElement('iframe');" +
-              "i.setAttribute('src', 'about%3Arights');" +
+              "i.setAttribute('src', 'data:text/html,C');" +
               "document.body.appendChild(i);</script>";
 
   // Add a new tab with one "static" and one "dynamic" frame.
@@ -61,34 +61,26 @@ add_task(function () {
   let browser = tab.linkedBrowser;
   yield promiseBrowserLoaded(browser);
 
-  SyncHandlers.get(browser).flush();
+  yield TabStateFlusher.flush(browser);
   let {entries} = JSON.parse(ss.getTabState(tab));
 
   // Check URLs.
   ok(entries[0].url.startsWith("data:text/html"), "correct root url");
-  is(entries[0].children[0].url, "about:mozilla", "correct url for static frame");
-
-  // Check the number of children.
-  is(entries.length, 1, "there is one root entry ...");
-  is(entries[0].children.length, 1, "... with a single child entry");
+  ok(!entries[0].children, "no children collected");
 
   // Navigate the subframe.
   browser.messageManager.sendAsyncMessage("ss-test:click", {id: "lnk"});
   yield promiseBrowserLoaded(browser, false /* don't ignore subframes */);
 
-  SyncHandlers.get(browser).flush();
-  let {entries} = JSON.parse(ss.getTabState(tab));
+  yield TabStateFlusher.flush(browser);
+  ({entries} = JSON.parse(ss.getTabState(tab)));
 
   // Check URLs.
   ok(entries[0].url.startsWith("data:text/html"), "correct 1st root url");
   ok(entries[1].url.startsWith("data:text/html"), "correct 2nd root url");
-  is(entries[0].children[0].url, "about:mozilla", "correct url for 1st static frame");
-  is(entries[1].children[0].url, "about:robots", "correct url for 2ns static frame");
-
-  // Check the number of children.
-  is(entries.length, 2, "there are two root entries ...");
-  is(entries[0].children.length, 1, "... with a single child entry ...");
-  is(entries[1].children.length, 1, "... each");
+  ok(!entries.children, "no children collected");
+  ok(!entries[0].children, "no children collected");
+  ok(!entries[1].children, "no children collected");
 
   // Cleanup.
   gBrowser.removeTab(tab);

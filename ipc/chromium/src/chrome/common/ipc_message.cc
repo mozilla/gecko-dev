@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 // Copyright (c) 2006-2008 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -14,6 +16,8 @@
 #include "GeckoTaskTracer.h"
 #endif
 
+#include "mozilla/Move.h"
+
 #ifdef MOZ_TASK_TRACER
 using namespace mozilla::tasktracer;
 #endif
@@ -23,10 +27,12 @@ namespace IPC {
 //------------------------------------------------------------------------------
 
 Message::~Message() {
+  MOZ_COUNT_DTOR(IPC::Message);
 }
 
 Message::Message()
     : Pickle(sizeof(Header)) {
+  MOZ_COUNT_CTOR(IPC::Message);
   header()->routing = header()->type = header()->flags = 0;
 #if defined(OS_POSIX)
   header()->num_fds = 0;
@@ -34,19 +40,24 @@ Message::Message()
 #ifdef MOZ_TASK_TRACER
   header()->source_event_id = 0;
   header()->parent_task_id = 0;
-  header()->source_event_type = SourceEventType::UNKNOWN;
+  header()->source_event_type = SourceEventType::Unknown;
 #endif
   InitLoggingVariables();
 }
 
-Message::Message(int32_t routing_id, msgid_t type, PriorityValue priority,
-                 MessageCompression compression, const char* const name)
+Message::Message(int32_t routing_id, msgid_t type, NestedLevel nestedLevel, PriorityValue priority,
+                 MessageCompression compression, const char* const aName)
     : Pickle(sizeof(Header)) {
+  MOZ_COUNT_CTOR(IPC::Message);
   header()->routing = routing_id;
   header()->type = type;
-  header()->flags = priority;
+  header()->flags = nestedLevel;
+  if (priority == HIGH_PRIORITY)
+    header()->flags |= PRIO_BIT;
   if (compression == COMPRESSION_ENABLED)
     header()->flags |= COMPRESS_BIT;
+  else if (compression == COMPRESSION_ALL)
+    header()->flags |= COMPRESSALL_BIT;
 #if defined(OS_POSIX)
   header()->num_fds = 0;
 #endif
@@ -59,19 +70,23 @@ Message::Message(int32_t routing_id, msgid_t type, PriorityValue priority,
 #ifdef MOZ_TASK_TRACER
   header()->source_event_id = 0;
   header()->parent_task_id = 0;
-  header()->source_event_type = SourceEventType::UNKNOWN;
+  header()->source_event_type = SourceEventType::Unknown;
 #endif
-  InitLoggingVariables(name);
+  InitLoggingVariables(aName);
 }
 
-Message::Message(const char* data, int data_len) : Pickle(data, data_len) {
+Message::Message(const char* data, int data_len)
+  : Pickle(sizeof(Header), data, data_len)
+{
+  MOZ_COUNT_CTOR(IPC::Message);
   InitLoggingVariables();
 }
 
-Message::Message(const Message& other) : Pickle(other) {
+Message::Message(Message&& other) : Pickle(mozilla::Move(other)) {
+  MOZ_COUNT_CTOR(IPC::Message);
   InitLoggingVariables(other.name_);
 #if defined(OS_POSIX)
-  file_descriptor_set_ = other.file_descriptor_set_;
+  file_descriptor_set_ = other.file_descriptor_set_.forget();
 #endif
 #ifdef MOZ_TASK_TRACER
   header()->source_event_id = other.header()->source_event_id;
@@ -80,54 +95,31 @@ Message::Message(const Message& other) : Pickle(other) {
 #endif
 }
 
-void Message::InitLoggingVariables(const char* const name) {
-  name_ = name;
-#ifdef IPC_MESSAGE_LOG_ENABLED
-  received_time_ = 0;
-  dont_log_ = false;
-  log_data_ = NULL;
-#endif
+void Message::InitLoggingVariables(const char* const aName) {
+  name_ = aName;
 }
 
-Message& Message::operator=(const Message& other) {
-  *static_cast<Pickle*>(this) = other;
+Message& Message::operator=(Message&& other) {
+  *static_cast<Pickle*>(this) = mozilla::Move(other);
   InitLoggingVariables(other.name_);
 #if defined(OS_POSIX)
-  file_descriptor_set_ = other.file_descriptor_set_;
+  file_descriptor_set_.swap(other.file_descriptor_set_);
 #endif
 #ifdef MOZ_TASK_TRACER
-  header()->source_event_id = other.header()->source_event_id;
-  header()->parent_task_id = other.header()->parent_task_id;
-  header()->source_event_type = other.header()->source_event_type;
+  std::swap(header()->source_event_id, other.header()->source_event_id);
+  std::swap(header()->parent_task_id, other.header()->parent_task_id);
+  std::swap(header()->source_event_type, other.header()->source_event_type);
 #endif
   return *this;
 }
 
-#ifdef IPC_MESSAGE_LOG_ENABLED
-void Message::set_sent_time(int64_t time) {
-  DCHECK((header()->flags & HAS_SENT_TIME_BIT) == 0);
-  header()->flags |= HAS_SENT_TIME_BIT;
-  WriteInt64(time);
-}
-
-int64_t Message::sent_time() const {
-  if ((header()->flags & HAS_SENT_TIME_BIT) == 0)
-    return 0;
-
-  const char* data = end_of_payload();
-  data -= sizeof(int64_t);
-  return *(reinterpret_cast<const int64_t*>(data));
-}
-
-void Message::set_received_time(int64_t time) const {
-  received_time_ = time;
-}
-#endif
 
 #if defined(OS_POSIX)
 bool Message::WriteFileDescriptor(const base::FileDescriptor& descriptor) {
   // We write the index of the descriptor so that we don't have to
   // keep the current descriptor as extra decoding state when deserialising.
+  // Also, we rely on each file descriptor being accompanied by sizeof(int)
+  // bytes of data in the message. See the comment for input_cmsg_buf_.
   WriteInt(file_descriptor_set()->size());
   if (descriptor.auto_close) {
     return file_descriptor_set()->AddAndAutoClose(descriptor.fd);
@@ -136,7 +128,7 @@ bool Message::WriteFileDescriptor(const base::FileDescriptor& descriptor) {
   }
 }
 
-bool Message::ReadFileDescriptor(void** iter,
+bool Message::ReadFileDescriptor(PickleIterator* iter,
                                 base::FileDescriptor* descriptor) const {
   int descriptor_index;
   if (!ReadInt(iter, &descriptor_index))
@@ -155,6 +147,10 @@ bool Message::ReadFileDescriptor(void** iter,
 void Message::EnsureFileDescriptorSet() {
   if (file_descriptor_set_.get() == NULL)
     file_descriptor_set_ = new FileDescriptorSet;
+}
+
+uint32_t Message::num_fds() const {
+  return file_descriptor_set() ? file_descriptor_set()->size() : 0;
 }
 
 #endif

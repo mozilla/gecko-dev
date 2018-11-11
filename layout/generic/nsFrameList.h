@@ -9,6 +9,7 @@
 #include <stdio.h> /* for FILE* */
 #include "nsDebug.h"
 #include "nsTArrayForwardDeclare.h"
+#include "mozilla/ReverseIterator.h"
 
 #if defined(DEBUG) || defined(MOZ_DUMP_PAINTING)
 // DEBUG_FRAME_DUMP enables nsIFrame::List and related methods.
@@ -40,12 +41,13 @@ namespace layout {
       kFloatList                    = 0x800,
       kBulletList                   = 0x1000,
       kPushedFloatsList             = 0x2000,
+      kBackdropList                 = 0x4000,
       // A special alias for kPrincipalList that suppress the reflow request that
       // is normally done when manipulating child lists.
-      kNoReflowPrincipalList        = 0x4000
+      kNoReflowPrincipalList        = 0x8000
   };
-}
-}
+} // namespace layout
+} // namespace mozilla
 
 // Uncomment this to enable expensive frame-list integrity checking
 // #define DEBUG_FRAME_LIST
@@ -72,9 +74,9 @@ public:
   }
 
   /**
-   * Allocate a nsFrameList from the shell arena.
+   * Infallibly allocate a nsFrameList from the shell arena.
    */
-  void* operator new(size_t sz, nsIPresShell* aPresShell) CPP_THROW_NEW;
+  void* operator new(size_t sz, nsIPresShell* aPresShell);
 
   /**
    * Deallocate this list that was allocated from the shell arena.
@@ -243,6 +245,11 @@ public:
 
   bool ContainsFrame(const nsIFrame* aFrame) const;
 
+  /**
+   * Get the number of frames in this list. Note that currently the
+   * implementation has O(n) time complexity. Do not call it repeatedly in hot
+   * code.
+   */
   int32_t GetLength() const;
 
   /**
@@ -299,7 +306,7 @@ public:
   public:
     // Implicit on purpose, so that we can easily create enumerators from
     // nsFrameList via this impicit constructor.
-    Slice(const nsFrameList& aList) :
+    MOZ_IMPLICIT Slice(const nsFrameList& aList) :
 #ifdef DEBUG
       mList(aList),
 #endif
@@ -334,7 +341,7 @@ public:
 
   class Enumerator {
   public:
-    Enumerator(const Slice& aSlice) :
+    explicit Enumerator(const Slice& aSlice) :
 #ifdef DEBUG
       mSlice(aSlice),
 #endif
@@ -415,7 +422,7 @@ public:
   public:
     friend class nsFrameList;
 
-    FrameLinkEnumerator(const nsFrameList& aList) :
+    explicit FrameLinkEnumerator(const nsFrameList& aList) :
       Enumerator(aList),
       mPrev(nullptr)
     {}
@@ -447,8 +454,53 @@ public:
     nsIFrame* mPrev;
   };
 
+  class Iterator
+  {
+  public:
+    Iterator(const nsFrameList& aList, nsIFrame* aCurrent)
+      : mList(aList)
+      , mCurrent(aCurrent)
+    {}
+
+    Iterator(const Iterator& aOther)
+      : mList(aOther.mList)
+      , mCurrent(aOther.mCurrent)
+    {}
+
+    nsIFrame* operator*() const { return mCurrent; }
+
+    // The operators need to know about nsIFrame, hence the
+    // implementations are in nsIFrame.h
+    Iterator& operator++();
+    Iterator& operator--();
+
+    Iterator operator++(int) { auto ret = *this; ++*this; return ret; }
+    Iterator operator--(int) { auto ret = *this; --*this; return ret; }
+
+    friend bool operator==(const Iterator& aIter1, const Iterator& aIter2);
+    friend bool operator!=(const Iterator& aIter1, const Iterator& aIter2);
+
+  private:
+    const nsFrameList& mList;
+    nsIFrame* mCurrent;
+  };
+
+  typedef Iterator iterator;
+  typedef Iterator const_iterator;
+  typedef mozilla::ReverseIterator<Iterator> reverse_iterator;
+  typedef mozilla::ReverseIterator<Iterator> const_reverse_iterator;
+
+  iterator begin() const { return iterator(*this, mFirstChild); }
+  const_iterator cbegin() const { return begin(); }
+  iterator end() const { return iterator(*this, nullptr); }
+  const_iterator cend() const { return end(); }
+  reverse_iterator rbegin() const { return reverse_iterator(end()); }
+  const_reverse_iterator crbegin() const { return rbegin(); }
+  reverse_iterator rend() const { return reverse_iterator(begin()); }
+  const_reverse_iterator crend() const { return rend(); }
+
 private:
-  void operator delete(void*) MOZ_DELETE;
+  void operator delete(void*) = delete;
 
 #ifdef DEBUG_FRAME_LIST
   void VerifyList() const;
@@ -468,6 +520,24 @@ protected:
   nsIFrame* mFirstChild;
   nsIFrame* mLastChild;
 };
+
+inline bool
+operator==(const nsFrameList::Iterator& aIter1,
+           const nsFrameList::Iterator& aIter2)
+{
+  MOZ_ASSERT(&aIter1.mList == &aIter2.mList,
+             "must not compare iterator from different list");
+  return aIter1.mCurrent == aIter2.mCurrent;
+}
+
+inline bool
+operator!=(const nsFrameList::Iterator& aIter1,
+           const nsFrameList::Iterator& aIter2)
+{
+  MOZ_ASSERT(&aIter1.mList == &aIter2.mList,
+             "Must not compare iterator from different list");
+  return aIter1.mCurrent != aIter2.mCurrent;
+}
 
 namespace mozilla {
 namespace layout {
@@ -495,9 +565,10 @@ union AlignedFrameListBytes {
   char bytes[sizeof(nsFrameList)];
 };
 extern const AlignedFrameListBytes gEmptyFrameListBytes;
-}
-}
-}
+} // namespace detail
+
+} // namespace layout
+} // namespace mozilla
 
 /* static */ inline const nsFrameList&
 nsFrameList::EmptyList()

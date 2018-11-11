@@ -124,7 +124,7 @@ xp_iconv(iconv_t converter,
          const char** aInput, size_t* aInputLeft,
          char** aOutput, size_t* aOutputLeft)
 {
-  size_t res, outputAvail = aOutputLeft ? *aOutputLeft : 0;
+  size_t res, outputAvail = *aOutputLeft;
   res = iconv(converter, ICONV_INPUT(aInput), aInputLeft, aOutput, aOutputLeft);
   if (res == (size_t)-1) {
     // on some platforms (e.g., linux) iconv will fail with
@@ -400,10 +400,8 @@ nsNativeCharsetConverter::GlobalInit()
 void
 nsNativeCharsetConverter::GlobalShutdown()
 {
-  if (gLock) {
-    delete gLock;
-    gLock = nullptr;
-  }
+  delete gLock;
+  gLock = nullptr;
 
   if (gNativeToUnicode != INVALID_ICONV_T) {
     iconv_close(gNativeToUnicode);
@@ -816,7 +814,7 @@ NS_CopyNativeToUnicode(const nsACString& aInput, nsAString& aOutput)
   // this will generally result in a larger allocation, but that seems
   // better than an extra buffer copy.
   //
-  if (!aOutput.SetLength(inputLen, fallible_t())) {
+  if (!aOutput.SetLength(inputLen, fallible)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   nsAString::iterator out_iter;
@@ -927,7 +925,7 @@ NS_CopyNativeToUnicode(const nsACString& aInput, nsAString& aOutput)
   }
 
   // allocate sufficient space
-  if (!aOutput.SetLength(resultLen, fallible_t())) {
+  if (!aOutput.SetLength(resultLen, fallible)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   if (resultLen > 0) {
@@ -961,7 +959,7 @@ NS_CopyUnicodeToNative(const nsAString&  aInput, nsACString& aOutput)
   }
 
   // allocate sufficient space
-  if (!aOutput.SetLength(resultLen, fallible_t())) {
+  if (!aOutput.SetLength(resultLen, fallible)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   if (resultLen > 0) {

@@ -63,7 +63,7 @@ dbupgrade_main()
 	# test upgrade to the new database
 	echo "nss" > ${PWFILE}
 	html_head "Legacy to shared Library update"
-	dirs="alicedir bobdir CA cert_extensions client clientCA dave eccurves eve ext_client ext_server SDR server serverCA stapling tools/copydir"
+	dirs="alicedir bobdir CA cert_extensions client clientCA dave eccurves eve ext_client ext_server SDR server serverCA ssl_gtests stapling tools/copydir"
 	for i in $dirs
 	do
 		echo $i
@@ -79,7 +79,7 @@ dbupgrade_main()
 	
 	if [ -d fips ]; then
 		echo "upgrading db fips"
-		${BINDIR}/certutil -S -g 512 -n tmprsa -t "u,u,u" -s "CN=tmprsa, C=US" -x -d sql:fips -f ${FIPSPWFILE} -z ${NOISE_FILE} 2>&1
+		${BINDIR}/certutil -S -g 1024 -n tmprsa -t "u,u,u" -s "CN=tmprsa, C=US" -x -d sql:fips -f ${FIPSPWFILE} -z ${NOISE_FILE} 2>&1
 		html_msg $? 0 "Upgrading fips"
 		# remove our temp certificate we created in the fist token
 		${BINDIR}/certutil -F -n tmprsa -d sql:fips -f ${FIPSPWFILE} 2>&1

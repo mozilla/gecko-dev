@@ -10,10 +10,20 @@
 #include "mozilla/layers/LayersSurfaces.h"
 #include "mozilla/gfx/Types.h"
 
-class gfxXlibSurface;
+#include "gfxXlibSurface.h"
 
 namespace mozilla {
 namespace layers {
+
+class X11TextureSource : public TextureSource
+{
+public:
+  // Called when the underlying X surface has been changed.
+  // Useful for determining whether to rebind a GLXPixmap to a texture.
+  virtual void Updated() = 0;
+
+  virtual const char* Name() const override { return "X11TextureSource"; }
+};
 
 // TextureHost for Xlib-backed TextureSources.
 class X11TextureHost : public TextureHost
@@ -22,31 +32,37 @@ public:
   X11TextureHost(TextureFlags aFlags,
                  const SurfaceDescriptorX11& aDescriptor);
 
-  virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE;
+  virtual void SetCompositor(Compositor* aCompositor) override;
 
-  virtual bool Lock() MOZ_OVERRIDE;
+  virtual Compositor* GetCompositor() override { return mCompositor; }
 
-  virtual gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE;
+  virtual bool Lock() override;
 
-  virtual gfx::IntSize GetSize() const MOZ_OVERRIDE;
+  virtual gfx::SurfaceFormat GetFormat() const override;
 
-  virtual NewTextureSource* GetTextureSources() MOZ_OVERRIDE
+  virtual gfx::IntSize GetSize() const override;
+
+  virtual bool BindTextureSource(CompositableTextureSourceRef& aTexture) override
   {
-    return mTextureSource;
+    aTexture = mTextureSource;
+    return !!aTexture;
   }
 
-  virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() MOZ_OVERRIDE
-  {
-    return nullptr; // XXX - implement this (for MOZ_DUMP_PAINTING)
-  }
+  virtual already_AddRefed<gfx::DataSourceSurface> GetAsSurface() override;
 
 #ifdef MOZ_LAYERS_HAVE_LOG
-  virtual const char* Name() { return "X11TextureHost"; }
+  virtual const char* Name() override { return "X11TextureHost"; }
 #endif
 
 protected:
-  Compositor* mCompositor;
-  RefPtr<NewTextureSource> mTextureSource;
+  virtual void UpdatedInternal(const nsIntRegion*) override
+  {
+    if (mTextureSource)
+      mTextureSource->Updated();
+  }
+
+  RefPtr<Compositor> mCompositor;
+  RefPtr<X11TextureSource> mTextureSource;
   RefPtr<gfxXlibSurface> mSurface;
 };
 

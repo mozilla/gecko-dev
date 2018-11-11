@@ -7,115 +7,139 @@
 #ifndef vm_ProxyObject_h
 #define vm_ProxyObject_h
 
-#include "jsobj.h"
-#include "jsproxy.h"
+#include "js/Proxy.h"
+#include "vm/ShapedObject.h"
 
 namespace js {
 
-// This is the base class for the various kinds of proxy objects.  It's never
-// instantiated.
-class ProxyObject : public JSObject
+/**
+ * This is the base class for the various kinds of proxy objects.  It's never
+ * instantiated.
+ *
+ * Proxy objects use ShapedObject::shape_ primarily to record flags.  Property
+ * information, &c. is all dynamically computed.
+ */
+class ProxyObject : public ShapedObject
 {
-    // These are just local renamings of the slot constants that are part of
-    // the API in jsproxy.h.
-    static const uint32_t PRIVATE_SLOT = PROXY_PRIVATE_SLOT;
-    static const uint32_t HANDLER_SLOT = PROXY_HANDLER_SLOT;
-    static const uint32_t EXTRA_SLOT   = PROXY_EXTRA_SLOT;
+    // GetProxyDataLayout computes the address of this field.
+    detail::ProxyDataLayout data;
+
+    void static_asserts() {
+        static_assert(sizeof(ProxyObject) == sizeof(JSObject_Slots0),
+                      "proxy object size must match GC thing size");
+        static_assert(offsetof(ProxyObject, data) == detail::ProxyDataOffset,
+                      "proxy object layout must match shadow interface");
+    }
 
   public:
-    static ProxyObject *New(JSContext *cx, BaseProxyHandler *handler, HandleValue priv,
-                            TaggedProto proto_, JSObject *parent_,
-                            const ProxyOptions &options);
+    static ProxyObject* New(JSContext* cx, const BaseProxyHandler* handler, HandleValue priv,
+                            TaggedProto proto_, const ProxyOptions& options);
 
-    const Value &private_() {
-        return GetReservedSlot(this, PRIVATE_SLOT);
+    const Value& private_() {
+        return GetProxyPrivate(this);
     }
 
-    void initCrossCompartmentPrivate(HandleValue priv);
+    void setCrossCompartmentPrivate(const Value& priv);
+    void setSameCompartmentPrivate(const Value& priv);
 
-    HeapSlot *slotOfPrivate() {
-        return &getReservedSlotRef(PRIVATE_SLOT);
+    GCPtrValue* slotOfPrivate() {
+        return reinterpret_cast<GCPtrValue*>(&detail::GetProxyDataLayout(this)->values->privateSlot);
     }
 
-    JSObject *target() const {
+    JSObject* target() const {
         return const_cast<ProxyObject*>(this)->private_().toObjectOrNull();
     }
 
-    BaseProxyHandler *handler() {
-        return static_cast<BaseProxyHandler*>(GetReservedSlot(this, HANDLER_SLOT).toPrivate());
+    const BaseProxyHandler* handler() const {
+        return GetProxyHandler(const_cast<ProxyObject*>(this));
     }
 
-    void initHandler(BaseProxyHandler *handler);
-
-    void setHandler(BaseProxyHandler *handler) {
-        SetReservedSlot(this, HANDLER_SLOT, PrivateValue(handler));
+    void setHandler(const BaseProxyHandler* handler) {
+        SetProxyHandler(this, handler);
     }
 
+    static size_t offsetOfValues() {
+        return offsetof(ProxyObject, data.values);
+    }
     static size_t offsetOfHandler() {
-        return getFixedSlotOffset(HANDLER_SLOT);
+        return offsetof(ProxyObject, data.handler);
+    }
+    static size_t offsetOfExtraSlotInValues(size_t slot) {
+        MOZ_ASSERT(slot < detail::PROXY_EXTRA_SLOTS);
+        return offsetof(detail::ProxyValueArray, extraSlots) + slot * sizeof(Value);
     }
 
-    const Value &extra(size_t n) const {
-        JS_ASSERT(n == 0 || n == 1);
-        return GetReservedSlot(const_cast<ProxyObject*>(this), EXTRA_SLOT + n);
+    const Value& extra(size_t n) const {
+        return GetProxyExtra(const_cast<ProxyObject*>(this), n);
     }
 
-    void setExtra(size_t n, const Value &extra) {
-        JS_ASSERT(n == 0 || n == 1);
-        SetReservedSlot(this, EXTRA_SLOT + n, extra);
+    void setExtra(size_t n, const Value& extra) {
+        SetProxyExtra(this, n, extra);
     }
+
+    gc::AllocKind allocKindForTenure() const;
+    static size_t objectMovedDuringMinorGC(TenuringTracer* trc, JSObject* dst, JSObject* src);
 
   private:
-    HeapSlot *slotOfExtra(size_t n) {
-        JS_ASSERT(n == 0 || n == 1);
-        return &getReservedSlotRef(EXTRA_SLOT + n);
+    GCPtrValue* slotOfExtra(size_t n) {
+        MOZ_ASSERT(n < detail::PROXY_EXTRA_SLOTS);
+        return reinterpret_cast<GCPtrValue*>(&detail::GetProxyDataLayout(this)->values->extraSlots[n]);
     }
 
-    HeapSlot *slotOfClassSpecific(size_t n) {
-        JS_ASSERT(n >= PROXY_MINIMUM_SLOTS);
-        JS_ASSERT(n < JSCLASS_RESERVED_SLOTS(getClass()));
-        return &getReservedSlotRef(n);
-    }
-
-    static bool isValidProxyClass(const Class *clasp) {
+    static bool isValidProxyClass(const Class* clasp) {
         // Since we can take classes from the outside, make sure that they
         // are "sane". They have to quack enough like proxies for us to belive
         // they should be treated as such.
 
         // proxy_Trace is just a trivial wrapper around ProxyObject::trace for
         // friend api exposure.
+
+        // Proxy classes are not allowed to have call or construct hooks directly. Their
+        // callability is instead decided by handler()->isCallable().
         return clasp->isProxy() &&
-               (clasp->flags & JSCLASS_IMPLEMENTS_BARRIERS) &&
-               clasp->trace == proxy_Trace &&
-               JSCLASS_RESERVED_SLOTS(clasp) >= PROXY_MINIMUM_SLOTS;
+               clasp->isTrace(proxy_Trace) &&
+               !clasp->getCall() && !clasp->getConstruct();
     }
 
   public:
-    static unsigned grayLinkSlot(JSObject *obj);
+    static unsigned grayLinkExtraSlot(JSObject* obj);
 
-    void renew(JSContext *cx, BaseProxyHandler *handler, Value priv);
+    void renew(JSContext* cx, const BaseProxyHandler* handler, const Value& priv);
 
-    static void trace(JSTracer *trc, JSObject *obj);
+    static void trace(JSTracer* trc, JSObject* obj);
 
-    void nuke(BaseProxyHandler *handler);
+    void nuke();
 
-    static const Class callableClass_;
-    static const Class uncallableClass_;
+    // There is no class_ member to force specialization of JSObject::is<T>().
+    // The implementation in JSObject is incorrect for proxies since it doesn't
+    // take account of the handler type.
+    static const Class proxyClass;
 };
 
-} // namespace js
+inline bool
+IsProxyClass(const Class* clasp)
+{
+    return clasp->isProxy();
+}
 
-// Note: the following |JSObject::is<T>| methods are implemented in terms of
-// the Is*Proxy() friend API functions to ensure the implementations are tied
-// together.  The exception is |JSObject::is<js::OuterWindowProxyObject>()
-// const|, which uses the standard template definition, because there is no
-// IsOuterWindowProxy() function in the friend API.
+bool IsDerivedProxyObject(const JSObject* obj, const js::BaseProxyHandler* handler);
+
+} // namespace js
 
 template<>
 inline bool
 JSObject::is<js::ProxyObject>() const
 {
+    // Note: this method is implemented in terms of the IsProxy() friend API
+    // functions to ensure the implementations are tied together.
+    // Note 2: this specialization isn't used for subclasses of ProxyObject
+    // which must supply their own implementation.
     return js::IsProxy(const_cast<JSObject*>(this));
+}
+
+inline bool
+js::IsDerivedProxyObject(const JSObject* obj, const js::BaseProxyHandler* handler) {
+    return obj->is<js::ProxyObject>() && obj->as<js::ProxyObject>().handler() == handler;
 }
 
 #endif /* vm_ProxyObject_h */

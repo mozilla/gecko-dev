@@ -12,14 +12,6 @@
 #ifndef TestHarness_h__
 #define TestHarness_h__
 
-#if defined(_MSC_VER) && defined(MOZ_STATIC_JS)
-/*
- * Including js/OldDebugAPI.h may cause build break with --disable-shared-js
- * This is a workaround for bug 673616.
- */
-#define STATIC_JS_API
-#endif
-
 #include "mozilla/ArrayUtils.h"
 
 #include "prenv.h"
@@ -81,27 +73,13 @@ void passed(const char* msg, ...)
 
 //-----------------------------------------------------------------------------
 
-class ScopedLogging
-{
-public:
-    ScopedLogging()
-    {
-        NS_LogInit();
-    }
-
-    ~ScopedLogging()
-    {
-        NS_LogTerm();
-    }
-};
-
 class ScopedXPCOM : public nsIDirectoryServiceProvider2
 {
   public:
     NS_DECL_ISUPPORTS
 
-    ScopedXPCOM(const char* testName,
-                nsIDirectoryServiceProvider *dirSvcProvider = nullptr)
+    explicit ScopedXPCOM(const char* testName,
+                         nsIDirectoryServiceProvider *dirSvcProvider = nullptr)
     : mDirSvcProvider(dirSvcProvider)
     {
       mTestName = testName;
@@ -122,13 +100,12 @@ class ScopedXPCOM : public nsIDirectoryServiceProvider2
       if (mProfD) {
         nsCOMPtr<nsIObserverService> os =
           do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
-        MOZ_ASSERT(os);
-        if (os) {
-          MOZ_ALWAYS_TRUE(NS_SUCCEEDED(os->NotifyObservers(nullptr, "profile-change-net-teardown", nullptr)));
-          MOZ_ALWAYS_TRUE(NS_SUCCEEDED(os->NotifyObservers(nullptr, "profile-change-teardown", nullptr)));
-          MOZ_ALWAYS_TRUE(NS_SUCCEEDED(os->NotifyObservers(nullptr, "profile-before-change", nullptr)));
-          MOZ_ALWAYS_TRUE(NS_SUCCEEDED(os->NotifyObservers(nullptr, "profile-before-change2", nullptr)));
-        }
+        MOZ_RELEASE_ASSERT(os);
+        MOZ_ALWAYS_SUCCEEDS(os->NotifyObservers(nullptr, "profile-change-net-teardown", nullptr));
+        MOZ_ALWAYS_SUCCEEDS(os->NotifyObservers(nullptr, "profile-change-teardown", nullptr));
+        MOZ_ALWAYS_SUCCEEDS(os->NotifyObservers(nullptr, "profile-before-change", nullptr));
+        MOZ_ALWAYS_SUCCEEDS(os->NotifyObservers(nullptr, "profile-before-change-qm", nullptr));
+        MOZ_ALWAYS_SUCCEEDS(os->NotifyObservers(nullptr, "profile-before-change-telemetry", nullptr));
 
         if (NS_FAILED(mProfD->Remove(true))) {
           NS_WARNING("Problem removing profile directory");
@@ -199,11 +176,36 @@ class ScopedXPCOM : public nsIDirectoryServiceProvider2
       return greD.forget();
     }
 
+    already_AddRefed<nsIFile> GetGREBinDirectory()
+    {
+      if (mGREBinD) {
+        nsCOMPtr<nsIFile> copy = mGREBinD;
+        return copy.forget();
+      }
+
+      nsCOMPtr<nsIFile> greD = GetGREDirectory();
+      if (!greD) {
+        return greD.forget();
+      }
+      greD->Clone(getter_AddRefs(mGREBinD));
+
+#ifdef XP_MACOSX
+      nsAutoCString leafName;
+      mGREBinD->GetNativeLeafName(leafName);
+      if (leafName.Equals("Resources")) {
+        mGREBinD->SetNativeLeafName(NS_LITERAL_CSTRING("MacOS"));
+      }
+#endif
+
+      nsCOMPtr<nsIFile> copy = mGREBinD;
+      return copy.forget();
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     //// nsIDirectoryServiceProvider
 
-    NS_IMETHODIMP GetFile(const char *aProperty, bool *_persistent,
-                          nsIFile **_result)
+    NS_IMETHOD GetFile(const char *aProperty, bool *_persistent,
+                       nsIFile **_result) override
     {
       // If we were supplied a directory service provider, ask it first.
       if (mDirSvcProvider &&
@@ -226,14 +228,19 @@ class ScopedXPCOM : public nsIDirectoryServiceProvider2
         *_persistent = true;
         clone.forget(_result);
         return NS_OK;
-      }
-
-      if (0 == strcmp(aProperty, NS_GRE_DIR)) {
+      } else if (0 == strcmp(aProperty, NS_GRE_DIR)) {
         nsCOMPtr<nsIFile> greD = GetGREDirectory();
         NS_ENSURE_TRUE(greD, NS_ERROR_FAILURE);
 
         *_persistent = true;
         greD.forget(_result);
+        return NS_OK;
+      } else if (0 == strcmp(aProperty, NS_GRE_BIN_DIR)) {
+        nsCOMPtr<nsIFile> greBinD = GetGREBinDirectory();
+        NS_ENSURE_TRUE(greBinD, NS_ERROR_FAILURE);
+
+        *_persistent = true;
+        greBinD.forget(_result);
         return NS_OK;
       }
 
@@ -243,7 +250,7 @@ class ScopedXPCOM : public nsIDirectoryServiceProvider2
     ////////////////////////////////////////////////////////////////////////////
     //// nsIDirectoryServiceProvider2
 
-    NS_IMETHODIMP GetFiles(const char *aProperty, nsISimpleEnumerator **_enum)
+    NS_IMETHOD GetFiles(const char *aProperty, nsISimpleEnumerator **_enum) override
     {
       // If we were supplied a directory service provider, ask it first.
       nsCOMPtr<nsIDirectoryServiceProvider2> provider =
@@ -261,6 +268,7 @@ class ScopedXPCOM : public nsIDirectoryServiceProvider2
     nsCOMPtr<nsIDirectoryServiceProvider> mDirSvcProvider;
     nsCOMPtr<nsIFile> mProfD;
     nsCOMPtr<nsIFile> mGRED;
+    nsCOMPtr<nsIFile> mGREBinD;
 };
 
 NS_IMPL_QUERY_INTERFACE(

@@ -4,10 +4,14 @@
 
 #aboutDialog {
   width: 620px;
+  /* Set an explicit line-height to avoid discrepancies in 'auto' spacing
+     across screens with different device DPI, which may cause font metrics
+     to round differently. */
+  line-height: 1.5;
 }
 
 #rightBox {
-  background-image: url("chrome://branding/content/about-wordmark.svg");
+  background-image: url("chrome://branding/content/about-wordmark.png");
   background-repeat: no-repeat;
   /* padding-top creates room for the wordmark */
   padding-top: 38px;
@@ -23,16 +27,27 @@
 }
 
 #version {
+  font-weight: bold;
   margin-top: 10px;
-  -moz-margin-start: 0;
+  margin-left: 0;
   -moz-user-select: text;
   -moz-user-focus: normal;
   cursor: text;
 }
 
+#version:-moz-locale-dir(rtl) {
+  direction: ltr;
+  text-align: right;
+  margin-left: 5px;
+  margin-right: 0;
+}
+
+#releasenotes {
+  margin-top: 10px;
+}
+
 #distribution,
 #distributionId {
-  font-weight: bold;
   display: none;
   margin-top: 0;
   margin-bottom: 0;
@@ -40,25 +55,31 @@
 
 .text-blurb {
   margin-bottom: 10px;
-  -moz-margin-start: 0;
-  -moz-padding-start: 0;
+  margin-inline-start: 0;
+  padding-inline-start: 0;
 }
 
 #updateButton,
 #updateDeck > hbox > label {
-  -moz-margin-start: 0;
-  -moz-padding-start: 0;
+  margin-inline-start: 0;
+  padding-inline-start: 0;
 }
 
 .update-throbber {
   width: 16px;
   min-height: 16px;
-  -moz-margin-end: 3px;
-  list-style-image: url("chrome://global/skin/icons/loading_16.png");
+  margin-inline-end: 3px;
+  list-style-image: url("chrome://global/skin/icons/loading.png");
 }
 
-.text-link,
-.text-link:focus {
+@media (min-resolution: 1.1dppx) {
+  .update-throbber {
+    list-style-image: url("chrome://global/skin/icons/loading@2x.png");
+  }
+}
+
+description > .text-link,
+description > .text-link:focus {
   margin: 0px;
   padding: 0px;
 }

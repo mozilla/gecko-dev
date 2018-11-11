@@ -167,6 +167,25 @@ interface nsINavHistoryResultNode : nsISupports
    * separator.
    */
   readonly attribute ACString bookmarkGuid;
+
+  /**
+   * The unique ID associated with the history visit. For node types other than
+   * history visit nodes, this value is -1.
+   */
+  readonly attribute long long visitId;
+
+  /**
+   * The unique ID associated with visit node which was the referrer of this
+   * history visit. For node types other than history visit nodes, or visits
+   * without any known referrer, this value is -1.
+   */
+  readonly attribute long long fromVisitId;
+
+  /**
+   * The transition type associated with this visit. For node types other than
+   * history visit nodes, this value is 0.
+   */
+  readonly attribute unsigned long visitType;
 };
 
 
@@ -175,7 +194,7 @@ interface nsINavHistoryResultNode : nsISupports
  * Bookmark folders and places queries will be QueryResultNodes which extends
  * these items.
  */
-[scriptable, uuid(5bac9734-c0ff-44eb-8d19-da88462ff6da)]
+[scriptable, uuid(3E9CC95F-0D93-45F1-894F-908EEB9866D7)]
 interface nsINavHistoryContainerResultNode : nsINavHistoryResultNode
 {
 
@@ -256,15 +275,6 @@ interface nsINavHistoryContainerResultNode : nsINavHistoryResultNode
                                             in PRTime aTime,
                                             in long long aItemId,
                                             in boolean aRecursive);
-
-  /**
-   * Returns false if this node's list of children can be modified
-   * (adding or removing children, or reordering children), or true if
-   * the UI should not allow the list of children to be modified.
-   * This is false for bookmark folder nodes unless setFolderReadOnly() has
-   * been called to override it, and true for non-folder nodes.
-   */
-  readonly attribute boolean childrenReadOnly;
 };
 
 
@@ -275,7 +285,7 @@ interface nsINavHistoryContainerResultNode : nsINavHistoryResultNode
  * generated this node, this item will report it has no children and never try
  * to populate itself.
  */
-[scriptable, uuid(a4144c3e-8125-46d5-a719-831bec8095f4)]
+[scriptable, uuid(62817759-4FEE-44A3-B58C-3E2F5AFC9D0A)]
 interface nsINavHistoryQueryResultNode : nsINavHistoryContainerResultNode
 {
   /**
@@ -292,10 +302,18 @@ interface nsINavHistoryQueryResultNode : nsINavHistoryContainerResultNode
   readonly attribute nsINavHistoryQueryOptions queryOptions;
 
   /**
-   * For both simple folder nodes and simple-folder-query nodes, this is set
-   * to the concrete itemId of the folder. Otherwise, this is set to -1.
+   * For both simple folder queries and folder shortcut queries, this is set to
+   * the concrete itemId of the folder (i.e. for folder shortcuts it's the
+   * target folder id).  Otherwise, this is set to -1.
    */
   readonly attribute long long folderItemId;
+
+  /**
+   * For both simple folder queries and folder shortcut queries, this is set to
+   * the concrete guid of the folder (i.e. for folder shortcuts it's the target
+   * folder guid). Otherwise, this is set to an empty string.
+   */
+  readonly attribute ACString targetFolderGuid;
 };
 
 
@@ -626,30 +644,44 @@ interface nsINavHistoryObserver : nsISupports
   void onEndUpdateBatch();
 
   /**
-   * Called when a resource is visited. This is called the first time a
-   * resource (page, image, etc.) is seen as well as every subsequent time.
+   * Called everytime a URI is visited.
    *
-   * Normally, transition types of TRANSITION_EMBED (corresponding to images in
-   * a page, for example) are not displayed in history results (unless
-   * includeHidden is set). Many observers can ignore _EMBED notifications
-   * (which will comprise the majority of visit notifications) to save work.
+   * @note TRANSITION_EMBED visits (corresponding to images in a page, for
+   *       example) are not displayed in history results. Most observers can
+   *       ignore TRANSITION_EMBED visit notifications (which will comprise the
+   *       majority of visit notifications) to save work.
    *
-   * @param aVisitID        ID of the visit that was just created.
-   * @param aTime           Time of the visit
-   * @param aSessionID      No longer supported (always set to 0).
-   * @param aReferringID    The ID of the visit the user came from. 0 if empty.
-   * @param aTransitionType One of nsINavHistory.TRANSITION_*
-   * @param aGUID           The unique ID associated with the page.
-   * @param aHidden         Whether the visited page is marked as hidden.
+   * @param aVisitId
+   *        Id of the visit that was just created.
+   * @param aTime
+   *        Time of the visit.
+   * @param aSessionId
+   *        No longer supported and always set to 0.
+   * @param aReferrerVisitId
+   *        The id of the visit the user came from, defaults to 0 for no referrer.
+   * @param aTransitionType
+   *        One of nsINavHistory.TRANSITION_*
+   * @param aGuid
+   *        The unique id associated with the page.
+   * @param aHidden
+   *        Whether the visited page is marked as hidden.
+   * @param aVisitCount
+   *        Number of visits (included this one) for this URI.
+   * @param aTyped
+   *        Whether the URI has been typed or not.
+   *        TODO (Bug 1271801): This will become a count, rather than a boolean.
+   *        For future compatibility, always compare it with "> 0".
    */
   void onVisit(in nsIURI aURI,
-               in long long aVisitID,
+               in long long aVisitId,
                in PRTime aTime,
-               in long long aSessionID,
-               in long long aReferringID,
+               in long long aSessionId,
+               in long long aReferrerVisitId,
                in unsigned long aTransitionType,
-               in ACString aGUID,
-               in boolean aHidden);
+               in ACString aGuid,
+               in boolean aHidden,
+               in unsigned long aVisitCount,
+               in unsigned long aTyped);
 
   /**
    * Called whenever either the "real" title or the custom title of the page
@@ -905,16 +937,8 @@ interface nsINavHistoryQuery : nsISupports
   readonly attribute boolean hasDomain;
 
   /**
-   * Controls the interpretation of 'uri'. When unset (default), the URI will
-   * request an exact match of the specified URI. When set, any history entry
-   * beginning in 'uri' will match. For example "http://bar.com/foo" will match
-   * "http://bar.com/foo" as well as "http://bar.com/foo/baz.gif".
-   */
-  attribute boolean uriIsPrefix;
-
-  /**
    * This is a URI to match, to, for example, find out every time you visited
-   * a given URI. Use uriIsPrefix to control whether this is an exact match.
+   * a given URI. This is an exact match.
    */
   attribute nsIURI uri;
   readonly attribute boolean hasUri;
@@ -1118,12 +1142,9 @@ interface nsINavHistoryQueryOptions : nsISupports
   attribute boolean excludeQueries;
 
   /**
-   * Set to true to exclude read-only folders from the query results. This is
-   * designed for cases where you want to give the user the option of filing
-   * something into a list of folders. It only affects cases where the actual
-   * folder result node would appear in its parent folder and filters it out.
-   * It doesn't affect the query at all, and doesn't affect more complex
-   * queries (such as "folders with annotation X").
+   * DO NOT USE THIS API. IT'LL BE REMOVED IN BUG 1072833.
+   *
+   * Set to true to exclude live bookmarks from the query results.
    */
   attribute boolean excludeReadOnlyFolders;
 
@@ -1188,7 +1209,7 @@ interface nsINavHistoryQueryOptions : nsISupports
   nsINavHistoryQueryOptions clone();
 };
 
-[scriptable, uuid(baebc597-9daf-4103-a325-e41ef9e7608a)]
+[scriptable, uuid(8a1f527e-c9d7-4a51-bf0c-d86f0379b701)]
 interface nsINavHistoryService : nsISupports
 {
   /**
@@ -1249,6 +1270,11 @@ interface nsINavHistoryService : nsISupports
    * a frame.
    */
   const unsigned long TRANSITION_FRAMED_LINK = 8;
+
+  /**
+   * This transition type means the page has been reloaded.
+   */
+  const unsigned long TRANSITION_RELOAD = 9;
 
   /**
    * Set when database is coherent
@@ -1314,25 +1340,6 @@ interface nsINavHistoryService : nsISupports
    *        URI of the page to be marked.
    */
   void markPageAsFollowedLink(in nsIURI aURI);
-
-  /**
-   * Gets the stored character-set for an URI.
-   *
-   * @param aURI
-   *        URI to retrieve character-set for
-   * @return character-set, empty string if not found
-   */
-  AString getCharsetForURI(in nsIURI aURI);
-
-  /**
-   * Sets the character-set for an URI.
-   *
-   * @param aURI
-   *        URI to set the character-set for
-   * @param aCharset
-   *        character-set to be set
-   */
-  void setCharsetForURI(in nsIURI aURI, in AString aCharset);
 
   /**
    * Returns true if this URI would be added to the history. You don't have to
@@ -1405,6 +1412,12 @@ interface nsINavHistoryService : nsISupports
   void removeObserver(in nsINavHistoryObserver observer);
 
   /**
+   * Gets an array of registered nsINavHistoryObserver objects.
+   */
+  void getObservers([optional] out unsigned long count,
+                    [retval, array, size_is(count)] out nsINavHistoryObserver observers);
+
+  /**
    * Runs the passed callback in batch mode. Use this when a lot of things
    * are about to change. Calls can be nested, observers will only be
    * notified when all batches begin/end.
@@ -1422,12 +1435,17 @@ interface nsINavHistoryService : nsISupports
    * history is disabled if the places.history.enabled pref is false.
    */
   readonly attribute boolean historyDisabled;
+
+  /**
+   * Clear all TRANSITION_EMBED visits.
+   */
+  void clearEmbedVisits();
 };
 
 /**
  * @see runInBatchMode of nsINavHistoryService/nsINavBookmarksService
  */
-[scriptable, uuid(5143f2bb-be0a-4faf-9acb-b0ed3f82952c)]
+[scriptable, function, uuid(5a5a9154-95ac-4e3d-90df-558816297407)]
 interface nsINavHistoryBatchCallback : nsISupports {
   void runBatched(in nsISupports aUserData);
 };

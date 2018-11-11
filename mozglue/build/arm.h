@@ -80,23 +80,6 @@
 #    define MOZILLA_ARM_HAVE_CPUID_DETECTION 1
 #  endif
 
-#elif defined(_MSC_VER) && defined(_M_ARM)
-
-#  define MOZILLA_ARM_HAVE_CPUID_DETECTION 1
-  // _M_ARM on MSVC has current cpu architecture.
-#  define MOZILLA_ARM_ARCH _M_ARM
-
-  // MSVC only allows external asm for ARM, so we don't have to rely on
-  // compiler support.
-#  define MOZILLA_MAY_SUPPORT_EDSP 1
-#  if defined(HAVE_ARM_SIMD)
-#    define MOZILLA_MAY_SUPPORT_ARMV6 1
-#    define MOZILLA_MAY_SUPPORT_ARMV7 1
-#  endif
-#  if defined(HAVE_ARM_NEON)
-#    define MOZILLA_MAY_SUPPORT_NEON 1
-#  endif
-
 #endif
 
 namespace mozilla {
@@ -116,7 +99,7 @@ namespace mozilla {
     extern bool MFBT_DATA neon_enabled;
 #endif
 #endif
-  }
+  } // namespace arm_private
 
 #if defined(MOZILLA_PRESUME_EDSP)
 #  define MOZILLA_MAY_SUPPORT_EDSP 1
@@ -158,6 +141,6 @@ namespace mozilla {
   inline bool supports_neon() { return false; }
 #endif
 
-}
+} // namespace mozilla
 
 #endif /* !defined(mozilla_arm_h_) */

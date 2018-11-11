@@ -1,25 +1,25 @@
 /*
  * Copyright (c) 2005-2007 Henri Sivonen
- * Copyright (c) 2007-2013 Mozilla Foundation
- * Portions of comments Copyright 2004-2010 Apple Computer, Inc., Mozilla 
+ * Copyright (c) 2007-2015 Mozilla Foundation
+ * Portions of comments Copyright 2004-2010 Apple Computer, Inc., Mozilla
  * Foundation, and Opera Software ASA.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a 
- * copy of this software and associated documentation files (the "Software"), 
- * to deal in the Software without restriction, including without limitation 
- * the rights to use, copy, modify, merge, publish, distribute, sublicense, 
- * and/or sell copies of the Software, and to permit persons to whom the 
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in 
+ * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
 
@@ -98,8 +98,7 @@ class nsHtml5Tokenizer
     int32_t lo;
     int32_t hi;
     int32_t candidate;
-    int32_t strBufMark;
-    int32_t prevValue;
+    int32_t charRefBufMark;
   protected:
     int32_t value;
   private:
@@ -111,8 +110,8 @@ class nsHtml5Tokenizer
     nsString* systemId;
     autoJArray<char16_t,int32_t> strBuf;
     int32_t strBufLen;
-    autoJArray<char16_t,int32_t> longStrBuf;
-    int32_t longStrBufLen;
+    autoJArray<char16_t,int32_t> charRefBuf;
+    int32_t charRefBufLen;
     autoJArray<char16_t,int32_t> bmpChar;
     autoJArray<char16_t,int32_t> astralChar;
   protected:
@@ -136,6 +135,7 @@ class nsHtml5Tokenizer
     bool confident;
   private:
     int32_t line;
+    int32_t attributeLine;
     nsHtml5AtomTable* interner;
     bool viewingXmlSource;
   public:
@@ -156,53 +156,65 @@ class nsHtml5Tokenizer
 
     nsHtml5HtmlAttributes* emptyAttributes();
   private:
-    inline void clearStrBufAndAppend(char16_t c)
+    inline void appendCharRefBuf(char16_t c)
     {
-      strBuf[0] = c;
-      strBufLen = 1;
+      MOZ_RELEASE_ASSERT(charRefBufLen < charRefBuf.length, "Attempted to overrun charRefBuf!");
+      charRefBuf[charRefBufLen++] = c;
     }
 
-    inline void clearStrBuf()
+    void emitOrAppendCharRefBuf(int32_t returnState);
+    inline void clearStrBufAfterUse()
     {
       strBufLen = 0;
     }
 
-    void appendStrBuf(char16_t c);
+    inline void clearStrBufBeforeUse()
+    {
+      MOZ_ASSERT(!strBufLen, "strBufLen not reset after previous use!");
+      strBufLen = 0;
+    }
+
+    inline void clearStrBufAfterOneHyphen()
+    {
+      MOZ_ASSERT(strBufLen == 1, "strBufLen length not one!");
+      MOZ_ASSERT(strBuf[0] == '-', "strBuf does not start with a hyphen!");
+      strBufLen = 0;
+    }
+
+    inline void appendStrBuf(char16_t c)
+    {
+      MOZ_ASSERT(strBufLen < strBuf.length, "Previous buffer length insufficient.");
+      if (MOZ_UNLIKELY(strBufLen == strBuf.length)) {
+        if (MOZ_UNLIKELY(!EnsureBufferSpace(1))) {
+          MOZ_CRASH("Unable to recover from buffer reallocation failure");
+        }
+      }
+      strBuf[strBufLen++] = c;
+    }
+
   protected:
     nsString* strBufToString();
   private:
     void strBufToDoctypeName();
     void emitStrBuf();
-    inline void clearLongStrBuf()
-    {
-      longStrBufLen = 0;
-    }
-
-    inline void clearLongStrBufAndAppend(char16_t c)
-    {
-      longStrBuf[0] = c;
-      longStrBufLen = 1;
-    }
-
-    void appendLongStrBuf(char16_t c);
     inline void appendSecondHyphenToBogusComment()
     {
-      appendLongStrBuf('-');
+      appendStrBuf('-');
     }
 
-    inline void adjustDoubleHyphenAndAppendToLongStrBufAndErr(char16_t c)
+    inline void adjustDoubleHyphenAndAppendToStrBufAndErr(char16_t c)
     {
       errConsecutiveHyphens();
-      appendLongStrBuf(c);
+      appendStrBuf(c);
     }
 
-    void appendLongStrBuf(char16_t* buffer, int32_t offset, int32_t length);
-    inline void appendStrBufToLongStrBuf()
+    void appendStrBuf(char16_t* buffer, int32_t offset, int32_t length);
+    inline void appendCharRefBufToStrBuf()
     {
-      appendLongStrBuf(strBuf, 0, strBufLen);
+      appendStrBuf(charRefBuf, 0, charRefBufLen);
+      charRefBufLen = 0;
     }
 
-    nsString* longStrBufToString();
     void emitComment(int32_t provisionalHyphens, int32_t pos);
   protected:
     void flushChars(char16_t* buf, int32_t pos);
@@ -218,28 +230,28 @@ class nsHtml5Tokenizer
   private:
     template<class P> int32_t stateLoop(int32_t state, char16_t c, int32_t pos, char16_t* buf, bool reconsume, int32_t returnState, int32_t endPos);
     void initDoctypeFields();
-    inline void adjustDoubleHyphenAndAppendToLongStrBufCarriageReturn()
+    inline void adjustDoubleHyphenAndAppendToStrBufCarriageReturn()
     {
       silentCarriageReturn();
-      adjustDoubleHyphenAndAppendToLongStrBufAndErr('\n');
+      adjustDoubleHyphenAndAppendToStrBufAndErr('\n');
     }
 
-    inline void adjustDoubleHyphenAndAppendToLongStrBufLineFeed()
+    inline void adjustDoubleHyphenAndAppendToStrBufLineFeed()
     {
       silentLineFeed();
-      adjustDoubleHyphenAndAppendToLongStrBufAndErr('\n');
+      adjustDoubleHyphenAndAppendToStrBufAndErr('\n');
     }
 
-    inline void appendLongStrBufLineFeed()
+    inline void appendStrBufLineFeed()
     {
       silentLineFeed();
-      appendLongStrBuf('\n');
+      appendStrBuf('\n');
     }
 
-    inline void appendLongStrBufCarriageReturn()
+    inline void appendStrBufCarriageReturn()
     {
       silentCarriageReturn();
-      appendLongStrBuf('\n');
+      appendStrBuf('\n');
     }
 
   protected:
@@ -261,7 +273,6 @@ class nsHtml5Tokenizer
     void setAdditionalAndRememberAmpersandLocation(char16_t add);
     void bogusDoctype();
     void bogusDoctypeWithoutQuirks();
-    void emitOrAppendStrBuf(int32_t returnState);
     void handleNcrValue(int32_t returnState);
   public:
     void eof();
@@ -370,7 +381,6 @@ class nsHtml5Tokenizer
 #define NS_HTML5TOKENIZER_PROCESSING_INSTRUCTION 73
 #define NS_HTML5TOKENIZER_PROCESSING_INSTRUCTION_QUESTION_MARK 74
 #define NS_HTML5TOKENIZER_LEAD_OFFSET (0xD800 - (0x10000 >> 10))
-#define NS_HTML5TOKENIZER_BUFFER_GROW_BY 1024
 
 
 #endif

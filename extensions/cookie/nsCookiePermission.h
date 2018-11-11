@@ -24,22 +24,21 @@ public:
   nsCookiePermission()
     : mCookiesLifetimeSec(INT64_MAX)
     , mCookiesLifetimePolicy(0) // ACCEPT_NORMALLY
-    , mCookiesAlwaysAcceptSession(false)
     {}
-  virtual ~nsCookiePermission() {}
 
   bool Init();
   void PrefChanged(nsIPrefBranch *, const char *);
 
 private:
-   bool EnsureInitialized() { return (mPermMgr != nullptr && mThirdPartyUtil != nullptr) || Init(); };
+  virtual ~nsCookiePermission() {}
+
+  bool EnsureInitialized() { return (mPermMgr != nullptr && mThirdPartyUtil != nullptr) || Init(); };
 
   nsCOMPtr<nsIPermissionManager> mPermMgr;
   nsCOMPtr<mozIThirdPartyUtil> mThirdPartyUtil;
 
   int64_t      mCookiesLifetimeSec;            // lifetime limit specified in seconds
   uint8_t      mCookiesLifetimePolicy;         // pref for how long cookies are stored
-  bool mCookiesAlwaysAcceptSession;    // don't prompt for session cookies
 };
 
 // {EF565D0A-AB9A-4A13-9160-0644CDFD859A}

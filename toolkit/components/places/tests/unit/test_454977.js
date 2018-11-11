@@ -1,38 +1,42 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // Cache actual visit_count value, filled by add_visit, used by check_results
-let visit_count = 0;
+var visit_count = 0;
 
 // Returns the Place ID corresponding to an added visit.
-function task_add_visit(aURI, aVisitType)
+function* task_add_visit(aURI, aVisitType)
 {
   // Add the visit asynchronously, and save its visit ID.
-  let deferUpdatePlaces = Promise.defer();
-  PlacesUtils.asyncHistory.updatePlaces({
-    uri: aURI,
-    visits: [{ transitionType: aVisitType, visitDate: Date.now() * 1000 }]
-  }, {
-    handleError: function TAV_handleError() {
-      deferUpdatePlaces.reject(new Error("Unexpected error in adding visit."));
-    },
-    handleResult: function (aPlaceInfo) {
-      this.visitId = aPlaceInfo.visits[0].visitId;
-    },
-    handleCompletion: function TAV_handleCompletion() {
-      deferUpdatePlaces.resolve(this.visitId);
-    }
+  let deferUpdatePlaces = new Promise((resolve, reject) =>
+  {
+    PlacesUtils.asyncHistory.updatePlaces({
+      uri: aURI,
+      visits: [{ transitionType: aVisitType, visitDate: Date.now() * 1000 }]
+    }, {
+      handleError: function TAV_handleError() {
+        reject(new Error("Unexpected error in adding visit."));
+      },
+      handleResult: function (aPlaceInfo) {
+        this.visitId = aPlaceInfo.visits[0].visitId;
+      },
+      handleCompletion: function TAV_handleCompletion() {
+        resolve(this.visitId);
+      }
+    });
   });
-  let visitId = yield deferUpdatePlaces.promise;
+
+  let visitId = yield deferUpdatePlaces;
 
   // Increase visit_count if applicable
   if (aVisitType != 0 &&
       aVisitType != TRANSITION_EMBED &&
       aVisitType != TRANSITION_FRAMED_LINK &&
-      aVisitType != TRANSITION_DOWNLOAD) {
+      aVisitType != TRANSITION_DOWNLOAD &&
+      aVisitType != TRANSITION_RELOAD) {
     visit_count ++;
   }
 
@@ -45,9 +49,9 @@ function task_add_visit(aURI, aVisitType)
     let placeId = stmt.getInt64(0);
     stmt.finalize();
     do_check_true(placeId > 0);
-    throw new Task.Result(placeId);
+    return placeId;
   }
-  throw new Task.Result(0);
+  return 0;
 }
 
 /**
@@ -87,7 +91,7 @@ function run_test()
   run_next_test();
 }
 
-add_task(function test_execute()
+add_task(function* test_execute()
 {
   const TEST_URI = uri("http://test.mozilla.org/");
 
@@ -102,6 +106,14 @@ add_task(function test_execute()
   // - We expect that the place gets hidden = 0 while retaining the same
   //   place id and a correct visit_count.
   do_check_eq((yield task_add_visit(TEST_URI, TRANSITION_TYPED)), placeId);
+  check_results(1, 1);
+
+  // Add a visit that should not increase visit_count
+  do_check_eq((yield task_add_visit(TEST_URI, TRANSITION_RELOAD)), placeId);
+  check_results(1, 1);
+
+  // Add a visit that should not increase visit_count
+  do_check_eq((yield task_add_visit(TEST_URI, TRANSITION_DOWNLOAD)), placeId);
   check_results(1, 1);
 
   // Add a visit, check that hidden is not overwritten

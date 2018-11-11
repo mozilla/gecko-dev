@@ -83,7 +83,7 @@ Form History test: form field autocomplete
 
   <!-- form with input type='number' -->
   <form id="form12" onsubmit="return false;">
-    <input  type="number" name="field10">
+    <input  type="text" name="field10"> <!-- TODO: change back to type=number -->
     <button type="submit">Submit</button>
   </form>
 
@@ -114,6 +114,24 @@ Form History test: form field autocomplete
   <!-- form with input type='color' -->
   <form id="form17" onsubmit="return false;">
     <input  type="color" name="field14">
+    <button type="submit">Submit</button>
+  </form>
+
+  <!-- form with input type='month' -->
+  <form id="form18" onsubmit="return false;">
+    <input  type="month" name="field15">
+    <button type="submit">Submit</button>
+  </form>
+
+  <!-- form with input type='week' -->
+  <form id="form19" onsubmit="return false;">
+    <input  type="week" name="field16">
+    <button type="submit">Submit</button>
+  </form>
+
+  <!-- form with input type='datetime-local' -->
+  <form id="form20" onsubmit="return false;">
+    <input  type="datetime-local" name="field17">
     <button type="submit">Submit</button>
   </form>
 
@@ -155,28 +173,20 @@ function setupFormHistory(aCallback) {
     { op : "add", fieldname : "field9", value : "value" },
     { op : "add", fieldname : "field10", value : "42" },
     { op : "add", fieldname : "field11", value : "2010-10-10" },
-    { op : "add", fieldname : "field12", value : "21:21" },
+    { op : "add", fieldname : "field12", value : "21:21" }, // not used, since type=time doesn't have autocomplete currently
     { op : "add", fieldname : "field13", value : "32" },  // not used, since type=range doesn't have a drop down menu
     { op : "add", fieldname : "field14", value : "#ffffff" }, // not used, since type=color doesn't have autocomplete currently
+    { op : "add", fieldname : "field15", value : "2016-08" },
+    { op : "add", fieldname : "field16", value : "2016-W32" },
+    { op : "add", fieldname : "field17", value : "2016-10-21T10:10" },
     { op : "add", fieldname : "searchbar-history", value : "blacklist test" },
   ], aCallback);
 }
-
-// All these non-implemeted types might need autocomplete tests in the future.
-var todoTypes = [ "datetime", "month", "week", "datetime-local" ];
-var todoInput = document.createElement("input");
-for (var type of todoTypes) {
-  todoInput.type = type;
-  todo_is(todoInput.type, type, type + " type shouldn't be implemented");
-}
-
 
 function setForm(value) {
   input.value = value;
   input.focus();
 }
-
-var autocompleteMenu = getAutocompletePopup();
 
 // Restore the form to the default state.
 function restoreForm() {
@@ -210,7 +220,7 @@ function popupShownListener()
   }
 }
 
-SpecialPowers.addAutoCompletePopupEventListener(window, "popupshown", popupShownListener);
+registerPopupShownListener(popupShownListener);
 
 /*
  * Main section of test...
@@ -218,7 +228,7 @@ SpecialPowers.addAutoCompletePopupEventListener(window, "popupshown", popupShown
  * This is a bit hacky, as many operations happen asynchronously.
  * Various mechanisms call runTests as a result of operations:
  *   - set expectingPopup to true, and the next test will occur when the autocomplete popup is shown
- *   - call waitForMenuChange(x) to run the next test when the autocomplete popup to have x items in it 
+ *   - call waitForMenuChange(x) to run the next test when the autocomplete popup to have x items in it
  *   - addEntry calls runs the test when an entry has been added
  *   - some tests scroll the window. This is because the form fill controller happens to scroll
  *     the field into view near the end of the search, and there isn't any other good notification
@@ -230,7 +240,7 @@ function runTest() {
 
   ok(true, "Starting test #" + testNum);
 
-  switch(testNum) {
+  switch (testNum) {
     case 1:
         // Make sure initial form is empty.
         checkForm("");
@@ -653,7 +663,8 @@ function runTest() {
         input.focus();
         doKey("left");
         expectPopup();
-        sendChar("a");
+        // Check case-insensitivity.
+        sendChar("A");
         break;
 
     case 206:
@@ -662,6 +673,7 @@ function runTest() {
         break;
 
     case 207:
+        // check that results were cached
         input.focus();
         doKey("right");
         sendChar("q");
@@ -678,7 +690,7 @@ function runTest() {
         input.focus();
         window.scrollTo(0, 0);
         sendChar("q");
-        waitForScroll();
+        waitForMenuChange(0);
         break;
 
     case 210:
@@ -702,9 +714,7 @@ function runTest() {
         checkMenuEntries(["aa a\xe6", "aba\xe6", "a\xe6"], testNum);
         input.focus();
 
-        // for this test, hide the popup first as it contains the same number of menu 
-
-        sendChar("\xc6");
+        sendChar("\xe6");
         waitForMenuChange(3, "a\xe6");
         break;
 
@@ -723,7 +733,7 @@ function runTest() {
         checkMenuEntries(["bc d\xe6"], testNum);
         input.focus();
         sendChar(" ");
-        setTimeout(runTest, 300);
+        waitForMenuChange(1);
         break;
 
     case 253:
@@ -872,6 +882,7 @@ function runTest() {
         } else if (testNum == 402) {
           input = $_(11, "field9");
         } else if (testNum == 403) {
+          todo(false, "Fix input type=number");
           input = $_(12, "field10");
         }
 
@@ -900,15 +911,13 @@ function runTest() {
 
         input = $_(15, "field12");
         restoreForm();
-        expectPopup();
-        doKey("down");
+        waitForMenuChange(0);
         break;
 
     case 406:
-        checkMenuEntries(["21:21"]);
-        doKey("down");
-        doKey("return");
-        checkForm("21:21");
+        checkMenuEntries([]); // type=time with it's own control frame does not
+                              // have a drop down menu for now
+        checkForm("");
 
         input = $_(16, "field13");
         restoreForm();
@@ -931,10 +940,46 @@ function runTest() {
         checkMenuEntries([]); // type=color does not have a drop down menu
         checkForm("#000000"); // default color value
 
-        addEntry("field1", "value1");
+        input = $_(18, "field15");
+        restoreForm();
+        expectPopup();
+        doKey("down");
         break;
 
     case 409:
+        checkMenuEntries(["2016-08"]);
+        doKey("down");
+        doKey("return");
+        checkForm("2016-08");
+
+        input = $_(19, "field16");
+        restoreForm();
+        expectPopup();
+        doKey("down");
+        break;
+
+    case 410:
+        checkMenuEntries(["2016-W32"]);
+        doKey("down");
+        doKey("return");
+        checkForm("2016-W32");
+
+        input = $_(20, "field17");
+        restoreForm();
+        expectPopup();
+        doKey("down");
+        break;
+
+    case 411:
+        checkMenuEntries(["2016-10-21T10:10"]);
+        doKey("down");
+        doKey("return");
+        checkForm("2016-10-21T10:10");
+
+        addEntry("field1", "value1");
+        break;
+
+    case 412:
         input = $_(1, "field1");
         // Go to test 500.
         testNum = 499;
@@ -974,13 +1019,12 @@ function runTest() {
 
     case 601:
         checkMenuEntries([], testNum);
-        SpecialPowers.removeAutoCompletePopupEventListener(window, "popupshown", popupShownListener);
+        input.blur();
         SimpleTest.finish();
         return;
 
     default:
         ok(false, "Unexpected invocation of test #" + testNum);
-        SpecialPowers.removeAutoCompletePopupEventListener(window, "popupshown", popupShownListener);
         SimpleTest.finish();
         return;
   }
@@ -999,42 +1043,20 @@ function waitForScroll()
       return;
 
     removeEventListener("scroll", arguments.callee, false);
-    setTimeout(runTest, 50);
+    setTimeout(runTest, 100);
   }, false);
 }
 
 function waitForMenuChange(expectedCount, expectedFirstValue)
 {
-  if (autocompleteMenu.tree.view.rowCount != expectedCount) {
-    SimpleTest.executeSoon(function () waitForMenuChange(expectedCount, expectedFirstValue));
-  }
-  else if (expectedFirstValue && autocompleteMenu.tree.view.rowCount > 1 &&
-           autocompleteMenu.tree.view.getValueAt(0, autocompleteMenu.tree.columns[0]) != expectedFirstValue) {
-    SimpleTest.executeSoon(function () waitForMenuChange(expectedCount, expectedFirstValue));
-  }
-  else {
-    runTest();
-  }
+    notifyMenuChanged(expectedCount, expectedFirstValue, runTest);
 }
 
-function checkMenuEntries(expectedValues, testNum) {
+function checkMenuEntries(expectedValues, testNumber) {
     var actualValues = getMenuEntries();
-    is(actualValues.length, expectedValues.length, testNum + " Checking length of expected menu");
+    is(actualValues.length, expectedValues.length, testNumber + " Checking length of expected menu");
     for (var i = 0; i < expectedValues.length; i++)
-        is(actualValues[i], expectedValues[i], testNum + " Checking menu entry #"+i);
-}
-
-function getMenuEntries() {
-    var entries = [];
-
-    // Could perhaps pull values directly from the controller, but it seems
-    // more reliable to test the values that are actually in the tree?
-    var column = autocompleteMenu.tree.columns[0];
-    var numRows = autocompleteMenu.tree.view.rowCount;
-    for (var i = 0; i < numRows; i++) {
-        entries.push(autocompleteMenu.tree.view.getValueAt(i, column));
-    }
-    return entries;
+        is(actualValues[i], expectedValues[i], testNumber + " Checking menu entry #"+i);
 }
 
 function startTest() {
@@ -1046,6 +1068,7 @@ function startTest() {
 window.onload = startTest;
 
 SimpleTest.waitForExplicitFinish();
+SimpleTest.requestFlakyTimeout("untriaged");
 </script>
 </pre>
 </body>

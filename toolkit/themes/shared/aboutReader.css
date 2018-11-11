@@ -1,0 +1,178 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+body {
+  padding: 64px 51px;
+}
+
+@media print {
+  #container {
+    max-width: 100% !important;
+    font-size: 14px !important;
+    font-family: Georgia, "Times New Roman", serif !important;
+  }
+
+  body {
+    padding-top: 0px;
+    padding-bottom: 0px;
+  }
+}
+
+body.loaded {
+  transition: color 0.4s, background-color 0.4s;
+}
+
+body.light {
+  color: #333333;
+  background-color: #ffffff;
+}
+
+body.dark {
+  color: #eeeeee;
+  background-color: #333333;
+}
+
+body.dark *::-moz-selection {
+  background-color: #FFFFFF;
+  color: #0095DD;
+}
+body.dark a::-moz-selection {
+  color: #DD4800;
+}
+
+body.sepia {
+  color: #5b4636;
+  background-color: #f4ecd8;
+}
+
+body.sans-serif,
+body.sans-serif .remove-button {
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+body.serif,
+body.serif .remove-button  {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+#container {
+  max-width: 30em;
+  margin: 0 auto;
+}
+
+#container.font-size1 {
+  font-size: 12px;
+}
+
+#container.font-size2 {
+  font-size: 14px;
+}
+
+#container.font-size3 {
+  font-size: 16px;
+}
+
+#container.font-size4  {
+  font-size: 18px;
+}
+
+#container.font-size5 {
+  font-size: 20px;
+}
+
+#container.font-size6 {
+  font-size: 22px;
+}
+
+#container.font-size7 {
+  font-size: 24px;
+}
+
+#container.font-size8 {
+  font-size: 26px;
+}
+
+#container.font-size9 {
+  font-size: 28px;
+}
+
+#container.content-width1 {
+  max-width: 20em;
+}
+
+#container.content-width2 {
+  max-width: 25em;
+}
+
+#container.content-width3 {
+  max-width: 30em;
+}
+
+#container.content-width4  {
+  max-width: 35em;
+}
+
+#container.content-width5 {
+  max-width: 40em;
+}
+
+#container.content-width6 {
+  max-width: 45em;
+}
+
+#container.content-width7 {
+  max-width: 50em;
+}
+
+#container.content-width8 {
+  max-width: 55em;
+}
+
+#container.content-width9 {
+  max-width: 60em;
+}
+
+/* Override some controls and content styles based on color scheme */
+
+body.light > .container > .header > .domain {
+  border-bottom-color: #333333 !important;
+}
+
+body.sepia > .container > .header > .domain {
+  border-bottom-color: #5b4636 !important;
+}
+
+body.dark > .container > .header > .domain {
+  border-bottom-color: #eeeeee !important;
+}
+
+body.sepia > .container > .footer {
+  background-color: #dedad4 !important;
+}
+
+body.light blockquote {
+  border-inline-start: 2px solid #333333 !important;
+}
+
+body.sepia blockquote {
+  border-inline-start: 2px solid #5b4636 !important;
+}
+
+body.dark blockquote {
+  border-inline-start: 2px solid #eeeeee !important;
+}
+
+/* Add toolbar transition base on loaded class  */
+
+body.loaded .toolbar {
+  transition: transform 0.3s ease-out;
+}
+
+body:not(.loaded) .toolbar:-moz-locale-dir(ltr) {
+  transform: translateX(-100%);
+}
+
+body:not(.loaded) .toolbar:-moz-locale-dir(rtl) {
+  transform: translateX(100%);
+}

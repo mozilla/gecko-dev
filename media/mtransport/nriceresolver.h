@@ -61,14 +61,19 @@ namespace mozilla {
 
 class NrIceResolver
 {
+ private:
+  ~NrIceResolver();
  public:
   NrIceResolver();
-  ~NrIceResolver();
 
   nsresult Init();
   nr_resolver *AllocateResolver();
   void DestroyResolver();
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(NrIceResolver)
+
+  int resolve(nr_resolver_resource *resource,
+              int (*cb)(void *cb_arg, nr_transport_addr *addr),
+              void *cb_arg, void **handle);
 
  private:
   // Implementations of vtbl functions
@@ -78,10 +83,6 @@ class NrIceResolver
                      void *cb_arg, void **handle);
   static void resolve_cb(NR_SOCKET s, int how, void *cb_arg);
   static int cancel(void *obj, void *handle);
-
-  int resolve(nr_resolver_resource *resource,
-              int (*cb)(void *cb_arg, nr_transport_addr *addr),
-              void *cb_arg, void **handle);
 
   class PendingResolution : public nsIDNSListener
   {
@@ -94,22 +95,20 @@ class NrIceResolver
         thread_(thread),
         port_(port),
         transport_(transport),
-        cb_(cb), cb_arg_(cb_arg),
-        canceled_ (false) {}
-    virtual ~PendingResolution(){};
+        cb_(cb), cb_arg_(cb_arg) {}
     NS_IMETHOD OnLookupComplete(nsICancelable *request, nsIDNSRecord *record,
-                                nsresult status);
+                                nsresult status) override;
     int cancel();
     nsCOMPtr<nsICancelable> request_;
     NS_DECL_THREADSAFE_ISUPPORTS
 
    private:
+    virtual ~PendingResolution(){};
     nsCOMPtr<nsIEventTarget> thread_;
     uint16_t port_;
     int transport_;
     int (*cb_)(void *cb_arg, nr_transport_addr *addr);
     void *cb_arg_;
-    bool canceled_;
   };
 
   nr_resolver_vtbl* vtbl_;

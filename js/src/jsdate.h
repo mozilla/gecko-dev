@@ -13,8 +13,13 @@
 
 #include "jstypes.h"
 
+#include "js/Date.h"
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
+
+#include "vm/DateTime.h"
+
+namespace js {
 
 /*
  * These functions provide a C interface to the date/time object
@@ -24,8 +29,8 @@
  * Construct a new Date Object from a time value given in milliseconds UTC
  * since the epoch.
  */
-extern JS_FRIEND_API(JSObject *)
-js_NewDateObjectMsec(JSContext* cx, double msec_time);
+extern JSObject*
+NewDateObjectMsec(JSContext* cx, JS::ClippedTime t, JS::HandleObject proto = nullptr);
 
 /*
  * Construct a new Date Object from an exploded local time value.
@@ -34,30 +39,21 @@ js_NewDateObjectMsec(JSContext* cx, double msec_time);
  * due to the 0-based month numbering copied into JS from Java (java.util.Date
  * in 1995).
  */
-extern JS_FRIEND_API(JSObject *)
-js_NewDateObject(JSContext* cx, int year, int mon, int mday,
-                 int hour, int min, int sec);
-
-extern JS_FRIEND_API(int)
-js_DateGetYear(JSContext *cx, JSObject *obj);
-
-extern JS_FRIEND_API(int)
-js_DateGetMonth(JSContext *cx, JSObject *obj);
-
-extern JS_FRIEND_API(int)
-js_DateGetDate(JSContext *cx, JSObject *obj);
-
-extern JS_FRIEND_API(int)
-js_DateGetHours(JSContext *cx, JSObject *obj);
-
-extern JS_FRIEND_API(int)
-js_DateGetMinutes(JSContext *cx, JSObject *obj);
-
-extern JS_FRIEND_API(int)
-js_DateGetSeconds(JSObject *obj);
+extern JS_FRIEND_API(JSObject*)
+NewDateObject(JSContext* cx, int year, int mon, int mday,
+              int hour, int min, int sec);
 
 /* Date constructor native. Exposed only so the JIT can know its address. */
 bool
-js_Date(JSContext *cx, unsigned argc, JS::Value *vp);
+DateConstructor(JSContext* cx, unsigned argc, JS::Value* vp);
+
+/* Date methods exposed so they can be installed in the self-hosting global. */
+bool
+date_now(JSContext* cx, unsigned argc, JS::Value* vp);
+
+bool
+date_valueOf(JSContext* cx, unsigned argc, JS::Value* vp);
+
+} /* namespace js */
 
 #endif /* jsdate_h */

@@ -24,16 +24,20 @@ function createMetaWithLang(name, content, lang) {
   return '<meta name="' + name + '" content="' + content + '" lang="' + lang + '">';
 }
 
+function createMetaWithProperty(property, content) {
+  return '<meta property="' + property + '" content="' + content + '">';
+}
+
 function runTest() {
   var iframe1 = document.createElement('iframe');
-  SpecialPowers.wrap(iframe1).mozbrowser = true;
+  iframe1.setAttribute('mozbrowser', 'true');
   document.body.appendChild(iframe1);
 
   // iframe2 is a red herring; we modify its meta elements but don't listen for
   // metachanges; we want to make sure that its metachange events aren't
   // picked up by the listener on iframe1.
   var iframe2 = document.createElement('iframe');
-  SpecialPowers.wrap(iframe2).mozbrowser = true;
+  iframe2.setAttribute('mozbrowser', 'true');
   document.body.appendChild(iframe2);
 
   // iframe3 is another red herring.  It's not a mozbrowser, so we shouldn't
@@ -130,6 +134,26 @@ function runTest() {
       is(e.detail.name, 'application-name', 'name matches');
       is(e.detail.content, 'sjs', 'content matches');
       is(e.detail.lang, 'dk', 'language matches');
+
+      // Test Open Graph property
+      iframe1.src = createHtml(createMetaWithProperty('og:description', 'Fascinating article'));
+
+      // We should not get event if property doesn't start with 'og:'
+      iframe3.src = createHtml(createMetaWithProperty('go:description', 'Fascinating article'));
+    }
+    else if (numMetaChanges == 11) {
+      is(e.detail.name, 'og:description', 'property name matches');
+      is(e.detail.content, 'Fascinating article', 'content matches');
+
+      // Sometimes 'name' is used instead of 'property'. Verify that works.
+      iframe1.src = createHtml(createMeta('og:title', 'One weird trick!'));
+
+      // We should not get event if property doesn't start with 'og:'
+      iframe3.src = createHtml(createMeta('go:title', 'One weird trick!'));
+    }
+    else if (numMetaChanges == 12) {
+      is(e.detail.name, 'og:title', 'property name matches');
+      is(e.detail.content, 'One weird trick!', 'content matches');
 
       // Test the language
       SimpleTest.finish();

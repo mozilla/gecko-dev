@@ -11,9 +11,15 @@
 enum IDBTransactionMode {
     "readonly",
     "readwrite",
+    // The "readwriteflush" mode is only available when the
+    // |IndexedDatabaseManager::ExperimentalFeaturesEnabled()| function returns
+    // true. This mode is not yet part of the standard.
+    "readwriteflush",
+    "cleanup",
     "versionchange"
 };
 
+[Exposed=(Window,Worker,System)]
 interface IDBTransaction : EventTarget {
     [Throws]
     readonly    attribute IDBTransactionMode mode;
@@ -34,6 +40,5 @@ interface IDBTransaction : EventTarget {
 
 // This seems to be custom
 partial interface IDBTransaction {
-    [Throws]
     readonly    attribute DOMStringList objectStoreNames;
 };

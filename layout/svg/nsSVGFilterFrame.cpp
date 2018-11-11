@@ -9,12 +9,10 @@
 // Keep others in (case-insensitive) order:
 #include "gfxUtils.h"
 #include "nsGkAtoms.h"
-#include "nsRenderingContext.h"
 #include "nsSVGEffects.h"
 #include "nsSVGElement.h"
 #include "mozilla/dom/SVGFilterElement.h"
 #include "nsSVGFilterInstance.h"
-#include "nsSVGFilterPaintCallback.h"
 #include "nsSVGIntegrationUtils.h"
 #include "nsSVGUtils.h"
 #include "nsContentUtils.h"
@@ -29,16 +27,16 @@ NS_NewSVGFilterFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 
 NS_IMPL_FRAMEARENA_HELPERS(nsSVGFilterFrame)
 
-class MOZ_STACK_CLASS nsSVGFilterFrame::AutoFilterReferencer
+class MOZ_RAII nsSVGFilterFrame::AutoFilterReferencer
 {
 public:
-  AutoFilterReferencer(nsSVGFilterFrame *aFrame MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+  explicit AutoFilterReferencer(nsSVGFilterFrame *aFrame MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
     : mFrame(aFrame)
   {
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
     // Reference loops should normally be detected in advance and handled, so
     // we're not expecting to encounter them here
-    NS_ABORT_IF_FALSE(!mFrame->mLoopFlag, "Undetected reference loop!");
+    MOZ_ASSERT(!mFrame->mLoopFlag, "Undetected reference loop!");
     mFrame->mLoopFlag = true;
   }
   ~AutoFilterReferencer() {
@@ -88,7 +86,7 @@ nsSVGFilterFrame::GetFilterContent(nsIContent *aDefault)
   for (nsIContent* child = mContent->GetFirstChild();
        child;
        child = child->GetNextSibling()) {
-    nsRefPtr<nsSVGFE> primitive;
+    RefPtr<nsSVGFE> primitive;
     CallQueryInterface(child, (nsSVGFE**)getter_AddRefs(primitive));
     if (primitive) {
       return static_cast<SVGFilterElement *>(mContent);
@@ -108,14 +106,21 @@ nsSVGFilterFrame::GetReferencedFilter()
   if (mNoHRefURI)
     return nullptr;
 
-  nsSVGPaintingProperty *property = static_cast<nsSVGPaintingProperty*>
-    (Properties().Get(nsSVGEffects::HrefProperty()));
+  nsSVGPaintingProperty *property =
+    Properties().Get(nsSVGEffects::HrefAsPaintingProperty());
 
   if (!property) {
-    // Fetch our Filter element's xlink:href attribute
+    // Fetch our Filter element's href or xlink:href attribute
     SVGFilterElement *filter = static_cast<SVGFilterElement *>(mContent);
     nsAutoString href;
-    filter->mStringAttributes[SVGFilterElement::HREF].GetAnimValue(href, filter);
+    if (filter->mStringAttributes[SVGFilterElement::HREF].IsExplicitlySet()) {
+      filter->mStringAttributes[SVGFilterElement::HREF]
+        .GetAnimValue(href, filter);
+    } else {
+      filter->mStringAttributes[SVGFilterElement::XLINK_HREF]
+        .GetAnimValue(href, filter);
+    }
+
     if (href.IsEmpty()) {
       mNoHRefURI = true;
       return nullptr; // no URL
@@ -125,10 +130,11 @@ nsSVGFilterFrame::GetReferencedFilter()
     nsCOMPtr<nsIURI> targetURI;
     nsCOMPtr<nsIURI> base = mContent->GetBaseURI();
     nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(targetURI), href,
-                                              mContent->GetCurrentDoc(), base);
+                                              mContent->GetUncomposedDoc(), base);
 
     property =
-      nsSVGEffects::GetPaintingProperty(targetURI, this, nsSVGEffects::HrefProperty());
+      nsSVGEffects::GetPaintingProperty(targetURI, this,
+                                        nsSVGEffects::HrefAsPaintingProperty());
     if (!property)
       return nullptr;
   }
@@ -173,16 +179,17 @@ nsSVGFilterFrame::AttributeChanged(int32_t  aNameSpaceID,
        aAttribute == nsGkAtoms::filterUnits ||
        aAttribute == nsGkAtoms::primitiveUnits)) {
     nsSVGEffects::InvalidateDirectRenderingObservers(this);
-  } else if (aNameSpaceID == kNameSpaceID_XLink &&
+  } else if ((aNameSpaceID == kNameSpaceID_XLink ||
+              aNameSpaceID == kNameSpaceID_None) &&
              aAttribute == nsGkAtoms::href) {
     // Blow away our reference, if any
-    Properties().Delete(nsSVGEffects::HrefProperty());
+    Properties().Delete(nsSVGEffects::HrefAsPaintingProperty());
     mNoHRefURI = false;
     // And update whoever references us
     nsSVGEffects::InvalidateDirectRenderingObservers(this);
   }
-  return nsSVGFilterFrameBase::AttributeChanged(aNameSpaceID,
-                                                aAttribute, aModType);
+  return nsSVGContainerFrame::AttributeChanged(aNameSpaceID,
+                                               aAttribute, aModType);
 }
 
 #ifdef DEBUG
@@ -191,10 +198,10 @@ nsSVGFilterFrame::Init(nsIContent*       aContent,
                        nsContainerFrame* aParent,
                        nsIFrame*         aPrevInFlow)
 {
-  NS_ASSERTION(aContent->IsSVG(nsGkAtoms::filter),
+  NS_ASSERTION(aContent->IsSVGElement(nsGkAtoms::filter),
                "Content is not an SVG filter");
 
-  nsSVGFilterFrameBase::Init(aContent, aParent, aPrevInFlow);
+  nsSVGContainerFrame::Init(aContent, aParent, aPrevInFlow);
 }
 #endif /* DEBUG */
 

@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 **********************************************************************
-*   Copyright (C) 2013, International Business Machines
+*   Copyright (C) 2014, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 **********************************************************************
 *
@@ -17,10 +19,9 @@
 
 #include "scriptset.h"
 #include "uassert.h"
+#include "cmemory.h"
 
 U_NAMESPACE_BEGIN
-
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
 
 //----------------------------------------------------------------------------
 //
@@ -28,7 +29,7 @@ U_NAMESPACE_BEGIN
 //
 //----------------------------------------------------------------------------
 ScriptSet::ScriptSet() {
-    for (uint32_t i=0; i<LENGTHOF(bits); i++) {
+    for (uint32_t i=0; i<UPRV_LENGTHOF(bits); i++) {
         bits[i] = 0;
     }
 }
@@ -42,7 +43,7 @@ ScriptSet::ScriptSet(const ScriptSet &other) {
     
 
 ScriptSet & ScriptSet::operator =(const ScriptSet &other) {
-    for (uint32_t i=0; i<LENGTHOF(bits); i++) {
+    for (uint32_t i=0; i<UPRV_LENGTHOF(bits); i++) {
         bits[i] = other.bits[i];
     }
     return *this;
@@ -50,7 +51,7 @@ ScriptSet & ScriptSet::operator =(const ScriptSet &other) {
 
 
 UBool ScriptSet::operator == (const ScriptSet &other) const {
-    for (uint32_t i=0; i<LENGTHOF(bits); i++) {
+    for (uint32_t i=0; i<UPRV_LENGTHOF(bits); i++) {
         if (bits[i] != other.bits[i]) {
             return FALSE;
         }
@@ -103,14 +104,14 @@ ScriptSet &ScriptSet::reset(UScriptCode script, UErrorCode &status) {
 
 
 ScriptSet &ScriptSet::Union(const ScriptSet &other) {
-    for (uint32_t i=0; i<LENGTHOF(bits); i++) {
+    for (uint32_t i=0; i<UPRV_LENGTHOF(bits); i++) {
         bits[i] |= other.bits[i];
     }
     return *this;
 }
 
 ScriptSet &ScriptSet::intersect(const ScriptSet &other) {
-    for (uint32_t i=0; i<LENGTHOF(bits); i++) {
+    for (uint32_t i=0; i<UPRV_LENGTHOF(bits); i++) {
         bits[i] &= other.bits[i];
     }
     return *this;
@@ -126,7 +127,7 @@ ScriptSet &ScriptSet::intersect(UScriptCode script, UErrorCode &status) {
 }
     
 UBool ScriptSet::intersects(const ScriptSet &other) const {
-    for (uint32_t i=0; i<LENGTHOF(bits); i++) {
+    for (uint32_t i=0; i<UPRV_LENGTHOF(bits); i++) {
         if ((bits[i] & other.bits[i]) != 0) {
             return true;
         }
@@ -142,7 +143,7 @@ UBool ScriptSet::contains(const ScriptSet &other) const {
 
 
 ScriptSet &ScriptSet::setAll() {
-    for (uint32_t i=0; i<LENGTHOF(bits); i++) {
+    for (uint32_t i=0; i<UPRV_LENGTHOF(bits); i++) {
         bits[i] = 0xffffffffu;
     }
     return *this;
@@ -150,7 +151,7 @@ ScriptSet &ScriptSet::setAll() {
 
 
 ScriptSet &ScriptSet::resetAll() {
-    for (uint32_t i=0; i<LENGTHOF(bits); i++) {
+    for (uint32_t i=0; i<UPRV_LENGTHOF(bits); i++) {
         bits[i] = 0;
     }
     return *this;
@@ -160,7 +161,7 @@ int32_t ScriptSet::countMembers() const {
     // This bit counter is good for sparse numbers of '1's, which is
     //  very much the case that we will usually have.
     int32_t count = 0;
-    for (uint32_t i=0; i<LENGTHOF(bits); i++) {
+    for (uint32_t i=0; i<UPRV_LENGTHOF(bits); i++) {
         uint32_t x = bits[i];
         while (x > 0) {
             count++;
@@ -172,7 +173,7 @@ int32_t ScriptSet::countMembers() const {
 
 int32_t ScriptSet::hashCode() const {
     int32_t hash = 0;
-    for (int32_t i=0; i<LENGTHOF(bits); i++) {
+    for (int32_t i=0; i<UPRV_LENGTHOF(bits); i++) {
         hash ^= bits[i];
     }
     return hash;
@@ -190,6 +191,15 @@ int32_t ScriptSet::nextSetBit(int32_t fromIndex) const {
         }
     }
     return -1;
+}
+
+UBool ScriptSet::isEmpty() const {
+    for (uint32_t i=0; i<UPRV_LENGTHOF(bits); i++) {
+        if (bits[i] != 0) {
+            return FALSE;
+        }
+    }
+    return TRUE;
 }
 
 UnicodeString &ScriptSet::displayScripts(UnicodeString &dest) const {
@@ -237,6 +247,41 @@ ScriptSet &ScriptSet::parseScripts(const UnicodeString &scriptString, UErrorCode
         }
     }
     return *this;
+}
+
+void ScriptSet::setScriptExtensions(UChar32 codePoint, UErrorCode& status) {
+    if (U_FAILURE(status)) { return; }
+    static const int32_t FIRST_GUESS_SCRIPT_CAPACITY = 5;
+    MaybeStackArray<UScriptCode,FIRST_GUESS_SCRIPT_CAPACITY> scripts;
+    UErrorCode internalStatus = U_ZERO_ERROR;
+    int32_t script_count = -1;
+
+    while (TRUE) {
+        script_count = uscript_getScriptExtensions(
+            codePoint, scripts.getAlias(), scripts.getCapacity(), &internalStatus);
+        if (internalStatus == U_BUFFER_OVERFLOW_ERROR) {
+            // Need to allocate more space
+            if (scripts.resize(script_count) == NULL) {
+                status = U_MEMORY_ALLOCATION_ERROR;
+                return;
+            }
+            internalStatus = U_ZERO_ERROR;
+        } else {
+            break;
+        }
+    }
+
+    // Check if we failed for some reason other than buffer overflow
+    if (U_FAILURE(internalStatus)) {
+        status = internalStatus;
+        return;
+    }
+
+    // Load the scripts into the ScriptSet and return
+    for (int32_t i = 0; i < script_count; i++) {
+        this->set(scripts[i], status);
+        if (U_FAILURE(status)) { return; }
+    }
 }
 
 U_NAMESPACE_END

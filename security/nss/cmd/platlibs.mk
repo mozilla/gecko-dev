@@ -51,6 +51,8 @@ EXTRA_SHARED_LIBS += \
 	$(NULL)
 endif
 
+ifndef NSS_DISABLE_LIBPKIX
+ifndef NSS_BUILD_SOFTOKEN_ONLY
 PKIXLIB = \
 	$(DIST)/lib/$(LIB_PREFIX)pkixtop.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pkixutil.$(LIB_SUFFIX) \
@@ -64,34 +66,98 @@ PKIXLIB = \
 	$(DIST)/lib/$(LIB_PREFIX)pkixtop.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pkixresults.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pkixcertsel.$(LIB_SUFFIX)
+endif
+endif
 
-# can't do this in manifest.mn because OS_ARCH isn't defined there.
+NSS_LIBS_1=
+SECTOOL_LIB=
+NSS_LIBS_2=
+NSS_LIBS_3=
+NSS_LIBS_4=
+
+ifneq ($(NSS_BUILD_UTIL_ONLY),1)
+SECTOOL_LIB = \
+	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
+	$(NULL)
+else
+SECTOOL_LIB = \
+	$(NULL)
+endif
+
+ifneq ($(NSS_BUILD_SOFTOKEN_ONLY),1)
 ifeq ($(OS_ARCH), WINNT)
-
-EXTRA_LIBS += \
+# breakdown for windows
+NSS_LIBS_1 = \
 	$(DIST)/lib/$(LIB_PREFIX)smime.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nss.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
+	$(NULL)
+NSS_LIBS_2 = \
 	$(DIST)/lib/$(LIB_PREFIX)pkcs12.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pkcs7.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)cryptohi.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pk11wrap.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)certdb.$(LIB_SUFFIX) \
-	$(SOFTOKENLIB) \
-	$(CRYPTOLIB) \
+	$(NULL)
+NSS_LIBS_3 = \
 	$(DIST)/lib/$(LIB_PREFIX)nsspki.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nssdev.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nssb.$(LIB_SUFFIX) \
 	$(PKIXLIB) \
 	$(DBMLIB) \
-	$(DIST)/lib/$(LIB_PREFIX)$(SQLITE_LIB_NAME).$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)nssutil3.$(LIB_SUFFIX) \
+	$(NULL)
+NSS_LIBS_4 = \
+	$(SQLITE_LIB_DIR)/$(LIB_PREFIX)$(SQLITE_LIB_NAME).$(LIB_SUFFIX) \
+	$(NSSUTIL_LIB_DIR)/$(LIB_PREFIX)nssutil3.$(LIB_SUFFIX) \
 	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plc4.$(LIB_SUFFIX) \
 	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plds4.$(LIB_SUFFIX) \
 	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)nspr4.$(LIB_SUFFIX) \
+	$(NULL)
+else
+# breakdown for others
+NSS_LIBS_1 = \
+	$(DIST)/lib/$(LIB_PREFIX)smime.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)nss.$(LIB_SUFFIX) \
+	$(NULL)
+SECTOOL_LIB = \
+	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
+	$(NULL)
+NSS_LIBS_2 = \
+	$(DIST)/lib/$(LIB_PREFIX)pkcs12.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)pkcs7.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)cryptohi.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)pk11wrap.$(LIB_SUFFIX) \
+	$(NULL)
+NSS_LIBS_3 = \
+	$(DIST)/lib/$(LIB_PREFIX)certdb.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)nsspki.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)nssdev.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)nssb.$(LIB_SUFFIX) \
+	$(NULL)
+NSS_LIBS_4 = \
+	$(DBMLIB) \
+	$(PKIXLIB) \
+	$(DIST)/lib/$(LIB_PREFIX)nss.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)pk11wrap.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
+	$(NULL)
+endif
+endif
+
+# can't do this in manifest.mn because OS_ARCH isn't defined there.
+ifeq ($(OS_ARCH), WINNT)
+
+EXTRA_LIBS += \
+	$(NSS_LIBS_1) \
+	$(SECTOOL_LIB) \
+	$(NSS_LIBS_2) \
+	$(SOFTOKENLIB) \
+	$(CRYPTOLIB) \
+	$(NSS_LIBS_3) \
+	$(NSS_LIBS_4) \
 	$(NULL)
 
 # $(PROGRAM) has NO explicit dependencies on $(OS_LIBS)
@@ -102,30 +168,13 @@ EXTRA_LIBS += \
 else
 
 EXTRA_LIBS += \
-	$(DIST)/lib/$(LIB_PREFIX)smime.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)nss.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)pkcs12.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)pkcs7.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)pk11wrap.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)cryptohi.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)nsspki.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)pk11wrap.$(LIB_SUFFIX) \
+	$(NSS_LIBS_1) \
+	$(SECTOOL_LIB) \
+	$(NSS_LIBS_2) \
 	$(SOFTOKENLIB) \
-	$(DIST)/lib/$(LIB_PREFIX)certdb.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)nsspki.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)nssdev.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)nssb.$(LIB_SUFFIX) \
+	$(NSS_LIBS_3) \
 	$(CRYPTOLIB) \
-	$(DBMLIB) \
-	$(PKIXLIB) \
-	$(DIST)/lib/$(LIB_PREFIX)nss.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)pk11wrap.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
+	$(NSS_LIBS_4) \
 	$(NULL)
 
 ifeq ($(OS_ARCH), AIX) 
@@ -135,7 +184,7 @@ endif
 # $(PROGRAM) has NO explicit dependencies on $(EXTRA_SHARED_LIBS)
 # $(EXTRA_SHARED_LIBS) come before $(OS_LIBS), except on AIX.
 EXTRA_SHARED_LIBS += \
-	-L$(DIST)/lib \
+	-L$(SQLITE_LIB_DIR) \
 	-l$(SQLITE_LIB_NAME) \
 	-L$(NSSUTIL_LIB_DIR) \
 	-lnssutil3 \
@@ -153,7 +202,7 @@ ifeq ($(OS_ARCH), WINNT)
 # $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
 EXTRA_LIBS += \
 	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(IMPORT_LIB_PREFIX)nssutil3$(IMPORT_LIB_SUFFIX) \
+	$(NSSUTIL_LIB_DIR)/$(IMPORT_LIB_PREFIX)nssutil3$(IMPORT_LIB_SUFFIX) \
 	$(DIST)/lib/$(IMPORT_LIB_PREFIX)smime3$(IMPORT_LIB_SUFFIX) \
 	$(DIST)/lib/$(IMPORT_LIB_PREFIX)ssl3$(IMPORT_LIB_SUFFIX) \
 	$(DIST)/lib/$(IMPORT_LIB_PREFIX)nss3$(IMPORT_LIB_SUFFIX) \
@@ -208,13 +257,6 @@ endif # USE_STATIC_LIBS
 ifdef NSS_USE_SYSTEM_FREEBL
 FREEBL_LIBS = $(FREEBL_LIB_DIR)/$(LIB_PREFIX)freebl.$(LIB_SUFFIX)
 EXTRA_LIBS += $(FREEBL_LIBS)
-endif
-
-# If a platform has a system zlib, set USE_SYSTEM_ZLIB to 1 and
-# ZLIB_LIBS to the linker command-line arguments for the system zlib
-# (for example, -lz) in the platform's config file in coreconf.
-ifndef USE_SYSTEM_ZLIB
-ZLIB_LIBS = $(DIST)/lib/$(LIB_PREFIX)zlib.$(LIB_SUFFIX)
 endif
 
 JAR_LIBS = $(DIST)/lib/$(LIB_PREFIX)jar.$(LIB_SUFFIX)

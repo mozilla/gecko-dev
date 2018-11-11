@@ -1,87 +1,19 @@
-/* Any copyright is dedicated to the Public Domain.
-   http://creativecommons.org/publicdomain/zero/1.0/ */
-const TRANSITION_LINK = Ci.nsINavHistoryService.TRANSITION_LINK;
-const TRANSITION_TYPED = Ci.nsINavHistoryService.TRANSITION_TYPED;
-
+Components.utils.import("resource://gre/modules/PlacesUtils.jsm");
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-                                  "resource://gre/modules/Promise.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-                                  "resource://gre/modules/Task.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesTestUtils",
+                                  "resource://testing-common/PlacesTestUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "BrowserTestUtils",
+                                  "resource://testing-common/BrowserTestUtils.jsm");
 
-/**
- * Allows waiting for an observer notification once.
- *
- * @param aTopic
- *        Notification topic to observe.
- *
- * @return {Promise}
- * @resolves The array [aSubject, aData] from the observed notification.
- * @rejects Never.
- */
-function promiseTopicObserved(aTopic)
-{
-  let deferred = Promise.defer();
-
-  Services.obs.addObserver(
-    function PTO_observe(aSubject, aTopic, aData) {
-      Services.obs.removeObserver(PTO_observe, aTopic);
-      deferred.resolve([aSubject, aData]);
-    }, aTopic, false);
-
-  return deferred.promise;
-}
-
-/**
- * Clears history asynchronously.
- *
- * @return {Promise}
- * @resolves When history has been cleared.
- * @rejects Never.
- */
-function promiseClearHistory() {
-  let promise = promiseTopicObserved(PlacesUtils.TOPIC_EXPIRATION_FINISHED);
-  PlacesUtils.bhistory.removeAllPages();
-  return promise;
-}
-
-/**
- * Waits for all pending async statements on the default connection.
- *
- * @return {Promise}
- * @resolves When all pending async statements finished.
- * @rejects Never.
- *
- * @note The result is achieved by asynchronously executing a query requiring
- *       a write lock.  Since all statements on the same connection are
- *       serialized, the end of this write operation means that all writes are
- *       complete.  Note that WAL makes so that writers don't block readers, but
- *       this is a problem only across different connections.
- */
-function promiseAsyncUpdates()
-{
-  let deferred = Promise.defer();
-
-  let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
-                              .DBConnection;
-  let begin = db.createAsyncStatement("BEGIN EXCLUSIVE");
-  begin.executeAsync();
-  begin.finalize();
-
-  let commit = db.createAsyncStatement("COMMIT");
-  commit.executeAsync({
-    handleResult: function() {},
-    handleError: function() {},
-    handleCompletion: function(aReason)
-    {
-      deferred.resolve();
-    }
-  });
-  commit.finalize();
-
-  return deferred.promise;
-}
+const TRANSITION_LINK = PlacesUtils.history.TRANSITION_LINK;
+const TRANSITION_TYPED = PlacesUtils.history.TRANSITION_TYPED;
+const TRANSITION_BOOKMARK = PlacesUtils.history.TRANSITION_BOOKMARK;
+const TRANSITION_REDIRECT_PERMANENT = PlacesUtils.history.TRANSITION_REDIRECT_PERMANENT;
+const TRANSITION_REDIRECT_TEMPORARY = PlacesUtils.history.TRANSITION_REDIRECT_TEMPORARY;
+const TRANSITION_EMBED = PlacesUtils.history.TRANSITION_EMBED;
+const TRANSITION_FRAMED_LINK = PlacesUtils.history.TRANSITION_FRAMED_LINK;
+const TRANSITION_DOWNLOAD = PlacesUtils.history.TRANSITION_DOWNLOAD;
 
 /**
  * Returns a moz_places field value for a url.
@@ -96,7 +28,7 @@ function fieldForUrl(aURI, aFieldName, aCallback)
   let url = aURI instanceof Ci.nsIURI ? aURI.spec : aURI;
   let stmt = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
                                 .DBConnection.createAsyncStatement(
-    "SELECT " + aFieldName + " FROM moz_places WHERE url = :page_url"
+    `SELECT ${aFieldName} FROM moz_places WHERE url_hash = hash(:page_url) AND url = :page_url`
   );
   stmt.params.page_url = url;
   stmt.executeAsync({
@@ -178,8 +110,8 @@ function waitForFaviconChanged(aExpectedPageURI, aExpectedFaviconURI, aWindow,
  * Asynchronously adds visits to a page, invoking a callback function when done.
  *
  * @param aPlaceInfo
- *        Can be an nsIURI, in such a case a single LINK visit will be added.
- *        Otherwise can be an object describing the visit to add, or an array
+ *        Either an nsIURI, in such a case a single LINK visit will be added.
+ *        Or can be an object describing the visit to add, or an array
  *        of these objects:
  *          { uri: nsIURI of the page,
  *            transition: one of the TRANSITION_* from nsINavHistoryService,
@@ -193,7 +125,6 @@ function waitForFaviconChanged(aExpectedPageURI, aExpectedFaviconURI, aWindow,
  *        The stack frame used to report errors.
  */
 function addVisits(aPlaceInfo, aWindow, aCallback, aStack) {
-  let stack = aStack || Components.stack.caller;
   let places = [];
   if (aPlaceInfo instanceof Ci.nsIURI) {
     places.push({ uri: aPlaceInfo });
@@ -206,15 +137,15 @@ function addVisits(aPlaceInfo, aWindow, aCallback, aStack) {
 
   // Create mozIVisitInfo for each entry.
   let now = Date.now();
-  for (let i = 0; i < places.length; i++) {
-    if (!places[i].title) {
-      places[i].title = "test visit for " + places[i].uri.spec;
+  for (let place of places) {
+    if (!place.title) {
+      place.title = "test visit for " + place.uri.spec;
     }
-    places[i].visits = [{
-      transitionType: places[i].transition === undefined ? TRANSITION_LINK
-                                                         : places[i].transition,
-      visitDate: places[i].visitDate || (now++) * 1000,
-      referrerURI: places[i].referrer
+    place.visits = [{
+      transitionType: place.transition === undefined ? TRANSITION_LINK
+                                                     : place.transition,
+      visitDate: place.visitDate || (now++) * 1000,
+      referrerURI: place.referrer
     }];
   }
 
@@ -222,7 +153,7 @@ function addVisits(aPlaceInfo, aWindow, aCallback, aStack) {
     places,
     {
       handleError: function AAV_handleError() {
-        throw("Unexpected error in adding visit.");
+        throw ("Unexpected error in adding visit.");
       },
       handleResult: function () {},
       handleCompletion: function UP_handleCompletion() {
@@ -282,9 +213,9 @@ function checkGuidForURI(aURI, aGUID) {
  */
 function doGetGuidForURI(aURI) {
   let stmt = DBConn().createStatement(
-    "SELECT guid "
-    + "FROM moz_places "
-    + "WHERE url = :url "
+    `SELECT guid
+       FROM moz_places
+       WHERE url_hash = hash(:url) AND url = :url`
   );
   stmt.params.url = aURI.spec;
   ok(stmt.executeStep(), "Check get guid for uri from moz_places");
@@ -340,18 +271,9 @@ function DBConn(aForceNewConnection) {
   return gDBConn.connectionReady ? gDBConn : null;
 }
 
-function whenDelayedStartupFinished(aWindow, aCallback) {
-  Services.obs.addObserver(function observer(aSubject, aTopic) {
-    if (aWindow == aSubject) {
-      Services.obs.removeObserver(observer, aTopic);
-      executeSoon(function() { aCallback(aWindow); });
-    }
-  }, "browser-delayed-startup-finished", false);
-}
-
 function whenNewWindowLoaded(aOptions, aCallback) {
-  let win = OpenBrowserWindow(aOptions);
-  whenDelayedStartupFinished(win, aCallback);
+  BrowserTestUtils.waitForNewWindow().then(aCallback);
+  OpenBrowserWindow(aOptions);
 }
 
 /**
@@ -364,11 +286,34 @@ function whenNewWindowLoaded(aOptions, aCallback) {
  * @rejects JavaScript exception.
  */
 function promiseIsURIVisited(aURI, aExpectedValue) {
-  let deferred = Promise.defer();
-
-  PlacesUtils.asyncHistory.isURIVisited(aURI, function(aURI, aIsVisited) {
-    deferred.resolve(aIsVisited);
+  return new Promise(resolve => {
+    PlacesUtils.asyncHistory.isURIVisited(aURI, function(unused, aIsVisited) {
+      resolve(aIsVisited);
+    });
   });
+}
 
-  return deferred.promise;
+function waitForCondition(condition, nextTest, errorMsg) {
+  let tries = 0;
+  let interval = setInterval(function() {
+    if (tries >= 30) {
+      ok(false, errorMsg);
+      moveOn();
+    }
+    let conditionPassed;
+    try {
+      conditionPassed = condition();
+    } catch (e) {
+      ok(false, e + "\n" + e.stack);
+      conditionPassed = false;
+    }
+    if (conditionPassed) {
+      moveOn();
+    }
+    tries++;
+  }, 200);
+  function moveOn() {
+    clearInterval(interval);
+    nextTest();
+  }
 }

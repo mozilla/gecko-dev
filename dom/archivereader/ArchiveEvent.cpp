@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -49,17 +49,7 @@ ArchiveReaderEvent::ArchiveReaderEvent(ArchiveReader* aArchiveReader)
 ArchiveReaderEvent::~ArchiveReaderEvent()
 {
   if (!NS_IsMainThread()) {
-    nsIMIMEService* mimeService;
-    mMimeService.forget(&mimeService);
-
-    if (mimeService) {
-      nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
-      NS_WARN_IF_FALSE(mainThread, "Couldn't get the main thread! Leaking!");
-
-      if (mainThread) {
-        NS_ProxyRelease(mainThread, mimeService);
-      }
-    }
+    NS_ReleaseOnMainThread(mMimeService.forget());
   }
 
   MOZ_COUNT_DTOR(ArchiveReaderEvent);
@@ -96,8 +86,7 @@ ArchiveReaderEvent::RunShare(nsresult aStatus)
 {
   mStatus = aStatus;
 
-  nsCOMPtr<nsIRunnable> event = NS_NewRunnableMethod(this, &ArchiveReaderEvent::ShareMainThread);
-  NS_DispatchToMainThread(event);
+  NS_DispatchToMainThread(NewRunnableMethod(this, &ArchiveReaderEvent::ShareMainThread));
 
   return NS_OK;
 }
@@ -105,12 +94,12 @@ ArchiveReaderEvent::RunShare(nsresult aStatus)
 void
 ArchiveReaderEvent::ShareMainThread()
 {
-  nsTArray<nsCOMPtr<nsIDOMFile> > fileList;
+  nsTArray<RefPtr<File>> fileList;
 
   if (!NS_FAILED(mStatus)) {
     // This extra step must run in the main thread:
     for (uint32_t index = 0; index < mFileList.Length(); ++index) {
-      nsRefPtr<ArchiveItem> item = mFileList[index];
+      RefPtr<ArchiveItem> item = mFileList[index];
 
       nsString tmp;
       nsresult rv = item->GetFilename(tmp);
@@ -130,8 +119,8 @@ ArchiveReaderEvent::ShareMainThread()
         }
       }
 
-      // This is a nsDOMFile:
-      nsRefPtr<nsIDOMFile> file = item->File(mArchiveReader);
+      // This is a File:
+      RefPtr<File> file = item->GetFile(mArchiveReader);
       if (file) {
         fileList.AppendElement(file);
       }

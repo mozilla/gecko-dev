@@ -11,8 +11,8 @@ function test() {
 
   var triggers = encodeURIComponent(JSON.stringify({
     "Unsigned XPI": {
-      URL: TESTROOT + "unsigned.xpi",
-      Hash: "sha1:3d0dc22e1f394e159b08aaf5f0f97de4d5c65f4f",
+      URL: TESTROOT + "amosigned.xpi",
+      Hash: "sha1:36ffb0acfd9c6e9682473aaebaab394d38b473c9",
       toString: function() { return this.URL; }
     }
   }));
@@ -27,7 +27,7 @@ function install_ended(install, addon) {
 function finish_test(count) {
   is(count, 1, "1 Add-on should have been successfully installed");
 
-  Services.perms.remove("example.com", "install");
+  Services.perms.remove(makeURI("http://example.com"), "install");
 
   gBrowser.removeCurrentTab();
   Harness.finish();

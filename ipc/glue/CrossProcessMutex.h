@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -9,7 +10,7 @@
 #include "base/process.h"
 #include "mozilla/Mutex.h"
 
-#if defined(OS_LINUX)
+#if !defined(OS_WIN) && !defined(OS_NETBSD) && !defined(OS_OPENBSD)
 #include <pthread.h>
 #include "SharedMemoryBasic.h"
 #include "mozilla/Atomics.h"
@@ -18,7 +19,7 @@
 namespace IPC {
 template<typename T>
 struct ParamTraits;
-}
+} // namespace IPC
 
 //
 // Provides:
@@ -31,9 +32,9 @@ struct ParamTraits;
 // preferred to making bare calls to CrossProcessMutex.Lock and Unlock.
 //
 namespace mozilla {
-#ifdef XP_WIN
+#if defined(OS_WIN)
 typedef HANDLE CrossProcessMutexHandle;
-#elif defined(OS_LINUX)
+#elif !defined(OS_NETBSD) && !defined(OS_OPENBSD)
 typedef mozilla::ipc::SharedMemoryBasic::Handle CrossProcessMutexHandle;
 #else
 // Stub for other platforms. We can't use uintptr_t here since different
@@ -41,20 +42,20 @@ typedef mozilla::ipc::SharedMemoryBasic::Handle CrossProcessMutexHandle;
 typedef uintptr_t CrossProcessMutexHandle;
 #endif
 
-class NS_COM_GLUE CrossProcessMutex
+class CrossProcessMutex
 {
 public:
   /**
    * CrossProcessMutex
    * @param name A name which can reference this lock (currently unused)
    **/
-  CrossProcessMutex(const char* aName);
+  explicit CrossProcessMutex(const char* aName);
   /**
    * CrossProcessMutex
    * @param handle A handle of an existing cross process mutex that can be
    *               opened.
    */
-  CrossProcessMutex(CrossProcessMutexHandle aHandle);
+  explicit CrossProcessMutex(CrossProcessMutexHandle aHandle);
 
   /**
    * ~CrossProcessMutex
@@ -88,7 +89,7 @@ public:
    *
    * @returns A handle that can be shared to another process
    */
-  CrossProcessMutexHandle ShareToProcess(base::ProcessHandle aTarget);
+  CrossProcessMutexHandle ShareToProcess(base::ProcessId aTargetPid);
 
 private:
   friend struct IPC::ParamTraits<CrossProcessMutex>;
@@ -97,10 +98,10 @@ private:
   CrossProcessMutex(const CrossProcessMutex&);
   CrossProcessMutex &operator=(const CrossProcessMutex&);
 
-#ifdef XP_WIN
+#if defined(OS_WIN)
   HANDLE mMutex;
-#elif defined(OS_LINUX)
-  mozilla::ipc::SharedMemoryBasic* mSharedBuffer;
+#elif !defined(OS_NETBSD) && !defined(OS_OPENBSD)
+  RefPtr<mozilla::ipc::SharedMemoryBasic> mSharedBuffer;
   pthread_mutex_t* mMutex;
   mozilla::Atomic<int32_t>* mCount;
 #endif
@@ -109,5 +110,6 @@ private:
 typedef BaseAutoLock<CrossProcessMutex> CrossProcessMutexAutoLock;
 typedef BaseAutoUnlock<CrossProcessMutex> CrossProcessMutexAutoUnlock;
 
-}
+} // namespace mozilla
+
 #endif

@@ -9,13 +9,12 @@
 #include "mozilla/Attributes.h"
 
 // Interfaces
-#include "nsIDOMWindow.h"
 #include "nsDeviceContext.h"
 #include "nsIPrintProgressParams.h"
-#include "nsIPrintOptions.h"
+#include "nsIPrintSettings.h"
+#include "nsISupportsImpl.h"
 #include "nsTArray.h"
 #include "nsCOMArray.h"
-#include "nsAutoPtr.h"
 
 // Classes
 class nsPrintObject;
@@ -25,24 +24,24 @@ class nsIWebProgressListener;
 //------------------------------------------------------------------------
 // nsPrintData Class
 //
-// mPreparingForPrint - indicates that we have started Printing but 
-//   have not gone to the timer to start printing the pages. It gets turned 
+// mPreparingForPrint - indicates that we have started Printing but
+//   have not gone to the timer to start printing the pages. It gets turned
 //   off right before we go to the timer.
 //
 // mDocWasToBeDestroyed - Gets set when "someone" tries to unload the document
-//   while we were prparing to Print. This typically happens if a user starts 
-//   to print while a page is still loading. If they start printing and pause 
-//   at the print dialog and then the page comes in, we then abort printing 
+//   while we were prparing to Print. This typically happens if a user starts
+//   to print while a page is still loading. If they start printing and pause
+//   at the print dialog and then the page comes in, we then abort printing
 //   because the document is no longer stable.
-// 
+//
 //------------------------------------------------------------------------
 class nsPrintData {
 public:
-
   typedef enum {eIsPrinting, eIsPrintPreview } ePrintDataType;
 
-  nsPrintData(ePrintDataType aType);
-  ~nsPrintData(); // non-virtual
+  explicit nsPrintData(ePrintDataType aType);
+
+  NS_INLINE_DECL_REFCOUNTING(nsPrintData)
 
   // Listener Helper Methods
   void OnEndPrinting();
@@ -52,9 +51,11 @@ public:
                           bool         aDoStartStop,
                           int32_t      aFlag);
 
+  void DoOnStatusChange(nsresult aStatus);
+
 
   ePrintDataType               mType;            // the type of data this is (Printing or Print Preview)
-  nsRefPtr<nsDeviceContext>   mPrintDC;
+  RefPtr<nsDeviceContext>   mPrintDC;
   FILE                        *mDebugFilePtr;    // a file where information can go to when printing
 
   nsPrintObject *                mPrintObject;
@@ -63,7 +64,7 @@ public:
   nsCOMArray<nsIWebProgressListener> mPrintProgressListeners;
   nsCOMPtr<nsIPrintProgressParams> mPrintProgressParams;
 
-  nsCOMPtr<nsIDOMWindow> mCurrentFocusWin; // cache a pointer to the currently focused window
+  nsCOMPtr<nsPIDOMWindowOuter> mCurrentFocusWin; // cache a pointer to the currently focused window
 
   nsTArray<nsPrintObject*>    mPrintDocList;
   bool                        mIsIFrameSelected;
@@ -85,9 +86,10 @@ public:
   char16_t*            mBrandName; //  needed as a substitute name for a document
 
 private:
-  nsPrintData() MOZ_DELETE;
-  nsPrintData& operator=(const nsPrintData& aOther) MOZ_DELETE;
+  nsPrintData() = delete;
+  nsPrintData& operator=(const nsPrintData& aOther) = delete;
 
+  ~nsPrintData(); // non-virtual
 };
 
 #endif /* nsPrintData_h___ */

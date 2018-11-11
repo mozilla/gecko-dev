@@ -6,40 +6,38 @@
 #define nsPrintEngine_h___
 
 #include "mozilla/Attributes.h"
+#include "mozilla/UniquePtr.h"
 
 #include "nsCOMPtr.h"
 
 #include "nsPrintObject.h"
 #include "nsPrintData.h"
 #include "nsFrameList.h"
-#include "mozilla/Attributes.h"
+#include "nsIFrame.h"
 #include "nsIWebProgress.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "nsIWebProgressListener.h"
 #include "nsWeakReference.h"
 
 // Interfaces
-#include "nsIDOMWindow.h"
 #include "nsIObserver.h"
 
 // Classes
 class nsPagePrintTimer;
 class nsIDocShell;
-class nsDeviceContext;
 class nsIDocument;
 class nsIDocumentViewerPrint;
 class nsPrintObject;
 class nsIDocShell;
 class nsIPageSequenceFrame;
-class nsIWeakReference;
 
 //------------------------------------------------------------------------
 // nsPrintEngine Class
 //
 //------------------------------------------------------------------------
-class nsPrintEngine MOZ_FINAL : public nsIObserver,
-                                public nsIWebProgressListener,
-                                public nsSupportsWeakReference
+class nsPrintEngine final : public nsIObserver,
+                            public nsIWebProgressListener,
+                            public nsSupportsWeakReference
 {
 public:
   // nsISupports interface...
@@ -54,7 +52,7 @@ public:
   NS_IMETHOD Print(nsIPrintSettings*       aPrintSettings,
                    nsIWebProgressListener* aWebProgressListener);
   NS_IMETHOD PrintPreview(nsIPrintSettings* aPrintSettings,
-                          nsIDOMWindow *aChildDOMWin,
+                          mozIDOMWindowProxy* aChildDOMWin,
                           nsIWebProgressListener* aWebProgressListener);
   NS_IMETHOD GetIsFramesetDocument(bool *aIsFramesetDocument);
   NS_IMETHOD GetIsIFrameSelected(bool *aIsIFrameSelected);
@@ -76,12 +74,11 @@ public:
   };
 
   nsPrintEngine();
-  ~nsPrintEngine();
 
   void Destroy();
   void DestroyPrintingData();
 
-  nsresult Initialize(nsIDocumentViewerPrint* aDocViewerPrint, 
+  nsresult Initialize(nsIDocumentViewerPrint* aDocViewerPrint,
                       nsIDocShell*            aContainer,
                       nsIDocument*            aDocument,
                       float                   aScreenDPI,
@@ -138,25 +135,26 @@ public:
   nsresult CheckForPrinters(nsIPrintSettings* aPrintSettings);
   void CleanupDocTitleArray(char16_t**& aArray, int32_t& aCount);
 
-  bool IsThereARangeSelection(nsIDOMWindow * aDOMWin);
+  bool IsThereARangeSelection(nsPIDOMWindowOuter* aDOMWin);
 
+  void FirePrintingErrorEvent(nsresult aPrintError);
   //---------------------------------------------------------------------
 
 
   // Timer Methods
   nsresult StartPagePrintTimer(nsPrintObject* aPO);
 
-  bool IsWindowsInOurSubTree(nsPIDOMWindow * aDOMWindow);
+  bool IsWindowsInOurSubTree(nsPIDOMWindowOuter* aDOMWindow);
   static bool IsParentAFrameSet(nsIDocShell * aParent);
   bool IsThereAnIFrameSelected(nsIDocShell* aDocShell,
-                                 nsIDOMWindow* aDOMWin,
-                                 bool& aIsParentFrameSet);
+                               nsPIDOMWindowOuter* aDOMWin,
+                               bool& aIsParentFrameSet);
 
   static nsPrintObject* FindPrintObjectByDOMWin(nsPrintObject* aParentObject,
-                                                nsIDOMWindow* aDOMWin);
+                                                nsPIDOMWindowOuter* aDOMWin);
 
   // get the currently infocus frame for the document viewer
-  already_AddRefed<nsIDOMWindow> FindFocusedDOMWindow();
+  already_AddRefed<nsPIDOMWindowOuter> FindFocusedDOMWindow();
 
   //---------------------------------------------------------------------
   // Static Methods
@@ -168,8 +166,6 @@ public:
                              nsAString&       aTitle,
                              nsAString&       aURLStr,
                              eDocTitleDefault aDefType);
-  static void ShowPrintErrorDialog(nsresult printerror,
-                                   bool aIsPrinting = true);
 
   static bool HasFramesetChild(nsIContent* aContent);
 
@@ -180,7 +176,7 @@ public:
 
   float GetPrintPreviewScale() { return mPrtPreview->mPrintObject->
                                         mPresContext->GetPrintPreviewScale(); }
-  
+
   static nsIPresShell* GetPresShellFor(nsIDocShell* aDocShell);
 
   // These calls also update the DocViewer
@@ -208,11 +204,8 @@ public:
     mDisallowSelectionPrint = aDisallowSelectionPrint;
   }
 
-  void SetNoMarginBoxes(bool aNoMarginBoxes) {
-    mNoMarginBoxes = aNoMarginBoxes;
-  }
-
 protected:
+  ~nsPrintEngine();
 
   nsresult CommonPrint(bool aIsPrintPreview, nsIPrintSettings* aPrintSettings,
                        nsIWebProgressListener* aWebProgressListener,
@@ -227,9 +220,7 @@ protected:
                                                    nsIFrame*&      aSeqFrame,
                                                    int32_t&        aCount);
 
-  static nsresult FindSelectionBoundsWithList(nsPresContext* aPresContext,
-                                              nsRenderingContext& aRC,
-                                              nsFrameList::Enumerator& aChildFrames,
+  static nsresult FindSelectionBoundsWithList(nsFrameList::Enumerator& aChildFrames,
                                               nsIFrame *      aParentFrame,
                                               nsRect&         aRect,
                                               nsIFrame *&     aStartFrame,
@@ -237,20 +228,14 @@ protected:
                                               nsIFrame *&     aEndFrame,
                                               nsRect&         aEndRect);
 
-  static nsresult FindSelectionBounds(nsPresContext* aPresContext,
-                                      nsRenderingContext& aRC,
-                                      nsIFrame *      aParentFrame,
+  static nsresult FindSelectionBounds(nsIFrame *      aParentFrame,
                                       nsRect&         aRect,
                                       nsIFrame *&     aStartFrame,
                                       nsRect&         aStartRect,
                                       nsIFrame *&     aEndFrame,
                                       nsRect&         aEndRect);
 
-  static nsresult GetPageRangeForSelection(nsIPresShell *        aPresShell,
-                                           nsPresContext*        aPresContext,
-                                           nsRenderingContext&   aRC,
-                                           nsISelection*         aSelection,
-                                           nsIPageSequenceFrame* aPageSeqFrame,
+  static nsresult GetPageRangeForSelection(nsIPageSequenceFrame* aPageSeqFrame,
                                            nsIFrame**            aStartFrame,
                                            int32_t&              aStartPageNum,
                                            nsRect&               aStartRect,
@@ -264,6 +249,8 @@ protected:
 
   static void SetPrintAsIs(nsPrintObject* aPO, bool aAsIs = true);
 
+  void DisconnectPagePrintTimer();
+
   // Static member variables
   bool mIsCreatingPrintPreview;
   bool mIsDoingPrinting;
@@ -273,14 +260,20 @@ protected:
   nsCOMPtr<nsIDocumentViewerPrint> mDocViewerPrint;
   nsWeakPtr               mContainer;
   float                   mScreenDPI;
-  
-  nsPrintData*            mPrt;
+
+  // We are the primary owner of our nsPrintData member vars.  These vars
+  // are refcounted so that functions (e.g. nsPrintData methods) can create
+  // temporary owning references when they need to fire a callback that
+  // could conceivably destroy this nsPrintEngine owner object and all its
+  // member-data.
+  RefPtr<nsPrintData> mPrt;
+
   nsPagePrintTimer*       mPagePrintTimer;
-  nsIPageSequenceFrame*   mPageSeqFrame;
+  nsWeakFrame             mPageSeqFrame;
 
   // Print Preview
-  nsPrintData*            mPrtPreview;
-  nsPrintData*            mOldPrtPreview;
+  RefPtr<nsPrintData> mPrtPreview;
+  RefPtr<nsPrintData> mOldPrtPreview;
 
   nsCOMPtr<nsIDocument>   mDocument;
 
@@ -290,7 +283,6 @@ protected:
   bool mDidLoadDataForPrinting;
   bool mIsDestroying;
   bool mDisallowSelectionPrint;
-  bool mNoMarginBoxes;
 
   nsresult AfterNetworkPrint(bool aHandleError);
 
@@ -307,7 +299,7 @@ protected:
   nsresult InitPrintDocConstruction(bool aHandleError);
   void FirePrintPreviewUpdateEvent();
 private:
-  nsPrintEngine& operator=(const nsPrintEngine& aOther) MOZ_DELETE;
+  nsPrintEngine& operator=(const nsPrintEngine& aOther) = delete;
 };
 
 #endif /* nsPrintEngine_h___ */

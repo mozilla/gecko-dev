@@ -10,13 +10,15 @@
 #include "nsString.h"
 #include "nsCOMPtr.h"
 
+#include "nsILoadInfo.h"
 #include "nsIWyciwygChannel.h"
 #include "nsIStreamListener.h"
 #include "nsICacheEntryOpenCallback.h"
 #include "PrivateBrowsingChannel.h"
+#include "mozilla/BasePrincipal.h"
 
 class nsICacheEntry;
-class nsIEventTarget;
+class nsICacheStorage;
 class nsIInputStream;
 class nsIInputStreamPump;
 class nsILoadGroup;
@@ -24,14 +26,14 @@ class nsIOutputStream;
 class nsIProgressEventSink;
 class nsIURI;
 
-extern PRLogModuleInfo * gWyciwygLog;
+extern mozilla::LazyLogModule gWyciwygLog;
 
 //-----------------------------------------------------------------------------
 
-class nsWyciwygChannel: public nsIWyciwygChannel,
-                        public nsIStreamListener,
-                        public nsICacheEntryOpenCallback,
-                        public mozilla::net::PrivateBrowsingChannel<nsWyciwygChannel>
+class nsWyciwygChannel final: public nsIWyciwygChannel,
+                              public nsIStreamListener,
+                              public nsICacheEntryOpenCallback,
+                              public mozilla::net::PrivateBrowsingChannel<nsWyciwygChannel>
 {
 public:
     NS_DECL_THREADSAFE_ISUPPORTS
@@ -42,30 +44,24 @@ public:
     NS_DECL_NSISTREAMLISTENER
     NS_DECL_NSICACHEENTRYOPENCALLBACK
 
-    friend class nsWyciwygSetCharsetandSourceEvent;
-    friend class nsWyciwygWriteEvent;
-    friend class nsWyciwygCloseEvent;
-
     // nsWyciwygChannel methods:
     nsWyciwygChannel();
-    virtual ~nsWyciwygChannel();
 
     nsresult Init(nsIURI *uri);
 
 protected:
-    nsresult WriteToCacheEntryInternal(const nsAString& aData);
-    void SetCharsetAndSourceInternal();
-    nsresult CloseCacheEntryInternal(nsresult reason);
+    virtual ~nsWyciwygChannel();
 
     nsresult ReadFromCache();
     nsresult EnsureWriteCacheEntry();
-    nsresult OpenCacheEntry(nsIURI *aURI, uint32_t aOpenFlags);
+    nsresult GetCacheStorage(nsICacheStorage **_retval);
+    nsresult OpenCacheEntryForReading(nsIURI *aURI);
+    nsresult OpenCacheEntryForWriting(nsIURI *aURI);
 
     void WriteCharsetAndSourceToCache(int32_t aSource,
                                       const nsCString& aCharset);
 
     void NotifyListener();
-    bool IsOnCacheIOThread();
 
     friend class mozilla::net::PrivateBrowsingChannel<nsWyciwygChannel>;
 
@@ -78,17 +74,16 @@ protected:
     EMode                               mMode;
     nsresult                            mStatus;
     bool                                mIsPending;
-    bool                                mCharsetAndSourceSet;
     bool                                mNeedToWriteCharset;
     int32_t                             mCharsetSource;
     nsCString                           mCharset;
     int64_t                             mContentLength;
     uint32_t                            mLoadFlags;
-    uint32_t                            mAppId;
-    bool                                mInBrowser;
+    mozilla::NeckoOriginAttributes      mOriginAttributes;
     nsCOMPtr<nsIURI>                    mURI;
     nsCOMPtr<nsIURI>                    mOriginalURI;
     nsCOMPtr<nsISupports>               mOwner;
+    nsCOMPtr<nsILoadInfo>               mLoadInfo;
     nsCOMPtr<nsIInterfaceRequestor>     mCallbacks;
     nsCOMPtr<nsIProgressEventSink>      mProgressSink;
     nsCOMPtr<nsILoadGroup>              mLoadGroup;
@@ -102,9 +97,19 @@ protected:
     nsCOMPtr<nsICacheEntry>             mCacheEntry;
     nsCOMPtr<nsIOutputStream>           mCacheOutputStream;
     nsCOMPtr<nsIInputStream>            mCacheInputStream;
-    nsCOMPtr<nsIEventTarget>            mCacheIOTarget;
 
+    bool                                mNeedToSetSecurityInfo;
     nsCOMPtr<nsISupports>               mSecurityInfo;
 };
+
+/**
+ * Casting nsWyciwygChannel to nsISupports is ambiguous.
+ * This method handles that.
+ */
+inline nsISupports*
+ToSupports(nsWyciwygChannel* p)
+{
+  return NS_ISUPPORTS_CAST(nsIStreamListener*, p);
+}
 
 #endif /* nsWyciwygChannel_h___ */

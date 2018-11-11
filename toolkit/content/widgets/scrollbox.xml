@@ -120,9 +120,7 @@
       <property name="scrollBoxObject" readonly="true">
         <getter><![CDATA[
           if (!this._scrollBoxObject) {
-            this._scrollBoxObject =
-              this._scrollbox.boxObject
-                             .QueryInterface(Components.interfaces.nsIScrollBoxObject);
+            this._scrollBoxObject = this._scrollbox.boxObject;
           }
           return this._scrollBoxObject;
         ]]></getter>
@@ -294,13 +292,13 @@
           this.distance = distance;
           this.startPos = this.scrollbox.scrollPosition;
           this.duration = Math.min(1000, Math.round(50 * Math.sqrt(Math.abs(distance))));
-          this.startTime = window.mozAnimationStartTime;
+          this.startTime = window.performance.now();
 
           if (!this.requestHandle)
-            this.requestHandle = window.mozRequestAnimationFrame(this);
+            this.requestHandle = window.requestAnimationFrame(this.sample.bind(this));
         },
         stop: function scrollAnim_stop() {
-          window.mozCancelAnimationFrame(this.requestHandle);
+          window.cancelAnimationFrame(this.requestHandle);
           this.requestHandle = 0;
         },
         sample: function scrollAnim_handleEvent(timeStamp) {
@@ -313,7 +311,7 @@
           if (pos == 1)
             this.scrollbox._stopSmoothScroll();
           else
-            this.requestHandle = window.mozRequestAnimationFrame(this);
+            this.requestHandle = window.requestAnimationFrame(this.sample.bind(this));
         }
       })]]></field>
 
@@ -363,6 +361,60 @@
         ]]></body>
       </method>
 
+      <method name="scrollByPage">
+        <parameter name="pageDelta"/>
+        <parameter name="aSmoothScroll"/>
+        <body><![CDATA[
+          if (pageDelta == 0)
+            return;
+
+          // If a previous call is still in progress because of smooth
+          // scrolling, we need to complete it before starting a new one.
+          if (this._scrollTarget) {
+            let elements = this._getScrollableElements();
+            if (this._scrollTarget != elements[0] &&
+                this._scrollTarget != elements[elements.length - 1])
+              this.ensureElementIsVisible(this._scrollTarget, false);
+          }
+
+          var [start, end] = this._startEndProps;
+          var rect = this.scrollClientRect;
+          var containerEdge = pageDelta > 0 ? rect[end] + 1 : rect[start] - 1;
+          var pixelDelta = pageDelta * (rect[end] - rect[start]);
+          var destinationPosition = containerEdge + pixelDelta;
+          var nextElement = this._elementFromPoint(containerEdge, pageDelta);
+          if (!nextElement)
+            return;
+
+          // We need to iterate over our elements in the direction of pageDelta.
+          // pageDelta is the physical direction, so in a horizontal scroll box,
+          // positive values scroll to the right no matter if the scrollbox is
+          // LTR or RTL. But RTL changes how we need to advance the iteration
+          // (whether to get the next or the previous sibling of the current
+          // element).
+          var logicalAdvanceDir = pageDelta * (this._isRTLScrollbox ? -1 : 1);
+          var advance = logicalAdvanceDir > 0 ? (e => e.nextSibling) : (e => e.previousSibling);
+
+          var extendsPastTarget = (pageDelta > 0)
+            ? (e => e.getBoundingClientRect()[end] > destinationPosition)
+            : (e => e.getBoundingClientRect()[start] < destinationPosition);
+
+          // We want to scroll to the last element we encounter before we find
+          // an element which extends past destinationPosition.
+          var targetElement;
+          do {
+            if (this._canScrollToElement(nextElement))
+              targetElement = nextElement;
+            nextElement = advance(nextElement);
+          } while (nextElement && !extendsPastTarget(nextElement));
+
+          if (!targetElement)
+            return;
+
+          this.ensureElementIsVisible(targetElement, aSmoothScroll);
+        ]]></body>
+      </method>
+
       <method name="_getScrollableElements">
         <body><![CDATA[
           var nodes = this.childNodes;
@@ -400,7 +452,7 @@
             mid = Math.floor((low + high) / 2);
             rect = elements[mid].getBoundingClientRect();
             if (rect[start] > aX)
-              high = mid - 1; 
+              high = mid - 1;
             else if (rect[end] < aX)
               low = mid + 1;
             else
@@ -449,6 +501,8 @@
       <field name="_isScrolling">0</field>
       <field name="_prevMouseScrolls">[null, null]</field>
 
+      <field name="_touchStart">-1</field>
+
       <method name="_stopSmoothScroll">
         <body><![CDATA[
           if (this._isScrolling) {
@@ -471,7 +525,7 @@
           else if (this.scrollPosition == 0) {
             // In the RTL case, this means the _last_ element in the
             // scrollbox is visible
-            if (this._isRTLScrollbox) 
+            if (this._isRTLScrollbox)
               scrolledToEnd = true;
             else
               scrolledToStart = true;
@@ -499,12 +553,14 @@
     </implementation>
 
     <handlers>
-      <handler event="DOMMouseScroll"><![CDATA[
+      <handler event="wheel"><![CDATA[
         if (this.orient == "vertical") {
-          // prevent horizontal scrolling from scrolling a vertical scrollbox
-          if (event.axis == event.HORIZONTAL_AXIS)
-            return;
-          this.scrollByIndex(event.detail);
+          if (event.deltaMode == event.DOM_DELTA_PIXEL)
+            this.scrollByPixels(event.deltaY);
+          else if (event.deltaMode == event.DOM_DELTA_PAGE)
+            this.scrollByPage(event.deltaY);
+          else
+            this.scrollByIndex(event.deltaY);
         }
         // We allow vertical scrolling to scroll a horizontal scrollbox
         // because many users have a vertical scroll wheel but no
@@ -513,12 +569,20 @@
         // and mouse wheels that support simultaneous scrolling in both axes.
         // We do this by scrolling only when the last two scroll events were
         // on the same axis as the current scroll event.
+        // For diagonal scroll events we only respect the dominant axis.
         else {
-          let isVertical = event.axis == event.VERTICAL_AXIS;
+          let isVertical = Math.abs(event.deltaY) > Math.abs(event.deltaX);
+          let delta = isVertical ? event.deltaY : event.deltaX;
+          let scrollByDelta = isVertical && this._isRTLScrollbox ? -delta : delta;
 
-          if (this._prevMouseScrolls.every(function(prev) prev == isVertical))
-            this.scrollByIndex(isVertical && this._isRTLScrollbox ? -event.detail :
-                                                                    event.detail);
+          if (this._prevMouseScrolls.every(prev => prev == isVertical)) {
+            if (event.deltaMode == event.DOM_DELTA_PIXEL)
+              this.scrollByPixels(scrollByDelta);
+            else if (event.deltaMode == event.DOM_DELTA_PAGE)
+              this.scrollByPage(scrollByDelta);
+            else
+              this.scrollByIndex(scrollByDelta);
+          }
 
           if (this._prevMouseScrolls.length > 1)
             this._prevMouseScrolls.shift();
@@ -529,9 +593,38 @@
         event.preventDefault();
       ]]></handler>
 
-      <handler event="MozMousePixelScroll"><![CDATA[
-        event.stopPropagation();
-        event.preventDefault();
+      <handler event="touchstart"><![CDATA[
+        if (event.touches.length > 1) {
+          // Multiple touch points detected, abort. In particular this aborts
+          // the panning gesture when the user puts a second finger down after
+          // already panning with one finger. Aborting at this point prevents
+          // the pan gesture from being resumed until all fingers are lifted
+          // (as opposed to when the user is back down to one finger).
+          this._touchStart = -1;
+        } else {
+          this._touchStart = (this.orient == "vertical"
+                ? event.touches[0].screenY
+                : event.touches[0].screenX);
+        }
+      ]]></handler>
+
+      <handler event="touchmove"><![CDATA[
+        if (event.touches.length == 1 &&
+            this._touchStart >= 0) {
+          var touchPoint = (this.orient == "vertical"
+                ? event.touches[0].screenY
+                : event.touches[0].screenX);
+          var delta = this._touchStart - touchPoint;
+          if (Math.abs(delta) > 0) {
+            this.scrollByPixels(delta);
+            this._touchStart = touchPoint;
+          }
+          event.preventDefault();
+        }
+      ]]></handler>
+
+      <handler event="touchend"><![CDATA[
+        this._touchStart = -1;
       ]]></handler>
 
       <handler event="underflow" phase="capturing"><![CDATA[
@@ -548,15 +641,15 @@
           if (event.detail == 1)
             return;
         }
-        else {    // horizontal scrollbox
-          if (event.detail == 0)
-            return;
+        else if (event.detail == 0) {
+          // horizontal scrollbox
+          return;
         }
 
         this.setAttribute("notoverflowing", "true");
 
         try {
-          // See bug 341047 and comments in overflow handler as to why 
+          // See bug 341047 and comments in overflow handler as to why
           // try..catch is needed here
           this._updateScrollButtonsDisabledState();
 
@@ -564,7 +657,7 @@
           if (childNodes && childNodes.length)
             this.ensureElementIsVisible(childNodes[0], false);
         }
-        catch(e) {
+        catch (e) {
           this.removeAttribute("notoverflowing");
         }
       ]]></handler>
@@ -583,22 +676,22 @@
           if (event.detail == 1)
             return;
         }
-        else {    // horizontal scrollbox
-          if (event.detail == 0)
-            return;
+        else if (event.detail == 0) {
+          // horizontal scrollbox
+          return;
         }
 
         this.removeAttribute("notoverflowing");
 
         try {
-          // See bug 341047, the overflow event is dispatched when the 
+          // See bug 341047, the overflow event is dispatched when the
           // scrollbox already is mostly destroyed. This causes some code in
           // _updateScrollButtonsDisabledState() to throw an error. It also
           // means that the notoverflowing attribute was removed erroneously,
           // as the whole overflow event should not be happening in that case.
           this._updateScrollButtonsDisabledState();
-        } 
-        catch(e) {
+        }
+        catch (e) {
           this.setAttribute("notoverflowing", "true");
         }
       ]]></handler>
@@ -679,23 +772,23 @@
         scrollbox: this,
         requestHandle: 0, /* 0 indicates there is no pending request */
         start: function arrowSmoothScroll_start() {
-          this.lastFrameTime = window.mozAnimationStartTime;
+          this.lastFrameTime = window.performance.now();
           if (!this.requestHandle)
-            this.requestHandle = window.mozRequestAnimationFrame(this);
+            this.requestHandle = window.requestAnimationFrame(this.sample.bind(this));
         },
         stop: function arrowSmoothScroll_stop() {
-          window.mozCancelAnimationFrame(this.requestHandle);
+          window.cancelAnimationFrame(this.requestHandle);
           this.requestHandle = 0;
         },
         sample: function arrowSmoothScroll_handleEvent(timeStamp) {
           const scrollIndex = this.scrollbox._scrollIndex;
           const timePassed = timeStamp - this.lastFrameTime;
           this.lastFrameTime = timeStamp;
-          
+
           const scrollDelta = 0.5 * timePassed * scrollIndex;
           this.scrollbox.scrollPosition += scrollDelta;
 
-          this.requestHandle = window.mozRequestAnimationFrame(this);
+          this.requestHandle = window.requestAnimationFrame(this.sample.bind(this));
         }
       })]]></field>
 

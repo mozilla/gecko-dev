@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <windows.h>
 
+#include "mozilla/RefPtr.h"
 #include "mozilla/WidgetTraceEvent.h"
 #include "nsAppShellCID.h"
 #include "nsComponentManagerUtils.h"
@@ -20,7 +21,6 @@
 #include "nsISupportsImpl.h"
 #include "nsIWidget.h"
 #include "nsIXULWindow.h"
-#include "nsAutoPtr.h"
 #include "nsServiceManagerUtils.h"
 #include "nsThreadUtils.h"
 #include "nsWindowDefs.h"
@@ -32,7 +32,7 @@ HANDLE sEventHandle = nullptr;
 
 // We need a runnable in order to find the hidden window on the main
 // thread.
-class HWNDGetter : public nsRunnable {
+class HWNDGetter : public mozilla::Runnable {
 public:
   HWNDGetter() : hidden_window_hwnd(nullptr) {
     MOZ_COUNT_CTOR(HWNDGetter);
@@ -43,7 +43,7 @@ public:
 
   HWND hidden_window_hwnd;
 
-  NS_IMETHOD Run() {
+  NS_IMETHOD Run() override {
     // Jump through some hoops to locate the hidden window.
     nsCOMPtr<nsIAppShellService> appShell(do_GetService(NS_APPSHELLSERVICE_CONTRACTID));
     nsCOMPtr<nsIXULWindow> hiddenWindow;
@@ -60,7 +60,7 @@ public:
     }
 
     nsCOMPtr<nsIBaseWindow> baseWindow(do_QueryInterface(docShell));
-    
+
     if (!baseWindow)
       return NS_ERROR_FAILURE;
 
@@ -80,7 +80,7 @@ HWND GetHiddenWindowHWND()
 {
   // Need to dispatch this to the main thread because plenty of
   // the things it wants to access are main-thread-only.
-  nsRefPtr<HWNDGetter> getter = new HWNDGetter();
+  RefPtr<HWNDGetter> getter = new HWNDGetter();
   NS_DispatchToMainThread(getter, NS_DISPATCH_SYNC);
   return getter->hidden_window_hwnd;
 }
@@ -91,7 +91,7 @@ namespace mozilla {
 
 bool InitWidgetTracing()
 {
-  sEventHandle = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+  sEventHandle = CreateEventW(nullptr, FALSE, FALSE, nullptr);
   return sEventHandle != nullptr;
 }
 
@@ -111,7 +111,7 @@ void SignalTracerThread()
 // This function is called from the background tracer thread.
 bool FireAndWaitForTracerEvent()
 {
-  NS_ABORT_IF_FALSE(sEventHandle, "Tracing not initialized!");
+  MOZ_ASSERT(sEventHandle, "Tracing not initialized!");
 
   // First, try to find the hidden window.
   static HWND hidden_window = nullptr;
@@ -129,4 +129,4 @@ bool FireAndWaitForTracerEvent()
   return true;
 }
 
-}  // namespace mozilla
+} // namespace mozilla

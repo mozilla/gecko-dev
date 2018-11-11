@@ -24,7 +24,6 @@ const ALLOW_MULTIPLE_REQUESTS = ["audio-capture", "video-capture"];
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/Webapps.jsm");
 Cu.import("resource://gre/modules/AppsUtils.jsm");
 Cu.import("resource://gre/modules/PermissionsInstaller.jsm");
 Cu.import("resource://gre/modules/PermissionsTable.jsm");
@@ -32,12 +31,7 @@ Cu.import("resource://gre/modules/PermissionsTable.jsm");
 var permissionManager = Cc["@mozilla.org/permissionmanager;1"].getService(Ci.nsIPermissionManager);
 var secMan = Cc["@mozilla.org/scriptsecuritymanager;1"].getService(Ci.nsIScriptSecurityManager);
 
-let permissionSpecificChecker = {};
-
-XPCOMUtils.defineLazyServiceGetter(this,
-                                   "AudioManager",
-                                   "@mozilla.org/telephony/audiomanager;1",
-                                   "nsIAudioManager");
+var permissionSpecificChecker = {};
 
 XPCOMUtils.defineLazyModuleGetter(this, "SystemAppProxy",
                                   "resource://gre/modules/SystemAppProxy.jsm");
@@ -205,9 +199,9 @@ ContentPermissionPrompt.prototype = {
     // URL.
     let notDenyAppPrincipal = function(type) {
       let url = Services.io.newURI(app.origin, null, null);
-      let principal = secMan.getAppCodebasePrincipal(url,
-                                                     request.principal.appId,
-                                                     /*mozbrowser*/false);
+      let principal =
+        secMan.createCodebasePrincipal(url,
+                                       {appId: request.principal.appId});
       let result = Services.perms.testExactPermissionFromPrincipal(principal,
                                                                    type.access);
 
@@ -237,7 +231,6 @@ ContentPermissionPrompt.prototype = {
     return false;
   },
 
-  _id: 0,
   prompt: function(request) {
     // Initialize the typesInfo and set the default value.
     let typesInfo = [];
@@ -293,61 +286,54 @@ ContentPermissionPrompt.prototype = {
       return !type.deny && (type.action == Ci.nsIPermissionManager.PROMPT_ACTION || type.options.length > 0) ;
     });
 
-    let frame = request.element;
-    let requestId = this._id++;
-
-    if (!frame) {
-      this.delegatePrompt(request, requestId, typesInfo);
+    if (!request.element) {
+      this.delegatePrompt(request, typesInfo);
       return;
     }
 
-    frame = frame.wrappedJSObject;
     var cancelRequest = function() {
-      frame.removeEventListener("mozbrowservisibilitychange", onVisibilityChange);
+      request.requester.onVisibilityChange = null;
       request.cancel();
     }
 
     var self = this;
-    var onVisibilityChange = function(evt) {
-      if (evt.detail.visible === true)
-        return;
-
-      self.cancelPrompt(request, requestId, typesInfo);
-      cancelRequest();
-    }
 
     // If the request was initiated from a hidden iframe
     // we don't forward it to content and cancel it right away
-    let domRequest = frame.getVisible();
-    domRequest.onsuccess = function gv_success(evt) {
-      if (!evt.target.result) {
-        cancelRequest();
-        return;
+    request.requester.getVisibility( {
+      notifyVisibility: function(isVisible) {
+        if (!isVisible) {
+          cancelRequest();
+          return;
+        }
+
+        // Monitor the frame visibility and cancel the request if the frame goes
+        // away but the request is still here.
+        request.requester.onVisibilityChange = {
+          notifyVisibility: function(isVisible) {
+            if (isVisible)
+              return;
+
+            self.cancelPrompt(request, typesInfo);
+            cancelRequest();
+          }
+        }
+
+        self.delegatePrompt(request, typesInfo, function onCallback() {
+          request.requester.onVisibilityChange = null;
+        });
       }
+    });
 
-      // Monitor the frame visibility and cancel the request if the frame goes
-      // away but the request is still here.
-      frame.addEventListener("mozbrowservisibilitychange", onVisibilityChange);
-
-      self.delegatePrompt(request, requestId, typesInfo, function onCallback() {
-        frame.removeEventListener("mozbrowservisibilitychange", onVisibilityChange);
-      });
-    };
-
-    // Something went wrong. Let's cancel the request just in case.
-    domRequest.onerror = function gv_error() {
-      cancelRequest();
-    }
   },
 
-  cancelPrompt: function(request, requestId, typesInfo) {
-    this.sendToBrowserWindow("cancel-permission-prompt", request, requestId,
+  cancelPrompt: function(request, typesInfo) {
+    this.sendToBrowserWindow("cancel-permission-prompt", request,
                              typesInfo);
   },
 
-  delegatePrompt: function(request, requestId, typesInfo, callback) {
-
-    this.sendToBrowserWindow("permission-prompt", request, requestId, typesInfo,
+  delegatePrompt: function(request, typesInfo, callback) {
+    this.sendToBrowserWindow("permission-prompt", request, typesInfo,
                              function(type, remember, choices) {
       if (type == "permission-allow") {
         rememberPermission(typesInfo, request.principal, !remember);
@@ -371,16 +357,26 @@ ContentPermissionPrompt.prototype = {
                                           0);
         }
       }
-      typesInfo.forEach(addDenyPermission);
+      try {
+        // This will trow if we are canceling because the remote process died.
+        // Just eat the exception and call the callback that will cleanup the
+        // visibility event listener.
+        typesInfo.forEach(addDenyPermission);
+      } catch(e) { }
 
       if (callback) {
         callback();
       }
-      request.cancel();
+
+      try {
+        request.cancel();
+      } catch(e) { }
     });
   },
 
-  sendToBrowserWindow: function(type, request, requestId, typesInfo, callback) {
+  sendToBrowserWindow: function(type, request, typesInfo, callback) {
+    let requestId = Cc["@mozilla.org/uuid-generator;1"]
+                  .getService(Ci.nsIUUIDGenerator).generateUUID().toString();
     if (callback) {
       SystemAppProxy.addEventListener("mozContentEvent", function contentEvent(evt) {
         let detail = evt.detail;
@@ -411,7 +407,10 @@ ContentPermissionPrompt.prototype = {
       type: type,
       permissions: permissions,
       id: requestId,
-      origin: principal.origin,
+      // This system app uses the origin from permission events to
+      // compare against the mozApp.origin of app windows, so we
+      // are not concerned with origin suffixes here (appId, etc).
+      origin: principal.originNoSuffix,
       isApp: isApp,
       remember: remember,
       isGranted: isGranted,
@@ -448,12 +447,13 @@ ContentPermissionPrompt.prototype = {
 (function() {
   // Do not allow GetUserMedia while in call.
   permissionSpecificChecker["audio-capture"] = function(request) {
-    if (AudioManager.phoneState === Ci.nsIAudioManager.PHONE_STATE_IN_CALL) {
+    let forbid = false;
+
+    if (forbid) {
       request.cancel();
-      return true;
-    } else {
-      return false;
     }
+
+    return forbid;
   };
 })();
 

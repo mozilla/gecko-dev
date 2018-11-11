@@ -1,18 +1,19 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const Ci = Components.interfaces;
-const Cc = Components.classes;
-const Cr = Components.results;
-const Cu = Components.utils;
+var Ci = Components.interfaces;
+var Cc = Components.classes;
+var Cr = Components.results;
+var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
 
 // Import common head.
-let (commonFile = do_get_file("../head_common.js", false)) {
+{
+  let commonFile = do_get_file("../head_common.js", false);
   let uri = Services.io.newFileURI(commonFile);
   Services.scriptloader.loadSubScript(uri.spec, this);
 }
@@ -22,11 +23,10 @@ let (commonFile = do_get_file("../head_common.js", false)) {
 
 // Some Useful Date constants - PRTime uses microseconds, so convert
 const DAY_MICROSEC = 86400000000;
-const today = Date.now() * 1000;
+const today = PlacesUtils.toPRTime(Date.now());
 const yesterday = today - DAY_MICROSEC;
 const lastweek = today - (DAY_MICROSEC * 7);
 const daybefore = today - (DAY_MICROSEC * 2);
-const tomorrow = today + DAY_MICROSEC;
 const old = today - (DAY_MICROSEC * 3);
 const futureday = today + (DAY_MICROSEC * 3);
 const olderthansixmonths = today - (DAY_MICROSEC * 31 * 7);
@@ -38,18 +38,17 @@ const olderthansixmonths = today - (DAY_MICROSEC * 31 * 7);
  * appropriate.  This function is an asynchronous task, it can be called using
  * "Task.spawn" or using the "yield" function inside another task.
  */
-function task_populateDB(aArray)
+function* task_populateDB(aArray)
 {
-  // Iterate over aArray and execute all the instructions that can be done with
-  // asynchronous APIs, excluding those that will be done in batch mode later.
-  for ([, data] in Iterator(aArray)) {
+  // Iterate over aArray and execute all instructions.
+  for (let arrayItem of aArray) {
     try {
       // make the data object into a query data object in order to create proper
       // default values for anything left unspecified
-      var qdata = new queryData(data);
+      var qdata = new queryData(arrayItem);
       if (qdata.isVisit) {
         // Then we should add a visit for this node
-        yield promiseAddVisits({
+        yield PlacesTestUtils.addVisits({
           uri: uri(qdata.uri),
           transition: qdata.transType,
           visitDate: qdata.lastVisit,
@@ -60,7 +59,7 @@ function task_populateDB(aArray)
           // Set a fake visit_count, this is not a real count but can be used
           // to test sorting by visit_count.
           let stmt = DBConn().createAsyncStatement(
-            "UPDATE moz_places SET visit_count = :vc WHERE url = :url");
+            "UPDATE moz_places SET visit_count = :vc WHERE url_hash = hash(:url) AND url = :url");
           stmt.params.vc = qdata.visitCount;
           stmt.params.url = qdata.uri;
           try {
@@ -79,7 +78,7 @@ function task_populateDB(aArray)
         // This must be async to properly enqueue after the updateFrecency call
         // done by the visit addition.
         let stmt = DBConn().createAsyncStatement(
-          "UPDATE moz_places SET hidden = 1 WHERE url = :url");
+          "UPDATE moz_places SET hidden = 1 WHERE url_hash = hash(:url) AND url = :url");
         stmt.params.url = qdata.uri;
         try {
           stmt.executeAsync();
@@ -94,111 +93,102 @@ function task_populateDB(aArray)
 
       if (qdata.isDetails) {
         // Then we add extraneous page details for testing
-        yield promiseAddVisits({
+        yield PlacesTestUtils.addVisits({
           uri: uri(qdata.uri),
           visitDate: qdata.lastVisit,
           title: qdata.title
         });
       }
+
+      if (qdata.markPageAsTyped) {
+        PlacesUtils.history.markPageAsTyped(uri(qdata.uri));
+      }
+
+      if (qdata.isPageAnnotation) {
+        if (qdata.removeAnnotation)
+          PlacesUtils.annotations.removePageAnnotation(uri(qdata.uri),
+                                                       qdata.annoName);
+        else {
+          PlacesUtils.annotations.setPageAnnotation(uri(qdata.uri),
+                                                    qdata.annoName,
+                                                    qdata.annoVal,
+                                                    qdata.annoFlags,
+                                                    qdata.annoExpiration);
+        }
+      }
+
+      if (qdata.isItemAnnotation) {
+        if (qdata.removeAnnotation)
+          PlacesUtils.annotations.removeItemAnnotation(qdata.itemId,
+                                                       qdata.annoName);
+        else {
+          PlacesUtils.annotations.setItemAnnotation(qdata.itemId,
+                                                    qdata.annoName,
+                                                    qdata.annoVal,
+                                                    qdata.annoFlags,
+                                                    qdata.annoExpiration);
+        }
+      }
+
+      if (qdata.isFolder) {
+        yield PlacesUtils.bookmarks.insert({
+          parentGuid: qdata.parentGuid,
+          type: PlacesUtils.bookmarks.TYPE_FOLDER,
+          title: qdata.title,
+          index: qdata.index
+        });
+      }
+
+      if (qdata.isLivemark) {
+        yield PlacesUtils.livemarks.addLivemark({ title: qdata.title
+                                                , parentId: (yield PlacesUtils.promiseItemId(qdata.parentGuid))
+                                                , index: qdata.index
+                                                , feedURI: uri(qdata.feedURI)
+                                                , siteURI: uri(qdata.uri)
+                                                });
+      }
+
+      if (qdata.isBookmark) {
+        let data = {
+          parentGuid: qdata.parentGuid,
+          index: qdata.index,
+          title: qdata.title,
+          url: qdata.uri
+        };
+
+        if (qdata.dateAdded) {
+          data.dateAdded = new Date(qdata.dateAdded / 1000);
+        }
+
+        if (qdata.lastModified) {
+          data.lastModified = new Date(qdata.lastModified / 1000);
+        }
+
+        yield PlacesUtils.bookmarks.insert(data);
+
+        if (qdata.keyword) {
+          yield PlacesUtils.keywords.insert({ url: qdata.uri,
+                                              keyword: qdata.keyword });
+        }
+      }
+
+      if (qdata.isTag) {
+        PlacesUtils.tagging.tagURI(uri(qdata.uri), qdata.tagArray);
+      }
+
+      if (qdata.isSeparator) {
+        yield PlacesUtils.bookmarks.insert({
+          parentGuid: qdata.parentGuid,
+          type: PlacesUtils.bookmarks.TYPE_SEPARATOR,
+          index: qdata.index
+        });
+      }
     } catch (ex) {
-      // use the data object here in case instantiation of qdata failed
-      LOG("Problem with this URI: " + data.uri);
+      // use the arrayItem object here in case instantiation of qdata failed
+      do_print("Problem with this URI: " + arrayItem.uri);
       do_throw("Error creating database: " + ex + "\n");
     }
   }
-
-  // Now execute the part of the instructions made with synchronous APIs.
-  PlacesUtils.history.runInBatchMode({
-    runBatched: function (aUserData)
-    {
-      aArray.forEach(function (data)
-      {
-        try {
-          // make the data object into a query data object in order to create proper
-          // default values for anything left unspecified
-          var qdata = new queryData(data);
-
-          if (qdata.markPageAsTyped) {
-            PlacesUtils.history.markPageAsTyped(uri(qdata.uri));
-          }
-
-          if (qdata.isPageAnnotation) {
-            if (qdata.removeAnnotation)
-              PlacesUtils.annotations.removePageAnnotation(uri(qdata.uri),
-                                                           qdata.annoName);
-            else {
-              PlacesUtils.annotations.setPageAnnotation(uri(qdata.uri),
-                                                        qdata.annoName,
-                                                        qdata.annoVal,
-                                                        qdata.annoFlags,
-                                                        qdata.annoExpiration);
-            }
-          }
-
-          if (qdata.isItemAnnotation) {
-            if (qdata.removeAnnotation)
-              PlacesUtils.annotations.removeItemAnnotation(qdata.itemId,
-                                                           qdata.annoName);
-            else {
-              PlacesUtils.annotations.setItemAnnotation(qdata.itemId,
-                                                        qdata.annoName,
-                                                        qdata.annoVal,
-                                                        qdata.annoFlags,
-                                                        qdata.annoExpiration);
-            }
-          }
-
-          if (qdata.isFolder) {
-            let folderId = PlacesUtils.bookmarks.createFolder(qdata.parentFolder,
-                                                              qdata.title,
-                                                              qdata.index);
-            if (qdata.readOnly)
-              PlacesUtils.bookmarks.setFolderReadonly(folderId, true);
-          }
-
-          if (qdata.isLivemark) {
-            PlacesUtils.livemarks.addLivemark({ title: qdata.title
-                                              , parentId: qdata.parentFolder
-                                              , index: qdata.index
-                                              , feedURI: uri(qdata.feedURI)
-                                              , siteURI: uri(qdata.uri)
-                                              }).then(null, do_throw);
-          }
-
-          if (qdata.isBookmark) {
-            let itemId = PlacesUtils.bookmarks.insertBookmark(qdata.parentFolder,
-                                                              uri(qdata.uri),
-                                                              qdata.index,
-                                                              qdata.title);
-            if (qdata.keyword)
-              PlacesUtils.bookmarks.setKeywordForBookmark(itemId, qdata.keyword);
-            if (qdata.dateAdded)
-              PlacesUtils.bookmarks.setItemDateAdded(itemId, qdata.dateAdded);
-            if (qdata.lastModified)
-              PlacesUtils.bookmarks.setItemLastModified(itemId, qdata.lastModified);
-          }
-
-          if (qdata.isTag) {
-            PlacesUtils.tagging.tagURI(uri(qdata.uri), qdata.tagArray);
-          }
-
-          if (qdata.isDynContainer) {
-            PlacesUtils.bookmarks.createDynamicContainer(qdata.parentFolder,
-                                                         qdata.title,
-                                                         qdata.contractId,
-                                                         qdata.index);
-          }
-
-          if (qdata.isSeparator)
-            PlacesUtils.bookmarks.insertSeparator(qdata.parentFolder, qdata.index);
-        } catch (ex) {
-          // use the data object here in case instantiation of qdata failed
-          LOG("Problem with this URI: " + data.uri);
-          do_throw("Error creating database: " + ex + "\n");
-        }
-      }); // End of function and array
-    }
-  }, null);
 }
 
 
@@ -236,17 +226,15 @@ function queryData(obj) {
   this.isTag = obj.isTag ? obj.isTag : false;
   this.tagArray = obj.tagArray ? obj.tagArray : null;
   this.isLivemark = obj.isLivemark ? obj.isLivemark : false;
-  this.parentFolder = obj.parentFolder ? obj.parentFolder
-                                       : PlacesUtils.placesRootId;
+  this.parentGuid = obj.parentGuid || PlacesUtils.bookmarks.rootGuid;
   this.feedURI = obj.feedURI ? obj.feedURI : "";
   this.index = obj.index ? obj.index : PlacesUtils.bookmarks.DEFAULT_INDEX;
   this.isFolder = obj.isFolder ? obj.isFolder : false;
   this.contractId = obj.contractId ? obj.contractId : "";
-  this.lastModified = obj.lastModified ? obj.lastModified : today;
-  this.dateAdded = obj.dateAdded ? obj.dateAdded : today;
+  this.lastModified = obj.lastModified ? obj.lastModified : null;
+  this.dateAdded = obj.dateAdded ? obj.dateAdded : null;
   this.keyword = obj.keyword ? obj.keyword : "";
   this.visitCount = obj.visitCount ? obj.visitCount : 0;
-  this.readOnly = obj.readOnly ? obj.readOnly : false;
   this.isSeparator = obj.hasOwnProperty("isSeparator") && obj.isSeparator;
 
   // And now, the attribute for whether or not this object should appear in the
@@ -265,7 +253,7 @@ queryData.prototype = { }
  * the results, where appropriate.
  */
 function compareArrayToResult(aArray, aRoot) {
-  LOG("Comparing Array to Results");
+  do_print("Comparing Array to Results");
 
   var wasOpen = aRoot.containerOpen;
   if (!wasOpen)
@@ -277,14 +265,14 @@ function compareArrayToResult(aArray, aRoot) {
     // Debugging code for failures.
     dump_table("moz_places");
     dump_table("moz_historyvisits");
-    LOG("Found children:");
+    do_print("Found children:");
     for (let i = 0; i < aRoot.childCount; i++) {
-      LOG(aRoot.getChild(i).uri);
+      do_print(aRoot.getChild(i).uri);
     }
-    LOG("Expected:");
+    do_print("Expected:");
     for (let i = 0; i < aArray.length; i++) {
       if (aArray[i].isInQuery)
-        LOG(aArray[i].uri);
+        do_print(aArray[i].uri);
     }
   }
   do_check_eq(expectedResultCount, aRoot.childCount);
@@ -293,9 +281,9 @@ function compareArrayToResult(aArray, aRoot) {
   for (var i = 0; i < aArray.length; i++) {
     if (aArray[i].isInQuery) {
       var child = aRoot.getChild(inQueryIndex);
-      //LOG("testing testData[" + i + "] vs result[" + inQueryIndex + "]");
+      // do_print("testing testData[" + i + "] vs result[" + inQueryIndex + "]");
       if (!aArray[i].isFolder && !aArray[i].isSeparator) {
-        LOG("testing testData[" + aArray[i].uri + "] vs result[" + child.uri + "]");
+        do_print("testing testData[" + aArray[i].uri + "] vs result[" + child.uri + "]");
         if (aArray[i].uri != child.uri) {
           dump_table("moz_places");
           do_throw("Expected " + aArray[i].uri + " found " + child.uri);
@@ -317,7 +305,7 @@ function compareArrayToResult(aArray, aRoot) {
 
   if (!wasOpen)
     aRoot.containerOpen = false;
-  LOG("Comparing Array to Results passes");
+  do_print("Comparing Array to Results passes");
 }
 
 
@@ -358,7 +346,7 @@ function isInResult(aQueryData, aRoot) {
 
 
 /**
- * A nice helper function for debugging things. It LOGs the contents of a
+ * A nice helper function for debugging things. It prints the contents of a
  * result set.
  */
 function displayResultSet(aRoot) {
@@ -369,12 +357,12 @@ function displayResultSet(aRoot) {
 
   if (!aRoot.hasChildren) {
     // Something wrong? Empty result set?
-    LOG("Result Set Empty");
+    do_print("Result Set Empty");
     return;
   }
 
   for (var i=0; i < aRoot.childCount; ++i) {
-    LOG("Result Set URI: " + aRoot.getChild(i).uri + "   Title: " +
+    do_print("Result Set URI: " + aRoot.getChild(i).uri + "   Title: " +
         aRoot.getChild(i).title + "   Visit Time: " + aRoot.getChild(i).time);
   }
   if (!wasOpen)

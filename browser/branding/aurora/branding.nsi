@@ -8,25 +8,27 @@
 
 # BrandFullNameInternal is used for some registry and file system values
 # instead of BrandFullName and typically should not be modified.
-!define BrandFullNameInternal "Aurora"
+!define BrandFullNameInternal "Firefox Developer Edition"
+!define BrandShortName        "Firefox Developer Edition"
 !define CompanyName           "mozilla.org"
 !define URLInfoAbout          "https://www.mozilla.org"
 !define HelpLink              "https://support.mozilla.org"
 
 !define URLStubDownload "http://download.mozilla.org/?os=win&lang=${AB_CD}&product=firefox-aurora-latest"
 !define URLManualDownload "https://www.mozilla.org/${AB_CD}/firefox/installer-help/?channel=aurora&installer_lang=${AB_CD}"
+!define URLSystemRequirements "https://www.mozilla.org/firefox/system-requirements/"
 !define Channel "aurora"
 
 # The installer's certificate name and issuer expected by the stub installer
 !define CertNameDownload   "Mozilla Corporation"
-!define CertIssuerDownload "DigiCert Assured ID Code Signing CA-1"
+!define CertIssuerDownload "DigiCert SHA2 Assured ID Code Signing CA"
 
 # Dialog units are used so the UI displays correctly with the system's DPI
 # settings.
 # The dialog units for the bitmap's dimensions should match exactly with the
 # bitmap's width and height in pixels.
-!define APPNAME_BMP_WIDTH_DU 158u
-!define APPNAME_BMP_HEIGHT_DU 21u
+!define APPNAME_BMP_WIDTH_DU 108u
+!define APPNAME_BMP_HEIGHT_DU 48u
 !define INTRO_BLURB_WIDTH_DU "232u"
 !define INTRO_BLURB_EDGE_DU "196u"
 !define INTRO_BLURB_LTR_TOP_DU "16u"
@@ -42,3 +44,6 @@
 !define COMMON_TEXT_COLOR_NORMAL 0xFFFFFF
 !define COMMON_TEXT_COLOR_FADED 0xA1AAB3
 !define COMMON_BKGRD_COLOR 0x0F1B26
+
+# Enable DeveloperEdition-specific behavior
+!define DEV_EDITION

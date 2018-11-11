@@ -25,6 +25,8 @@
 #include "nsDisplayList.h"
 #include <algorithm>
 
+using namespace mozilla;
+
 //
 // NS_NewLeafBoxFrame
 //
@@ -33,12 +35,12 @@
 nsIFrame*
 NS_NewLeafBoxFrame (nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
-  return new (aPresShell) nsLeafBoxFrame(aPresShell, aContext);
+  return new (aPresShell) nsLeafBoxFrame(aContext);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsLeafBoxFrame)
 
-nsLeafBoxFrame::nsLeafBoxFrame(nsIPresShell* aShell, nsStyleContext* aContext)
+nsLeafBoxFrame::nsLeafBoxFrame(nsStyleContext* aContext)
     : nsLeafFrame(aContext)
 {
 }
@@ -122,67 +124,76 @@ nsLeafBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 }
 
 /* virtual */ nscoord
-nsLeafBoxFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
+nsLeafBoxFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 {
   nscoord result;
   DISPLAY_MIN_WIDTH(this, result);
   nsBoxLayoutState state(PresContext(), aRenderingContext);
-  nsSize minSize = GetMinSize(state);
 
-  // GetMinSize returns border-box width, and we want to return content
-  // width.  Since Reflow uses the reflow state's border and padding, we
-  // actually just want to subtract what GetMinSize added, which is the
-  // result of GetBorderAndPadding.
+  WritingMode wm = GetWritingMode();
+  LogicalSize minSize(wm, GetXULMinSize(state));
+
+  // GetXULMinSize returns border-box size, and we want to return content
+  // inline-size.  Since Reflow uses the reflow state's border and padding, we
+  // actually just want to subtract what GetXULMinSize added, which is the
+  // result of GetXULBorderAndPadding.
   nsMargin bp;
-  GetBorderAndPadding(bp);
+  GetXULBorderAndPadding(bp);
 
-  result = minSize.width - bp.LeftRight();
+  result = minSize.ISize(wm) - LogicalMargin(wm, bp).IStartEnd(wm);
 
   return result;
 }
 
 /* virtual */ nscoord
-nsLeafBoxFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
+nsLeafBoxFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
 {
   nscoord result;
   DISPLAY_PREF_WIDTH(this, result);
   nsBoxLayoutState state(PresContext(), aRenderingContext);
-  nsSize prefSize = GetPrefSize(state);
 
-  // GetPrefSize returns border-box width, and we want to return content
-  // width.  Since Reflow uses the reflow state's border and padding, we
-  // actually just want to subtract what GetPrefSize added, which is the
-  // result of GetBorderAndPadding.
+  WritingMode wm = GetWritingMode();
+  LogicalSize prefSize(wm, GetXULPrefSize(state));
+
+  // GetXULPrefSize returns border-box size, and we want to return content
+  // inline-size.  Since Reflow uses the reflow state's border and padding, we
+  // actually just want to subtract what GetXULPrefSize added, which is the
+  // result of GetXULBorderAndPadding.
   nsMargin bp;
-  GetBorderAndPadding(bp);
+  GetXULBorderAndPadding(bp);
 
-  result = prefSize.width - bp.LeftRight();
+  result = prefSize.ISize(wm) - LogicalMargin(wm, bp).IStartEnd(wm);
 
   return result;
 }
 
 nscoord
-nsLeafBoxFrame::GetIntrinsicWidth()
+nsLeafBoxFrame::GetIntrinsicISize()
 {
   // No intrinsic width
   return 0;
 }
 
-nsSize
-nsLeafBoxFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
-                                nsSize aCBSize, nscoord aAvailableWidth,
-                                nsSize aMargin, nsSize aBorder,
-                                nsSize aPadding, bool aShrinkWrap)
+LogicalSize
+nsLeafBoxFrame::ComputeAutoSize(nsRenderingContext* aRenderingContext,
+                                WritingMode         aWM,
+                                const LogicalSize&  aCBSize,
+                                nscoord             aAvailableISize,
+                                const LogicalSize&  aMargin,
+                                const LogicalSize&  aBorder,
+                                const LogicalSize&  aPadding,
+                                ComputeSizeFlags    aFlags)
 {
   // Important: NOT calling our direct superclass here!
-  return nsFrame::ComputeAutoSize(aRenderingContext, aCBSize, aAvailableWidth,
-                                  aMargin, aBorder, aPadding, aShrinkWrap);
+  return nsFrame::ComputeAutoSize(aRenderingContext, aWM,
+                                  aCBSize, aAvailableISize,
+                                  aMargin, aBorder, aPadding, aFlags);
 }
 
 void
 nsLeafBoxFrame::Reflow(nsPresContext*   aPresContext,
-                     nsHTMLReflowMetrics&     aDesiredSize,
-                     const nsHTMLReflowState& aReflowState,
+                     ReflowOutput&     aDesiredSize,
+                     const ReflowInput& aReflowInput,
                      nsReflowStatus&          aStatus)
 {
   // This is mostly a copy of nsBoxFrame::Reflow().
@@ -190,16 +201,17 @@ nsLeafBoxFrame::Reflow(nsPresContext*   aPresContext,
   // class hierarchy.  If you make changes here, please keep
   // nsBoxFrame::Reflow in sync.
 
+  MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsLeafBoxFrame");
-  DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
+  DISPLAY_REFLOW(aPresContext, this, aReflowInput, aDesiredSize, aStatus);
 
-  NS_ASSERTION(aReflowState.ComputedWidth() >=0 &&
-               aReflowState.ComputedHeight() >= 0, "Computed Size < 0");
+  NS_ASSERTION(aReflowInput.ComputedWidth() >=0 &&
+               aReflowInput.ComputedHeight() >= 0, "Computed Size < 0");
 
 #ifdef DO_NOISY_REFLOW
   printf("\n-------------Starting LeafBoxFrame Reflow ----------------------------\n");
   printf("%p ** nsLBF::Reflow %d R: ", this, myCounter++);
-  switch (aReflowState.reason) {
+  switch (aReflowInput.reason) {
     case eReflowReason_Initial:
       printf("Ini");break;
     case eReflowReason_Incremental:
@@ -211,13 +223,13 @@ nsLeafBoxFrame::Reflow(nsPresContext*   aPresContext,
     case eReflowReason_Dirty:
       printf("Drt ");
       break;
-    default:printf("<unknown>%d", aReflowState.reason);break;
+    default:printf("<unknown>%d", aReflowInput.reason);break;
   }
   
-  printSize("AW", aReflowState.AvailableWidth());
-  printSize("AH", aReflowState.AvailableHeight());
-  printSize("CW", aReflowState.ComputedWidth());
-  printSize("CH", aReflowState.ComputedHeight());
+  printSize("AW", aReflowInput.AvailableWidth());
+  printSize("AH", aReflowInput.AvailableHeight());
+  printSize("CW", aReflowInput.ComputedWidth());
+  printSize("CH", aReflowInput.ComputedHeight());
 
   printf(" *\n");
 
@@ -226,18 +238,18 @@ nsLeafBoxFrame::Reflow(nsPresContext*   aPresContext,
   aStatus = NS_FRAME_COMPLETE;
 
   // create the layout state
-  nsBoxLayoutState state(aPresContext, aReflowState.rendContext);
+  nsBoxLayoutState state(aPresContext, aReflowInput.mRenderingContext);
 
-  nsSize computedSize(aReflowState.ComputedWidth(),aReflowState.ComputedHeight());
+  nsSize computedSize(aReflowInput.ComputedWidth(),aReflowInput.ComputedHeight());
 
   nsMargin m;
-  m = aReflowState.ComputedPhysicalBorderPadding();
+  m = aReflowInput.ComputedPhysicalBorderPadding();
 
-  //GetBorderAndPadding(m);
+  //GetXULBorderAndPadding(m);
 
   // this happens sometimes. So lets handle it gracefully.
-  if (aReflowState.ComputedHeight() == 0) {
-    nsSize minSize = GetMinSize(state);
+  if (aReflowInput.ComputedHeight() == 0) {
+    nsSize minSize = GetXULMinSize(state);
     computedSize.height = minSize.height - m.top - m.bottom;
   }
 
@@ -245,20 +257,20 @@ nsLeafBoxFrame::Reflow(nsPresContext*   aPresContext,
 
   // if we are told to layout intrinic then get our preferred size.
   if (computedSize.width == NS_INTRINSICSIZE || computedSize.height == NS_INTRINSICSIZE) {
-     prefSize = GetPrefSize(state);
-     nsSize minSize = GetMinSize(state);
-     nsSize maxSize = GetMaxSize(state);
+     prefSize = GetXULPrefSize(state);
+     nsSize minSize = GetXULMinSize(state);
+     nsSize maxSize = GetXULMaxSize(state);
      prefSize = BoundsCheck(minSize, prefSize, maxSize);
   }
 
   // get our desiredSize
-  if (aReflowState.ComputedWidth() == NS_INTRINSICSIZE) {
+  if (aReflowInput.ComputedWidth() == NS_INTRINSICSIZE) {
     computedSize.width = prefSize.width;
   } else {
     computedSize.width += m.left + m.right;
   }
 
-  if (aReflowState.ComputedHeight() == NS_INTRINSICSIZE) {
+  if (aReflowInput.ComputedHeight() == NS_INTRINSICSIZE) {
     computedSize.height = prefSize.height;
   } else {
     computedSize.height += m.top + m.bottom;
@@ -268,11 +280,11 @@ nsLeafBoxFrame::Reflow(nsPresContext*   aPresContext,
   // XXXbz the width handling here seems to be wrong, since
   // mComputedMin/MaxWidth is a content-box size, whole
   // computedSize.width is a border-box size...
-  if (computedSize.width > aReflowState.ComputedMaxWidth())
-    computedSize.width = aReflowState.ComputedMaxWidth();
+  if (computedSize.width > aReflowInput.ComputedMaxWidth())
+    computedSize.width = aReflowInput.ComputedMaxWidth();
 
-  if (computedSize.width < aReflowState.ComputedMinWidth())
-    computedSize.width = aReflowState.ComputedMinWidth();
+  if (computedSize.width < aReflowInput.ComputedMinWidth())
+    computedSize.width = aReflowInput.ComputedMinWidth();
 
   // Now adjust computedSize.height for our min and max computed
   // height.  The only problem is that those are content-box sizes,
@@ -280,23 +292,23 @@ nsLeafBoxFrame::Reflow(nsPresContext*   aPresContext,
   // m.TopBottom() before adjusting, then readd it.
   computedSize.height = std::max(0, computedSize.height - m.TopBottom());
   computedSize.height = NS_CSS_MINMAX(computedSize.height,
-                                      aReflowState.ComputedMinHeight(),
-                                      aReflowState.ComputedMaxHeight());
+                                      aReflowInput.ComputedMinHeight(),
+                                      aReflowInput.ComputedMaxHeight());
   computedSize.height += m.TopBottom();
 
   nsRect r(mRect.x, mRect.y, computedSize.width, computedSize.height);
 
-  SetBounds(state, r);
+  SetXULBounds(state, r);
  
   // layout our children
-  Layout(state);
+  XULLayout(state);
   
   // ok our child could have gotten bigger. So lets get its bounds
   aDesiredSize.Width() = mRect.width;
   aDesiredSize.Height() = mRect.height;
-  aDesiredSize.SetBlockStartAscent(GetBoxAscent(state));
+  aDesiredSize.SetBlockStartAscent(GetXULBoxAscent(state));
 
-  // the overflow rect is set in SetBounds() above
+  // the overflow rect is set in SetXULBounds() above
   aDesiredSize.mOverflowAreas = GetOverflowAreas();
 
 #ifdef DO_NOISY_REFLOW
@@ -330,49 +342,49 @@ nsLeafBoxFrame::GetType() const
 nsresult
 nsLeafBoxFrame::CharacterDataChanged(CharacterDataChangeInfo* aInfo)
 {
-  MarkIntrinsicWidthsDirty();
+  MarkIntrinsicISizesDirty();
   return nsLeafFrame::CharacterDataChanged(aInfo);
 }
 
 /* virtual */ nsSize
-nsLeafBoxFrame::GetPrefSize(nsBoxLayoutState& aState)
+nsLeafBoxFrame::GetXULPrefSize(nsBoxLayoutState& aState)
 {
-    return nsBox::GetPrefSize(aState);
+    return nsBox::GetXULPrefSize(aState);
 }
 
 /* virtual */ nsSize
-nsLeafBoxFrame::GetMinSize(nsBoxLayoutState& aState)
+nsLeafBoxFrame::GetXULMinSize(nsBoxLayoutState& aState)
 {
-    return nsBox::GetMinSize(aState);
+    return nsBox::GetXULMinSize(aState);
 }
 
 /* virtual */ nsSize
-nsLeafBoxFrame::GetMaxSize(nsBoxLayoutState& aState)
+nsLeafBoxFrame::GetXULMaxSize(nsBoxLayoutState& aState)
 {
-    return nsBox::GetMaxSize(aState);
+    return nsBox::GetXULMaxSize(aState);
 }
 
 /* virtual */ nscoord
-nsLeafBoxFrame::GetFlex(nsBoxLayoutState& aState)
+nsLeafBoxFrame::GetXULFlex()
 {
-    return nsBox::GetFlex(aState);
+    return nsBox::GetXULFlex();
 }
 
 /* virtual */ nscoord
-nsLeafBoxFrame::GetBoxAscent(nsBoxLayoutState& aState)
+nsLeafBoxFrame::GetXULBoxAscent(nsBoxLayoutState& aState)
 {
-    return nsBox::GetBoxAscent(aState);
+    return nsBox::GetXULBoxAscent(aState);
 }
 
 /* virtual */ void
-nsLeafBoxFrame::MarkIntrinsicWidthsDirty()
+nsLeafBoxFrame::MarkIntrinsicISizesDirty()
 {
   // Don't call base class method, since everything it does is within an
-  // IsBoxWrapped check.
+  // IsXULBoxWrapped check.
 }
 
 NS_IMETHODIMP
-nsLeafBoxFrame::DoLayout(nsBoxLayoutState& aState)
+nsLeafBoxFrame::DoXULLayout(nsBoxLayoutState& aState)
 {
-    return nsBox::DoLayout(aState);
+    return nsBox::DoXULLayout(aState);
 }

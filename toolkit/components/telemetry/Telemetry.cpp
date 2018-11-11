@@ -10,12 +10,14 @@
 
 #include <prio.h>
 
+#include "mozilla/dom/ToJSValue.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Likely.h"
 #include "mozilla/MathAlgorithms.h"
+#include "mozilla/Unused.h"
 
-#include "base/histogram.h"
 #include "base/pickle.h"
 #include "nsIComponentManager.h"
 #include "nsIServiceManager.h"
@@ -39,9 +41,15 @@
 #include "nsIMemoryReporter.h"
 #include "nsISeekableStream.h"
 #include "Telemetry.h"
+#include "TelemetryCommon.h"
+#include "TelemetryHistogram.h"
+#include "TelemetryScalar.h"
+#include "TelemetryEvent.h"
+#include "WebrtcTelemetry.h"
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
 #include "nsBaseHashtable.h"
+#include "nsClassHashtable.h"
 #include "nsXULAppAPI.h"
 #include "nsReadableUtils.h"
 #include "nsThreadUtils.h"
@@ -50,6 +58,8 @@
 #endif
 #include "nsNetCID.h"
 #include "nsNetUtil.h"
+#include "nsJSUtils.h"
+#include "nsReadableUtils.h"
 #include "plstr.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "mozilla/BackgroundHangMonitor.h"
@@ -62,78 +72,40 @@
 #include "mozilla/IOInterposer.h"
 #include "mozilla/PoisonIOInterposer.h"
 #include "mozilla/StartupTimeline.h"
+#include "mozilla/HangMonitor.h"
 #if defined(MOZ_ENABLE_PROFILER_SPS)
 #include "shared-libraries.h"
 #endif
 
-#define EXPIRED_ID "__expired__"
-
 namespace {
 
-using namespace base;
 using namespace mozilla;
+using namespace mozilla::HangMonitor;
+using Telemetry::Common::AutoHashtable;
 
-template<class EntryType>
-class AutoHashtable : public nsTHashtable<EntryType>
-{
-public:
-  AutoHashtable(uint32_t initSize = PL_DHASH_MIN_SIZE);
-  typedef bool (*ReflectEntryFunc)(EntryType *entry, JSContext *cx, JS::Handle<JSObject*> obj);
-  bool ReflectIntoJS(ReflectEntryFunc entryFunc, JSContext *cx, JS::Handle<JSObject*> obj);
-private:
-  struct EnumeratorArgs {
-    JSContext *cx;
-    JS::Handle<JSObject*> obj;
-    ReflectEntryFunc entryFunc;
-  };
-  static PLDHashOperator ReflectEntryStub(EntryType *entry, void *arg);
-};
-
-template<class EntryType>
-AutoHashtable<EntryType>::AutoHashtable(uint32_t initSize)
-  : nsTHashtable<EntryType>(initSize)
-{
-}
-
-template<typename EntryType>
-PLDHashOperator
-AutoHashtable<EntryType>::ReflectEntryStub(EntryType *entry, void *arg)
-{
-  EnumeratorArgs *args = static_cast<EnumeratorArgs *>(arg);
-  if (!args->entryFunc(entry, args->cx, args->obj)) {
-    return PL_DHASH_STOP;
-  }
-  return PL_DHASH_NEXT;
-}
-
-/**
- * Reflect the individual entries of table into JS, usually by defining
- * some property and value of obj.  entryFunc is called for each entry.
- */
-template<typename EntryType>
-bool
-AutoHashtable<EntryType>::ReflectIntoJS(ReflectEntryFunc entryFunc,
-                                        JSContext *cx, JS::Handle<JSObject*> obj)
-{
-  EnumeratorArgs args = { cx, obj, entryFunc };
-  uint32_t num = this->EnumerateEntries(ReflectEntryStub, static_cast<void*>(&args));
-  return num == this->Count();
-}
+// The maximum number of chrome hangs stacks that we're keeping.
+const size_t kMaxChromeStacksKept = 50;
+// The maximum depth of a single chrome hang stack.
+const size_t kMaxChromeStackDepth = 50;
 
 // This class is conceptually a list of ProcessedStack objects, but it represents them
 // more efficiently by keeping a single global list of modules.
 class CombinedStacks {
 public:
+  CombinedStacks() : mNextIndex(0) {}
   typedef std::vector<Telemetry::ProcessedStack::Frame> Stack;
   const Telemetry::ProcessedStack::Module& GetModule(unsigned aIndex) const;
   size_t GetModuleCount() const;
   const Stack& GetStack(unsigned aIndex) const;
-  void AddStack(const Telemetry::ProcessedStack& aStack);
+  size_t AddStack(const Telemetry::ProcessedStack& aStack);
   size_t GetStackCount() const;
   size_t SizeOfExcludingThis() const;
 private:
   std::vector<Telemetry::ProcessedStack::Module> mModules;
+  // A circular buffer to hold the stacks.
   std::vector<Stack> mStacks;
+  // The index of the next buffer element to write to in mStacks.
+  size_t mNextIndex;
 };
 
 static JSObject *
@@ -149,10 +121,18 @@ CombinedStacks::GetModule(unsigned aIndex) const {
   return mModules[aIndex];
 }
 
-void
+size_t
 CombinedStacks::AddStack(const Telemetry::ProcessedStack& aStack) {
-  mStacks.resize(mStacks.size() + 1);
-  CombinedStacks::Stack& adjustedStack = mStacks.back();
+  // Advance the indices of the circular queue holding the stacks.
+  size_t index = mNextIndex++ % kMaxChromeStacksKept;
+  // Grow the vector up to the maximum size, if needed.
+  if (mStacks.size() < kMaxChromeStacksKept) {
+    mStacks.resize(mStacks.size() + 1);
+  }
+  // Get a reference to the location holding the new stack.
+  CombinedStacks::Stack& adjustedStack = mStacks[index];
+  // If we're using an old stack to hold aStack, clear it.
+  adjustedStack.clear();
 
   size_t stackSize = aStack.GetStackSize();
   for (size_t i = 0; i < stackSize; ++i) {
@@ -175,6 +155,7 @@ CombinedStacks::AddStack(const Telemetry::ProcessedStack& aStack) {
     Telemetry::ProcessedStack::Frame adjustedFrame = { frame.mOffset, modIndex };
     adjustedStack.push_back(adjustedFrame);
   }
+  return index;
 }
 
 const CombinedStacks::Stack&
@@ -206,16 +187,76 @@ CombinedStacks::SizeOfExcludingThis() const {
   return n;
 }
 
+// This utility function generates a string key that is used to index the annotations
+// in a hash map from |HangReports::AddHang|.
+nsresult
+ComputeAnnotationsKey(const HangAnnotationsPtr& aAnnotations, nsAString& aKeyOut)
+{
+  UniquePtr<HangAnnotations::Enumerator> annotationsEnum = aAnnotations->GetEnumerator();
+  if (!annotationsEnum) {
+    return NS_ERROR_FAILURE;
+  }
+
+  // Append all the attributes to the key, to uniquely identify this annotation.
+  nsAutoString  key;
+  nsAutoString  value;
+  while (annotationsEnum->Next(key, value)) {
+    aKeyOut.Append(key);
+    aKeyOut.Append(value);
+  }
+
+  return NS_OK;
+}
+
 class HangReports {
 public:
-  size_t SizeOfExcludingThis() const;
+  /**
+   * This struct encapsulates information for an individual ChromeHang annotation.
+   * mHangIndex is the index of the corresponding ChromeHang.
+   */
+  struct AnnotationInfo {
+    AnnotationInfo(uint32_t aHangIndex,
+                   HangAnnotationsPtr aAnnotations)
+      : mAnnotations(Move(aAnnotations))
+    {
+      mHangIndices.AppendElement(aHangIndex);
+    }
+    AnnotationInfo(AnnotationInfo&& aOther)
+      : mHangIndices(aOther.mHangIndices)
+      , mAnnotations(Move(aOther.mAnnotations))
+    {}
+    ~AnnotationInfo() {}
+    AnnotationInfo& operator=(AnnotationInfo&& aOther)
+    {
+      mHangIndices = aOther.mHangIndices;
+      mAnnotations = Move(aOther.mAnnotations);
+      return *this;
+    }
+    // To save memory, a single AnnotationInfo can be associated to multiple chrome
+    // hangs. The following array holds the index of each related chrome hang.
+    nsTArray<uint32_t> mHangIndices;
+    HangAnnotationsPtr mAnnotations;
+
+  private:
+    // Force move constructor
+    AnnotationInfo(const AnnotationInfo& aOther) = delete;
+    void operator=(const AnnotationInfo& aOther) = delete;
+  };
+  size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
   void AddHang(const Telemetry::ProcessedStack& aStack, uint32_t aDuration,
-               int32_t aSystemUptime, int32_t aFirefoxUptime);
+               int32_t aSystemUptime, int32_t aFirefoxUptime,
+               HangAnnotationsPtr aAnnotations);
+  void PruneStackReferences(const size_t aRemovedStackIndex);
   uint32_t GetDuration(unsigned aIndex) const;
   int32_t GetSystemUptime(unsigned aIndex) const;
   int32_t GetFirefoxUptime(unsigned aIndex) const;
+  const nsClassHashtable<nsStringHashKey, AnnotationInfo>& GetAnnotationInfo() const;
   const CombinedStacks& GetStacks() const;
 private:
+  /**
+   * This struct encapsulates the data for an individual ChromeHang, excluding
+   * annotations.
+   */
   struct HangInfo {
     // Hang duration (in seconds)
     uint32_t mDuration;
@@ -225,6 +266,7 @@ private:
     int32_t mFirefoxUptime;
   };
   std::vector<HangInfo> mHangInfo;
+  nsClassHashtable<nsStringHashKey, AnnotationInfo> mAnnotationInfo;
   CombinedStacks mStacks;
 };
 
@@ -232,19 +274,89 @@ void
 HangReports::AddHang(const Telemetry::ProcessedStack& aStack,
                      uint32_t aDuration,
                      int32_t aSystemUptime,
-                     int32_t aFirefoxUptime) {
+                     int32_t aFirefoxUptime,
+                     HangAnnotationsPtr aAnnotations) {
+  // Append the new stack to the stack's circular queue.
+  size_t hangIndex = mStacks.AddStack(aStack);
+  // Append the hang info at the same index, in mHangInfo.
   HangInfo info = { aDuration, aSystemUptime, aFirefoxUptime };
-  mHangInfo.push_back(info);
-  mStacks.AddStack(aStack);
+  if (mHangInfo.size() < kMaxChromeStacksKept) {
+    mHangInfo.push_back(info);
+  } else {
+    mHangInfo[hangIndex] = info;
+    // Remove any reference to the stack overwritten in the circular queue
+    // from the annotations.
+    PruneStackReferences(hangIndex);
+  }
+
+  if (!aAnnotations) {
+    return;
+  }
+
+  nsAutoString annotationsKey;
+  // Generate a key to index aAnnotations in the hash map.
+  nsresult rv = ComputeAnnotationsKey(aAnnotations, annotationsKey);
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  AnnotationInfo* annotationsEntry = mAnnotationInfo.Get(annotationsKey);
+  if (annotationsEntry) {
+    // If the key is already in the hash map, append the index of the chrome hang
+    // to its indices.
+    annotationsEntry->mHangIndices.AppendElement(hangIndex);
+    return;
+  }
+
+  // If the key was not found, add the annotations to the hash map.
+  mAnnotationInfo.Put(annotationsKey, new AnnotationInfo(hangIndex, Move(aAnnotations)));
+}
+
+/**
+ * This function removes links to discarded chrome hangs stacks and prunes unused
+ * annotations.
+ */
+void
+HangReports::PruneStackReferences(const size_t aRemovedStackIndex) {
+  // We need to adjust the indices that link annotations to chrome hangs. Since we
+  // removed a stack, we must remove all references to it and prune annotations
+  // linked to no stacks.
+  for (auto iter = mAnnotationInfo.Iter(); !iter.Done(); iter.Next()) {
+    nsTArray<uint32_t>& stackIndices = iter.Data()->mHangIndices;
+    size_t toRemove = stackIndices.NoIndex;
+    for (size_t k = 0; k < stackIndices.Length(); k++) {
+      // Is this index referencing the removed stack?
+      if (stackIndices[k] == aRemovedStackIndex) {
+        toRemove = k;
+        break;
+      }
+    }
+
+    // Remove the index referencing the old stack from the annotation.
+    if (toRemove != stackIndices.NoIndex) {
+      stackIndices.RemoveElementAt(toRemove);
+    }
+
+    // If this annotation no longer references any stack, drop it.
+    if (!stackIndices.Length()) {
+      iter.Remove();
+    }
+  }
 }
 
 size_t
-HangReports::SizeOfExcludingThis() const {
+HangReports::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
   size_t n = 0;
   n += mStacks.SizeOfExcludingThis();
   // This is a crude approximation. See comment on
   // CombinedStacks::SizeOfExcludingThis.
   n += mHangInfo.capacity() * sizeof(HangInfo);
+  n += mAnnotationInfo.ShallowSizeOfExcludingThis(aMallocSizeOf);
+  n += mAnnotationInfo.Count() * sizeof(AnnotationInfo);
+  for (auto iter = mAnnotationInfo.ConstIter(); !iter.Done(); iter.Next()) {
+    n += iter.Key().SizeOfExcludingThisIfUnshared(aMallocSizeOf);
+    n += iter.Data()->mAnnotations->SizeOfIncludingThis(aMallocSizeOf);
+  }
   return n;
 }
 
@@ -266,6 +378,11 @@ HangReports::GetSystemUptime(unsigned aIndex) const {
 int32_t
 HangReports::GetFirefoxUptime(unsigned aIndex) const {
   return mHangInfo[aIndex].mFirefoxUptime;
+}
+
+const nsClassHashtable<nsStringHashKey, HangReports::AnnotationInfo>&
+HangReports::GetAnnotationInfo() const {
+  return mAnnotationInfo;
 }
 
 /**
@@ -306,7 +423,7 @@ class TelemetryIOInterposeObserver : public IOInterposeObserver
   };
 
 public:
-  TelemetryIOInterposeObserver(nsIFile* aXreDir);
+  explicit TelemetryIOInterposeObserver(nsIFile* aXreDir);
 
   /**
    * An implementation of Observe that records statistics of all
@@ -334,10 +451,12 @@ public:
   }
 
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
-    size_t size;
-    size = mFileStats.SizeOfExcludingThis(SizeOfFileIOEntryTypeExcludingThis,
-                                          aMallocSizeOf) +
-           mSafeDirs.SizeOfExcludingThis(aMallocSizeOf);
+    size_t size = 0;
+    size += mFileStats.ShallowSizeOfExcludingThis(aMallocSizeOf);
+    for (auto iter = mFileStats.ConstIter(); !iter.Done(); iter.Next()) {
+      size += iter.Get()->GetKey().SizeOfExcludingThisIfUnshared(aMallocSizeOf);
+    }
+    size += mSafeDirs.ShallowSizeOfExcludingThis(aMallocSizeOf);
     uint32_t safeDirsLen = mSafeDirs.Length();
     for (uint32_t i = 0; i < safeDirsLen; ++i) {
       size += mSafeDirs[i].SizeOfExcludingThis(aMallocSizeOf);
@@ -386,13 +505,6 @@ private:
    */
   static bool ReflectFileStats(FileIOEntryType* entry, JSContext *cx,
                                JS::Handle<JSObject*> obj);
-
-  static size_t SizeOfFileIOEntryTypeExcludingThis(FileIOEntryType* aEntry,
-                                                   mozilla::MallocSizeOf mallocSizeOf,
-                                                   void*)
-  {
-    return aEntry->GetKey().SizeOfExcludingThisIfUnshared(mallocSizeOf);
-  }
 };
 
 TelemetryIOInterposeObserver::TelemetryIOInterposeObserver(nsIFile* aXreDir)
@@ -410,7 +522,10 @@ void TelemetryIOInterposeObserver::AddPath(const nsAString& aPath,
 {
   mSafeDirs.AppendElement(SafeDir(aPath, aSubstName));
 }
- 
+
+// Threshold for reporting slow main-thread I/O (50 milliseconds).
+const TimeDuration kTelemetryReportThreshold = TimeDuration::FromMilliseconds(50);
+
 void TelemetryIOInterposeObserver::Observe(Observation& aOb)
 {
   // We only report main-thread I/O
@@ -421,6 +536,10 @@ void TelemetryIOInterposeObserver::Observe(Observation& aOb)
   if (aOb.ObservedOperation() == OpNextStage) {
     mCurStage = NextStage(mCurStage);
     MOZ_ASSERT(mCurStage < NUM_STAGES);
+    return;
+  }
+
+  if (aOb.Duration() < kTelemetryReportThreshold) {
     return;
   }
 
@@ -548,7 +667,7 @@ ClearIOReporting()
   sTelemetryIOObserver = nullptr;
 }
 
-class TelemetryImpl MOZ_FINAL
+class TelemetryImpl final
   : public nsITelemetry
   , public nsIMemoryReporter
 {
@@ -557,11 +676,8 @@ class TelemetryImpl MOZ_FINAL
   NS_DECL_NSIMEMORYREPORTER
 
 public:
-  ~TelemetryImpl();
-
   void InitMemoryReporter();
 
-  static bool CanRecord();
   static already_AddRefed<nsITelemetry> CreateTelemetryInstance();
   static void ShutdownTelemetry();
   static void RecordSlowStatement(const nsACString &sql, const nsACString &dbName,
@@ -570,10 +686,10 @@ public:
   static void RecordChromeHang(uint32_t aDuration,
                                Telemetry::ProcessedStack &aStack,
                                int32_t aSystemUptime,
-                               int32_t aFirefoxUptime);
+                               int32_t aFirefoxUptime,
+                               HangAnnotationsPtr aAnnotations);
 #endif
   static void RecordThreadHangStats(Telemetry::ThreadHangStats& aStats);
-  static nsresult GetHistogramEnumId(const char *name, Telemetry::ID *id);
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
   struct Stat {
     uint32_t hitCount;
@@ -585,8 +701,11 @@ public:
   };
   typedef nsBaseHashtableET<nsCStringHashKey, StmtStats> SlowSQLEntryType;
 
+  static void RecordIceCandidates(const uint32_t iceCandidateBitmask,
+                                  const bool success);
 private:
   TelemetryImpl();
+  ~TelemetryImpl();
 
   static nsCString SanitizeSQL(const nsACString& sql);
 
@@ -607,42 +726,11 @@ private:
   bool GetSQLStats(JSContext *cx, JS::MutableHandle<JS::Value> ret,
                    bool includePrivateSql);
 
-  // Like GetHistogramById, but returns the underlying C++ object, not the JS one.
-  nsresult GetHistogramByName(const nsACString &name, Histogram **ret);
-  bool ShouldReflectHistogram(Histogram *h);
-  void IdentifyCorruptHistograms(StatisticsRecorder::Histograms &hs);
-  typedef StatisticsRecorder::Histograms::iterator HistogramIterator;
-
-  struct AddonHistogramInfo {
-    uint32_t min;
-    uint32_t max;
-    uint32_t bucketCount;
-    uint32_t histogramType;
-    Histogram *h;
-  };
-  typedef nsBaseHashtableET<nsCStringHashKey, AddonHistogramInfo> AddonHistogramEntryType;
-  typedef AutoHashtable<AddonHistogramEntryType> AddonHistogramMapType;
-  typedef nsBaseHashtableET<nsCStringHashKey, AddonHistogramMapType *> AddonEntryType;
-  typedef AutoHashtable<AddonEntryType> AddonMapType;
-  static bool AddonHistogramReflector(AddonHistogramEntryType *entry,
-                                      JSContext *cx, JS::Handle<JSObject*> obj);
-  static bool AddonReflector(AddonEntryType *entry, JSContext *cx, JS::Handle<JSObject*> obj);
-  static bool CreateHistogramForAddon(const nsACString &name,
-                                      AddonHistogramInfo &info);
   void ReadLateWritesStacks(nsIFile* aProfileDir);
-  AddonMapType mAddonMap;
 
-  // This is used for speedy string->Telemetry::ID conversions
-  typedef nsBaseHashtableET<nsCharPtrHashKey, Telemetry::ID> CharPtrEntryType;
-  typedef AutoHashtable<CharPtrEntryType> HistogramMapType;
-  HistogramMapType mHistogramMap;
-  bool mCanRecord;
   static TelemetryImpl *sTelemetry;
   AutoHashtable<SlowSQLEntryType> mPrivateSQL;
   AutoHashtable<SlowSQLEntryType> mSanitizedSQL;
-  // This gets marked immutable in debug builds, so we can't use
-  // AutoHashtable here.
-  nsTHashtable<nsCStringHashKey> mTrackedDBs;
   Mutex mHashMutex;
   HangReports mHangReports;
   Mutex mHangReportsMutex;
@@ -656,6 +744,8 @@ private:
   uint32_t mFailedLockCount;
   nsCOMArray<nsIFetchTelemetryDataCallback> mCallbacks;
   friend class nsFetchTelemetryData;
+
+  WebrtcTelemetry mWebrtcTelemetry;
 };
 
 TelemetryImpl*  TelemetryImpl::sTelemetry = nullptr;
@@ -664,330 +754,20 @@ MOZ_DEFINE_MALLOC_SIZE_OF(TelemetryMallocSizeOf)
 
 NS_IMETHODIMP
 TelemetryImpl::CollectReports(nsIHandleReportCallback* aHandleReport,
-                              nsISupports* aData)
+                              nsISupports* aData, bool aAnonymize)
 {
-  return MOZ_COLLECT_REPORT(
+  MOZ_COLLECT_REPORT(
     "explicit/telemetry", KIND_HEAP, UNITS_BYTES,
     SizeOfIncludingThis(TelemetryMallocSizeOf),
     "Memory used by the telemetry system.");
-}
 
-// A initializer to initialize histogram collection
-StatisticsRecorder gStatisticsRecorder;
-
-// Hardcoded probes
-struct TelemetryHistogram {
-  uint32_t min;
-  uint32_t max;
-  uint32_t bucketCount;
-  uint32_t histogramType;
-  uint32_t id_offset;
-  uint32_t expiration_offset;
-  bool extendedStatisticsOK;
-
-  const char *id() const;
-  const char *expiration() const;
-};
-
-#include "TelemetryHistogramData.inc"
-bool gCorruptHistograms[Telemetry::HistogramCount];
-
-const char *
-TelemetryHistogram::id() const
-{
-  return &gHistogramStringTable[this->id_offset];
-}
-
-const char *
-TelemetryHistogram::expiration() const
-{
-  return &gHistogramStringTable[this->expiration_offset];
-}
-
-bool
-IsExpired(const char *expiration){
-  static Version current_version = Version(MOZ_APP_VERSION);
-  MOZ_ASSERT(expiration);
-  return strcmp(expiration, "never") && (mozilla::Version(expiration) <= current_version);
-}
-
-bool
-IsExpired(const Histogram *histogram){
-  return histogram->histogram_name() == EXPIRED_ID;
-}
-
-nsresult
-HistogramGet(const char *name, const char *expiration, uint32_t min, uint32_t max,
-             uint32_t bucketCount, uint32_t histogramType, Histogram **result)
-{
-  if (histogramType != nsITelemetry::HISTOGRAM_BOOLEAN
-      && histogramType != nsITelemetry::HISTOGRAM_FLAG) {
-    // Sanity checks for histogram parameters.
-    if (min >= max)
-      return NS_ERROR_ILLEGAL_VALUE;
-
-    if (bucketCount <= 2)
-      return NS_ERROR_ILLEGAL_VALUE;
-
-    if (min < 1)
-      return NS_ERROR_ILLEGAL_VALUE;
-  }
-
-  if (IsExpired(expiration)) {
-    name = EXPIRED_ID;
-    min = 1;
-    max = 2;
-    bucketCount = 3;
-    histogramType = nsITelemetry::HISTOGRAM_LINEAR;
-  }
-
-  switch (histogramType) {
-  case nsITelemetry::HISTOGRAM_EXPONENTIAL:
-    *result = Histogram::FactoryGet(name, min, max, bucketCount, Histogram::kUmaTargetedHistogramFlag);
-    break;
-  case nsITelemetry::HISTOGRAM_LINEAR:
-    *result = LinearHistogram::FactoryGet(name, min, max, bucketCount, Histogram::kUmaTargetedHistogramFlag);
-    break;
-  case nsITelemetry::HISTOGRAM_BOOLEAN:
-    *result = BooleanHistogram::FactoryGet(name, Histogram::kUmaTargetedHistogramFlag);
-    break;
-  case nsITelemetry::HISTOGRAM_FLAG:
-    *result = FlagHistogram::FactoryGet(name, Histogram::kUmaTargetedHistogramFlag);
-    break;
-  default:
-    return NS_ERROR_INVALID_ARG;
-  }
   return NS_OK;
 }
 
-// O(1) histogram lookup by numeric id
-nsresult
-GetHistogramByEnumId(Telemetry::ID id, Histogram **ret)
+void
+InitHistogramRecordingEnabled()
 {
-  static Histogram* knownHistograms[Telemetry::HistogramCount] = {0};
-  Histogram *h = knownHistograms[id];
-  if (h) {
-    *ret = h;
-    return NS_OK;
-  }
-
-  const TelemetryHistogram &p = gHistograms[id];
-  nsresult rv = HistogramGet(p.id(), p.expiration(), p.min, p.max, p.bucketCount, p.histogramType, &h);
-  if (NS_FAILED(rv))
-    return rv;
-
-#ifdef DEBUG
-  // Check that the C++ Histogram code computes the same ranges as the
-  // Python histogram code.
-  if (!IsExpired(p.expiration())) {
-    const struct bounds &b = gBucketLowerBoundIndex[id];
-    if (b.length != 0) {
-      MOZ_ASSERT(size_t(b.length) == h->bucket_count(),
-                 "C++/Python bucket # mismatch");
-      for (int i = 0; i < b.length; ++i) {
-        MOZ_ASSERT(gBucketLowerBounds[b.offset + i] == h->ranges(i),
-                   "C++/Python bucket mismatch");
-      }
-    }
-  }
-#endif
-
-  if (p.extendedStatisticsOK) {
-    h->SetFlags(Histogram::kExtendedStatisticsFlag);
-  }
-  *ret = knownHistograms[id] = h;
-  return NS_OK;
-}
-
-bool
-FillRanges(JSContext *cx, JS::Handle<JSObject*> array, Histogram *h)
-{
-  JS::Rooted<JS::Value> range(cx);
-  for (size_t i = 0; i < h->bucket_count(); i++) {
-    range = INT_TO_JSVAL(h->ranges(i));
-    if (!JS_DefineElement(cx, array, i, range, JSPROP_ENUMERATE))
-      return false;
-  }
-  return true;
-}
-
-enum reflectStatus {
-  REFLECT_OK,
-  REFLECT_CORRUPT,
-  REFLECT_FAILURE
-};
-
-enum reflectStatus
-ReflectHistogramAndSamples(JSContext *cx, JS::Handle<JSObject*> obj, Histogram *h,
-                           const Histogram::SampleSet &ss)
-{
-  // We don't want to reflect corrupt histograms.
-  if (h->FindCorruption(ss) != Histogram::NO_INCONSISTENCIES) {
-    return REFLECT_CORRUPT;
-  }
-
-  if (!(JS_DefineProperty(cx, obj, "min", h->declared_min(), JSPROP_ENUMERATE)
-        && JS_DefineProperty(cx, obj, "max", h->declared_max(), JSPROP_ENUMERATE)
-        && JS_DefineProperty(cx, obj, "histogram_type", h->histogram_type(), JSPROP_ENUMERATE)
-        && JS_DefineProperty(cx, obj, "sum", double(ss.sum()), JSPROP_ENUMERATE))) {
-    return REFLECT_FAILURE;
-  }
-
-  if (h->histogram_type() == Histogram::HISTOGRAM) {
-    if (!(JS_DefineProperty(cx, obj, "log_sum", ss.log_sum(), JSPROP_ENUMERATE)
-          && JS_DefineProperty(cx, obj, "log_sum_squares", ss.log_sum_squares(), JSPROP_ENUMERATE))) {
-      return REFLECT_FAILURE;
-    }
-  } else {
-    // Export |sum_squares| as two separate 32-bit properties so that we
-    // can accurately reconstruct it on the analysis side.
-    uint64_t sum_squares = ss.sum_squares();
-    // Cast to avoid implicit truncation warnings.
-    uint32_t lo = static_cast<uint32_t>(sum_squares);
-    uint32_t hi = static_cast<uint32_t>(sum_squares >> 32);
-    if (!(JS_DefineProperty(cx, obj, "sum_squares_lo", lo, JSPROP_ENUMERATE)
-          && JS_DefineProperty(cx, obj, "sum_squares_hi", hi, JSPROP_ENUMERATE))) {
-      return REFLECT_FAILURE;
-    }
-  }
-
-  const size_t count = h->bucket_count();
-  JS::Rooted<JSObject*> rarray(cx, JS_NewArrayObject(cx, count));
-  if (!rarray) {
-    return REFLECT_FAILURE;
-  }
-  if (!(FillRanges(cx, rarray, h)
-        && JS_DefineProperty(cx, obj, "ranges", rarray, JSPROP_ENUMERATE))) {
-    return REFLECT_FAILURE;
-  }
-
-  JS::Rooted<JSObject*> counts_array(cx, JS_NewArrayObject(cx, count));
-  if (!counts_array) {
-    return REFLECT_FAILURE;
-  }
-  if (!JS_DefineProperty(cx, obj, "counts", counts_array, JSPROP_ENUMERATE)) {
-    return REFLECT_FAILURE;
-  }
-  for (size_t i = 0; i < count; i++) {
-    if (!JS_DefineElement(cx, counts_array, i, ss.counts(i), JSPROP_ENUMERATE)) {
-      return REFLECT_FAILURE;
-    }
-  }
-
-  return REFLECT_OK;
-}
-
-enum reflectStatus
-ReflectHistogramSnapshot(JSContext *cx, JS::Handle<JSObject*> obj, Histogram *h)
-{
-  Histogram::SampleSet ss;
-  h->SnapshotSample(&ss);
-  return ReflectHistogramAndSamples(cx, obj, h, ss);
-}
-
-bool
-IsEmpty(const Histogram *h)
-{
-  Histogram::SampleSet ss;
-  h->SnapshotSample(&ss);
-
-  return ss.counts(0) == 0 && ss.sum() == 0;
-}
-
-bool
-JSHistogram_Add(JSContext *cx, unsigned argc, JS::Value *vp)
-{
-  JS::CallArgs args = CallArgsFromVp(argc, vp);
-  if (!args.length()) {
-    JS_ReportError(cx, "Expected one argument");
-    return false;
-  }
-
-  if (!(args[0].isNumber() || args[0].isBoolean())) {
-    JS_ReportError(cx, "Not a number");
-    return false;
-  }
-
-  int32_t value;
-  if (!JS::ToInt32(cx, args[0], &value)) {
-    return false;
-  }
-
-  if (TelemetryImpl::CanRecord()) {
-    JSObject *obj = JS_THIS_OBJECT(cx, vp);
-    if (!obj) {
-      return false;
-    }
-
-    Histogram *h = static_cast<Histogram*>(JS_GetPrivate(obj));
-    h->Add(value);
-  }
-  return true;
-
-}
-
-bool
-JSHistogram_Snapshot(JSContext *cx, unsigned argc, JS::Value *vp)
-{
-  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-  JSObject *obj = JS_THIS_OBJECT(cx, vp);
-  if (!obj) {
-    return false;
-  }
-
-  Histogram *h = static_cast<Histogram*>(JS_GetPrivate(obj));
-  JS::Rooted<JSObject*> snapshot(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
-  if (!snapshot)
-    return false;
-
-  switch (ReflectHistogramSnapshot(cx, snapshot, h)) {
-  case REFLECT_FAILURE:
-    return false;
-  case REFLECT_CORRUPT:
-    JS_ReportError(cx, "Histogram is corrupt");
-    return false;
-  case REFLECT_OK:
-    args.rval().setObject(*snapshot);
-    return true;
-  default:
-    MOZ_CRASH("unhandled reflection status");
-  }
-}
-
-bool
-JSHistogram_Clear(JSContext *cx, unsigned argc, JS::Value *vp)
-{
-  JSObject *obj = JS_THIS_OBJECT(cx, vp);
-  if (!obj) {
-    return false;
-  }
-
-  Histogram *h = static_cast<Histogram*>(JS_GetPrivate(obj));
-  h->Clear();
-  return true;
-}
-
-nsresult
-WrapAndReturnHistogram(Histogram *h, JSContext *cx, JS::MutableHandle<JS::Value> ret)
-{
-  static const JSClass JSHistogram_class = {
-    "JSHistogram",  /* name */
-    JSCLASS_HAS_PRIVATE, /* flags */
-    JS_PropertyStub, JS_DeletePropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
-    JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub
-  };
-
-  JS::Rooted<JSObject*> obj(cx, JS_NewObject(cx, &JSHistogram_class, JS::NullPtr(), JS::NullPtr()));
-  if (!obj)
-    return NS_ERROR_FAILURE;
-  if (!(JS_DefineFunction(cx, obj, "add", JSHistogram_Add, 1, 0)
-        && JS_DefineFunction(cx, obj, "snapshot", JSHistogram_Snapshot, 0, 0)
-        && JS_DefineFunction(cx, obj, "clear", JSHistogram_Clear, 0, 0))) {
-    return NS_ERROR_FAILURE;
-  }
-  JS_SetPrivate(obj, h);
-  ret.setObject(*obj);
-  return NS_OK;
+  TelemetryHistogram::InitHistogramRecordingEnabled();
 }
 
 static uint32_t
@@ -1033,7 +813,7 @@ GetFailedProfileLockFile(nsIFile* *aFile, nsIFile* aProfileDir)
   return NS_OK;
 }
 
-class nsFetchTelemetryData : public nsRunnable
+class nsFetchTelemetryData : public Runnable
 {
 public:
   nsFetchTelemetryData(const char* aShutdownTimeFilename,
@@ -1049,7 +829,7 @@ public:
 private:
   const char* mShutdownTimeFilename;
   nsCOMPtr<nsIFile> mFailedProfileLockFile;
-  nsRefPtr<TelemetryImpl> mTelemetry;
+  RefPtr<TelemetryImpl> mTelemetry;
   nsCOMPtr<nsIFile> mProfileDir;
 
 public:
@@ -1061,13 +841,13 @@ public:
     mTelemetry->mCallbacks.Clear();
   }
 
-  NS_IMETHOD Run() {
+  NS_IMETHOD Run() override {
     LoadFailedLockCount(mTelemetry->mFailedLockCount);
     mTelemetry->mLastShutdownTime = 
       ReadLastShutdownDuration(mShutdownTimeFilename);
     mTelemetry->ReadLateWritesStacks(mProfileDir);
     nsCOMPtr<nsIRunnable> e =
-      NS_NewRunnableMethod(this, &nsFetchTelemetryData::MainThread);
+      NewRunnableMethod(this, &nsFetchTelemetryData::MainThread);
     NS_ENSURE_STATE(e);
     NS_DispatchToMainThread(e);
     return NS_OK;
@@ -1176,7 +956,7 @@ TelemetryImpl::AsyncFetchTelemetryData(nsIFetchTelemetryDataCallback *aCallback)
   // We make this check so that GetShutdownTimeFileName() doesn't get
   // called; calling that function without telemetry enabled violates
   // assumptions that the write-the-shutdown-timestamp machinery makes.
-  if (!Telemetry::CanRecord()) {
+  if (!Telemetry::CanRecordExtended()) {
     mCachedTelemetryData = true;
     aCallback->Complete();
     return NS_OK;
@@ -1228,32 +1008,17 @@ TelemetryImpl::AsyncFetchTelemetryData(nsIFetchTelemetryDataCallback *aCallback)
   return NS_OK;
 }
 
-TelemetryImpl::TelemetryImpl():
-mHistogramMap(Telemetry::HistogramCount),
-mCanRecord(XRE_GetProcessType() == GeckoProcessType_Default),
-mHashMutex("Telemetry::mHashMutex"),
-mHangReportsMutex("Telemetry::mHangReportsMutex"),
-mThreadHangStatsMutex("Telemetry::mThreadHangStatsMutex"),
-mCachedTelemetryData(false),
-mLastShutdownTime(0),
-mFailedLockCount(0)
+TelemetryImpl::TelemetryImpl()
+  : mHashMutex("Telemetry::mHashMutex")
+  , mHangReportsMutex("Telemetry::mHangReportsMutex")
+  , mThreadHangStatsMutex("Telemetry::mThreadHangStatsMutex")
+  , mCachedTelemetryData(false)
+  , mLastShutdownTime(0)
+  , mFailedLockCount(0)
 {
-  // A whitelist to prevent Telemetry reporting on Addon & Thunderbird DBs
-  const char *trackedDBs[] = {
-    "addons.sqlite", "content-prefs.sqlite", "cookies.sqlite",
-    "downloads.sqlite", "extensions.sqlite", "formhistory.sqlite",
-    "index.sqlite", "healthreport.sqlite", "netpredictions.sqlite",
-    "permissions.sqlite", "places.sqlite", "search.sqlite", "signons.sqlite",
-    "urlclassifier3.sqlite", "webappsstore.sqlite"
-  };
-
-  for (size_t i = 0; i < ArrayLength(trackedDBs); i++)
-    mTrackedDBs.PutEntry(nsDependentCString(trackedDBs[i]));
-
-#ifdef DEBUG
-  // Mark immutable to prevent asserts on simultaneous access from multiple threads
-  mTrackedDBs.MarkImmutable();
-#endif
+  // We expect TelemetryHistogram::InitializeGlobalState() to have been
+  // called before we get to this point.
+  MOZ_ASSERT(TelemetryHistogram::GlobalStateHasBeenInitialized());
 }
 
 TelemetryImpl::~TelemetryImpl() {
@@ -1263,21 +1028,6 @@ TelemetryImpl::~TelemetryImpl() {
 void
 TelemetryImpl::InitMemoryReporter() {
   RegisterWeakMemoryReporter(this);
-}
-
-NS_IMETHODIMP
-TelemetryImpl::NewHistogram(const nsACString &name, const nsACString &expiration, uint32_t min,
-                            uint32_t max, uint32_t bucketCount, uint32_t histogramType,
-                            JSContext *cx, JS::MutableHandle<JS::Value> ret)
-{
-  Histogram *h;
-  nsresult rv = HistogramGet(PromiseFlatCString(name).get(), PromiseFlatCString(expiration).get(),
-                             min, max, bucketCount, histogramType, &h);
-  if (NS_FAILED(rv))
-    return rv;
-  h->ClearFlags(Histogram::kUmaTargetedHistogramFlag);
-  h->SetFlags(Histogram::kExtendedStatisticsFlag);
-  return WrapAndReturnHistogram(h, cx, ret);
 }
 
 bool
@@ -1295,8 +1045,8 @@ TelemetryImpl::ReflectSQL(const SlowSQLEntryType *entry,
   if (!arrayObj) {
     return false;
   }
-  return (JS_SetElement(cx, arrayObj, 0, stat->hitCount)
-          && JS_SetElement(cx, arrayObj, 1, stat->totalTime)
+  return (JS_DefineElement(cx, arrayObj, 0, stat->hitCount, JSPROP_ENUMERATE)
+          && JS_DefineElement(cx, arrayObj, 1, stat->totalTime, JSPROP_ENUMERATE)
           && JS_DefineProperty(cx, obj, sql.BeginReading(), arrayObj,
                                JSPROP_ENUMERATE));
 }
@@ -1319,12 +1069,11 @@ bool
 TelemetryImpl::AddSQLInfo(JSContext *cx, JS::Handle<JSObject*> rootObj, bool mainThread,
                           bool privateSQL)
 {
-  JS::Rooted<JSObject*> statsObj(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
+  JS::Rooted<JSObject*> statsObj(cx, JS_NewPlainObject(cx));
   if (!statsObj)
     return false;
 
-  AutoHashtable<SlowSQLEntryType> &sqlMap =
-    (privateSQL ? mPrivateSQL : mSanitizedSQL);
+  AutoHashtable<SlowSQLEntryType>& sqlMap = (privateSQL ? mPrivateSQL : mSanitizedSQL);
   AutoHashtable<SlowSQLEntryType>::ReflectEntryFunc reflectFunction =
     (mainThread ? ReflectMainThreadSQL : ReflectOtherThreadsSQL);
   if (!sqlMap.ReflectIntoJS(reflectFunction, cx, statsObj)) {
@@ -1336,395 +1085,72 @@ TelemetryImpl::AddSQLInfo(JSContext *cx, JS::Handle<JSObject*> rootObj, bool mai
                            statsObj, JSPROP_ENUMERATE);
 }
 
-nsresult
-TelemetryImpl::GetHistogramEnumId(const char *name, Telemetry::ID *id)
-{
-  if (!sTelemetry) {
-    return NS_ERROR_FAILURE;
-  }
-
-  // Cache names
-  // Note the histogram names are statically allocated
-  TelemetryImpl::HistogramMapType *map = &sTelemetry->mHistogramMap;
-  if (!map->Count()) {
-    for (uint32_t i = 0; i < Telemetry::HistogramCount; i++) {
-      CharPtrEntryType *entry = map->PutEntry(gHistograms[i].id());
-      if (MOZ_UNLIKELY(!entry)) {
-        map->Clear();
-        return NS_ERROR_OUT_OF_MEMORY;
-      }
-      entry->mData = (Telemetry::ID) i;
-    }
-  }
-
-  CharPtrEntryType *entry = map->GetEntry(name);
-  if (!entry) {
-    return NS_ERROR_INVALID_ARG;
-  }
-  *id = entry->mData;
-  return NS_OK;
-}
-
-nsresult
-TelemetryImpl::GetHistogramByName(const nsACString &name, Histogram **ret)
-{
-  Telemetry::ID id;
-  nsresult rv = GetHistogramEnumId(PromiseFlatCString(name).get(), &id);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  rv = GetHistogramByEnumId(id, ret);
-  if (NS_FAILED(rv))
-    return rv;
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-TelemetryImpl::HistogramFrom(const nsACString &name, const nsACString &existing_name,
-                             JSContext *cx, JS::MutableHandle<JS::Value> ret)
-{
-  Telemetry::ID id;
-  nsresult rv = GetHistogramEnumId(PromiseFlatCString(existing_name).get(), &id);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  const TelemetryHistogram &p = gHistograms[id];
-
-  Histogram *existing;
-  rv = GetHistogramByEnumId(id, &existing);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  Histogram *clone;
-  rv = HistogramGet(PromiseFlatCString(name).get(), p.expiration(),
-                    existing->declared_min(), existing->declared_max(),
-                    existing->bucket_count(), p.histogramType, &clone);
-  if (NS_FAILED(rv))
-    return rv;
-
-  Histogram::SampleSet ss;
-  existing->SnapshotSample(&ss);
-  clone->AddSampleSet(ss);
-  return WrapAndReturnHistogram(clone, cx, ret);
-}
-
-void
-TelemetryImpl::IdentifyCorruptHistograms(StatisticsRecorder::Histograms &hs)
-{
-  for (HistogramIterator it = hs.begin(); it != hs.end(); ++it) {
-    Histogram *h = *it;
-
-    Telemetry::ID id;
-    nsresult rv = GetHistogramEnumId(h->histogram_name().c_str(), &id);
-    // This histogram isn't a static histogram, just ignore it.
-    if (NS_FAILED(rv)) {
-      continue;
-    }
-
-    if (gCorruptHistograms[id]) {
-      continue;
-    }
-
-    Histogram::SampleSet ss;
-    h->SnapshotSample(&ss);
-    Histogram::Inconsistencies check = h->FindCorruption(ss);
-    bool corrupt = (check != Histogram::NO_INCONSISTENCIES);
-
-    if (corrupt) {
-      Telemetry::ID corruptID = Telemetry::HistogramCount;
-      if (check & Histogram::RANGE_CHECKSUM_ERROR) {
-        corruptID = Telemetry::RANGE_CHECKSUM_ERRORS;
-      } else if (check & Histogram::BUCKET_ORDER_ERROR) {
-        corruptID = Telemetry::BUCKET_ORDER_ERRORS;
-      } else if (check & Histogram::COUNT_HIGH_ERROR) {
-        corruptID = Telemetry::TOTAL_COUNT_HIGH_ERRORS;
-      } else if (check & Histogram::COUNT_LOW_ERROR) {
-        corruptID = Telemetry::TOTAL_COUNT_LOW_ERRORS;
-      }
-      Telemetry::Accumulate(corruptID, 1);
-    }
-
-    gCorruptHistograms[id] = corrupt;
-  }
-}
-
-bool
-TelemetryImpl::ShouldReflectHistogram(Histogram *h)
-{
-  const char *name = h->histogram_name().c_str();
-  Telemetry::ID id;
-  nsresult rv = GetHistogramEnumId(name, &id);
-  if (NS_FAILED(rv)) {
-    // GetHistogramEnumId generally should not fail.  But a lookup
-    // failure shouldn't prevent us from reflecting histograms into JS.
-    //
-    // However, these two histograms are created by Histogram itself for
-    // tracking corruption.  We have our own histograms for that, so
-    // ignore these two.
-    if (strcmp(name, "Histogram.InconsistentCountHigh") == 0
-        || strcmp(name, "Histogram.InconsistentCountLow") == 0) {
-      return false;
-    }
-    return true;
-  } else {
-    return !gCorruptHistograms[id];
-  }
-}
-
-// Compute the name to pass into Histogram for the addon histogram
-// 'name' from the addon 'id'.  We can't use 'name' directly because it
-// might conflict with other histograms in other addons or even with our
-// own.
-void
-AddonHistogramName(const nsACString &id, const nsACString &name,
-                   nsACString &ret)
-{
-  ret.Append(id);
-  ret.Append(':');
-  ret.Append(name);
-}
-
 NS_IMETHODIMP
 TelemetryImpl::RegisterAddonHistogram(const nsACString &id,
                                       const nsACString &name,
+                                      uint32_t histogramType,
                                       uint32_t min, uint32_t max,
                                       uint32_t bucketCount,
-                                      uint32_t histogramType)
+                                      uint8_t optArgCount)
 {
-  AddonEntryType *addonEntry = mAddonMap.GetEntry(id);
-  if (!addonEntry) {
-    addonEntry = mAddonMap.PutEntry(id);
-    if (MOZ_UNLIKELY(!addonEntry)) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-    addonEntry->mData = new AddonHistogramMapType();
-  }
-
-  AddonHistogramMapType *histogramMap = addonEntry->mData;
-  AddonHistogramEntryType *histogramEntry = histogramMap->GetEntry(name);
-  // Can't re-register the same histogram.
-  if (histogramEntry) {
-    return NS_ERROR_FAILURE;
-  }
-
-  histogramEntry = histogramMap->PutEntry(name);
-  if (MOZ_UNLIKELY(!histogramEntry)) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  AddonHistogramInfo &info = histogramEntry->mData;
-  info.min = min;
-  info.max = max;
-  info.bucketCount = bucketCount;
-  info.histogramType = histogramType;
-
-  return NS_OK;
+  return TelemetryHistogram::RegisterAddonHistogram
+            (id, name, histogramType, min, max, bucketCount, optArgCount);
 }
 
 NS_IMETHODIMP
 TelemetryImpl::GetAddonHistogram(const nsACString &id, const nsACString &name,
                                  JSContext *cx, JS::MutableHandle<JS::Value> ret)
 {
-  AddonEntryType *addonEntry = mAddonMap.GetEntry(id);
-  // The given id has not been registered.
-  if (!addonEntry) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  AddonHistogramMapType *histogramMap = addonEntry->mData;
-  AddonHistogramEntryType *histogramEntry = histogramMap->GetEntry(name);
-  // The given histogram name has not been registered.
-  if (!histogramEntry) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  AddonHistogramInfo &info = histogramEntry->mData;
-  if (!info.h) {
-    nsAutoCString actualName;
-    AddonHistogramName(id, name, actualName);
-    if (!CreateHistogramForAddon(actualName, info)) {
-      return NS_ERROR_FAILURE;
-    }
-  }
-  return WrapAndReturnHistogram(info.h, cx, ret);
+  return TelemetryHistogram::GetAddonHistogram(id, name, cx, ret);
 }
 
 NS_IMETHODIMP
 TelemetryImpl::UnregisterAddonHistograms(const nsACString &id)
 {
-  AddonEntryType *addonEntry = mAddonMap.GetEntry(id);
-  if (addonEntry) {
-    // Histogram's destructor is private, so this is the best we can do.
-    // The histograms the addon created *will* stick around, but they
-    // will be deleted if and when the addon registers histograms with
-    // the same names.
-    delete addonEntry->mData;
-    mAddonMap.RemoveEntry(id);
-  }
+  return TelemetryHistogram::UnregisterAddonHistograms(id);
+}
 
-  return NS_OK;
+NS_IMETHODIMP
+TelemetryImpl::SetHistogramRecordingEnabled(const nsACString &id, bool aEnabled)
+{
+  return TelemetryHistogram::SetHistogramRecordingEnabled(id, aEnabled);
 }
 
 NS_IMETHODIMP
 TelemetryImpl::GetHistogramSnapshots(JSContext *cx, JS::MutableHandle<JS::Value> ret)
 {
-  JS::Rooted<JSObject*> root_obj(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
-  if (!root_obj)
-    return NS_ERROR_FAILURE;
-  ret.setObject(*root_obj);
+  return TelemetryHistogram::CreateHistogramSnapshots(cx, ret, false, false);
+}
 
-  // Ensure that all the HISTOGRAM_FLAG histograms have been created, so
-  // that their values are snapshotted.
-  for (size_t i = 0; i < Telemetry::HistogramCount; ++i) {
-    if (gHistograms[i].histogramType == nsITelemetry::HISTOGRAM_FLAG) {
-      Histogram *h;
-      DebugOnly<nsresult> rv = GetHistogramByEnumId(Telemetry::ID(i), &h);
-      MOZ_ASSERT(NS_SUCCEEDED(rv));
-    }
-  };
-
-  StatisticsRecorder::Histograms hs;
-  StatisticsRecorder::GetHistograms(&hs);
-
-  // We identify corrupt histograms first, rather than interspersing it
-  // in the loop below, to ensure that our corruption statistics don't
-  // depend on histogram enumeration order.
-  //
-  // Of course, we hope that all of these corruption-statistics
-  // histograms are not themselves corrupt...
-  IdentifyCorruptHistograms(hs);
-
-  // OK, now we can actually reflect things.
-  JS::Rooted<JSObject*> hobj(cx);
-  for (HistogramIterator it = hs.begin(); it != hs.end(); ++it) {
-    Histogram *h = *it;
-    if (!ShouldReflectHistogram(h) || IsEmpty(h) || IsExpired(h)) {
-      continue;
-    }
-
-    hobj = JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr());
-    if (!hobj) {
-      return NS_ERROR_FAILURE;
-    }
-    switch (ReflectHistogramSnapshot(cx, hobj, h)) {
-    case REFLECT_CORRUPT:
-      // We can still hit this case even if ShouldReflectHistograms
-      // returns true.  The histogram lies outside of our control
-      // somehow; just skip it.
-      continue;
-    case REFLECT_FAILURE:
-      return NS_ERROR_FAILURE;
-    case REFLECT_OK:
-      if (!JS_DefineProperty(cx, root_obj, h->histogram_name().c_str(), hobj,
-                             JSPROP_ENUMERATE)) {
-        return NS_ERROR_FAILURE;
-      }
-    }
-  }
+NS_IMETHODIMP
+TelemetryImpl::SnapshotSubsessionHistograms(bool clearSubsession,
+                                            JSContext *cx,
+                                            JS::MutableHandle<JS::Value> ret)
+{
+#if !defined(MOZ_WIDGET_GONK) && !defined(MOZ_WIDGET_ANDROID)
+  return TelemetryHistogram::CreateHistogramSnapshots(cx, ret, true,
+                                                      clearSubsession);
+#else
   return NS_OK;
-}
-
-bool
-TelemetryImpl::CreateHistogramForAddon(const nsACString &name,
-                                       AddonHistogramInfo &info)
-{
-  Histogram *h;
-  nsresult rv = HistogramGet(PromiseFlatCString(name).get(), "never",
-                             info.min, info.max, info.bucketCount,
-                             info.histogramType, &h);
-  if (NS_FAILED(rv)) {
-    return false;
-  }
-  // Don't let this histogram be reported via the normal means
-  // (e.g. Telemetry.registeredHistograms); we'll make it available in
-  // other ways.
-  h->ClearFlags(Histogram::kUmaTargetedHistogramFlag);
-  info.h = h;
-  return true;
-}
-
-bool
-TelemetryImpl::AddonHistogramReflector(AddonHistogramEntryType *entry,
-                                       JSContext *cx, JS::Handle<JSObject*> obj)
-{
-  AddonHistogramInfo &info = entry->mData;
-
-  // Never even accessed the histogram.
-  if (!info.h) {
-    // Have to force creation of HISTOGRAM_FLAG histograms.
-    if (info.histogramType != nsITelemetry::HISTOGRAM_FLAG) 
-      return true;
-
-    if (!CreateHistogramForAddon(entry->GetKey(), info)) {
-      return false;
-    }
-  }
-
-  if (IsEmpty(info.h)) {
-    return true;
-  }
-
-  JS::Rooted<JSObject*> snapshot(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
-  if (!snapshot) {
-    // Just consider this to be skippable.
-    return true;
-  }
-  switch (ReflectHistogramSnapshot(cx, snapshot, info.h)) {
-  case REFLECT_FAILURE:
-  case REFLECT_CORRUPT:
-    return false;
-  case REFLECT_OK:
-    const nsACString &histogramName = entry->GetKey();
-    if (!JS_DefineProperty(cx, obj, PromiseFlatCString(histogramName).get(),
-                           snapshot, JSPROP_ENUMERATE)) {
-      return false;
-    }
-    break;
-  }
-  return true;
-}
-
-bool
-TelemetryImpl::AddonReflector(AddonEntryType *entry,
-                              JSContext *cx, JS::Handle<JSObject*> obj)
-{
-  const nsACString &addonId = entry->GetKey();
-  JS::Rooted<JSObject*> subobj(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
-  if (!subobj) {
-    return false;
-  }
-
-  AddonHistogramMapType *map = entry->mData;
-  if (!(map->ReflectIntoJS(AddonHistogramReflector, cx, subobj)
-        && JS_DefineProperty(cx, obj, PromiseFlatCString(addonId).get(),
-                             subobj, JSPROP_ENUMERATE))) {
-    return false;
-  }
-  return true;
+#endif
 }
 
 NS_IMETHODIMP
 TelemetryImpl::GetAddonHistogramSnapshots(JSContext *cx, JS::MutableHandle<JS::Value> ret)
 {
-  JS::Rooted<JSObject*> obj(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
-  if (!obj) {
-    return NS_ERROR_FAILURE;
-  }
+  return TelemetryHistogram::GetAddonHistogramSnapshots(cx, ret);
+}
 
-  if (!mAddonMap.ReflectIntoJS(AddonReflector, cx, obj)) {
-    return NS_ERROR_FAILURE;
-  }
-  ret.setObject(*obj);
-  return NS_OK;
+NS_IMETHODIMP
+TelemetryImpl::GetKeyedHistogramSnapshots(JSContext *cx, JS::MutableHandle<JS::Value> ret)
+{
+  return TelemetryHistogram::GetKeyedHistogramSnapshots(cx, ret);
 }
 
 bool
 TelemetryImpl::GetSQLStats(JSContext *cx, JS::MutableHandle<JS::Value> ret, bool includePrivateSql)
 {
-  JS::Rooted<JSObject*> root_obj(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
+  JS::Rooted<JSObject*> root_obj(cx, JS_NewPlainObject(cx));
   if (!root_obj)
     return false;
   ret.setObject(*root_obj);
@@ -1759,9 +1185,17 @@ TelemetryImpl::GetDebugSlowSQL(JSContext *cx, JS::MutableHandle<JS::Value> ret)
 }
 
 NS_IMETHODIMP
+TelemetryImpl::GetWebrtcStats(JSContext *cx, JS::MutableHandle<JS::Value> ret)
+{
+  if (mWebrtcTelemetry.GetWebrtcStats(cx, ret))
+    return NS_OK;
+  return NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
 TelemetryImpl::GetMaximalNumberOfConcurrentThreads(uint32_t *ret)
 {
-  *ret = nsThreadManager::get()->GetHighestNumberOfThreads();
+  *ret = nsThreadManager::get().GetHighestNumberOfThreads();
   return NS_OK;
 }
 
@@ -1781,7 +1215,9 @@ TelemetryImpl::GetChromeHangs(JSContext *cx, JS::MutableHandle<JS::Value> ret)
   JS::Rooted<JSObject*> durationArray(cx, JS_NewArrayObject(cx, 0));
   JS::Rooted<JSObject*> systemUptimeArray(cx, JS_NewArrayObject(cx, 0));
   JS::Rooted<JSObject*> firefoxUptimeArray(cx, JS_NewArrayObject(cx, 0));
-  if (!durationArray || !systemUptimeArray || !firefoxUptimeArray) {
+  JS::Rooted<JSObject*> annotationsArray(cx, JS_NewArrayObject(cx, 0));
+  if (!durationArray || !systemUptimeArray || !firefoxUptimeArray ||
+      !annotationsArray) {
     return NS_ERROR_FAILURE;
   }
 
@@ -1803,16 +1239,84 @@ TelemetryImpl::GetChromeHangs(JSContext *cx, JS::MutableHandle<JS::Value> ret)
     return NS_ERROR_FAILURE;
   }
 
+  ok = JS_DefineProperty(cx, fullReportObj, "annotations", annotationsArray,
+                         JSPROP_ENUMERATE);
+  if (!ok) {
+    return NS_ERROR_FAILURE;
+  }
+
+
   const size_t length = stacks.GetStackCount();
   for (size_t i = 0; i < length; ++i) {
-    if (!JS_SetElement(cx, durationArray, i, mHangReports.GetDuration(i))) {
+    if (!JS_DefineElement(cx, durationArray, i, mHangReports.GetDuration(i),
+                          JSPROP_ENUMERATE)) {
       return NS_ERROR_FAILURE;
     }
-    if (!JS_SetElement(cx, systemUptimeArray, i, mHangReports.GetSystemUptime(i))) {
+    if (!JS_DefineElement(cx, systemUptimeArray, i, mHangReports.GetSystemUptime(i),
+                          JSPROP_ENUMERATE)) {
       return NS_ERROR_FAILURE;
     }
-    if (!JS_SetElement(cx, firefoxUptimeArray, i, mHangReports.GetFirefoxUptime(i))) {
+    if (!JS_DefineElement(cx, firefoxUptimeArray, i, mHangReports.GetFirefoxUptime(i),
+                          JSPROP_ENUMERATE)) {
       return NS_ERROR_FAILURE;
+    }
+
+    size_t annotationIndex = 0;
+    const nsClassHashtable<nsStringHashKey, HangReports::AnnotationInfo>& annotationInfo =
+      mHangReports.GetAnnotationInfo();
+
+    for (auto iter = annotationInfo.ConstIter(); !iter.Done(); iter.Next()) {
+      const HangReports::AnnotationInfo* info = iter.Data();
+
+      JS::Rooted<JSObject*> keyValueArray(cx, JS_NewArrayObject(cx, 0));
+      if (!keyValueArray) {
+        return NS_ERROR_FAILURE;
+      }
+
+      // Create an array containing all the indices of the chrome hangs relative to this
+      // annotation.
+      JS::Rooted<JS::Value> indicesArray(cx);
+      if (!mozilla::dom::ToJSValue(cx, info->mHangIndices, &indicesArray)) {
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
+
+      // We're saving the annotation as [[indices], {annotation-data}], so add the indices
+      // array as the first element of that structure.
+      if (!JS_DefineElement(cx, keyValueArray, 0, indicesArray, JSPROP_ENUMERATE)) {
+        return NS_ERROR_FAILURE;
+      }
+
+      // Create the annotations object...
+      JS::Rooted<JSObject*> jsAnnotation(cx, JS_NewPlainObject(cx));
+      if (!jsAnnotation) {
+        return NS_ERROR_FAILURE;
+      }
+      UniquePtr<HangAnnotations::Enumerator> annotationsEnum =
+        info->mAnnotations->GetEnumerator();
+      if (!annotationsEnum) {
+        return NS_ERROR_FAILURE;
+      }
+
+      // ... fill it with key:value pairs...
+      nsAutoString key;
+      nsAutoString value;
+      while (annotationsEnum->Next(key, value)) {
+        JS::RootedValue jsValue(cx);
+        jsValue.setString(JS_NewUCStringCopyN(cx, value.get(), value.Length()));
+        if (!JS_DefineUCProperty(cx, jsAnnotation, key.get(), key.Length(),
+                                 jsValue, JSPROP_ENUMERATE)) {
+          return NS_ERROR_FAILURE;
+        }
+      }
+
+      // ... and append it after the indices array.
+      if (!JS_DefineElement(cx, keyValueArray, 1, jsAnnotation, JSPROP_ENUMERATE)) {
+        return NS_ERROR_FAILURE;
+      }
+      if (!JS_DefineElement(cx, annotationsArray, annotationIndex++,
+                         keyValueArray, JSPROP_ENUMERATE)) {
+        return NS_ERROR_FAILURE;
+      }
     }
   }
 
@@ -1821,7 +1325,7 @@ TelemetryImpl::GetChromeHangs(JSContext *cx, JS::MutableHandle<JS::Value> ret)
 
 static JSObject *
 CreateJSStackObject(JSContext *cx, const CombinedStacks &stacks) {
-  JS::Rooted<JSObject*> ret(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
+  JS::Rooted<JSObject*> ret(cx, JS_NewPlainObject(cx));
   if (!ret) {
     return nullptr;
   }
@@ -1846,7 +1350,8 @@ CreateJSStackObject(JSContext *cx, const CombinedStacks &stacks) {
     if (!moduleInfoArray) {
       return nullptr;
     }
-    if (!JS_SetElement(cx, moduleArray, moduleIndex, moduleInfoArray)) {
+    if (!JS_DefineElement(cx, moduleArray, moduleIndex, moduleInfoArray,
+                          JSPROP_ENUMERATE)) {
       return nullptr;
     }
 
@@ -1857,7 +1362,7 @@ CreateJSStackObject(JSContext *cx, const CombinedStacks &stacks) {
     if (!str) {
       return nullptr;
     }
-    if (!JS_SetElement(cx, moduleInfoArray, index++, str)) {
+    if (!JS_DefineElement(cx, moduleInfoArray, index++, str, JSPROP_ENUMERATE)) {
       return nullptr;
     }
 
@@ -1866,7 +1371,7 @@ CreateJSStackObject(JSContext *cx, const CombinedStacks &stacks) {
     if (!id) {
       return nullptr;
     }
-    if (!JS_SetElement(cx, moduleInfoArray, index++, id)) {
+    if (!JS_DefineElement(cx, moduleInfoArray, index++, id, JSPROP_ENUMERATE)) {
       return nullptr;
     }
   }
@@ -1888,7 +1393,7 @@ CreateJSStackObject(JSContext *cx, const CombinedStacks &stacks) {
       return nullptr;
     }
 
-    if (!JS_SetElement(cx, reportArray, i, pcArray)) {
+    if (!JS_DefineElement(cx, reportArray, i, pcArray, JSPROP_ENUMERATE)) {
       return nullptr;
     }
 
@@ -1902,13 +1407,14 @@ CreateJSStackObject(JSContext *cx, const CombinedStacks &stacks) {
       }
       int modIndex = (std::numeric_limits<uint16_t>::max() == frame.mModIndex) ?
         -1 : frame.mModIndex;
-      if (!JS_SetElement(cx, framePair, 0, modIndex)) {
+      if (!JS_DefineElement(cx, framePair, 0, modIndex, JSPROP_ENUMERATE)) {
         return nullptr;
       }
-      if (!JS_SetElement(cx, framePair, 1, static_cast<double>(frame.mOffset))) {
+      if (!JS_DefineElement(cx, framePair, 1, static_cast<double>(frame.mOffset),
+                            JSPROP_ENUMERATE)) {
         return nullptr;
       }
-      if (!JS_SetElement(cx, pcArray, pcIndex, framePair)) {
+      if (!JS_DefineElement(cx, pcArray, pcIndex, framePair, JSPROP_ENUMERATE)) {
         return nullptr;
       }
     }
@@ -2010,7 +1516,7 @@ CreateJSTimeHistogram(JSContext* cx, const Telemetry::TimeHistogram& time)
 {
   /* Create JS representation of TimeHistogram,
      in the format of Chromium-style histograms. */
-  JS::RootedObject ret(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
+  JS::RootedObject ret(cx, JS_NewPlainObject(cx));
   if (!ret) {
     return nullptr;
   }
@@ -2025,10 +1531,8 @@ CreateJSTimeHistogram(JSContext* cx, const Telemetry::TimeHistogram& time)
                          JSPROP_ENUMERATE)) {
     return nullptr;
   }
-  // TODO: calculate "sum", "log_sum", and "log_sum_squares"
-  if (!JS_DefineProperty(cx, ret, "sum", 0, JSPROP_ENUMERATE) ||
-      !JS_DefineProperty(cx, ret, "log_sum", 0.0, JSPROP_ENUMERATE) ||
-      !JS_DefineProperty(cx, ret, "log_sum_squares", 0.0, JSPROP_ENUMERATE)) {
+  // TODO: calculate "sum"
+  if (!JS_DefineProperty(cx, ret, "sum", 0, JSPROP_ENUMERATE)) {
     return nullptr;
   }
 
@@ -2041,13 +1545,14 @@ CreateJSTimeHistogram(JSContext* cx, const Telemetry::TimeHistogram& time)
   }
   /* In a Chromium-style histogram, the first bucket is an "under" bucket
      that represents all values below the histogram's range. */
-  if (!JS_SetElement(cx, ranges, 0, time.GetBucketMin(0)) ||
-      !JS_SetElement(cx, counts, 0, 0)) {
+  if (!JS_DefineElement(cx, ranges, 0, time.GetBucketMin(0), JSPROP_ENUMERATE) ||
+      !JS_DefineElement(cx, counts, 0, 0, JSPROP_ENUMERATE)) {
     return nullptr;
   }
   for (size_t i = 0; i < ArrayLength(time); i++) {
-    if (!JS_SetElement(cx, ranges, i + 1, time.GetBucketMax(i)) ||
-        !JS_SetElement(cx, counts, i + 1, time[i])) {
+    if (!JS_DefineElement(cx, ranges, i + 1, time.GetBucketMax(i),
+                          JSPROP_ENUMERATE) ||
+        !JS_DefineElement(cx, counts, i + 1, time[i], JSPROP_ENUMERATE)) {
       return nullptr;
     }
   }
@@ -2059,31 +1564,109 @@ CreateJSTimeHistogram(JSContext* cx, const Telemetry::TimeHistogram& time)
 }
 
 static JSObject*
-CreateJSHangHistogram(JSContext* cx, const Telemetry::HangHistogram& hang)
+CreateJSHangStack(JSContext* cx, const Telemetry::HangStack& stack)
 {
-  JS::RootedObject ret(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
+  JS::RootedObject ret(cx, JS_NewArrayObject(cx, stack.length()));
   if (!ret) {
     return nullptr;
   }
-
-  const Telemetry::HangHistogram::Stack& hangStack = hang.GetStack();
-  JS::RootedObject stack(cx,
-    JS_NewArrayObject(cx, hangStack.length()));
-  if (!ret) {
-    return nullptr;
-  }
-  for (size_t i = 0; i < hangStack.length(); i++) {
-    JS::RootedString string(cx, JS_NewStringCopyZ(cx, hangStack[i]));
-    if (!JS_SetElement(cx, stack, i, string)) {
+  for (size_t i = 0; i < stack.length(); i++) {
+    JS::RootedString string(cx, JS_NewStringCopyZ(cx, stack[i]));
+    if (!JS_DefineElement(cx, ret, i, string, JSPROP_ENUMERATE)) {
       return nullptr;
     }
   }
+  return ret;
+}
 
-  JS::RootedObject time(cx, CreateJSTimeHistogram(cx, hang));
-  if (!time ||
-      !JS_DefineProperty(cx, ret, "stack", stack, JSPROP_ENUMERATE) ||
-      !JS_DefineProperty(cx, ret, "histogram", time, JSPROP_ENUMERATE)) {
+static void
+CreateJSHangAnnotations(JSContext* cx, const HangAnnotationsVector& annotations,
+                        JS::MutableHandleObject returnedObject)
+{
+  JS::RootedObject annotationsArray(cx, JS_NewArrayObject(cx, 0));
+  if (!annotationsArray) {
+    returnedObject.set(nullptr);
+    return;
+  }
+  // We keep track of the annotations we reported in this hash set, so we can
+  // discard duplicated ones.
+  nsTHashtable<nsStringHashKey> reportedAnnotations;
+  size_t annotationIndex = 0;
+  for (const HangAnnotationsPtr *i = annotations.begin(), *e = annotations.end();
+       i != e; ++i) {
+    JS::RootedObject jsAnnotation(cx, JS_NewPlainObject(cx));
+    if (!jsAnnotation) {
+      continue;
+    }
+    const HangAnnotationsPtr& curAnnotations = *i;
+    // Build a key to index the current annotations in our hash set.
+    nsAutoString annotationsKey;
+    nsresult rv = ComputeAnnotationsKey(curAnnotations, annotationsKey);
+    if (NS_FAILED(rv)) {
+      continue;
+    }
+    // Check if the annotations are in the set. If that's the case, don't double report.
+    if (reportedAnnotations.GetEntry(annotationsKey)) {
+      continue;
+    }
+    // If not, report them.
+    reportedAnnotations.PutEntry(annotationsKey);
+    UniquePtr<HangAnnotations::Enumerator> annotationsEnum =
+      curAnnotations->GetEnumerator();
+    if (!annotationsEnum) {
+      continue;
+    }
+    nsAutoString key;
+    nsAutoString value;
+    while (annotationsEnum->Next(key, value)) {
+      JS::RootedValue jsValue(cx);
+      jsValue.setString(JS_NewUCStringCopyN(cx, value.get(), value.Length()));
+      if (!JS_DefineUCProperty(cx, jsAnnotation, key.get(), key.Length(),
+                               jsValue, JSPROP_ENUMERATE)) {
+        returnedObject.set(nullptr);
+        return;
+      }
+    }
+    if (!JS_SetElement(cx, annotationsArray, annotationIndex, jsAnnotation)) {
+      continue;
+    }
+    ++annotationIndex;
+  }
+  // Return the array using a |MutableHandleObject| to avoid triggering a false
+  // positive rooting issue in the hazard analysis build.
+  returnedObject.set(annotationsArray);
+}
+
+static JSObject*
+CreateJSHangHistogram(JSContext* cx, const Telemetry::HangHistogram& hang)
+{
+  JS::RootedObject ret(cx, JS_NewPlainObject(cx));
+  if (!ret) {
     return nullptr;
+  }
+
+  JS::RootedObject stack(cx, CreateJSHangStack(cx, hang.GetStack()));
+  JS::RootedObject time(cx, CreateJSTimeHistogram(cx, hang));
+  auto& hangAnnotations = hang.GetAnnotations();
+  JS::RootedObject annotations(cx);
+  CreateJSHangAnnotations(cx, hangAnnotations, &annotations);
+
+  if (!stack ||
+      !time ||
+      !annotations ||
+      !JS_DefineProperty(cx, ret, "stack", stack, JSPROP_ENUMERATE) ||
+      !JS_DefineProperty(cx, ret, "histogram", time, JSPROP_ENUMERATE) ||
+      (!hangAnnotations.empty() && // <-- Only define annotations when nonempty
+        !JS_DefineProperty(cx, ret, "annotations", annotations, JSPROP_ENUMERATE))) {
+    return nullptr;
+  }
+
+  if (!hang.GetNativeStack().empty()) {
+    JS::RootedObject native(cx, CreateJSHangStack(cx, hang.GetNativeStack()));
+    if (!native ||
+        !JS_DefineProperty(cx, ret, "nativeStack", native, JSPROP_ENUMERATE)) {
+      return nullptr;
+    }
   }
   return ret;
 }
@@ -2091,7 +1674,7 @@ CreateJSHangHistogram(JSContext* cx, const Telemetry::HangHistogram& hang)
 static JSObject*
 CreateJSThreadHangStats(JSContext* cx, const Telemetry::ThreadHangStats& thread)
 {
-  JS::RootedObject ret(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
+  JS::RootedObject ret(cx, JS_NewPlainObject(cx));
   if (!ret) {
     return nullptr;
   }
@@ -2113,13 +1696,14 @@ CreateJSThreadHangStats(JSContext* cx, const Telemetry::ThreadHangStats& thread)
   }
   for (size_t i = 0; i < thread.mHangs.length(); i++) {
     JS::RootedObject obj(cx, CreateJSHangHistogram(cx, thread.mHangs[i]));
-    if (!JS_SetElement(cx, hangs, i, obj)) {
+    if (!JS_DefineElement(cx, hangs, i, obj, JSPROP_ENUMERATE)) {
       return nullptr;
     }
   }
   if (!JS_DefineProperty(cx, ret, "hangs", hangs, JSPROP_ENUMERATE)) {
     return nullptr;
   }
+
   return ret;
 }
 
@@ -2132,28 +1716,27 @@ TelemetryImpl::GetThreadHangStats(JSContext* cx, JS::MutableHandle<JS::Value> re
   }
   size_t threadIndex = 0;
 
-#ifdef MOZ_ENABLE_BACKGROUND_HANG_MONITOR
-  /* First add active threads; we need to hold |iter| (and its lock)
-     throughout this method to avoid a race condition where a thread can
-     be recorded twice if the thread is destroyed while this method is
-     running */
-  BackgroundHangMonitor::ThreadHangStatsIterator iter;
-  for (Telemetry::ThreadHangStats* histogram = iter.GetNext();
-       histogram; histogram = iter.GetNext()) {
-    JS::RootedObject obj(cx,
-      CreateJSThreadHangStats(cx, *histogram));
-    if (!JS_SetElement(cx, retObj, threadIndex++, obj)) {
-      return NS_ERROR_FAILURE;
+  if (!BackgroundHangMonitor::IsDisabled()) {
+    /* First add active threads; we need to hold |iter| (and its lock)
+       throughout this method to avoid a race condition where a thread can
+       be recorded twice if the thread is destroyed while this method is
+       running */
+    BackgroundHangMonitor::ThreadHangStatsIterator iter;
+    for (Telemetry::ThreadHangStats* histogram = iter.GetNext();
+         histogram; histogram = iter.GetNext()) {
+      JS::RootedObject obj(cx, CreateJSThreadHangStats(cx, *histogram));
+      if (!JS_DefineElement(cx, retObj, threadIndex++, obj, JSPROP_ENUMERATE)) {
+        return NS_ERROR_FAILURE;
+      }
     }
   }
-#endif
 
   // Add saved threads next
   MutexAutoLock autoLock(mThreadHangStatsMutex);
   for (size_t i = 0; i < mThreadHangStats.length(); i++) {
     JS::RootedObject obj(cx,
       CreateJSThreadHangStats(cx, mThreadHangStats[i]));
-    if (!JS_SetElement(cx, retObj, threadIndex++, obj)) {
+    if (!JS_DefineElement(cx, retObj, threadIndex++, obj, JSPROP_ENUMERATE)) {
       return NS_ERROR_FAILURE;
     }
   }
@@ -2232,60 +1815,83 @@ TelemetryImpl::GetLateWrites(JSContext *cx, JS::MutableHandle<JS::Value> ret)
 }
 
 NS_IMETHODIMP
-TelemetryImpl::RegisteredHistograms(uint32_t *aCount, char*** aHistograms)
+TelemetryImpl::RegisteredHistograms(uint32_t aDataset, uint32_t *aCount,
+                                    char*** aHistograms)
 {
-  size_t count = ArrayLength(gHistograms);
-  size_t offset = 0;
-  char** histograms = static_cast<char**>(nsMemory::Alloc(count * sizeof(char*)));
+  return
+    TelemetryHistogram::RegisteredHistograms(aDataset, aCount, aHistograms);
+}
 
-  for (size_t i = 0; i < count; ++i) {
-    if (IsExpired(gHistograms[i].expiration())) {
-      offset++;
-      continue;
-    }
-
-    const char* h = gHistograms[i].id();
-    size_t len = strlen(h);
-    histograms[i - offset] = static_cast<char*>(nsMemory::Clone(h, len+1));
-  }
-
-  *aCount = count - offset;
-  *aHistograms = histograms;
-  return NS_OK;
+NS_IMETHODIMP
+TelemetryImpl::RegisteredKeyedHistograms(uint32_t aDataset, uint32_t *aCount,
+                                         char*** aHistograms)
+{
+  return
+    TelemetryHistogram::RegisteredKeyedHistograms(aDataset, aCount,
+                                                  aHistograms);
 }
 
 NS_IMETHODIMP
 TelemetryImpl::GetHistogramById(const nsACString &name, JSContext *cx,
                                 JS::MutableHandle<JS::Value> ret)
 {
-  Histogram *h;
-  nsresult rv = GetHistogramByName(name, &h);
-  if (NS_FAILED(rv))
-    return rv;
-
-  return WrapAndReturnHistogram(h, cx, ret);
+  return TelemetryHistogram::GetHistogramById(name, cx, ret);
 }
 
 NS_IMETHODIMP
-TelemetryImpl::GetCanRecord(bool *ret) {
-  *ret = mCanRecord;
+TelemetryImpl::GetKeyedHistogramById(const nsACString &name, JSContext *cx,
+                                     JS::MutableHandle<JS::Value> ret)
+{
+  return TelemetryHistogram::GetKeyedHistogramById(name, cx, ret);
+}
+
+/**
+ * Indicates if Telemetry can record base data (FHR data). This is true if the
+ * FHR data reporting service or self-support are enabled.
+ *
+ * In the unlikely event that adding a new base probe is needed, please check the data
+ * collection wiki at https://wiki.mozilla.org/Firefox/Data_Collection and talk to the
+ * Telemetry team.
+ */
+NS_IMETHODIMP
+TelemetryImpl::GetCanRecordBase(bool *ret) {
+  *ret = TelemetryHistogram::CanRecordBase();
   return NS_OK;
 }
 
 NS_IMETHODIMP
-TelemetryImpl::SetCanRecord(bool canRecord) {
-  mCanRecord = !!canRecord;
+TelemetryImpl::SetCanRecordBase(bool canRecord) {
+  TelemetryHistogram::SetCanRecordBase(canRecord);
+  TelemetryScalar::SetCanRecordBase(canRecord);
+  TelemetryEvent::SetCanRecordBase(canRecord);
   return NS_OK;
 }
 
-bool
-TelemetryImpl::CanRecord() {
-  return !sTelemetry || sTelemetry->mCanRecord;
+/**
+ * Indicates if Telemetry is allowed to record extended data. Returns false if the user
+ * hasn't opted into "extended Telemetry" on the Release channel, when the user has
+ * explicitly opted out of Telemetry on Nightly/Aurora/Beta or if manually set to false
+ * during tests.
+ * If the returned value is false, gathering of extended telemetry statistics is disabled.
+ */
+NS_IMETHODIMP
+TelemetryImpl::GetCanRecordExtended(bool *ret) {
+  *ret = TelemetryHistogram::CanRecordExtended();
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-TelemetryImpl::GetCanSend(bool *ret) {
-#if defined(MOZILLA_OFFICIAL) && defined(MOZ_TELEMETRY_REPORTING)
+TelemetryImpl::SetCanRecordExtended(bool canRecord) {
+  TelemetryHistogram::SetCanRecordExtended(canRecord);
+  TelemetryScalar::SetCanRecordExtended(canRecord);
+  TelemetryEvent::SetCanRecordExtended(canRecord);
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+TelemetryImpl::GetIsOfficialTelemetry(bool *ret) {
+#if defined(MOZILLA_OFFICIAL) && defined(MOZ_TELEMETRY_REPORTING) && !defined(DEBUG)
   *ret = true;
 #else
   *ret = false;
@@ -2296,14 +1902,35 @@ TelemetryImpl::GetCanSend(bool *ret) {
 already_AddRefed<nsITelemetry>
 TelemetryImpl::CreateTelemetryInstance()
 {
-  NS_ABORT_IF_FALSE(sTelemetry == nullptr, "CreateTelemetryInstance may only be called once, via GetService()");
+  MOZ_ASSERT(sTelemetry == nullptr, "CreateTelemetryInstance may only be called once, via GetService()");
+
+  bool useTelemetry = false;
+  if (XRE_IsParentProcess() ||
+      XRE_IsContentProcess() ||
+      XRE_IsGPUProcess())
+  {
+    useTelemetry = true;
+  }
+
+  // First, initialize the TelemetryHistogram and TelemetryScalar global states.
+  TelemetryHistogram::InitializeGlobalState(useTelemetry, useTelemetry);
+
+  // Only record scalars from the parent process.
+  TelemetryScalar::InitializeGlobalState(XRE_IsParentProcess(), XRE_IsParentProcess());
+
+  // Only record events from the parent process.
+  TelemetryEvent::InitializeGlobalState(XRE_IsParentProcess(), XRE_IsParentProcess());
+
+  // Now, create and initialize the Telemetry global state.
   sTelemetry = new TelemetryImpl();
+
   // AddRef for the local reference
   NS_ADDREF(sTelemetry);
   // AddRef for the caller
   nsCOMPtr<nsITelemetry> ret = sTelemetry;
 
   sTelemetry->InitMemoryReporter();
+  InitHistogramRecordingEnabled(); // requires sTelemetry to exist
 
   return ret.forget();
 }
@@ -2314,13 +1941,19 @@ TelemetryImpl::ShutdownTelemetry()
   // No point in collecting IO beyond this point
   ClearIOReporting();
   NS_IF_RELEASE(sTelemetry);
+
+  // Lastly, de-initialise the TelemetryHistogram and TelemetryScalar global states,
+  // so as to release any heap storage that would otherwise be kept alive by it.
+  TelemetryHistogram::DeInitializeGlobalState();
+  TelemetryScalar::DeInitializeGlobalState();
+  TelemetryEvent::DeInitializeGlobalState();
 }
 
 void
 TelemetryImpl::StoreSlowSQL(const nsACString &sql, uint32_t delay,
                             SanitizedState state)
 {
-  AutoHashtable<SlowSQLEntryType> *slowSQLMap = nullptr;
+  AutoHashtable<SlowSQLEntryType>* slowSQLMap = nullptr;
   if (state == Sanitized)
     slowSQLMap = &(sTelemetry->mSanitizedSQL);
   else
@@ -2468,6 +2101,56 @@ TelemetryImpl::SanitizeSQL(const nsACString &sql) {
   return output;
 }
 
+// A whitelist mechanism to prevent Telemetry reporting on Addon & Thunderbird
+// DBs.
+struct TrackedDBEntry
+{
+  const char* mName;
+  const uint32_t mNameLength;
+
+  // This struct isn't meant to be used beyond the static arrays below.
+  constexpr
+  TrackedDBEntry(const char* aName, uint32_t aNameLength)
+    : mName(aName)
+    , mNameLength(aNameLength)
+  { }
+
+  TrackedDBEntry() = delete;
+  TrackedDBEntry(TrackedDBEntry&) = delete;
+};
+
+#define TRACKEDDB_ENTRY(_name) { _name, (sizeof(_name) - 1) }
+
+// A whitelist of database names. If the database name exactly matches one of
+// these then its SQL statements will always be recorded.
+static constexpr TrackedDBEntry kTrackedDBs[] = {
+  // IndexedDB for about:home, see aboutHome.js
+  TRACKEDDB_ENTRY("818200132aebmoouht.sqlite"),
+  TRACKEDDB_ENTRY("addons.sqlite"),
+  TRACKEDDB_ENTRY("content-prefs.sqlite"),
+  TRACKEDDB_ENTRY("cookies.sqlite"),
+  TRACKEDDB_ENTRY("downloads.sqlite"),
+  TRACKEDDB_ENTRY("extensions.sqlite"),
+  TRACKEDDB_ENTRY("formhistory.sqlite"),
+  TRACKEDDB_ENTRY("index.sqlite"),
+  TRACKEDDB_ENTRY("netpredictions.sqlite"),
+  TRACKEDDB_ENTRY("permissions.sqlite"),
+  TRACKEDDB_ENTRY("places.sqlite"),
+  TRACKEDDB_ENTRY("reading-list.sqlite"),
+  TRACKEDDB_ENTRY("search.sqlite"),
+  TRACKEDDB_ENTRY("signons.sqlite"),
+  TRACKEDDB_ENTRY("urlclassifier3.sqlite"),
+  TRACKEDDB_ENTRY("webappsstore.sqlite")
+};
+
+// A whitelist of database name prefixes. If the database name begins with
+// one of these prefixes then its SQL statements will always be recorded.
+static const TrackedDBEntry kTrackedDBPrefixes[] = {
+  TRACKEDDB_ENTRY("indexedDB-")
+};
+
+#undef TRACKEDDB_ENTRY
+
 // Slow SQL statements will be automatically
 // trimmed to kMaxSlowStatementLength characters.
 // This limit doesn't include the ellipsis and DB name,
@@ -2479,11 +2162,36 @@ TelemetryImpl::RecordSlowStatement(const nsACString &sql,
                                    const nsACString &dbName,
                                    uint32_t delay)
 {
-  if (!sTelemetry || !sTelemetry->mCanRecord)
+  MOZ_ASSERT(!sql.IsEmpty());
+  MOZ_ASSERT(!dbName.IsEmpty());
+
+  if (!sTelemetry || !TelemetryHistogram::CanRecordExtended())
     return;
 
-  bool isFirefoxDB = sTelemetry->mTrackedDBs.Contains(dbName);
-  if (isFirefoxDB) {
+  bool recordStatement = false;
+
+  for (const TrackedDBEntry& nameEntry : kTrackedDBs) {
+    MOZ_ASSERT(nameEntry.mNameLength);
+    const nsDependentCString name(nameEntry.mName, nameEntry.mNameLength);
+    if (dbName == name) {
+      recordStatement = true;
+      break;
+    }
+  }
+
+  if (!recordStatement) {
+    for (const TrackedDBEntry& prefixEntry : kTrackedDBPrefixes) {
+      MOZ_ASSERT(prefixEntry.mNameLength);
+      const nsDependentCString prefix(prefixEntry.mName,
+                                      prefixEntry.mNameLength);
+      if (StringBeginsWith(dbName, prefix)) {
+        recordStatement = true;
+        break;
+      }
+    }
+  }
+
+  if (recordStatement) {
     nsAutoCString sanitizedSQL(SanitizeSQL(sql));
     if (sanitizedSQL.Length() > kMaxSlowStatementLength) {
       sanitizedSQL.SetLength(kMaxSlowStatementLength);
@@ -2506,32 +2214,51 @@ TelemetryImpl::RecordSlowStatement(const nsACString &sql,
   StoreSlowSQL(fullSQL, delay, Unsanitized);
 }
 
+void
+TelemetryImpl::RecordIceCandidates(const uint32_t iceCandidateBitmask,
+                                   const bool success)
+{
+  if (!sTelemetry || !TelemetryHistogram::CanRecordExtended())
+    return;
+
+  sTelemetry->mWebrtcTelemetry.RecordIceCandidateMask(iceCandidateBitmask, success);
+}
+
 #if defined(MOZ_ENABLE_PROFILER_SPS)
 void
 TelemetryImpl::RecordChromeHang(uint32_t aDuration,
                                 Telemetry::ProcessedStack &aStack,
                                 int32_t aSystemUptime,
-                                int32_t aFirefoxUptime)
+                                int32_t aFirefoxUptime,
+                                HangAnnotationsPtr aAnnotations)
 {
-  if (!sTelemetry || !sTelemetry->mCanRecord)
+  if (!sTelemetry || !TelemetryHistogram::CanRecordExtended())
     return;
+
+  HangAnnotationsPtr annotations;
+  // We only pass aAnnotations if it is not empty.
+  if (aAnnotations && !aAnnotations->IsEmpty()) {
+    annotations = Move(aAnnotations);
+  }
 
   MutexAutoLock hangReportMutex(sTelemetry->mHangReportsMutex);
 
   sTelemetry->mHangReports.AddHang(aStack, aDuration,
-                                   aSystemUptime, aFirefoxUptime);
+                                   aSystemUptime, aFirefoxUptime,
+                                   Move(annotations));
 }
 #endif
 
 void
 TelemetryImpl::RecordThreadHangStats(Telemetry::ThreadHangStats& aStats)
 {
-  if (!sTelemetry || !sTelemetry->mCanRecord)
+  if (!sTelemetry || !TelemetryHistogram::CanRecordExtended())
     return;
 
   MutexAutoLock autoLock(sTelemetry->mThreadHangStatsMutex);
 
-  sTelemetry->mThreadHangStats.append(Move(aStats));
+  // Ignore OOM.
+  mozilla::Unused << sTelemetry->mThreadHangStats.append(Move(aStats));
 }
 
 NS_IMPL_ISUPPORTS(TelemetryImpl, nsITelemetry, nsIMemoryReporter)
@@ -2542,12 +2269,12 @@ NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsITelemetry, TelemetryImpl::CreateTele
 NS_DEFINE_NAMED_CID(NS_TELEMETRY_CID);
 
 const Module::CIDEntry kTelemetryCIDs[] = {
-  { &kNS_TELEMETRY_CID, false, nullptr, nsITelemetryConstructor },
+  { &kNS_TELEMETRY_CID, false, nullptr, nsITelemetryConstructor, Module::ALLOW_IN_GPU_PROCESS },
   { nullptr }
 };
 
 const Module::ContractIDEntry kTelemetryContracts[] = {
-  { "@mozilla.org/base/telemetry;1", &kNS_TELEMETRY_CID },
+  { "@mozilla.org/base/telemetry;1", &kNS_TELEMETRY_CID, Module::ALLOW_IN_GPU_PROCESS },
   { nullptr }
 };
 
@@ -2558,15 +2285,15 @@ const Module kTelemetryModule = {
   nullptr,
   nullptr,
   nullptr,
-  TelemetryImpl::ShutdownTelemetry
+  TelemetryImpl::ShutdownTelemetry,
+  Module::ALLOW_IN_GPU_PROCESS
 };
 
 NS_IMETHODIMP
 TelemetryImpl::GetFileIOReports(JSContext *cx, JS::MutableHandleValue ret)
 {
   if (sTelemetryIOObserver) {
-    JS::Rooted<JSObject*> obj(cx, JS_NewObject(cx, nullptr, JS::NullPtr(),
-                                               JS::NullPtr()));
+    JS::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
     if (!obj) {
       return NS_ERROR_FAILURE;
     }
@@ -2584,12 +2311,101 @@ TelemetryImpl::GetFileIOReports(JSContext *cx, JS::MutableHandleValue ret)
 NS_IMETHODIMP
 TelemetryImpl::MsSinceProcessStart(double* aResult)
 {
-  bool error;
-  *aResult = (TimeStamp::NowLoRes() -
-              TimeStamp::ProcessCreation(error)).ToMilliseconds();
-  if (error) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
+  return Telemetry::Common::MsSinceProcessStart(aResult);
+}
+
+// Telemetry Scalars IDL Implementation
+
+NS_IMETHODIMP
+TelemetryImpl::ScalarAdd(const nsACString& aName, JS::HandleValue aVal, JSContext* aCx)
+{
+  return TelemetryScalar::Add(aName, aVal, aCx);
+}
+
+NS_IMETHODIMP
+TelemetryImpl::ScalarSet(const nsACString& aName, JS::HandleValue aVal, JSContext* aCx)
+{
+  return TelemetryScalar::Set(aName, aVal, aCx);
+}
+
+NS_IMETHODIMP
+TelemetryImpl::ScalarSetMaximum(const nsACString& aName, JS::HandleValue aVal, JSContext* aCx)
+{
+  return TelemetryScalar::SetMaximum(aName, aVal, aCx);
+}
+
+NS_IMETHODIMP
+TelemetryImpl::SnapshotScalars(unsigned int aDataset, bool aClearScalars, JSContext* aCx,
+                               uint8_t optional_argc, JS::MutableHandleValue aResult)
+{
+  return TelemetryScalar::CreateSnapshots(aDataset, aClearScalars, aCx, optional_argc, aResult);
+}
+
+NS_IMETHODIMP
+TelemetryImpl::KeyedScalarAdd(const nsACString& aName, const nsAString& aKey,
+                              JS::HandleValue aVal, JSContext* aCx)
+{
+  return TelemetryScalar::Add(aName, aKey, aVal, aCx);
+}
+
+NS_IMETHODIMP
+TelemetryImpl::KeyedScalarSet(const nsACString& aName, const nsAString& aKey,
+                              JS::HandleValue aVal, JSContext* aCx)
+{
+  return TelemetryScalar::Set(aName, aKey, aVal, aCx);
+}
+
+NS_IMETHODIMP
+TelemetryImpl::KeyedScalarSetMaximum(const nsACString& aName, const nsAString& aKey,
+                              JS::HandleValue aVal, JSContext* aCx)
+{
+  return TelemetryScalar::SetMaximum(aName, aKey, aVal, aCx);
+}
+
+NS_IMETHODIMP
+TelemetryImpl::SnapshotKeyedScalars(unsigned int aDataset, bool aClearScalars, JSContext* aCx,
+                                    uint8_t optional_argc, JS::MutableHandleValue aResult)
+{
+  return TelemetryScalar::CreateKeyedSnapshots(aDataset, aClearScalars, aCx, optional_argc,
+                                               aResult);
+}
+
+NS_IMETHODIMP
+TelemetryImpl::ClearScalars()
+{
+  TelemetryScalar::ClearScalars();
+  return NS_OK;
+}
+
+// Telemetry Event IDL implementation.
+
+NS_IMETHODIMP
+TelemetryImpl::RecordEvent(const nsACString & aCategory, const nsACString & aMethod,
+                           const nsACString & aObject, JS::HandleValue aValue,
+                           JS::HandleValue aExtra, JSContext* aCx, uint8_t optional_argc)
+{
+  return TelemetryEvent::RecordEvent(aCategory, aMethod, aObject, aValue, aExtra, aCx, optional_argc);
+}
+
+NS_IMETHODIMP
+TelemetryImpl::SnapshotBuiltinEvents(uint32_t aDataset, bool aClear, JSContext* aCx,
+                                     uint8_t optional_argc, JS::MutableHandleValue aResult)
+{
+  return TelemetryEvent::CreateSnapshots(aDataset, aClear, aCx, optional_argc, aResult);
+}
+
+NS_IMETHODIMP
+TelemetryImpl::ClearEvents()
+{
+  TelemetryEvent::ClearEvents();
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+TelemetryImpl::FlushBatchedChildTelemetry()
+{
+  TelemetryHistogram::IPCTimerFired(nullptr, nullptr);
   return NS_OK;
 }
 
@@ -2597,18 +2413,19 @@ size_t
 TelemetryImpl::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
 {
   size_t n = aMallocSizeOf(this);
+
   // Ignore the hashtables in mAddonMap; they are not significant.
-  n += mAddonMap.SizeOfExcludingThis(nullptr, aMallocSizeOf);
-  n += mHistogramMap.SizeOfExcludingThis(nullptr, aMallocSizeOf);
+  n += TelemetryHistogram::GetMapShallowSizesOfExcludingThis(aMallocSizeOf);
+  n += TelemetryScalar::GetMapShallowSizesOfExcludingThis(aMallocSizeOf);
+  n += mWebrtcTelemetry.SizeOfExcludingThis(aMallocSizeOf);
   { // Scope for mHashMutex lock
     MutexAutoLock lock(mHashMutex);
-    n += mPrivateSQL.SizeOfExcludingThis(nullptr, aMallocSizeOf);
-    n += mSanitizedSQL.SizeOfExcludingThis(nullptr, aMallocSizeOf);
+    n += mPrivateSQL.SizeOfExcludingThis(aMallocSizeOf);
+    n += mSanitizedSQL.SizeOfExcludingThis(aMallocSizeOf);
   }
-  n += mTrackedDBs.SizeOfExcludingThis(nullptr, aMallocSizeOf);
   { // Scope for mHangReportsMutex lock
     MutexAutoLock lock(mHangReportsMutex);
-    n += mHangReports.SizeOfExcludingThis();
+    n += mHangReports.SizeOfExcludingThis(aMallocSizeOf);
   }
   { // Scope for mThreadHangStatsMutex lock
     MutexAutoLock lock(mThreadHangStatsMutex);
@@ -2620,19 +2437,63 @@ TelemetryImpl::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
   if (sTelemetryIOObserver) {
     n += sTelemetryIOObserver->SizeOfIncludingThis(aMallocSizeOf);
   }
-  StatisticsRecorder::Histograms hs;
-  StatisticsRecorder::GetHistograms(&hs);
-  for (HistogramIterator it = hs.begin(); it != hs.end(); ++it) {
-    Histogram *h = *it;
-    n += h->SizeOfIncludingThis(aMallocSizeOf);
-  }
+
+  n += TelemetryHistogram::GetHistogramSizesofIncludingThis(aMallocSizeOf);
+  n += TelemetryScalar::GetScalarSizesOfIncludingThis(aMallocSizeOf);
+  n += TelemetryEvent::SizeOfIncludingThis(aMallocSizeOf);
 
   return n;
 }
 
-} // anonymous namespace
+struct StackFrame
+{
+  uintptr_t mPC;      // The program counter at this position in the call stack.
+  uint16_t mIndex;    // The number of this frame in the call stack.
+  uint16_t mModIndex; // The index of module that has this program counter.
+};
+
+#ifdef MOZ_ENABLE_PROFILER_SPS
+static bool CompareByPC(const StackFrame &a, const StackFrame &b)
+{
+  return a.mPC < b.mPC;
+}
+
+static bool CompareByIndex(const StackFrame &a, const StackFrame &b)
+{
+  return a.mIndex < b.mIndex;
+}
+#endif
+
+} // namespace
+
+
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+//
+// EXTERNALLY VISIBLE FUNCTIONS in no name space
+// These are NOT listed in Telemetry.h
+
+NSMODULE_DEFN(nsTelemetryModule) = &kTelemetryModule;
+
+/**
+ * The XRE_TelemetryAdd function is to be used by embedding applications
+ * that can't use mozilla::Telemetry::Accumulate() directly.
+ */
+void
+XRE_TelemetryAccumulate(int aID, uint32_t aSample)
+{
+  mozilla::Telemetry::Accumulate((mozilla::Telemetry::ID) aID, aSample);
+}
+
+
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+//
+// EXTERNALLY VISIBLE FUNCTIONS in mozilla::
+// These are NOT listed in Telemetry.h
 
 namespace mozilla {
+
 void
 RecordShutdownStartTimeStamp() {
 #ifdef DEBUG
@@ -2646,7 +2507,7 @@ RecordShutdownStartTimeStamp() {
   recorded = true;
 #endif
 
-  if (!Telemetry::CanRecord())
+  if (!Telemetry::CanRecordExtended())
     return;
 
   gRecordedShutdownStartTime = TimeStamp::Now();
@@ -2663,6 +2524,14 @@ RecordShutdownEndTimeStamp() {
   PL_strfree(gRecordedShutdownTimeFileName);
   gRecordedShutdownTimeFileName = nullptr;
   gAlreadyFreedShutdownTimeFileName = true;
+
+  if (gRecordedShutdownStartTime.IsNull()) {
+    // If |CanRecordExtended()| is true before |AsyncFetchTelemetryData| is called and
+    // then disabled before shutdown, |RecordShutdownStartTimeStamp| will bail out and
+    // we will end up with a null |gRecordedShutdownStartTime| here. This can happen
+    // during tests.
+    return;
+  }
 
   nsCString tmpName = name;
   tmpName += ".tmp";
@@ -2690,91 +2559,17 @@ RecordShutdownEndTimeStamp() {
   PR_Rename(tmpName.get(), name.get());
 }
 
+} // namespace mozilla
+
+
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+//
+// EXTERNALLY VISIBLE FUNCTIONS in mozilla::Telemetry::
+// These are NOT listed in Telemetry.h
+
+namespace mozilla {
 namespace Telemetry {
-
-void
-Accumulate(ID aHistogram, uint32_t aSample)
-{
-  if (!TelemetryImpl::CanRecord()) {
-    return;
-  }
-  Histogram *h;
-  nsresult rv = GetHistogramByEnumId(aHistogram, &h);
-  if (NS_SUCCEEDED(rv))
-    h->Add(aSample);
-}
-
-void
-Accumulate(const char* name, uint32_t sample)
-{
-  if (!TelemetryImpl::CanRecord()) {
-    return;
-  }
-  ID id;
-  nsresult rv = TelemetryImpl::GetHistogramEnumId(name, &id);
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
-  Histogram *h;
-  rv = GetHistogramByEnumId(id, &h);
-  if (NS_SUCCEEDED(rv)) {
-    h->Add(sample);
-  }
-}
-
-void
-AccumulateTimeDelta(ID aHistogram, TimeStamp start, TimeStamp end)
-{
-  Accumulate(aHistogram,
-             static_cast<uint32_t>((end - start).ToMilliseconds()));
-}
-
-bool
-CanRecord()
-{
-  return TelemetryImpl::CanRecord();
-}
-
-base::Histogram*
-GetHistogramById(ID id)
-{
-  Histogram *h = nullptr;
-  GetHistogramByEnumId(id, &h);
-  return h;
-}
-
-void
-RecordSlowSQLStatement(const nsACString &statement,
-                       const nsACString &dbName,
-                       uint32_t delay)
-{
-  TelemetryImpl::RecordSlowStatement(statement, dbName, delay);
-}
-
-void Init()
-{
-  // Make the service manager hold a long-lived reference to the service
-  nsCOMPtr<nsITelemetry> telemetryService =
-    do_GetService("@mozilla.org/base/telemetry;1");
-  MOZ_ASSERT(telemetryService);
-}
-
-#if defined(MOZ_ENABLE_PROFILER_SPS)
-void RecordChromeHang(uint32_t duration,
-                      ProcessedStack &aStack,
-                      int32_t aSystemUptime,
-                      int32_t aFirefoxUptime)
-{
-  TelemetryImpl::RecordChromeHang(duration, aStack,
-                                  aSystemUptime, aFirefoxUptime);
-}
-#endif
-
-void RecordThreadHangStats(ThreadHangStats& aStats)
-{
-  TelemetryImpl::RecordThreadHangStats(aStats);
-}
 
 ProcessedStack::ProcessedStack()
 {
@@ -2783,6 +2578,16 @@ ProcessedStack::ProcessedStack()
 size_t ProcessedStack::GetStackSize() const
 {
   return mStack.size();
+}
+
+size_t ProcessedStack::GetNumModules() const
+{
+  return mModules.size();
+}
+
+bool ProcessedStack::Module::operator==(const Module& aOther) const {
+  return  mName == aOther.mName &&
+    mBreakpadId == aOther.mBreakpadId;
 }
 
 const ProcessedStack::Frame &ProcessedStack::GetFrame(unsigned aIndex) const
@@ -2794,11 +2599,6 @@ const ProcessedStack::Frame &ProcessedStack::GetFrame(unsigned aIndex) const
 void ProcessedStack::AddFrame(const Frame &aFrame)
 {
   mStack.push_back(aFrame);
-}
-
-size_t ProcessedStack::GetNumModules() const
-{
-  return mModules.size();
 }
 
 const ProcessedStack::Module &ProcessedStack::GetModule(unsigned aIndex) const
@@ -2817,37 +2617,12 @@ void ProcessedStack::Clear() {
   mStack.clear();
 }
 
-bool ProcessedStack::Module::operator==(const Module& aOther) const {
-  return  mName == aOther.mName &&
-    mBreakpadId == aOther.mBreakpadId;
-}
-
-struct StackFrame
-{
-  uintptr_t mPC;      // The program counter at this position in the call stack.
-  uint16_t mIndex;    // The number of this frame in the call stack.
-  uint16_t mModIndex; // The index of module that has this program counter.
-};
-
-
-#ifdef MOZ_ENABLE_PROFILER_SPS
-static bool CompareByPC(const StackFrame &a, const StackFrame &b)
-{
-  return a.mPC < b.mPC;
-}
-
-static bool CompareByIndex(const StackFrame &a, const StackFrame &b)
-{
-  return a.mIndex < b.mIndex;
-}
-#endif
-
 ProcessedStack
 GetStackAndModules(const std::vector<uintptr_t>& aPCs)
 {
   std::vector<StackFrame> rawStack;
-  for (std::vector<uintptr_t>::const_iterator i = aPCs.begin(),
-         e = aPCs.end(); i != e; ++i) {
+  auto stackEnd = aPCs.begin() + std::min(aPCs.size(), kMaxChromeStackDepth);
+  for (auto i = aPCs.begin(); i != stackEnd; ++i) {
     uintptr_t aPC = *i;
     StackFrame Frame = {aPC, static_cast<uint16_t>(rawStack.size()),
                         std::numeric_limits<uint16_t>::max()};
@@ -2913,7 +2688,7 @@ GetStackAndModules(const std::vector<uintptr_t>& aPCs)
   for (std::vector<StackFrame>::iterator i = rawStack.begin(),
          e = rawStack.end(); i != e; ++i) {
     const StackFrame &rawFrame = *i;
-    ProcessedStack::Frame frame = { rawFrame.mPC, rawFrame.mModIndex };
+    mozilla::Telemetry::ProcessedStack::Frame frame = { rawFrame.mPC, rawFrame.mModIndex };
     Ret.AddFrame(frame);
   }
 
@@ -2931,7 +2706,7 @@ GetStackAndModules(const std::vector<uintptr_t>& aPCs)
       basename = name.substr(pos + 1);
     }
 #endif
-    ProcessedStack::Module module = {
+    mozilla::Telemetry::ProcessedStack::Module module = {
       basename,
       info.GetBreakpadId()
     };
@@ -2941,6 +2716,218 @@ GetStackAndModules(const std::vector<uintptr_t>& aPCs)
 
   return Ret;
 }
+
+void
+TimeHistogram::Add(PRIntervalTime aTime)
+{
+  uint32_t timeMs = PR_IntervalToMilliseconds(aTime);
+  size_t index = mozilla::FloorLog2(timeMs);
+  operator[](index)++;
+}
+
+const char*
+HangStack::InfallibleAppendViaBuffer(const char* aText, size_t aLength)
+{
+  MOZ_ASSERT(this->canAppendWithoutRealloc(1));
+  // Include null-terminator in length count.
+  MOZ_ASSERT(mBuffer.canAppendWithoutRealloc(aLength + 1));
+
+  const char* const entry = mBuffer.end();
+  mBuffer.infallibleAppend(aText, aLength);
+  mBuffer.infallibleAppend('\0'); // Explicitly append null-terminator
+  this->infallibleAppend(entry);
+  return entry;
+}
+
+const char*
+HangStack::AppendViaBuffer(const char* aText, size_t aLength)
+{
+  if (!this->reserve(this->length() + 1)) {
+    return nullptr;
+  }
+
+  // Keep track of the previous buffer in case we need to adjust pointers later.
+  const char* const prevStart = mBuffer.begin();
+  const char* const prevEnd = mBuffer.end();
+
+  // Include null-terminator in length count.
+  if (!mBuffer.reserve(mBuffer.length() + aLength + 1)) {
+    return nullptr;
+  }
+
+  if (prevStart != mBuffer.begin()) {
+    // The buffer has moved; we have to adjust pointers in the stack.
+    for (const char** entry = this->begin(); entry != this->end(); entry++) {
+      if (*entry >= prevStart && *entry < prevEnd) {
+        // Move from old buffer to new buffer.
+        *entry += mBuffer.begin() - prevStart;
+      }
+    }
+  }
+
+  return InfallibleAppendViaBuffer(aText, aLength);
+}
+
+uint32_t
+HangHistogram::GetHash(const HangStack& aStack)
+{
+  uint32_t hash = 0;
+  for (const char* const* label = aStack.begin();
+       label != aStack.end(); label++) {
+    /* If the string is within our buffer, we need to hash its content.
+       Otherwise, the string is statically allocated, and we only need
+       to hash the pointer instead of the content. */
+    if (aStack.IsInBuffer(*label)) {
+      hash = AddToHash(hash, HashString(*label));
+    } else {
+      hash = AddToHash(hash, *label);
+    }
+  }
+  return hash;
+}
+
+bool
+HangHistogram::operator==(const HangHistogram& aOther) const
+{
+  if (mHash != aOther.mHash) {
+    return false;
+  }
+  if (mStack.length() != aOther.mStack.length()) {
+    return false;
+  }
+  return mStack == aOther.mStack;
+}
+
+} // namespace Telemetry
+} // namespace mozilla
+
+
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+//
+// EXTERNALLY VISIBLE FUNCTIONS in mozilla::Telemetry::
+// These are listed in Telemetry.h
+
+namespace mozilla {
+namespace Telemetry {
+
+// The external API for controlling recording state
+void
+SetHistogramRecordingEnabled(ID aID, bool aEnabled)
+{
+  TelemetryHistogram::SetHistogramRecordingEnabled(aID, aEnabled);
+}
+
+void
+Accumulate(ID aHistogram, uint32_t aSample)
+{
+  TelemetryHistogram::Accumulate(aHistogram, aSample);
+}
+
+void
+Accumulate(ID aID, const nsCString& aKey, uint32_t aSample)
+{
+  TelemetryHistogram::Accumulate(aID, aKey, aSample);
+}
+
+void
+Accumulate(const char* name, uint32_t sample)
+{
+  TelemetryHistogram::Accumulate(name, sample);
+}
+
+void
+Accumulate(const char *name, const nsCString& key, uint32_t sample)
+{
+  TelemetryHistogram::Accumulate(name, key, sample);
+}
+
+void
+AccumulateCategorical(ID id, const nsCString& label)
+{
+  TelemetryHistogram::AccumulateCategorical(id, label);
+}
+
+void
+AccumulateTimeDelta(ID aHistogram, TimeStamp start, TimeStamp end)
+{
+  Accumulate(aHistogram,
+             static_cast<uint32_t>((end - start).ToMilliseconds()));
+}
+
+void
+AccumulateChild(GeckoProcessType aProcessType,
+                const nsTArray<Accumulation>& aAccumulations)
+{
+  TelemetryHistogram::AccumulateChild(aProcessType, aAccumulations);
+}
+
+void
+AccumulateChildKeyed(GeckoProcessType aProcessType,
+                     const nsTArray<KeyedAccumulation>& aAccumulations)
+{
+  TelemetryHistogram::AccumulateChildKeyed(aProcessType, aAccumulations);
+}
+
+const char*
+GetHistogramName(ID id)
+{
+  return TelemetryHistogram::GetHistogramName(id);
+}
+
+bool
+CanRecordBase()
+{
+  return TelemetryHistogram::CanRecordBase();
+}
+
+bool
+CanRecordExtended()
+{
+  return TelemetryHistogram::CanRecordExtended();
+}
+
+void
+RecordSlowSQLStatement(const nsACString &statement,
+                       const nsACString &dbName,
+                       uint32_t delay)
+{
+  TelemetryImpl::RecordSlowStatement(statement, dbName, delay);
+}
+
+void
+RecordWebrtcIceCandidates(const uint32_t iceCandidateBitmask,
+                          const bool success)
+{
+  TelemetryImpl::RecordIceCandidates(iceCandidateBitmask, success);
+}
+
+void Init()
+{
+  // Make the service manager hold a long-lived reference to the service
+  nsCOMPtr<nsITelemetry> telemetryService =
+    do_GetService("@mozilla.org/base/telemetry;1");
+  MOZ_ASSERT(telemetryService);
+}
+
+#if defined(MOZ_ENABLE_PROFILER_SPS)
+void RecordChromeHang(uint32_t duration,
+                      ProcessedStack &aStack,
+                      int32_t aSystemUptime,
+                      int32_t aFirefoxUptime,
+                      HangAnnotationsPtr aAnnotations)
+{
+  TelemetryImpl::RecordChromeHang(duration, aStack,
+                                  aSystemUptime, aFirefoxUptime,
+                                  Move(aAnnotations));
+}
+#endif
+
+void RecordThreadHangStats(ThreadHangStats& aStats)
+{
+  TelemetryImpl::RecordThreadHangStats(aStats);
+}
+
 
 void
 WriteFailedProfileLock(nsIFile* aProfileDir)
@@ -3019,51 +3006,71 @@ SetProfileDir(nsIFile* aProfD)
   sTelemetryIOObserver->AddPath(profDirPath, NS_LITERAL_STRING("{profile}"));
 }
 
+void CreateStatisticsRecorder()
+{
+  TelemetryHistogram::CreateStatisticsRecorder();
+}
+
+void DestroyStatisticsRecorder()
+{
+  TelemetryHistogram::DestroyStatisticsRecorder();
+}
+
+// Scalar API C++ Endpoints
+
 void
-TimeHistogram::Add(PRIntervalTime aTime)
+ScalarAdd(mozilla::Telemetry::ScalarID aId, uint32_t aVal)
 {
-  uint32_t timeMs = PR_IntervalToMilliseconds(aTime);
-  size_t index = mozilla::FloorLog2(timeMs);
-  operator[](index)++;
+  TelemetryScalar::Add(aId, aVal);
 }
 
-uint32_t
-HangHistogram::GetHash(const Stack& aStack)
+void
+ScalarSet(mozilla::Telemetry::ScalarID aId, uint32_t aVal)
 {
-  uint32_t hash = 0;
-  for (const char* const* label = aStack.begin();
-       label != aStack.end(); label++) {
-    /* We only need to hash the pointer instead of the text content
-       because we are assuming constant pointers */
-    hash = AddToHash(hash, *label);
-  }
-  return hash;
+  TelemetryScalar::Set(aId, aVal);
 }
 
-bool
-HangHistogram::operator==(const HangHistogram& aOther) const
+void
+ScalarSet(mozilla::Telemetry::ScalarID aId, bool aVal)
 {
-  if (mHash != aOther.mHash) {
-    return false;
-  }
-  if (mStack.length() != aOther.mStack.length()) {
-    return false;
-  }
-  return PodEqual(mStack.begin(), aOther.mStack.begin(), mStack.length());
+  TelemetryScalar::Set(aId, aVal);
 }
 
+void
+ScalarSet(mozilla::Telemetry::ScalarID aId, const nsAString& aVal)
+{
+  TelemetryScalar::Set(aId, aVal);
+}
+
+void
+ScalarSetMaximum(mozilla::Telemetry::ScalarID aId, uint32_t aVal)
+{
+  TelemetryScalar::SetMaximum(aId, aVal);
+}
+
+void
+ScalarAdd(mozilla::Telemetry::ScalarID aId, const nsAString& aKey, uint32_t aVal)
+{
+  TelemetryScalar::Add(aId, aKey, aVal);
+}
+
+void
+ScalarSet(mozilla::Telemetry::ScalarID aId, const nsAString& aKey, uint32_t aVal)
+{
+  TelemetryScalar::Set(aId, aKey, aVal);
+}
+
+void
+ScalarSet(mozilla::Telemetry::ScalarID aId, const nsAString& aKey, bool aVal)
+{
+  TelemetryScalar::Set(aId, aKey, aVal);
+}
+
+void
+ScalarSetMaximum(mozilla::Telemetry::ScalarID aId, const nsAString& aKey, uint32_t aVal)
+{
+  TelemetryScalar::SetMaximum(aId, aKey, aVal);
+}
 
 } // namespace Telemetry
 } // namespace mozilla
-
-NSMODULE_DEFN(nsTelemetryModule) = &kTelemetryModule;
-
-/**
- * The XRE_TelemetryAdd function is to be used by embedding applications
- * that can't use mozilla::Telemetry::Accumulate() directly.
- */
-void
-XRE_TelemetryAccumulate(int aID, uint32_t aSample)
-{
-  mozilla::Telemetry::Accumulate((mozilla::Telemetry::ID) aID, aSample);
-}

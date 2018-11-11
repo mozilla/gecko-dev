@@ -139,7 +139,7 @@ XPC_MSG_DEF(NS_ERROR_NO_CONTENT                     , "Channel opened successful
 XPC_MSG_DEF(NS_ERROR_IN_PROGRESS                    , "The requested action could not be completed while the object is busy")
 XPC_MSG_DEF(NS_ERROR_ALREADY_OPENED                 , "Channel is already open")
 XPC_MSG_DEF(NS_ERROR_INVALID_CONTENT_ENCODING       , "The content encoding of the source document is incorrect")
-XPC_MSG_DEF(NS_ERROR_CORRUPTED_CONTENT              , "Corrupted content was received from server")
+XPC_MSG_DEF(NS_ERROR_CORRUPTED_CONTENT              , "Corrupted content received from server (potentially MIME type mismatch because of 'X-Content-Type-Options: nosniff')")
 XPC_MSG_DEF(NS_ERROR_FIRST_HEADER_FIELD_COMPONENT_EMPTY, "Couldn't extract first component from potentially corrupted header field")
 XPC_MSG_DEF(NS_ERROR_ALREADY_CONNECTED              , "The connection is already established")
 XPC_MSG_DEF(NS_ERROR_NOT_CONNECTED                  , "The connection does not exist")
@@ -156,6 +156,7 @@ XPC_MSG_DEF(NS_ERROR_ENTITY_CHANGED                 , "It was attempted to resum
 XPC_MSG_DEF(NS_ERROR_REDIRECT_LOOP                  , "The request failed as a result of a detected redirection loop")
 XPC_MSG_DEF(NS_ERROR_UNSAFE_CONTENT_TYPE            , "The request failed because the content type returned by the server was not a type expected by the channel")
 XPC_MSG_DEF(NS_ERROR_REMOTE_XUL                     , "Attempt to access remote XUL document that is not in website's whitelist")
+XPC_MSG_DEF(NS_ERROR_LOAD_SHOWED_ERRORPAGE          , "The load caused an error page to be displayed.")
 
 XPC_MSG_DEF(NS_ERROR_FTP_LOGIN                      , "FTP error while logging in")
 XPC_MSG_DEF(NS_ERROR_FTP_CWD                        , "FTP error while changing directory")
@@ -203,6 +204,9 @@ XPC_MSG_DEF(NS_ERROR_SIGNED_JAR_ENTRY_TOO_LARGE     , "An entry in the JAR is to
 XPC_MSG_DEF(NS_ERROR_SIGNED_JAR_ENTRY_INVALID       , "An entry in the JAR is invalid.")
 XPC_MSG_DEF(NS_ERROR_SIGNED_JAR_MANIFEST_INVALID    , "The JAR's manifest or signature file is invalid.")
 
+/* Codes related to signed manifests */
+XPC_MSG_DEF(NS_ERROR_SIGNED_APP_MANIFEST_INVALID   , "The signed app manifest or signature file is invalid.")
+
 /* Codes for printing-related errors. */
 XPC_MSG_DEF(NS_ERROR_GFX_PRINTER_NO_PRINTER_AVAILABLE , "No printers available.")
 XPC_MSG_DEF(NS_ERROR_GFX_PRINTER_NAME_NOT_FOUND       , "The selected printer could not be found.")
@@ -214,3 +218,11 @@ XPC_MSG_DEF(NS_ERROR_GFX_PRINTER_DOC_IS_BUSY          , "Cannot print this docum
 
 /* Codes related to content */
 XPC_MSG_DEF(NS_ERROR_CONTENT_CRASHED                  , "The process that hosted this content has crashed.")
+
+/* Codes for the JS-implemented Push DOM API. These can be removed as part of bug 1252660. */
+XPC_MSG_DEF(NS_ERROR_DOM_PUSH_INVALID_KEY_ERR         , "Invalid raw ECDSA P-256 public key.")
+XPC_MSG_DEF(NS_ERROR_DOM_PUSH_MISMATCHED_KEY_ERR      , "A subscription with a different application server key already exists.")
+
+/* Codes defined in WebIDL https://heycam.github.io/webidl/#idl-DOMException-error-names */
+XPC_MSG_DEF(NS_ERROR_DOM_NOT_FOUND_ERR                , "The object can not be found here.")
+XPC_MSG_DEF(NS_ERROR_DOM_NOT_ALLOWED_ERR              , "The request is not allowed.")

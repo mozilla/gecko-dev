@@ -32,6 +32,12 @@ Crash Reporter Client
    to handle dump files. This application optionally submits crashes to
    Mozilla (or the configured server).
 
+Minidump Analyzer
+   The minidump analyzer is a standalone executable that is launched by the
+   crash reporter client or by the browser itself to extract stack traces from
+   the dump files generated during a crash. It appends the stack traces to the
+   .extra file associated with the crash dump.
+
 How Main-Process Crash Handling Works
 =====================================
 
@@ -83,8 +89,11 @@ argument.
 
 The *crash reporter client* performs a number of roles. There's a lot going
 on, so you may want to look at ``main()`` in ``crashreporter.cpp``. First,
-it verifies the dump data is sane. If it isn't (e.g. required metadata is
-missing), the dump data is ignored. If dump data looks sane, the dump data
+stack traces are extracted from the dump via the *minidump analyzer* tool.
+The resulting traces are appended to the .extra file of the crash. Then, the
+*crash reporter client* verifies that the dump data is sane. If it isn't
+(e.g. required metadata is missing), the dump data is ignored. If dump data
+looks sane, the dump data
 is moved into the *pending* directory for the configured data directory
 (defined via the ``MOZ_CRASHREPORTER_DATA_DIRECTORY`` environment variable
 or from the UI). Once this is done, the main crash reporter UI is displayed
@@ -124,6 +133,23 @@ crashes are annotated with a ``ProcessType`` annotation, such as "content" or
 Submission of child process crashes is handled by application code. This
 code prompts the user to submit crashes in context-appropriate UI and then
 submits the crashes using ``CrashSubmit.jsm``.
+
+Memory Reports
+==============
+
+When a process detects that it is running low on memory, a memory report is
+saved. If the process crashes, the memory report will be included with the crash
+report. ``nsThread::SaveMemoryReportNearOOM()`` checks to see if the process is
+low on memory every 30 seconds at most and saves a report every 3 minutes at
+most. Since a child process cannot actually save to the hard drive, it instead
+notifies its parent process, which saves the report for it. If a crash does
+occur, the memory report is moved to the *pending* directory with the other dump
+data and an annotation is added to indicate the presence of the report. This
+happens in ``nsExceptionHandler.cpp``, but occurs in different functions
+depending on what process crashed. When the main process crashes, this happens
+in ``MinidumpCallback()``. When a child process crashes, it happens in
+``OnChildProcessDumpRequested()``, with the annotation being added in
+``WriteExtraData()``.
 
 Flash Process Crashes
 =====================

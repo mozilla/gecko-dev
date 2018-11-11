@@ -12,24 +12,23 @@
 
 #include <assert.h>
 
+#include "webrtc/base/scoped_ptr.h"
+#include "webrtc/modules/rtp_rtcp/source/byte_io.h"
 #include "webrtc/modules/rtp_rtcp/source/rtp_receiver_video.h"
-#include "webrtc/modules/rtp_rtcp/source/rtp_utility.h"
 #include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
-#include "webrtc/system_wrappers/interface/trace.h"
+#include "webrtc/system_wrappers/interface/logging.h"
 
 // RFC 5109
 namespace webrtc {
 
-FecReceiver* FecReceiver::Create(int32_t id, RtpData* callback) {
-  return new FecReceiverImpl(id, callback);
+FecReceiver* FecReceiver::Create(RtpData* callback) {
+  return new FecReceiverImpl(callback);
 }
 
-FecReceiverImpl::FecReceiverImpl(const int32_t id, RtpData* callback)
-    : id_(id),
-      crit_sect_(CriticalSectionWrapper::CreateCriticalSection()),
+FecReceiverImpl::FecReceiverImpl(RtpData* callback)
+    : crit_sect_(CriticalSectionWrapper::CreateCriticalSection()),
       recovered_packet_callback_(callback),
-      fec_(new ForwardErrorCorrection(id)) {}
+      fec_(new ForwardErrorCorrection()) {}
 
 FecReceiverImpl::~FecReceiverImpl() {
   while (!received_packet_list_.empty()) {
@@ -40,6 +39,11 @@ FecReceiverImpl::~FecReceiverImpl() {
     fec_->ResetState(&recovered_packet_list_);
     delete fec_;
   }
+}
+
+FecPacketCounter FecReceiverImpl::GetPacketCounter() const {
+  CriticalSectionScoped cs(crit_sect_.get());
+  return packet_counter_;
 }
 
 //     0                   1                    2                   3
@@ -72,10 +76,10 @@ FecReceiverImpl::~FecReceiverImpl() {
 
 int32_t FecReceiverImpl::AddReceivedRedPacket(
     const RTPHeader& header, const uint8_t* incoming_rtp_packet,
-    int packet_length, uint8_t ulpfec_payload_type) {
+    size_t packet_length, uint8_t ulpfec_payload_type) {
   CriticalSectionScoped cs(crit_sect_.get());
   uint8_t REDHeaderLength = 1;
-  uint16_t payload_data_length = packet_length - header.headerLength;
+  size_t payload_data_length = packet_length - header.headerLength;
 
   // Add to list without RED header, aka a virtual RTP packet
   // we remove the RED header
@@ -103,8 +107,7 @@ int32_t FecReceiverImpl::AddReceivedRedPacket(
     if (timestamp_offset != 0) {
       // |timestampOffset| should be 0. However, it's possible this is the first
       // location a corrupt payload can be caught, so don't assert.
-      WEBRTC_TRACE(kTraceWarning, kTraceRtpRtcp, id_,
-                   "Corrupt payload found in %s", __FUNCTION__);
+      LOG(LS_WARNING) << "Corrupt payload found.";
       delete received_packet;
       return -1;
     }
@@ -127,6 +130,7 @@ int32_t FecReceiverImpl::AddReceivedRedPacket(
       return -1;
     }
   }
+  ++packet_counter_.num_packets;
 
   ForwardErrorCorrection::ReceivedPacket* second_received_packet = NULL;
   if (blockLength > 0) {
@@ -155,6 +159,7 @@ int32_t FecReceiverImpl::AddReceivedRedPacket(
 
     second_received_packet->is_fec = true;
     second_received_packet->seq_num = header.sequenceNumber;
+    ++packet_counter_.num_fec_packets;
 
     // copy the FEC payload data
     memcpy(second_received_packet->pkt->data,
@@ -166,6 +171,7 @@ int32_t FecReceiverImpl::AddReceivedRedPacket(
         payload_data_length - REDHeaderLength - blockLength;
 
   } else if (received_packet->is_fec) {
+    ++packet_counter_.num_fec_packets;
     // everything behind the RED header
     memcpy(
         received_packet->pkt->data,
@@ -173,7 +179,7 @@ int32_t FecReceiverImpl::AddReceivedRedPacket(
         payload_data_length - REDHeaderLength);
     received_packet->pkt->length = payload_data_length - REDHeaderLength;
     received_packet->ssrc =
-        ModuleRTPUtility::BufferToUWord32(&incoming_rtp_packet[8]);
+        ByteReader<uint32_t>::ReadBigEndian(&incoming_rtp_packet[8]);
 
   } else {
     // copy the RTP header
@@ -235,6 +241,7 @@ int32_t FecReceiverImpl::ProcessReceivedFec() {
     if ((*it)->returned)  // Already sent to the VCM and the jitter buffer.
       continue;
     ForwardErrorCorrection::Packet* packet = (*it)->pkt;
+    ++packet_counter_.num_recovered_packets;
     crit_sect_->Leave();
     if (!recovered_packet_callback_->OnRecoveredPacket(packet->data,
                                                        packet->length)) {

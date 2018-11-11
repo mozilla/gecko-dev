@@ -2,6 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+(function(global) {
+  /** Yield every permutation of the elements in some array. */
+  global.Permutations = function* Permutations(items) {
+      if (items.length == 0) {
+          yield [];
+      } else {
+          items = items.slice(0);
+          for (let i = 0; i < items.length; i++) {
+              let swap = items[0];
+              items[0] = items[i];
+              items[i] = swap;
+              for (let e of Permutations(items.slice(1, items.length)))
+                  yield [items[0]].concat(e);
+          }
+      }
+  };
+})(this);
 
 if (typeof assertThrowsInstanceOf === 'undefined') {
     var assertThrowsInstanceOf = function assertThrowsInstanceOf(f, ctor, msg) {
@@ -42,8 +59,10 @@ if (typeof assertThrowsValue === 'undefined') {
 if (typeof assertDeepEq === 'undefined') {
     var assertDeepEq = (function(){
         var call = Function.prototype.call,
+            Array_isArray = Array.isArray,
             Map_ = Map,
             Error_ = Error,
+            Symbol_ = Symbol,
             Map_has = call.bind(Map.prototype.has),
             Map_get = call.bind(Map.prototype.get),
             Map_set = call.bind(Map.prototype.set),
@@ -71,7 +90,7 @@ if (typeof assertDeepEq === 'undefined') {
             try {
                 assertEq(a, b);
             } catch (exc) {
-                throw new Error(exc.message + (msg ? " " + msg : ""));
+                throw Error_(exc.message + (msg ? " " + msg : ""));
             }
         }
 
@@ -80,7 +99,8 @@ if (typeof assertDeepEq === 'undefined') {
             assertSameValue(ac, bc, msg);
             switch (ac) {
             case "[object Function]":
-                assertSameValue(Function_toString(a), Function_toString(b), msg);
+                if (typeof isProxy !== "undefined" && !isProxy(a) && !isProxy(b))
+                    assertSameValue(Function_toString(a), Function_toString(b), msg);
             }
         }
 
@@ -118,6 +138,13 @@ if (typeof assertDeepEq === 'undefined') {
                     nb = Object_getOwnPropertyNames(b);
                 if (na.length !== nb.length)
                     failPropList(na, nb, msg);
+
+                // Ignore differences in whether Array elements are stored densely.
+                if (Array_isArray(a)) {
+                    na.sort();
+                    nb.sort();
+                }
+
                 for (var i = 0; i < na.length; i++) {
                     var name = na[i];
                     if (name !== nb[i])
@@ -142,11 +169,32 @@ if (typeof assertDeepEq === 'undefined') {
                 }
             };
 
-            var ab = Map_();
-            var bpath = Map_();
+            var ab = new Map_();
+            var bpath = new Map_();
 
             function check(a, b, path) {
-                if (isPrimitive(a)) {
+                if (typeof a === "symbol") {
+                    // Symbols are primitives, but they have identity.
+                    // Symbol("x") !== Symbol("x") but
+                    // assertDeepEq(Symbol("x"), Symbol("x")) should pass.
+                    if (typeof b !== "symbol") {
+                        throw Error_("got " + uneval_(a) + ", expected " + uneval_(b) + " " + path);
+                    } else if (uneval_(a) !== uneval_(b)) {
+                        // We lamely use uneval_ to distinguish well-known symbols
+                        // from user-created symbols. The standard doesn't offer
+                        // a convenient way to do it.
+                        throw Error_("got " + uneval_(a) + ", expected " + uneval_(b) + " " + path);
+                    } else if (Map_has(ab, a)) {
+                        assertSameValue(Map_get(ab, a), b, path);
+                    } else if (Map_has(bpath, b)) {
+                        var bPrevPath = Map_get(bpath, b) || "_";
+                        throw Error_("got distinct symbols " + at(path, "") + " and " +
+                                     at(bPrevPath, "") + ", expected the same symbol both places");
+                    } else {
+                        Map_set(ab, a, b);
+                        Map_set(bpath, b, path);
+                    }
+                } else if (isPrimitive(a)) {
                     assertSameValue(a, b, path);
                 } else if (isPrimitive(b)) {
                     throw Error_("got " + Object_toString(a) + ", expected " + uneval_(b) + " " + path);
@@ -173,4 +221,15 @@ if (typeof assertDeepEq === 'undefined') {
             check(a, b, "");
         };
     })();
+}
+
+if (typeof assertWarning === 'undefined') {
+    function assertWarning(func, name) {
+        enableLastWarning();
+        func();
+        var warning = getLastWarning();
+        assertEq(warning !== null, true);
+        assertEq(warning.name, name);
+        disableLastWarning();
+    }
 }

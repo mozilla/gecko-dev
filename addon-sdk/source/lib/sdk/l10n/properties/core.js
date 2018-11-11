@@ -13,6 +13,10 @@ const { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
 const baseURI = rootURI + "locale/";
 const preferedLocales = getPreferedLocales(true);
 
+// Make sure we don't get stale data after an update
+// (See Bug 1300735 for rationale).
+Services.strings.flushBundles();
+
 function getLocaleURL(locale) {
   // if the locale is a valid chrome URI, return it
   try {
@@ -66,6 +70,10 @@ function get(key, n, locales) {
     localized = getKey(locale, key);
   }
 
+  if (!localized) {
+    localized = getKey(locale, key + '[other]');
+  }
+
   if (localized) {
     return localized;
   }
@@ -76,4 +84,4 @@ function get(key, n, locales) {
 
   return undefined;
 }
-exports.get = function(k, n) get(k, n, Array.slice(preferedLocales));
+exports.get = (k, n) => get(k, n, Array.slice(preferedLocales));

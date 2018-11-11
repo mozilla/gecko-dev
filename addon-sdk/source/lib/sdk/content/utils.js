@@ -7,14 +7,16 @@ module.metadata = {
   'stability': 'unstable'
 };
 
-let { merge } = require('../util/object');
-let assetsURI = require('../self').data.url();
-let isArray = Array.isArray;
-let method = require('../../method/core');
+var { merge } = require('../util/object');
+var { data } = require('../self');
+var assetsURI = data.url();
+var isArray = Array.isArray;
+var method = require('../../method/core');
+var { uuid } = require('../util/uuid');
 
-function isAddonContent({ contentURL }) {
-  return typeof(contentURL) === 'string' && contentURL.indexOf(assetsURI) === 0;
-}
+const isAddonContent = ({ contentURL }) =>
+  contentURL && data.url(contentURL).startsWith(assetsURI);
+
 exports.isAddonContent = isAddonContent;
 
 function hasContentScript({ contentScript, contentScriptFile }) {
@@ -41,13 +43,16 @@ function getAttachEventType(model) {
 }
 exports.getAttachEventType = getAttachEventType;
 
-let attach = method('worker-attach');
+var attach = method('worker-attach');
 exports.attach = attach;
 
-let detach = method('worker-detach');
+var connect = method('worker-connect');
+exports.connect = connect;
+
+var detach = method('worker-detach');
 exports.detach = detach;
 
-let destroy = method('worker-destroy');
+var destroy = method('worker-destroy');
 exports.destroy = destroy;
 
 function WorkerHost (workerFor) {
@@ -80,3 +85,21 @@ function WorkerHost (workerFor) {
   }
 }
 exports.WorkerHost = WorkerHost;
+
+function makeChildOptions(options) {
+  function makeStringArray(arrayOrValue) {
+    if (!arrayOrValue)
+      return [];
+    return [].concat(arrayOrValue).map(String);
+  }
+
+  return {
+    id: String(uuid()),
+    contentScript: makeStringArray(options.contentScript),
+    contentScriptFile: makeStringArray(options.contentScriptFile),
+    contentScriptOptions: options.contentScriptOptions ?
+                          JSON.stringify(options.contentScriptOptions) :
+                          null,
+  }
+}
+exports.makeChildOptions = makeChildOptions;

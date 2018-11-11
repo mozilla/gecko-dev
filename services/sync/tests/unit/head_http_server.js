@@ -1,4 +1,4 @@
-const Cm = Components.manager;
+var Cm = Components.manager;
 
 // Shared logging for all HTTP server functions.
 Cu.import("resource://gre/modules/Log.jsm");
@@ -178,9 +178,13 @@ ServerCollection.prototype = {
    * @return an array of IDs.
    */
   keys: function keys(filter) {
-    return [id for ([id, wbo] in Iterator(this._wbos))
-               if (wbo.payload &&
-                   (!filter || filter(id, wbo)))];
+    let ids = [];
+    for (let [id, wbo] of Object.entries(this._wbos)) {
+      if (wbo.payload && (!filter || filter(id, wbo))) {
+        ids.push(id);
+      }
+    }
+    return ids;
   },
 
   /**
@@ -194,8 +198,13 @@ ServerCollection.prototype = {
    * @return an array of ServerWBOs.
    */
   wbos: function wbos(filter) {
-    let os = [wbo for ([id, wbo] in Iterator(this._wbos))
-              if (wbo.payload)];
+    let os = [];
+    for (let [id, wbo] of Object.entries(this._wbos)) {
+      if (wbo.payload) {
+        os.push(wbo);
+      }
+    }
+
     if (filter) {
       return os.filter(filter);
     }
@@ -267,7 +276,7 @@ ServerCollection.prototype = {
   count: function(options) {
     options = options || {};
     let c = 0;
-    for (let [id, wbo] in Iterator(this._wbos)) {
+    for (let [id, wbo] of Object.entries(this._wbos)) {
       if (wbo.modified && this._inResultSet(wbo, options)) {
         c++;
       }
@@ -278,12 +287,23 @@ ServerCollection.prototype = {
   get: function(options) {
     let result;
     if (options.full) {
-      let data = [wbo.get() for ([id, wbo] in Iterator(this._wbos))
-                            // Drop deleted.
-                            if (wbo.modified &&
-                                this._inResultSet(wbo, options))];
+      let data = [];
+      for (let [id, wbo] of Object.entries(this._wbos)) {
+        // Drop deleted.
+        if (wbo.modified && this._inResultSet(wbo, options)) {
+          data.push(wbo.get());
+        }
+      }
+      let start = options.offset || 0;
       if (options.limit) {
-        data = data.slice(0, options.limit);
+        let numItemsPastOffset = data.length - start;
+        data = data.slice(start, start + options.limit);
+        // use options as a backchannel to set x-weave-next-offset
+        if (numItemsPastOffset > options.limit) {
+          options.nextOffset = start + options.limit;
+        }
+      } else if (start) {
+        data = data.slice(start);
       }
       // Our implementation of application/newlines.
       result = data.join("\n") + "\n";
@@ -291,10 +311,18 @@ ServerCollection.prototype = {
       // Use options as a backchannel to report count.
       options.recordCount = data.length;
     } else {
-      let data = [id for ([id, wbo] in Iterator(this._wbos))
-                     if (this._inResultSet(wbo, options))];
+      let data = [];
+      for (let [id, wbo] of Object.entries(this._wbos)) {
+        if (this._inResultSet(wbo, options)) {
+          data.push(id);
+        }
+      }
+      let start = options.offset || 0;
       if (options.limit) {
-        data = data.slice(0, options.limit);
+        data = data.slice(start, start + options.limit);
+        options.nextOffset = start + options.limit;
+      } else if (start) {
+        data = data.slice(start);
       }
       result = JSON.stringify(data);
       options.recordCount = data.length;
@@ -309,7 +337,8 @@ ServerCollection.prototype = {
 
     // This will count records where we have an existing ServerWBO
     // registered with us as successful and all other records as failed.
-    for each (let record in input) {
+    for (let key in input) {
+      let record = input[key];
       let wbo = this.wbo(record.id);
       if (!wbo && this.acceptNew) {
         this._log.debug("Creating WBO " + JSON.stringify(record.id) +
@@ -332,7 +361,7 @@ ServerCollection.prototype = {
 
   delete: function(options) {
     let deleted = [];
-    for (let [id, wbo] in Iterator(this._wbos)) {
+    for (let [id, wbo] of Object.entries(this._wbos)) {
       if (this._inResultSet(wbo, options)) {
         this._log.debug("Deleting " + JSON.stringify(wbo));
         deleted.push(wbo.id);
@@ -354,7 +383,7 @@ ServerCollection.prototype = {
 
       // Parse queryString
       let options = {};
-      for each (let chunk in request.queryString.split("&")) {
+      for (let chunk of request.queryString.split("&")) {
         if (!chunk) {
           continue;
         }
@@ -374,29 +403,36 @@ ServerCollection.prototype = {
       if (options.limit) {
         options.limit = parseInt(options.limit, 10);
       }
+      if (options.offset) {
+        options.offset = parseInt(options.offset, 10);
+      }
 
       switch(request.method) {
         case "GET":
-          body = self.get(options);
-          // "If supported by the db, this header will return the number of
-          // records total in the request body of any multiple-record GET
-          // request."
-          let records = options.recordCount;
-          self._log.info("Records: " + records);
+          body = self.get(options, request);
+          // see http://moz-services-docs.readthedocs.io/en/latest/storage/apis-1.5.html
+          // for description of these headers.
+          let { recordCount: records, nextOffset } = options;
+
+          self._log.info("Records: " + records + ", nextOffset: " + nextOffset);
           if (records != null) {
             response.setHeader("X-Weave-Records", "" + records);
           }
+          if (nextOffset) {
+            response.setHeader("X-Weave-Next-Offset", "" + nextOffset);
+          }
+          response.setHeader("X-Last-Modified", "" + this.timestamp);
           break;
 
         case "POST":
-          let res = self.post(readBytesFromInputStream(request.bodyInputStream));
+          let res = self.post(readBytesFromInputStream(request.bodyInputStream), request);
           body = JSON.stringify(res);
           response.newModified = res.modified;
           break;
 
         case "DELETE":
           self._log.debug("Invoking ServerCollection.DELETE.");
-          let deleted = self.delete(options);
+          let deleted = self.delete(options, request);
           let ts = new_timestamp();
           body = JSON.stringify(ts);
           response.newModified = ts;
@@ -505,7 +541,7 @@ function track_collections_helper() {
  * find out what it needs without monkeypatching. Use this object as your
  * prototype, and override as appropriate.
  */
-let SyncServerCallback = {
+var SyncServerCallback = {
   onCollectionDeleted: function onCollectionDeleted(user, collection) {},
   onItemDeleted: function onItemDeleted(user, collection, wboID) {},
 
@@ -514,8 +550,11 @@ let SyncServerCallback = {
    *
    * Allows the test to inspect the request. Hooks should be careful not to
    * modify or change state of the request or they may impact future processing.
+   * The response is also passed so the callback can set headers etc - but care
+   * must be taken to not screw with the response body or headers that may
+   * conflict with normal operation of this server.
    */
-  onRequest: function onRequest(request) {},
+  onRequest: function onRequest(request, response) {},
 };
 
 /**
@@ -542,13 +581,13 @@ SyncServer.prototype = {
    * Start the SyncServer's underlying HTTP server.
    *
    * @param port
-   *        The numeric port on which to start. A falsy value implies the
-   *        default, a randomly chosen port.
+   *        The numeric port on which to start. -1 implies the default, a
+   *        randomly chosen port.
    * @param cb
    *        A callback function (of no arguments) which is invoked after
    *        startup.
    */
-  start: function start(port, cb) {
+  start: function start(port = -1, cb) {
     if (this.started) {
       this._log.warn("Warning: server already started on " + this.port);
       return;
@@ -566,7 +605,7 @@ SyncServer.prototype = {
     } catch (ex) {
       _("==========================================");
       _("Got exception starting Sync HTTP server.");
-      _("Error: " + Utils.exceptionStr(ex));
+      _("Error: " + Log.exceptionStr(ex));
       _("Is there a process already listening on port " + port + "?");
       _("==========================================");
       do_throw(ex);
@@ -664,10 +703,10 @@ SyncServer.prototype = {
       throw new Error("Unknown user.");
     }
     let userCollections = this.users[username].collections;
-    for (let [id, contents] in Iterator(collections)) {
+    for (let [id, contents] of Object.entries(collections)) {
       let coll = userCollections[id] ||
                  this._insertCollection(userCollections, id);
-      for (let [wboID, payload] in Iterator(contents)) {
+      for (let [wboID, payload] of Object.entries(contents)) {
         coll.insert(wboID, payload);
       }
     }
@@ -701,7 +740,8 @@ SyncServer.prototype = {
       throw new Error("Unknown user.");
     }
     let userCollections = this.users[username].collections;
-    for each (let [name, coll] in Iterator(userCollections)) {
+    for (let name in userCollections) {
+      let coll = userCollections[name];
       this._log.trace("Bulk deleting " + name + " for " + username + "...");
       coll.delete({});
     }
@@ -765,7 +805,10 @@ SyncServer.prototype = {
    */
   respond: function respond(req, resp, code, status, body, headers) {
     resp.setStatusLine(req.httpVersion, code, status);
-    for each (let [header, value] in Iterator(headers || this.defaultHeaders)) {
+    if (!headers)
+      headers = this.defaultHeaders;
+    for (let header in headers) {
+      let value = headers[header];
       resp.setHeader(header, value);
     }
     resp.setHeader("X-Weave-Timestamp", "" + this.timestamp(), false);
@@ -796,7 +839,7 @@ SyncServer.prototype = {
     this._log.debug("SyncServer: Handling request: " + req.method + " " + req.path);
 
     if (this.callback.onRequest) {
-      this.callback.onRequest(req);
+      this.callback.onRequest(req, resp);
     }
 
     let parts = this.pathRE.exec(req.path);
@@ -992,7 +1035,7 @@ SyncServer.prototype = {
  */
 function serverForUsers(users, contents, callback) {
   let server = new SyncServer(callback);
-  for (let [user, pass] in Iterator(users)) {
+  for (let [user, pass] of Object.entries(users)) {
     server.registerUser(user, pass);
     server.createContents(user, contents);
   }

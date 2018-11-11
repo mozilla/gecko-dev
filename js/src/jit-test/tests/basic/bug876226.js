@@ -1,11 +1,6 @@
 // |jit-test| error: SyntaxError
 try {
-    evaluate("throw 3", {
-	newContext: new Set,
-	saveFrameChain: true
-    });
+    evaluate("throw 3");
 } catch(e) {}
 
-evaluate("()", {
-    saveFrameChain: true
-});
+evaluate("()", {});

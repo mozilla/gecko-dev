@@ -9,11 +9,13 @@
 
 #include "nsIHttpChannelAuthProvider.h"
 #include "nsIAuthPromptCallback.h"
+#include "nsIHttpAuthenticatorCallback.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsHttpAuthCache.h"
 #include "nsProxyInfo.h"
 #include "nsCRT.h"
+#include "nsICancelableRunnable.h"
 
 class nsIHttpAuthenticableChannel;
 class nsIHttpAuthenticator;
@@ -25,17 +27,20 @@ class nsHttpHandler;
 
 class nsHttpChannelAuthProvider : public nsIHttpChannelAuthProvider
                                 , public nsIAuthPromptCallback
+                                , public nsIHttpAuthenticatorCallback
 {
 public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSICANCELABLE
     NS_DECL_NSIHTTPCHANNELAUTHPROVIDER
     NS_DECL_NSIAUTHPROMPTCALLBACK
+    NS_DECL_NSIHTTPAUTHENTICATORCALLBACK
 
     nsHttpChannelAuthProvider();
+    static void InitializePrefs();
+private:
     virtual ~nsHttpChannelAuthProvider();
 
-private:
     const char *ProxyHost() const
     { return mProxyInfo ? mProxyInfo->Host().get() : nullptr; }
 
@@ -47,7 +52,7 @@ private:
     bool        UsingSSL() const  { return mUsingSSL; }
 
     bool        UsingHttpProxy() const
-    { return !!(mProxyInfo && !nsCRT::strcmp(mProxyInfo->Type(), "http")); }
+    { return mProxyInfo && (mProxyInfo->IsHTTP() || mProxyInfo->IsHTTPS()); }
 
     nsresult PrepareForAuthentication(bool proxyAuth);
     nsresult GenCredsAndSetEntry(nsIHttpAuthenticator *, bool proxyAuth,
@@ -110,6 +115,25 @@ private:
      */
     nsresult ProcessSTSHeader();
 
+    // Depending on the pref setting, the authentication dialog may be blocked
+    // for all sub-resources, blocked for cross-origin sub-resources, or
+    // always allowed for sub-resources.
+    // For more details look at the bug 647010.
+    bool BlockPrompt();
+
+    // Store credentials to the cache when appropriate aFlags are set.
+    nsresult UpdateCache(nsIHttpAuthenticator *aAuth,
+                         const char           *aScheme,
+                         const char           *aHost,
+                         int32_t               aPort,
+                         const char           *aDirectory,
+                         const char           *aRealm,
+                         const char           *aChallenge,
+                         const nsHttpAuthIdentity &aIdent,
+                         const char           *aCreds,
+                         uint32_t              aGenerateFlags,
+                         nsISupports          *aSessionState);
+
 private:
     nsIHttpAuthenticableChannel      *mAuthChannel;  // weak ref
 
@@ -118,6 +142,7 @@ private:
     nsCString                         mHost;
     int32_t                           mPort;
     bool                              mUsingSSL;
+    bool                              mProxyUsingSSL;
     bool                              mIsPrivate;
 
     nsISupports                      *mProxyAuthContinuationState;
@@ -147,9 +172,21 @@ private:
     uint32_t                          mTriedHostAuth            : 1;
     uint32_t                          mSuppressDefensiveAuth    : 1;
 
-    nsRefPtr<nsHttpHandler>           mHttpHandler;  // keep gHttpHandler alive
+    // If a cross-origin sub-resource is being loaded, this flag will be set.
+    // In that case, the prompt text will be different to warn users.
+    uint32_t                          mCrossOrigin : 1;
+    uint32_t                          mConnectionBased : 1;
+
+    RefPtr<nsHttpHandler>           mHttpHandler;  // keep gHttpHandler alive
+
+    // A variable holding the preference settings to whether to open HTTP
+    // authentication credentials dialogs for sub-resources and cross-origin
+    // sub-resources.
+    static uint32_t                   sAuthAllowPref;
+    nsCOMPtr<nsICancelable>           mGenerateCredentialsCancelable;
 };
 
-}} // namespace mozilla::net
+} // namespace net
+} // namespace mozilla
 
 #endif // nsHttpChannelAuthProvider_h__

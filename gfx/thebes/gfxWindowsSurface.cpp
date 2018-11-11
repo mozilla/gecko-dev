@@ -6,36 +6,23 @@
 #include "gfxWindowsSurface.h"
 #include "gfxContext.h"
 #include "gfxPlatform.h"
+#include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/HelpersCairo.h"
+#include "mozilla/gfx/Logging.h"
 
 #include "cairo.h"
 #include "cairo-win32.h"
 
 #include "nsString.h"
 
-gfxWindowsSurface::gfxWindowsSurface(HWND wnd, uint32_t flags) :
-    mOwnsDC(true), mForPrinting(false), mWnd(wnd)
-{
-    mDC = ::GetDC(mWnd);
-    InitWithDC(flags);
-}
-
 gfxWindowsSurface::gfxWindowsSurface(HDC dc, uint32_t flags) :
-    mOwnsDC(false), mForPrinting(false), mDC(dc), mWnd(nullptr)
+    mOwnsDC(false), mDC(dc), mWnd(nullptr)
 {
-    if (flags & FLAG_TAKE_DC)
-        mOwnsDC = true;
-
-#ifdef NS_PRINTING
-    if (flags & FLAG_FOR_PRINTING) {
-        Init(cairo_win32_printing_surface_create(mDC));
-        mForPrinting = true;
-    } else
-#endif
     InitWithDC(flags);
 }
 
 gfxWindowsSurface::gfxWindowsSurface(IDirect3DSurface9 *surface, uint32_t flags) :
-    mOwnsDC(false), mForPrinting(false), mDC(0), mWnd(nullptr)
+    mOwnsDC(false), mDC(0), mWnd(nullptr)
 {
     cairo_surface_t *surf = cairo_win32_surface_create_with_d3dsurface9(surface);
     Init(surf);
@@ -43,20 +30,21 @@ gfxWindowsSurface::gfxWindowsSurface(IDirect3DSurface9 *surface, uint32_t flags)
 
 
 void
-gfxWindowsSurface::MakeInvalid(gfxIntSize& size)
+gfxWindowsSurface::MakeInvalid(mozilla::gfx::IntSize& size)
 {
-    size = gfxIntSize(-1, -1);
+    size = mozilla::gfx::IntSize(-1, -1);
 }
 
-gfxWindowsSurface::gfxWindowsSurface(const gfxIntSize& realSize, gfxImageFormat imageFormat) :
-    mOwnsDC(false), mForPrinting(false), mWnd(nullptr)
+gfxWindowsSurface::gfxWindowsSurface(const mozilla::gfx::IntSize& realSize, gfxImageFormat imageFormat) :
+    mOwnsDC(false), mWnd(nullptr)
 {
-    gfxIntSize size(realSize);
-    if (!CheckSurfaceSize(size))
+    mozilla::gfx::IntSize size(realSize);
+    if (!mozilla::gfx::Factory::CheckSurfaceSize(size))
         MakeInvalid(size);
 
-    cairo_surface_t *surf = cairo_win32_surface_create_with_dib((cairo_format_t)(int)imageFormat,
-                                                                size.width, size.height);
+    cairo_format_t cformat = GfxFormatToCairoFormat(imageFormat);
+    cairo_surface_t *surf =
+        cairo_win32_surface_create_with_dib(cformat, size.width, size.height);
 
     Init(surf);
 
@@ -68,40 +56,15 @@ gfxWindowsSurface::gfxWindowsSurface(const gfxIntSize& realSize, gfxImageFormat 
     }
 }
 
-gfxWindowsSurface::gfxWindowsSurface(HDC dc, const gfxIntSize& realSize, gfxImageFormat imageFormat) :
-    mOwnsDC(false), mForPrinting(false), mWnd(nullptr)
-{
-    gfxIntSize size(realSize);
-    if (!CheckSurfaceSize(size))
-        MakeInvalid(size);
-
-    cairo_surface_t *surf = cairo_win32_surface_create_with_ddb(dc, (cairo_format_t)(int)imageFormat,
-                                                                size.width, size.height);
-
-    Init(surf);
-
-    if (mSurfaceValid) {
-        // DDBs will generally only use 3 bytes per pixel when RGB24
-        int bytesPerPixel = ((imageFormat == gfxImageFormat::RGB24) ? 3 : 4);
-        RecordMemoryUsed(size.width * size.height * bytesPerPixel + sizeof(gfxWindowsSurface));
-    }
-
-    if (CairoStatus() == 0)
-        mDC = cairo_win32_surface_get_dc(CairoSurface());
-    else
-        mDC = nullptr;
-}
-
 gfxWindowsSurface::gfxWindowsSurface(cairo_surface_t *csurf) :
-    mOwnsDC(false), mForPrinting(false), mWnd(nullptr)
+    mOwnsDC(false), mWnd(nullptr)
 {
     if (cairo_surface_status(csurf) == 0)
         mDC = cairo_win32_surface_get_dc(csurf);
     else
         mDC = nullptr;
 
-    if (cairo_surface_get_type(csurf) == CAIRO_SURFACE_TYPE_WIN32_PRINTING)
-        mForPrinting = true;
+    MOZ_ASSERT(cairo_surface_get_type(csurf) != CAIRO_SURFACE_TYPE_WIN32_PRINTING);
 
     Init(csurf, true);
 }
@@ -118,14 +81,14 @@ gfxWindowsSurface::InitWithDC(uint32_t flags)
 
 already_AddRefed<gfxASurface>
 gfxWindowsSurface::CreateSimilarSurface(gfxContentType aContent,
-                                        const gfxIntSize& aSize)
+                                        const mozilla::gfx::IntSize& aSize)
 {
     if (!mSurface || !mSurfaceValid) {
         return nullptr;
     }
 
     cairo_surface_t *surface;
-    if (!mForPrinting && GetContentType() == gfxContentType::COLOR_ALPHA) {
+    if (GetContentType() == gfxContentType::COLOR_ALPHA) {
         // When creating a similar surface to a transparent surface, ensure
         // the new surface uses a DIB. cairo_surface_create_similar won't
         // use  a DIB for a gfxContentType::COLOR surface if this surface doesn't
@@ -134,9 +97,11 @@ gfxWindowsSurface::CreateSimilarSurface(gfxContentType aContent,
         // a surface that's the result of create_similar(gfxContentType::COLOR_ALPHA)
         // (e.g. a backbuffer for the window) --- that new surface *would*
         // have a DIB.
-        surface =
-          cairo_win32_surface_create_with_dib((cairo_format_t)(int)gfxPlatform::GetPlatform()->OptimalFormatForContent(aContent),
-                                              aSize.width, aSize.height);
+        gfxImageFormat gformat =
+            gfxPlatform::GetPlatform()->OptimalFormatForContent(aContent);
+        cairo_format_t cformat = GfxFormatToCairoFormat(gformat);
+        surface = cairo_win32_surface_create_with_dib(cformat, aSize.width,
+                                                      aSize.height);
     } else {
         surface =
           cairo_surface_create_similar(mSurface, (cairo_content_t)(int)aContent,
@@ -148,7 +113,7 @@ gfxWindowsSurface::CreateSimilarSurface(gfxContentType aContent,
         return nullptr;
     }
 
-    nsRefPtr<gfxASurface> result = Wrap(surface, aSize);
+    RefPtr<gfxASurface> result = Wrap(surface, aSize);
     cairo_surface_destroy(surface);
     return result.forget();
 }
@@ -164,17 +129,10 @@ gfxWindowsSurface::~gfxWindowsSurface()
 }
 
 HDC
-gfxWindowsSurface::GetDCWithClip(gfxContext *ctx)
-{
-    return cairo_win32_get_dc_with_clip (ctx->GetCairo());
-}
-
-HDC
 gfxWindowsSurface::GetDC()
 {
     return cairo_win32_surface_get_dc (CairoSurface());
 }
-
 
 already_AddRefed<gfxImageSurface>
 gfxWindowsSurface::GetAsImageSurface()
@@ -186,130 +144,26 @@ gfxWindowsSurface::GetAsImageSurface()
 
     NS_ASSERTION(CairoSurface() != nullptr, "CairoSurface() shouldn't be nullptr when mSurfaceValid is TRUE!");
 
-    if (mForPrinting)
-        return nullptr;
-
     cairo_surface_t *isurf = cairo_win32_surface_get_image(CairoSurface());
     if (!isurf)
         return nullptr;
 
-    nsRefPtr<gfxImageSurface> result = gfxASurface::Wrap(isurf).downcast<gfxImageSurface>();
+    RefPtr<gfxImageSurface> result = gfxASurface::Wrap(isurf).downcast<gfxImageSurface>();
     result->SetOpaqueRect(GetOpaqueRect());
 
     return result.forget();
 }
 
-nsresult
-gfxWindowsSurface::BeginPrinting(const nsAString& aTitle,
-                                 const nsAString& aPrintToFileName)
-{
-#ifdef NS_PRINTING
-#define DOC_TITLE_LENGTH (MAX_PATH-1)
-    DOCINFOW docinfo;
-
-    nsString titleStr(aTitle);
-    if (titleStr.Length() > DOC_TITLE_LENGTH) {
-        titleStr.SetLength(DOC_TITLE_LENGTH-3);
-        titleStr.AppendLiteral("...");
-    }
-
-    nsString docName(aPrintToFileName);
-    docinfo.cbSize = sizeof(docinfo);
-    docinfo.lpszDocName = titleStr.Length() > 0 ? titleStr.get() : L"Mozilla Document";
-    docinfo.lpszOutput = docName.Length() > 0 ? docName.get() : nullptr;
-    docinfo.lpszDatatype = nullptr;
-    docinfo.fwType = 0;
-
-    ::StartDocW(mDC, &docinfo);
-
-    return NS_OK;
-#else
-    return NS_ERROR_FAILURE;
-#endif
-}
-
-nsresult
-gfxWindowsSurface::EndPrinting()
-{
-#ifdef NS_PRINTING
-    int result = ::EndDoc(mDC);
-    if (result <= 0)
-        return NS_ERROR_FAILURE;
-
-    return NS_OK;
-#else
-    return NS_ERROR_FAILURE;
-#endif
-}
-
-nsresult
-gfxWindowsSurface::AbortPrinting()
-{
-#ifdef NS_PRINTING
-    int result = ::AbortDoc(mDC);
-    if (result <= 0)
-        return NS_ERROR_FAILURE;
-    return NS_OK;
-#else
-    return NS_ERROR_FAILURE;
-#endif
-}
-
-nsresult
-gfxWindowsSurface::BeginPage()
-{
-#ifdef NS_PRINTING
-    int result = ::StartPage(mDC);
-    if (result <= 0)
-        return NS_ERROR_FAILURE;
-    return NS_OK;
-#else
-    return NS_ERROR_FAILURE;
-#endif
-}
-
-nsresult
-gfxWindowsSurface::EndPage()
-{
-#ifdef NS_PRINTING
-    if (mForPrinting)
-        cairo_surface_show_page(CairoSurface());
-    int result = ::EndPage(mDC);
-    if (result <= 0)
-        return NS_ERROR_FAILURE;
-    return NS_OK;
-#else
-    return NS_ERROR_FAILURE;
-#endif
-}
-
-int32_t
-gfxWindowsSurface::GetDefaultContextFlags() const
-{
-    if (mForPrinting)
-        return gfxContext::FLAG_SIMPLIFY_OPERATORS |
-               gfxContext::FLAG_DISABLE_SNAPPING |
-               gfxContext::FLAG_DISABLE_COPY_BACKGROUND;
-
-    return 0;
-}
-
-const gfxIntSize 
+const mozilla::gfx::IntSize
 gfxWindowsSurface::GetSize() const
 {
     if (!mSurfaceValid) {
         NS_WARNING ("GetImageSurface on an invalid (null) surface; who's calling this without checking for surface errors?");
-        return gfxIntSize(-1, -1);
+        return mozilla::gfx::IntSize(-1, -1);
     }
 
     NS_ASSERTION(mSurface != nullptr, "CairoSurface() shouldn't be nullptr when mSurfaceValid is TRUE!");
 
-    return gfxIntSize(cairo_win32_surface_get_width(mSurface),
+    return mozilla::gfx::IntSize(cairo_win32_surface_get_width(mSurface),
                       cairo_win32_surface_get_height(mSurface));
-}
-
-gfxMemoryLocation
-gfxWindowsSurface::GetMemoryLocation() const
-{
-    return gfxMemoryLocation::IN_PROCESS_NONHEAP;
 }

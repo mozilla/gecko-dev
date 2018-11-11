@@ -7,11 +7,12 @@
 module.metadata = {
   "stability": "experimental",
   "engines": {
-    "Firefox": "*"
+    "Firefox": "*",
+    "SeaMonkey": "*"
   }
 };
 
-const { Cc, Ci } = require('chrome');
+const { Cc, Ci, Cu } = require('chrome');
 const { Class } = require('../core/heritage');
 const { method } = require('../lang/functional');
 const { defer, promised, all } = require('../core/promise');
@@ -21,11 +22,13 @@ const { merge } = require('../util/object');
 const bmsrv = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
                 getService(Ci.nsINavBookmarksService);
 
+Cu.importGlobalProperties(["URL"]);
+
 /*
  * TreeNodes are used to construct dependency trees
  * for BookmarkItems
  */
-let TreeNode = Class({
+var TreeNode = Class({
   initialize: function (value) {
     this.value = value;
     this.children = [];
@@ -43,21 +46,21 @@ let TreeNode = Class({
   },
   get: method(get),
   walk: method(walk),
-  toString: function () '[object TreeNode]'
+  toString: () => '[object TreeNode]'
 });
 exports.TreeNode = TreeNode;
 
 /*
  * Descends down from `node` applying `fn` to each in order.
  * `fn` can return values or promises -- if promise returned,
- * children are not processed until resolved. `fn` is passed 
+ * children are not processed until resolved. `fn` is passed
  * one argument, the current node, `curr`.
  */
 function walk (curr, fn) {
   return promised(fn)(curr).then(val => {
     return all(curr.children.map(child => walk(child, fn)));
   });
-} 
+}
 
 /*
  * Descends from the TreeNode `node`, returning
@@ -102,8 +105,9 @@ exports.constructTree = constructTree;
  * Shortcut for converting an id, or an object with an id, into
  * an object with corresponding bookmark data
  */
-function fetchItem (item)
-  send('sdk-places-bookmarks-get', { id: item.id || item })
+function fetchItem (item) {
+  return send('sdk-places-bookmarks-get', { id: item.id || item });
+}
 exports.fetchItem = fetchItem;
 
 /*
@@ -121,14 +125,14 @@ exports.isRootGroup = isRootGroup;
 /*
  * Merges appropriate options into query based off of url
  * 4 scenarios:
- * 
+ *
  * 'moz.com' // domain: moz.com, domainIsHost: true
  *    --> 'http://moz.com', 'http://moz.com/thunderbird'
  * '*.moz.com' // domain: moz.com, domainIsHost: false
  *    --> 'http://moz.com', 'http://moz.com/index', 'http://ff.moz.com/test'
- * 'http://moz.com' // url: http://moz.com/, urlIsPrefix: false
+ * 'http://moz.com' // uri: http://moz.com/
  *    --> 'http://moz.com/'
- * 'http://moz.com/*' // url: http://moz.com/, urlIsPrefix: true
+ * 'http://moz.com/*' // uri: http://moz.com/, domain: moz.com, domainIsHost: true
  *    --> 'http://moz.com/', 'http://moz.com/thunderbird'
  */
 
@@ -137,8 +141,21 @@ function urlQueryParser (query, url) {
   if (/^https?:\/\//.test(url)) {
     query.uri = url.charAt(url.length - 1) === '/' ? url : url + '/';
     if (/\*$/.test(url)) {
-      query.uri = url.replace(/\*$/, '');
-      query.uriIsPrefix = true;
+      // Wildcard searches on URIs are not supported, so try to extract a
+      // domain and filter the data later.
+      url = url.replace(/\*$/, '');
+      try {
+        query.domain = new URL(url).hostname;
+        query.domainIsHost = true;
+        // Unfortunately here we cannot use an expando to store the wildcard,
+        // cause the query is a wrapped native XPCOM object, so we reuse uri.
+        // We clearly don't want to query for both uri and domain, thus we'll
+        // have to handle this in host-query.js::execute()
+        query.uri = url;
+      } catch (ex) {
+        // Cannot extract an host cause it's not a valid uri, the query will
+        // just return nothing.
+      }
     }
   } else {
     if (/^\*/.test(url)) {
@@ -176,9 +193,9 @@ function createQuery (type, query) {
   let qObj = {
     searchTerms: query.query
   };
-     
+
   urlQueryParser(qObj, query.url);
-  
+
   // 0 === history
   if (type === 0) {
     // PRTime used by query is in microseconds, not milliseconds
@@ -193,7 +210,7 @@ function createQuery (type, query) {
   else if (type === 1) {
     qObj.tags = query.tags;
     qObj.folder = query.group && query.group.id;
-  } 
+  }
   // 2 === unified (not implemented on platform)
   else if (type === 2) {
 

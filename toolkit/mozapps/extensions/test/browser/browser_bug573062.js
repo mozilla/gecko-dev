@@ -31,7 +31,7 @@ function test() {
     permissions: perms,
     operationsRequiringRestart: AddonManager.OP_NEEDS_RESTART_NONE
   }]);
-  
+
   open_manager("addons://list/extension", function(aWindow) {
     let addonList = aWindow.document.getElementById("addon-list");
     let ed_r_Item, un_r_Item, no_r_Item;
@@ -52,9 +52,9 @@ function test() {
 
     // Check the buttons in the list view.
     function checkTooltips(aItem, aEnable, aDisable, aRemove) {
-      ok(aItem._enableBtn.getAttribute("tooltiptext") == aEnable);
-      ok(aItem._disableBtn.getAttribute("tooltiptext") == aDisable);
-      ok(aItem._removeBtn.getAttribute("tooltiptext")  == aRemove);
+      is(aItem._enableBtn.getAttribute("tooltiptext"), aEnable);
+      is(aItem._disableBtn.getAttribute("tooltiptext"), aDisable);
+      is(aItem._removeBtn.getAttribute("tooltiptext"), aRemove);
     }
 
     let strs = aWindow.gStrings.ext;
@@ -77,7 +77,7 @@ function test() {
                    strs.GetStringFromName("enableAddonTooltip"),
                    strs.GetStringFromName("disableAddonTooltip"),
                    strs.GetStringFromName("uninstallAddonTooltip")];
-    checkTooltips.apply(null, no_args)
+    checkTooltips.apply(null, no_args);
 
     // Check the buttons in the details view.
     function checkTooltips2(aItem, aEnable, aDisable, aRemove) {

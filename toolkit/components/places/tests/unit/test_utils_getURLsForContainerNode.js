@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -148,7 +148,7 @@ function() {
 ];
 
 /**
- * Executes a query and checks number of uri nodes in the first container in 
+ * Executes a query and checks number of uri nodes in the first container in
  * query's results.  To correctly test a container ensure that the query will
  * return only your container in the first level.
  *
@@ -169,11 +169,12 @@ function check_uri_nodes(aQuery, aOptions, aExpectedURINodes) {
   root.containerOpen = false;
 }
 
-function run_test() {
-  tests.forEach(function(aTest) {
-                  remove_all_bookmarks();
-                  aTest();
-                });
+add_task(function* () {
+  for (let test of tests) {
+    yield PlacesUtils.bookmarks.eraseEverything();
+    test();
+  }
+
   // Cleanup.
-  remove_all_bookmarks();
-}
+  yield PlacesUtils.bookmarks.eraseEverything();
+});

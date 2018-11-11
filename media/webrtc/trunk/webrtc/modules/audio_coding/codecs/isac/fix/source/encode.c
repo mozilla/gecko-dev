@@ -15,21 +15,24 @@
  *
  */
 
-#include "arith_routins.h"
-#include "bandwidth_estimator.h"
-#include "codec.h"
-#include "pitch_gain_tables.h"
-#include "pitch_lag_tables.h"
-#include "entropy_coding.h"
-#include "lpc_tables.h"
-#include "lpc_masking_model.h"
-#include "pitch_estimator.h"
-#include "structs.h"
+#include "webrtc/modules/audio_coding/codecs/isac/fix/source/codec.h"
+
+#include <assert.h>
 #include <stdio.h>
+
+#include "webrtc/modules/audio_coding/codecs/isac/fix/source/arith_routins.h"
+#include "webrtc/modules/audio_coding/codecs/isac/fix/source/bandwidth_estimator.h"
+#include "webrtc/modules/audio_coding/codecs/isac/fix/source/entropy_coding.h"
+#include "webrtc/modules/audio_coding/codecs/isac/fix/source/lpc_masking_model.h"
+#include "webrtc/modules/audio_coding/codecs/isac/fix/source/lpc_tables.h"
+#include "webrtc/modules/audio_coding/codecs/isac/fix/source/pitch_estimator.h"
+#include "webrtc/modules/audio_coding/codecs/isac/fix/source/pitch_gain_tables.h"
+#include "webrtc/modules/audio_coding/codecs/isac/fix/source/pitch_lag_tables.h"
+#include "webrtc/modules/audio_coding/codecs/isac/fix/source/structs.h"
 
 
 int WebRtcIsacfix_EncodeImpl(int16_t      *in,
-                             ISACFIX_EncInst_t  *ISACenc_obj,
+                             IsacFixEncoderInstance  *ISACenc_obj,
                              BwEstimatorstr      *bw_estimatordata,
                              int16_t         CodingMode)
 {
@@ -191,7 +194,8 @@ int WebRtcIsacfix_EncodeImpl(int16_t      *in,
     }
     return status;
   }
-  AvgPitchGain_Q12 = WEBRTC_SPL_RSHIFT_W32(PitchGains_Q12[0] + PitchGains_Q12[1] + PitchGains_Q12[2] + PitchGains_Q12[3], 2);
+  AvgPitchGain_Q12 = (PitchGains_Q12[0] + PitchGains_Q12[1] +
+      PitchGains_Q12[2] + PitchGains_Q12[3]) >> 2;
 
   /* find coefficients for perceptual pre-filters */
   WebRtcIsacfix_GetLpcCoef(LPandHP, HP16a+QLOOKAHEAD, &ISACenc_obj->maskfiltstr_obj,
@@ -334,9 +338,9 @@ int WebRtcIsacfix_EncodeImpl(int16_t      *in,
 
       // we compare bytesLeftQ5 with ratioQ5[]*arithLenDFTByte;
       idx = 4;
-      idx += (bytesLeftQ5 >= WEBRTC_SPL_MUL_16_16(ratioQ5[idx], arithLenDFTByte))? 2:-2;
-      idx += (bytesLeftQ5 >= WEBRTC_SPL_MUL_16_16(ratioQ5[idx], arithLenDFTByte))? 1:-1;
-      idx += (bytesLeftQ5 >= WEBRTC_SPL_MUL_16_16(ratioQ5[idx], arithLenDFTByte))? 0:-1;
+      idx += (bytesLeftQ5 >= ratioQ5[idx] * arithLenDFTByte) ? 2 : -2;
+      idx += (bytesLeftQ5 >= ratioQ5[idx] * arithLenDFTByte) ? 1 : -1;
+      idx += (bytesLeftQ5 >= ratioQ5[idx] * arithLenDFTByte) ? 0 : -1;
     }
     else
     {
@@ -450,12 +454,15 @@ int WebRtcIsacfix_EncodeImpl(int16_t      *in,
 
     while (stream_length < MinBytes)
     {
+      assert(stream_length >= 0);
       if (stream_length & 0x0001){
         ISACenc_obj->bitstr_seed = WEBRTC_SPL_RAND( ISACenc_obj->bitstr_seed );
-        ISACenc_obj->bitstr_obj.stream[ WEBRTC_SPL_RSHIFT_W16(stream_length, 1) ] |= (uint16_t)(ISACenc_obj->bitstr_seed & 0xFF);
+        ISACenc_obj->bitstr_obj.stream[stream_length / 2] |=
+            (uint16_t)(ISACenc_obj->bitstr_seed & 0xFF);
       } else {
         ISACenc_obj->bitstr_seed = WEBRTC_SPL_RAND( ISACenc_obj->bitstr_seed );
-        ISACenc_obj->bitstr_obj.stream[ WEBRTC_SPL_RSHIFT_W16(stream_length, 1) ] = WEBRTC_SPL_LSHIFT_U16(ISACenc_obj->bitstr_seed, 8);
+        ISACenc_obj->bitstr_obj.stream[stream_length / 2] =
+            ((uint16_t)ISACenc_obj->bitstr_seed << 8);
       }
       stream_length++;
     }
@@ -467,7 +474,8 @@ int WebRtcIsacfix_EncodeImpl(int16_t      *in,
     }
     else {
       ISACenc_obj->bitstr_obj.stream[usefulstr_len>>1] &= 0x00FF;
-      ISACenc_obj->bitstr_obj.stream[usefulstr_len>>1] += WEBRTC_SPL_LSHIFT_U16((MinBytes - usefulstr_len) & 0x00FF, 8);
+      ISACenc_obj->bitstr_obj.stream[usefulstr_len >> 1] +=
+          ((uint16_t)((MinBytes - usefulstr_len) & 0x00FF) << 8);
     }
   }
   else
@@ -483,7 +491,7 @@ int WebRtcIsacfix_EncodeImpl(int16_t      *in,
    The same data as previously encoded with the fucntion WebRtcIsacfix_EncodeImpl()
    is used. The data needed is taken from the struct, where it was stored
    when calling the encoder. */
-int WebRtcIsacfix_EncodeStoredData(ISACFIX_EncInst_t  *ISACenc_obj,
+int WebRtcIsacfix_EncodeStoredData(IsacFixEncoderInstance  *ISACenc_obj,
                                    int     BWnumber,
                                    float              scale)
 {
@@ -495,7 +503,7 @@ int WebRtcIsacfix_EncodeStoredData(ISACFIX_EncInst_t  *ISACenc_obj,
   int16_t model;
   const uint16_t *Q_PitchGain_cdf_ptr[1];
   const uint16_t **cdf;
-  const ISAC_SaveEncData_t *SaveEnc_str;
+  const IsacSaveEncoderData *SaveEnc_str;
   int32_t tmpLPCcoeffs_g[KLT_ORDER_GAIN<<1];
   int16_t tmpLPCindex_g[KLT_ORDER_GAIN<<1];
   int16_t tmp_fre[FRAMESAMPLES];

@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
 /*
  * Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/licenses/publicdomain/
@@ -17,212 +17,99 @@ if (typeof version != 'undefined')
   version(185);
 }
 
-// A little pattern-matching library.
-var Match =
-
-(function() {
-
-    function Pattern(template) {
-        // act like a constructor even as a function
-        if (!(this instanceof Pattern))
-            return new Pattern(template);
-
-        this.template = template;
+// Assert that cloning b does the right thing as far as we can tell.
+// Caveat: getters in b must produce the same value each time they're
+// called. We may call them several times.
+//
+// If desc is provided, then the very first thing we do to b is clone it.
+// (The self-modifying object test counts on this.)
+//
+function clone_object_check(b, desc) {
+    function classOf(obj) {
+        return Object.prototype.toString.call(obj);
     }
 
-    Pattern.prototype = {
-        match: function(act) {
-            return match(act, this.template);
-        },
-
-        matches: function(act) {
-            try {
-                return this.match(act);
-            }
-            catch (e if e instanceof MatchError) {
-                return false;
-            }
-        },
-
-        assert: function(act, message) {
-            try {
-                return this.match(act);
-            }
-            catch (e if e instanceof MatchError) {
-                throw new Error((message || "failed match") + ": " + e.message);
-            }
-        },
-
-        toString: function() "[object Pattern]"
-    };
-
-    Pattern.ANY = new Pattern;
-    Pattern.ANY.template = Pattern.ANY;
-
-    var quote = uneval;
-
-    function MatchError(msg) {
-        this.message = msg;
+    function ownProperties(obj) {
+        return Object.getOwnPropertyNames(obj).
+            map(function (p) { return [p, Object.getOwnPropertyDescriptor(obj, p)]; });
     }
 
-    MatchError.prototype = {
-        toString: function() {
-            return "match error: " + this.message;
-        }
-    };
-
-    function isAtom(x) {
-        return (typeof x === "number") ||
-            (typeof x === "string") ||
-            (typeof x === "boolean") ||
-            (x === null) ||
-            (typeof x === "object" && x instanceof RegExp);
+    function isCloneable(pair) {
+        return typeof pair[0] === 'string' && pair[1].enumerable;
     }
 
-    function isObject(x) {
-        return (x !== null) && (typeof x === "object");
+    function notIndex(p) {
+        var u = p >>> 0;
+        return !("" + u == p && u != 0xffffffff);
     }
 
-    function isFunction(x) {
-        return typeof x === "function";
-    }
+    function assertIsCloneOf(a, b, path) {
+        assertEq(a === b, false);
 
-    function isArrayLike(x) {
-        return isObject(x) && ("length" in x);
-    }
+        var ca = classOf(a);
+        assertEq(ca, classOf(b), path);
 
-    function matchAtom(act, exp) {
-        if ((typeof exp) === "number" && isNaN(exp)) {
-            if ((typeof act) !== "number" || !isNaN(act))
-                throw new MatchError("expected NaN, got: " + quote(act));
-            return true;
-        }
+        assertEq(Object.getPrototypeOf(a),
+                 ca == "[object Object]" ? Object.prototype : Array.prototype,
+                 path);
 
-        if (exp === null) {
-            if (act !== null)
-                throw new MatchError("expected null, got: " + quote(act));
-            return true;
-        }
-
-        if (exp instanceof RegExp) {
-            if (!(act instanceof RegExp) || exp.source !== act.source)
-                throw new MatchError("expected " + quote(exp) + ", got: " + quote(act));
-            return true;
-        }
-
-        switch (typeof exp) {
-        case "string":
-            if (act !== exp)
-                throw new MatchError("expected " + exp.quote() + ", got " + quote(act));
-            return true;
-        case "boolean":
-        case "number":
-            if (exp !== act)
-                throw new MatchError("expected " + exp + ", got " + quote(act));
-            return true;
-        }
-
-        throw new Error("bad pattern: " + exp.toSource());
-    }
-
-    function matchObject(act, exp) {
-        if (!isObject(act))
-            throw new MatchError("expected object, got " + quote(act));
-
-        for (var key in exp) {
-            if (!(key in act))
-                throw new MatchError("expected property " + key.quote() + " not found in " + quote(act));
-            match(act[key], exp[key]);
-        }
-
-        return true;
-    }
-
-    function matchFunction(act, exp) {
-        if (!isFunction(act))
-            throw new MatchError("expected function, got " + quote(act));
-
-        if (act !== exp)
-            throw new MatchError("expected function: " + exp +
-                                 "\nbut got different function: " + act);
-    }
-
-    function matchArray(act, exp) {
-        if (!isObject(act) || !("length" in act))
-            throw new MatchError("expected array-like object, got " + quote(act));
-
-        var length = exp.length;
-        if (act.length !== exp.length)
-            throw new MatchError("expected array-like object of length " + length + ", got " + quote(act));
-
-        for (var i = 0; i < length; i++) {
-            if (i in exp) {
-                if (!(i in act))
-                    throw new MatchError("expected array property " + i + " not found in " + quote(act));
-                match(act[i], exp[i]);
+        // 'b', the original object, may have non-enumerable or XMLName
+        // properties; ignore them.  'a', the clone, should not have any
+        // non-enumerable properties (except .length, if it's an Array) or
+        // XMLName properties.
+        var pb = ownProperties(b).filter(isCloneable);
+        var pa = ownProperties(a);
+        for (var i = 0; i < pa.length; i++) {
+            assertEq(typeof pa[i][0], "string", "clone should not have E4X properties " + path);
+            if (!pa[i][1].enumerable) {
+                if (Array.isArray(a) && pa[i][0] == "length") {
+                    // remove it so that the comparisons below will work
+                    pa.splice(i, 1);
+                    i--;
+                } else {
+                    throw new Error("non-enumerable clone property " + uneval(pa[i][0]) + " " + path);
+                }
             }
         }
 
-        return true;
+        // Check that, apart from properties whose names are array indexes, 
+        // the enumerable properties appear in the same order.
+        var aNames = pa.map(function (pair) { return pair[1]; }).filter(notIndex);
+        var bNames = pa.map(function (pair) { return pair[1]; }).filter(notIndex);
+        assertEq(aNames.join(","), bNames.join(","), path);
+
+        // Check that the lists are the same when including array indexes.
+        function byName(a, b) { a = a[0]; b = b[0]; return a < b ? -1 : a === b ? 0 : 1; }
+        pa.sort(byName);
+        pb.sort(byName);
+        assertEq(pa.length, pb.length, "should see the same number of properties " + path);
+        for (var i = 0; i < pa.length; i++) {
+            var aName = pa[i][0];
+            var bName = pb[i][0];
+            assertEq(aName, bName, path);
+
+            var path2 = path + "." + aName;
+            var da = pa[i][1];
+            var db = pb[i][1];
+            assertEq(da.configurable, true, path2);
+            assertEq(da.writable, true, path2);
+            assertEq("value" in da, true, path2);
+            var va = da.value;
+            var vb = b[pb[i][0]];
+            if (typeof va === "object" && va !== null)
+                queue.push([va, vb, path2]);
+            else
+                assertEq(va, vb, path2);
+        }
     }
 
-    function match(act, exp) {
-        if (exp === Pattern.ANY)
-            return true;
-
-        if (exp instanceof Pattern)
-            return exp.match(act);
-
-        if (isAtom(exp))
-            return matchAtom(act, exp);
-
-        if (isArrayLike(exp))
-            return matchArray(act, exp);
-
-        if (isFunction(exp))
-            return matchFunction(act, exp);
-
-        return matchObject(act, exp);
+    var banner = "while testing clone of " + (desc || uneval(b));
+    var a = deserialize(serialize(b));
+    var queue = [[a, b, banner]];
+    while (queue.length) {
+        var triple = queue.shift();
+        assertIsCloneOf(triple[0], triple[1], triple[2]);
     }
 
-    return { Pattern: Pattern,
-             MatchError: MatchError };
-
-})();
-
-function referencesVia(from, edge, to) {
-    edge = "edge: " + edge;
-    var edges = findReferences(to);
-    if (edge in edges && edges[edge].indexOf(from) != -1)
-        return true;
-
-    // Be nice: make it easy to fix if the edge name has just changed.
-    var alternatives = [];
-    for (var e in edges) {
-        if (edges[e].indexOf(from) != -1)
-            alternatives.push(e);
-    }
-    if (alternatives.length == 0) {
-        print("referent not referred to by referrer after all");
-    } else {
-        print("referent is not referenced via: " + uneval(edge));
-        print("but it is referenced via:       " + uneval(alternatives));
-    }
-    print("all incoming edges, from any object:");
-    for (var e in edges)
-        print(e);
-    return false;
-}
-
-// Note that AsmJS ArrayBuffers have a minimum size, currently 4096 bytes. If a
-// smaller size is given, a regular ArrayBuffer will be returned instead.
-function AsmJSArrayBuffer(size) {
-    var ab = new ArrayBuffer(size);
-    (new Function('global', 'foreign', 'buffer', '' +
-'        "use asm";' +
-'        var i32 = new global.Int32Array(buffer);' +
-'        function g() {};' +
-'        return g;' +
-''))(Function("return this")(),null,ab);
-    return ab;
+    return a; // for further testing
 }

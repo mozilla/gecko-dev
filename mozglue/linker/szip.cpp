@@ -14,6 +14,7 @@
 #include <errno.h>
 #include "mozilla/Assertions.h"
 #include "mozilla/Scoped.h"
+#include "mozilla/UniquePtr.h"
 #include "SeekableZStream.h"
 #include "Utils.h"
 #include "Logging.h"
@@ -271,21 +272,21 @@ int SzipCompress::run(const char *name, Buffer &origBuf,
     scanFilters = false;
   }
 
-  mozilla::ScopedDeletePtr<Buffer> filteredBuf;
+  mozilla::UniquePtr<Buffer> filteredBuf;
   Buffer *origData;
   for (SeekableZStream::FilterId f = firstFilter; f < lastFilter; ++f) {
-    FilteredBuffer *filteredTmp = nullptr;
+    mozilla::UniquePtr<FilteredBuffer> filteredTmp;
     Buffer tmpBuf;
     if (f != SeekableZStream::NONE) {
       DEBUG_LOG("Applying filter \"%s\"", filterName[f]);
-      filteredTmp = new FilteredBuffer();
+      filteredTmp = mozilla::MakeUnique<FilteredBuffer>();
       filteredTmp->Filter(origBuf, f, chunkSize);
-      origData = filteredTmp;
+      origData = filteredTmp.get();
     } else {
       origData = &origBuf;
     }
     if (dictSize  && !scanFilters) {
-      filteredBuf = filteredTmp;
+      filteredBuf = mozilla::Move(filteredTmp);
       break;
     }
     DEBUG_LOG("Compressing with no dictionary");
@@ -294,14 +295,13 @@ int SzipCompress::run(const char *name, Buffer &origBuf,
         outBuf.Fill(tmpBuf);
         compressed = true;
         filter = f;
-        filteredBuf = filteredTmp;
+        filteredBuf = mozilla::Move(filteredTmp);
         continue;
       }
     }
-    delete filteredTmp;
   }
 
-  origData = filteredBuf ? filteredBuf : &origBuf;
+  origData = filteredBuf ? filteredBuf.get() : &origBuf;
 
   if (dictSize) {
     Dictionary<uint64_t> dict(*origData, dictSize ? SzipCompress::winSize : 0);
@@ -424,7 +424,11 @@ int SzipCompress::do_compress(Buffer &origBuf, Buffer &outBuf,
     zStream.avail_in = avail;
     zStream.next_in = data;
     ret = deflate(&zStream, Z_FINISH);
-    MOZ_ASSERT(ret == Z_STREAM_END);
+    /* Under normal conditions, deflate returns Z_STREAM_END. If there is not
+     * enough room to compress, deflate returns Z_OK and avail_out is 0. We
+     * still want to deflateEnd in that case, so fall through. It will bail
+     * on the avail_out test that follows. */
+    MOZ_ASSERT(ret == Z_STREAM_END || ret == Z_OK);
     ret = deflateEnd(&zStream);
     MOZ_ASSERT(ret == Z_OK);
     if (zStream.avail_out <= 0)
@@ -466,7 +470,7 @@ bool GetSize(const char *str, size_t *out)
 
 int main(int argc, char* argv[])
 {
-  mozilla::ScopedDeletePtr<SzipAction> action;
+  mozilla::UniquePtr<SzipAction> action;
   char **firstArg;
   bool compress = true;
   size_t chunkSize = 0;
@@ -528,7 +532,7 @@ int main(int argc, char* argv[])
   }
 
   if (compress) {
-    action = new SzipCompress(chunkSize, filter, dictSize);
+    action.reset(new SzipCompress(chunkSize, filter, dictSize));
   } else {
     if (chunkSize) {
       ERROR("-c is incompatible with -d");
@@ -538,7 +542,7 @@ int main(int argc, char* argv[])
       ERROR("-D is incompatible with -d");
       return 1;
     }
-    action = new SzipDecompress();
+    action.reset(new SzipDecompress());
   }
 
   std::stringstream tmpOutStream;

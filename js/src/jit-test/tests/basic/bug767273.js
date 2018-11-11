@@ -1,6 +1,6 @@
-var prox = Proxy.create({
-  getPropertyDescriptor: function() { return undefined; },
-  has:                   function() { return true; },
+var prox = new Proxy({}, {
+  getOwnPropertyDescriptor: function() { return undefined; },
+  has:                      function() { return true; },
 });
 
 // Don't crash.

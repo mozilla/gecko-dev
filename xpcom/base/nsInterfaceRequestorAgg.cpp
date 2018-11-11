@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,7 +11,7 @@
 #include "nsThreadUtils.h"
 #include "nsProxyRelease.h"
 
-class nsInterfaceRequestorAgg MOZ_FINAL : public nsIInterfaceRequestor
+class nsInterfaceRequestorAgg final : public nsIInterfaceRequestor
 {
 public:
   // XXX This needs to support threadsafe refcounting until we fix bug 243591.
@@ -27,9 +29,10 @@ public:
       mConsumerTarget = NS_GetCurrentThread();
     }
   }
-  ~nsInterfaceRequestorAgg();
 
 private:
+  ~nsInterfaceRequestorAgg();
+
   nsCOMPtr<nsIInterfaceRequestor> mFirst, mSecond;
   nsCOMPtr<nsIEventTarget> mConsumerTarget;
 };
@@ -51,16 +54,8 @@ nsInterfaceRequestorAgg::GetInterface(const nsIID& aIID, void** aResult)
 
 nsInterfaceRequestorAgg::~nsInterfaceRequestorAgg()
 {
-  nsIInterfaceRequestor* iir = nullptr;
-  mFirst.swap(iir);
-  if (iir) {
-    NS_ProxyRelease(mConsumerTarget, iir);
-  }
-  iir = nullptr;
-  mSecond.swap(iir);
-  if (iir) {
-    NS_ProxyRelease(mConsumerTarget, iir);
-  }
+  NS_ProxyRelease(mConsumerTarget, mFirst.forget());
+  NS_ProxyRelease(mConsumerTarget, mSecond.forget());
 }
 
 nsresult

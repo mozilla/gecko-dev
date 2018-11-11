@@ -10,8 +10,12 @@
 #include "nsIOutputStream.h"
 #include "nsIInputStream.h"
 #include "nsINetAddr.h"
+#include "nsIScriptSecurityManager.h"
 #include "nsITimer.h"
 #include "mozilla/net/DNS.h"
+#ifdef XP_WIN
+#include "mozilla/WindowsVersion.h"
+#endif
 #include "prerror.h"
 
 #define REQUEST  0x68656c6f
@@ -95,18 +99,18 @@ static bool CheckMessageContent(nsIUDPMessage *aMessage, uint32_t aExpectedConte
  */
 class UDPClientListener : public nsIUDPSocketListener
 {
+protected:
+  virtual ~UDPClientListener();
+
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIUDPSOCKETLISTENER
-  virtual ~UDPClientListener();
   nsresult mResult;
 };
 
 NS_IMPL_ISUPPORTS(UDPClientListener, nsIUDPSocketListener)
 
-UDPClientListener::~UDPClientListener()
-{
-}
+UDPClientListener::~UDPClientListener() = default;
 
 NS_IMETHODIMP
 UDPClientListener::OnPacketReceived(nsIUDPSocket* socket, nsIUDPMessage* message)
@@ -154,20 +158,19 @@ UDPClientListener::OnStopListening(nsIUDPSocket*, nsresult)
  */
 class UDPServerListener : public nsIUDPSocketListener
 {
+protected:
+  virtual ~UDPServerListener();
+
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIUDPSOCKETLISTENER
-
-  virtual ~UDPServerListener();
 
   nsresult mResult;
 };
 
 NS_IMPL_ISUPPORTS(UDPServerListener, nsIUDPSocketListener)
 
-UDPServerListener::~UDPServerListener()
-{
-}
+UDPServerListener::~UDPServerListener() = default;
 
 NS_IMETHODIMP
 UDPServerListener::OnPacketReceived(nsIUDPSocket* socket, nsIUDPMessage* message)
@@ -221,20 +224,19 @@ UDPServerListener::OnStopListening(nsIUDPSocket*, nsresult)
  */
 class MulticastTimerCallback : public nsITimerCallback
 {
+protected:
+  virtual ~MulticastTimerCallback();
+
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSITIMERCALLBACK
-
-  virtual ~MulticastTimerCallback();
 
   nsresult mResult;
 };
 
 NS_IMPL_ISUPPORTS(MulticastTimerCallback, nsITimerCallback)
 
-MulticastTimerCallback::~MulticastTimerCallback()
-{
-}
+MulticastTimerCallback::~MulticastTimerCallback() = default;
 
 NS_IMETHODIMP
 MulticastTimerCallback::Notify(nsITimer* timer)
@@ -266,18 +268,26 @@ main(int32_t argc, char *argv[])
   NS_ENSURE_SUCCESS(rv, -1);
 
   // Create UDPServerListener to process UDP packets
-  nsRefPtr<UDPServerListener> serverListener = new UDPServerListener();
+  RefPtr<UDPServerListener> serverListener = new UDPServerListener();
+
+  nsCOMPtr<nsIScriptSecurityManager> secman =
+    do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, -1);
+
+  nsCOMPtr<nsIPrincipal> systemPrincipal;
+  rv = secman->GetSystemPrincipal(getter_AddRefs(systemPrincipal));
+  NS_ENSURE_SUCCESS(rv, -1);
 
   // Bind server socket to 0.0.0.0
-  rv = server->Init(0, false);
+  rv = server->Init(0, false, systemPrincipal, true, 0);
   NS_ENSURE_SUCCESS(rv, -1);
   int32_t serverPort;
   server->GetPort(&serverPort);
   server->AsyncListen(serverListener);
 
   // Bind clinet on arbitrary port
-  nsRefPtr<UDPClientListener> clientListener = new UDPClientListener();
-  client->Init(0, false);
+  RefPtr<UDPClientListener> clientListener = new UDPClientListener();
+  client->Init(0, false, systemPrincipal, true, 0);
   client->AsyncListen(clientListener);
 
   // Write data to server
@@ -322,19 +332,14 @@ main(int32_t argc, char *argv[])
   if (NS_WARN_IF(!timer)) {
     return -1;
   }
-  nsRefPtr<MulticastTimerCallback> timerCb = new MulticastTimerCallback();
+  RefPtr<MulticastTimerCallback> timerCb = new MulticastTimerCallback();
 
   // The following multicast tests using multiple sockets require a firewall
-  // exception on Windows XP before they pass.  For now, we'll skip them here.
-  // Later versions of Windows don't seem to have this issue.
+  // exception on Windows XP (the earliest version of Windows we now support)
+  // before they pass. For now, we'll skip them here. Later versions of Windows
+  // (Win2003 and onward) don't seem to have this issue.
 #ifdef XP_WIN
-  OSVERSIONINFO OsVersion;
-  OsVersion.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-#pragma warning(push)
-#pragma warning(disable:4996) // 'GetVersionExA': was declared deprecated
-  GetVersionEx(&OsVersion);
-#pragma warning(pop)
-  if (OsVersion.dwMajorVersion == 5 && OsVersion.dwMinorVersion == 1) {
+  if (!mozilla::IsWin2003OrLater()) {   // i.e. if it is WinXP
     goto close;
   }
 #endif

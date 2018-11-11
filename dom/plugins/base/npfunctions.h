@@ -96,6 +96,8 @@ typedef NPError      (*NPN_InitAsyncSurfacePtr)(NPP instance, NPSize *size, NPIm
 typedef NPError      (*NPN_FinalizeAsyncSurfacePtr)(NPP instance, NPAsyncSurface *surface);
 typedef void         (*NPN_SetCurrentAsyncSurfacePtr)(NPP instance, NPAsyncSurface *surface, NPRect *changed);
 
+typedef void         (*NPN_DummyPtr)(void);
+
 typedef struct _NPPluginFuncs {
   uint16_t size;
   uint16_t version;

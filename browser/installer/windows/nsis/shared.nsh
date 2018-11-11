@@ -2,62 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-; The registration ID of the COM server which is used for choosing wether
-; to launch the Win8 metro browser or desktop browser.
-!define DELEGATE_EXECUTE_HANDLER_ID {5100FEC1-212B-4BF5-9BF8-3E650FD794A3}
-;
-; Defines for adjust token privs and for enumerating keys
-!ifndef TOKEN_QUERY
-  !define TOKEN_QUERY             0x0008
-!endif
-!ifndef TOKEN_ADJUST_PRIVILEGES
-  !define TOKEN_ADJUST_PRIVILEGES 0x0020
-!endif
-!ifndef SE_RESTORE_NAME
-  !define SE_RESTORE_NAME         SeRestorePrivilege
-!endif
-!ifndef SE_PRIVILEGE_ENABLED
-  !define SE_PRIVILEGE_ENABLED    0x00000002
-!endif
-!ifndef HKEY_USERS
-  !define HKEY_USERS              0x80000003
-!endif
-
-; Does metro registration for the command execute handler
-Function RegisterCEH
-!ifdef MOZ_METRO
-  ${If} ${AtLeastWin8}
-    ${CleanupMetroBrowserHandlerValues} ${DELEGATE_EXECUTE_HANDLER_ID} \
-                                        "FirefoxURL" \
-                                        "FirefoxHTML"
-    ${AddMetroBrowserHandlerValues} ${DELEGATE_EXECUTE_HANDLER_ID} \
-                                    "$INSTDIR\CommandExecuteHandler.exe" \
-                                    $AppUserModelID \
-                                    "FirefoxURL" \
-                                    "FirefoxHTML"
-  ${EndIf}
-!endif
-FunctionEnd
-
-; If we're in Win8 make sure we have a start menu shortcut and that it has
-; the correct AppuserModelID so that the Metro browser has a Metro tile.
-Function RegisterStartMenuTile
-!ifdef MOZ_METRO
-  ${If} ${AtLeastWin8}
-    CreateShortCut "$SMPROGRAMS\${BrandFullName}.lnk" "$INSTDIR\${FileMainEXE}"
-    ${If} ${FileExists} "$SMPROGRAMS\${BrandFullName}.lnk"
-      ShellLink::SetShortCutWorkingDirectory "$SMPROGRAMS\${BrandFullName}.lnk" \
-                                             "$INSTDIR"
-      ${If} "$AppUserModelID" != ""
-        ApplicationID::Set "$SMPROGRAMS\${BrandFullName}.lnk" "$AppUserModelID" "true"
-      ${EndIf}
-    ${EndIf}
-  ${EndIf}
-!endif
-FunctionEnd
-
 !macro PostUpdate
-
   ; PostUpdate is called from both session 0 and from the user session
   ; for service updates, make sure that we only register with the user session
   ; Otherwise ApplicationID::Set can fail intermittently with a file in use error.
@@ -75,10 +20,6 @@ FunctionEnd
     ${GetParent} "$0" $0
     ${If} ${FileExists} "$0"
       ${GetLongPath} "$0" $0
-    ${EndIf}
-    ${If} "$0" == "$INSTDIR"
-      ; Win8 specific registration
-      Call RegisterStartMenuTile
     ${EndIf}
   ${EndIf}
 
@@ -114,6 +55,9 @@ FunctionEnd
 
     ; Win7 taskbar and start menu link maintenance
     Call FixShortcutAppModelIDs
+
+    ; Add the Firewall entries after an update
+    Call AddFirewallEntries
 
     ; Only update the Clients\StartMenuInternet registry key values in HKLM if
     ; they don't exist or this installation is the same as the one set in those
@@ -154,6 +98,13 @@ FunctionEnd
   ; root of the Start Menu Programs directory.
   ${MigrateStartMenuShortcut}
 
+  ; Update lastwritetime of the Start Menu shortcut to clear the tile cache.
+  ${If} ${AtLeastWin8}
+  ${AndIf} ${FileExists} "$SMPROGRAMS\${BrandFullName}.lnk"
+    FileOpen $0 "$SMPROGRAMS\${BrandFullName}.lnk" a
+    FileClose $0
+  ${EndIf}
+
   ; Adds a pinned Task Bar shortcut (see MigrateTaskBarShortcut for details).
   ${MigrateTaskBarShortcut}
 
@@ -182,9 +133,6 @@ FunctionEnd
   ${AndIf} $TmpVal == "HKLM"
   ; On Windows 2000 we do not install the maintenance service.
   ${AndIf} ${AtLeastWinXP}
-    ; Add the registry keys for allowed certificates.
-    ${AddMaintCertKeys}
-
     ; We check to see if the maintenance service install was already attempted.
     ; Since the Maintenance service can be installed either x86 or x64,
     ; always use the 64-bit registry for checking if an attempt was made.
@@ -196,6 +144,9 @@ FunctionEnd
     ${If} ${RunningX64}
       SetRegView lastused
     ${EndIf}
+
+    ; Add the registry keys for allowed certificates.
+    ${AddMaintCertKeys}
 
     ; If the maintenance service is already installed, do nothing.
     ; The maintenance service will launch:
@@ -216,30 +167,6 @@ FunctionEnd
       ; will just fail to be attempted to be installed.
       nsExec::Exec "$\"$INSTDIR\maintenanceservice_installer.exe$\""
     ${EndIf}
-  ${EndIf}
-!endif
-
-; Register the DEH
-!ifdef MOZ_METRO
-  ${If} ${AtLeastWin8}
-  ${AndIf} $9 != 0 ; We're not running in session 0
-    ; If RegisterCEH is called too close to changing the shortcut AppUserModelID
-    ; and if the tile image is not already in cache.  Then Windows won't refresh
-    ; the tile image on the start screen.  So wait before calling RegisterCEH.
-    ; We only need to do this when the DEH doesn't already exist.
-    ReadRegStr $0 HKCU "Software\Classes\FirefoxURL\shell\open\command" "DelegateExecute"
-    ${If} $0 != ${DELEGATE_EXECUTE_HANDLER_ID}
-      Sleep 3000
-    ${EndIf}
-    Call RegisterCEH
-  ${EndIf}
-!else
-  ; The metro browser is not enabled by the mozconfig.
-  ${If} ${AtLeastWin8}
-    ${RemoveDEHRegistration} ${DELEGATE_EXECUTE_HANDLER_ID} \
-                             $AppUserModelID \
-                             "FirefoxURL" \
-                             "FirefoxHTML"
   ${EndIf}
 !endif
 !macroend
@@ -396,6 +323,16 @@ FunctionEnd
 !macroend
 !define ShowShortcuts "!insertmacro ShowShortcuts"
 
+!macro AddAssociationIfNoneExist FILE_TYPE
+  ClearErrors
+  EnumRegKey $7 HKCR "${FILE_TYPE}" 0
+  ${If} ${Errors}
+    WriteRegStr SHCTX "SOFTWARE\Classes\${FILE_TYPE}"  "" "FirefoxHTML"
+  ${EndIf}
+  WriteRegStr SHCTX "SOFTWARE\Classes\${FILE_TYPE}\OpenWithProgids" "FirefoxHTML" ""
+!macroend
+!define AddAssociationIfNoneExist "!insertmacro AddAssociationIfNoneExist"
+
 ; Adds the protocol and file handler registry entries for making Firefox the
 ; default handler (uses SHCTX).
 !macro SetHandlers
@@ -430,35 +367,12 @@ FunctionEnd
     WriteRegStr SHCTX "$0\.xhtml" "" "FirefoxHTML"
   ${EndIf}
 
-  ; Only add .oga if it's not present
-  ${CheckIfRegistryKeyExists} "$0" ".oga" $7
-  ${If} $7 == "false"
-    WriteRegStr SHCTX "$0\.oga"  "" "FirefoxHTML"
-  ${EndIf}
-
-  ; Only add .ogg if it's not present
-  ${CheckIfRegistryKeyExists} "$0" ".ogg" $7
-  ${If} $7 == "false"
-    WriteRegStr SHCTX "$0\.ogg"  "" "FirefoxHTML"
-  ${EndIf}
-
-  ; Only add .ogv if it's not present
-  ${CheckIfRegistryKeyExists} "$0" ".ogv" $7
-  ${If} $7 == "false"
-    WriteRegStr SHCTX "$0\.ogv"  "" "FirefoxHTML"
-  ${EndIf}
-
-  ; Only add .pdf if it's not present
-  ${CheckIfRegistryKeyExists} "$0" ".pdf" $7
-  ${If} $7 == "false"
-    WriteRegStr SHCTX "$0\.pdf"  "" "FirefoxHTML"
-  ${EndIf}
-
-  ; Only add webm if it's not present
-  ${CheckIfRegistryKeyExists} "$0" ".webm" $7
-  ${If} $7 == "false"
-    WriteRegStr SHCTX "$0\.webm"  "" "FirefoxHTML"
-  ${EndIf}
+  ${AddAssociationIfNoneExist} ".pdf"
+  ${AddAssociationIfNoneExist} ".oga"
+  ${AddAssociationIfNoneExist} ".ogg"
+  ${AddAssociationIfNoneExist} ".ogv"
+  ${AddAssociationIfNoneExist} ".pdf"
+  ${AddAssociationIfNoneExist} ".webm"
 
   ; An empty string is used for the 5th param because FirefoxHTML is not a
   ; protocol handler
@@ -467,8 +381,6 @@ FunctionEnd
 
   ${AddDisabledDDEHandlerValues} "FirefoxURL" "$2" "$8,1" "${AppRegName} URL" \
                                  "true"
-  Call RegisterCEH
-
   ; An empty string is used for the 4th & 5th params because the following
   ; protocol handlers already have a display name and the additional keys
   ; required for a protocol handler.
@@ -693,6 +605,40 @@ FunctionEnd
 !macroend
 !define SetUninstallKeys "!insertmacro SetUninstallKeys"
 
+; Due to a bug when associating some file handlers, only SHCTX was checked for
+; some file types such as ".pdf". SHCTX is set to HKCU or HKLM depending on
+; whether the installer has write access to HKLM. The bug would happen when
+; HCKU was checked and didn't exist since programs aren't required to set the
+; HKCU Software\Classes keys when associating handlers. The fix uses the merged
+; view in HKCR to check for existance of an existing association. This macro
+; cleans affected installations by removing the HKLM and HKCU value if it is set
+; to FirefoxHTML when there is a value for PersistentHandler or by removing the
+; HKCU value when the HKLM value has a value other than an empty string.
+!macro FixBadFileAssociation FILE_TYPE
+  ; Only delete the default value in case the key has values for OpenWithList,
+  ; OpenWithProgids, PersistentHandler, etc.
+  ReadRegStr $0 HKCU "Software\Classes\${FILE_TYPE}" ""
+  ReadRegStr $1 HKLM "Software\Classes\${FILE_TYPE}" ""
+  ReadRegStr $2 HKCR "${FILE_TYPE}\PersistentHandler" ""
+  ${If} "$2" != ""
+    ; Since there is a persistent handler remove FirefoxHTML as the default
+    ; value from both HKCU and HKLM if it set to FirefoxHTML.
+    ${If} "$0" == "FirefoxHTML"
+      DeleteRegValue HKCU "Software\Classes\${FILE_TYPE}" ""
+    ${EndIf}
+    ${If} "$1" == "FirefoxHTML"
+      DeleteRegValue HKLM "Software\Classes\${FILE_TYPE}" ""
+    ${EndIf}
+  ${ElseIf} "$0" == "FirefoxHTML"
+    ; Since KHCU is set to FirefoxHTML remove FirefoxHTML as the default value
+    ; from HKCU if HKLM is set to a value other than an empty string.
+    ${If} "$1" != ""
+      DeleteRegValue HKCU "Software\Classes\${FILE_TYPE}" ""
+    ${EndIf}
+  ${EndIf}
+!macroend
+!define FixBadFileAssociation "!insertmacro FixBadFileAssociation"
+
 ; Add app specific handler registry entries under Software\Classes if they
 ; don't exist (does not use SHCTX).
 !macro FixClassKeys
@@ -719,6 +665,14 @@ FunctionEnd
     ${WriteRegStr2} $TmpVal "$1\.xhtml" "" "xhtmlfile" 0
     ${WriteRegStr2} $TmpVal "$1\.xhtml" "Content Type" "application/xhtml+xml" 0
   ${EndIf}
+
+  ; Remove possibly badly associated file types
+  ${FixBadFileAssociation} ".pdf"
+  ${FixBadFileAssociation} ".oga"
+  ${FixBadFileAssociation} ".ogg"
+  ${FixBadFileAssociation} ".ogv"
+  ${FixBadFileAssociation} ".pdf"
+  ${FixBadFileAssociation} ".webm"
 !macroend
 !define FixClassKeys "!insertmacro FixClassKeys"
 
@@ -784,10 +738,25 @@ FunctionEnd
     ${If} ${RunningX64}
       SetRegView 64
     ${EndIf}
-    DeleteRegKey HKLM "$R0"
-    WriteRegStr HKLM "$R0" "prefetchProcessName" "FIREFOX"
+
+    ; PrefetchProcessName was originally used to experiment with deleting
+    ; Windows prefetch as a speed optimization.  It is no longer used though.
+    DeleteRegValue HKLM "$R0" "prefetchProcessName"
+
+    ; Setting the Attempted value will ensure that a new Maintenance Service
+    ; install will never be attempted again after this from updates.  The value
+    ; is used only to see if updates should attempt new service installs.
+    WriteRegDWORD HKLM "Software\Mozilla\MaintenanceService" "Attempted" 1
+
+    ; These values associate the allowed certificates for the current
+    ; installation.
     WriteRegStr HKLM "$R0\0" "name" "${CERTIFICATE_NAME}"
     WriteRegStr HKLM "$R0\0" "issuer" "${CERTIFICATE_ISSUER}"
+    ; These values associate the allowed certificates for the previous
+    ;  installation, so that we can update from it cleanly using the
+    ;  old updater.exe (which will still have this signature).
+    WriteRegStr HKLM "$R0\1" "name" "${CERTIFICATE_NAME_PREVIOUS}"
+    WriteRegStr HKLM "$R0\1" "issuer" "${CERTIFICATE_ISSUER_PREVIOUS}"
     ${If} ${RunningX64}
       SetRegView lastused
     ${EndIf}
@@ -832,180 +801,6 @@ FunctionEnd
 !macroend
 !define RemoveDeprecatedKeys "!insertmacro RemoveDeprecatedKeys"
 
-; Resets Win8+ specific toast keys Windows sets. We call this on a
-; fresh install and on uninstall.
-!macro ResetWin8PromptKeys KEY PREFIX
-  ${If} ${AtLeastWin8}
-    DeleteRegValue ${KEY} "${PREFIX}Software\Microsoft\Windows\CurrentVersion\ApplicationAssociationToasts" "FirefoxHTML_.htm"
-    DeleteRegValue ${KEY} "${PREFIX}Software\Microsoft\Windows\CurrentVersion\ApplicationAssociationToasts" "FirefoxHTML_.html"
-    DeleteRegValue ${KEY} "${PREFIX}Software\Microsoft\Windows\CurrentVersion\ApplicationAssociationToasts" "FirefoxHTML_.xht"
-    DeleteRegValue ${KEY} "${PREFIX}Software\Microsoft\Windows\CurrentVersion\ApplicationAssociationToasts" "FirefoxHTML_.xhtml"
-    DeleteRegValue ${KEY} "${PREFIX}Software\Microsoft\Windows\CurrentVersion\ApplicationAssociationToasts" "FirefoxHTML_.shtml"
-    DeleteRegValue ${KEY} "${PREFIX}Software\Microsoft\Windows\CurrentVersion\ApplicationAssociationToasts" "FirefoxURL_ftp"
-    DeleteRegValue ${KEY} "${PREFIX}Software\Microsoft\Windows\CurrentVersion\ApplicationAssociationToasts" "FirefoxURL_http"
-    DeleteRegValue ${KEY} "${PREFIX}Software\Microsoft\Windows\CurrentVersion\ApplicationAssociationToasts" "FirefoxURL_https"
-  ${EndIf}
-!macroend
-!define ResetWin8PromptKeys "!insertmacro ResetWin8PromptKeys"
-
-!ifdef MOZ_METRO
-; Resets Win8+ Metro specific splash screen info. Relies
-; on AppUserModelID.
-!macro ResetWin8MetroSplash
-  ${If} ${AtLeastWin8}
-  ${AndIf} "$AppUserModelID" != ""
-    DeleteRegKey HKCR "Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\DefaultBrowser_NOPUBLISHERID\SplashScreen\DefaultBrowser_NOPUBLISHERID!$AppUserModelID"
-  ${EndIf}
-!macroend
-!define ResetWin8MetroSplash "!insertmacro ResetWin8MetroSplash"
-!endif
-
-; Adds SE_RESTORE_NAME privs
-!macro AcquireSERestoreName
-  StrCpy $R1 0
-
-  System::Call "kernel32::GetCurrentProcess() i .R0"
-  System::Call "advapi32::OpenProcessToken(i R0, i ${TOKEN_QUERY}|${TOKEN_ADJUST_PRIVILEGES}, \
-                                          *i R1R1) i .R0"
-  ${If} $R0 != 0
-    System::Call "advapi32::LookupPrivilegeValue(t n, t '${SE_RESTORE_NAME}', *l .R2) i .R0"
-    ${If} $R0 != 0
-      System::Call "*(i 1, l R2, i ${SE_PRIVILEGE_ENABLED}) i .R0"
-      System::Call "advapi32::AdjustTokenPrivileges(i R1, i 0, i R0, i 0, i 0, i 0)"
-      System::Free $R0
-    ${EndIf}
-    System::Call "kernel32::CloseHandle(i R1)"
-  ${EndIf}
-!macroend
-!define AcquireSERestoreName "!insertmacro AcquireSERestoreName"
-!define un.AcquireSERestoreName "!insertmacro AcquireSERestoreName"
-
-; Mounts all user ntuser.dat files into the registry as a subkey of HKU
-!macro MountRegistryIntoHKU
-  ; $0 is used as an index for HKEY_USERS enumeration
-  StrCpy $0 0
-  ${Do}
-    EnumRegKey $1 HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList" $0
-    ${If} $1 == ""
-      ${Break}
-    ${EndIf}
-    ReadRegStr $2 HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$1" "ProfileImagePath"
-    System::Call "advapi32::RegLoadKey(i ${HKEY_USERS}, t 'User-$0', t '$2\ntuser.dat')"
-    System::Call "advapi32::RegLoadKey(i ${HKEY_USERS}, t 'User-$0_Classes', t '$2\AppData\Local\Microsoft\Windows\UsrClass.dat')"
-    IntOp $0 $0 + 1
-  ${Loop}
-!macroend
-!define MountRegistryIntoHKU "!insertmacro MountRegistryIntoHKU"
-!define un.MountRegistryIntoHKU "!insertmacro MountRegistryIntoHKU"
-;
-; Unmounts all user ntuser.dat files into the registry as a subkey of HKU
-!macro UnmountRegistryIntoHKU
-  ; $0 is used as an index for HKEY_USERS enumeration
-  StrCpy $0 0
-  ${Do}
-    EnumRegKey $1 HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList" $0
-    ${If} $1 == ""
-      ${Break}
-    ${EndIf}
-    ReadRegStr $2 HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$1" "ProfileImagePath"
-    System::Call "advapi32::RegUnLoadKey(i ${HKEY_USERS}, t 'User-$0')"
-    System::Call "advapi32::RegUnLoadKey(i ${HKEY_USERS}, t 'User-$0_Classes')"
-    IntOp $0 $0 + 1
-  ${Loop}
-!macroend
-!define UnmountRegistryIntoHKU "!insertmacro UnmountRegistryIntoHKU"
-!define un.UnmountRegistryIntoHKU "!insertmacro UnmountRegistryIntoHKU"
-
-; Unconditionally removes the delegate execute handler registration used to
-; launch the metro browser and misc. metro related registry values.
-!macro RemoveDEHRegistration DELEGATE_EXECUTE_HANDLER_ID \
-                             APP_USER_MODEL_ID \
-                             PROTOCOL_ACTIVATION_ID \
-                             FILE_ACTIVATION_ID
-  ${AcquireSERestoreName}
-  ${MountRegistryIntoHKU}
-
-  ; $0 is used as an index for HKEY_USERS enumeration
-  StrCpy $0 0
-
-  ${Do}
-    EnumRegKey $1 HKU "" $0
-    ${If} $1 == ""
-      ${Break}
-    ${EndIf}
-
-    ClearErrors
-    ${WordFind} "$1" "_Classes" "E#" $3
-    ${Unless} ${Errors}
-      ; remove the app user model id root registration. We don't need this
-      ; here anymore, we just use it for tray registrationdown in widget,
-      ; which we read out of the mozilla keys.
-      ${If} "${APP_USER_MODEL_ID}" != ""
-        ; The removal of this key intermittently fails, so do the best we can in cleanup
-        DeleteRegValue HKU "$1\${APP_USER_MODEL_ID}\.exe\shell\open\command" "DelegateExecute"
-        DeleteRegKey HKU "$1\${APP_USER_MODEL_ID}\.exe\shell\open"
-        DeleteRegKey HKU "$1\${APP_USER_MODEL_ID}\.exe\shell"
-        DeleteRegKey HKU "$1\${APP_USER_MODEL_ID}\.exe"
-        DeleteRegKey HKU "$1\\${APP_USER_MODEL_ID}"
-      ${EndIf}
-      ;
-      ; Remove delegate execute handler clsid registration
-      DeleteRegKey HKU "$1\CLSID\${DELEGATE_EXECUTE_HANDLER_ID}"
-
-      ; Remove protocol and file delegate execute handler id assoc
-      DeleteRegValue HKU "$1\${PROTOCOL_ACTIVATION_ID}" "AppUserModelID"
-      DeleteRegValue HKU "$1\${FILE_ACTIVATION_ID}" "AppUserModelID"
-
-      ; Remove delegate execute application registry keys
-      DeleteRegKey HKU "$1\${PROTOCOL_ACTIVATION_ID}\Application"
-      DeleteRegKey HKU "$1\${FILE_ACTIVATION_ID}\Application"
-
-      ; Remove misc. shell open info
-      DeleteRegValue HKU "$1\${PROTOCOL_ACTIVATION_ID}\shell\open" "CommandId"
-      DeleteRegValue HKU "$1\${FILE_ACTIVATION_ID}\shell\open" "CommandId"
-      DeleteRegValue HKU "$1\${PROTOCOL_ACTIVATION_ID}\shell\open\command" "DelegateExecute"
-      DeleteRegValue HKU "$1\${FILE_ACTIVATION_ID}\shell\open\command" "DelegateExecute"
-
-      ; remove metro browser splash image data
-      DeleteRegKey HKU "$1\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\DefaultBrowser_NOPUBLISHERID\SplashScreen\DefaultBrowser_NOPUBLISHERID!${APP_USER_MODEL_ID}"
-    ${Else}
-      ; misc. Metro keys
-      DeleteRegKey HKU "$1\Software\Mozilla\Firefox\Metro"
-      DeleteRegValue HKU "$1\Software\Mozilla\Firefox" "CEHDump"
-      DeleteRegValue HKU "$1\Software\Mozilla\Firefox" "MetroD3DAvailable"
-      DeleteRegValue HKU "$1\Software\Mozilla\Firefox" "MetroLastAHE"
-      ${ResetWin8PromptKeys} "HKU" "$1\"
-    ${EndIf}
-    IntOp $0 $0 + 1
-  ${Loop}
-  ${UnmountRegistryIntoHKU}
-
-  ; The removal of this key intermittently fails, so do the best we can in cleanup
-  ${If} "${APP_USER_MODEL_ID}" != ""
-    DeleteRegValue HKLM "Software\Classes\${APP_USER_MODEL_ID}\.exe\shell\open\command" "DelegateExecute"
-    DeleteRegKey HKLM "Software\Classes\${APP_USER_MODEL_ID}\.exe\shell\open"
-    DeleteRegKey HKLM "Software\Classes\${APP_USER_MODEL_ID}\.exe\shell"
-    DeleteRegKey HKLM "Software\Classes\${APP_USER_MODEL_ID}\.exe"
-    DeleteRegKey HKLM "Software\Classes\${APP_USER_MODEL_ID}"
-  ${EndIf}
-
-  ; Remove HKLM entries
-  DeleteRegKey HKLM "Software\Classes\CLSID\${DELEGATE_EXECUTE_HANDLER_ID}"
-  DeleteRegKey HKLM "Software\Classes\${PROTOCOL_ACTIVATION_ID}\Application"
-  DeleteRegKey HKLM "Software\Classes\${FILE_ACTIVATION_ID}\Application"
-  DeleteRegValue HKLM "Software\Classes\${PROTOCOL_ACTIVATION_ID}\shell\open\command" "DelegateExecute"
-  DeleteRegValue HKLM "Software\Classes\${FILE_ACTIVATION_ID}\shell\open\command" "DelegateExecute"
-  DeleteRegValue HKLM "Software\Classes\${PROTOCOL_ACTIVATION_ID}" "AppUserModelID"
-  DeleteRegValue HKLM "Software\Classes\${FILE_ACTIVATION_ID}" "AppUserModelID"
-  DeleteRegValue HKLM "Software\Classes\${PROTOCOL_ACTIVATION_ID}\shell\open" "CommandId"
-  DeleteRegValue HKLM "Software\Classes\${FILE_ACTIVATION_ID}\shell\open" "CommandId"
-
-  ClearErrors
-!macroend
-
-!define RemoveDEHRegistration "!insertmacro RemoveDEHRegistration"
-!define un.RemoveDEHRegistration "!insertmacro RemoveDEHRegistration"
-
 ; Removes various directories and files for reasons noted below.
 !macro RemoveDeprecatedFiles
   ; Remove talkback if it is present (remove after bug 386760 is fixed)
@@ -1013,147 +808,21 @@ FunctionEnd
     RmDir /r /REBOOTOK "$INSTDIR\extensions\talkback@mozilla.org"
   ${EndIf}
 
-  ; Remove the Java Console extension (bug 597235)
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0012-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0012-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0013-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0013-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0014-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0014-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0015-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0015-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0016-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0016-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0017-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0017-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0018-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0018-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0019-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0019-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0020-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0020-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0021-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0021-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0022-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0015-0000-0022-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0000-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0000-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0001-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0001-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0002-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0002-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0003-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0003-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0004-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0004-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0005-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0005-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0006-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0006-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0007-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0007-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0010-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0010-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0011-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0011-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0012-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0012-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0013-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0013-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0014-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0014-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0015-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0015-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0016-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0016-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0017-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0017-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0018-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0018-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0019-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0019-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0020-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0020-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0021-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0021-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0022-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0022-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0023-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0023-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0024-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0024-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0025-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0025-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0026-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0026-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0027-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0027-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0028-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0028-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0029-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0029-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0030-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0030-ABCDEFFEDCBA}"
-  ${EndIf}
+  ; Remove the Java Console extension (bug 1165156)
   ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0031-ABCDEFFEDCBA}"
     RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0031-ABCDEFFEDCBA}"
   ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0032-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0032-ABCDEFFEDCBA}"
+  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0034-ABCDEFFEDCBA}"
+    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0034-ABCDEFFEDCBA}"
+  ${EndIf}
+  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0039-ABCDEFFEDCBA}"
+    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0039-ABCDEFFEDCBA}"
+  ${EndIf}
+  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0045-ABCDEFFEDCBA}"
+    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0016-0000-0045-ABCDEFFEDCBA}"
   ${EndIf}
   ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0017-0000-0000-ABCDEFFEDCBA}"
     RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0017-0000-0000-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0017-0000-0001-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0017-0000-0001-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0017-0000-0002-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0017-0000-0002-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0017-0000-0003-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0017-0000-0003-ABCDEFFEDCBA}"
-  ${EndIf}
-  ${If} ${FileExists} "$INSTDIR\extensions\{CAFEEFAC-0017-0000-0004-ABCDEFFEDCBA}"
-    RmDir /r /REBOOTOK "$INSTDIR\extensions\{CAFEEFAC-0017-0000-0004-ABCDEFFEDCBA}"
   ${EndIf}
 !macroend
 !define RemoveDeprecatedFiles "!insertmacro RemoveDeprecatedFiles"
@@ -1268,17 +937,24 @@ FunctionEnd
       ClearErrors
       WriteIniStr "$0" "TASKBAR" "Migrated" "true"
       ${If} ${AtLeastWin7}
-        ; No need to check the default on Win8 and later
-        ${If} ${AtMostWin2008R2}
-          ; Check if the Firefox is the http handler for this user
-          SetShellVarContext current ; Set SHCTX to the current user
-          ${IsHandlerForInstallDir} "http" $R9
-          ${If} $TmpVal == "HKLM"
-            SetShellVarContext all ; Set SHCTX to all users
+        ; If we didn't run the stub installer, AddTaskbarSC will be empty.
+        ; We determine whether to pin based on whether we're the default
+        ; browser, or if we're on win8 or later, we always pin.
+        ${If} $AddTaskbarSC == ""
+          ; No need to check the default on Win8 and later
+          ${If} ${AtMostWin2008R2}
+            ; Check if the Firefox is the http handler for this user
+            SetShellVarContext current ; Set SHCTX to the current user
+            ${IsHandlerForInstallDir} "http" $R9
+            ${If} $TmpVal == "HKLM"
+              SetShellVarContext all ; Set SHCTX to all users
+            ${EndIf}
           ${EndIf}
-        ${EndIf}
-        ${If} "$R9" == "true"
-        ${OrIf} ${AtLeastWin8}
+          ${If} "$R9" == "true"
+          ${OrIf} ${AtLeastWin8}
+            ${PinToTaskBar}
+          ${EndIf}
+        ${ElseIf} $AddTaskbarSC == "1"
           ${PinToTaskBar}
         ${EndIf}
       ${EndIf}
@@ -1494,20 +1170,85 @@ FunctionEnd
   ; returns after the first check.
   Push "end"
   Push "AccessibleMarshal.dll"
+  Push "IA2Marshal.dll"
   Push "freebl3.dll"
   Push "nssckbi.dll"
   Push "nspr4.dll"
   Push "nssdbm3.dll"
   Push "mozsqlite3.dll"
-!ifdef MOZ_CONTENT_SANDBOX
-  Push "sandboxbroker.dll"
-!endif
   Push "xpcom.dll"
   Push "crashreporter.exe"
+  Push "minidump-analyzer.exe"
   Push "updater.exe"
   Push "${FileMainEXE}"
 !macroend
 !define PushFilesToCheck "!insertmacro PushFilesToCheck"
+
+
+; Pushes the string "true" to the top of the stack if the Firewall service is
+; running and pushes the string "false" to the top of the stack if it isn't.
+!define SC_MANAGER_ALL_ACCESS 0x3F
+!define SERVICE_QUERY_CONFIG 0x0001
+!define SERVICE_QUERY_STATUS 0x0004
+!define SERVICE_RUNNING 0x4
+
+!macro IsFirewallSvcRunning
+  Push $R9
+  Push $R8
+  Push $R7
+  Push $R6
+  Push "false"
+
+  System::Call 'advapi32::OpenSCManagerW(n, n, i ${SC_MANAGER_ALL_ACCESS}) i.R6'
+  ${If} $R6 != 0
+    ; MpsSvc is the Firewall service on Windows Vista and above.
+    ; When opening the service with SERVICE_QUERY_CONFIG the return value will
+    ; be 0 if the service is not installed.
+    System::Call 'advapi32::OpenServiceW(i R6, t "MpsSvc", i ${SERVICE_QUERY_CONFIG}) i.R7'
+    ${If} $R7 != 0
+      System::Call 'advapi32::CloseServiceHandle(i R7) n'
+      ; Open the service with SERVICE_QUERY_CONFIG so its status can be queried.
+      System::Call 'advapi32::OpenServiceW(i R6, t "MpsSvc", i ${SERVICE_QUERY_STATUS}) i.R7'
+    ${Else}
+      ; SharedAccess is the Firewall service on Windows XP.
+      ; When opening the service with SERVICE_QUERY_CONFIG the return value will
+      ; be 0 if the service is not installed.
+      System::Call 'advapi32::OpenServiceW(i R6, t "SharedAccess", i ${SERVICE_QUERY_CONFIG}) i.R7'
+      ${If} $R7 != 0
+        System::Call 'advapi32::CloseServiceHandle(i R7) n'
+        ; Open the service with SERVICE_QUERY_CONFIG so its status can be
+        ; queried.
+        System::Call 'advapi32::OpenServiceW(i R6, t "SharedAccess", i ${SERVICE_QUERY_STATUS}) i.R7'
+      ${EndIf}
+    ${EndIf}
+    ; Did the calls to OpenServiceW succeed?
+    ${If} $R7 != 0
+      System::Call '*(i,i,i,i,i,i,i) i.R9'
+      ; Query the current status of the service.
+      System::Call 'advapi32::QueryServiceStatus(i R7, i $R9) i'
+      System::Call '*$R9(i, i.R8)'
+      System::Free $R9
+      System::Call 'advapi32::CloseServiceHandle(i R7) n'
+      IntFmt $R8 "0x%X" $R8
+      ${If} $R8 == ${SERVICE_RUNNING}
+        Pop $R9
+        Push "true"
+      ${EndIf}
+    ${EndIf}
+    System::Call 'advapi32::CloseServiceHandle(i R6) n'
+  ${EndIf}
+
+  Exch 1
+  Pop $R6
+  Exch 1
+  Pop $R7
+  Exch 1
+  Pop $R8
+  Exch 1
+  Pop $R9
+!macroend
+!define IsFirewallSvcRunning "!insertmacro IsFirewallSvcRunning"
+!define un.IsFirewallSvcRunning "!insertmacro IsFirewallSvcRunning"
 
 ; Sets this installation as the default browser by setting the registry keys
 ; under HKEY_CURRENT_USER via registry calls and using the AppAssocReg NSIS
@@ -1542,7 +1283,6 @@ Function SetAsDefaultAppUserHKCU
     ${SetStartMenuInternet} "HKCU"
     ${FixShellIconHandler} "HKCU"
     ${FixClassKeys} ; Does not use SHCTX
-    Call RegisterStartMenuTile
   ${EndIf}
 
   ${SetHandlers}
@@ -1561,7 +1301,7 @@ Function SetAsDefaultAppUserHKCU
     ${EndUnless}
   ${EndIf}
   ${RemoveDeprecatedKeys}
-  ${PinToTaskBar}
+  ${MigrateTaskBarShortcut}
 FunctionEnd
 
 ; Helper for updating the shortcut application model IDs.
@@ -1569,6 +1309,15 @@ Function FixShortcutAppModelIDs
   ${If} ${AtLeastWin7}
   ${AndIf} "$AppUserModelID" != ""
     ${UpdateShortcutAppModelIDs} "$INSTDIR\${FileMainEXE}" "$AppUserModelID" $0
+  ${EndIf}
+FunctionEnd
+
+; Helper for adding Firewall exceptions during install and after app update.
+Function AddFirewallEntries
+  ${IsFirewallSvcRunning}
+  Pop $0
+  ${If} "$0" == "true"
+    liteFirewallW::AddRule "$INSTDIR\${FileMainEXE}" "${BrandShortName} ($INSTDIR)"
   ${EndIf}
 FunctionEnd
 

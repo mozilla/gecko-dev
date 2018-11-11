@@ -14,7 +14,7 @@ interface nsIHttpHeaderVisitor;
  * the inspection of the resulting HTTP response status and headers when they
  * become available.
  */
-[scriptable, uuid(22816a32-2179-4b81-9b29-e31d6f9a36c2)]
+[builtinclass, scriptable, uuid(c5a4a073-4539-49c7-a3f2-cec3f0619c6c)]
 interface nsIHttpChannel : nsIChannel
 {
     /**************************************************************************
@@ -24,8 +24,8 @@ interface nsIHttpChannel : nsIChannel
      */
 
     /**
-     * Set/get the HTTP request method (default is "GET").  Setter is case
-     * insensitive; getter returns an uppercase string.
+     * Set/get the HTTP request method (default is "GET").  Both setter and
+     * getter are case sensitive.
      *
      * This attribute may only be set before the channel is opened.
      *
@@ -52,8 +52,79 @@ interface nsIHttpChannel : nsIChannel
      * URI is rejected.
      *
      * @throws NS_ERROR_IN_PROGRESS if set after the channel has been opened.
+     * @throws NS_ERROR_FAILURE if used for setting referrer during
+     *         visitRequestHeaders. Getting the value will not throw.
      */
     attribute nsIURI referrer;
+
+    /**
+     * Referrer policies. See ReferrerPolicy.h for more details.
+     */
+
+
+    /*   The undefined state, usually used to check the need of
+         overruling document-wide referrer policy. */
+    const unsigned long REFERRER_POLICY_UNSET                      = 4294967295; // UINT32_MAX
+
+    /*   default state, a shorter name for no-referrer-when-downgrade   */
+    const unsigned long REFERRER_POLICY_DEFAULT                    = 0;
+    /*   default state, doesn't send referrer from https->http          */
+    const unsigned long REFERRER_POLICY_NO_REFERRER_WHEN_DOWNGRADE = 0;
+    /*   sends no referrer                                              */
+    const unsigned long REFERRER_POLICY_NO_REFERRER                = 1;
+    /*   only sends the origin of the referring URL                     */
+    const unsigned long REFERRER_POLICY_ORIGIN                     = 2;
+    /*   same as default, but reduced to ORIGIN when cross-origin.      */
+    const unsigned long REFERRER_POLICY_ORIGIN_WHEN_XORIGIN        = 3;
+    /*   always sends the referrer, even on downgrade.                  */
+    const unsigned long REFERRER_POLICY_UNSAFE_URL                 = 4;
+    /*   send referrer when same-origin, no referrer when cross-origin  */
+    const unsigned long REFERRER_POLICY_SAME_ORIGIN                = 5;
+    /*   send origin when request from https->https or http->http(s)
+         No referrer when request from https->http. */
+    const unsigned long REFERRER_POLICY_STRICT_ORIGIN              = 6;
+    /*   send referrer when same-origin,
+         Send origin when cross-origin from https->https or http->http(s)
+         No referrer when request from https->http. */
+    const unsigned long REFERRER_POLICY_STRICT_ORIGIN_WHEN_XORIGIN = 7;
+
+    /**
+     * Get the HTTP referrer policy.  The policy is retrieved from the meta
+     * referrer tag, which can be one of many values (see ReferrerPolicy.h for
+     * more details).
+     */
+    readonly attribute unsigned long referrerPolicy;
+
+    /**
+     * Set the HTTP referrer URI with a referrer policy.
+     * @throws NS_ERROR_FAILURE if called during visitRequestHeaders.
+     */
+    void setReferrerWithPolicy(in nsIURI referrer, in unsigned long referrerPolicy);
+
+    /**
+     * Returns the network protocol used to fetch the resource as identified
+     * by the ALPN Protocol ID.
+     *
+     * @throws NS_ERROR_NOT_AVAILABLE if called before the response
+     *         has been received (before onStartRequest).
+     */
+    readonly attribute ACString protocolVersion;
+
+    /**
+     * size consumed by the response header fields and the response payload body
+     */
+    readonly attribute uint64_t transferSize;
+
+    /**
+     * The size of the message body received by the client,
+     * after removing any applied content-codings
+     */
+    readonly attribute uint64_t decodedBodySize;
+
+    /**
+     * The size in octets of the payload body, prior to removing content-codings
+     */
+    readonly attribute uint64_t encodedBodySize;
 
     /**
      * Get the value of a particular request header.
@@ -93,10 +164,29 @@ interface nsIHttpChannel : nsIChannel
      *
      * @throws NS_ERROR_IN_PROGRESS if called after the channel has been
      *         opened.
+     * @throws NS_ERROR_FAILURE if called during visitRequestHeaders.
      */
     void setRequestHeader(in ACString aHeader,
                           in ACString aValue,
                           in boolean aMerge);
+
+    /**
+     * Set a request header with empty value.
+     *
+     * This should be used with caution in the cases where the behavior of
+     * setRequestHeader ignoring empty header values is undesirable.
+     *
+     * This method may only be called before the channel is opened.
+     *
+     * @param aHeader
+     *        The case-insensitive name of the request header to set (e.g.,
+     *        "Cookie").
+     *
+     * @throws NS_ERROR_IN_PROGRESS if called after the channel has been
+     *         opened.
+     * @throws NS_ERROR_FAILURE if called during visitRequestHeaders.
+     */
+    void setEmptyRequestHeader(in ACString aHeader);
 
     /**
      * Call this method to visit all request headers.  Calling setRequestHeader
@@ -106,6 +196,16 @@ interface nsIHttpChannel : nsIChannel
      *        the header visitor instance.
      */
     void visitRequestHeaders(in nsIHttpHeaderVisitor aVisitor);
+
+    /**
+     * Call this method to visit all non-default (UA-provided) request headers.
+     * Calling setRequestHeader while visiting request headers has undefined
+     * behavior. Don't do it!
+     *
+     * @param aVisitor
+     *        the header visitor instance.
+     */
+    void visitNonDefaultRequestHeaders(in nsIHttpHeaderVisitor aVisitor);
 
     /**
      * This attribute is a hint to the channel to indicate whether or not
@@ -193,6 +293,12 @@ interface nsIHttpChannel : nsIChannel
      */
     readonly attribute boolean requestSucceeded;
 
+   /** Indicates whether channel should be treated as the main one for the
+    *  current document.  If manually set to true, will always remain true.  Otherwise,
+    *  will be true iff LOAD_DOCUMENT_URI is set in the channel's loadflags.
+    */
+    attribute boolean isMainDocumentChannel;
+
     /**
      * Get the value of a particular response header.
      *
@@ -234,6 +340,8 @@ interface nsIHttpChannel : nsIChannel
      *         has been received (before onStartRequest).
      * @throws NS_ERROR_ILLEGAL_VALUE if changing the value of this response
      *         header is not allowed.
+     * @throws NS_ERROR_FAILURE if called during visitResponseHeaders,
+     *         VisitOriginalResponseHeaders or getOriginalResponseHeader.
      */
     void setResponseHeader(in ACString header,
                            in ACString value,
@@ -251,6 +359,39 @@ interface nsIHttpChannel : nsIChannel
      *         has been received (before onStartRequest).
      */
     void visitResponseHeaders(in nsIHttpHeaderVisitor aVisitor);
+
+     /**
+     * Get the value(s) of a particular response header in the form and order
+     * it has been received from the remote peer. There can be multiple headers
+     * with the same name.
+     *
+     * @param aHeader
+     *        The case-insensitive name of the response header to query (e.g.,
+     *        "Set-Cookie").
+     *
+     * @param aVisitor
+     *        the header visitor instance.
+     *
+     * @throws NS_ERROR_NOT_AVAILABLE if called before the response
+     *         has been received (before onStartRequest) or if the header is
+     *         not set in the response.
+     */
+    void getOriginalResponseHeader(in ACString aHeader,
+                                   in nsIHttpHeaderVisitor aVisitor);
+
+    /**
+     * Call this method to visit all response headers in the form and order as
+     * they have been received from the remote peer.
+     * Calling setResponseHeader while visiting response headers has undefined
+     * behavior.  Don't do it!
+     *
+     * @param aVisitor
+     *        the header visitor instance.
+     *
+     * @throws NS_ERROR_NOT_AVAILABLE if called before the response
+     *         has been received (before onStartRequest).
+     */
+    void visitOriginalResponseHeaders(in nsIHttpHeaderVisitor aVisitor);
 
     /**
      * Returns true if the server sent a "Cache-Control: no-store" response
@@ -273,14 +414,59 @@ interface nsIHttpChannel : nsIChannel
     boolean isNoCacheResponse();
 
     /**
+     * Returns true if the server sent a "Cache-Control: private" response
+     * header.
+     *
+     * @throws NS_ERROR_NOT_AVAILABLE if called before the response
+     *         has been received (before onStartRequest).
+     */
+    boolean isPrivateResponse();
+
+    /**
      * Instructs the channel to immediately redirect to a new destination.
-     * Can only be called on channels not yet opened.
+     * Can only be called on channels that have not yet called their
+     * listener's OnStartRequest(). Generally that means the latest time
+     * this can be used is one of:
+     *    "http-on-examine-response"
+     *    "http-on-examine-merged-response"
+     *    "http-on-examine-cached-response"
+     *
+     * When non-null URL is set before AsyncOpen:
+     *  we attempt to redirect to the targetURI before we even start building
+     *  and sending the request to the cache or the origin server.
+     *  If the redirect is vetoed, we fail the channel.
+     *
+     * When set between AsyncOpen and first call to OnStartRequest being called:
+     *  we attempt to redirect before we start delivery of network or cached
+     *  response to the listener.  If vetoed, we continue with delivery of
+     *  the original content to the channel listener.
+     *
+     * When passed aTargetURI is null the channel behaves normally (can be
+     * rewritten).
      *
      * This method provides no explicit conflict resolution. The last
      * caller to call it wins.
      *
-     * @throws NS_ERROR_ALREADY_OPENED if called after the channel
-     *         has been opened.
+     * @throws NS_ERROR_NOT_AVAILABLE if called after the channel has already
+     *         started to deliver the content to its listener.
      */
-    void redirectTo(in nsIURI aNewURI);
+    void redirectTo(in nsIURI aTargetURI);
+
+    /**
+     * Identifies the request context for this load.
+     */
+    [noscript] attribute nsID requestContextID;
+
+    /**
+     * Unique ID of the channel, shared between parent and child. Needed if
+     * the channel activity needs to be monitored across process boundaries,
+     * like in devtools net monitor. See bug 1274556.
+     */
+    attribute ACString channelId;
+
+    /**
+     * ID of the top-level document's inner window.  Identifies the content
+     * this channels is being load in.
+     */
+    attribute uint64_t topLevelContentWindowId;
 };

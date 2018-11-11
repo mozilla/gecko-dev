@@ -6,17 +6,13 @@
 // debuggers.  You should use this to test if you're running under a debugger,
 // and if you would like to yield (breakpoint) into the debugger.
 
-#ifndef BASE_DEBUG_DEBUGGER_H
-#define BASE_DEBUG_DEBUGGER_H
+#ifndef BASE_DEBUG_DEBUGGER_H_
+#define BASE_DEBUG_DEBUGGER_H_
 
 #include "base/base_export.h"
 
 namespace base {
 namespace debug {
-
-// Starts the registered system-wide JIT debugger to attach it to specified
-// process.
-BASE_EXPORT bool SpawnDebuggerOnProcess(unsigned process_id);
 
 // Waits wait_seconds seconds for a debugger to attach to the current process.
 // When silent is false, an exception is thrown when a debugger is detected.
@@ -45,4 +41,4 @@ BASE_EXPORT bool IsDebugUISuppressed();
 }  // namespace debug
 }  // namespace base
 
-#endif  // BASE_DEBUG_DEBUGGER_H
+#endif  // BASE_DEBUG_DEBUGGER_H_

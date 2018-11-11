@@ -17,11 +17,19 @@ else
 
 include $(topsrcdir)/toolkit/library/libxul.mk
 
+include $(topsrcdir)/config/config.mk
+
+# Wrap linker to print linking status periodically to prevent the linking
+# process from getting killed
+EXPAND_LIBS_EXEC := $(PYTHON) $(topsrcdir)/config/link.py
+
 ifdef COMPILE_ENVIRONMENT
-libs:: $(DIST)/bin/dependentlibs.list.gtest
+target:: $(DIST)/bin/dependentlibs.list.gtest
 endif
 
 $(DIST)/bin/dependentlibs.list.gtest: $(DIST)/bin/dependentlibs.list
 	sed -e 's|$(SHARED_LIBRARY)|gtest/$(SHARED_LIBRARY)|' $< > $@
+
+LINK_PDBFILE = xul-gtest.pdb
 
 endif

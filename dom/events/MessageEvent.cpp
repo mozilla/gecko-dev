@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,11 +8,10 @@
 #include "mozilla/dom/MessageEventBinding.h"
 #include "mozilla/dom/MessagePort.h"
 #include "mozilla/dom/MessagePortBinding.h"
-#include "mozilla/dom/MessagePortList.h"
-#include "mozilla/dom/UnionTypes.h"
 
 #include "mozilla/HoldDropJSObjects.h"
 #include "jsapi.h"
+#include "nsGlobalWindow.h" // So we can assign an nsGlobalWindow* to mWindowSource
 
 namespace mozilla {
 namespace dom {
@@ -19,7 +19,7 @@ namespace dom {
 NS_IMPL_CYCLE_COLLECTION_CLASS(MessageEvent)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(MessageEvent, Event)
-  tmp->mData = JSVAL_VOID;
+  tmp->mData.setUndefined();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mWindowSource)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPortSource)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPorts)
@@ -32,11 +32,10 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(MessageEvent, Event)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(MessageEvent, Event)
-  NS_IMPL_CYCLE_COLLECTION_TRACE_JSVAL_MEMBER_CALLBACK(mData)
+  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mData)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(MessageEvent)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMMessageEvent)
 NS_INTERFACE_MAP_END_INHERITING(Event)
 
 NS_IMPL_ADDREF_INHERITED(MessageEvent, Event)
@@ -46,67 +45,49 @@ MessageEvent::MessageEvent(EventTarget* aOwner,
                            nsPresContext* aPresContext,
                            WidgetEvent* aEvent)
   : Event(aOwner, aPresContext, aEvent)
-  , mData(JSVAL_VOID)
+  , mData(JS::UndefinedValue())
 {
 }
 
 MessageEvent::~MessageEvent()
 {
-  mData = JSVAL_VOID;
+  mData.setUndefined();
   DropJSObjects(this);
 }
 
 JSObject*
-MessageEvent::WrapObject(JSContext* aCx)
+MessageEvent::WrapObjectInternal(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return mozilla::dom::MessageEventBinding::Wrap(aCx, this);
-}
-
-NS_IMETHODIMP
-MessageEvent::GetData(JSContext* aCx, JS::MutableHandle<JS::Value> aData)
-{
-  ErrorResult rv;
-  GetData(aCx, aData, rv);
-  return rv.ErrorCode();
+  return mozilla::dom::MessageEventBinding::Wrap(aCx, this, aGivenProto);
 }
 
 void
 MessageEvent::GetData(JSContext* aCx, JS::MutableHandle<JS::Value> aData,
                       ErrorResult& aRv)
 {
-  JS::ExposeValueToActiveJS(mData);
   aData.set(mData);
   if (!JS_WrapValue(aCx, aData)) {
     aRv.Throw(NS_ERROR_FAILURE);
   }
 }
 
-NS_IMETHODIMP
-MessageEvent::GetOrigin(nsAString& aOrigin)
+void
+MessageEvent::GetOrigin(nsAString& aOrigin) const
 {
   aOrigin = mOrigin;
-  return NS_OK;
 }
 
-NS_IMETHODIMP
-MessageEvent::GetLastEventId(nsAString& aLastEventId)
+void
+MessageEvent::GetLastEventId(nsAString& aLastEventId) const
 {
   aLastEventId = mLastEventId;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-MessageEvent::GetSource(nsIDOMWindow** aSource)
-{
-  NS_IF_ADDREF(*aSource = mWindowSource);
-  return NS_OK;
 }
 
 void
 MessageEvent::GetSource(Nullable<OwningWindowProxyOrMessagePort>& aValue) const
 {
   if (mWindowSource) {
-    aValue.SetValue().SetAsWindowProxy() = mWindowSource;
+    aValue.SetValue().SetAsWindowProxy() = mWindowSource->GetOuterWindow();
   } else if (mPortSource) {
     aValue.SetValue().SetAsMessagePort() = mPortSource;
   }
@@ -119,31 +100,31 @@ MessageEvent::Constructor(const GlobalObject& aGlobal,
                           ErrorResult& aRv)
 {
   nsCOMPtr<EventTarget> t = do_QueryInterface(aGlobal.GetAsSupports());
-  nsRefPtr<MessageEvent> event = new MessageEvent(t, nullptr, nullptr);
+  return Constructor(t, aType, aParam, aRv);
+}
 
-  aRv = event->InitEvent(aType, aParam.mBubbles, aParam.mCancelable);
-  if (aRv.Failed()) {
-    return nullptr;
-  }
+/* static */ already_AddRefed<MessageEvent>
+MessageEvent::Constructor(EventTarget* aEventTarget,
+                          const nsAString& aType,
+                          const MessageEventInit& aParam,
+                          ErrorResult& aRv)
+{
+  RefPtr<MessageEvent> event = new MessageEvent(aEventTarget, nullptr, nullptr);
 
-  bool trusted = event->Init(t);
+  event->InitEvent(aType, aParam.mBubbles, aParam.mCancelable);
+  bool trusted = event->Init(aEventTarget);
   event->SetTrusted(trusted);
 
   event->mData = aParam.mData;
 
   mozilla::HoldJSObjects(event.get());
 
-  if (aParam.mOrigin.WasPassed()) {
-    event->mOrigin = aParam.mOrigin.Value();
-  }
-
-  if (aParam.mLastEventId.WasPassed()) {
-    event->mLastEventId = aParam.mLastEventId.Value();
-  }
+  event->mOrigin = aParam.mOrigin;
+  event->mLastEventId = aParam.mLastEventId;
 
   if (!aParam.mSource.IsNull()) {
-    if (aParam.mSource.Value().IsWindowProxy()) {
-      event->mWindowSource = aParam.mSource.Value().GetAsWindowProxy();
+    if (aParam.mSource.Value().IsWindow()) {
+      event->mWindowSource = aParam.mSource.Value().GetAsWindow()->AsInner();
     } else {
       event->mPortSource = aParam.mSource.Value().GetAsMessagePort();
     }
@@ -151,60 +132,50 @@ MessageEvent::Constructor(const GlobalObject& aGlobal,
     MOZ_ASSERT(event->mWindowSource || event->mPortSource);
   }
 
-  if (aParam.mPorts.WasPassed() && !aParam.mPorts.Value().IsNull()) {
-    nsTArray<nsRefPtr<MessagePortBase>> ports;
-    for (uint32_t i = 0, len = aParam.mPorts.Value().Value().Length(); i < len; ++i) {
-      ports.AppendElement(aParam.mPorts.Value().Value()[i].get());
-    }
-
-    event->mPorts = new MessagePortList(static_cast<EventBase*>(event), ports);
-  }
+  event->mPorts.AppendElements(aParam.mPorts);
 
   return event.forget();
 }
 
-NS_IMETHODIMP
-MessageEvent::InitMessageEvent(const nsAString& aType,
-                               bool aCanBubble,
-                               bool aCancelable,
+void
+MessageEvent::InitMessageEvent(JSContext* aCx, const nsAString& aType,
+                               bool aCanBubble, bool aCancelable,
                                JS::Handle<JS::Value> aData,
                                const nsAString& aOrigin,
                                const nsAString& aLastEventId,
-                               nsIDOMWindow* aSource)
+                               const Nullable<WindowProxyOrMessagePort>& aSource,
+                               const Sequence<OwningNonNull<MessagePort>>& aPorts)
 {
-  nsresult rv = Event::InitEvent(aType, aCanBubble, aCancelable);
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE_VOID(!mEvent->mFlags.mIsBeingDispatched);
 
+  Event::InitEvent(aType, aCanBubble, aCancelable);
   mData = aData;
   mozilla::HoldJSObjects(this);
   mOrigin = aOrigin;
   mLastEventId = aLastEventId;
-  mWindowSource = aSource;
 
-  return NS_OK;
+  mWindowSource = nullptr;
+  mPortSource = nullptr;
+
+  if (!aSource.IsNull()) {
+    if (aSource.Value().IsWindowProxy()) {
+      auto* windowProxy = aSource.Value().GetAsWindowProxy();
+      mWindowSource = windowProxy ? windowProxy->GetCurrentInnerWindow() : nullptr;
+    } else {
+      mPortSource = &aSource.Value().GetAsMessagePort();
+    }
+  }
+
+  mPorts.Clear();
+  mPorts.AppendElements(aPorts);
+  MessageEventBinding::ClearCachedPortsValue(this);
 }
 
 void
-MessageEvent::SetPorts(MessagePortList* aPorts)
+MessageEvent::GetPorts(nsTArray<RefPtr<MessagePort>>& aPorts)
 {
-  MOZ_ASSERT(!mPorts && aPorts);
-  mPorts = aPorts;
+  aPorts = mPorts;
 }
 
 } // namespace dom
 } // namespace mozilla
-
-using namespace mozilla;
-using namespace mozilla::dom;
-
-nsresult
-NS_NewDOMMessageEvent(nsIDOMEvent** aInstancePtrResult,
-                      EventTarget* aOwner,
-                      nsPresContext* aPresContext,
-                      WidgetEvent* aEvent) 
-{
-  MessageEvent* it = new MessageEvent(aOwner, aPresContext, aEvent);
-  NS_ADDREF(it);
-  *aInstancePtrResult = static_cast<Event*>(it);
-  return NS_OK;
-}

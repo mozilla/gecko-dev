@@ -50,7 +50,7 @@
 static const char DISK_CACHE_DEVICE_ID[] = { "disk" };
 using namespace mozilla;
 
-class nsDiskCacheDeviceDeactivateEntryEvent : public nsRunnable {
+class nsDiskCacheDeviceDeactivateEntryEvent : public Runnable {
 public:
     nsDiskCacheDeviceDeactivateEntryEvent(nsDiskCacheDevice *device,
                                           nsCacheEntry * entry,
@@ -62,12 +62,10 @@ public:
     {
     }
 
-    NS_IMETHOD Run()
+    NS_IMETHOD Run() override
     {
-        nsCacheServiceAutoLock lock(LOCK_TELEM(NSDISKCACHEDEVICEDEACTIVATEENTRYEVENT_RUN));
-#ifdef PR_LOGGING
+        nsCacheServiceAutoLock lock;
         CACHE_LOG_DEBUG(("nsDiskCacheDeviceDeactivateEntryEvent[%p]\n", this));
-#endif
         if (!mCanceled) {
             (void) mDevice->DeactivateEntry_Private(mEntry, mBinding);
         }
@@ -82,14 +80,14 @@ private:
     nsDiskCacheBinding *mBinding;
 };
 
-class nsEvictDiskCacheEntriesEvent : public nsRunnable {
+class nsEvictDiskCacheEntriesEvent : public Runnable {
 public:
-    nsEvictDiskCacheEntriesEvent(nsDiskCacheDevice *device)
+    explicit nsEvictDiskCacheEntriesEvent(nsDiskCacheDevice *device)
         : mDevice(device) {}
 
-    NS_IMETHOD Run()
+    NS_IMETHOD Run() override
     {
-        nsCacheServiceAutoLock lock(LOCK_TELEM(NSEVICTDISKCACHEENTRIESEVENT_RUN));
+        nsCacheServiceAutoLock lock;
         mDevice->EvictDiskCacheEntries(mDevice->mCacheCapacity);
         return NS_OK;
     }
@@ -182,20 +180,19 @@ public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSICACHEDEVICEINFO
 
-    nsDiskCacheDeviceInfo(nsDiskCacheDevice* device)
+    explicit nsDiskCacheDeviceInfo(nsDiskCacheDevice* device)
         :   mDevice(device)
     {
     }
 
-    virtual ~nsDiskCacheDeviceInfo() {}
-    
 private:
+    virtual ~nsDiskCacheDeviceInfo() {}
+
     nsDiskCacheDevice* mDevice;
 };
 
 NS_IMPL_ISUPPORTS(nsDiskCacheDeviceInfo, nsICacheDeviceInfo)
 
-/* readonly attribute string description; */
 NS_IMETHODIMP nsDiskCacheDeviceInfo::GetDescription(char ** aDescription)
 {
     NS_ENSURE_ARG_POINTER(aDescription);
@@ -203,7 +200,6 @@ NS_IMETHODIMP nsDiskCacheDeviceInfo::GetDescription(char ** aDescription)
     return *aDescription ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
 
-/* readonly attribute string usageReport; */
 NS_IMETHODIMP nsDiskCacheDeviceInfo::GetUsageReport(char ** usageReport)
 {
     NS_ENSURE_ARG_POINTER(usageReport);
@@ -230,7 +226,6 @@ NS_IMETHODIMP nsDiskCacheDeviceInfo::GetUsageReport(char ** usageReport)
     return NS_OK;
 }
 
-/* readonly attribute unsigned long entryCount; */
 NS_IMETHODIMP nsDiskCacheDeviceInfo::GetEntryCount(uint32_t *aEntryCount)
 {
     NS_ENSURE_ARG_POINTER(aEntryCount);
@@ -238,7 +233,6 @@ NS_IMETHODIMP nsDiskCacheDeviceInfo::GetEntryCount(uint32_t *aEntryCount)
     return NS_OK;
 }
 
-/* readonly attribute unsigned long totalSize; */
 NS_IMETHODIMP nsDiskCacheDeviceInfo::GetTotalSize(uint32_t *aTotalSize)
 {
     NS_ENSURE_ARG_POINTER(aTotalSize);
@@ -247,7 +241,6 @@ NS_IMETHODIMP nsDiskCacheDeviceInfo::GetTotalSize(uint32_t *aTotalSize)
     return NS_OK;
 }
 
-/* readonly attribute unsigned long maximumSize; */
 NS_IMETHODIMP nsDiskCacheDeviceInfo::GetMaximumSize(uint32_t *aMaximumSize)
 {
     NS_ENSURE_ARG_POINTER(aMaximumSize);
@@ -311,17 +304,17 @@ nsDiskCache::Hash(const char * key, PLDHashNumber initval)
   /*------------------------------------- handle the last 11 bytes */
   c += length;
   switch(len) {              /* all the case statements fall through */
-    case 11: c += (uint32_t(k[10])<<24);
-    case 10: c += (uint32_t(k[9])<<16);
-    case 9 : c += (uint32_t(k[8])<<8);
+    case 11: c += (uint32_t(k[10])<<24);  MOZ_FALLTHROUGH;
+    case 10: c += (uint32_t(k[9])<<16);   MOZ_FALLTHROUGH;
+    case 9 : c += (uint32_t(k[8])<<8);    MOZ_FALLTHROUGH;
     /* the low-order byte of c is reserved for the length */
-    case 8 : b += (uint32_t(k[7])<<24);
-    case 7 : b += (uint32_t(k[6])<<16);
-    case 6 : b += (uint32_t(k[5])<<8);
-    case 5 : b += k[4];
-    case 4 : a += (uint32_t(k[3])<<24);
-    case 3 : a += (uint32_t(k[2])<<16);
-    case 2 : a += (uint32_t(k[1])<<8);
+    case 8 : b += (uint32_t(k[7])<<24);   MOZ_FALLTHROUGH;
+    case 7 : b += (uint32_t(k[6])<<16);   MOZ_FALLTHROUGH;
+    case 6 : b += (uint32_t(k[5])<<8);    MOZ_FALLTHROUGH;
+    case 5 : b += k[4];                   MOZ_FALLTHROUGH;
+    case 4 : a += (uint32_t(k[3])<<24);   MOZ_FALLTHROUGH;
+    case 3 : a += (uint32_t(k[2])<<16);   MOZ_FALLTHROUGH;
+    case 2 : a += (uint32_t(k[1])<<8);    MOZ_FALLTHROUGH;
     case 1 : a += k[0];
     /* case 0: nothing left to add */
   }
@@ -386,13 +379,11 @@ nsDiskCacheDevice::Init()
         NS_ERROR("Disk cache already initialized!");
         return NS_ERROR_UNEXPECTED;
     }
-       
+
     if (!mCacheDirectory)
         return NS_ERROR_FAILURE;
 
-    rv = mBindery.Init();
-    if (NS_FAILED(rv))
-        return rv;
+    mBindery.Init();
 
     // Open Disk Cache
     rv = OpenDiskCache();
@@ -974,17 +965,12 @@ nsDiskCacheDevice::OpenDiskCache()
     if (exists) {
         // Try opening cache map file.
         nsDiskCache::CorruptCacheInfo corruptInfo;
-        rv = mCacheMap.Open(mCacheDirectory, &corruptInfo, true);
+        rv = mCacheMap.Open(mCacheDirectory, &corruptInfo);
 
-        if (NS_SUCCEEDED(rv)) {
-            Telemetry::Accumulate(Telemetry::DISK_CACHE_CORRUPT_DETAILS,
-                                  corruptInfo);
-        } else if (rv == NS_ERROR_ALREADY_INITIALIZED) {
+        if (rv == NS_ERROR_ALREADY_INITIALIZED) {
           NS_WARNING("nsDiskCacheDevice::OpenDiskCache: already open!");
-        } else {
+        } else if (NS_FAILED(rv)) {
             // Consider cache corrupt: delete it
-            Telemetry::Accumulate(Telemetry::DISK_CACHE_CORRUPT_DETAILS,
-                                  corruptInfo);
             // delay delete by 1 minute to avoid IO thrash at startup
             rv = nsDeleteDir::DeleteDir(mCacheDirectory, true, 60000);
             if (NS_FAILED(rv))
@@ -997,14 +983,14 @@ nsDiskCacheDevice::OpenDiskCache()
     if (!exists) {
         nsCacheService::MarkStartingFresh();
         rv = mCacheDirectory->Create(nsIFile::DIRECTORY_TYPE, 0777);
-        CACHE_LOG_PATH(PR_LOG_ALWAYS, "\ncreate cache directory: %s\n", mCacheDirectory);
-        CACHE_LOG_ALWAYS(("mCacheDirectory->Create() = %x\n", rv));
+        CACHE_LOG_PATH(LogLevel::Info, "\ncreate cache directory: %s\n", mCacheDirectory);
+        CACHE_LOG_INFO(("mCacheDirectory->Create() = %x\n", rv));
         if (NS_FAILED(rv))
             return rv;
     
         // reopen the cache map     
         nsDiskCache::CorruptCacheInfo corruptInfo;
-        rv = mCacheMap.Open(mCacheDirectory, &corruptInfo, false);
+        rv = mCacheMap.Open(mCacheDirectory, &corruptInfo);
         if (NS_FAILED(rv))
             return rv;
     }
@@ -1161,4 +1147,3 @@ nsDiskCacheDevice::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf)
 
     return usage;
 }
-

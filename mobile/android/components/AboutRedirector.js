@@ -3,10 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 const Cc = Components.classes;
 const Ci = Components.interfaces;
+const Cu = Components.utils;
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/AppConstants.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-let modules = {
+var modules = {
   // about:
   "": {
     uri: "chrome://browser/content/about.xhtml",
@@ -20,7 +22,9 @@ let modules = {
     privileged: true,
     hide: true
   },
-  get firefox() this.fennec,
+  get firefox() {
+    return this.fennec
+  },
 
   // about:blank has some bad loading behavior we can avoid, if we use an alias
   empty: {
@@ -30,11 +34,7 @@ let modules = {
   },
 
   rights: {
-#ifdef MOZ_OFFICIAL_BRANDING
     uri: "chrome://browser/content/aboutRights.xhtml",
-#else
-    uri: "chrome://global/content/aboutRights-unbranded.xhtml",
-#endif
     privileged: false
   },
   blocked: {
@@ -51,16 +51,12 @@ let modules = {
     uri: "chrome://browser/content/aboutHome.xhtml",
     privileged: false
   },
-  apps: {
-    uri: "chrome://browser/content/aboutApps.xhtml",
-    privileged: true
-  },
   downloads: {
     uri: "chrome://browser/content/aboutDownloads.xhtml",
     privileged: true
   },
   reader: {
-    uri: "chrome://browser/content/aboutReader.html",
+    uri: "chrome://global/content/reader/aboutReader.html",
     privileged: false,
     hide: true
   },
@@ -72,18 +68,21 @@ let modules = {
     uri: "chrome://browser/content/aboutPrivateBrowsing.xhtml",
     privileged: true
   },
-#ifdef MOZ_SERVICES_HEALTHREPORT
-  healthreport: {
+  logins: {
+    uri: "chrome://browser/content/aboutLogins.xhtml",
+    privileged: true
+  },
+  accounts: {
+    uri: "chrome://browser/content/aboutAccounts.xhtml",
+    privileged: true
+  },
+};
+
+if (AppConstants.MOZ_SERVICES_HEALTHREPORT) {
+  modules['healthreport'] = {
     uri: "chrome://browser/content/aboutHealthReport.xhtml",
     privileged: true
-  },
-#endif
-#ifdef MOZ_DEVICES
-  devices: {
-    uri: "chrome://browser/content/aboutDevices.xhtml",
-    privileged: true
-  },
-#endif
+  };
 }
 
 function AboutRedirector() {}
@@ -106,14 +105,16 @@ AboutRedirector.prototype = {
     return flags | Ci.nsIAboutModule.ALLOW_SCRIPT;
   },
 
-  newChannel: function(aURI) {
+  newChannel: function(aURI, aLoadInfo) {
     let moduleInfo = this._getModuleInfo(aURI);
 
     var ios = Cc["@mozilla.org/network/io-service;1"].
               getService(Ci.nsIIOService);
 
-    var channel = ios.newChannel(moduleInfo.uri, null, null);
-    
+    var newURI = ios.newURI(moduleInfo.uri, null, null);
+
+    var channel = ios.newChannelFromURIWithLoadInfo(newURI, aLoadInfo);
+
     if (!moduleInfo.privileged) {
       // Setting the owner to null means that we'll go through the normal
       // path in GetChannelPrincipal and create a codebase principal based

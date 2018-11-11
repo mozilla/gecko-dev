@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,7 +9,6 @@ XPIDL_SOURCES += [
     'nsIConsoleMessage.idl',
     'nsIConsoleService.idl',
     'nsICycleCollectorListener.idl',
-    'nsIDebug.idl',
     'nsIDebug2.idl',
     'nsIErrorService.idl',
     'nsIException.idl',
@@ -26,7 +25,6 @@ XPIDL_SOURCES += [
     'nsISupports.idl',
     'nsIUUIDGenerator.idl',
     'nsIVersionComparator.idl',
-    'nsIVisualEventTracer.idl',
     'nsIWeakReference.idl',
     'nsrootidl.idl',
 ]
@@ -35,27 +33,35 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
     XPIDL_SOURCES += [
         'nsIMacUtils.idl',
     ]
+    EXPORTS.mozilla += [
+        'MacHelpers.h',
+    ]
+    UNIFIED_SOURCES += [
+        'MacHelpers.mm',
+    ]
 
 XPIDL_MODULE = 'xpcom_base'
 
 EXPORTS += [
+    'CodeAddressService.h',
     'ErrorList.h',
     'nsAgg.h',
+    'nsAlgorithm.h',
     'nsAutoPtr.h',
     'nsAutoRef.h',
     'nsCom.h',
     'nscore.h',
     'nsCycleCollector.h',
     'nsDebugImpl.h',
+    'nsDumpUtils.h',
     'nsError.h',
     'nsGZFileWriter.h',
     'nsIID.h',
     'nsInterfaceRequestorAgg.h',
     'nsISizeOf.h',
     'nsISupportsBase.h',
-    'nsISupportsObsolete.h',
     'nsObjCExceptions.h',
-    'nsStackWalk.h',
+    'nsQueryObject.h',
     'nsTraceRefcnt.h',
     'nsWeakPtr.h',
 ]
@@ -64,21 +70,25 @@ if CONFIG['OS_ARCH'] == 'WINNT':
     EXPORTS += [
         'nsWindowsHelpers.h',
     ]
-    if CONFIG['MOZ_DEBUG']:
-        EXPORTS += ['pure.h']
-        SOURCES += ['pure_api.c']
 
 EXPORTS.mozilla += [
     'AvailableMemoryTracker.h',
     'ClearOnShutdown.h',
-    'CycleCollectedJSRuntime.h',
+    'CountingAllocatorBase.h',
+    'CycleCollectedJSContext.h',
     'Debug.h',
+    'DebuggerOnGCRunnable.h',
+    'DeferredFinalize.h',
+    'ErrorNames.h',
+    'HoldDropJSObjects.h',
+    'JSObjectHolder.h',
+    'LinuxUtils.h',
+    'Logging.h',
     'nsMemoryInfoDumper.h',
-    'StackWalk.h',
+    'OwningNonNull.h',
     'StaticMutex.h',
     'StaticPtr.h',
     'SystemMemoryReporter.h',
-    'VisualEventTracer.h',
 ]
 
 # nsDebugImpl isn't unified because we disable PGO so that NS_ABORT_OOM isn't
@@ -91,11 +101,19 @@ SOURCES['nsDebugImpl.cpp'].no_pgo = True
 UNIFIED_SOURCES += [
     'AvailableMemoryTracker.cpp',
     'ClearOnShutdown.cpp',
-    'CycleCollectedJSRuntime.cpp',
+    'CycleCollectedJSContext.cpp',
     'Debug.cpp',
+    'DebuggerOnGCRunnable.cpp',
+    'DeferredFinalize.cpp',
+    'ErrorNames.cpp',
+    'HoldDropJSObjects.cpp',
+    'JSObjectHolder.cpp',
+    'Logging.cpp',
+    'LogModulePrefWatcher.cpp',
     'nsConsoleMessage.cpp',
     'nsConsoleService.cpp',
     'nsCycleCollector.cpp',
+    'nsCycleCollectorTraceJSHelpers.cpp',
     'nsDumpUtils.cpp',
     'nsErrorService.cpp',
     'nsGZFileWriter.cpp',
@@ -104,29 +122,18 @@ UNIFIED_SOURCES += [
     'nsMemoryInfoDumper.cpp',
     'nsMemoryReporterManager.cpp',
     'nsMessageLoop.cpp',
+    'NSPRLogModulesParser.cpp',
     'nsSecurityConsoleMessage.cpp',
     'nsStatusReporterManager.cpp',
     'nsSystemInfo.cpp',
     'nsTraceRefcnt.cpp',
     'nsUUIDGenerator.cpp',
     'nsVersionComparatorImpl.cpp',
-    'VisualEventTracer.cpp',
 ]
-
-# On Windows, NS_StackWalk will only work correctly if we have frame pointers available.
-# That will only be true for non-optimized builds, and for optimized builds with
-# --enable-profiling in the .mozconfig (which is turned on in Nightly by default.)
-# We exclude this file from other build configurations so that if somebody adds a
-# new usage of NS_StackWalk it will cause a link error, which is better than having
-# NS_StackWalk silently return garbage at runtime.
-if CONFIG['OS_TARGET'] != 'WINNT' or \
-   (not CONFIG['MOZ_OPTIMIZE'] or CONFIG['MOZ_PROFILING'] or CONFIG['MOZ_DEBUG']):
-    UNIFIED_SOURCES += [
-        'nsStackWalk.cpp',
-    ]
 
 if CONFIG['OS_ARCH'] == 'Linux':
     SOURCES += [
+        'LinuxUtils.cpp',
         'SystemMemoryReporter.cpp',
     ]
 
@@ -139,20 +146,14 @@ elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
         'nsCrashOnException.cpp',
     ]
 
-UNIFIED_SOURCES += [
-    'nsErrorAssertsC.c',
-]
-
-MSVC_ENABLE_PGO = True
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
-FINAL_LIBRARY = 'xpcom_core'
+FINAL_LIBRARY = 'xul'
 
 LOCAL_INCLUDES += [
     '../build',
     '/xpcom/ds',
 ]
 
-if CONFIG['MOZ_OPTIMIZE']:
-    DEFINES['MOZ_OPTIMIZE'] = True
+if 'gtk' in CONFIG['MOZ_WIDGET_TOOLKIT']:
+    CXXFLAGS += CONFIG['TK_CFLAGS']

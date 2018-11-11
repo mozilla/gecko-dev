@@ -13,14 +13,13 @@
 namespace mozilla {
 namespace gfx {
 
-class DrawTargetCairo;
 class PathCairo;
 
 class PathBuilderCairo : public PathBuilder
 {
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(PathBuilderCairo)
-  PathBuilderCairo(FillRule aFillRule);
+  explicit PathBuilderCairo(FillRule aFillRule);
 
   virtual void MoveTo(const Point &aPoint);
   virtual void LineTo(const Point &aPoint);
@@ -33,7 +32,9 @@ public:
   virtual void Arc(const Point &aOrigin, float aRadius, float aStartAngle,
                    float aEndAngle, bool aAntiClockwise = false);
   virtual Point CurrentPoint() const;
-  virtual TemporaryRef<Path> Finish();
+  virtual already_AddRefed<Path> Finish();
+
+  virtual BackendType GetBackendType() const { return BackendType::CAIRO; }
 
 private: // data
   friend class PathCairo;
@@ -51,14 +52,14 @@ class PathCairo : public Path
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(PathCairo)
   PathCairo(FillRule aFillRule, std::vector<cairo_path_data_t> &aPathData, const Point &aCurrentPoint);
-  PathCairo(cairo_t *aContext);
+  explicit PathCairo(cairo_t *aContext);
   ~PathCairo();
 
   virtual BackendType GetBackendType() const { return BackendType::CAIRO; }
 
-  virtual TemporaryRef<PathBuilder> CopyToBuilder(FillRule aFillRule = FillRule::FILL_WINDING) const;
-  virtual TemporaryRef<PathBuilder> TransformedCopyToBuilder(const Matrix &aTransform,
-                                                             FillRule aFillRule = FillRule::FILL_WINDING) const;
+  virtual already_AddRefed<PathBuilder> CopyToBuilder(FillRule aFillRule) const;
+  virtual already_AddRefed<PathBuilder> TransformedCopyToBuilder(const Matrix &aTransform,
+                                                             FillRule aFillRule) const;
 
   virtual bool ContainsPoint(const Point &aPoint, const Matrix &aTransform) const;
 
@@ -79,15 +80,16 @@ public:
 
   void AppendPathToBuilder(PathBuilderCairo *aBuilder, const Matrix *aTransform = nullptr) const;
 private:
-  void EnsureContainingContext() const;
+  void EnsureContainingContext(const Matrix &aTransform) const;
 
   FillRule mFillRule;
   std::vector<cairo_path_data_t> mPathData;
   mutable cairo_t *mContainingContext;
+  mutable Matrix mContainingTransform;
   Point mCurrentPoint;
 };
 
-}
-}
+} // namespace gfx
+} // namespace mozilla
 
 #endif /* MOZILLA_GFX_PATH_CAIRO_H_ */

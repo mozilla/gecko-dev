@@ -1,0 +1,39 @@
+This directory contains files used in gecko builds from FFmpeg
+(http://ffmpeg.org). The current files are from FFmpeg as of
+revision n3.1.1-6-g86f9228
+All source files match their path from the library's source archive.
+
+Currently, we only use the vp8 and vp9 portion of the library, and only on x86
+based platforms. If this changes, configuration files will most likely
+need to be updated.
+
+AVX2 must be disabled on Linux due to the use of yasm 1.1 on the build bots.
+Once yasm is upgraded to 1.2 or later, AVX2 code could be re-enabled.
+Add --disable-avx2 to configure on those platforms.
+
+configuration files were generated as follow using the configure script:
+./configure --disable-everything --disable-protocols --disable-demuxers --disable-muxers --disable-filters --disable-programs --disable-doc --disable-parsers --enable-parser=vp8 --enable-parser=vp9 --enable-decoder=vp8 --enable-decoder=vp9 --disable-static --enable-shared --disable-debug --disable-sdl --disable-libxcb --disable-securetransport --disable-iconv --disable-swresample --disable-swscale --disable-avdevice --disable-avfilter --disable-avformat --disable-d3d11va --disable-dxva2 --disable-vaapi --disable-vda --disable-vdpau --disable-videotoolbox --enable-asm --enable-yasm
+
+config*:
+replace: /HAVE_(MALLOC_H|ARC4RANDOM|LOCALTIME_R|MEMALIGN|POSIX_MEMALIGN)/d
+
+config_darwin32.h:
+add to configure command: --disable-asm --disable-yasm --cc='clang -m32'
+
+config_unix32.h:
+add to configure command: --disable-asm --disable-yasm --cc='clang -m32'
+replace: s/HAVE_SYSCTL 1/HAVE_SYSCTL 0/ and s/HAVE_MEMALIGN 1/HAVE_MEMALIGN 0/ and s/HAVE_POSIX_MEMALIGN 1/HAVE_POSIX_MEMALIGN 0/
+
+
+config_unix64.h/config_unix64.asm:
+replace: s/HAVE_SYSCTL 1/HAVE_SYSCTL 0
+
+config_win32/64.h/asm:
+add to configure command: --toolchain=msvc
+
+23 Sept 2016: libavcodec/pthread_frame.c has been patched so as to avoid
+generating large numbers of warnings from TSan (Thread Sanitizer) when
+decoding vp9 streams.  This will likely be fixed upstream sometime soon.
+When resyncing with upstream, first un-apply the patch shown at
+https://bugzilla.mozilla.org/show_bug.cgi?id=1274256#c60, then resync,
+then assess whether the patch is still necessary.

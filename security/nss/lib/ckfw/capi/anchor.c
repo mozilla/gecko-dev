@@ -6,7 +6,7 @@
  * capi/canchor.c
  *
  * This file "anchors" the actual cryptoki entry points in this module's
- * shared library, which is required for dynamic loading.  See the 
+ * shared library, which is required for dynamic loading.  See the
  * comments in nssck.api for more information.
  */
 

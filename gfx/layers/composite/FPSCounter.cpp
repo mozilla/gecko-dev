@@ -15,20 +15,20 @@
 #include "mozilla/layers/Effects.h"     // for Effect, EffectChain, etc
 #include "mozilla/TimeStamp.h"          // for TimeStamp, TimeDuration
 #include "nsPoint.h"                    // for nsIntPoint
-#include "nsRect.h"                     // for nsIntRect
+#include "nsRect.h"                     // for mozilla::gfx::IntRect
 #include "nsIFile.h"                    // for nsIFile
 #include "nsDirectoryServiceDefs.h"     // for NS_OS_TMP_DIR
-#include "prprf.h"                      // for PR_snprintf
+#include "mozilla/Sprintf.h"
 #include "FPSCounter.h"
 
 namespace mozilla {
 namespace layers {
 
 using namespace mozilla::gfx;
-using namespace mozilla::gl;
 
 FPSCounter::FPSCounter(const char* aName)
   : mWriteIndex(0)
+  , mIteratorIndex(-1)
   , mFPSName(aName)
 {
   Init();
@@ -49,7 +49,7 @@ FPSCounter::Init()
 bool
 FPSCounter::CapturedFullInterval(TimeStamp aTimestamp) {
   TimeDuration duration = aTimestamp - mLastInterval;
-  return duration.ToSecondsSigDigits() >= kFpsDumpInterval;
+  return duration.ToSeconds() >= kFpsDumpInterval;
 }
 
 void
@@ -103,7 +103,7 @@ FPSCounter::IteratedFullInterval(TimeStamp aTimestamp, double aDuration) {
 
   TimeStamp currentStamp = mFrameTimestamps[mIteratorIndex];
   TimeDuration duration = aTimestamp - currentStamp;
-  return duration.ToSecondsSigDigits() >= aDuration;
+  return duration.ToSeconds() >= aDuration;
 }
 
 void
@@ -187,7 +187,7 @@ FPSCounter::BuildHistogram(std::map<int, int>& aFpsData)
     currentTimeStamp = GetNextTimeStamp();
     TimeDuration interval = currentIntervalStart - currentTimeStamp;
 
-    if (interval.ToSecondsSigDigits() >= 1.0 ) {
+    if (interval.ToSeconds() >= 1.0 ) {
       currentIntervalStart = currentTimeStamp;
       aFpsData[frameCount]++;
       frameCount = 0;
@@ -209,7 +209,7 @@ FPSCounter::WriteFrameTimeStamps(PRFileDesc* fd)
 {
   const int bufferSize = 256;
   char buffer[bufferSize];
-  int writtenCount = PR_snprintf(buffer, bufferSize, "FPS Data for: %s\n", mFPSName);
+  int writtenCount = SprintfLiteral(buffer, "FPS Data for: %s\n", mFPSName);
   MOZ_ASSERT(writtenCount >= 0);
   PR_Write(fd, buffer, writtenCount);
 
@@ -224,7 +224,7 @@ FPSCounter::WriteFrameTimeStamps(PRFileDesc* fd)
 
   while (HasNext(startTimeStamp)) {
     TimeDuration duration = previousSample - nextTimeStamp;
-    writtenCount = PR_snprintf(buffer, bufferSize, "%f,\n", duration.ToMilliseconds());
+    writtenCount = SprintfLiteral(buffer, "%f,\n", duration.ToMilliseconds());
 
     MOZ_ASSERT(writtenCount >= 0);
     PR_Write(fd, buffer, writtenCount);
@@ -309,8 +309,8 @@ FPSCounter::PrintHistogram(std::map<int, int>& aHistogram)
     int fps = iter->first;
     int count = iter->second;
 
-    length += PR_snprintf(buffer + length, kBufferLength - length,
-                        "FPS: %d = %d. ", fps, count);
+    length += snprintf(buffer + length, kBufferLength - length,
+                       "FPS: %d = %d. ", fps, count);
     NS_ASSERTION(length >= kBufferLength, "Buffer overrun while printing FPS histogram.");
   }
 
@@ -365,7 +365,6 @@ FPSState::FPSState()
 // Size of the builtin font.
 static const float FontHeight = 7.f;
 static const float FontWidth = 4.f;
-static const float FontStride = 4.f;
 
 // Scale the font when drawing it to the viewport for better readability.
 static const float FontScaleX = 2.f;
@@ -384,7 +383,7 @@ static void DrawDigits(unsigned int aValue,
   float textureWidth = FontWidth * 10;
   gfx::Float opacity = 1;
   gfx::Matrix4x4 transform;
-  transform.Scale(FontScaleX, FontScaleY, 1);
+  transform.PreScale(FontScaleX, FontScaleY, 1);
 
   for (size_t n = 0; n < 3; ++n) {
     unsigned int digit = aValue % (divisor * 10) / divisor;
@@ -394,9 +393,8 @@ static void DrawDigits(unsigned int aValue,
     texturedEffect->mTextureCoords = Rect(float(digit * FontWidth) / textureWidth, 0, FontWidth / textureWidth, 1.0f);
 
     Rect drawRect = Rect(aOffsetX + n * FontWidth, aOffsetY, FontWidth, FontHeight);
-    Rect clipRect = Rect(0, 0, 300, 100);
-    aCompositor->DrawQuad(drawRect, clipRect,
-	aEffectChain, opacity, transform);
+    IntRect clipRect = IntRect(0, 0, 300, 100);
+    aCompositor->DrawQuad(drawRect, clipRect, aEffectChain, opacity, transform);
   }
 }
 
@@ -435,7 +433,10 @@ void FPSState::DrawFPS(TimeStamp aNow,
   }
 
   EffectChain effectChain;
-  effectChain.mPrimaryEffect = CreateTexturedEffect(SurfaceFormat::B8G8R8A8, mFPSTextureSource, Filter::POINT);
+  effectChain.mPrimaryEffect = CreateTexturedEffect(SurfaceFormat::B8G8R8A8,
+                                                    mFPSTextureSource,
+                                                    SamplingFilter::POINT,
+                                                    true);
 
   unsigned int fps = unsigned(mCompositionFps.AddFrameAndGetFps(aNow));
   unsigned int txnFps = unsigned(mTransactionFps.GetFPS(aNow));

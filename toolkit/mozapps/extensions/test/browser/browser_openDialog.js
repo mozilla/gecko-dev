@@ -5,7 +5,7 @@
 // Tests the dialog open by the Options button for addons that provide a
 // custom chrome-like protocol for optionsURL.
 
-let CustomChromeProtocol = {
+var CustomChromeProtocol = {
   scheme: "khrome",
   defaultPort: -1,
   protocolFlags: Ci.nsIProtocolHandler.URI_DANGEROUS_TO_LOAD |
@@ -20,11 +20,15 @@ let CustomChromeProtocol = {
     return uri;
   },
 
-  newChannel: function CCP_newChannel(aURI) {
-    let url = "chrome:" + aURI.path;
-    let ch = NetUtil.newChannel(url);
+  newChannel2: function CCP_newChannel2(aURI, aLoadInfo) {
+    let url = Services.io.newURI("chrome:" + aURI.path, null, null);
+    let ch = Services.io.newChannelFromURIWithLoadInfo(url, aLoadInfo);
     ch.originalURI = aURI;
     return ch;
+  },
+
+  newChannel: function CCP_newChannel(aURI) {
+    return this.newChannel2(aURI, null);
   },
 
   allowPort: function CCP_allowPort(aPort, aScheme) {
@@ -79,7 +83,7 @@ function test() {
 
   info("Registering custom chrome-like protocol.");
   CustomChromeProtocol.factory.register();
-  registerCleanupFunction(function () CustomChromeProtocol.factory.unregister());
+  registerCleanupFunction(() => CustomChromeProtocol.factory.unregister());
 
   const ADDONS_LIST = [
     { id: "test1@tests.mozilla.org",

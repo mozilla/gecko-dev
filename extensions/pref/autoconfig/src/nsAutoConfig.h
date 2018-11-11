@@ -10,10 +10,11 @@
 #include "nsITimer.h"
 #include "nsIFile.h"
 #include "nsIObserver.h"
-#include "nsNetUtil.h"
+#include "nsIStreamListener.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
 #include "nsWeakReference.h"
+#include "nsString.h"
 
 class nsAutoConfig : public nsIAutoConfig,
                      public nsITimerCallback,
@@ -32,11 +33,11 @@ class nsAutoConfig : public nsIAutoConfig,
         NS_DECL_NSITIMERCALLBACK
 
         nsAutoConfig();
-        virtual ~nsAutoConfig();
         nsresult Init();
   
     protected:
   
+        virtual ~nsAutoConfig();
         nsresult downloadAutoConfig();
         nsresult readOfflineFile();
         nsresult evaluateLocalFile(nsIFile *file);

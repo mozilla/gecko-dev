@@ -1,5 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,7 +8,7 @@
 #include "SpeakerManagerServiceChild.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/unused.h"
+#include "mozilla/Unused.h"
 #include "mozilla/dom/ContentParent.h"
 #include "nsIPropertyBag2.h"
 #include "nsThreadUtils.h"
@@ -26,12 +26,12 @@ StaticRefPtr<SpeakerManagerService> gSpeakerManagerService;
 
 // static
 SpeakerManagerService*
-SpeakerManagerService::GetSpeakerManagerService()
+SpeakerManagerService::GetOrCreateSpeakerManagerService()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
-    return SpeakerManagerServiceChild::GetSpeakerManagerService();
+  if (!XRE_IsParentProcess()) {
+    return SpeakerManagerServiceChild::GetOrCreateSpeakerManagerService();
   }
 
   // If we already exist, exit early
@@ -40,17 +40,29 @@ SpeakerManagerService::GetSpeakerManagerService()
   }
 
   // Create new instance, register, return
-  nsRefPtr<SpeakerManagerService> service = new SpeakerManagerService();
-  NS_ENSURE_TRUE(service, nullptr);
+  RefPtr<SpeakerManagerService> service = new SpeakerManagerService();
 
   gSpeakerManagerService = service;
+
+  return gSpeakerManagerService;
+}
+
+SpeakerManagerService*
+SpeakerManagerService::GetSpeakerManagerService()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (!XRE_IsParentProcess()) {
+    return SpeakerManagerServiceChild::GetSpeakerManagerService();
+  }
+
   return gSpeakerManagerService;
 }
 
 void
 SpeakerManagerService::Shutdown()
 {
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+  if (!XRE_IsParentProcess()) {
     return SpeakerManagerServiceChild::Shutdown();
   }
 
@@ -64,7 +76,7 @@ NS_IMPL_ISUPPORTS(SpeakerManagerService, nsIObserver)
 void
 SpeakerManagerService::ForceSpeaker(bool aEnable, uint64_t aChildId)
 {
-  TuruOnSpeaker(aEnable);
+  TurnOnSpeaker(aEnable);
   if (aEnable) {
     mSpeakerStatusSet.Put(aChildId);
   }
@@ -76,22 +88,22 @@ void
 SpeakerManagerService::ForceSpeaker(bool aEnable, bool aVisible)
 {
   // b2g main process without oop
-  TuruOnSpeaker(aEnable && aVisible);
+  TurnOnSpeaker(aEnable && aVisible);
   mVisible = aVisible;
   mOrgSpeakerStatus = aEnable;
   Notify();
 }
 
 void
-SpeakerManagerService::TuruOnSpeaker(bool aOn)
+SpeakerManagerService::TurnOnSpeaker(bool aOn)
 {
   nsCOMPtr<nsIAudioManager> audioManager = do_GetService(NS_AUDIOMANAGER_CONTRACTID);
   NS_ENSURE_TRUE_VOID(audioManager);
   int32_t phoneState;
   audioManager->GetPhoneState(&phoneState);
   int32_t forceuse = (phoneState == nsIAudioManager::PHONE_STATE_IN_CALL ||
-    phoneState == nsIAudioManager::PHONE_STATE_IN_COMMUNICATION)
-    ? nsIAudioManager::USE_COMMUNICATION : nsIAudioManager::USE_MEDIA;
+                      phoneState == nsIAudioManager::PHONE_STATE_IN_COMMUNICATION)
+                        ? nsIAudioManager::USE_COMMUNICATION : nsIAudioManager::USE_MEDIA;
   if (aOn) {
     audioManager->SetForceForUse(forceuse, nsIAudioManager::FORCE_SPEAKER);
   } else {
@@ -121,7 +133,7 @@ SpeakerManagerService::Notify()
   nsTArray<ContentParent*> children;
   ContentParent::GetAll(children);
   for (uint32_t i = 0; i < children.Length(); i++) {
-    unused << children[i]->SendSpeakerManagerNotify();
+    Unused << children[i]->SendSpeakerManagerNotify();
   }
 
   for (uint32_t i = 0; i < mRegisteredSpeakerManagers.Length(); i++) {
@@ -139,8 +151,9 @@ SpeakerManagerService::SetAudioChannelActive(bool aIsActive)
 }
 
 NS_IMETHODIMP
-SpeakerManagerService::Observe(nsISupports* aSubject, const char* 
-                               aTopic, const char16_t* aData)
+SpeakerManagerService::Observe(nsISupports* aSubject,
+                               const char* aTopic,
+                               const char16_t* aData)
 {
   if (!strcmp(aTopic, "ipc:content-shutdown")) {
     nsCOMPtr<nsIPropertyBag2> props = do_QueryInterface(aSubject);
@@ -156,16 +169,32 @@ SpeakerManagerService::Observe(nsISupports* aSubject, const char*
         // If the audio has paused by audiochannel,
         // the enable flag should be false and don't need to handle.
         if (mSpeakerStatusSet.Contains(childID)) {
-          TuruOnSpeaker(false);
+          TurnOnSpeaker(false);
           mSpeakerStatusSet.Remove(childID);
         }
         if (mOrgSpeakerStatus) {
-          TuruOnSpeaker(!mOrgSpeakerStatus);
+          TurnOnSpeaker(!mOrgSpeakerStatus);
           mOrgSpeakerStatus = false;
         }
     } else {
       NS_WARNING("ipc:content-shutdown message without childID property");
     }
+  } else if (!strcmp(aTopic, "xpcom-will-shutdown")) {
+    // Note that we need to do this before xpcom-shutdown, since the
+    // AudioChannelService cannot be used past that point.
+    RefPtr<AudioChannelService> audioChannelService =
+      AudioChannelService::GetOrCreate();
+    if (audioChannelService) {
+      audioChannelService->UnregisterSpeakerManager(this);
+    }
+
+    nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+    if (obs) {
+      obs->RemoveObserver(this, "ipc:content-shutdown");
+      obs->RemoveObserver(this, "xpcom-will-shutdown");
+    }
+
+    Shutdown();
   }
   return NS_OK;
 }
@@ -175,14 +204,15 @@ SpeakerManagerService::SpeakerManagerService()
     mVisible(false)
 {
   MOZ_COUNT_CTOR(SpeakerManagerService);
-  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+  if (XRE_IsParentProcess()) {
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
     if (obs) {
       obs->AddObserver(this, "ipc:content-shutdown", false);
+      obs->AddObserver(this, "xpcom-will-shutdown", false);
     }
   }
-  AudioChannelService* audioChannelService =
-    AudioChannelService::GetAudioChannelService();
+  RefPtr<AudioChannelService> audioChannelService =
+    AudioChannelService::GetOrCreate();
   if (audioChannelService) {
     audioChannelService->RegisterSpeakerManager(this);
   }
@@ -191,8 +221,4 @@ SpeakerManagerService::SpeakerManagerService()
 SpeakerManagerService::~SpeakerManagerService()
 {
   MOZ_COUNT_DTOR(SpeakerManagerService);
-  AudioChannelService* audioChannelService =
-    AudioChannelService::GetAudioChannelService();
-  if (audioChannelService)
-    audioChannelService->UnregisterSpeakerManager(this);
 }

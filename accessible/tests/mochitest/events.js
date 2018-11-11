@@ -28,6 +28,7 @@ const EVENT_TEXT_INSERTED = nsIAccessibleEvent.EVENT_TEXT_INSERTED;
 const EVENT_TEXT_REMOVED = nsIAccessibleEvent.EVENT_TEXT_REMOVED;
 const EVENT_TEXT_SELECTION_CHANGED = nsIAccessibleEvent.EVENT_TEXT_SELECTION_CHANGED;
 const EVENT_VALUE_CHANGE = nsIAccessibleEvent.EVENT_VALUE_CHANGE;
+const EVENT_TEXT_VALUE_CHANGE = nsIAccessibleEvent.EVENT_TEXT_VALUE_CHANGE;
 const EVENT_VIRTUALCURSOR_CHANGED = nsIAccessibleEvent.EVENT_VIRTUALCURSOR_CHANGED;
 
 const kNotFromUserInput = 0;
@@ -336,7 +337,7 @@ function eventQueue(aEventType)
               if (matchIdx == -1 || eventSeq.length > 0)
                 matchIdx = scnIdx;
 
-              // Report everythign is ok.
+              // Report everything is ok.
               for (var idx = 0; idx < eventSeq.length; idx++) {
                 var checker = eventSeq[idx];
 
@@ -344,10 +345,17 @@ function eventQueue(aEventType)
                 var msg = "Test with ID = '" + this.getEventID(checker) +
                   "' succeed. ";
 
-                if (checker.unexpected)
-                  ok(true, msg + "There's no unexpected " + typeStr + " event.");
-                else
-                  ok(true, msg + "Event " + typeStr + " was handled.");
+                if (checker.unexpected) {
+                  ok(true, msg + `There's no unexpected '${typeStr}' event.`);
+                }
+                else {
+                  if (checker.todo) {
+                    todo(false, `Todo event '${typeStr}' was caught`);
+                  }
+                  else {
+                    ok(true, `${msg} Event '${typeStr}' was handled.`);
+                  }
+                }
               }
             }
           }
@@ -370,10 +378,13 @@ function eventQueue(aEventType)
                 ok(false, msg + "Dupe " + typeStr + " event.");
 
               if (checker.unexpected) {
-                if (checker.wasCaught)
+                if (checker.wasCaught) {
                   ok(false, msg + "There's unexpected " + typeStr + " event.");
-              } else if (!checker.wasCaught) {
-                ok(false, msg + typeStr + " event was missed.");
+                }
+              }
+              else if (!checker.wasCaught) {
+                var rf = checker.todo ? todo : ok;
+                rf(false, `${msg} '${typeStr} event is missed.`);
               }
             }
           }
@@ -389,7 +400,7 @@ function eventQueue(aEventType)
 
       var res = this.onFinish();
       if (res != DO_NOT_FINISH_TEST)
-        SimpleTest.finish();
+        SimpleTest.executeSoon(SimpleTest.finish);
 
       return;
     }
@@ -525,7 +536,16 @@ function eventQueue(aEventType)
       }
 
       // Check if handled event matches any expected async events.
+      var haveUnmatchedAsync = false;
       for (idx = 0; idx < eventSeq.length; idx++) {
+        if (eventSeq[idx] instanceof orderChecker && haveUnmatchedAsync) {
+            break;
+        }
+
+        if (!eventSeq[idx].wasCaught) {
+          haveUnmatchedAsync = true;
+        }
+
         if (!eventSeq[idx].unexpected && eventSeq[idx].async) {
           if (eventQueue.compareEvents(eventSeq[idx], aEvent)) {
             this.processMatchedChecker(aEvent, eventSeq[idx], scnIdx, idx);
@@ -540,6 +560,16 @@ function eventQueue(aEventType)
       var invoker = this.getInvoker();
       if ("check" in invoker)
         invoker.check(aEvent);
+    }
+
+    for (idx = 0; idx < eventSeq.length; idx++) {
+      if (!eventSeq[idx].wasCaught) {
+        if (eventSeq[idx] instanceof orderChecker) {
+          eventSeq[idx].wasCaught++;
+        } else {
+          break;
+        }
+      }
     }
 
     // If we don't have more events to wait then schedule next invoker.
@@ -583,7 +613,9 @@ function eventQueue(aEventType)
 
     while (aEventSeq.idx < aEventSeq.length &&
            (aEventSeq[aEventSeq.idx].unexpected ||
+            aEventSeq[aEventSeq.idx].todo ||
             aEventSeq[aEventSeq.idx].async ||
+            aEventSeq[aEventSeq.idx] instanceof orderChecker ||
             aEventSeq[aEventSeq.idx].wasCaught > 0)) {
       aEventSeq.idx++;
     }
@@ -599,7 +631,8 @@ function eventQueue(aEventType)
       // Check if we have unhandled async (can be anywhere in the sequance) or
       // sync expcected events yet.
       for (var idx = 0; idx < aEventSeq.length; idx++) {
-        if (!aEventSeq[idx].unexpected && !aEventSeq[idx].wasCaught)
+        if (!aEventSeq[idx].unexpected && !aEventSeq[idx].todo &&
+            !aEventSeq[idx].wasCaught && !(aEventSeq[idx] instanceof orderChecker))
           return true;
       }
 
@@ -623,7 +656,7 @@ function eventQueue(aEventType)
     for (var scnIdx = 0; scnIdx < this.mScenarios.length; scnIdx++) {
       var eventSeq = this.mScenarios[scnIdx];
       for (var idx = 0; idx < eventSeq.length; idx++) {
-        if (eventSeq[idx].unexpected)
+        if (eventSeq[idx].unexpected || eventSeq[idx].todo)
           return false;
       }
     }
@@ -635,7 +668,7 @@ function eventQueue(aEventType)
     function eventQueue_isUnexpectedEventsScenario(aScenario)
   {
     for (var idx = 0; idx < aScenario.length; idx++) {
-      if (!aScenario[idx].unexpected)
+      if (!aScenario[idx].unexpected && !aScenario[idx].todo)
         break;
     }
 
@@ -1667,6 +1700,27 @@ function invokerChecker(aEventType, aTargetOrFunc, aTargetFuncArg, aIsAsync)
 }
 
 /**
+ * event checker that forces preceeding async events to happen before this
+ * checker.
+ */
+function orderChecker()
+{
+  // XXX it doesn't actually work to inherit from invokerChecker, but maybe we
+  // should fix that?
+  //  this.__proto__ = new invokerChecker(null, null, null, false);
+}
+
+/**
+ * Generic invoker checker for todo events.
+ */
+function todo_invokerChecker(aEventType, aTargetOrFunc, aTargetFuncArg)
+{
+  this.__proto__ = new invokerChecker(aEventType, aTargetOrFunc,
+                                      aTargetFuncArg, true);
+  this.todo = true;
+}
+
+/**
  * Generic invoker checker for unexpected events.
  */
 function unexpectedInvokerChecker(aEventType, aTargetOrFunc, aTargetFuncArg)
@@ -1709,13 +1763,27 @@ function nofocusChecker(aID)
  * Text inserted/removed events checker.
  * @param aFromUser  [in, optional] kNotFromUserInput or kFromUserInput
  */
-function textChangeChecker(aID, aStart, aEnd, aTextOrFunc, aIsInserted, aFromUser)
+function textChangeChecker(aID, aStart, aEnd, aTextOrFunc, aIsInserted, aFromUser, aAsync)
 {
   this.target = getNode(aID);
   this.type = aIsInserted ? EVENT_TEXT_INSERTED : EVENT_TEXT_REMOVED;
   this.startOffset = aStart;
   this.endOffset = aEnd;
   this.textOrFunc = aTextOrFunc;
+  this.async = aAsync;
+
+  this.match = function stextChangeChecker_match(aEvent)
+  {
+    if (!(aEvent instanceof nsIAccessibleTextChangeEvent) ||
+        aEvent.accessible !== getAccessible(this.target)) {
+      return false;
+    }
+
+    let tcEvent = aEvent.QueryInterface(nsIAccessibleTextChangeEvent);
+    let modifiedText = (typeof this.textOrFunc === "function") ?
+      this.textOrFunc() : this.textOrFunc;
+    return modifiedText === tcEvent.modifiedText;
+  };
 
   this.check = function textChangeChecker_check(aEvent)
   {
@@ -1743,10 +1811,11 @@ function textChangeChecker(aID, aStart, aEnd, aTextOrFunc, aIsInserted, aFromUse
 /**
  * Caret move events checker.
  */
-function caretMoveChecker(aCaretOffset, aTargetOrFunc, aTargetFuncArg)
+function caretMoveChecker(aCaretOffset, aTargetOrFunc, aTargetFuncArg,
+                          aIsAsync)
 {
   this.__proto__ = new invokerChecker(EVENT_TEXT_CARET_MOVED,
-                                      aTargetOrFunc, aTargetFuncArg);
+                                      aTargetOrFunc, aTargetFuncArg, aIsAsync);
 
   this.check = function caretMoveChecker_check(aEvent)
   {
@@ -1754,6 +1823,12 @@ function caretMoveChecker(aCaretOffset, aTargetOrFunc, aTargetFuncArg)
        aCaretOffset,
        "Wrong caret offset for " + prettyName(aEvent.accessible));
   }
+}
+
+function asyncCaretMoveChecker(aCaretOffset, aTargetOrFunc, aTargetFuncArg)
+{
+  this.__proto__ = new caretMoveChecker(aCaretOffset, aTargetOrFunc,
+                                        aTargetFuncArg, true);
 }
 
 /**
@@ -1771,6 +1846,43 @@ function textSelectionChecker(aID, aStartOffset, aEndOffset)
       testTextGetSelection(aID, aStartOffset, aEndOffset, 0);
     }
   }
+}
+
+/**
+ * Object attribute changed checker
+ */
+function objAttrChangedChecker(aID, aAttr)
+{
+  this.__proto__ = new invokerChecker(EVENT_OBJECT_ATTRIBUTE_CHANGED, aID);
+
+  this.check = function objAttrChangedChecker_check(aEvent)
+  {
+    var event = null;
+    try {
+      var event = aEvent.QueryInterface(
+        nsIAccessibleObjectAttributeChangedEvent);
+    } catch (e) {
+      ok(false, "Object attribute changed event was expected");
+    }
+
+    if (!event) {
+      return;
+    }
+
+    is(event.changedAttribute.toString(), aAttr,
+      "Wrong attribute name of the object attribute changed event.");
+  };
+
+  this.match = function objAttrChangedChecker_match(aEvent)
+  {
+    if (aEvent instanceof nsIAccessibleObjectAttributeChangedEvent) {
+      var scEvent = aEvent.QueryInterface(
+        nsIAccessibleObjectAttributeChangedEvent);
+      return (aEvent.accessible == getAccessible(this.target)) &&
+        (scEvent.changedAttribute.toString() == aAttr);
+    }
+    return false;
+  };
 }
 
 /**

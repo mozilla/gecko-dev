@@ -1,47 +1,81 @@
-/* Any copyright is dedicated to the Public Domain.
- * http://creativecommons.org/publicdomain/zero/1.0/ */
+var testData = [
+  { desc: "No path",
+    action: "http://example.com/",
+    param: "q",
+  },
+  { desc: "With path",
+    action: "http://example.com/new-path-here/",
+    param: "q",
+  },
+  { desc: "No action",
+    action: "",
+    param: "q",
+  },
+  { desc: "With Query String",
+    action: "http://example.com/search?oe=utf-8",
+    param: "q",
+  },
+];
 
-function test() {
-  waitForExplicitFinish();
+add_task(function*() {
+  const TEST_URL = "http://example.org/browser/browser/base/content/test/general/dummy_page.html";
+  let tab = yield BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_URL);
 
-  gBrowser.selectedTab = gBrowser.addTab("http://example.org/browser/browser/base/content/test/general/dummy_page.html");
+  let count = 0;
+  for (let method of ["GET", "POST"]) {
+    for (let {desc, action, param } of testData) {
+      info(`Running ${method} keyword test '${desc}'`);
+      let id = `keyword-form-${count++}`;
+      let contextMenu = document.getElementById("contentAreaContextMenu");
+      let contextMenuPromise =
+        BrowserTestUtils.waitForEvent(contextMenu, "popupshown")
+                        .then(() => gContextMenuContentData.popupNode);
 
-  gBrowser.selectedBrowser.addEventListener("load", function runTests() {
-    gBrowser.selectedBrowser.removeEventListener("load", runTests, true);
+      yield ContentTask.spawn(tab.linkedBrowser,
+                              { action, param, method, id }, function* (args) {
+        let doc = content.document;
+        let form = doc.createElement("form");
+        form.id = args.id;
+        form.method = args.method;
+        form.action = args.action;
+        let element = doc.createElement("input");
+        element.setAttribute("type", "text");
+        element.setAttribute("name", args.param);
+        form.appendChild(element);
+        doc.body.appendChild(form);
+      });
 
-    let doc = gBrowser.contentDocument;
-    let base = doc.createElement("base");
-    doc.head.appendChild(base);
+      yield BrowserTestUtils.synthesizeMouseAtCenter(`#${id} > input`,
+                                                     { type : "contextmenu", button : 2 },
+                                                     tab.linkedBrowser);
+      let target = yield contextMenuPromise;
 
-    let check = function (baseURI, fieldName, expected) {
-      base.href = baseURI;
+      yield new Promise(resolve => {
+        let url = action || tab.linkedBrowser.currentURI.spec;
+        let mm = tab.linkedBrowser.messageManager;
+        let onMessage = (message) => {
+          mm.removeMessageListener("ContextMenu:SearchFieldBookmarkData:Result", onMessage);
+          if (method == "GET") {
+            ok(message.data.spec.endsWith(`${param}=%s`),
+             `Check expected url for field named ${param} and action ${action}`);
+          } else {
+            is(message.data.spec, url,
+             `Check expected url for field named ${param} and action ${action}`);
+            is(message.data.postData, `${param}%3D%25s`,
+             `Check expected POST data for field named ${param} and action ${action}`);
+          }
+          resolve();
+        };
+        mm.addMessageListener("ContextMenu:SearchFieldBookmarkData:Result", onMessage);
 
-      let form = doc.createElement("form");
-      let element = doc.createElement("input");
-      element.setAttribute("type", "text");
-      element.setAttribute("name", fieldName);
-      form.appendChild(element);
-      doc.body.appendChild(form);
+        mm.sendAsyncMessage("ContextMenu:SearchFieldBookmarkData", null, { target });
+      });
 
-      let data = GetSearchFieldBookmarkData(element);
-      is(data.spec, expected, "Bookmark spec for search field named " + fieldName + " and baseURI " + baseURI + " incorrect");
-
-      doc.body.removeChild(form);
+      let popupHiddenPromise = BrowserTestUtils.waitForEvent(contextMenu, "popuphidden");
+      contextMenu.hidePopup();
+      yield popupHiddenPromise;
     }
+  }
 
-    let testData = [
-    /* baseURI, field name, expected */
-      [ 'http://example.com/', 'q', 'http://example.com/?q=%s' ],
-      [ 'http://example.com/new-path-here/', 'q', 'http://example.com/new-path-here/?q=%s' ],
-      [ '', 'q', 'http://example.org/browser/browser/base/content/test/general/dummy_page.html?q=%s' ],
-    ]
-
-    for (let data of testData) {
-      check(data[0], data[1], data[2]);
-    }
-
-    // cleanup
-    gBrowser.removeCurrentTab();
-    finish();
-  }, true);
-}
+  yield BrowserTestUtils.removeTab(tab);
+});

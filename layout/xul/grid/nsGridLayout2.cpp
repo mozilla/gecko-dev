@@ -16,7 +16,7 @@
 #include "nsBox.h"
 #include "nsIScrollableFrame.h"
 #include "nsSprocketLayout.h"
-#include "nsHTMLReflowState.h"
+#include "mozilla/ReflowInput.h"
 
 nsresult
 NS_NewGridLayout2( nsIPresShell* aPresShell, nsBoxLayout** aNewLayout)
@@ -32,24 +32,28 @@ nsGridLayout2::nsGridLayout2(nsIPresShell* aPresShell):nsStackLayout()
 {
 }
 
+nsGridLayout2::~nsGridLayout2()
+{
+}
+
 // static
 void
-nsGridLayout2::AddOffset(nsBoxLayoutState& aState, nsIFrame* aChild, nsSize& aSize)
+nsGridLayout2::AddOffset(nsIFrame* aChild, nsSize& aSize)
 {
   nsMargin offset;
-  GetOffset(aState, aChild, offset);
+  GetOffset(aChild, offset);
   aSize.width += offset.left;
   aSize.height += offset.top;
 }
 
 NS_IMETHODIMP
-nsGridLayout2::Layout(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
+nsGridLayout2::XULLayout(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
 {
   // XXX This should be set a better way!
   mGrid.SetBox(aBox);
-  NS_ASSERTION(aBox->GetLayoutManager() == this, "setting incorrect box");
+  NS_ASSERTION(aBox->GetXULLayoutManager() == this, "setting incorrect box");
 
-  nsresult rv = nsStackLayout::Layout(aBox, aBoxLayoutState);
+  nsresult rv = nsStackLayout::XULLayout(aBox, aBoxLayoutState);
 #ifdef DEBUG_grid
   mGrid.PrintCellMap();
 #endif
@@ -57,9 +61,9 @@ nsGridLayout2::Layout(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
 }
 
 void
-nsGridLayout2::IntrinsicWidthsDirty(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
+nsGridLayout2::IntrinsicISizesDirty(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
 {
-  nsStackLayout::IntrinsicWidthsDirty(aBox, aBoxLayoutState);
+  nsStackLayout::IntrinsicISizesDirty(aBox, aBoxLayoutState);
   // XXXldb We really don't need to do all the work that NeedsRebuild
   // does; we just need to mark intrinsic widths dirty on the
   // (row/column)(s/-groups).
@@ -71,7 +75,7 @@ nsGridLayout2::GetGrid(nsIFrame* aBox, int32_t* aIndex, nsGridRowLayout* aReques
 {
   // XXX This should be set a better way!
   mGrid.SetBox(aBox);
-  NS_ASSERTION(aBox->GetLayoutManager() == this, "setting incorrect box");
+  NS_ASSERTION(aBox->GetXULLayoutManager() == this, "setting incorrect box");
   return &mGrid;
 }
 
@@ -89,9 +93,9 @@ nsGridLayout2::AddWidth(nsSize& aSize, nscoord aSize2, bool aIsHorizontal)
 }
 
 nsSize
-nsGridLayout2::GetMinSize(nsIFrame* aBox, nsBoxLayoutState& aState)
+nsGridLayout2::GetXULMinSize(nsIFrame* aBox, nsBoxLayoutState& aState)
 {
-  nsSize minSize = nsStackLayout::GetMinSize(aBox, aState); 
+  nsSize minSize = nsStackLayout::GetXULMinSize(aBox, aState); 
 
   // if there are no <rows> tags that will sum up our columns,
   // sum up our columns here.
@@ -120,7 +124,7 @@ nsGridLayout2::GetMinSize(nsIFrame* aBox, nsBoxLayoutState& aState)
     }
 
     AddMargin(aBox, total);
-    AddOffset(aState, aBox, total);
+    AddOffset(aBox, total);
     AddLargestSize(minSize, total);
   }
   
@@ -128,9 +132,9 @@ nsGridLayout2::GetMinSize(nsIFrame* aBox, nsBoxLayoutState& aState)
 }
 
 nsSize
-nsGridLayout2::GetPrefSize(nsIFrame* aBox, nsBoxLayoutState& aState)
+nsGridLayout2::GetXULPrefSize(nsIFrame* aBox, nsBoxLayoutState& aState)
 {
-  nsSize pref = nsStackLayout::GetPrefSize(aBox, aState); 
+  nsSize pref = nsStackLayout::GetXULPrefSize(aBox, aState); 
 
   // if there are no <rows> tags that will sum up our columns,
   // sum up our columns here.
@@ -159,7 +163,7 @@ nsGridLayout2::GetPrefSize(nsIFrame* aBox, nsBoxLayoutState& aState)
     }
 
     AddMargin(aBox, total);
-    AddOffset(aState, aBox, total);
+    AddOffset(aBox, total);
     AddLargestSize(pref, total);
   }
 
@@ -167,9 +171,9 @@ nsGridLayout2::GetPrefSize(nsIFrame* aBox, nsBoxLayoutState& aState)
 }
 
 nsSize
-nsGridLayout2::GetMaxSize(nsIFrame* aBox, nsBoxLayoutState& aState)
+nsGridLayout2::GetXULMaxSize(nsIFrame* aBox, nsBoxLayoutState& aState)
 {
-  nsSize maxSize = nsStackLayout::GetMaxSize(aBox, aState); 
+  nsSize maxSize = nsStackLayout::GetXULMaxSize(aBox, aState); 
 
   // if there are no <rows> tags that will sum up our columns,
   // sum up our columns here.
@@ -200,7 +204,7 @@ nsGridLayout2::GetMaxSize(nsIFrame* aBox, nsBoxLayoutState& aState)
     }
 
     AddMargin(aBox, total);
-    AddOffset(aState, aBox, total);
+    AddOffset(aBox, total);
     AddSmallestSize(maxSize, total);
   }
 

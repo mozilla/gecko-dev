@@ -88,7 +88,6 @@
   <deck id="mainDeck" flex="1">
     <!-- General page information -->
     <vbox id="generalPanel">
-      <textbox class="header" readonly="true" id="titletext"/>
       <grid id="generalGrid">
         <columns>
           <column/>
@@ -96,6 +95,11 @@
           <column flex="1"/>
         </columns>
         <rows id="generalRows">
+          <row id="generalTitle">
+            <label control="titletext" value="&generalTitle;"/>
+            <separator/>
+            <textbox readonly="true" id="titletext"/>
+          </row>
           <row id="generalURLRow">
             <label control="urltext" value="&generalURL;"/>
             <separator/>
@@ -115,7 +119,7 @@
             <textbox readonly="true" crop="end" id="modetext"/>
           </row>
           <row id="generalEncodingRow">
-            <label control="encodingtext" value="&generalEncoding;"/>
+            <label control="encodingtext" value="&generalEncoding2;"/>
             <separator/>
             <textbox readonly="true" id="encodingtext"/>
           </row>
@@ -155,16 +159,9 @@
           <treechildren id="metatreechildren" flex="1"/>
         </tree>        
       </groupbox>
-      <groupbox id="securityBox">
-        <caption id="securityBoxCaption" label="&securityHeader;"/>
-        <description id="general-security-identity" class="header"/>
-        <description id="general-security-privacy"  class="header"/>
-        <hbox id="securityDetailsButtonBox" align="right">
-          <button id="security-view-details" label="&generalSecurityDetails;"
-                  accesskey="&generalSecurityDetails.accesskey;"
-                  oncommand="onClickMore();"/>
-        </hbox>
-      </groupbox>
+      <hbox pack="end">
+        <button command="cmd_help" label="&helpButton.label;" dlgtype="help"/>
+      </hbox>
     </vbox>
 
     <!-- Media information -->
@@ -242,6 +239,9 @@
             <label control="thepreviewimage" value="&mediaPreview;" class="header"/>
           </vbox>
           <spacer id="imageSaveBoxSpacer" flex="1"/>
+          <button label="&selectall.label;" accesskey="&selectall.accesskey;"
+                  id="selectallbutton"
+                  oncommand="doSelectAllMedia();"/>
           <button label="&mediaSaveAs;" accesskey="&mediaSaveAs.accesskey;"
                   icon="save" id="imagesaveasbutton"
                   oncommand="saveMedia();"/>
@@ -260,6 +260,9 @@
         <button label="&mediaSaveAs;" accesskey="&mediaSaveAs2.accesskey;"
                 icon="save" id="mediasaveasbutton"
                 oncommand="saveMedia();"/>
+      </hbox>
+      <hbox pack="end">
+        <button command="cmd_help" label="&helpButton.label;" dlgtype="help"/>
       </hbox>
     </vbox>
 
@@ -300,6 +303,9 @@
           </hbox>
         </vbox>
       </vbox>
+      <hbox pack="end">
+        <button command="cmd_help" label="&helpButton.label;" dlgtype="help"/>
+      </hbox>
     </vbox>
 
     <!-- Security & Privacy -->
@@ -415,8 +421,12 @@
           <label id="security-technical-shortform" class="fieldValue"/>
           <description id="security-technical-longform1" class="fieldLabel"/>
           <description id="security-technical-longform2" class="fieldLabel"/>
+          <description id="security-technical-certificate-transparency" class="fieldLabel"/>
         </vbox>
       </groupbox>
+      <hbox pack="end">
+        <button command="cmd_help" label="&helpButton.label;" dlgtype="help"/>
+      </hbox>
     </vbox>
     <!-- Others added by overlay -->
   </deck>

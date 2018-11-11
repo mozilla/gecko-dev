@@ -6,32 +6,30 @@
 #ifndef SURFACE_TYPES_H_
 #define SURFACE_TYPES_H_
 
-#include "mozilla/TypedEnum.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/Attributes.h"
 #include <stdint.h>
 
 namespace mozilla {
 namespace layers {
-class ISurfaceAllocator;
-}
+class LayersIPCChannel;
+} // namespace layers
 
-namespace gfx {
+namespace gl {
 
-typedef uintptr_t SurfaceStreamHandle;
-
-struct SurfaceCaps MOZ_FINAL
+struct SurfaceCaps final
 {
     bool any;
     bool color, alpha;
     bool bpp16;
     bool depth, stencil;
     bool antialias;
+    bool premultAlpha;
     bool preserve;
 
     // The surface allocator that we want to create this
     // for.  May be null.
-    RefPtr<layers::ISurfaceAllocator> surfaceAllocator;
+    RefPtr<layers::LayersIPCChannel> surfaceAllocator;
 
     SurfaceCaps();
     SurfaceCaps(const SurfaceCaps& other);
@@ -68,50 +66,33 @@ struct SurfaceCaps MOZ_FINAL
     }
 };
 
-MOZ_BEGIN_ENUM_CLASS(SharedSurfaceType, uint8_t)
+enum class SharedSurfaceType : uint8_t {
     Unknown = 0,
 
     Basic,
-    GLTextureShare,
     EGLImageShare,
     EGLSurfaceANGLE,
     DXGLInterop,
     DXGLInterop2,
     Gralloc,
     IOSurface,
+    GLXDrawable,
+    SharedGLTexture,
 
     Max
-MOZ_END_ENUM_CLASS(SharedSurfaceType)
+};
 
-
-MOZ_BEGIN_ENUM_CLASS(SurfaceStreamType, uint8_t)
-    SingleBuffer,
-    TripleBuffer_Copy,
-    TripleBuffer_Async,
-    TripleBuffer,
-    Max
-MOZ_END_ENUM_CLASS(SurfaceStreamType)
-
-
-MOZ_BEGIN_ENUM_CLASS(APITypeT, uint8_t)
-    Generic = 0,
-
-    OpenGL,
-
-    Max
-MOZ_END_ENUM_CLASS(APITypeT)
-
-
-MOZ_BEGIN_ENUM_CLASS(AttachmentType, uint8_t)
+enum class AttachmentType : uint8_t {
     Screen = 0,
 
     GLTexture,
     GLRenderbuffer,
 
     Max
-MOZ_END_ENUM_CLASS(AttachmentType)
+};
 
-} /* namespace gfx */
+} // namespace gl
+
 } /* namespace mozilla */
 
 #endif /* SURFACE_TYPES_H_ */

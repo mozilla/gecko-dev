@@ -30,10 +30,6 @@ div#outside {
   font-weight: bold;
 }
 
-div#findpluginupdates {
-  margin-top: 2em;
-}
-
 .plugname {
   margin-top: 2em;
   margin-bottom: 1em;
@@ -69,7 +65,7 @@ th {
 
 th + th,
 td + td {
-  -moz-border-start: 1px dotted ThreeDShadow; 
+  border-inline-start: 1px dotted ThreeDShadow; 
 }
 
 td {
@@ -83,4 +79,10 @@ th.type, th.suff {
 
 th.desc {
   width: 50%;
+}
+
+.notice {
+  background: -moz-cellhighlight;
+  border: 1px solid ThreeDShadow;
+  padding: 10px;
 }

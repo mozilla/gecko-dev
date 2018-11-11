@@ -35,27 +35,27 @@ typedef void (*TestFunc)(nsIAppShell*);
 
 bool gStableStateEventHasRun = false;
 
-class ExitAppShellRunnable : public nsRunnable
+class ExitAppShellRunnable : public Runnable
 {
   nsCOMPtr<nsIAppShell> mAppShell;
 
 public:
-  ExitAppShellRunnable(nsIAppShell* aAppShell)
+  explicit ExitAppShellRunnable(nsIAppShell* aAppShell)
   : mAppShell(aAppShell)
   { }
 
   NS_IMETHOD
-  Run()
+  Run() override
   {
     return mAppShell->Exit();
   }
 };
 
-class StableStateRunnable : public nsRunnable
+class StableStateRunnable : public Runnable
 {
 public:
   NS_IMETHOD
-  Run()
+  Run() override
   {
     if (gStableStateEventHasRun) {
       fail("StableStateRunnable already ran");
@@ -65,17 +65,17 @@ public:
   }
 };
 
-class CheckStableStateRunnable : public nsRunnable
+class CheckStableStateRunnable : public Runnable
 {
   bool mShouldHaveRun;
 
 public:
-  CheckStableStateRunnable(bool aShouldHaveRun)
+  explicit CheckStableStateRunnable(bool aShouldHaveRun)
   : mShouldHaveRun(aShouldHaveRun)
   { }
 
   NS_IMETHOD
-  Run()
+  Run() override
   {
     if (mShouldHaveRun == gStableStateEventHasRun) {
       passed("StableStateRunnable state correct (%s)",
@@ -93,12 +93,12 @@ protected:
   nsCOMPtr<nsIAppShell> mAppShell;
 
 public:
-  ScheduleStableStateRunnable(nsIAppShell* aAppShell)
+  explicit ScheduleStableStateRunnable(nsIAppShell* aAppShell)
   : CheckStableStateRunnable(false), mAppShell(aAppShell)
   { }
 
   NS_IMETHOD
-  Run()
+  Run() override
   {
     CheckStableStateRunnable::Run();
 
@@ -112,12 +112,12 @@ public:
   }
 };
 
-class NextTestRunnable : public nsRunnable
+class NextTestRunnable : public Runnable
 {
   nsCOMPtr<nsIAppShell> mAppShell;
 
 public:
-  NextTestRunnable(nsIAppShell* aAppShell)
+  explicit NextTestRunnable(nsIAppShell* aAppShell)
   : mAppShell(aAppShell)
   { }
 
@@ -127,12 +127,12 @@ public:
 class ScheduleNestedStableStateRunnable : public ScheduleStableStateRunnable
 {
 public:
-  ScheduleNestedStableStateRunnable(nsIAppShell* aAppShell)
+  explicit ScheduleNestedStableStateRunnable(nsIAppShell* aAppShell)
   : ScheduleStableStateRunnable(aAppShell)
   { }
 
   NS_IMETHOD
-  Run()
+  Run() override
   {
     ScheduleStableStateRunnable::Run();
 
@@ -159,22 +159,24 @@ public:
   }
 };
 
-class EventListener MOZ_FINAL : public nsIDOMEventListener
+class EventListener final : public nsIDOMEventListener
 {
   nsCOMPtr<nsIAppShell> mAppShell;
 
   static nsIDOMWindowUtils* sWindowUtils;
   static nsIAppShell* sAppShell;
 
+  ~EventListener() {}
+
 public:
   NS_DECL_ISUPPORTS
 
-  EventListener(nsIAppShell* aAppShell)
+  explicit EventListener(nsIAppShell* aAppShell)
   : mAppShell(aAppShell)
   { }
 
   NS_IMETHOD
-  HandleEvent(nsIDOMEvent* aEvent)
+  HandleEvent(nsIDOMEvent* aEvent) override
   {
     nsString type;
     if (NS_FAILED(aEvent->GetType(type))) {
@@ -251,7 +253,7 @@ public:
       int32_t keyCode = 0x41; // VK_A
       NS_NAMED_LITERAL_STRING(a, "a");
 
-      if (NS_FAILED(utils->SendNativeKeyEvent(layout, keyCode, 0, a, a))) {
+      if (NS_FAILED(utils->SendNativeKeyEvent(layout, keyCode, 0, a, a, nullptr))) {
         fail("Failed to synthesize native event");
       }
 
@@ -389,8 +391,7 @@ Test4Internal(nsIAppShell* aAppShell)
 #ifndef XP_WIN
   // Not sure how to test on other platforms.
   return false;
-#endif
-
+#else
   nsCOMPtr<nsIAppShellService> appService =
     do_GetService(NS_APPSHELLSERVICE_CONTRACTID);
   if (!appService) {
@@ -435,6 +436,7 @@ Test4Internal(nsIAppShell* aAppShell)
   }
 
   return true;
+#endif
 }
 
 void

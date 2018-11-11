@@ -59,8 +59,8 @@ function test_wrappers() {
   reportErrorAlias("Too much red bull");
 }
 
-let TESTS = [
-// XXX fix me 
+var TESTS = [
+// XXX fix me
 //    toggle_debug,
     test_log,
     test_reportError,

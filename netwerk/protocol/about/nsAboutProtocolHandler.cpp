@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "base/basictypes.h"
+#include "mozilla/ArrayUtils.h"
 
 #include "nsAboutProtocolHandler.h"
 #include "nsIURI.h"
@@ -17,6 +18,11 @@
 #include "nsIObjectOutputStream.h"
 #include "nsAutoPtr.h"
 #include "nsIWritablePropertyBag2.h"
+#include "nsIChannel.h"
+#include "nsIScriptError.h"
+
+namespace mozilla {
+namespace net {
 
 static NS_DEFINE_CID(kSimpleURICID,     NS_SIMPLEURI_CID);
 static NS_DEFINE_CID(kNestedAboutURICID, NS_NESTEDABOUTURI_CID);
@@ -28,9 +34,18 @@ static bool IsSafeForUntrustedContent(nsIAboutModule *aModule, nsIURI *aURI) {
 
   return (flags & nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT) != 0;
 }
+
+static bool IsSafeToLinkForUntrustedContent(nsIAboutModule *aModule, nsIURI *aURI) {
+  uint32_t flags;
+  nsresult rv = aModule->GetURIFlags(aURI, &flags);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  return (flags & nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT) && (flags & nsIAboutModule::MAKE_LINKABLE);
+}
 ////////////////////////////////////////////////////////////////////////////////
 
-NS_IMPL_ISUPPORTS(nsAboutProtocolHandler, nsIProtocolHandler)
+NS_IMPL_ISUPPORTS(nsAboutProtocolHandler, nsIProtocolHandler,
+    nsIProtocolHandlerWithDynamicFlags, nsISupportsWeakReference)
 
 ////////////////////////////////////////////////////////////////////////////////
 // nsIProtocolHandler methods:
@@ -52,7 +67,40 @@ nsAboutProtocolHandler::GetDefaultPort(int32_t *result)
 NS_IMETHODIMP
 nsAboutProtocolHandler::GetProtocolFlags(uint32_t *result)
 {
-    *result = URI_NORELATIVE | URI_NOAUTH | URI_DANGEROUS_TO_LOAD;
+    *result = URI_NORELATIVE | URI_NOAUTH | URI_DANGEROUS_TO_LOAD | URI_SCHEME_NOT_SELF_LINKABLE;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsAboutProtocolHandler::GetFlagsForURI(nsIURI* aURI, uint32_t* aFlags)
+{
+    // First use the default (which is "unsafe for content"):
+    GetProtocolFlags(aFlags);
+
+    // Now try to see if this URI overrides the default:
+    nsCOMPtr<nsIAboutModule> aboutMod;
+    nsresult rv = NS_GetAboutModule(aURI, getter_AddRefs(aboutMod));
+    if (NS_FAILED(rv)) {
+      // Swallow this and just tell the consumer the default:
+      return NS_OK;
+    }
+    uint32_t aboutModuleFlags = 0;
+    rv = aboutMod->GetURIFlags(aURI, &aboutModuleFlags);
+    // This should never happen, so pass back the error:
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    // Secure (https) pages can load safe about pages without becoming
+    // mixed content.
+    if (aboutModuleFlags & nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT) {
+        *aFlags |= URI_SAFE_TO_LOAD_IN_SECURE_CONTEXT;
+        // about: pages can only be loaded by unprivileged principals
+        // if they are marked as LINKABLE
+        if (aboutModuleFlags & nsIAboutModule::MAKE_LINKABLE) {
+            // Replace URI_DANGEROUS_TO_LOAD with URI_LOADABLE_BY_ANYONE.
+            *aFlags &= ~URI_DANGEROUS_TO_LOAD;
+            *aFlags |= URI_LOADABLE_BY_ANYONE;
+        }
+    }
     return NS_OK;
 }
 
@@ -82,7 +130,7 @@ nsAboutProtocolHandler::NewURI(const nsACString &aSpec,
     nsCOMPtr<nsIAboutModule> aboutMod;
     rv = NS_GetAboutModule(url, getter_AddRefs(aboutMod));
     if (NS_SUCCEEDED(rv)) {
-        isSafe = IsSafeForUntrustedContent(aboutMod, url);
+        isSafe = IsSafeToLinkForUntrustedContent(aboutMod, url);
     }
 
     if (isSafe) {
@@ -118,7 +166,9 @@ nsAboutProtocolHandler::NewURI(const nsACString &aSpec,
 }
 
 NS_IMETHODIMP
-nsAboutProtocolHandler::NewChannel(nsIURI* uri, nsIChannel* *result)
+nsAboutProtocolHandler::NewChannel2(nsIURI* uri,
+                                    nsILoadInfo* aLoadInfo,
+                                    nsIChannel** result)
 {
     NS_ENSURE_ARG_POINTER(uri);
 
@@ -138,8 +188,32 @@ nsAboutProtocolHandler::NewChannel(nsIURI* uri, nsIChannel* *result)
 
     if (NS_SUCCEEDED(rv)) {
         // The standard return case:
-        rv = aboutMod->NewChannel(uri, result);
+        rv = aboutMod->NewChannel(uri, aLoadInfo, result);
         if (NS_SUCCEEDED(rv)) {
+            // Not all implementations of nsIAboutModule::NewChannel()
+            // set the LoadInfo on the newly created channel yet, as
+            // an interim solution we set the LoadInfo here if not
+            // available on the channel. Bug 1087720
+            nsCOMPtr<nsILoadInfo> loadInfo = (*result)->GetLoadInfo();
+            if (aLoadInfo != loadInfo) {
+                if (loadInfo) {
+                    NS_ASSERTION(false,
+                        "nsIAboutModule->newChannel(aURI, aLoadInfo) needs to set LoadInfo");
+                    const char16_t* params[] = {
+                        u"nsIAboutModule->newChannel(aURI)",
+                        u"nsIAboutModule->newChannel(aURI, aLoadInfo)"
+                    };
+                    nsContentUtils::ReportToConsole(
+                        nsIScriptError::warningFlag,
+                        NS_LITERAL_CSTRING("Security by Default"),
+                        nullptr, // aDocument
+                        nsContentUtils::eNECKO_PROPERTIES,
+                        "APIDeprecationWarning",
+                        params, mozilla::ArrayLength(params));
+                }
+                (*result)->SetLoadInfo(aLoadInfo);
+            }
+
             // If this URI is safe for untrusted content, enforce that its
             // principal be based on the channel's originalURI by setting the
             // owner to null.
@@ -149,7 +223,7 @@ nsAboutProtocolHandler::NewChannel(nsIURI* uri, nsIChannel* *result)
                 (*result)->SetOwner(nullptr);
             }
 
-            nsRefPtr<nsNestedAboutURI> aboutURI;
+            RefPtr<nsNestedAboutURI> aboutURI;
             nsresult rv2 = uri->QueryInterface(kNestedAboutURICID,
                                                getter_AddRefs(aboutURI));
             if (NS_SUCCEEDED(rv2) && aboutURI->GetBaseURI()) {
@@ -176,6 +250,12 @@ nsAboutProtocolHandler::NewChannel(nsIURI* uri, nsIChannel* *result)
     return rv;
 }
 
+NS_IMETHODIMP
+nsAboutProtocolHandler::NewChannel(nsIURI* uri, nsIChannel* *result)
+{
+    return NewChannel2(uri, nullptr, result);
+}
+
 NS_IMETHODIMP 
 nsAboutProtocolHandler::AllowPort(int32_t port, const char *scheme, bool *_retval)
 {
@@ -187,7 +267,7 @@ nsAboutProtocolHandler::AllowPort(int32_t port, const char *scheme, bool *_retva
 ////////////////////////////////////////////////////////////////////////////////
 // Safe about protocol handler impl
 
-NS_IMPL_ISUPPORTS(nsSafeAboutProtocolHandler, nsIProtocolHandler)
+NS_IMPL_ISUPPORTS(nsSafeAboutProtocolHandler, nsIProtocolHandler, nsISupportsWeakReference)
 
 // nsIProtocolHandler methods:
 
@@ -233,6 +313,15 @@ nsSafeAboutProtocolHandler::NewURI(const nsACString &aSpec,
     *result = nullptr;
     url.swap(*result);
     return rv;
+}
+
+NS_IMETHODIMP
+nsSafeAboutProtocolHandler::NewChannel2(nsIURI* uri,
+                                        nsILoadInfo* aLoadInfo,
+                                        nsIChannel** result)
+{
+    *result = nullptr;
+    return NS_ERROR_NOT_AVAILABLE;
 }
 
 NS_IMETHODIMP
@@ -309,7 +398,8 @@ nsNestedAboutURI::Write(nsIObjectOutputStream* aStream)
 
 // nsSimpleURI
 /* virtual */ nsSimpleURI*
-nsNestedAboutURI::StartClone(nsSimpleURI::RefHandlingEnum aRefHandlingMode)
+nsNestedAboutURI::StartClone(nsSimpleURI::RefHandlingEnum aRefHandlingMode,
+                             const nsACString& aNewRef)
 {
     // Sadly, we can't make use of nsSimpleNestedURI::StartClone here.
     // However, this function is expected to exactly match that function,
@@ -317,15 +407,21 @@ nsNestedAboutURI::StartClone(nsSimpleURI::RefHandlingEnum aRefHandlingMode)
     NS_ENSURE_TRUE(mInnerURI, nullptr);
 
     nsCOMPtr<nsIURI> innerClone;
-    nsresult rv = aRefHandlingMode == eHonorRef ?
-        mInnerURI->Clone(getter_AddRefs(innerClone)) :
-        mInnerURI->CloneIgnoringRef(getter_AddRefs(innerClone));
+    nsresult rv;
+    if (aRefHandlingMode == eHonorRef) {
+        rv = mInnerURI->Clone(getter_AddRefs(innerClone));
+    } else if (aRefHandlingMode == eReplaceRef) {
+        rv = mInnerURI->CloneWithNewRef(aNewRef, getter_AddRefs(innerClone));
+    } else {
+        rv = mInnerURI->CloneIgnoringRef(getter_AddRefs(innerClone));
+    }
 
     if (NS_FAILED(rv)) {
         return nullptr;
     }
 
     nsNestedAboutURI* url = new nsNestedAboutURI(innerClone, mBaseURI);
+    SetRefOnClone(url, aRefHandlingMode, aNewRef);
     url->SetMutable(false);
 
     return url;
@@ -338,3 +434,6 @@ nsNestedAboutURI::GetClassIDNoAlloc(nsCID *aClassIDNoAlloc)
     *aClassIDNoAlloc = kNestedAboutURICID;
     return NS_OK;
 }
+
+} // namespace net
+} // namespace mozilla

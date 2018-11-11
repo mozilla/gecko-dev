@@ -10,27 +10,17 @@
 
 /* ::::: XBL bindings ::::: */
 
-menulist > menupopup,
-.menulist-menupopup {
+menulist > menupopup {
   -moz-binding: url("chrome://global/content/bindings/popup.xml#popup-scrollbars");
 }
 
-.menulist-compact {
-  -moz-binding: url("chrome://global/content/bindings/menulist.xml#menulist-compact");
-}
-
-/* ::::: draggable elements ::::: */
-
-toolbar:not([nowindowdrag="true"]) {
-  -moz-binding: url("chrome://global/content/bindings/toolbar.xml#toolbar-drag");
-}
-
-statusbar:not([nowindowdrag="true"]) {
-  -moz-binding: url("chrome://global/content/bindings/general.xml#statusbar-drag");
-}
-
-windowdragbox {
-  -moz-binding: url("chrome://global/content/bindings/general.xml#windowdragbox");
+/* ::::: Variables ::::: */
+:root {
+  --arrowpanel-padding: 16px;
+  --arrowpanel-background: linear-gradient(hsla(0,0%,99%,1), hsla(0,0%,99%,.975) 10%, hsla(0,0%,98%,.975));
+  --arrowpanel-color: hsl(0,0%,10%);
+  --arrowpanel-border-color: hsla(210,4%,10%,.05);
+  --arrowpanel-border-radius: 3.5px;
 }
 
 /* ::::: root elements ::::: */
@@ -49,16 +39,16 @@ prefwindow {
 prefwindow[type="child"] {
   padding-top: 18px;
   padding-bottom: 15px;
-  -moz-padding-start: 18px;
-  -moz-padding-end: 20px;
+  padding-inline-start: 18px;
+  padding-inline-end: 20px;
 }
 
 /* deprecated */
 window.dialog {
   padding-top: 8px;
   padding-bottom: 10px;
-  -moz-padding-start: 8px;
-  -moz-padding-end: 10px;
+  padding-inline-start: 8px;
+  padding-inline-end: 10px;
 }
 
 /* ::::: alert icons :::::*/
@@ -70,13 +60,14 @@ window.dialog {
   width: 64px;
   height: 64px;
   margin: 6px;
-  -moz-margin-end: 20px;
+  margin-inline-end: 20px;
 }
 
 .message-icon {
   list-style-image: url("chrome://global/skin/icons/information-64.png");
 }
 
+.alert-dialog #info\.icon,
 .alert-icon {
   list-style-image: url("chrome://global/skin/icons/warning-64.png");
 }
@@ -106,7 +97,7 @@ statusbar {
   Prevents hiding of scrollbars in browser when window is made smaller.*/
   min-height: 15px !important;
   margin: 0px !important;
-  /* need to use -moz-padding-end when/if bug 631729 gets fixed: */
+  /* need to use padding-inline-end when/if bug 631729 gets fixed: */
   padding: 0px 16px 1px 1px;
   -moz-appearance: statusbar;
   text-shadow: rgba(255, 255, 255, 0.4) 0 1px;
@@ -194,10 +185,14 @@ separator.groove[orient="vertical"] {
 description,
 label {
   cursor: default;
+  margin-top: 1px;
+  margin-bottom: 2px;
+  margin-inline-start: 6px;
+  margin-inline-end: 5px;
 }
 
-label {
-  margin: 2px 6px;
+description {
+  margin-bottom: 4px;
 }
 
 label[disabled="true"] {
@@ -208,12 +203,7 @@ label[disabled="true"] {
   margin: 0;
 }
 
-description {
-  margin-bottom: 4px;
-}
-
 .header {
-  margin-bottom: 6px;
   font-weight: bold;
 }
 
@@ -222,7 +212,7 @@ description {
 }
 
 .indent {
-  -moz-margin-start: 23px;
+  margin-inline-start: 23px;
 }
 
 .box-padded {
@@ -284,6 +274,10 @@ notification > button > .button-box > .button-text {
   margin: 0 !important;
 }
 
+popupnotificationcontent {
+  margin-top: .5em;
+}
+
 /* :::::: autoscroll popup ::::: */
 
 .autoscroller {
@@ -312,6 +306,7 @@ notification > button > .button-box > .button-text {
 .popup-internal-box > autorepeatbutton {
   height: 15px;
   position: relative;
+  list-style-image: none;
   /* Here we're using a little magic.
    * The arrow button is supposed to overlay the scrollbox, blocking
    * everything under it from reaching the screen. However, the menu background
@@ -325,11 +320,21 @@ notification > button > .button-box > .button-text {
 }
 
 .popup-internal-box > .autorepeatbutton-up {
+  padding-top: 1px; /* 4px padding-top from the .popup-internal-box. */
   margin-bottom: -15px;
 }
 
+.popup-internal-box > .autorepeatbutton-up > .autorepeatbutton-icon {
+  -moz-appearance: button-arrow-up;
+}
+
 .popup-internal-box > .autorepeatbutton-down {
+  padding-top: 5px;
   margin-top: -15px;
+}
+
+.popup-internal-box > .autorepeatbutton-down > .autorepeatbutton-icon {
+  -moz-appearance: button-arrow-down;
 }
 
 .popup-internal-box > autorepeatbutton[disabled="true"] {
@@ -353,6 +358,7 @@ notification > button > .button-box > .button-text {
 
 @media (min-resolution: 2dppx) {
   .close-icon > .button-icon,
+  .close-icon > .button-box > .button-icon,
   .close-icon > .toolbarbutton-icon {
     width: 16px;
   }

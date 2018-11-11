@@ -1,9 +1,13 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 // Copyright (c) 2009 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 #ifndef BASE_FILE_DESCRIPTOR_SHUFFLE_H_
 #define BASE_FILE_DESCRIPTOR_SHUFFLE_H_
+
+#include "mozilla/Attributes.h"
 
 // This code exists to perform the shuffling of file descriptors which is
 // commonly needed when forking subprocesses. The naive approve is very simple,
@@ -42,9 +46,9 @@ class InjectionDelegate {
 // An implementation of the InjectionDelegate interface using the file
 // descriptor table of the current process as the domain.
 class FileDescriptorTableInjection : public InjectionDelegate {
-  bool Duplicate(int* result, int fd);
-  bool Move(int src, int dest);
-  void Close(int fd);
+  virtual bool Duplicate(int* result, int fd) override;
+  virtual bool Move(int src, int dest) override;
+  virtual void Close(int fd) override;
 };
 
 // A single arc of the directed graph which describes an injective multimapping.

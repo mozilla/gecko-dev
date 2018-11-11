@@ -1,33 +1,53 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-function runTests() {
+add_task(function* () {
   yield setLinks("0");
-  yield addNewTabPageTab();
+  yield* addNewTabPageTab();
 
-  let site = getCell(0).node.querySelector(".newtab-site");
-  site.setAttribute("type", "sponsored");
+  yield ContentTask.spawn(gBrowser.selectedBrowser, {}, function* () {
+    var EventUtils = {};
+    EventUtils.window = {};
+    EventUtils.parent = EventUtils.window;
+    EventUtils._EU_Ci = Components.interfaces;
 
-  let sponsoredPanel = getContentDocument().getElementById("sponsored-panel");
-  is(sponsoredPanel.state, "closed", "Sponsored panel must be closed");
+    Services.scriptloader.loadSubScript("chrome://mochikit/content/tests/SimpleTest/EventUtils.js", EventUtils);
 
-  function continueOnceOn(event) {
-    sponsoredPanel.addEventListener(event, function listener() {
-      sponsoredPanel.removeEventListener(event, listener);
-      executeSoon(TestRunner.next);
-    });
-  }
+    let cell = content.gGrid.cells[0];
 
-  // test sponsoredPanel appearing upon a click
-  continueOnceOn("popupshown");
-  let sponsoredButton = site.querySelector(".newtab-control-sponsored");
-  yield EventUtils.synthesizeMouseAtCenter(sponsoredButton, {}, getContentWindow());
-  is(sponsoredPanel.state, "open", "Sponsored panel opens on click");
-  ok(sponsoredButton.hasAttribute("panelShown"), "Sponsored button has panelShown attribute");
+    let site = cell.node.querySelector(".newtab-site");
+    site.setAttribute("type", "sponsored");
 
-  // test sponsoredPanel hiding
-  continueOnceOn("popuphidden");
-  yield sponsoredPanel.hidePopup();
-  is(sponsoredPanel.state, "closed", "Sponsored panel correctly closed/hidden");
-  ok(!sponsoredButton.hasAttribute("panelShown"), "Sponsored button does not have panelShown attribute");
-}
+    // test explain text appearing upon a click
+    let sponsoredButton = site.querySelector(".newtab-sponsored");
+    EventUtils.synthesizeMouseAtCenter(sponsoredButton, {}, content);
+    let explain = site.querySelector(".sponsored-explain");
+    Assert.notEqual(explain, null, "Sponsored explanation shown");
+    Assert.ok(explain.querySelector("input").classList.contains("newtab-control-block"),
+      "sponsored tiles show blocked image");
+    Assert.ok(sponsoredButton.hasAttribute("active"), "Sponsored button has active attribute");
+
+    // test dismissing sponsored explain
+    EventUtils.synthesizeMouseAtCenter(sponsoredButton, {}, content);
+    Assert.equal(site.querySelector(".sponsored-explain"), null,
+      "Sponsored explanation no longer shown");
+    Assert.ok(!sponsoredButton.hasAttribute("active"),
+      "Sponsored button does not have active attribute");
+
+    // test with enhanced tile
+    site.setAttribute("type", "enhanced");
+    EventUtils.synthesizeMouseAtCenter(sponsoredButton, {}, content);
+    explain = site.querySelector(".sponsored-explain");
+    Assert.notEqual(explain, null, "Sponsored explanation shown");
+    Assert.ok(explain.querySelector("input").classList.contains("newtab-customize"),
+      "enhanced tiles show customize image");
+    Assert.ok(sponsoredButton.hasAttribute("active"), "Sponsored button has active attribute");
+
+    // test dismissing enhanced explain
+    EventUtils.synthesizeMouseAtCenter(sponsoredButton, {}, content);
+    Assert.equal(site.querySelector(".sponsored-explain"), null,
+      "Sponsored explanation no longer shown");
+    Assert.ok(!sponsoredButton.hasAttribute("active"),
+      "Sponsored button does not have active attribute");
+  });
+});

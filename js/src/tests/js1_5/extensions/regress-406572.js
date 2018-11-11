@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,12 +22,14 @@ if (typeof window != 'undefined')
     window = 1;
     reportCompare(windowString, String(window), "window should be readonly");
 
-    actual = ""; // We should reach this line, and throw an exception after it
-
     if (1)
       function window() { return 1; }
 
-    actual = "FAIL: this line should never be reached";
+    // We should reach this line without throwing. Annex B means the
+    // block-scoped function above gets an assignment to 'window' in the
+    // nearest 'var' environment, but since 'window' is read-only, the
+    // assignment silently fails.
+    actual = "";
 
     // The test harness might rely on window having its original value:
     // restore it.

@@ -1,7 +1,151 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+// NOTE: If you're adding new test harness functionality to this file -- first,
+//       should you at all?  Most stuff is better in specific tests, or in
+//       nested shell.js/browser.js.  Second, can you instead add it to
+//       shell.js?  Our goal is to unify these two files for readability, and
+//       the plan is to empty out this file into that one over time.  Third,
+//       supposing you must add to this file, please add it to this IIFE for
+//       better modularity/resilience against tests that must do particularly
+//       bizarre things that might break the harness.
+
+(function(global) {
+  /**********************************************************************
+   * CACHED PRIMORDIAL FUNCTIONALITY (before a test might overwrite it) *
+   **********************************************************************/
+
+  var ReflectApply = global.Reflect.apply;
+
+  // BEWARE: ObjectGetOwnPropertyDescriptor is only safe to use if its result
+  //         is inspected using own-property-examining functionality.  Directly
+  //         accessing properties on a returned descriptor without first
+  //         verifying the property's existence can invoke user-modifiable
+  //         behavior.
+  var ObjectGetOwnPropertyDescriptor = global.Object.getOwnPropertyDescriptor;
+
+  var document = global.document;
+  var documentBody = global.document.body;
+  var documentDocumentElement = global.document.documentElement;
+  var DocumentCreateElement = global.document.createElement;
+  var ElementInnerHTMLSetter =
+    ObjectGetOwnPropertyDescriptor(global.Element.prototype, "innerHTML").set;
+  var HTMLIFramePrototypeContentWindowGetter =
+    ObjectGetOwnPropertyDescriptor(global.HTMLIFrameElement.prototype, "contentWindow").get;
+  var HTMLIFramePrototypeRemove = global.HTMLIFrameElement.prototype.remove;
+  var NodePrototypeAppendChild = global.Node.prototype.appendChild;
+  var NodePrototypeTextContentSetter =
+    ObjectGetOwnPropertyDescriptor(global.Node.prototype, "textContent").set;
+
+  // Cached DOM nodes used by the test harness itself.  (We assume the test
+  // doesn't misbehave in a way that actively interferes with what the test
+  // harness runner observes, e.g. navigating the page to a different location.
+  // Short of running every test in a worker -- which has its own problems --
+  // there's no way to isolate a test from the page to that extent.)
+  var printOutputContainer =
+    global.document.getElementById("jsreftest-print-output-container");
+
+  /****************************
+   * GENERAL HELPER FUNCTIONS *
+   ****************************/
+
+  function AppendChild(elt, kid) {
+    ReflectApply(NodePrototypeAppendChild, elt, [kid]);
+  }
+
+  function CreateElement(name) {
+    return ReflectApply(DocumentCreateElement, document, [name]);
+  }
+
+  function HTMLSetAttribute(element, name, value) {
+    ReflectApply(HTMLElementPrototypeSetAttribute, element, [name, value]);
+  }
+
+  function SetTextContent(element, text) {
+    ReflectApply(NodePrototypeTextContentSetter, element, [text]);
+  }
+
+  /****************************
+   * UTILITY FUNCTION EXPORTS *
+   ****************************/
+
+  var newGlobal = global.newGlobal;
+  if (typeof newGlobal !== "function") {
+    newGlobal = function newGlobal() {
+      var iframe = CreateElement("iframe");
+      AppendChild(documentDocumentElement, iframe);
+      var win =
+        ReflectApply(HTMLIFramePrototypeContentWindowGetter, iframe, []);
+      ReflectApply(HTMLIFramePrototypeRemove, iframe, []);
+
+      // Shim in "evaluate"
+      win.evaluate = win.eval;
+      return win;
+    };
+    global.newGlobal = newGlobal;
+  }
+
+  // This function is *only* used by shell.js's for-browsers |print()| function!
+  // It's only defined/exported here because it needs CreateElement and friends,
+  // only defined here, and we're not yet ready to move them to shell.js.
+  function AddPrintOutput(s) {
+    var msgDiv = CreateElement("div");
+    SetTextContent(msgDiv, s);
+    AppendChild(printOutputContainer, msgDiv);
+  }
+  global.AddPrintOutput = AddPrintOutput;
+
+  /*************************************************************************
+   * HARNESS-CENTRIC EXPORTS (we should generally work to eliminate these) *
+   *************************************************************************/
+
+  // This overwrites shell.js's version that merely prints the given string.
+  function writeHeaderToLog(string) {
+    string = String(string);
+
+    // First dump to the console.
+    dump(string + "\n");
+
+    // Then output to the page.
+    var h2 = CreateElement("h2");
+    SetTextContent(h2, string);
+    AppendChild(printOutputContainer, h2);
+  }
+  global.writeHeaderToLog = writeHeaderToLog;
+
+  // XXX This function overwrites one in shell.js.  We should define the
+  //     separate versions in a single location.  Also the dependence on
+  //     |global.{PASSED,FAILED}| is very silly.
+  function writeFormattedResult(expect, actual, string, passed) {
+    // XXX remove this?  it's unneeded in the shell version
+    string = String(string);
+
+    dump(string + "\n");
+
+    var font = CreateElement("font");
+    if (passed) {
+      HTMLSetAttribute(font, "color", "#009900");
+      SetTextContent(font, " \u00A0" + global.PASSED);
+    } else {
+      HTMLSetAttribute(font, "color", "#aa0000");
+      SetTextContent(font, "\u00A0" + global.FAILED + expect);
+    }
+
+    var b = CreateElement("b");
+    AppendChild(b, font);
+
+    var tt = CreateElement("tt");
+    SetTextContent(tt, string);
+    AppendChild(tt, b);
+
+    AppendChild(printOutputContainer, tt);
+    AppendChild(printOutputContainer, CreateElement("br"));
+  }
+  global.writeFormattedResult = writeFormattedResult;
+})(this);
+
 
 var gPageCompleted;
 var GLOBAL = this + '';
@@ -22,96 +166,12 @@ function testPassesUnlessItThrows() {
 }
 
 /*
- * Requests to load the given JavaScript file before the file containing the
- * test case.
- */
-function include(file) {
-  outputscripttag(file, {language: "type", mimetype: "text/javascript"});
-}
-
-/*
  * Sets a restore function which restores the standard built-in ECMAScript
  * properties after a destructive test case, and which will be called after
  * the test case terminates.
  */
 function setRestoreFunction(restore) {
   jstestsRestoreFunction = restore;
-}
-
-function htmlesc(str) {
-  if (str == '<')
-    return '&lt;';
-  if (str == '>')
-    return '&gt;';
-  if (str == '&')
-    return '&amp;';
-  return str;
-}
-
-function DocumentWrite(s)
-{
-  try
-  {
-    var msgDiv = document.createElement('div');
-    msgDiv.innerHTML = s;
-    document.body.appendChild(msgDiv);
-    msgDiv = null;
-  }
-  catch(excp)
-  {
-    document.write(s + '<br>\n');
-  }
-}
-
-function print() {
-  var s = 'TEST-INFO | ';
-  var a;
-  for (var i = 0; i < arguments.length; i++)
-  {
-    a = arguments[i];
-    s += String(a) + ' ';
-  }
-
-  if (typeof dump == 'function')
-  {
-    dump( s + '\n');
-  }
-
-  s = s.replace(/[<>&]/g, htmlesc);
-
-  DocumentWrite(s);
-}
-
-function writeHeaderToLog( string ) {
-  string = String(string);
-
-  if (typeof dump == 'function')
-  {
-    dump( string + '\n');
-  }
-
-  string = string.replace(/[<>&]/g, htmlesc);
-
-  DocumentWrite( "<h2>" + string + "</h2>" );
-}
-
-function writeFormattedResult( expect, actual, string, passed ) {
-  string = String(string);
-
-  if (typeof dump == 'function')
-  {
-    dump( string + '\n');
-  }
-
-  string = string.replace(/[<>&]/g, htmlesc);
-
-  var s = "<tt>"+ string ;
-  s += "<b>" ;
-  s += ( passed ) ? "<font color=#009900> &nbsp;" + PASSED
-    : "<font color=#aa0000>&nbsp;" +  FAILED + expect;
-
-  DocumentWrite( s + "</font></b></tt><br>" );
-  return passed;
 }
 
 window.onerror = function (msg, page, line)
@@ -162,25 +222,6 @@ function gc()
   {
     print('gc: ' + ex);
   }
-}
-
-function jsdgc()
-{
-  try
-  {
-    var jsdIDebuggerService = SpecialPowers.Ci.jsdIDebuggerService;
-    var service = SpecialPowers.Cc['@mozilla.org/js/jsd/debugger-service;1'].
-      getService(jsdIDebuggerService);
-    service.GC();
-  }
-  catch(ex)
-  {
-    print('jsdgc: ' + ex);
-  }
-}
-
-function quit()
-{
 }
 
 function options(aOptionName)
@@ -261,15 +302,6 @@ function optionsInit() {
   }
 }
 
-function gczeal(z)
-{
-  SpecialPowers.setGCZeal(z);
-}
-
-function jit(on)
-{
-}
-
 function jsTestDriverBrowserInit()
 {
 
@@ -347,6 +379,14 @@ function jsTestDriverBrowserInit()
     {
       properties.version = '1.8';
     }
+    else if (properties.test.match(/^ecma_6\/Class/))
+    {
+      properties.version = '1.8';
+    }
+    else if (properties.test.match(/^ecma_6\/extensions/))
+    {
+      properties.version = '1.8';
+    }
   }
 
   // default to language=type;text/javascript. required for
@@ -364,23 +404,11 @@ function jsTestDriverBrowserInit()
     gczeal(Number(properties.gczeal));
   }
 
-  /*
-   * since the default setting of jit changed from false to true
-   * in http://hg.mozilla.org/tracemonkey/rev/685e00e68be9
-   * bisections which depend upon jit settings can be thrown off.
-   * default jit(false) when not running jsreftests to make bisections
-   * depending upon jit settings consistent over time. This is not needed
-   * in shell tests as the default jit setting has not changed there.
-   */
-
-  if (properties.jit  || !document.location.href.match(/jsreftest.html/))
-    jit(properties.jit);
-
   var testpathparts = properties.test.split(/\//);
 
-  if (testpathparts.length < 3)
+  if (testpathparts.length < 2)
   {
-    // must have at least suitepath/subsuite/testcase.js
+    // must have at least suitepath/testcase.js
     return;
   }
 

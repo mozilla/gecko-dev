@@ -14,9 +14,9 @@
 namespace js {
 
 static inline unsigned
-GetDefCount(JSScript *script, unsigned offset)
+GetDefCount(JSScript* script, unsigned offset)
 {
-    jsbytecode *pc = script->offsetToPC(offset);
+    jsbytecode* pc = script->offsetToPC(offset);
 
     /*
      * Add an extra pushed value for OR/AND opcodes, so that they are included
@@ -40,15 +40,15 @@ GetDefCount(JSScript *script, unsigned offset)
 }
 
 static inline unsigned
-GetUseCount(JSScript *script, unsigned offset)
+GetUseCount(JSScript* script, unsigned offset)
 {
-    jsbytecode *pc = script->offsetToPC(offset);
+    jsbytecode* pc = script->offsetToPC(offset);
 
     if (JSOp(*pc) == JSOP_PICK)
         return pc[1] + 1;
-    if (js_CodeSpec[*pc].nuses == -1)
+    if (CodeSpec[*pc].nuses == -1)
         return StackUses(script, pc);
-    return js_CodeSpec[*pc].nuses;
+    return CodeSpec[*pc].nuses;
 }
 
 static inline JSOp
@@ -69,7 +69,7 @@ ReverseCompareOp(JSOp op)
       case JSOP_STRICTNE:
         return op;
       default:
-        MOZ_ASSUME_UNREACHABLE("unrecognized op");
+        MOZ_CRASH("unrecognized op");
     }
 }
 
@@ -94,26 +94,27 @@ NegateCompareOp(JSOp op)
       case JSOP_STRICTEQ:
         return JSOP_STRICTNE;
       default:
-        MOZ_ASSUME_UNREACHABLE("unrecognized op");
+        MOZ_CRASH("unrecognized op");
     }
 }
 
 class BytecodeRange {
   public:
-    BytecodeRange(JSContext *cx, JSScript *script)
+    BytecodeRange(JSContext* cx, JSScript* script)
       : script(cx, script), pc(script->code()), end(pc + script->length())
     {}
     bool empty() const { return pc == end; }
-    jsbytecode *frontPC() const { return pc; }
+    jsbytecode* frontPC() const { return pc; }
     JSOp frontOpcode() const { return JSOp(*pc); }
     size_t frontOffset() const { return script->pcToOffset(pc); }
     void popFront() { pc += GetBytecodeLength(pc); }
 
   private:
     RootedScript script;
-    jsbytecode *pc, *end;
+    jsbytecode* pc;
+    jsbytecode* end;
 };
 
-}
+} // namespace js
 
 #endif /* jsopcodeinlines_h */

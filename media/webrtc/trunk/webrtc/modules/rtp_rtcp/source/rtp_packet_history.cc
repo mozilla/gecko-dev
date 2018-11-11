@@ -18,11 +18,11 @@
 
 #include "webrtc/modules/rtp_rtcp/source/rtp_utility.h"
 #include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
-#include "webrtc/system_wrappers/interface/trace.h"
+#include "webrtc/system_wrappers/interface/logging.h"
 
 namespace webrtc {
 
-enum { kMinPacketRequestBytes = 50 };
+static const int kMinPacketRequestBytes = 50;
 
 RTPPacketHistory::RTPPacketHistory(Clock* clock)
   : clock_(clock),
@@ -33,28 +33,26 @@ RTPPacketHistory::RTPPacketHistory(Clock* clock)
 }
 
 RTPPacketHistory::~RTPPacketHistory() {
-  Free();
-  delete critsect_;
 }
 
-void RTPPacketHistory::SetStorePacketsStatus(bool enable, 
+void RTPPacketHistory::SetStorePacketsStatus(bool enable,
                                              uint16_t number_to_store) {
+  CriticalSectionScoped cs(critsect_.get());
   if (enable) {
+    if (store_) {
+      LOG(LS_WARNING) << "Purging packet history in order to re-set status.";
+      Free();
+    }
+    assert(!store_);
     Allocate(number_to_store);
   } else {
     Free();
   }
 }
 
-void RTPPacketHistory::Allocate(uint16_t number_to_store) {
+void RTPPacketHistory::Allocate(size_t number_to_store) {
   assert(number_to_store > 0);
-  CriticalSectionScoped cs(critsect_);
-  if (store_) {
-    WEBRTC_TRACE(kTraceWarning, kTraceRtpRtcp, -1,
-        "SetStorePacketsStatus already set, number: %d", number_to_store);
-    return;
-  }
-
+  assert(number_to_store <= kMaxHistoryCapacity);
   store_ = true;
   stored_packets_.resize(number_to_store);
   stored_seq_nums_.resize(number_to_store);
@@ -65,13 +63,12 @@ void RTPPacketHistory::Allocate(uint16_t number_to_store) {
 }
 
 void RTPPacketHistory::Free() {
-  CriticalSectionScoped cs(critsect_);
   if (!store_) {
     return;
   }
 
   std::vector<std::vector<uint8_t> >::iterator it;
-  for (it = stored_packets_.begin(); it != stored_packets_.end(); ++it) {   
+  for (it = stored_packets_.begin(); it != stored_packets_.end(); ++it) {
     it->clear();
   }
 
@@ -88,38 +85,42 @@ void RTPPacketHistory::Free() {
 }
 
 bool RTPPacketHistory::StorePackets() const {
-  CriticalSectionScoped cs(critsect_);
+  CriticalSectionScoped cs(critsect_.get());
   return store_;
 }
 
-// private, lock should already be taken
-void RTPPacketHistory::VerifyAndAllocatePacketLength(uint16_t packet_length) {
+void RTPPacketHistory::VerifyAndAllocatePacketLength(size_t packet_length,
+                                                     uint32_t start_index) {
   assert(packet_length > 0);
   if (!store_) {
     return;
   }
 
-  if (packet_length <= max_packet_length_) {
+  // If start_index > 0 this is a resize and we must check any new (empty)
+  // packets created during the resize.
+  if (start_index == 0 && packet_length <= max_packet_length_) {
     return;
   }
 
+  max_packet_length_ = std::max(packet_length, max_packet_length_);
+
   std::vector<std::vector<uint8_t> >::iterator it;
-  for (it = stored_packets_.begin(); it != stored_packets_.end(); ++it) {
-    it->resize(packet_length);
+  for (it = stored_packets_.begin() + start_index; it != stored_packets_.end();
+       ++it) {
+    it->resize(max_packet_length_);
   }
-  max_packet_length_ = packet_length;
 }
 
 int32_t RTPPacketHistory::PutRTPPacket(const uint8_t* packet,
-                                       uint16_t packet_length,
-                                       uint16_t max_packet_length,
+                                       size_t packet_length,
+                                       size_t max_packet_length,
                                        int64_t capture_time_ms,
                                        StorageType type) {
   if (type == kDontStore) {
     return 0;
   }
 
-  CriticalSectionScoped cs(critsect_);
+  CriticalSectionScoped cs(critsect_.get());
   if (!store_) {
     return 0;
   }
@@ -127,19 +128,38 @@ int32_t RTPPacketHistory::PutRTPPacket(const uint8_t* packet,
   assert(packet);
   assert(packet_length > 3);
 
-  VerifyAndAllocatePacketLength(max_packet_length);
+  VerifyAndAllocatePacketLength(max_packet_length, 0);
 
   if (packet_length > max_packet_length_) {
-    WEBRTC_TRACE(kTraceError, kTraceRtpRtcp, -1,
-        "Failed to store RTP packet, length: %d", packet_length);
+    LOG(LS_WARNING) << "Failed to store RTP packet with length: "
+                    << packet_length;
     return -1;
   }
 
   const uint16_t seq_num = (packet[2] << 8) + packet[3];
 
+  // If index we're about to overwrite contains a packet that has not
+  // yet been sent (probably pending in paced sender), we need to expand
+  // the buffer.
+  if (stored_lengths_[prev_index_] > 0 &&
+      stored_send_times_[prev_index_] == 0) {
+    size_t current_size = static_cast<uint16_t>(stored_packets_.size());
+    if (current_size < kMaxHistoryCapacity) {
+      size_t expanded_size = std::max(current_size * 3 / 2, current_size + 1);
+      expanded_size = std::min(expanded_size, kMaxHistoryCapacity);
+      Allocate(expanded_size);
+      VerifyAndAllocatePacketLength(max_packet_length, current_size);
+      // Causes discontinuity, but that's OK-ish. FindSeqNum() will still work,
+      // but may be slower - at least until buffer has wrapped around once.
+      prev_index_ = current_size;
+    }
+  }
+
   // Store packet
   std::vector<std::vector<uint8_t> >::iterator it =
       stored_packets_.begin() + prev_index_;
+  // TODO(sprang): Overhaul this class and get rid of this copy step.
+  //               (Finally introduce the RtpPacket class?)
   std::copy(packet, packet + packet_length, it->begin());
 
   stored_seq_nums_[prev_index_] = seq_num;
@@ -156,48 +176,8 @@ int32_t RTPPacketHistory::PutRTPPacket(const uint8_t* packet,
   return 0;
 }
 
-int32_t RTPPacketHistory::ReplaceRTPHeader(const uint8_t* packet,
-                                           uint16_t sequence_number,
-                                           uint16_t rtp_header_length) {
-  CriticalSectionScoped cs(critsect_);
-  if (!store_) {
-    return 0;
-  }
-
-  assert(packet);
-  assert(rtp_header_length > 3);
-
-  if (rtp_header_length > max_packet_length_) {
-    WEBRTC_TRACE(kTraceStream, kTraceRtpRtcp, -1,
-        "Failed to replace RTP packet, length: %d", rtp_header_length);
-    return -1;
-  }
-
-  int32_t index = 0;
-  bool found = FindSeqNum(sequence_number, &index);
-  if (!found) {
-    WEBRTC_TRACE(kTraceStream, kTraceRtpRtcp, -1,
-        "No match for getting seqNum %u", sequence_number);
-    return -1;
-  }
-
-  uint16_t length = stored_lengths_.at(index);
-  if (length == 0 || length > max_packet_length_) {
-    WEBRTC_TRACE(kTraceStream, kTraceRtpRtcp, -1,
-        "No match for getting seqNum %u, len %d", sequence_number, length);
-    return -1;
-  }
-  assert(stored_seq_nums_[index] == sequence_number);
-
-  // Update RTP header.
-  std::vector<std::vector<uint8_t> >::iterator it =
-      stored_packets_.begin() + index;
-  std::copy(packet, packet + rtp_header_length, it->begin());
-  return 0;
-}
-
 bool RTPPacketHistory::HasRTPPacket(uint16_t sequence_number) const {
-  CriticalSectionScoped cs(critsect_);
+  CriticalSectionScoped cs(critsect_.get());
   if (!store_) {
     return false;
   }
@@ -207,8 +187,8 @@ bool RTPPacketHistory::HasRTPPacket(uint16_t sequence_number) const {
   if (!found) {
     return false;
   }
- 
-  uint16_t length = stored_lengths_.at(index);
+
+  size_t length = stored_lengths_.at(index);
   if (length == 0 || length > max_packet_length_) {
     // Invalid length.
     return false;
@@ -216,13 +196,8 @@ bool RTPPacketHistory::HasRTPPacket(uint16_t sequence_number) const {
   return true;
 }
 
-bool RTPPacketHistory::GetPacketAndSetSendTime(uint16_t sequence_number,
-                                               uint32_t min_elapsed_time_ms,
-                                               bool retransmit,
-                                               uint8_t* packet,
-                                               uint16_t* packet_length,
-                                               int64_t* stored_time_ms) {
-  CriticalSectionScoped cs(critsect_);
+bool RTPPacketHistory::SetSent(uint16_t sequence_number) {
+  CriticalSectionScoped cs(critsect_.get());
   if (!store_) {
     return false;
   }
@@ -230,30 +205,49 @@ bool RTPPacketHistory::GetPacketAndSetSendTime(uint16_t sequence_number,
   int32_t index = 0;
   bool found = FindSeqNum(sequence_number, &index);
   if (!found) {
-    WEBRTC_TRACE(kTraceStream, kTraceRtpRtcp, -1,
-        "No match for getting seqNum %u", sequence_number);
     return false;
   }
 
-  uint16_t length = stored_lengths_.at(index);
-  if (length == 0 || length > max_packet_length_) {
-    WEBRTC_TRACE(kTraceStream, kTraceRtpRtcp, -1,
-        "No match for getting seqNum %u, len %d", sequence_number, length);
+  // Send time already set.
+  if (stored_send_times_[index] != 0) {
     return false;
   }
 
-  if (length > *packet_length) {
-    WEBRTC_TRACE(kTraceWarning, kTraceRtpRtcp, -1, 
-                 "Input buffer too short for packet %u", sequence_number);
+  stored_send_times_[index] = clock_->TimeInMilliseconds();
+  return true;
+}
+
+bool RTPPacketHistory::GetPacketAndSetSendTime(uint16_t sequence_number,
+                                               int64_t min_elapsed_time_ms,
+                                               bool retransmit,
+                                               uint8_t* packet,
+                                               size_t* packet_length,
+                                               int64_t* stored_time_ms) {
+  CriticalSectionScoped cs(critsect_.get());
+  assert(*packet_length >= max_packet_length_);
+  if (!store_) {
     return false;
   }
 
-  // Verify elapsed time since last retrieve. 
+  int32_t index = 0;
+  bool found = FindSeqNum(sequence_number, &index);
+  if (!found) {
+    LOG(LS_WARNING) << "No match for getting seqNum " << sequence_number;
+    return false;
+  }
+
+  size_t length = stored_lengths_.at(index);
+  assert(length <= max_packet_length_);
+  if (length == 0) {
+    LOG(LS_WARNING) << "No match for getting seqNum " << sequence_number
+                    << ", len " << length;
+    return false;
+  }
+
+  // Verify elapsed time since last retrieve.
   int64_t now = clock_->TimeInMilliseconds();
   if (min_elapsed_time_ms > 0 &&
       ((now - stored_send_times_.at(index)) < min_elapsed_time_ms)) {
-    WEBRTC_TRACE(kTraceStream, kTraceRtpRtcp, -1, 
-        "Skip getting packet %u, packet recently resent.", sequence_number);
     return false;
   }
 
@@ -269,10 +263,10 @@ bool RTPPacketHistory::GetPacketAndSetSendTime(uint16_t sequence_number,
 
 void RTPPacketHistory::GetPacket(int index,
                                  uint8_t* packet,
-                                 uint16_t* packet_length,
+                                 size_t* packet_length,
                                  int64_t* stored_time_ms) const {
   // Get packet.
-  uint16_t length = stored_lengths_.at(index);
+  size_t length = stored_lengths_.at(index);
   std::vector<std::vector<uint8_t> >::const_iterator it_found_packet =
       stored_packets_.begin() + index;
   std::copy(it_found_packet->begin(), it_found_packet->begin() + length,
@@ -282,9 +276,9 @@ void RTPPacketHistory::GetPacket(int index,
 }
 
 bool RTPPacketHistory::GetBestFittingPacket(uint8_t* packet,
-                                            uint16_t* packet_length,
+                                            size_t* packet_length,
                                             int64_t* stored_time_ms) {
-  CriticalSectionScoped cs(critsect_);
+  CriticalSectionScoped cs(critsect_.get());
   if (!store_)
     return false;
   int index = FindBestFittingPacket(*packet_length);
@@ -329,22 +323,21 @@ bool RTPPacketHistory::FindSeqNum(uint16_t sequence_number,
   return false;
 }
 
-int RTPPacketHistory::FindBestFittingPacket(uint16_t size) const {
+int RTPPacketHistory::FindBestFittingPacket(size_t size) const {
   if (size < kMinPacketRequestBytes || stored_lengths_.empty())
     return -1;
-  int min_diff = -1;
-  size_t best_index = 0;
+  size_t min_diff = std::numeric_limits<size_t>::max();
+  int best_index = -1;  // Returned unchanged if we don't find anything.
   for (size_t i = 0; i < stored_lengths_.size(); ++i) {
     if (stored_lengths_[i] == 0)
       continue;
-    int diff = abs(stored_lengths_[i] - size);
-    if (min_diff < 0 || diff < min_diff) {
+    size_t diff = (stored_lengths_[i] > size) ?
+        (stored_lengths_[i] - size) : (size - stored_lengths_[i]);
+    if (diff < min_diff) {
       min_diff = diff;
-      best_index = i;
+      best_index = static_cast<int>(i);
     }
   }
-  if (min_diff < 0)
-    return -1;
   return best_index;
 }
 }  // namespace webrtc

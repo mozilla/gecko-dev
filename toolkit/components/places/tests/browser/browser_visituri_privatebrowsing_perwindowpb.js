@@ -6,7 +6,6 @@ function test() {
   // initialization
   waitForExplicitFinish();
   let windowsToClose = [];
-  let testURI = "https://www.mozilla.org/en-US/";
   let initialURL =
     "http://example.com/tests/toolkit/components/places/tests/browser/begin.html";
   let finalURL =
@@ -17,18 +16,6 @@ function test() {
   let uri = null;
 
   function doTest(aIsPrivateMode, aWindow, aTestURI, aCallback) {
-    aWindow.gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
-      if (aWindow.gBrowser.selectedBrowser.contentWindow.location != aTestURI) {
-        aWindow.gBrowser.selectedBrowser.contentWindow.location = aTestURI;
-        return;
-      }
-      aWindow.gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
-
-      if (aCallback) {
-        aCallback();
-      }
-    }, true);
-
     observer = {
       observe: function(aSubject, aTopic, aData) {
         // The uri-visit-saved topic should only work when on normal mode.
@@ -50,6 +37,8 @@ function test() {
     };
 
     aWindow.Services.obs.addObserver(observer, "uri-visit-saved", false);
+
+    BrowserTestUtils.browserLoaded(aWindow.gBrowser.selectedBrowser).then(aCallback);
     aWindow.gBrowser.selectedBrowser.loadURI(aTestURI);
   }
 
@@ -59,9 +48,9 @@ function test() {
       // execute should only be called when need, like when you are opening
       // web pages on the test. If calling executeSoon() is not necesary, then
       // call whenNewWindowLoaded() instead of testOnWindow() on your test.
-      executeSoon(function() aCallback(aWin));
+      executeSoon(() => aCallback(aWin));
     });
-  };
+  }
 
    // This function is called after calling finish() on the test.
   registerCleanupFunction(function() {
@@ -74,9 +63,9 @@ function test() {
   testOnWindow({private: true}, function(aWin) {
     doTest(true, aWin, initialURL, function() {
       // then test when not on private mode
-      testOnWindow({}, function(aWin) {
-        doTest(false, aWin, finalURL, function () {
-          promiseClearHistory().then(finish);
+      testOnWindow({}, function(aWin2) {
+        doTest(false, aWin2, finalURL, function () {
+          PlacesTestUtils.clearHistory().then(finish);
         });
       });
     });

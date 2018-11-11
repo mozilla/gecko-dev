@@ -9,6 +9,7 @@
 
 #include "base/command_line.h"
 #include "base/string_util.h"
+#include "base/task.h"
 #include "base/thread.h"
 
 #include "nsRegion.h"
@@ -20,8 +21,9 @@
 ${INCLUDES}
 //-----------------------------------------------------------------------------
 
-using namespace base;
 using namespace std;
+
+using base::Thread;
 
 namespace mozilla {
 namespace _ipdltest {
@@ -38,12 +40,15 @@ MessageLoop *gParentMessageLoop;
 bool gParentDone;
 bool gChildDone;
 
+void
+DeleteChildActor();
+
 //-----------------------------------------------------------------------------
 // data/functions accessed by both parent and child processes
 
 char* gIPDLUnitTestName = nullptr;
 
-const char* const
+const char*
 IPDLUnitTestName()
 {
     if (!gIPDLUnitTestName) {
@@ -93,7 +98,7 @@ ${STRING_TO_ENUMS}
 }
 
 
-const char* const
+const char*
 IPDLUnitTestToString(IPDLUnitTestType aTest)
 {
     switch (aTest) {
@@ -177,7 +182,7 @@ ${PARENT_ENABLED_CASES_PROC}
     if (!transport)
         fail("no transport");
 
-    base::ProcessHandle child = gSubprocess->GetChildProcessHandle();
+    base::ProcessId child = base::GetProcId(gSubprocess->GetChildProcessHandle());
 
     switch (test) {
 //-----------------------------------------------------------------------------
@@ -269,7 +274,7 @@ DeleteSubprocess(MessageLoop* uiLoop)
 {
   // pong to QuitXPCOM
   delete gSubprocess;
-  uiLoop->PostTask(FROM_HERE, NewRunnableFunction(QuitXPCOM));
+  uiLoop->PostTask(NewRunnableFunction(QuitXPCOM));
 }
 
 void
@@ -277,7 +282,6 @@ DeferredParentShutdown()
 {
     // ping to DeleteSubprocess
     XRE_GetIOMessageLoop()->PostTask(
-        FROM_HERE,
         NewRunnableFunction(DeleteSubprocess, MessageLoop::current()));
 }
 
@@ -312,13 +316,20 @@ QuitParent()
     if (gChildThread) {
         gParentDone = true;
         MessageLoop::current()->PostTask(
-            FROM_HERE, NewRunnableFunction(TryThreadedShutdown));
+            NewRunnableFunction(TryThreadedShutdown));
     } else {
         // defer "real" shutdown to avoid *Channel::Close() racing with the
         // deletion of the subprocess
         MessageLoop::current()->PostTask(
-            FROM_HERE, NewRunnableFunction(DeferredParentShutdown));
+            NewRunnableFunction(DeferredParentShutdown));
     }
+}
+
+static void
+ChildDie()
+{
+    DeleteChildActor();
+    XRE_ShutdownChildProcess();
 }
 
 void
@@ -326,9 +337,10 @@ QuitChild()
 {
     if (gChildThread) { // Threaded-mode test
         gParentMessageLoop->PostTask(
-            FROM_HERE, NewRunnableFunction(ChildCompleted));
+            NewRunnableFunction(ChildCompleted));
     } else { // Process-mode test
-        XRE_ShutdownChildProcess();
+        MessageLoop::current()->PostTask(
+            NewRunnableFunction(ChildDie));
     }
 }
 
@@ -359,12 +371,9 @@ ${CHILD_DELETE_CASES}
 
 void
 IPDLUnitTestChildInit(IPC::Channel* transport,
-                      base::ProcessHandle parent,
+                      base::ProcessId parentPid,
                       MessageLoop* worker)
 {
-    if (atexit(DeleteChildActor))
-        fail("can't install atexit() handler");
-
     switch (IPDLUnitTest()) {
 //-----------------------------------------------------------------------------
 //===== TEMPLATED =====

@@ -1,5 +1,5 @@
-const Cc = Components.classes;
-const Ci = Components.interfaces;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
 
 const MANDATORY = ["id", "name", "headerURL"];
 const OPTIONAL = ["footerURL", "textcolor", "accentcolor", "iconURL",
@@ -19,18 +19,20 @@ function dummy(id) {
   };
 }
 
+function hasPermission(aAddon, aPerm) {
+  var perm = AddonManager["PERM_CAN_" + aPerm.toUpperCase()];
+  return !!(aAddon.permissions & perm);
+}
+
 function run_test() {
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9");
   startupManager();
 
   Services.prefs.setIntPref("lightweightThemes.maxUsedThemes", 8);
 
-  var temp = {};
-  Components.utils.import("resource://gre/modules/LightweightThemeManager.jsm", temp);
-  do_check_eq(typeof temp.LightweightThemeManager, "object");
+  let {LightweightThemeManager: ltm} = Components.utils.import("resource://gre/modules/LightweightThemeManager.jsm", {});
 
-  var ltm = temp.LightweightThemeManager;
-
+  do_check_eq(typeof ltm, "object");
   do_check_eq(typeof ltm.usedThemes, "object");
   do_check_eq(ltm.usedThemes.length, 0);
   do_check_eq(ltm.currentTheme, null);
@@ -205,71 +207,71 @@ function run_test() {
 
   function roundtripSet(props, modify, test, secure) {
     props.forEach(function (prop) {
-      var data = dummy();
-      modify(data, prop);
-      test(roundtrip(data, secure), prop, data);
+      var theme = dummy();
+      modify(theme, prop);
+      test(roundtrip(theme, secure), prop, theme);
     });
   }
 
-  roundtripSet(MANDATORY, function (data, prop) {
-    delete data[prop];
+  roundtripSet(MANDATORY, function (theme, prop) {
+    delete theme[prop];
   }, function (after) {
     do_check_eq(after, null);
   });
 
-  roundtripSet(OPTIONAL, function (data, prop) {
-    delete data[prop];
+  roundtripSet(OPTIONAL, function (theme, prop) {
+    delete theme[prop];
   }, function (after) {
     do_check_neq(after, null);
   });
 
-  roundtripSet(MANDATORY, function (data, prop) {
-    data[prop] = "";
+  roundtripSet(MANDATORY, function (theme, prop) {
+    theme[prop] = "";
   }, function (after) {
     do_check_eq(after, null);
   });
 
-  roundtripSet(OPTIONAL, function (data, prop) {
-    data[prop] = "";
+  roundtripSet(OPTIONAL, function (theme, prop) {
+    theme[prop] = "";
   }, function (after, prop) {
     do_check_eq(typeof after[prop], "undefined");
   });
 
-  roundtripSet(MANDATORY, function (data, prop) {
-    data[prop] = " ";
+  roundtripSet(MANDATORY, function (theme, prop) {
+    theme[prop] = " ";
   }, function (after) {
     do_check_eq(after, null);
   });
 
-  roundtripSet(OPTIONAL, function (data, prop) {
-    data[prop] = " ";
+  roundtripSet(OPTIONAL, function (theme, prop) {
+    theme[prop] = " ";
   }, function (after, prop) {
     do_check_neq(after, null);
     do_check_eq(typeof after[prop], "undefined");
   });
 
   function non_urls(props) {
-    return props.filter(function (prop) !/URL$/.test(prop));
+    return props.filter(prop => !/URL$/.test(prop));
   }
 
   function urls(props) {
-    return props.filter(function (prop) /URL$/.test(prop));
+    return props.filter(prop => /URL$/.test(prop));
   }
 
-  roundtripSet(non_urls(MANDATORY.concat(OPTIONAL)), function (data, prop) {
-    data[prop] = prop;
+  roundtripSet(non_urls(MANDATORY.concat(OPTIONAL)), function (theme, prop) {
+    theme[prop] = prop;
   }, function (after, prop, before) {
     do_check_eq(after[prop], before[prop]);
   });
 
-  roundtripSet(non_urls(MANDATORY.concat(OPTIONAL)), function (data, prop) {
-    data[prop] = " " + prop + "  ";
+  roundtripSet(non_urls(MANDATORY.concat(OPTIONAL)), function (theme, prop) {
+    theme[prop] = " " + prop + "  ";
   }, function (after, prop, before) {
     do_check_eq(after[prop], before[prop].trim());
   });
 
-  roundtripSet(urls(MANDATORY.concat(OPTIONAL)), function (data, prop) {
-    data[prop] = Math.random().toString();
+  roundtripSet(urls(MANDATORY.concat(OPTIONAL)), function (theme, prop) {
+    theme[prop] = Math.random().toString();
   }, function (after, prop, before) {
     if (prop == "updateURL")
       do_check_eq(typeof after[prop], "undefined");
@@ -277,26 +279,26 @@ function run_test() {
       do_check_eq(after[prop], "http://lwttest.invalid/" + before[prop]);
   });
 
-  roundtripSet(urls(MANDATORY.concat(OPTIONAL)), function (data, prop) {
-    data[prop] = Math.random().toString();
+  roundtripSet(urls(MANDATORY.concat(OPTIONAL)), function (theme, prop) {
+    theme[prop] = Math.random().toString();
   }, function (after, prop, before) {
     do_check_eq(after[prop], "https://lwttest.invalid/" + before[prop]);
   }, true);
 
-  roundtripSet(urls(MANDATORY.concat(OPTIONAL)), function (data, prop) {
-    data[prop] = "https://sub.lwttest.invalid/" + Math.random().toString();
+  roundtripSet(urls(MANDATORY.concat(OPTIONAL)), function (theme, prop) {
+    theme[prop] = "https://sub.lwttest.invalid/" + Math.random().toString();
   }, function (after, prop, before) {
     do_check_eq(after[prop], before[prop]);
   });
 
-  roundtripSet(urls(MANDATORY), function (data, prop) {
-    data[prop] = "ftp://lwttest.invalid/" + Math.random().toString();
+  roundtripSet(urls(MANDATORY), function (theme, prop) {
+    theme[prop] = "ftp://lwttest.invalid/" + Math.random().toString();
   }, function (after) {
     do_check_eq(after, null);
   });
 
-  roundtripSet(urls(OPTIONAL), function (data, prop) {
-    data[prop] = "ftp://lwttest.invalid/" + Math.random().toString();
+  roundtripSet(urls(OPTIONAL), function (theme, prop) {
+    theme[prop] = "ftp://lwttest.invalid/" + Math.random().toString();
   }, function (after, prop) {
     do_check_eq(typeof after[prop], "undefined");
   });
@@ -511,4 +513,86 @@ function run_test() {
   Services.prefs.clearUserPref("lightweightThemes.maxUsedThemes");
 
   do_check_eq(ltm.usedThemes.length, 30);
+
+  let usedThemes = ltm.usedThemes;
+  for (let theme of usedThemes) {
+    ltm.forgetUsedTheme(theme.id);
+  }
+
+  // Check builtInTheme functionality for Bug 1094821
+  do_check_eq(ltm._builtInThemes.toString(), "[object Map]");
+  do_check_eq([...ltm._builtInThemes.entries()].length, 0);
+  do_check_eq(ltm.usedThemes.length, 0);
+
+  ltm.addBuiltInTheme(dummy("builtInTheme0"));
+  do_check_eq([...ltm._builtInThemes].length, 1);
+  do_check_eq(ltm.usedThemes.length, 1);
+  do_check_eq(ltm.usedThemes[0].id, "builtInTheme0");
+
+  ltm.addBuiltInTheme(dummy("builtInTheme1"));
+  do_check_eq([...ltm._builtInThemes].length, 2);
+  do_check_eq(ltm.usedThemes.length, 2);
+  do_check_eq(ltm.usedThemes[1].id, "builtInTheme1");
+
+  // Clear all and then re-add
+  ltm.clearBuiltInThemes();
+  do_check_eq([...ltm._builtInThemes].length, 0);
+  do_check_eq(ltm.usedThemes.length, 0);
+
+  ltm.addBuiltInTheme(dummy("builtInTheme0"));
+  ltm.addBuiltInTheme(dummy("builtInTheme1"));
+  do_check_eq([...ltm._builtInThemes].length, 2);
+  do_check_eq(ltm.usedThemes.length, 2);
+
+  do_test_pending();
+
+  AddonManager.getAddonByID("builtInTheme0@personas.mozilla.org", builtInThemeAddon => {
+    // App specific theme can't be uninstalled or disabled,
+    // but can be enabled (since it isn't already applied).
+    do_check_eq(hasPermission(builtInThemeAddon, "uninstall"), false);
+    do_check_eq(hasPermission(builtInThemeAddon, "disable"), false);
+    do_check_eq(hasPermission(builtInThemeAddon, "enable"), true);
+
+    ltm.currentTheme = dummy("x0");
+    do_check_eq([...ltm._builtInThemes].length, 2);
+    do_check_eq(ltm.usedThemes.length, 3);
+    do_check_eq(ltm.usedThemes[0].id, "x0");
+    do_check_eq(ltm.currentTheme.id, "x0");
+    do_check_eq(ltm.usedThemes[1].id, "builtInTheme0");
+    do_check_eq(ltm.usedThemes[2].id, "builtInTheme1");
+
+    Assert.throws(() => { ltm.addBuiltInTheme(dummy("builtInTheme0")) },
+      "Exception is thrown adding a duplicate theme");
+    Assert.throws(() => { ltm.addBuiltInTheme("not a theme object") },
+      "Exception is thrown adding an invalid theme");
+
+    AddonManager.getAddonByID("x0@personas.mozilla.org", x0Addon => {
+      // Currently applied (non-app-specific) can be uninstalled or disabled,
+      // but can't be enabled (since it's already applied).
+      do_check_eq(hasPermission(x0Addon, "uninstall"), true);
+      do_check_eq(hasPermission(x0Addon, "disable"), true);
+      do_check_eq(hasPermission(x0Addon, "enable"), false);
+
+      ltm.forgetUsedTheme("x0");
+      do_check_eq(ltm.currentTheme, null);
+
+      // Removing the currently applied app specific theme should unapply it
+      ltm.currentTheme = ltm.getUsedTheme("builtInTheme0");
+      do_check_eq(ltm.currentTheme.id, "builtInTheme0");
+      do_check_true(ltm.forgetBuiltInTheme("builtInTheme0"));
+      do_check_eq(ltm.currentTheme, null);
+
+      do_check_eq([...ltm._builtInThemes].length, 1);
+      do_check_eq(ltm.usedThemes.length, 1);
+
+      do_check_true(ltm.forgetBuiltInTheme("builtInTheme1"));
+      do_check_false(ltm.forgetBuiltInTheme("not-an-existing-theme-id"));
+
+      do_check_eq([...ltm._builtInThemes].length, 0);
+      do_check_eq(ltm.usedThemes.length, 0);
+      do_check_eq(ltm.currentTheme, null);
+
+      do_test_finished();
+    });
+  });
 }

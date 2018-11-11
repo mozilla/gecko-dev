@@ -9,74 +9,25 @@
       android:sharedUserId="@MOZ_ANDROID_SHARED_ID@"
 #endif
       >
-    <uses-sdk android:minSdkVersion="8"
-              android:targetSdkVersion="@ANDROID_TARGET_SDK@"/>
-
-#include ../services/manifests/AnnouncementsAndroidManifest_permissions.xml.in
-#include ../services/manifests/FxAccountAndroidManifest_permissions.xml.in
-#include ../services/manifests/HealthReportAndroidManifest_permissions.xml.in
-#include ../services/manifests/SyncAndroidManifest_permissions.xml.in
-
-#ifndef RELEASE_BUILD
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-sdk android:minSdkVersion="@MOZ_ANDROID_MIN_SDK_VERSION@"
+#ifdef MOZ_ANDROID_MAX_SDK_VERSION
+              android:maxSdkVersion="@MOZ_ANDROID_MAX_SDK_VERSION@"
 #endif
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT"/>
-    <uses-permission android:name="com.android.launcher.permission.UNINSTALL_SHORTCUT"/>
-    <uses-permission android:name="com.android.browser.permission.READ_HISTORY_BOOKMARKS"/>
+              android:targetSdkVersion="23"/>
 
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
-    <uses-permission android:name="android.permission.VIBRATE"/>
-    <uses-permission android:name="@ANDROID_PACKAGE_NAME@.permissions.PASSWORD_PROVIDER"/>
-    <uses-permission android:name="@ANDROID_PACKAGE_NAME@.permissions.BROWSER_PROVIDER"/>
-    <uses-permission android:name="@ANDROID_PACKAGE_NAME@.permissions.FORMHISTORY_PROVIDER"/>
-
-#ifdef MOZ_WEBSMS_BACKEND
-    <!-- WebSMS -->
-    <uses-permission android:name="android.permission.SEND_SMS"/>
-    <uses-permission android:name="android.permission.RECEIVE_SMS"/>
-    <uses-permission android:name="android.permission.WRITE_SMS"/>
-    <uses-permission android:name="android.permission.READ_SMS"/>
-#endif
-
-    <uses-feature android:name="android.hardware.location" android:required="false"/>
-    <uses-feature android:name="android.hardware.location.gps" android:required="false"/>
-    <uses-feature android:name="android.hardware.touchscreen"/>
-
-#ifdef NIGHTLY_BUILD
-    <!-- Contacts API -->
-    <uses-permission android:name="android.permission.READ_CONTACTS"/>
-    <uses-permission android:name="android.permission.WRITE_CONTACTS"/>
-    <uses-permission android:name="android.permission.GET_ACCOUNTS"/>
-#endif
-
-#ifdef MOZ_ANDROID_BEAM
-    <!-- Android Beam support -->
-    <uses-permission android:name="android.permission.NFC"/>
-    <uses-feature android:name="android.hardware.nfc" android:required="false"/>
-#endif
-
-#ifdef MOZ_WEBRTC
-    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
-    <uses-feature android:name="android.hardware.audio.low_latency" android:required="false"/>
-    <uses-feature android:name="android.hardware.camera.any" android:required="false"/>
-    <uses-feature android:name="android.hardware.microphone" android:required="false"/>
-#endif
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-feature android:name="android.hardware.camera" android:required="false"/>
-    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
-
-    <!-- App requires OpenGL ES 2.0 -->
-    <uses-feature android:glEsVersion="0x00020000" android:required="true" />
+<!-- The bouncer APK and the main APK should define the same set of
+     <permission>, <uses-permission>, and <uses-feature> elements.  This reduces
+     the likelihood of permission-related surprises when installing the main APK
+     on top of a pre-installed bouncer APK.  Add such shared elements in the
+     fileincluded here, so that they can be referenced by both APKs. -->
+#include FennecManifest_permissions.xml.in
 
     <application android:label="@string/moz_app_displayname"
                  android:icon="@drawable/icon"
-                 android:name="org.mozilla.gecko.GeckoApplication"
+                 android:logo="@drawable/logo"
+                 android:name="@MOZ_ANDROID_APPLICATION_CLASS@"
                  android:hardwareAccelerated="true"
+                 android:allowBackup="false"
 # The preprocessor does not yet support arbitrary parentheses, so this cannot
 # be parenthesized thus to clarify that the logical AND operator has precedence:
 #   !defined(MOZILLA_OFFICIAL) || (defined(NIGHTLY_BUILD) && defined(MOZ_DEBUG))
@@ -88,44 +39,53 @@
 
         <meta-data android:name="com.sec.android.support.multiwindow" android:value="true"/>
 
-#ifdef GOOGLE_PLAY_SERVICES
+#ifdef MOZ_NATIVE_DEVICES
         <!-- This resources comes from Google Play Services. Required for casting support. -->
         <meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version" />
+        <service android:name="org.mozilla.gecko.RemotePresentationService" android:exported="false"/>
+
 #endif
 
-        <!-- If the windowSoftInputMode adjust* flag changes below, the
-             setSoftInputMode call in BrowserSearch#onStop must also be updated. -->
-        <activity android:name=".App"
+        <!-- This activity handles all incoming Intents and dispatches them to other activities. -->
+        <activity android:name="org.mozilla.gecko.LauncherActivity"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:relinquishTaskIdentity="true"
+            android:taskAffinity=""
+            android:excludeFromRecents="true" />
+
+        <!-- Fennec is shipped as the Android package named
+             org.mozilla.{fennec,firefox,firefox_beta}.  The internal Java
+             package hierarchy inside the Android package used to have an
+             org.mozilla.{fennec,firefox,firefox_beta} subtree *and* an
+             org.mozilla.gecko subtree; it now only has org.mozilla.gecko. -->
+        <activity android:name="@MOZ_ANDROID_BROWSER_INTENT_CLASS@"
                   android:label="@string/moz_app_displayname"
                   android:taskAffinity="@ANDROID_PACKAGE_NAME@.BROWSER"
                   android:alwaysRetainTaskState="true"
-                  android:configChanges="keyboard|keyboardHidden|mcc|mnc|orientation|screenSize|locale|layoutDirection"
+                  android:configChanges="keyboard|keyboardHidden|mcc|mnc|orientation|screenSize|locale|layoutDirection|smallestScreenSize|screenLayout"
                   android:windowSoftInputMode="stateUnspecified|adjustResize"
                   android:launchMode="singleTask"
-                  android:theme="@style/Gecko.App">
+                  android:exported="true"
+                  android:theme="@style/Gecko.App" />
 
-            <intent-filter>
+        <!-- Bug 1256615 / Bug 1268455: We published an .App alias and we need to maintain it
+             forever.  If we don't, home screen shortcuts will disappear because the intent
+             filter details change. -->
+        <activity-alias android:name=".App"
+                        android:label="@MOZ_APP_DISPLAYNAME@"
+                        android:targetActivity="org.mozilla.gecko.LauncherActivity">
+
+            <!-- android:priority ranges between -1000 and 1000.  We never want
+                 another activity to usurp the MAIN action, so we ratchet our
+                 priority up. -->
+            <intent-filter android:priority="999">
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.MULTIWINDOW_LAUNCHER"/>
-            </intent-filter>
-
-            <meta-data android:name="com.sec.minimode.icon.portrait.normal"
-                       android:resource="@drawable/icon"/>
-
-            <meta-data android:name="com.sec.minimode.icon.landscape.normal"
-                       android:resource="@drawable/icon" />
-
-            <intent-filter>
-                <action android:name="org.mozilla.gecko.ACTION_ALERT_CALLBACK" />
-            </intent-filter>
-
-            <intent-filter>
-                <action android:name="org.mozilla.gecko.UPDATE"/>
+                <category android:name="android.intent.category.APP_BROWSER" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
 
-            <!-- Default browser intents -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -147,6 +107,26 @@
                 <data android:mimeType="application/xhtml+xml"/>
             </intent-filter>
 
+            <meta-data android:name="com.sec.minimode.icon.portrait.normal"
+                       android:resource="@drawable/icon"/>
+
+            <meta-data android:name="com.sec.minimode.icon.landscape.normal"
+                       android:resource="@drawable/icon" />
+
+            <intent-filter>
+                <action android:name="org.mozilla.gecko.ACTION_ALERT_CALLBACK" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="org.mozilla.gecko.GUEST_SESSION_INPROGRESS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="org.mozilla.gecko.UPDATE"/>
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
             <intent-filter>
                 <action android:name="android.intent.action.WEB_SEARCH" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -154,10 +134,6 @@
                 <data android:scheme="" />
                 <data android:scheme="http" />
                 <data android:scheme="https" />
-            </intent-filter>
-
-            <intent-filter>
-                <action android:name="android.intent.action.SEARCH" />
             </intent-filter>
 
             <!-- For XPI installs from websites and the download manager. -->
@@ -188,69 +164,46 @@
             </intent-filter>
 #endif
 
-            <meta-data android:name="android.app.searchable"
-                       android:resource="@xml/searchable" />
-
             <!-- For debugging -->
             <intent-filter>
                 <action android:name="org.mozilla.gecko.DEBUG" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-        </activity>
+        </activity-alias>
 
-        <activity android:name="org.mozilla.gecko.webapp.Dispatcher"
-            android:noHistory="true" >
-            <intent-filter>
-                <!-- catch links from synthetic apks -->
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="application/webapp" />
-            </intent-filter>
-        </activity>
+        <service android:name="org.mozilla.gecko.GeckoService" />
 
-        <receiver android:name="org.mozilla.gecko.webapp.UninstallListener" >
+        <activity android:name="org.mozilla.gecko.trackingprotection.TrackingProtectionPrompt"
+                  android:launchMode="singleTop"
+                  android:theme="@style/OverlayActivity" />
+
+        <activity android:name="org.mozilla.gecko.promotion.SimpleHelperUI"
+                  android:launchMode="singleTop"
+                  android:theme="@style/OverlayActivity" />
+
+        <activity android:name="org.mozilla.gecko.promotion.HomeScreenPrompt"
+                  android:launchMode="singleTop"
+                  android:theme="@style/OverlayActivity" />
+
+        <!-- The main reason for the Tab Queue build flag is to not mess with the VIEW intent filter
+             before the rest of the plumbing is in place -->
+
+        <service android:name="org.mozilla.gecko.tabqueue.TabQueueService" />
+
+        <activity android:name="org.mozilla.gecko.tabqueue.TabQueuePrompt"
+                  android:launchMode="singleTop"
+                  android:theme="@style/OverlayActivity" />
+
+        <receiver android:name="org.mozilla.gecko.restrictions.RestrictionProvider">
           <intent-filter>
-             <action android:name="android.intent.action.PACKAGE_REMOVED" />
-             <data android:scheme="package" />
+            <action android:name="android.intent.action.GET_RESTRICTION_ENTRIES" />
           </intent-filter>
         </receiver>
-
-        <receiver android:name="org.mozilla.gecko.webapp.TaskKiller">
-          <intent-filter>
-             <action android:name="org.mozilla.webapp.TASK_REMOVED" />
-             <category android:name="android.intent.category.DEFAULT" />
-          </intent-filter>
-        </receiver>
-
-        <activity android:name=".Webapp"
-                  android:label="@string/webapp_generic_name"
-                  android:configChanges="keyboard|keyboardHidden|mcc|mnc|orientation|screenSize"
-                  android:windowSoftInputMode="stateUnspecified|adjustResize"
-                  android:launchMode="singleTask"
-                  android:taskAffinity="org.mozilla.gecko.WEBAPP"
-                  android:process=":@ANDROID_PACKAGE_NAME@.Webapp"
-                  android:excludeFromRecents="true"
-                  android:theme="@style/Gecko.App">
-            <intent-filter>
-                <action android:name="org.mozilla.gecko.WEBAPP" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="org.mozilla.gecko.ACTION_ALERT_CALLBACK" />
-            </intent-filter>
-        </activity>
-
-        <!-- Declare a predefined number of Webapp<num> activities. These are
-             used so that each web app can launch in its own process. Keep
-             this number in sync with the total number of web apps handled in
-             WebappAllocator. -->
-
-#define FRAGMENT WebappManifestFragment.xml.frag.in
-#include WebappFragmentRepeater.inc
 
         <!-- Masquerade as the Resolver so that we can be opened from the Marketplace. -->
         <activity-alias
             android:name="com.android.internal.app.ResolverActivity"
-            android:targetActivity=".App"
+            android:targetActivity="@MOZ_ANDROID_BROWSER_INTENT_CLASS@"
             android:exported="true" />
 
         <receiver android:name="org.mozilla.gecko.GeckoUpdateReceiver">
@@ -260,35 +213,59 @@
         </receiver>
 
         <receiver android:name="org.mozilla.gecko.GeckoMessageReceiver"
-                  android:permission="@ANDROID_PACKAGE_NAME@.permissions.PASSWORD_PROVIDER">
-            <intent-filter>
-                  <action android:name="org.mozilla.gecko.INIT_PW"></action>
-            </intent-filter>
+                  android:exported="false">
         </receiver>
 
-        <receiver android:name="org.mozilla.gecko.ReferrerReceiver" android:exported="true">
+        <!-- Catch install referrer so we can do post-install work. -->
+        <receiver android:name="org.mozilla.gecko.distribution.ReferrerReceiver"
+                  android:exported="true">
             <intent-filter>
                 <action android:name="com.android.vending.INSTALL_REFERRER" />
             </intent-filter>
         </receiver>
 
-        <activity android:name="org.mozilla.gecko.Restarter"
-                  android:process="@ANDROID_PACKAGE_NAME@Restarter"
-                  android:noHistory="true"
-                  android:theme="@style/Gecko">
-          <intent-filter>
-            <action android:name="org.mozilla.gecko.restart"/>
-            <action android:name="org.mozilla.gecko.restart_update"/>
-          </intent-filter>
-        </activity>
+        <service android:name="org.mozilla.gecko.Restarter"
+                 android:exported="false"
+                 android:process="@MANGLED_ANDROID_PACKAGE_NAME@.Restarter">
+        </service>
 
-#include ../services/manifests/AnnouncementsAndroidManifest_activities.xml.in
+        <service android:name="org.mozilla.gecko.media.MediaControlService"
+                 android:exported="false">
+        </service>
+
+        <receiver android:name="org.mozilla.gecko.AlarmReceiver" >
+        </receiver>
+
+        <receiver
+            android:name="org.mozilla.gecko.notifications.WhatsNewReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.PACKAGE_REPLACED" />
+                <data android:scheme="package" android:path="org.mozilla.gecko" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name="org.mozilla.gecko.notifications.NotificationReceiver"
+            android:exported="false">
+            <!-- Notification API V2 -->
+            <intent-filter>
+                <action android:name="@ANDROID_PACKAGE_NAME@.helperBroadcastAction" />
+                <action android:name="@ANDROID_PACKAGE_NAME@.NOTIFICATION_CLICK" />
+                <action android:name="@ANDROID_PACKAGE_NAME@.NOTIFICATION_CLOSE" />
+                <data android:scheme="moz-notification" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
+
 #include ../services/manifests/FxAccountAndroidManifest_activities.xml.in
-#include ../services/manifests/HealthReportAndroidManifest_activities.xml.in
-#include ../services/manifests/SyncAndroidManifest_activities.xml.in
+#ifdef MOZ_ANDROID_SEARCH_ACTIVITY
+#include ../search/manifests/SearchAndroidManifest_activities.xml.in
+#endif
 
 #if MOZ_CRASHREPORTER
   <activity android:name="org.mozilla.gecko.CrashReporter"
+            android:process="@ANDROID_PACKAGE_NAME@.CrashReporter"
             android:label="@string/crash_reporter_title"
             android:icon="@drawable/crash_reporter"
             android:theme="@style/Gecko"
@@ -300,32 +277,45 @@
   </activity>
 #endif
 
-        <activity android:name="org.mozilla.gecko.VideoPlayer"
-                  android:configChanges="keyboard|keyboardHidden|mcc|mnc|orientation|locale|layoutDirection"
-                  android:theme="@android:style/Theme.NoTitleBar">
-            <intent-filter>
-                <action android:name="org.mozilla.gecko.PLAY_VIDEO" />
-            </intent-filter>
-        </activity>
-
         <activity android:name="org.mozilla.gecko.preferences.GeckoPreferences"
                   android:theme="@style/Gecko.Preferences"
                   android:configChanges="orientation|screenSize|locale|layoutDirection"
                   android:excludeFromRecents="true"/>
 
-        <activity android:name="org.mozilla.gecko.home.HomePanelPicker"
-                  android:theme="@style/Gecko.TitleDialog"
-                  android:label="@string/home_add_panel_title"
-                  android:excludeFromRecents="true" />
-
         <provider android:name="org.mozilla.gecko.db.BrowserProvider"
                   android:authorities="@ANDROID_PACKAGE_NAME@.db.browser"
-                  android:permission="@ANDROID_PACKAGE_NAME@.permissions.BROWSER_PROVIDER">
+                  android:exported="false"/>
 
-            <path-permission android:pathPrefix="/search_suggest_query"
-                             android:readPermission="android.permission.GLOBAL_SEARCH" />
+        <provider android:name="org.mozilla.gecko.distribution.PartnerBookmarksProviderProxy"
+                  android:authorities="@ANDROID_PACKAGE_NAME@.partnerbookmarks"
+                  android:exported="false"/>
 
-        </provider>
+        <!-- Share overlay activity
+
+             Setting launchMode="singleTop" ensures onNewIntent is called when the Activity is
+             reused. Ideally we create a new instance but Android L breaks this (bug 1137928). -->
+        <activity android:name="org.mozilla.gecko.overlays.ui.ShareDialog"
+                  android:label="@string/overlay_share_label"
+                  android:theme="@style/OverlayActivity"
+                  android:configChanges="keyboard|keyboardHidden|mcc|mnc|locale|layoutDirection"
+                  android:launchMode="singleTop"
+                  android:windowSoftInputMode="stateAlwaysHidden|adjustResize">
+
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
+        </activity>
+
+#ifdef MOZ_ANDROID_CUSTOM_TABS
+        <activity android:name="org.mozilla.gecko.customtabs.CustomTabsActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+#endif
+
+        <!-- Service to handle requests from overlays. -->
+        <service android:name="org.mozilla.gecko.overlays.service.OverlayActionService" />
 
         <!--
           Ensure that passwords provider runs in its own process. (Bug 718760.)
@@ -336,30 +326,35 @@
         <provider android:name="org.mozilla.gecko.db.PasswordsProvider"
                   android:label="@string/sync_configure_engines_title_passwords"
                   android:authorities="@ANDROID_PACKAGE_NAME@.db.passwords"
-                  android:permission="@ANDROID_PACKAGE_NAME@.permissions.PASSWORD_PROVIDER"
+                  android:exported="false"
                   android:process="@MANGLED_ANDROID_PACKAGE_NAME@.PasswordsProvider"/>
+
+        <provider android:name="org.mozilla.gecko.db.LoginsProvider"
+                  android:label="@string/sync_configure_engines_title_passwords"
+                  android:authorities="@ANDROID_PACKAGE_NAME@.db.logins"
+                  android:exported="false"/>
 
         <provider android:name="org.mozilla.gecko.db.FormHistoryProvider"
                   android:label="@string/sync_configure_engines_title_history"
                   android:authorities="@ANDROID_PACKAGE_NAME@.db.formhistory"
-                  android:permission="@ANDROID_PACKAGE_NAME@.permissions.FORMHISTORY_PROVIDER"
-                  android:protectionLevel="signature"/>
+                  android:exported="false"/>
 
         <provider android:name="org.mozilla.gecko.GeckoProfilesProvider"
-                  android:authorities="@ANDROID_PACKAGE_NAME@.profiles"/>
+                  android:authorities="@ANDROID_PACKAGE_NAME@.profiles"
+                  android:exported="false"/>
 
         <provider android:name="org.mozilla.gecko.db.TabsProvider"
                   android:label="@string/sync_configure_engines_title_tabs"
                   android:authorities="@ANDROID_PACKAGE_NAME@.db.tabs"
-                  android:permission="@ANDROID_PACKAGE_NAME@.permissions.BROWSER_PROVIDER"/>
+                  android:exported="false"/>
 
         <provider android:name="org.mozilla.gecko.db.HomeProvider"
                   android:authorities="@ANDROID_PACKAGE_NAME@.db.home"
-                  android:permission="@ANDROID_PACKAGE_NAME@.permissions.BROWSER_PROVIDER"/>
+                  android:exported="false"/>
 
-        <provider android:name="org.mozilla.gecko.db.ReadingListProvider"
-                  android:authorities="@ANDROID_PACKAGE_NAME@.db.readinglist"
-                  android:permission="@ANDROID_PACKAGE_NAME@.permissions.BROWSER_PROVIDER"/>
+        <provider android:name="org.mozilla.gecko.db.SearchHistoryProvider"
+                  android:authorities="@ANDROID_PACKAGE_NAME@.db.searchhistory"
+                  android:exported="false"/>
 
         <service
             android:exported="false"
@@ -369,24 +364,84 @@
 
         <service
             android:exported="false"
-            android:name="org.mozilla.gecko.NotificationService">
+            android:name="org.mozilla.gecko.notifications.NotificationService">
         </service>
 
+        <service
+            android:exported="false"
+            android:name="org.mozilla.gecko.dlc.DownloadContentService">
+        </service>
 
-#include ../services/manifests/AnnouncementsAndroidManifest_services.xml.in
+        <service
+            android:exported="false"
+            android:name="org.mozilla.gecko.feeds.FeedService">
+        </service>
+
+        <!-- DON'T EXPORT THIS, please! An attacker could delete arbitrary files. -->
+        <service
+            android:exported="false"
+            android:name="org.mozilla.gecko.cleanup.FileCleanupService">
+        </service>
+
+        <receiver
+            android:name="org.mozilla.gecko.feeds.FeedAlarmReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name="org.mozilla.gecko.BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"></action>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name="org.mozilla.gecko.PackageReplacedReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"></action>
+            </intent-filter>
+        </receiver>
+
+        <service
+          android:name="org.mozilla.gecko.telemetry.TelemetryUploadService"
+          android:exported="false"/>
+
+#ifdef MOZ_ANDROID_CUSTOM_TABS
+        <service
+            android:name="org.mozilla.gecko.customtabs.GeckoCustomTabsService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.support.customtabs.action.CustomTabsService" />
+            </intent-filter>
+        </service>
+#endif
+
 #include ../services/manifests/FxAccountAndroidManifest_services.xml.in
-#include ../services/manifests/HealthReportAndroidManifest_services.xml.in
-#include ../services/manifests/SyncAndroidManifest_services.xml.in
+
+        <service
+            android:name="org.mozilla.gecko.tabqueue.TabReceivedService"
+            android:exported="false" />
+
+
+#ifdef MOZ_ANDROID_SEARCH_ACTIVITY
+#include ../search/manifests/SearchAndroidManifest_services.xml.in
+#endif
+#ifdef MOZ_ANDROID_MLS_STUMBLER
+#include ../stumbler/manifests/StumblerManifest_services.xml.in
+#endif
+
+#ifdef MOZ_ANDROID_GCM
+#include GcmAndroidManifest_services.xml.in
+#endif
+
+        <service
+            android:name="org.mozilla.gecko.media.MediaManager"
+            android:enabled="true"
+            android:exported="false"
+            android:process=":media"
+            android:isolatedProcess="false">
+        </service>
 
     </application>
-
-    <permission android:name="@ANDROID_PACKAGE_NAME@.permissions.BROWSER_PROVIDER"
-                android:protectionLevel="signature"/>
-
-    <permission android:name="@ANDROID_PACKAGE_NAME@.permissions.PASSWORD_PROVIDER"
-                android:protectionLevel="signature"/>
-
-    <permission android:name="@ANDROID_PACKAGE_NAME@.permissions.FORMHISTORY_PROVIDER"
-                android:protectionLevel="signature"/>
-
 </manifest>

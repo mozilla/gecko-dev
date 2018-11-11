@@ -5,17 +5,25 @@
 
 #include "nsScreenGtk.h"
 
+#include "nsIWidget.h"
+
 #include <gdk/gdk.h>
 #ifdef MOZ_X11
 #include <gdk/gdkx.h>
 #include <X11/Xatom.h>
 #endif
 #include <gtk/gtk.h>
+#include <dlfcn.h>
+#include "gfxPlatformGtk.h"
+
+static uint32_t sScreenId = 0;
+
 
 nsScreenGtk :: nsScreenGtk (  )
   : mScreenNum(0),
     mRect(0, 0, 0, 0),
-    mAvailRect(0, 0, 0, 0)
+    mAvailRect(0, 0, 0, 0),
+    mId(++sScreenId)
 {
 }
 
@@ -23,6 +31,14 @@ nsScreenGtk :: nsScreenGtk (  )
 nsScreenGtk :: ~nsScreenGtk()
 {
 }
+
+
+NS_IMETHODIMP
+nsScreenGtk :: GetId(uint32_t *aId)
+{
+  *aId = mId;
+  return NS_OK;
+} // GetId
 
 
 NS_IMETHODIMP
@@ -50,6 +66,32 @@ nsScreenGtk :: GetAvailRect(int32_t *outLeft, int32_t *outTop, int32_t *outWidth
   
 } // GetAvailRect
 
+gint
+nsScreenGtk :: GetGtkMonitorScaleFactor()
+{
+#if (MOZ_WIDGET_GTK >= 3)
+  // Since GDK 3.10
+  static auto sGdkScreenGetMonitorScaleFactorPtr = (gint (*)(GdkScreen*, gint))
+      dlsym(RTLD_DEFAULT, "gdk_screen_get_monitor_scale_factor");
+  if (sGdkScreenGetMonitorScaleFactorPtr) {
+      // FIXME: In the future, we'll want to fix this for GTK on Wayland which
+      // supports a variable scale factor per display.
+      GdkScreen *screen = gdk_screen_get_default();
+      return sGdkScreenGetMonitorScaleFactorPtr(screen, 0);
+  }
+#endif
+    return 1;
+}
+
+double
+nsScreenGtk :: GetDPIScale()
+{
+  double dpiScale = nsIWidget::DefaultScaleOverride();
+  if (dpiScale <= 0.0) {
+    dpiScale = GetGtkMonitorScaleFactor() * gfxPlatformGtk::GetDPIScale();
+  }
+  return dpiScale;
+}
 
 NS_IMETHODIMP 
 nsScreenGtk :: GetPixelDepth(int32_t *aPixelDepth)
@@ -61,7 +103,6 @@ nsScreenGtk :: GetPixelDepth(int32_t *aPixelDepth)
 
 } // GetPixelDepth
 
-
 NS_IMETHODIMP 
 nsScreenGtk :: GetColorDepth(int32_t *aColorDepth)
 {
@@ -69,15 +110,25 @@ nsScreenGtk :: GetColorDepth(int32_t *aColorDepth)
 
 } // GetColorDepth
 
+NS_IMETHODIMP
+nsScreenGtk::GetDefaultCSSScaleFactor(double* aScaleFactor)
+{
+  *aScaleFactor = GetDPIScale();
+  return NS_OK;
+}
 
 void
 nsScreenGtk :: Init (GdkWindow *aRootWindow)
 {
+  gint scale = nsScreenGtk::GetGtkMonitorScaleFactor();
+  gint width = gdk_screen_width()*scale;
+  gint height = gdk_screen_height()*scale;
+
   // We listen for configure events on the root window to pick up
   // changes to this rect.  We could listen for "size_changed" signals
   // on the default screen to do this, except that doesn't work with
   // versions of GDK predating the GdkScreen object.  See bug 256646.
-  mAvailRect = mRect = nsIntRect(0, 0, gdk_screen_width(), gdk_screen_height());
+  mAvailRect = mRect = nsIntRect(0, 0, width, height);
 
 #ifdef MOZ_X11
   // We need to account for the taskbar, etc in the available rect.

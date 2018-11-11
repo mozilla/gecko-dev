@@ -17,11 +17,18 @@
 <style type="text/css">
 :root {
   font-family: sans-serif;
+  margin: 40px auto;
+  min-width: 30em;
+  max-width: 60em;
 }
 table {
+  clear: both;
+  width: 90%;
+  margin: 0 auto;
   padding-bottom: 2em;
 }
 th {
+  font-size: 130%;
   text-align: left;
   white-space: nowrap;
 }
@@ -30,7 +37,11 @@ th[chromedir="rtl"] {
 }
 /* name */
 th:first-child {
-  -moz-padding-end: 2em;
+  padding-inline-end: 2em;
+}
+/* submitted */
+th:last-child {
+  text-align: center;
 }
 :link, :visited {
   display: block;
@@ -38,13 +49,15 @@ th:first-child {
 }
 /* date */
 td:first-child + td {
-  -moz-padding-start: 1em;
-  -moz-padding-end: .5em;
+  width: 0;
+  padding-inline-start: 1em;
+  padding-inline-end: .5em;
   white-space: nowrap;
 }
 /* time */
 td:last-child {
-  -moz-padding-start: .5em;
+  width: 0;
+  padding-inline-start: .5em;
   white-space: nowrap;
 }
 
@@ -56,31 +69,53 @@ td:last-child {
 }
 
 .submitting {
-  background-image: url(chrome://global/skin/icons/loading_16.png);
+  background-image: url(chrome://global/skin/icons/loading.png);
   background-repeat: no-repeat;
   background-position: right;
+  background-size: 16px;
+}
+
+@media (min-resolution: 1.1dppx) {
+  .submitting {
+    background-image: url(chrome://global/skin/icons/loading@2x.png);
+  }
 }
 </style>
 <link rel="stylesheet" media="screen, projection" type="text/css"
-      href="chrome://global/skin/dirListing/dirListing.css"/>
+      href="chrome://global/skin/in-content/common.css"/>
 <script type="application/javascript;version=1.8" src="chrome://global/content/crashes.js"/>
 
-<title>&crashes.title;</title>
+<title>&crashReports.title;</title>
 </head><body onload="populateReportList()" dir="&locale.dir;">
 <button chromedir="&locale.dir;" id="clear-reports"
         onclick="clearReports().then(null, Cu.reportError)">&clearAllReports.label;</button>
-<h1>&crashes.title;</h1>
 <div id="reportList">
-  <table>
-    <thead>
-      <tr>
-        <th chromedir="&locale.dir;">&id.heading;</th>
-        <th chromedir="&locale.dir;" colspan="2">&date.heading;</th>
-      </tr>
-    </thead>
-    <tbody id="tbody">
-    </tbody>
-  </table>
+  <div id="reportListUnsubmitted">
+    <h1>&crashesUnsubmitted.label;</h1>
+    <table>
+      <thead>
+        <tr>
+          <th chromedir="&locale.dir;">&id.heading;</th>
+          <th chromedir="&locale.dir;" colspan="2">&dateCrashed.heading;</th>
+        </tr>
+      </thead>
+      <tbody id="unsubmitted">
+      </tbody>
+    </table>
+  </div>
+  <div id="reportListSubmitted">
+    <h1>&crashesSubmitted.label;</h1>
+    <table>
+      <thead>
+        <tr>
+          <th chromedir="&locale.dir;">&id.heading;</th>
+          <th chromedir="&locale.dir;" colspan="2">&dateSubmitted.heading;</th>
+        </tr>
+      </thead>
+      <tbody id="submitted">
+      </tbody>
+    </table>
+  </div>
 </div>
 <p id="noReports" style="display: none">&noReports.label;</p>
 <p id="noConfig" style="display: none">&noConfig.label;</p>

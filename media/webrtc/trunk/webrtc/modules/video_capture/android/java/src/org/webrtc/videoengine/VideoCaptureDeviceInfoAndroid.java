@@ -10,21 +10,20 @@
 
 package org.webrtc.videoengine;
 
-import java.io.File;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
-import android.content.Context;
+import android.Manifest;
+import android.app.Activity;
 import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Parameters;
 import android.hardware.Camera.Size;
 import android.hardware.Camera;
 import android.util.Log;
 
-import org.mozilla.gecko.mozglue.WebRTCJNITarget;
+import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.annotation.WebRTCJNITarget;
+import org.mozilla.gecko.permissions.Permissions;
 
 public class VideoCaptureDeviceInfoAndroid {
   private final static String TAG = "WEBRTC-JC";
@@ -39,12 +38,54 @@ public class VideoCaptureDeviceInfoAndroid {
         ", Orientation "+ info.orientation;
   }
 
+  @WebRTCJNITarget
+  public static List<int[]> getFpsRangesRobust(Camera.Parameters parameters) {
+      List<int[]> supportedFpsRanges = null;
+      if (android.os.Build.VERSION.SDK_INT >= 9) {
+          supportedFpsRanges = parameters.getSupportedPreviewFpsRange();
+      }
+      // getSupportedPreviewFpsRange doesn't actually work on a bunch
+      // of Gingerbread devices.
+      if (supportedFpsRanges == null) {
+          supportedFpsRanges = new ArrayList<int[]>();
+          List<Integer> frameRates = parameters.getSupportedPreviewFrameRates();
+          if (frameRates != null) {
+              for (Integer rate: frameRates) {
+                  int[] range = new int[2];
+                  // minFPS = maxFPS, convert to milliFPS
+                  range[0] = rate * 1000;
+                  range[1] = rate * 1000;
+                  supportedFpsRanges.add(range);
+              }
+          } else {
+              Log.e(TAG, "Camera doesn't know its own framerate, guessing 30fps.");
+              int[] range = new int[2];
+              // Your guess is as good as mine
+              range[0] = 30 * 1000;
+              range[1] = 30 * 1000;
+              supportedFpsRanges.add(range);
+          }
+      }
+      return supportedFpsRanges;
+  }
+
   // Returns information about all cameras on the device.
   // Since this reflects static information about the hardware present, there is
   // no need to call this function more than once in a single process.  It is
   // marked "private" as it is only called by native code.
   @WebRTCJNITarget
   private static CaptureCapabilityAndroid[] getDeviceInfo() {
+      final boolean hasPermissions = Permissions.waitFor(
+              (Activity) GeckoAppShell.getContext(), Manifest.permission.CAMERA);
+
+      if (hasPermissions) {
+          return createDeviceList();
+      } else {
+          return new CaptureCapabilityAndroid[0];
+      }
+  }
+
+  private static CaptureCapabilityAndroid[] createDeviceList() {
       ArrayList<CaptureCapabilityAndroid> allDevices = new ArrayList<CaptureCapabilityAndroid>();
       int numCameras = 1;
       if (android.os.Build.VERSION.SDK_INT >= 9) {
@@ -72,37 +113,36 @@ public class VideoCaptureDeviceInfoAndroid {
               }
               Parameters parameters = camera.getParameters();
               supportedSizes = parameters.getSupportedPreviewSizes();
-              if (android.os.Build.VERSION.SDK_INT >= 9) {
-                  supportedFpsRanges = parameters.getSupportedPreviewFpsRange();
-              }
-              // getSupportedPreviewFpsRange doesn't actually work on a bunch
-              // of Gingerbread devices.
-              if (supportedFpsRanges == null) {
-                  supportedFpsRanges = new ArrayList<int[]>();
-                  List<Integer> frameRates = parameters.getSupportedPreviewFrameRates();
-                  if (frameRates != null) {
-                      for (Integer rate: frameRates) {
-                          int[] range = new int[2];
-                          // minFPS = maxFPS, convert to milliFPS
-                          range[0] = rate * 1000;
-                          range[1] = rate * 1000;
-                          supportedFpsRanges.add(range);
-                      }
-                  } else {
-                      Log.e(TAG, "Camera doesn't know its own framerate, guessing 25fps.");
-                      int[] range = new int[2];
-                      // Your guess is as good as mine
-                      range[0] = 25 * 1000;
-                      range[1] = 25 * 1000;
-                      supportedFpsRanges.add(range);
-                  }
-              }
+              supportedFpsRanges = getFpsRangesRobust(parameters);
               camera.release();
               Log.d(TAG, uniqueName);
           } catch (RuntimeException e) {
               Log.e(TAG, "Failed to open " + uniqueName + ", skipping due to: "
                     + e.getLocalizedMessage());
               continue;
+          }
+
+          boolean is30fpsRange = false;
+          boolean is15fpsRange = false;
+          // If there is constant 30 fps mode, but no 15 fps - add 15 fps
+          // mode to the list of supported ranges. Frame drop will be done
+          // in software.
+          for (int[] range : supportedFpsRanges) {
+              if (range[0] == 30000 &&
+                  range[1] == 30000) {
+                  is30fpsRange = true;
+              }
+              if (range[0] == 15000 &&
+                  range[1] == 15000) {
+                  is15fpsRange = true;
+              }
+          }
+          if (is30fpsRange && !is15fpsRange) {
+              Log.d(TAG, "Adding 15 fps support");
+              int[] range = new int[2];
+              range[0] = 15 * 1000;
+              range[1] = 15 * 1000;
+              supportedFpsRanges.add(range);
           }
 
           CaptureCapabilityAndroid device = new CaptureCapabilityAndroid();

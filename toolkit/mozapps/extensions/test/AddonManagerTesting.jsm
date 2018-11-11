@@ -8,7 +8,7 @@
 "use strict";
 
 this.EXPORTED_SYMBOLS = [
-  "AddonTestUtils",
+  "AddonManagerTesting",
 ];
 
 const {utils: Cu} = Components;
@@ -19,7 +19,17 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AddonManager",
                                   "resource://gre/modules/AddonManager.jsm");
 
-this.AddonTestUtils = {
+this.AddonManagerTesting = {
+  /**
+   * Get the add-on that is specified by its ID.
+   *
+   * @return {Promise<Object>} A promise that resolves returning the found addon or null
+   *         if it is not found.
+   */
+  getAddonById: function (id) {
+    return new Promise(resolve => AddonManager.getAddonByID(id, addon => resolve(addon)));
+  },
+
   /**
    * Uninstall an add-on that is specified by its ID.
    *

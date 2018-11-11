@@ -1,78 +1,111 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_indexeddb_idbrequest_h__
-#define mozilla_dom_indexeddb_idbrequest_h__
+#ifndef mozilla_dom_idbrequest_h__
+#define mozilla_dom_idbrequest_h__
 
-#include "mozilla/dom/indexedDB/IndexedDatabase.h"
-
+#include "js/RootingAPI.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
-#include "mozilla/dom/DOMError.h"
 #include "mozilla/dom/IDBRequestBinding.h"
-#include "mozilla/ErrorResult.h"
+#include "mozilla/dom/IDBWrapperCache.h"
+#include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsWrapperCache.h"
 
-#include "mozilla/dom/indexedDB/IDBWrapperCache.h"
+#define PRIVATE_IDBREQUEST_IID \
+  {0xe68901e5, 0x1d50, 0x4ee9, {0xaf, 0x49, 0x90, 0x99, 0x4a, 0xff, 0xc8, 0x39}}
 
-class nsIScriptContext;
-class nsPIDOMWindow;
+class nsPIDOMWindowInner;
+struct PRThread;
 
 namespace mozilla {
-class EventChainPostVisitor;
-class EventChainPreVisitor;
+
+class ErrorResult;
+
 namespace dom {
-class OwningIDBObjectStoreOrIDBIndexOrIDBCursor;
-class ErrorEventInit;
-}
-}
 
-BEGIN_INDEXEDDB_NAMESPACE
-
-class HelperBase;
+class DOMError;
 class IDBCursor;
+class IDBDatabase;
 class IDBFactory;
 class IDBIndex;
 class IDBObjectStore;
 class IDBTransaction;
-class IndexedDBRequestParentBase;
+template <typename> struct Nullable;
+class OwningIDBObjectStoreOrIDBIndexOrIDBCursor;
 
-class IDBRequest : public IDBWrapperCache
+class IDBRequest
+  : public IDBWrapperCache
 {
+protected:
+  // mSourceAsObjectStore and mSourceAsIndex are exclusive and one must always
+  // be set. mSourceAsCursor is sometimes set also.
+  RefPtr<IDBObjectStore> mSourceAsObjectStore;
+  RefPtr<IDBIndex> mSourceAsIndex;
+  RefPtr<IDBCursor> mSourceAsCursor;
+
+  RefPtr<IDBTransaction> mTransaction;
+
+#ifdef DEBUG
+  PRThread* mOwningThread;
+#endif
+
+  JS::Heap<JS::Value> mResultVal;
+  RefPtr<DOMError> mError;
+
+  nsString mFilename;
+  uint64_t mLoggingSerialNumber;
+  nsresult mErrorCode;
+  uint32_t mLineNo;
+  uint32_t mColumn;
+  bool mHaveResultOrErrorCode;
+
 public:
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(IDBRequest,
-                                                         IDBWrapperCache)
+  class ResultCallback;
 
-  static
-  already_AddRefed<IDBRequest> Create(IDBDatabase* aDatabase,
-                                      IDBTransaction* aTransaction);
+  static already_AddRefed<IDBRequest>
+  Create(JSContext* aCx, IDBDatabase* aDatabase, IDBTransaction* aTransaction);
 
-  static
-  already_AddRefed<IDBRequest> Create(IDBObjectStore* aSource,
-                                      IDBDatabase* aDatabase,
-                                      IDBTransaction* aTransaction);
+  static already_AddRefed<IDBRequest>
+  Create(JSContext* aCx,
+         IDBObjectStore* aSource,
+         IDBDatabase* aDatabase,
+         IDBTransaction* aTransaction);
 
-  static
-  already_AddRefed<IDBRequest> Create(IDBIndex* aSource,
-                                      IDBDatabase* aDatabase,
-                                      IDBTransaction* aTransaction);
+  static already_AddRefed<IDBRequest>
+  Create(JSContext* aCx,
+         IDBIndex* aSource,
+         IDBDatabase* aDatabase,
+         IDBTransaction* aTransaction);
+
+  static void
+  CaptureCaller(JSContext* aCx, nsAString& aFilename, uint32_t* aLineNo,
+                uint32_t* aColumn);
+
+  static uint64_t
+  NextSerialNumber();
 
   // nsIDOMEventTarget
-  virtual nsresult PreHandleEvent(EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult
+  PreHandleEvent(EventChainPreVisitor& aVisitor) override;
 
-  void GetSource(Nullable<OwningIDBObjectStoreOrIDBIndexOrIDBCursor>& aSource) const;
+  void
+  GetSource(Nullable<OwningIDBObjectStoreOrIDBIndexOrIDBCursor>& aSource) const;
 
-  void Reset();
+  void
+  Reset();
 
-  nsresult NotifyHelperCompleted(HelperBase* aHelper);
-  void NotifyHelperSentResultsToChildProcess(nsresult aRv);
+  void
+  DispatchNonTransactionError(nsresult aErrorCode);
 
-  void SetError(nsresult aRv);
+  void
+  SetResultCallback(ResultCallback* aCallback);
+
+  void
+  SetError(nsresult aRv);
 
   nsresult
   GetErrorCode() const
@@ -84,27 +117,22 @@ public:
   }
 #endif
 
-  DOMError* GetError(ErrorResult& aRv);
+  DOMError*
+  GetErrorAfterResult() const
+#ifdef DEBUG
+  ;
+#else
+  {
+    return mError;
+  }
+#endif
 
-  JSContext* GetJSContext();
+  DOMError*
+  GetError(ErrorResult& aRv);
 
   void
-  SetActor(IndexedDBRequestParentBase* aActorParent)
-  {
-    NS_ASSERTION(!aActorParent || !mActorParent,
-                 "Shouldn't have more than one!");
-    mActorParent = aActorParent;
-  }
-
-  IndexedDBRequestParentBase*
-  GetActorParent() const
-  {
-    return mActorParent;
-  }
-
-  void CaptureCaller();
-
-  void FillScriptErrorEvent(ErrorEventInit& aEventInit) const;
+  GetCallerLocation(nsAString& aFilename, uint32_t* aLineNo,
+                    uint32_t* aColumn) const;
 
   bool
   IsPending() const
@@ -112,20 +140,18 @@ public:
     return !mHaveResultOrErrorCode;
   }
 
-#ifdef MOZ_ENABLE_PROFILER_SPS
   uint64_t
-  GetSerialNumber() const
+  LoggingSerialNumber() const
   {
-    return mSerialNumber;
+    AssertIsOnOwningThread();
+
+    return mLoggingSerialNumber;
   }
-#endif
 
-  // nsWrapperCache
-  virtual JSObject*
-  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  void
+  SetLoggingSerialNumber(uint64_t aLoggingSerialNumber);
 
-  // WebIDL
-  nsPIDOMWindow*
+  nsPIDOMWindowInner*
   GetParentObject() const
   {
     return GetOwner();
@@ -144,69 +170,98 @@ public:
   IDBTransaction*
   GetTransaction() const
   {
-    NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+    AssertIsOnOwningThread();
+
     return mTransaction;
   }
 
   IDBRequestReadyState
   ReadyState() const;
 
+  void
+  SetSource(IDBCursor* aSource);
+
   IMPL_EVENT_HANDLER(success);
   IMPL_EVENT_HANDLER(error);
 
+  void
+  AssertIsOnOwningThread() const
+#ifdef DEBUG
+  ;
+#else
+  { }
+#endif
+
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(IDBRequest,
+                                                         IDBWrapperCache)
+
+  // nsWrapperCache
+  virtual JSObject*
+  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+
 protected:
-  IDBRequest(IDBDatabase* aDatabase);
-  IDBRequest(nsPIDOMWindow* aOwner);
+  explicit IDBRequest(IDBDatabase* aDatabase);
+  explicit IDBRequest(nsPIDOMWindowInner* aOwner);
   ~IDBRequest();
 
-  // At most one of these three fields can be non-null.
-  nsRefPtr<IDBObjectStore> mSourceAsObjectStore;
-  nsRefPtr<IDBIndex> mSourceAsIndex;
-  nsRefPtr<IDBCursor> mSourceAsCursor;
+  void
+  InitMembers();
 
-  // Check that the above condition holds.
-#ifdef DEBUG
-  void AssertSourceIsCorrect() const;
-#else
-  void AssertSourceIsCorrect() const {}
-#endif
-
-  nsRefPtr<IDBTransaction> mTransaction;
-
-  JS::Heap<JS::Value> mResultVal;
-  nsRefPtr<mozilla::dom::DOMError> mError;
-  IndexedDBRequestParentBase* mActorParent;
-  nsString mFilename;
-#ifdef MOZ_ENABLE_PROFILER_SPS
-  uint64_t mSerialNumber;
-#endif
-  nsresult mErrorCode;
-  uint32_t mLineNo;
-  bool mHaveResultOrErrorCode;
+  void
+  ConstructResult();
 };
 
-class IDBOpenDBRequest : public IDBRequest
+class NS_NO_VTABLE IDBRequest::ResultCallback
 {
 public:
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(IDBOpenDBRequest, IDBRequest)
+  virtual nsresult
+  GetResult(JSContext* aCx, JS::MutableHandle<JS::Value> aResult) = 0;
 
-  static
-  already_AddRefed<IDBOpenDBRequest>
-  Create(IDBFactory* aFactory,
-         nsPIDOMWindow* aOwner,
-         JS::Handle<JSObject*> aScriptOwner);
+protected:
+  ResultCallback()
+  { }
+};
 
-  void SetTransaction(IDBTransaction* aTransaction);
+class IDBOpenDBRequest final
+  : public IDBRequest
+{
+  class WorkerHolder;
+
+  // Only touched on the owning thread.
+  RefPtr<IDBFactory> mFactory;
+
+  nsAutoPtr<WorkerHolder> mWorkerHolder;
+
+  const bool mFileHandleDisabled;
+
+public:
+  static already_AddRefed<IDBOpenDBRequest>
+  CreateForWindow(JSContext* aCx,
+                  IDBFactory* aFactory,
+                  nsPIDOMWindowInner* aOwner,
+                  JS::Handle<JSObject*> aScriptOwner);
+
+  static already_AddRefed<IDBOpenDBRequest>
+  CreateForJS(JSContext* aCx,
+              IDBFactory* aFactory,
+              JS::Handle<JSObject*> aScriptOwner);
+
+  bool
+  IsFileHandleDisabled() const
+  {
+    return mFileHandleDisabled;
+  }
+
+  void
+  SetTransaction(IDBTransaction* aTransaction);
+
+  void
+  NoteComplete();
 
   // nsIDOMEventTarget
-  virtual nsresult PostHandleEvent(
-                     EventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
-
-  DOMError* GetError(ErrorResult& aRv)
-  {
-    return IDBRequest::GetError(aRv);
-  }
+  virtual nsresult
+  PostHandleEvent(EventChainPostVisitor& aVisitor) override;
 
   IDBFactory*
   Factory() const
@@ -214,22 +269,25 @@ public:
     return mFactory;
   }
 
-  // nsWrapperCache
-  virtual JSObject*
-  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
-
-  // WebIDL
   IMPL_EVENT_HANDLER(blocked);
   IMPL_EVENT_HANDLER(upgradeneeded);
 
-protected:
-  IDBOpenDBRequest(nsPIDOMWindow* aOwner);
-  ~IDBOpenDBRequest();
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(IDBOpenDBRequest, IDBRequest)
 
-  // Only touched on the main thread.
-  nsRefPtr<IDBFactory> mFactory;
+  // nsWrapperCache
+  virtual JSObject*
+  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+
+private:
+  IDBOpenDBRequest(IDBFactory* aFactory,
+                   nsPIDOMWindowInner* aOwner,
+                   bool aFileHandleDisabled);
+
+  ~IDBOpenDBRequest();
 };
 
-END_INDEXEDDB_NAMESPACE
+} // namespace dom
+} // namespace mozilla
 
-#endif // mozilla_dom_indexeddb_idbrequest_h__
+#endif // mozilla_dom_idbrequest_h__

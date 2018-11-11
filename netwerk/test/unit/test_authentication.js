@@ -2,6 +2,12 @@
 // TODO NIT use do_check_eq(expected, actual) consistently, not sometimes eq(actual, expected)
 
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
+
+// Turn off the authentication dialog blocking for this test.
+var prefs = Cc["@mozilla.org/preferences-service;1"].
+              getService(Ci.nsIPrefBranch);
+prefs.setIntPref("network.auth.subresource-http-auth-allow", 2);
 
 XPCOMUtils.defineLazyGetter(this, "URL", function() {
   return "http://localhost:" + httpserv.identity.primaryPort;
@@ -15,6 +21,7 @@ const FLAG_RETURN_FALSE   = 1 << 0;
 const FLAG_WRONG_PASSWORD = 1 << 1;
 const FLAG_BOGUS_USER = 1 << 2;
 const FLAG_PREVIOUS_FAILED = 1 << 3;
+const CROSS_ORIGIN = 1 << 4;
 
 const nsIAuthPrompt2 = Components.interfaces.nsIAuthPrompt2;
 const nsIAuthInformation = Components.interfaces.nsIAuthInformation;
@@ -46,8 +53,15 @@ AuthPrompt1.prototype = {
   {
     // Note that the realm here isn't actually the realm. it's a pw mgr key.
     do_check_eq(URL + " (" + this.expectedRealm + ")", realm);
-    if (text.indexOf(this.expectedRealm) == -1)
-      do_throw("Text must indicate the realm");
+    if (!(this.flags & CROSS_ORIGIN)) {
+      if (text.indexOf(this.expectedRealm) == -1) {
+        do_throw("Text must indicate the realm");
+      }
+    } else {
+      if (text.indexOf(this.expectedRealm) != -1) {
+        do_throw("There should not be realm for cross origin");
+      }
+    }
     if (text.indexOf("localhost") == -1)
       do_throw("Text must indicate the hostname");
     if (text.indexOf(String(PORT)) == -1)
@@ -116,10 +130,13 @@ AuthPrompt2.prototype = {
     if (this.flags & FLAG_PREVIOUS_FAILED)
       expectedFlags |= nsIAuthInformation.PREVIOUS_FAILED;
 
+    if (this.flags & CROSS_ORIGIN)
+      expectedFlags |= nsIAuthInformation.CROSS_ORIGIN_SUB_RESOURCE;
+
     if (isNTLM)
       expectedFlags |= nsIAuthInformation.NEED_DOMAIN;
 
-    const kAllKnownFlags = 31; // Don't fail test for newly added flags
+    const kAllKnownFlags = 63; // Don't fail test for newly added flags
     do_check_eq(expectedFlags, authInfo.flags & kAllKnownFlags);
 
     var expectedScheme = isNTLM ? "ntlm" : isDigest ? "digest" : "basic";
@@ -268,16 +285,21 @@ var listener = {
   }
 };
 
-function makeChan(url) {
-  var ios = Components.classes["@mozilla.org/network/io-service;1"]
-                      .getService(Components.interfaces.nsIIOService);
-  var chan = ios.newChannel(url, null, null)
-                .QueryInterface(Components.interfaces.nsIHttpChannel);
-
-  return chan;
+function makeChan(url, loadingUrl) {
+  var ios = Cc["@mozilla.org/network/io-service;1"].
+              getService(Ci.nsIIOService);
+  var ssm = Cc["@mozilla.org/scriptsecuritymanager;1"]
+              .getService(Ci.nsIScriptSecurityManager);
+  var principal = ssm.createCodebasePrincipal(ios.newURI(loadingUrl, null, null), {});
+  return NetUtil.newChannel(
+    { uri: url, loadingPrincipal: principal,
+      securityFlags: Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+      contentPolicyType: Components.interfaces.nsIContentPolicy.TYPE_OTHER
+    });
 }
 
 var tests = [test_noauth, test_returnfalse1, test_wrongpw1, test_prompt1,
+             test_prompt1CrossOrigin, test_prompt2CrossOrigin,
              test_returnfalse2, test_wrongpw2, test_prompt2, test_ntlm,
              test_basicrealm, test_digest_noauth, test_digest,
              test_digest_bogus_user, test_large_realm, test_large_domain];
@@ -302,119 +324,139 @@ function run_test() {
 }
 
 function test_noauth() {
-  var chan = makeChan(URL + "/auth");
+  var chan = makeChan(URL + "/auth", URL);
 
   listener.expectedCode = 401; // Unauthorized
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
 
   do_test_pending();
 }
 
 function test_returnfalse1() {
-  var chan = makeChan(URL + "/auth");
+  var chan = makeChan(URL + "/auth", URL);
 
   chan.notificationCallbacks = new Requestor(FLAG_RETURN_FALSE, 1);
   listener.expectedCode = 401; // Unauthorized
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
 
   do_test_pending();
 }
 
 function test_wrongpw1() {
-  var chan = makeChan(URL + "/auth");
+  var chan = makeChan(URL + "/auth", URL);
 
   chan.notificationCallbacks = new Requestor(FLAG_WRONG_PASSWORD, 1);
   listener.expectedCode = 200; // OK
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
 
   do_test_pending();
 }
 
 function test_prompt1() {
-  var chan = makeChan(URL + "/auth");
+  var chan = makeChan(URL + "/auth", URL);
 
   chan.notificationCallbacks = new Requestor(0, 1);
   listener.expectedCode = 200; // OK
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
+
+  do_test_pending();
+}
+
+function test_prompt1CrossOrigin() {
+  var chan = makeChan(URL + "/auth", "http://example.org");
+
+  chan.notificationCallbacks = new Requestor(16, 1);
+  listener.expectedCode = 200; // OK
+  chan.asyncOpen2(listener);
+
+  do_test_pending();
+}
+
+function test_prompt2CrossOrigin() {
+  var chan = makeChan(URL + "/auth", "http://example.org");
+
+  chan.notificationCallbacks = new Requestor(16, 2);
+  listener.expectedCode = 200; // OK
+  chan.asyncOpen2(listener);
 
   do_test_pending();
 }
 
 function test_returnfalse2() {
-  var chan = makeChan(URL + "/auth");
+  var chan = makeChan(URL + "/auth", URL);
 
   chan.notificationCallbacks = new Requestor(FLAG_RETURN_FALSE, 2);
   listener.expectedCode = 401; // Unauthorized
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
 
   do_test_pending();
 }
 
 function test_wrongpw2() {
-  var chan = makeChan(URL + "/auth");
+  var chan = makeChan(URL + "/auth", URL);
 
   chan.notificationCallbacks = new Requestor(FLAG_WRONG_PASSWORD, 2);
   listener.expectedCode = 200; // OK
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
 
   do_test_pending();
 }
 
 function test_prompt2() {
-  var chan = makeChan(URL + "/auth");
+  var chan = makeChan(URL + "/auth", URL);
 
   chan.notificationCallbacks = new Requestor(0, 2);
   listener.expectedCode = 200; // OK
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
 
   do_test_pending();
 }
 
 function test_ntlm() {
-  var chan = makeChan(URL + "/auth/ntlm/simple");
+  var chan = makeChan(URL + "/auth/ntlm/simple", URL);
 
   chan.notificationCallbacks = new Requestor(FLAG_RETURN_FALSE, 2);
   listener.expectedCode = 401; // Unauthorized
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
 
   do_test_pending();
 }
 
 function test_basicrealm() {
-  var chan = makeChan(URL + "/auth/realm");
+  var chan = makeChan(URL + "/auth/realm", URL);
 
   chan.notificationCallbacks = new RealmTestRequestor();
   listener.expectedCode = 401; // Unauthorized
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
 
   do_test_pending();
 }
 
 function test_digest_noauth() {
-  var chan = makeChan(URL + "/auth/digest");
+  var chan = makeChan(URL + "/auth/digest", URL);
 
   //chan.notificationCallbacks = new Requestor(FLAG_RETURN_FALSE, 2);
   listener.expectedCode = 401; // Unauthorized
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
 
   do_test_pending();
 }
 
 function test_digest() {
-  var chan = makeChan(URL + "/auth/digest");
+  var chan = makeChan(URL + "/auth/digest", URL);
 
   chan.notificationCallbacks = new Requestor(0, 2);
   listener.expectedCode = 200; // OK
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
 
   do_test_pending();
 }
 
 function test_digest_bogus_user() {
-  var chan = makeChan(URL + "/auth/digest");
+  var chan = makeChan(URL + "/auth/digest", URL);
   chan.notificationCallbacks =  new Requestor(FLAG_BOGUS_USER, 2);
   listener.expectedCode = 401; // unauthorized
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
 
   do_test_pending();
 }
@@ -493,7 +535,7 @@ function H(str) {
  ch.init(Components.interfaces.nsICryptoHash.MD5);
  ch.update(data, data.length);
  var hash = ch.finish(false);
- return [toHexString(hash.charCodeAt(i)) for (i in hash)].join("");
+ return Array.from(hash, (c, i) => toHexString(hash.charCodeAt(i))).join("");
 }
 
 //
@@ -2014,19 +2056,19 @@ function largeDomain(metadata, response) {
 }
 
 function test_large_realm() {
-  var chan = makeChan(URL + "/largeRealm");
+  var chan = makeChan(URL + "/largeRealm", URL);
 
   listener.expectedCode = 401; // Unauthorized
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
 
   do_test_pending();
 }
 
 function test_large_domain() {
-  var chan = makeChan(URL + "/largeDomain ");
+  var chan = makeChan(URL + "/largeDomain", URL);
 
   listener.expectedCode = 401; // Unauthorized
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
 
   do_test_pending();
 }

@@ -7,98 +7,21 @@ require("sdk/clipboard");
 
 const { Cc, Ci } = require("chrome");
 
-const imageTools = Cc["@mozilla.org/image/tools;1"].
-                    getService(Ci.imgITools);
+const imageTools = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools);
+const io = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
+const appShellService = Cc['@mozilla.org/appshell/appShellService;1'].getService(Ci.nsIAppShellService);
 
-const io = Cc["@mozilla.org/network/io-service;1"].
-                    getService(Ci.nsIIOService);
-
+const XHTML_NS = "http://www.w3.org/1999/xhtml";
 const base64png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYA" +
                   "AABzenr0AAAASUlEQVRYhe3O0QkAIAwD0eyqe3Q993AQ3cBSUKpygfsNTy" +
                   "N5ugbQpK0BAADgP0BRDWXWlwEAAAAAgPsA3rzDaAAAAHgPcGrpgAnzQ2FG" +
                   "bWRR9AAAAABJRU5ErkJggg%3D%3D";
 
-const base64jpeg = "data:image/jpeg;base64,%2F9j%2F4AAQSkZJRgABAQAAAQABAAD%2F" +
-                  "2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCg" +
-                  "sOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD%2F2wBDAQMDAwQDBAgEBAgQCw" +
-                  "kLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ" +
-                  "EBAQEBAQEBD%2FwAARCAAgACADAREAAhEBAxEB%2F8QAHwAAAQUBAQEBAQ" +
-                  "EAAAAAAAAAAAECAwQFBgcICQoL%2F8QAtRAAAgEDAwIEAwUFBAQAAAF9AQ" +
-                  "IDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRol" +
-                  "JicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eX" +
-                  "qDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJ" +
-                  "ytLT1NXW19jZ2uHi4%2BTl5ufo6erx8vP09fb3%2BPn6%2F8QAHwEAAwEB" +
-                  "AQEBAQEBAQAAAAAAAAECAwQFBgcICQoL%2F8QAtREAAgECBAQDBAcFBAQA" +
-                  "AQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNO" +
-                  "El8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0" +
-                  "dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6ws" +
-                  "PExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3%2BPn6%2F9oADAMB" +
-                  "AAIRAxEAPwD5Kr8kP9CwoA5f4m%2F8iRqX%2FbH%2FANHJXr5F%2FwAjCn" +
-                  "8%2F%2FSWfnnir%2FwAkji%2F%2B4f8A6dgeD1%2BiH8bn1BX5If6FmFqW" +
-                  "pXtveyQwzbUXGBtB7D2r9l4U4UyjMsoo4rFUeacua75pLaUktFJLZH5NxN" +
-                  "xNmmX5pVw2Gq8sI8tlyxe8U3q03uzD8S3dxqOi3NneSeZDJs3LgDOHBHI5" +
-                  "6gV%2BkcG%2BH%2FDmJzuhSq4e8XzfbqfyS%2FvH5rx1xTm2MyDEUa1W8X" +
-                  "yXXLFbTi%2BkThv7B0r%2FAJ9f%2FH2%2Fxr90%2FwCIVcI%2F9An%2FAJ" +
-                  "Uq%2FwDyZ%2FO%2F16v%2FADfgv8j0r%2FhZvgj%2FAKDf%2FktN%2FwDE" +
-                  "V%2Fnr%2FYWYf8%2B%2Fxj%2Fmf3R%2FxFXhH%2FoL%2FwDKdX%2F5Azrv" +
-                  "xLouo3D3lne%2BZDJja3luM4GDwRnqDX9LeH%2FBud4nhzD1aVC8Xz%2Fa" +
-                  "h%2Fz8l%2FePx%2FinjrIMZm1WtRxF4vls%2BSa2jFdYlDUdRsp7OSKKbc" +
-                  "7YwNpHce1fqfCvCub5bm9HFYqjywjzXfNF7xklopN7s%2BC4l4lyvMMrq4" +
-                  "fD1bzfLZcsltJPqktkYlfsZ%2BUnBV%2FnufVnXaD%2FAMgqD%2FgX%2Fo" +
-                  "Rr%2BxvCr%2FkkcJ%2F3E%2F8ATsz5%2FHfx5fL8kX6%2FQjkCgD%2F%2F" +
-                  "2Q%3D%3D";
+const { base64jpeg } = require("./fixtures");
 
-const canvasHTML = "data:text/html," + encodeURIComponent(
-  "<html>\
-    <body>\
-      <canvas width='32' height='32'></canvas>\
-    </body>\
-  </html>"
-);
-
-function comparePixelImages(imageA, imageB, callback) {
-  let tabs = require("sdk/tabs");
-
-  tabs.open({
-    url: canvasHTML,
-
-    onReady: function onReady(tab) {
-      let worker = tab.attach({
-        contentScript: "new " + function() {
-          let canvas = document.querySelector("canvas");
-          let context = canvas.getContext("2d");
-
-          self.port.on("draw-image", function(imageURI) {
-            let img = new Image();
-
-            img.onload = function() {
-              context.drawImage(this, 0, 0);
-
-              let pixels = Array.join(context.getImageData(0, 0, 32, 32).data);
-              self.port.emit("image-pixels", pixels);
-            }
-
-            img.src = imageURI;
-          });
-        }
-      });
-
-      let compared = "";
-
-      worker.port.on("image-pixels", function (pixels) {
-        if (!compared) {
-          compared = pixels;
-          this.emit("draw-image", imageB);
-        } else {
-          tab.close(callback.bind(null, compared === pixels))
-        }
-      });
-
-      worker.port.emit("draw-image", imageA);
-    }
-  });
-}
-
+const { platform } = require("sdk/system");
+// For Windows, Mac and Linux, platform returns the following: winnt, darwin and linux.
+var isWindows = platform.toLowerCase().indexOf("win") == 0;
 
 // Test the typical use case, setting & getting with no flavors specified
 exports["test With No Flavor"] = function(assert) {
@@ -127,6 +50,13 @@ exports["test With No Flavor"] = function(assert) {
 exports["test With Flavor"] = function(assert) {
   var contents = "<b>hello there</b>";
   var contentsText = "hello there";
+
+  // On windows, HTML clipboard includes extra data.
+  // The values are from widget/windows/nsDataObj.cpp.
+  var contentsWindowsHtml = "<html><body>\n<!--StartFragment-->" +
+                            contents +
+                            "<!--EndFragment-->\n</body>\n</html>";
+
   var flavor = "html";
   var fullFlavor = "text/html";
   var unicodeFlavor = "text";
@@ -138,8 +68,8 @@ exports["test With Flavor"] = function(assert) {
   assert.equal(clip.currentFlavors[0], unicodeFlavor);
   assert.equal(clip.currentFlavors[1], flavor);
   assert.equal(clip.get(), contentsText);
-  assert.equal(clip.get(flavor), contents);
-  assert.equal(clip.get(fullFlavor), contents);
+  assert.equal(clip.get(flavor), isWindows ? contentsWindowsHtml : contents);
+  assert.equal(clip.get(fullFlavor), isWindows ? contentsWindowsHtml : contents);
   assert.equal(clip.get(unicodeFlavor), contentsText);
   assert.equal(clip.get(unicodeFullFlavor), contentsText);
 };
@@ -177,20 +107,39 @@ exports["test Set Image"] = function(assert) {
   assert.equal(clip.currentFlavors[0], flavor, "flavor is set");
 };
 
-exports["test Get Image"] = function(assert, done) {
+exports["test Get Image"] = function* (assert) {
   var clip = require("sdk/clipboard");
 
   clip.set(base64png, "image");
 
   var contents = clip.get();
+  const hiddenWindow = appShellService.hiddenDOMWindow;
+  const Image = hiddenWindow.Image;
+  const canvas = hiddenWindow.document.createElementNS(XHTML_NS, "canvas");
+  let context = canvas.getContext("2d");
 
-  comparePixelImages(base64png, contents, function (areEquals) {
-    assert.ok(areEquals,
-      "Image gets from clipboard equals to image sets to the clipboard");
+  const imageURLToPixels = (imageURL) => {
+    return new Promise((resolve) => {
+      let img = new Image();
 
-    done();
-  });
-}
+      img.onload = function() {
+        context.drawImage(this, 0, 0);
+
+        let pixels = Array.join(context.getImageData(0, 0, 32, 32).data);
+        resolve(pixels);
+      };
+
+      img.src = imageURL;
+    });
+  };
+
+  let [base64pngPixels, clipboardPixels] = yield Promise.all([
+    imageURLToPixels(base64png), imageURLToPixels(contents),
+  ]);
+
+  assert.ok(base64pngPixels === clipboardPixels,
+            "Image gets from clipboard equals to image sets to the clipboard");
+};
 
 exports["test Set Image Type Not Supported"] = function(assert) {
   var clip = require("sdk/clipboard");
@@ -218,4 +167,4 @@ exports["test Set Image Type Wrong Data"] = function(assert) {
   }, "Unable to decode data given in a valid image.");
 };
 
-require("test").run(exports)
+require("sdk/test").run(exports)

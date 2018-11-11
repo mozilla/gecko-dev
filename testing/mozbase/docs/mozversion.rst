@@ -6,12 +6,42 @@ provides version information such as the application name and the changesets
 that it has been built from. This is commonly used in reporting or for
 conditional logic based on the application under test.
 
+Note that mozversion can report the version of remote devices (e.g. Firefox OS)
+but it requires the :mod:`mozdevice` dependency in that case. You can require it
+along with mozversion by using the extra *device* dependency:
+
+.. code-block:: bash
+
+  pip install mozversion[device]
+
+
 API Usage
 ---------
 
 .. automodule:: mozversion
     :members: get_version
 
+Examples
+````````
+
+Firefox::
+
+    import mozversion
+
+    version = mozversion.get_version(binary='/path/to/firefox-bin')
+    for (key, value) in sorted(version.items()):
+        if value:
+            print '%s: %s' % (key, value)
+
+Firefox for Android::
+
+    version = mozversion.get_version(binary='path/to/firefox.apk')
+    print version['application_changeset'] # gets hg revision of build
+
+FirefoxOS::
+
+    version = mozversion.get_version(sources='path/to/sources.xml', dm_type='adb')
+    print version['gaia_changeset'] # gets gaia git revision
 
 Command Line Usage
 ------------------

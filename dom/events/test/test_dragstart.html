@@ -37,17 +37,17 @@ function afterDragTests()
   ok(gDataTransfer instanceof DataTransfer, "DataTransfer after dragstart event");
   checkTypes(gDataTransfer, [], 0, "after dragstart event");
 
-  expectError(function() gDataTransfer.setData("text/plain", "Some Text"),
+  expectError(() => gDataTransfer.setData("text/plain", "Some Text"),
               "NoModificationAllowedError", "setData when read only");
-  expectError(function() gDataTransfer.clearData("text/plain"),
+  expectError(() => gDataTransfer.clearData("text/plain"),
               "NoModificationAllowedError", "clearData when read only");
-  expectError(function() gDataTransfer.mozSetDataAt("text/plain", "Some Text", 0),
+  expectError(() => gDataTransfer.mozSetDataAt("text/plain", "Some Text", 0),
               "NoModificationAllowedError", "setDataAt when read only");
-  expectError(function() gDataTransfer.mozClearDataAt("text/plain", 0),
+  expectError(() => gDataTransfer.mozClearDataAt("text/plain", 0),
               "NoModificationAllowedError", "clearDataAt when read only");
-  expectError(function() gDataTransfer.setDragImage(draggable, 10, 10),
+  expectError(() => gDataTransfer.setDragImage(draggable, 10, 10),
               "NoModificationAllowedError", "setDragImage when read only");
-  expectError(function() gDataTransfer.addElement(draggable),
+  expectError(() => gDataTransfer.addElement(draggable),
               "NoModificationAllowedError", "addElement when read only");
 
   var evt = document.createEvent("dragevent");
@@ -57,8 +57,8 @@ function afterDragTests()
                     false, true, false, false, 0, null, null);
   $("synthetic").dispatchEvent(evt);
 
-  var evt = document.createEvent("dragevents");
-  ok(evt instanceof DragEvent, "synthetic dragevents class")
+  var evt = document.createEvent("dragevent");
+  ok(evt instanceof DragEvent, "synthetic dragevent class")
   evt.initDragEvent("dragover", true, true, window, 0, 40, 35, 20, 15,
                     true, false, true, true, 2, document.documentElement, null);
   $("synthetic2").dispatchEvent(evt);
@@ -118,7 +118,7 @@ function doDragStartSelection(event)
   gDataTransfer = dt;
 
   var types = dt.types;
-  is(types instanceof DOMStringList, true, "initial types is a DOMStringList");
+  ok(Array.isArray(types), "initial types is an Array");
   checkTypes(dt, ["text/_moz_htmlcontext", "text/_moz_htmlinfo", "text/html", "text/plain"], 0, "initial selection");
 
   is(dt.getData("text/plain"), "This is a draggable bit of text.", "initial selection text/plain");
@@ -148,12 +148,12 @@ function test_DataTransfer(dt)
   is(dt.mozItemCount, 0, "empty itemCount");
 
   var types = dt.types;
-  is(types instanceof DOMStringList, true, "empty types is a DOMStringList");
+  ok(Array.isArray(types), "empty types is an Array");
   checkTypes(dt, [], 0, "empty");
   is(dt.getData("text/plain"), "", "empty data is empty");
 
   // calling setDataAt requires an index that is 0 <= index <= dt.itemCount
-  expectError(function() dt.mozSetDataAt("text/plain", "Some Text", 1),
+  expectError(() => dt.mozSetDataAt("text/plain", "Some Text", 1),
               "IndexSizeError", "setDataAt index too high");
 
   is(dt.mozUserCancelled, false, "userCancelled");
@@ -171,9 +171,9 @@ function test_DataTransfer(dt)
   is(dt.mozGetDataAt("", 0), null, "invalid type getDataAt"),
 
   // similar with clearDataAt and getDataAt
-  expectError(function() dt.mozGetDataAt("text/plain", 1),
+  expectError(() => dt.mozGetDataAt("text/plain", 1),
               "IndexSizeError", "getDataAt index too high");
-  expectError(function() dt.mozClearDataAt("text/plain", 1),
+  expectError(() => dt.mozClearDataAt("text/plain", 1),
               "IndexSizeError", "clearDataAt index too high");
 
   dt.setData("text/plain", "Sample Text");
@@ -205,7 +205,7 @@ function test_DataTransfer(dt)
   var draggable = $("draggable");
   dt.setData("application/-moz-node", draggable);
   checkOneDataItem(dt, ["text/plain", "text/html", "application/-moz-node"],
-                       ["New Text", "<strong>Modified Text</strong>", draggable],
+                       ["New Text", "<strong>Modified Text</strong>", draggable.toString()],
                        0, "added node");
 
   dt.clearData(""); // null means clear all
@@ -284,7 +284,7 @@ function test_DataTransfer(dt)
   dt.clearData();
   dt.mozSetDataAt("text/plain", "First Item", 0);
   dt.mozSetDataAt("text/plain", "Second Item", 1);
-  expectError(function() dt.mozSetDataAt("text/plain", "Some Text", 3),
+  expectError(() => dt.mozSetDataAt("text/plain", "Some Text", 3),
               "IndexSizeError", "setDataAt index too high with two items");
   is(dt.mozItemCount, 2, "setDataAt item itemCount");
   checkOneDataItem(dt, ["text/plain"], ["First Item"], 0, "setDataAt item at index 0");
@@ -313,9 +313,9 @@ function test_DataTransfer(dt)
   checkOneDataItem(dt, ["text/plain", "text/html"],
                    ["Changed Second Item", "<em>Second Item</em>"], 1, "changed with setData item at index 1");
 
-  dt.mozSetDataAt("application/-moz-node", draggable, 2);
+  dt.mozSetDataAt("application/-moz-node", "draggable", 2);
   is(dt.mozItemCount, 3, "setDataAt node itemCount");
-  checkOneDataItem(dt, ["application/-moz-node"], [draggable], 2, "setDataAt node item at index 2");
+  checkOneDataItem(dt, ["application/-moz-node"], ["draggable"], 2, "setDataAt node item at index 2");
 
   dt.mozClearDataAt("text/html", 1);
   is(dt.mozItemCount, 3, "clearDataAt itemCount");
@@ -327,15 +327,15 @@ function test_DataTransfer(dt)
   is(dt.mozItemCount, 2, "clearDataAt last type itemCount");
   checkOneDataItem(dt, ["text/plain", "text/html"],
                    ["First Item", "Changed with setData"], 0, "clearDataAt last type at index 0");
-  checkOneDataItem(dt, ["application/-moz-node"], [draggable], 1, "clearDataAt last type item at index 2");
-  expectError(function() dt.mozGetDataAt("text/plain", 2),
+  checkOneDataItem(dt, ["application/-moz-node"], ["draggable"], 1, "clearDataAt last type item at index 2");
+  expectError(() => dt.mozGetDataAt("text/plain", 2),
               "IndexSizeError", "getDataAt after item removed index too high");
 
   dt.mozSetDataAt("text/unknown", "Unknown type", 2);
   dt.mozSetDataAt("text/unknown", "Unknown type", 1);
   is(dt.mozItemCount, 3, "add unknown type");
   checkOneDataItem(dt, ["application/-moz-node", "text/unknown"],
-                   [draggable, "Unknown type"], 1, "add unknown type item at index 1");
+                   ["draggable", "Unknown type"], 1, "add unknown type item at index 1");
   checkOneDataItem(dt, ["text/unknown"], ["Unknown type"], 2, "add unknown type item at index 2");
 
   dt.mozClearDataAt("", 1);
@@ -355,17 +355,22 @@ function test_DataTransfer(dt)
   checkOneDataItem(dt, ["text/unknown"],
                    ["Unknown type"], 1, "clearData type that does not exist item at index 1");
 
-  expectError(function() dt.mozClearDataAt("text/plain", 3),
+  expectError(() => dt.mozClearDataAt("text/plain", 3),
               "IndexSizeError", "clearData index too high with two items");
 
-  // ensure that clearData() removes all data associated with the first item
+  // ensure that clearData() removes all data associated with the first item, but doesn't
+  // shift the second item down into the first item's slot.
   dt.clearData();
-  is(dt.mozItemCount, 1, "clearData no argument with multiple items itemCount");
+  is(dt.mozItemCount, 2, "clearData no argument with multiple items itemCount");
+  checkOneDataItem(dt, [], [], 0,
+                   "clearData no argument with multiple items item at index 0");
   checkOneDataItem(dt, ["text/unknown"],
-                   ["Unknown type"], 0, "clearData no argument with multiple items item at index 1");
+                   ["Unknown type"], 1, "clearData no argument with multiple items item at index 1");
 
-  // remove tha remaining data
-  dt.mozClearDataAt("", 0);
+  // remove tha remaining data in index 1. As index 0 is empty at this point, this will actually
+  // drop mozItemCount to 0. (XXX: This is because of spec-compliance reasons related
+  // to the more-recent dt.item API. It's an unfortunate, but hopefully rare edge case)
+  dt.mozClearDataAt("", 1);
   is(dt.mozItemCount, 0, "all data cleared");
 
   // now check the effectAllowed and dropEffect properties

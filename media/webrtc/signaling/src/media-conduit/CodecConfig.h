@@ -7,7 +7,9 @@
 #define CODEC_CONFIG_H_
 
 #include <string>
-#include "ccsdp_rtcp_fb.h"
+#include <vector>
+
+#include "signaling/src/common/EncodingConstraints.h"
 
 namespace mozilla {
 
@@ -27,39 +29,74 @@ struct AudioCodecConfig
   int mChannels;
   int mRate;
 
+  bool mFECEnabled;
+  bool mDtmfEnabled;
+
+  // OPUS-specific
+  int mMaxPlaybackRate;
+
   /* Default constructor is not provided since as a consumer, we
    * can't decide the default configuration for the codec
    */
   explicit AudioCodecConfig(int type, std::string name,
-                            int freq,int pacSize,
-                            int channels, int rate)
+                            int freq, int pacSize,
+                            int channels, int rate, bool FECEnabled)
                                                    : mType(type),
                                                      mName(name),
                                                      mFreq(freq),
                                                      mPacSize(pacSize),
                                                      mChannels(channels),
-                                                     mRate(rate)
-
+                                                     mRate(rate),
+                                                     mFECEnabled(FECEnabled),
+                                                     mDtmfEnabled(false),
+                                                     mMaxPlaybackRate(0)
   {
   }
 };
 
 /*
- * Minimalisitc video codec configuration
+ * Minimalistic video codec configuration
  * More to be added later depending on the use-case
  */
 
-struct VideoCodecConfig
+#define    MAX_SPROP_LEN    128
+
+// used for holding SDP negotiation results
+struct VideoCodecConfigH264
 {
+    char       sprop_parameter_sets[MAX_SPROP_LEN];
+    int        packetization_mode;
+    int        profile_level_id;
+    int        tias_bw;
+};
+
+
+// class so the std::strings can get freed more easily/reliably
+class VideoCodecConfig
+{
+public:
   /*
    * The data-types for these properties mimic the
    * corresponding webrtc::VideoCodec data-types.
    */
   int mType; // payload type
   std::string mName;
-  uint32_t mRtcpFbTypes;
-  unsigned int mMaxFrameSize;
-  unsigned int mMaxFrameRate;
+
+  std::vector<std::string> mAckFbTypes;
+  std::vector<std::string> mNackFbTypes;
+  std::vector<std::string> mCcmFbTypes;
+  // Don't pass mOtherFbTypes from JsepVideoCodecDescription because we'd have
+  // to drag SdpRtcpFbAttributeList::Feedback along too.
+  bool mRembFbSet;
+  bool mFECFbSet;
+
+  EncodingConstraints mEncodingConstraints;
+  struct SimulcastEncoding {
+    std::string rid;
+    EncodingConstraints constraints;
+  };
+  std::vector<SimulcastEncoding> mSimulcastEncodings;
+  std::string mSpropParameterSets;
   uint8_t mProfile;
   uint8_t mConstraints;
   uint8_t mLevel;
@@ -68,46 +105,62 @@ struct VideoCodecConfig
 
   VideoCodecConfig(int type,
                    std::string name,
-                   int rtcpFbTypes,
-                   uint8_t profile = 0x42,
-                   uint8_t constraints = 0xC0,
-                   uint8_t level = 30,
-                   uint8_t packetization = 0) :
-                                     mType(type),
-                                     mName(name),
-                                     mRtcpFbTypes(rtcpFbTypes),
-                                     mMaxFrameSize(0),
-                                     mMaxFrameRate(0),
-                                     mProfile(profile),
-                                     mConstraints(constraints),
-                                     mLevel(level),
-                                     mPacketizationMode(packetization) {}
-
-  VideoCodecConfig(int type,
-                   std::string name,
-                   int rtcpFbTypes,
-                   unsigned int max_fs,
-                   unsigned int max_fr) :
-                                         mType(type),
-                                         mName(name),
-                                         mRtcpFbTypes(rtcpFbTypes),
-                                         mMaxFrameSize(max_fs),
-                                         mMaxFrameRate(max_fr) {}
-
-  bool RtcpFbIsSet(sdp_rtcp_fb_nack_type_e type) const
+                   const EncodingConstraints& constraints,
+                   const struct VideoCodecConfigH264 *h264 = nullptr) :
+    mType(type),
+    mName(name),
+    mFECFbSet(false),
+    mEncodingConstraints(constraints),
+    mProfile(0x42),
+    mConstraints(0xE0),
+    mLevel(0x0C),
+    mPacketizationMode(1)
   {
-    return mRtcpFbTypes & sdp_rtcp_fb_nack_to_bitmap(type);
+    if (h264) {
+      mProfile = (h264->profile_level_id & 0x00FF0000) >> 16;
+      mConstraints = (h264->profile_level_id & 0x0000FF00) >> 8;
+      mLevel = (h264->profile_level_id & 0x000000FF);
+      mPacketizationMode = h264->packetization_mode;
+      mSpropParameterSets = h264->sprop_parameter_sets;
+    }
   }
 
-  bool RtcpFbIsSet(sdp_rtcp_fb_ack_type_e type) const
+  // Nothing seems to use this right now. Do we intend to support this
+  // someday?
+  bool RtcpFbAckIsSet(const std::string& type) const
   {
-    return mRtcpFbTypes & sdp_rtcp_fb_ack_to_bitmap(type);
+    for (auto i = mAckFbTypes.begin(); i != mAckFbTypes.end(); ++i) {
+      if (*i == type) {
+        return true;
+      }
+    }
+    return false;
   }
 
-  bool RtcpFbIsSet(sdp_rtcp_fb_ccm_type_e type) const
+  bool RtcpFbNackIsSet(const std::string& type) const
   {
-    return mRtcpFbTypes & sdp_rtcp_fb_ccm_to_bitmap(type);
+    for (auto i = mNackFbTypes.begin(); i != mNackFbTypes.end(); ++i) {
+      if (*i == type) {
+        return true;
+      }
+    }
+    return false;
   }
+
+  bool RtcpFbCcmIsSet(const std::string& type) const
+  {
+    for (auto i = mCcmFbTypes.begin(); i != mCcmFbTypes.end(); ++i) {
+      if (*i == type) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool RtcpFbRembIsSet() const { return mRembFbSet; }
+
+  bool RtcpFbFECIsSet() const { return mFECFbSet; }
+
 };
 }
 #endif

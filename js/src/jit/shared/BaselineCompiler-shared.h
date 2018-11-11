@@ -10,7 +10,7 @@
 #include "jit/BaselineFrameInfo.h"
 #include "jit/BaselineIC.h"
 #include "jit/BytecodeAnalysis.h"
-#include "jit/IonMacroAssembler.h"
+#include "jit/MacroAssembler.h"
 
 namespace js {
 namespace jit {
@@ -18,20 +18,20 @@ namespace jit {
 class BaselineCompilerShared
 {
   protected:
-    JSContext *cx;
-    JSScript *script;
-    jsbytecode *pc;
+    JSContext* cx;
+    JSScript* script;
+    jsbytecode* pc;
     MacroAssembler masm;
     bool ionCompileable_;
     bool ionOSRCompileable_;
-    bool debugMode_;
+    bool compileDebugInstrumentation_;
 
-    TempAllocator &alloc_;
+    TempAllocator& alloc_;
     BytecodeAnalysis analysis_;
     FrameInfo frame;
 
     FallbackICStubSpace stubSpace_;
-    js::Vector<ICEntry, 16, SystemAllocPolicy> icEntries_;
+    js::Vector<BaselineICEntry, 16, SystemAllocPolicy> icEntries_;
 
     // Stores the native code offset for a bytecode pc.
     struct PCMappingEntry
@@ -43,13 +43,6 @@ class BaselineCompilerShared
         // If set, insert a PCMappingIndexEntry before encoding the
         // current entry.
         bool addIndexEntry;
-
-        void fixupNativeOffset(MacroAssembler &masm) {
-            CodeOffsetLabel offset(nativeOffset);
-            offset.fixup(&masm);
-            JS_ASSERT(offset.offset() <= UINT32_MAX);
-            nativeOffset = (uint32_t) offset.offset();
-        }
     };
 
     js::Vector<PCMappingEntry, 16, SystemAllocPolicy> pcMappingEntries_;
@@ -60,25 +53,34 @@ class BaselineCompilerShared
     // has been allocated.
     struct ICLoadLabel {
         size_t icEntry;
-        CodeOffsetLabel label;
+        CodeOffset label;
     };
     js::Vector<ICLoadLabel, 16, SystemAllocPolicy> icLoadLabels_;
 
     uint32_t pushedBeforeCall_;
-    mozilla::DebugOnly<bool> inCall_;
+#ifdef DEBUG
+    bool inCall_;
+#endif
 
-    CodeOffsetLabel spsPushToggleOffset_;
+    CodeOffset spsPushToggleOffset_;
+    CodeOffset profilerEnterFrameToggleOffset_;
+    CodeOffset profilerExitFrameToggleOffset_;
 
-    BaselineCompilerShared(JSContext *cx, TempAllocator &alloc, JSScript *script);
+    Vector<CodeOffset> traceLoggerToggleOffsets_;
+    CodeOffset traceLoggerScriptTextIdOffset_;
 
-    ICEntry *allocateICEntry(ICStub *stub, ICEntry::Kind kind) {
+    BaselineCompilerShared(JSContext* cx, TempAllocator& alloc, JSScript* script);
+
+    BaselineICEntry* allocateICEntry(ICStub* stub, ICEntry::Kind kind) {
         if (!stub)
             return nullptr;
 
         // Create the entry and add it to the vector.
-        if (!icEntries_.append(ICEntry(script->pcToOffset(pc), kind)))
+        if (!icEntries_.append(BaselineICEntry(script->pcToOffset(pc), kind))) {
+            ReportOutOfMemory(cx);
             return nullptr;
-        ICEntry &vecEntry = icEntries_.back();
+        }
+        BaselineICEntry& vecEntry = icEntries_.back();
 
         // Set the first stub for the IC entry to the fallback stub
         vecEntry.setFirstStub(stub);
@@ -87,22 +89,41 @@ class BaselineCompilerShared
         return &vecEntry;
     }
 
-    bool addICLoadLabel(CodeOffsetLabel label) {
-        JS_ASSERT(!icEntries_.empty());
+    // Append an ICEntry without a stub.
+    bool appendICEntry(ICEntry::Kind kind, uint32_t returnOffset) {
+        BaselineICEntry entry(script->pcToOffset(pc), kind);
+        entry.setReturnOffset(CodeOffset(returnOffset));
+        if (!icEntries_.append(entry)) {
+            ReportOutOfMemory(cx);
+            return false;
+        }
+        return true;
+    }
+
+    bool addICLoadLabel(CodeOffset label) {
+        MOZ_ASSERT(!icEntries_.empty());
         ICLoadLabel loadLabel;
         loadLabel.label = label;
         loadLabel.icEntry = icEntries_.length() - 1;
-        return icLoadLabels_.append(loadLabel);
+        if (!icLoadLabels_.append(loadLabel)) {
+            ReportOutOfMemory(cx);
+            return false;
+        }
+        return true;
     }
 
-    JSFunction *function() const {
+    JSFunction* function() const {
         // Not delazifying here is ok as the function is guaranteed to have
         // been delazified before compilation started.
         return script->functionNonDelazifying();
     }
 
+    ModuleObject* module() const {
+        return script->module();
+    }
+
     PCMappingSlotInfo getStackTopSlotInfo() {
-        JS_ASSERT(frame.numUnsyncedSlots() <= 2);
+        MOZ_ASSERT(frame.numUnsyncedSlots() <= 2);
         switch (frame.numUnsyncedSlots()) {
           case 0:
             return PCMappingSlotInfo::MakeSlotInfo();
@@ -119,27 +140,29 @@ class BaselineCompilerShared
     void pushArg(const T& t) {
         masm.Push(t);
     }
-    void prepareVMCall() {
-        pushedBeforeCall_ = masm.framePushed();
-        inCall_ = true;
-
-        // Ensure everything is synced.
-        frame.syncStack(0);
-
-        // Save the frame pointer.
-        masm.Push(BaselineFrameReg);
-    }
+    void prepareVMCall();
 
     enum CallVMPhase {
         POST_INITIALIZE,
         PRE_INITIALIZE,
         CHECK_OVER_RECURSED
     };
-    bool callVM(const VMFunction &fun, CallVMPhase phase=POST_INITIALIZE);
+    bool callVM(const VMFunction& fun, CallVMPhase phase=POST_INITIALIZE);
+
+    bool callVMNonOp(const VMFunction& fun, CallVMPhase phase=POST_INITIALIZE) {
+        if (!callVM(fun, phase))
+            return false;
+        icEntries_.back().setFakeKind(ICEntry::Kind_NonOpCallVM);
+        return true;
+    }
 
   public:
-    BytecodeAnalysis &analysis() {
+    BytecodeAnalysis& analysis() {
         return analysis_;
+    }
+
+    void setCompileDebugInstrumentation() {
+        compileDebugInstrumentation_ = true;
     }
 };
 

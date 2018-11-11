@@ -11,12 +11,12 @@
 #ifndef WEBRTC_MODULES_DESKTOP_CAPTURE_WINDOW_CAPTURER_H_
 #define WEBRTC_MODULES_DESKTOP_CAPTURE_WINDOW_CAPTURER_H_
 
-#include <vector>
 #include <string>
+#include <vector>
 
+#include "webrtc/base/constructormagic.h"
 #include "webrtc/modules/desktop_capture/desktop_capture_types.h"
 #include "webrtc/modules/desktop_capture/desktop_capturer.h"
-#include "webrtc/system_wrappers/interface/constructor_magic.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -29,6 +29,7 @@ class WindowCapturer : public DesktopCapturer {
 
   struct Window {
     WindowId id;
+    pid_t pid;
 
     // Title of the window in UTF-8 encoding.
     std::string title;
@@ -49,6 +50,10 @@ class WindowCapturer : public DesktopCapturer {
   // Select window to be captured. Returns false in case of a failure (e.g. if
   // there is no window with the specified id).
   virtual bool SelectWindow(WindowId id) = 0;
+
+  // Bring the selected window to the front. Returns false in case of a
+  // failure or no window selected.
+  virtual bool BringSelectedWindowToFront() = 0;
 };
 
 }  // namespace webrtc

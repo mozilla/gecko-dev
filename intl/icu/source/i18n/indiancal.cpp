@@ -1,5 +1,7 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
- * Copyright (C) 2003-2009, International Business Machines Corporation
+ * Copyright (C) 2003-2014, International Business Machines Corporation
  * and others. All Rights Reserved.
  ******************************************************************************
  *
@@ -16,7 +18,6 @@
 #include "gregoimp.h" // Math
 #include "astro.h" // CalendarAstronomer
 #include "uhash.h"
-#include "ucln_in.h"
 
 // Debugging
 #ifdef U_DEBUG_INDIANCAL

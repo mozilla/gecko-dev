@@ -13,15 +13,14 @@
 
 #include <vector>
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/modules/desktop_capture/desktop_capture_types.h"
 #include "webrtc/modules/desktop_capture/desktop_capturer.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
 
 class DesktopCaptureOptions;
-struct MouseCursorShape;
 
 // Class used to capture video frames asynchronously.
 //
@@ -50,19 +49,9 @@ class ScreenCapturer : public DesktopCapturer {
   };
   typedef std::vector<Screen> ScreenList;
 
-  // Provides callbacks used by the capturer to pass captured video frames and
-  // mouse cursor shapes to the processing pipeline.
-  //
-  // TODO(sergeyu): Move cursor shape capturing to a separate class because it's
-  // unrelated.
+  // TODO(sergeyu): Remove this class once all dependencies are removed from
+  // chromium.
   class MouseShapeObserver {
-   public:
-    // Called when the cursor shape has changed. Must take ownership of
-    // |cursor_shape|.
-    virtual void OnCursorShapeChanged(MouseCursorShape* cursor_shape) = 0;
-
-   protected:
-    virtual ~MouseShapeObserver() {}
   };
 
   virtual ~ScreenCapturer() {}
@@ -84,10 +73,10 @@ class ScreenCapturer : public DesktopCapturer {
   static ScreenCapturer* CreateWithDisableAero(bool disable_aero);
 #endif  // defined(WEBRTC_WIN)
 
-  // Called at the beginning of a capturing session. |mouse_shape_observer| must
-  // remain valid until the capturer is destroyed.
+  // TODO(sergeyu): Remove this method once all dependencies are removed from
+  // chromium.
   virtual void SetMouseShapeObserver(
-      MouseShapeObserver* mouse_shape_observer) = 0;
+      MouseShapeObserver* mouse_shape_observer) {};
 
   // Get the list of screens (not containing kFullDesktopScreenId). Returns
   // false in case of a failure.

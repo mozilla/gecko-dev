@@ -7,47 +7,59 @@
 
 ## CSS Snapshot 2007
 
+# CSS Box Alignment Level 3
+include align3/reftest.list
+
 # CSS2.1
 include css21/reftest.list
 
-# Animations
-# include animations/reftest.list
+# Backgrounds and Borders
+include background/reftest.list
 
-# Backgrounds and Borders Level 3
-# include background3/reftest.list
+# Color Level 4
+include color4/reftest.list
 
 # Conditional Rules Level 3
 include conditional3/reftest.list
+
+# Containment
+include contain/reftest.list
+
+# Filter Effects Module
+include filters/reftest.list
 
 # Flexible Box Layout Module
 include flexbox/reftest.list
 
 # Fonts Level 3
-# include fonts3/reftest.list
+include fonts3/reftest.list
 
 # Image Values and Replaced Content Level 3
-# include images3/reftest.list
+include images3/reftest.list
 
-# Media Queries Level 3
-# include mediaqueries3/reftest.list
+# Lists and Counters Level 3
+include lists-3/reftest.list
+
+# Masking Level 1
+include masking/reftest.list
 
 # Multi-column Layout 3
 include multicol3/reftest.list
 
-# Selectors Level 3
-# include selectors3/reftest.list
+# Ruby Layout Module
+include ruby/reftest.list
 
 # Selectors Level 4
-# include selectors4/reftest.list
+include selectors4/reftest.list
 
 # Text Level 3
-# include text3/reftest.list
+include text3/reftest.list
+
+# Text Decoration Level 3
+include text-decor-3/reftest.list
 
 # Transforms
-# include transforms/reftest.list
-
-# Transitions
-# include transitions/reftest.list
+include transforms/reftest.list
 
 # User Interface Level 3
 include ui3/reftest.list
@@ -57,3 +69,9 @@ include values3/reftest.list
 
 # Variables Level 1
 include variables/reftest.list
+
+# CSS will-change Level 1
+include will-change/reftest.list
+
+# CSS Writing Modes Level 3
+include writing-modes-3/reftest.list

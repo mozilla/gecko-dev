@@ -7,12 +7,15 @@
 #define nsHttpConnection_h__
 
 #include "nsHttpConnectionInfo.h"
+#include "nsHttpResponseHead.h"
 #include "nsAHttpTransaction.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "nsProxyRelease.h"
 #include "prinrval.h"
 #include "TunnelUtils.h"
+#include "mozilla/Mutex.h"
+#include "ARefBase.h"
 
 #include "nsIAsyncInputStream.h"
 #include "nsIAsyncOutputStream.h"
@@ -35,14 +38,17 @@ class ASpdySession;
 // accessed from any other thread.
 //-----------------------------------------------------------------------------
 
-class nsHttpConnection : public nsAHttpSegmentReader
-                       , public nsAHttpSegmentWriter
-                       , public nsIInputStreamCallback
-                       , public nsIOutputStreamCallback
-                       , public nsITransportEventSink
-                       , public nsIInterfaceRequestor
-                       , public NudgeTunnelCallback
+class nsHttpConnection final : public nsAHttpSegmentReader
+                             , public nsAHttpSegmentWriter
+                             , public nsIInputStreamCallback
+                             , public nsIOutputStreamCallback
+                             , public nsITransportEventSink
+                             , public nsIInterfaceRequestor
+                             , public NudgeTunnelCallback
+                             , public ARefBase
 {
+    virtual ~nsHttpConnection();
+
 public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSAHTTPSEGMENTREADER
@@ -54,7 +60,6 @@ public:
     NS_DECL_NUDGETUNNELCALLBACK
 
     nsHttpConnection();
-    virtual ~nsHttpConnection();
 
     // Initialize the connection:
     //  info        - specifies the connection parameters.
@@ -72,7 +77,7 @@ public:
     nsresult Activate(nsAHttpTransaction *, uint32_t caps, int32_t pri);
 
     // Close the underlying socket transport.
-    void Close(nsresult reason);
+    void Close(nsresult reason, bool aIsShutdown = false);
 
     //-------------------------------------------------------------------------
     // XXX document when these are ok to call
@@ -110,19 +115,26 @@ public:
         return mConnInfo->UsingHttpsProxy() && !mTLSFilter && mConnInfo->UsingConnect();
     }
 
+    // A connection is forced into plaintext when it is intended to be used as a CONNECT
+    // tunnel but the setup fails. The plaintext only carries the CONNECT error.
+    void ForcePlainText()
+    {
+        mForcePlainText = true;
+    }
+
     nsISocketTransport   *Transport()      { return mSocketTransport; }
     nsAHttpTransaction   *Transaction()    { return mTransaction; }
     nsHttpConnectionInfo *ConnectionInfo() { return mConnInfo; }
 
     // nsAHttpConnection compatible methods (non-virtual):
     nsresult OnHeadersAvailable(nsAHttpTransaction *, nsHttpRequestHead *, nsHttpResponseHead *, bool *reset);
-    void     CloseTransaction(nsAHttpTransaction *, nsresult reason);
+    void     CloseTransaction(nsAHttpTransaction *, nsresult reason, bool aIsShutdown = false);
     void     GetConnectionInfo(nsHttpConnectionInfo **ci) { NS_IF_ADDREF(*ci = mConnInfo); }
     nsresult TakeTransport(nsISocketTransport **,
                            nsIAsyncInputStream **,
                            nsIAsyncOutputStream **);
     void     GetSecurityInfo(nsISupports **);
-    bool     IsPersistent() { return IsKeepAlive(); }
+    bool     IsPersistent() { return IsKeepAlive() && !mDontReuse; }
     bool     IsReused();
     void     SetIsReusedAfter(uint32_t afterMilliseconds);
     nsresult PushBack(const char *data, uint32_t length);
@@ -131,12 +143,12 @@ public:
     int64_t  MaxBytesRead() {return mMaxBytesRead;}
     uint8_t GetLastHttpResponseVersion() { return mLastHttpResponseVersion; }
 
-    friend class nsHttpConnectionForceIO;
+    friend class HttpConnectionForceIO;
     nsresult ForceSend();
     nsresult ForceRecv();
 
-    static NS_METHOD ReadFromStream(nsIInputStream *, void *, const char *,
-                                    uint32_t, uint32_t, uint32_t *);
+    static nsresult ReadFromStream(nsIInputStream *, void *, const char *,
+                                   uint32_t, uint32_t, uint32_t *);
 
     // When a persistent connection is in the connection manager idle
     // connection pool, the nsHttpConnection still reads errors and hangups
@@ -192,6 +204,20 @@ public:
     void    SetupSecondaryTLS();
     void    SetInSpdyTunnel(bool arg);
 
+    // Check active connections for traffic (or not). SPDY connections send a
+    // ping, ordinary HTTP connections get some time to get traffic to be
+    // considered alive.
+    void CheckForTraffic(bool check);
+
+    // NoTraffic() returns true if there's been no traffic on the (non-spdy)
+    // connection since CheckForTraffic() was called.
+    bool NoTraffic() {
+        return mTrafficStamp &&
+            (mTrafficCount == (mTotalBytesWritten + mTotalBytesRead));
+    }
+    // override of nsAHttpConnection
+    virtual uint32_t Version();
+
 private:
     // Value (set in mTCPKeepaliveConfig) indicates which set of prefs to use.
     enum TCPKeepaliveConfig {
@@ -216,7 +242,8 @@ private:
 
     // Makes certain the SSL handshake is complete and NPN negotiation
     // has had a chance to happen
-    bool     EnsureNPNComplete();
+    bool     EnsureNPNComplete(nsresult &aOut0RTTWriteHandshakeValue,
+                               uint32_t &aOut0RTTBytesWritten);
     void     SetupSSL();
 
     // Start the Spdy transaction handler when NPN indicates spdy/*
@@ -244,15 +271,15 @@ private:
 
     // mTransaction only points to the HTTP Transaction callbacks if the
     // transaction is open, otherwise it is null.
-    nsRefPtr<nsAHttpTransaction>    mTransaction;
-    nsRefPtr<TLSFilterTransaction>  mTLSFilter;
+    RefPtr<nsAHttpTransaction>    mTransaction;
+    RefPtr<TLSFilterTransaction>  mTLSFilter;
 
-    nsRefPtr<nsHttpHandler>         mHttpHandler; // keep gHttpHandler alive
+    RefPtr<nsHttpHandler>         mHttpHandler; // keep gHttpHandler alive
 
     Mutex                           mCallbacksLock;
     nsMainThreadPtrHandle<nsIInterfaceRequestor> mCallbacks;
 
-    nsRefPtr<nsHttpConnectionInfo> mConnInfo;
+    RefPtr<nsHttpConnectionInfo> mConnInfo;
 
     PRIntervalTime                  mLastReadTime;
     PRIntervalTime                  mLastWriteTime;
@@ -266,7 +293,7 @@ private:
     int64_t                         mTotalBytesWritten;  // does not include CONNECT tunnel
     int64_t                         mContentBytesWritten;  // does not include CONNECT tunnel or TLS
 
-    nsRefPtr<nsIAsyncInputStream>   mInputOverflow;
+    RefPtr<nsIAsyncInputStream>   mInputOverflow;
 
     PRIntervalTime                  mRtt;
 
@@ -282,6 +309,11 @@ private:
     bool                            mProxyConnectInProgress;
     bool                            mExperienced;
     bool                            mInSpdyTunnel;
+    bool                            mForcePlainText;
+
+    // A snapshot of current number of transfered bytes
+    int64_t                         mTrafficCount;
+    bool                            mTrafficStamp; // true then the above is set
 
     // The number of <= HTTP/1.1 transactions performed on this connection. This
     // excludes spdy transactions.
@@ -301,7 +333,7 @@ private:
     // version level in use, 0 if unused
     uint8_t                         mUsingSpdyVersion;
 
-    nsRefPtr<ASpdySession>          mSpdySession;
+    RefPtr<ASpdySession>            mSpdySession;
     int32_t                         mPriority;
     bool                            mReportedSpdy;
 
@@ -319,8 +351,28 @@ private:
     // Flag to indicate connection is in inital keepalive period (fast detect).
     uint32_t                        mTCPKeepaliveConfig;
     nsCOMPtr<nsITimer>              mTCPKeepaliveTransitionTimer;
+
+private:
+    // For ForceSend()
+    static void                     ForceSendIO(nsITimer *aTimer, void *aClosure);
+    nsresult                        MaybeForceSendIO();
+    bool                            mForceSendPending;
+    nsCOMPtr<nsITimer>              mForceSendTimer;
+
+    // Helper variable for 0RTT handshake;
+    bool                            m0RTTChecked; // Possible 0RTT has been
+                                                  // checked.
+    bool                            mWaitingFor0RTTResponse; // We have are
+                                                             // sending 0RTT
+                                                             // data and we
+                                                             // are waiting
+                                                             // for the end of
+                                                             // the handsake.
+    int64_t                        mContentBytesWritten0RTT;
+    bool                           mEarlyDataNegotiated; //Only used for telemetry
 };
 
-}} // namespace mozilla::net
+} // namespace net
+} // namespace mozilla
 
 #endif // nsHttpConnection_h__

@@ -1,22 +1,10 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/shi_Latn.xml
-// *
-// ***************************************************************************
-/**
- * ICU <specials> source: <path>/common/main/shi_Latn.xml
- */
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 shi_Latn{
     %%Parent{"root"}
     AuxExemplarCharacters{"[o p v]"}
     ExemplarCharacters{"[a b c d ḍ e ɛ f g {gʷ} ɣ h ḥ i j k {kʷ} l m n q r ṛ s ṣ t ṭ u w x y z]"}
     ExemplarCharactersIndex{"[A B C D Ḍ E Ɛ F G {Gʷ} Ɣ H Ḥ I J K {Kʷ} L M N Q R Ṛ S Ṣ T Ṭ U W X Y Z]"}
-    LocaleScript{
-        "Latn",
-    }
     NumberElements{
         latn{
             patterns{
@@ -28,7 +16,7 @@ shi_Latn{
             }
         }
     }
-    Version{"2.0.92.87"}
+    Version{"2.1.27.40"}
     calendar{
         generic{
             DateTimePatterns{
@@ -53,7 +41,6 @@ shi_Latn{
                 MMMMEd{"E d MMMM"}
                 MMMMd{"d MMMM"}
                 MMMd{"d MMM"}
-                MMMdd{"dd MMM"}
                 MMd{"d/MM"}
                 MMdd{"dd/MM"}
                 Md{"d/M"}
@@ -73,6 +60,10 @@ shi_Latn{
                 "tifawt",
                 "tadggʷat",
             }
+            AmPmMarkersAbbr{
+                "tifawt",
+                "tadggʷat",
+            }
             DateTimePatterns{
                 "HH:mm:ss zzzz",
                 "HH:mm:ss z",
@@ -88,6 +79,19 @@ shi_Latn{
                 "{1} {0}",
                 "{1} {0}",
             }
+            appendItems{
+                Day{"{0} ({2}: {1})"}
+                Day-Of-Week{"{0} {1}"}
+                Era{"{1} {0}"}
+                Hour{"{0} ({2}: {1})"}
+                Minute{"{0} ({2}: {1})"}
+                Month{"{0} ({2}: {1})"}
+                Quarter{"{0} ({2}: {1})"}
+                Second{"{0} ({2}: {1})"}
+                Timezone{"{0} {1}"}
+                Week{"{0} ({2}: {1})"}
+                Year{"{1} {0}"}
+            }
             availableFormats{
                 M{"M"}
                 MMM{"MMM"}
@@ -95,7 +99,6 @@ shi_Latn{
                 MMMMEd{"E d MMMM"}
                 MMMMd{"d MMMM"}
                 MMMd{"d MMM"}
-                MMMdd{"dd MMM"}
                 MMd{"d/MM"}
                 MMdd{"dd/MM"}
                 Md{"d/M"}

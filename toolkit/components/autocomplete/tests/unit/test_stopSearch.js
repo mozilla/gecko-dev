@@ -27,7 +27,7 @@ AutoCompleteInput.prototype = {
   timeout: 10,
   searchParam: "",
   textValue: "hello",
-  disableAutoComplete: false, 
+  disableAutoComplete: false,
   completeDefaultIndex: false,
   set popupOpen(val) { return val; }, // ignore
   get popupOpen() { return false; },
@@ -79,7 +79,7 @@ AutoCompleteSearch.prototype = {
 }
 
 
-/** 
+/**
  * Helper to register an AutoCompleteSearch with the given name.
  * Allows the AutoCompleteController to find the search.
  */
@@ -94,21 +94,21 @@ function registerAutoCompleteSearch(aSearch)
                                    .QueryInterface(Ci.nsIComponentRegistrar);
   componentManager.registerFactory(cid, desc, name, aSearch);
   // Keep the id on the object so we can unregister later
-  aSearch.cid = cid; 
+  aSearch.cid = cid;
 }
 
 
-/** 
- * Helper to unregister an AutoCompleteSearch. 
+/**
+ * Helper to unregister an AutoCompleteSearch.
  */
 function unregisterAutoCompleteSearch(aSearch) {
   let componentManager = Components.manager
-                                   .QueryInterface(Ci.nsIComponentRegistrar);  
+                                   .QueryInterface(Ci.nsIComponentRegistrar);
   componentManager.unregisterFactory(aSearch.cid, aSearch);
 }
 
 
-let gTests = [
+var gTests = [
   function(controller) {
     print("handleText");
     controller.input.textValue = "hel";
@@ -144,8 +144,8 @@ let gTests = [
 ];
 
 
-let gSearch;
-let gCurrentTest;
+var gSearch;
+var gCurrentTest;
 function run_test() {
   // Make an AutoCompleteSearch that always returns nothing
   gSearch = new AutoCompleteSearch("test");

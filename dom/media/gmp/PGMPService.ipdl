@@ -1,0 +1,32 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+include protocol PGMP;
+
+using base::ProcessId from "base/process.h";
+
+namespace mozilla {
+namespace gmp {
+
+sync protocol PGMPService
+{
+  parent spawns PGMP as child;
+
+parent:
+
+  sync SelectGMP(nsCString nodeId, nsCString api, nsCString[] tags)
+    returns (uint32_t pluginId, nsresult aResult);
+
+  sync LaunchGMP(uint32_t pluginId, ProcessId[] alreadyBridgedTo)
+    returns (ProcessId id, nsCString displayName, nsresult aResult);
+
+  sync GetGMPNodeId(nsString origin, nsString topLevelOrigin,
+                    nsString gmpName,
+                    bool inPrivateBrowsing)
+    returns (nsCString id);
+};
+
+} // namespace gmp
+} // namespace mozilla

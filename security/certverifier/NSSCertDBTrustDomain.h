@@ -4,22 +4,43 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_psm__NSSCertDBTrustDomain_h
-#define mozilla_psm__NSSCertDBTrustDomain_h
+#ifndef NSSCertDBTrustDomain_h
+#define NSSCertDBTrustDomain_h
 
+#include "CertVerifier.h"
+#include "ScopedNSSTypes.h"
+#include "mozilla/BasePrincipal.h"
+#include "nsICertBlocklist.h"
+#include "nsString.h"
 #include "pkix/pkixtypes.h"
 #include "secmodt.h"
-#include "CertVerifier.h"
 
 namespace mozilla { namespace psm {
 
-SECStatus InitializeNSS(const char* dir, bool readOnly);
+enum class ValidityCheckingMode {
+  CheckingOff = 0,
+  CheckForEV = 1,
+};
+
+// Policy options for matching id-Netscape-stepUp with id-kp-serverAuth (for CA
+// certificates only):
+// * Always match: the step-up OID is considered equivalent to serverAuth
+// * Match before 23 August 2016: the OID is considered equivalent if the
+//   certificate's notBefore is before 23 August 2016
+// * Match before 23 August 2015: similarly, but for 23 August 2015
+// * Never match: the OID is never considered equivalent to serverAuth
+enum class NetscapeStepUpPolicy : uint32_t {
+  AlwaysMatch = 0,
+  MatchBefore23August2016 = 1,
+  MatchBefore23August2015 = 2,
+  NeverMatch = 3,
+};
+
+SECStatus InitializeNSS(const char* dir, bool readOnly, bool loadPKCS11Modules);
 
 void DisableMD5();
 
 extern const char BUILTIN_ROOTS_MODULE_DEFAULT_NAME[];
-
-void PORT_Free_string(char* str);
 
 // The dir parameter is the path to the directory containing the NSS builtin
 // roots module. Usually this is the same as the path to the other NSS shared
@@ -32,23 +53,17 @@ SECStatus LoadLoadableRoots(/*optional*/ const char* dir,
 
 void UnloadLoadableRoots(const char* modNameUTF8);
 
-// Controls the OCSP fetching behavior of the classic verification mode. In the
-// classic mode, the OCSP fetching behavior is set globally instead of per
-// validation.
-void
-SetClassicOCSPBehavior(CertVerifier::ocsp_download_config enabled,
-                       CertVerifier::ocsp_strict_config strict,
-                       CertVerifier::ocsp_get_config get);
+nsresult DefaultServerNicknameForCert(const CERTCertificate* cert,
+                              /*out*/ nsCString& nickname);
 
-// Caller must free the result with PR_Free
-char* DefaultServerNicknameForCert(CERTCertificate* cert);
-
-void SaveIntermediateCerts(const mozilla::pkix::ScopedCERTCertList& certList);
+void SaveIntermediateCerts(const UniqueCERTCertList& certList);
 
 class NSSCertDBTrustDomain : public mozilla::pkix::TrustDomain
 {
 
 public:
+  typedef mozilla::pkix::Result Result;
+
   enum OCSPFetching {
     NeverFetchOCSP = 0,
     FetchOCSPForDVSoftFail = 1,
@@ -56,51 +71,131 @@ public:
     FetchOCSPForEV = 3,
     LocalOnlyOCSPForEV = 4,
   };
+
   NSSCertDBTrustDomain(SECTrustType certDBTrustType, OCSPFetching ocspFetching,
                        OCSPCache& ocspCache, void* pinArg,
-                       CertVerifier::ocsp_get_config ocspGETConfig,
-                       CERTChainVerifyCallback* checkChainCallback = nullptr);
+                       CertVerifier::OcspGetConfig ocspGETConfig,
+                       uint32_t certShortLifetimeInDays,
+                       CertVerifier::PinningMode pinningMode,
+                       unsigned int minRSABits,
+                       ValidityCheckingMode validityCheckingMode,
+                       CertVerifier::SHA1Mode sha1Mode,
+                       NetscapeStepUpPolicy netscapeStepUpPolicy,
+                       const NeckoOriginAttributes& originAttributes,
+                       UniqueCERTCertList& builtChain,
+          /*optional*/ PinningTelemetryInfo* pinningTelemetryInfo = nullptr,
+          /*optional*/ const char* hostname = nullptr);
 
-  virtual SECStatus FindPotentialIssuers(
-                        const SECItem* encodedIssuerName,
-                        PRTime time,
-                /*out*/ mozilla::pkix::ScopedCERTCertList& results);
+  virtual Result FindIssuer(mozilla::pkix::Input encodedIssuerName,
+                            IssuerChecker& checker,
+                            mozilla::pkix::Time time) override;
 
-  virtual SECStatus GetCertTrust(mozilla::pkix::EndEntityOrCA endEntityOrCA,
-                                 const mozilla::pkix::CertPolicyId& policy,
-                                 const SECItem& candidateCertDER,
-                         /*out*/ mozilla::pkix::TrustLevel* trustLevel);
+  virtual Result GetCertTrust(mozilla::pkix::EndEntityOrCA endEntityOrCA,
+                              const mozilla::pkix::CertPolicyId& policy,
+                              mozilla::pkix::Input candidateCertDER,
+                              /*out*/ mozilla::pkix::TrustLevel& trustLevel)
+                              override;
 
-  virtual SECStatus VerifySignedData(const CERTSignedData* signedData,
-                                     const SECItem& subjectPublicKeyInfo);
+  virtual Result CheckSignatureDigestAlgorithm(
+                   mozilla::pkix::DigestAlgorithm digestAlg,
+                   mozilla::pkix::EndEntityOrCA endEntityOrCA,
+                   mozilla::pkix::Time notBefore) override;
 
-  virtual SECStatus CheckRevocation(mozilla::pkix::EndEntityOrCA endEntityOrCA,
-                                    const CERTCertificate* cert,
-                          /*const*/ CERTCertificate* issuerCert,
-                                    PRTime time,
-                       /*optional*/ const SECItem* stapledOCSPResponse);
+  virtual Result CheckRSAPublicKeyModulusSizeInBits(
+                   mozilla::pkix::EndEntityOrCA endEntityOrCA,
+                   unsigned int modulusSizeInBits) override;
 
-  virtual SECStatus IsChainValid(const CERTCertList* certChain);
+  virtual Result VerifyRSAPKCS1SignedDigest(
+                   const mozilla::pkix::SignedDigest& signedDigest,
+                   mozilla::pkix::Input subjectPublicKeyInfo) override;
+
+  virtual Result CheckECDSACurveIsAcceptable(
+                   mozilla::pkix::EndEntityOrCA endEntityOrCA,
+                   mozilla::pkix::NamedCurve curve) override;
+
+  virtual Result VerifyECDSASignedDigest(
+                   const mozilla::pkix::SignedDigest& signedDigest,
+                   mozilla::pkix::Input subjectPublicKeyInfo) override;
+
+  virtual Result DigestBuf(mozilla::pkix::Input item,
+                           mozilla::pkix::DigestAlgorithm digestAlg,
+                           /*out*/ uint8_t* digestBuf,
+                           size_t digestBufLen) override;
+
+  virtual Result CheckValidityIsAcceptable(
+                   mozilla::pkix::Time notBefore, mozilla::pkix::Time notAfter,
+                   mozilla::pkix::EndEntityOrCA endEntityOrCA,
+                   mozilla::pkix::KeyPurposeId keyPurpose) override;
+
+  virtual Result NetscapeStepUpMatchesServerAuth(
+                   mozilla::pkix::Time notBefore,
+                   /*out*/ bool& matches) override;
+
+  virtual Result CheckRevocation(
+                   mozilla::pkix::EndEntityOrCA endEntityOrCA,
+                   const mozilla::pkix::CertID& certID,
+                   mozilla::pkix::Time time,
+                   mozilla::pkix::Duration validityDuration,
+      /*optional*/ const mozilla::pkix::Input* stapledOCSPResponse,
+      /*optional*/ const mozilla::pkix::Input* aiaExtension)
+                   override;
+
+  virtual Result IsChainValid(const mozilla::pkix::DERArray& certChain,
+                              mozilla::pkix::Time time) override;
+
+  virtual void NoteAuxiliaryExtension(
+                   mozilla::pkix::AuxiliaryExtension extension,
+                   mozilla::pkix::Input extensionData) override;
+
+  // Resets the OCSP stapling status and SCT lists accumulated during
+  // the chain building.
+  void ResetAccumulatedState();
+
+  CertVerifier::OCSPStaplingStatus GetOCSPStaplingStatus() const
+  {
+    return mOCSPStaplingStatus;
+  }
+
+  // SCT lists (see Certificate Transparency) extracted during
+  // certificate verification. Note that the returned Inputs are invalidated
+  // the next time a chain is built and by ResetAccumulatedState method
+  // (and when the TrustDomain object is destroyed).
+
+  mozilla::pkix::Input GetSCTListFromCertificate() const;
+  mozilla::pkix::Input GetSCTListFromOCSPStapling() const;
 
 private:
   enum EncodedResponseSource {
     ResponseIsFromNetwork = 1,
     ResponseWasStapled = 2
   };
-  static const PRTime ServerFailureDelay = 5 * 60 * PR_USEC_PER_SEC;
-  SECStatus VerifyAndMaybeCacheEncodedOCSPResponse(
-    const CERTCertificate* cert, CERTCertificate* issuerCert, PRTime time,
-    uint16_t maxLifetimeInDays, const SECItem* encodedResponse,
-    EncodedResponseSource responseSource);
+  Result VerifyAndMaybeCacheEncodedOCSPResponse(
+    const mozilla::pkix::CertID& certID, mozilla::pkix::Time time,
+    uint16_t maxLifetimeInDays, mozilla::pkix::Input encodedResponse,
+    EncodedResponseSource responseSource, /*out*/ bool& expired);
 
   const SECTrustType mCertDBTrustType;
   const OCSPFetching mOCSPFetching;
   OCSPCache& mOCSPCache; // non-owning!
   void* mPinArg; // non-owning!
-  const CertVerifier::ocsp_get_config mOCSPGetConfig;
-  CERTChainVerifyCallback* mCheckChainCallback; // non-owning!
+  const CertVerifier::OcspGetConfig mOCSPGetConfig;
+  const uint32_t mCertShortLifetimeInDays;
+  CertVerifier::PinningMode mPinningMode;
+  const unsigned int mMinRSABits;
+  ValidityCheckingMode mValidityCheckingMode;
+  CertVerifier::SHA1Mode mSHA1Mode;
+  NetscapeStepUpPolicy mNetscapeStepUpPolicy;
+  const NeckoOriginAttributes& mOriginAttributes;
+  UniqueCERTCertList& mBuiltChain; // non-owning
+  PinningTelemetryInfo* mPinningTelemetryInfo;
+  const char* mHostname; // non-owning - only used for pinning checks
+  nsCOMPtr<nsICertBlocklist> mCertBlocklist;
+  CertVerifier::OCSPStaplingStatus mOCSPStaplingStatus;
+  // Certificate Transparency data extracted during certificate verification
+  UniqueSECItem mSCTListFromCertificate;
+  UniqueSECItem mSCTListFromOCSPStapling;
 };
 
 } } // namespace mozilla::psm
 
-#endif // mozilla_psm__NSSCertDBTrustDomain_h
+#endif // NSSCertDBTrustDomain_h

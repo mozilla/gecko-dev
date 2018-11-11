@@ -4,8 +4,8 @@
 
 
 <!ENTITY  connectionsDialog.title       "Connection Settings">
-<!ENTITY  window.width                  "37em">
-<!ENTITY  window.macWidth               "39em">
+<!ENTITY  window.width2                 "49em">
+<!ENTITY  window.macWidth2              "44em">
 
 <!ENTITY  proxyTitle.label              "Configure Proxies to Access the Internet">
 <!ENTITY  noProxyTypeRadio.label        "No proxy">
@@ -32,7 +32,7 @@
 <!ENTITY  socks4.accesskey              "K">
 <!ENTITY  socks5.label                  "SOCKS v5">
 <!ENTITY  socks5.accesskey              "v">
-<!ENTITY  socksRemoteDNS.label          "Remote DNS">
+<!ENTITY  socksRemoteDNS.label2         "Proxy DNS when using SOCKS v5">
 <!ENTITY  socksRemoteDNS.accesskey      "d">
 <!ENTITY  port.label                    "Port:">
 <!ENTITY  HTTPport.accesskey            "P">

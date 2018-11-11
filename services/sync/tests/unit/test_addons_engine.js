@@ -13,19 +13,20 @@ Cu.import("resource://services-sync/service.js");
 Cu.import("resource://services-sync/util.js");
 Cu.import("resource://testing-common/services/sync/utils.js");
 
-let prefs = new Preferences();
+var prefs = new Preferences();
 prefs.set("extensions.getAddons.get.url",
           "http://localhost:8888/search/guid:%IDS%");
+prefs.set("extensions.install.requireSecureOrigin", false);
 
 loadAddonTestFunctions();
 startupManager();
 
-let engineManager = Service.engineManager;
+var engineManager = Service.engineManager;
 
 engineManager.register(AddonsEngine);
-let engine = engineManager.get("addons");
-let reconciler = engine._reconciler;
-let tracker = engine._tracker;
+var engine = engineManager.get("addons");
+var reconciler = engine._reconciler;
+var tracker = engine._tracker;
 
 function advance_test() {
   reconciler._addons = {};
@@ -34,8 +35,6 @@ function advance_test() {
   let cb = Async.makeSpinningCallback();
   reconciler.saveState(null, cb);
   cb.wait();
-
-  Svc.Prefs.reset("addons.ignoreRepositoryChecking");
 
   run_next_test();
 }
@@ -104,7 +103,6 @@ add_test(function test_get_changed_ids() {
   tracker.clearChangedIDs();
 
   _("Ensure reconciler changes are populated.");
-  Svc.Prefs.set("addons.ignoreRepositoryChecking", true);
   let addon = installAddon("test_bootstrap1_1");
   tracker.clearChangedIDs(); // Just in case.
   changes = engine.getChangedIDs();
@@ -151,9 +149,6 @@ add_test(function test_disabled_install_semantics() {
   // This is essentially a test for bug 712542, which snuck into the original
   // add-on sync drop. It ensures that when an add-on is installed that the
   // disabled state and incoming syncGUID is preserved, even on the next sync.
-
-  Svc.Prefs.set("addons.ignoreRepositoryChecking", true);
-
   const USER       = "foo";
   const PASSWORD   = "password";
   const PASSPHRASE = "abcdeabcdeabcdeabcdeabcdea";

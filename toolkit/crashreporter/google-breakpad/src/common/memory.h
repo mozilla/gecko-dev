@@ -35,9 +35,15 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
+#include <memory>
+#include <vector>
+
+#if defined(MEMORY_SANITIZER)
+#include <sanitizer/msan_interface.h>
+#endif
+
 #ifdef __APPLE__
 #define sys_mmap mmap
-#define sys_mmap2 mmap
 #define sys_munmap munmap
 #define MAP_ANONYMOUS MAP_ANON
 #else
@@ -57,14 +63,15 @@ class PageAllocator {
       : page_size_(getpagesize()),
         last_(NULL),
         current_page_(NULL),
-        page_offset_(0) {
+        page_offset_(0),
+        pages_allocated_(0) {
   }
 
   ~PageAllocator() {
     FreeAll();
   }
 
-  void *Alloc(unsigned bytes) {
+  void *Alloc(size_t bytes) {
     if (!bytes)
       return NULL;
 
@@ -79,34 +86,53 @@ class PageAllocator {
       return ret;
     }
 
-    const unsigned pages =
+    const size_t pages =
         (bytes + sizeof(PageHeader) + page_size_ - 1) / page_size_;
     uint8_t *const ret = GetNPages(pages);
     if (!ret)
       return NULL;
 
-    page_offset_ = (page_size_ - (page_size_ * pages - (bytes + sizeof(PageHeader)))) % page_size_;
+    page_offset_ =
+        (page_size_ - (page_size_ * pages - (bytes + sizeof(PageHeader)))) %
+        page_size_;
     current_page_ = page_offset_ ? ret + page_size_ * (pages - 1) : NULL;
 
     return ret + sizeof(PageHeader);
   }
 
+  // Checks whether the page allocator owns the passed-in pointer.
+  // This method exists for testing pursposes only.
+  bool OwnsPointer(const void* p) {
+    for (PageHeader* header = last_; header; header = header->next) {
+      const char* current = reinterpret_cast<char*>(header);
+      if ((p >= current) && (p < current + header->num_pages * page_size_))
+        return true;
+    }
+
+    return false;
+  }
+
+  unsigned long pages_allocated() { return pages_allocated_; }
+
  private:
-  uint8_t *GetNPages(unsigned num_pages) {
-#ifdef __x86_64
+  uint8_t *GetNPages(size_t num_pages) {
     void *a = sys_mmap(NULL, page_size_ * num_pages, PROT_READ | PROT_WRITE,
                        MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-#else
-    void *a = sys_mmap2(NULL, page_size_ * num_pages, PROT_READ | PROT_WRITE,
-                        MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-#endif
     if (a == MAP_FAILED)
       return NULL;
+
+#if defined(MEMORY_SANITIZER)
+    // We need to indicate to MSan that memory allocated through sys_mmap is
+    // initialized, since linux_syscall_support.h doesn't have MSan hooks.
+    __msan_unpoison(a, page_size_ * num_pages);
+#endif
 
     struct PageHeader *header = reinterpret_cast<PageHeader*>(a);
     header->next = last_;
     header->num_pages = num_pages;
     last_ = header;
+
+    pages_allocated_ += num_pages;
 
     return reinterpret_cast<uint8_t*>(a);
   }
@@ -122,97 +148,102 @@ class PageAllocator {
 
   struct PageHeader {
     PageHeader *next;  // pointer to the start of the next set of pages.
-    unsigned num_pages;  // the number of pages in this set.
+    size_t num_pages;  // the number of pages in this set.
   };
 
-  const unsigned page_size_;
+  const size_t page_size_;
   PageHeader *last_;
   uint8_t *current_page_;
-  unsigned page_offset_;
+  size_t page_offset_;
+  unsigned long pages_allocated_;
 };
 
-// A wasteful vector is like a normal std::vector, except that it's very much
-// simplier and it allocates memory from a PageAllocator. It's wasteful
-// because, when resizing, it always allocates a whole new array since the
-// PageAllocator doesn't support realloc.
-template<class T>
-class wasteful_vector {
- public:
-  wasteful_vector(PageAllocator *allocator, unsigned size_hint = 16)
-      : allocator_(allocator),
-        a_((T*) allocator->Alloc(sizeof(T) * size_hint)),
-        allocated_(size_hint),
-        used_(0) {
-  }
+// Wrapper to use with STL containers
+template <typename T>
+struct PageStdAllocator : public std::allocator<T> {
+  typedef typename std::allocator<T>::pointer pointer;
+  typedef typename std::allocator<T>::size_type size_type;
 
-  T& back() {
-    return a_[used_ - 1];
-  }
+  explicit PageStdAllocator(PageAllocator& allocator) : allocator_(allocator),
+                                                        stackdata_(NULL),
+                                                        stackdata_size_(0)
+  {}
 
-  const T& back() const {
-    return a_[used_ - 1];
-  }
+  template <class Other> PageStdAllocator(const PageStdAllocator<Other>& other)
+      : allocator_(other.allocator_),
+        stackdata_(nullptr),
+        stackdata_size_(0)
+  {}
 
-  bool empty() const {
-    return used_ == 0;
-  }
+  explicit PageStdAllocator(PageAllocator& allocator,
+                            pointer stackdata,
+                            size_type stackdata_size) : allocator_(allocator),
+      stackdata_(stackdata),
+      stackdata_size_(stackdata_size)
+  {}
 
-  void push_back(const T& new_element) {
-    if (used_ == allocated_)
-      Realloc(allocated_ * 2);
-    a_[used_++] = new_element;
-  }
-
-  size_t size() const {
-    return used_;
-  }
-
-  void resize(unsigned sz, T c = T()) {
-    // No need to test "sz >= 0", as "sz" is unsigned.
-    if (sz <= used_) {
-      used_ = sz;
-    } else {
-      unsigned a = allocated_;
-      if (sz > a) {
-        while (sz > a) {
-          a *= 2;
-        }
-        Realloc(a);
-      }
-      while (sz > used_) {
-        a_[used_++] = c;
-      }
+  inline pointer allocate(size_type n, const void* = 0) {
+    const size_type size = sizeof(T) * n;
+    if (size <= stackdata_size_) {
+      return stackdata_;
     }
+    return static_cast<pointer>(allocator_.Alloc(size));
   }
 
-  T& operator[](size_t index) {
-    return a_[index];
+  inline void deallocate(pointer, size_type) {
+    // The PageAllocator doesn't free.
   }
 
-  const T& operator[](size_t index) const {
-    return a_[index];
-  }
+  template <typename U> struct rebind {
+    typedef PageStdAllocator<U> other;
+  };
 
  private:
-  void Realloc(unsigned new_size) {
-    T *new_array =
-        reinterpret_cast<T*>(allocator_->Alloc(sizeof(T) * new_size));
-    memcpy(new_array, a_, used_ * sizeof(T));
-    a_ = new_array;
-    allocated_ = new_size;
-  }
+  // Silly workaround for the gcc from Android's ndk (gcc 4.6), which will
+  // otherwise complain that `other.allocator_` is private in the constructor
+  // code.
+  template<typename Other> friend struct PageStdAllocator;
 
-  PageAllocator *const allocator_;
-  T *a_;  // pointer to an array of |allocated_| elements.
-  unsigned allocated_;  // size of |a_|, in elements.
-  unsigned used_;  // number of used slots in |a_|.
+  PageAllocator& allocator_;
+  pointer stackdata_;
+  size_type stackdata_size_;
+};
+
+// A wasteful vector is a std::vector, except that it allocates memory from a
+// PageAllocator. It's wasteful because, when resizing, it always allocates a
+// whole new array since the PageAllocator doesn't support realloc.
+template<class T>
+class wasteful_vector : public std::vector<T, PageStdAllocator<T> > {
+ public:
+  wasteful_vector(PageAllocator* allocator, unsigned size_hint = 16)
+      : std::vector<T, PageStdAllocator<T> >(PageStdAllocator<T>(*allocator)) {
+    std::vector<T, PageStdAllocator<T> >::reserve(size_hint);
+  }
+ protected:
+  wasteful_vector(PageStdAllocator<T> allocator)
+      : std::vector<T, PageStdAllocator<T> >(allocator) {}
+};
+
+// auto_wasteful_vector allocates space on the stack for N entries to avoid
+// using the PageAllocator for small data, while still allowing for larger data.
+template<class T, unsigned int N>
+class auto_wasteful_vector : public wasteful_vector<T> {
+ T stackdata_[N];
+ public:
+  auto_wasteful_vector(PageAllocator* allocator)
+      : wasteful_vector<T>(
+            PageStdAllocator<T>(*allocator,
+                                &stackdata_[0],
+                                sizeof(stackdata_))) {
+    std::vector<T, PageStdAllocator<T> >::reserve(N);
+  }
 };
 
 }  // namespace google_breakpad
 
 inline void* operator new(size_t nbytes,
                           google_breakpad::PageAllocator& allocator) {
-   return allocator.Alloc(nbytes);
+  return allocator.Alloc(nbytes);
 }
 
 #endif  // GOOGLE_BREAKPAD_COMMON_MEMORY_H_

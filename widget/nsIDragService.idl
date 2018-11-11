@@ -4,18 +4,31 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsIArray.idl"
 #include "nsISupports.idl"
-#include "nsISupportsArray.idl"
 #include "nsIDragSession.idl"
 #include "nsIScriptableRegion.idl"
-
+#include "nsIContentPolicyBase.idl"
 
 interface nsIDOMNode;
 interface nsIDOMDragEvent;
 interface nsIDOMDataTransfer;
 interface nsISelection;
 
-[scriptable, uuid(82B58ADA-F490-4C3D-B737-1057C4F1D052), builtinclass]
+%{C++
+#include "mozilla/EventForwards.h"
+
+namespace mozilla {
+namespace dom {
+class ContentParent;
+} // namespace dom
+} // namespace mozilla
+%}
+
+[ptr] native ContentParentPtr(mozilla::dom::ContentParent);
+native EventMessage(mozilla::EventMessage);
+
+[scriptable, uuid(ebd6b3a2-af16-43af-a698-3091a087dd62), builtinclass]
 interface nsIDragService : nsISupports
 {
   const long DRAGDROP_ACTION_NONE = 0;
@@ -25,19 +38,29 @@ interface nsIDragService : nsISupports
   const long DRAGDROP_ACTION_UNINITIALIZED = 64;
 
   /**
-    * Starts a modal drag session with an array of transaferables 
+    * Starts a modal drag session with an array of transaferables.
+    *
+    * Note: This method is deprecated for non-native code.
     *
     * @param  aTransferables - an array of transferables to be dragged
     * @param  aRegion - a region containing rectangles for cursor feedback, 
     *            in window coordinates.
     * @param  aActionType - specified which of copy/move/link are allowed
+    * @param  aContentPolicyType - the contentPolicyType that will be
+    *           passed to the loadInfo when creating a new channel
+    *           (defaults to TYPE_OTHER)
     */
-  void invokeDragSession ( in nsIDOMNode aDOMNode, in nsISupportsArray aTransferables, 
-                             in nsIScriptableRegion aRegion, in unsigned long aActionType );
+  void invokeDragSession (in nsIDOMNode aDOMNode,
+                          in nsIArray aTransferables, 
+                          in nsIScriptableRegion aRegion,
+                          in unsigned long aActionType,
+                          [optional] in nsContentPolicyType aContentPolicyType);
 
   /**
    * Starts a modal drag session using an image. The first four arguments are
    * the same as invokeDragSession.
+   *
+   * Note: This method is deprecated for non-native code.
    *
    * A custom image may be specified using the aImage argument. If this is
    * supplied, the aImageX and aImageY arguments specify the offset within
@@ -61,7 +84,7 @@ interface nsIDragService : nsISupports
    * event are needed to calculate the image location.
    */
   void invokeDragSessionWithImage(in nsIDOMNode aDOMNode,
-                                  in nsISupportsArray aTransferableArray,
+                                  in nsIArray aTransferableArray,
                                   in nsIScriptableRegion aRegion,
                                   in unsigned long aActionType,
                                   in nsIDOMNode aImage,
@@ -74,9 +97,11 @@ interface nsIDragService : nsISupports
    * Start a modal drag session using the selection as the drag image.
    * The aDragEvent must be supplied as the current screen coordinates of the
    * event are needed to calculate the image location.
+   *
+   * Note: This method is deprecated for non-native code.
    */
   void invokeDragSessionWithSelection(in nsISelection aSelection,
-                                      in nsISupportsArray aTransferableArray,
+                                      in nsIArray aTransferableArray,
                                       in unsigned long aActionType,
                                       in nsIDOMDragEvent aDragEvent,
                                       in nsIDOMDataTransfer aDataTransfer);
@@ -104,7 +129,7 @@ interface nsIDragService : nsISupports
   /**
    * Fire a drag event at the source of the drag
    */
-  void fireDragEventAtSource ( in unsigned long aMsg );
+  [noscript] void fireDragEventAtSource(in EventMessage aEventMessage);
 
   /**
    * Increase/decrease dragging suppress level by one.
@@ -113,7 +138,12 @@ interface nsIDragService : nsISupports
   void suppress();
   void unsuppress();
 
+  /**
+    * aX and aY are in LayoutDevice pixels.
+    */
   [noscript] void dragMoved(in long aX, in long aY);
+
+  [notxpcom, nostdcall] boolean maybeAddChildProcess(in ContentParentPtr aChild);
 };
 
 

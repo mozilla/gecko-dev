@@ -9,6 +9,7 @@
 #include "nsCRT.h"
 #include "nsIExternalProtocolHandler.h"
 #include "nsIIOService.h"
+#include "nsIURI.h"
 
 #include <algorithm>
 
@@ -52,6 +53,7 @@ mozTXTToHTMLConv::EscapeChar(const char16_t ch, nsString& aStringToAppendTo,
         break;
       }
       // else fall through
+      MOZ_FALLTHROUGH;
     default:
       aStringToAppendTo += ch;
     }
@@ -99,6 +101,7 @@ mozTXTToHTMLConv::EscapeStr(nsString& aInString, bool inAttribute)
         break;
       }
       // else fall through
+      MOZ_FALLTHROUGH;
     default:
       i++;
     }
@@ -115,22 +118,22 @@ mozTXTToHTMLConv::UnescapeStr(const char16_t * aInString, int32_t aStartPos, int
     if (aInString[i] == '&')
     {
       subString = &aInString[i];
-      if (!nsCRT::strncmp(subString, MOZ_UTF16("&lt;"), std::min(4, aLength - remainingChars)))
+      if (!nsCRT::strncmp(subString, u"&lt;", std::min(4, aLength - remainingChars)))
       {
         aOutString.Append(char16_t('<'));
         i += 4;
       }
-      else if (!nsCRT::strncmp(subString, MOZ_UTF16("&gt;"), std::min(4, aLength - remainingChars)))
+      else if (!nsCRT::strncmp(subString, u"&gt;", std::min(4, aLength - remainingChars)))
       {
         aOutString.Append(char16_t('>'));
         i += 4;
       }
-      else if (!nsCRT::strncmp(subString, MOZ_UTF16("&amp;"), std::min(5, aLength - remainingChars)))
+      else if (!nsCRT::strncmp(subString, u"&amp;", std::min(5, aLength - remainingChars)))
       {
         aOutString.Append(char16_t('&'));
         i += 5;
       }
-      else if (!nsCRT::strncmp(subString, MOZ_UTF16("&quot;"), std::min(6, aLength - remainingChars)))
+      else if (!nsCRT::strncmp(subString, u"&quot;", std::min(6, aLength - remainingChars)))
       {
         aOutString.Append(char16_t('"'));
         i += 6;
@@ -171,12 +174,12 @@ mozTXTToHTMLConv::CompleteAbbreviatedURL(const char16_t * aInString, int32_t aIn
   else if (aInString[pos] == '.')
   {
     if (ItMatchesDelimited(aInString, aInLength,
-                           MOZ_UTF16("www."), 4, LT_IGNORE, LT_IGNORE))
+                           u"www.", 4, LT_IGNORE, LT_IGNORE))
     {
       aOutString.AssignLiteral("http://");
       aOutString += aInString;
     }
-    else if (ItMatchesDelimited(aInString,aInLength, MOZ_UTF16("ftp."), 4, LT_IGNORE, LT_IGNORE))
+    else if (ItMatchesDelimited(aInString,aInLength, u"ftp.", 4, LT_IGNORE, LT_IGNORE))
     { 
       aOutString.AssignLiteral("ftp://");
       aOutString += aInString;
@@ -193,7 +196,7 @@ mozTXTToHTMLConv::FindURLStart(const char16_t * aInString, int32_t aInLength,
   { // no breaks, because end of blocks is never reached
   case RFC1738:
   {
-    if (!nsCRT::strncmp(&aInString[std::max(int32_t(pos - 4), 0)], MOZ_UTF16("<URL:"), 5))
+    if (!nsCRT::strncmp(&aInString[std::max(int32_t(pos - 4), 0)], u"<URL:", 5))
     {
       start = pos + 1;
       return true;
@@ -204,7 +207,7 @@ mozTXTToHTMLConv::FindURLStart(const char16_t * aInString, int32_t aInLength,
   case RFC2396E:
   {
     nsString temp(aInString, aInLength);
-    int32_t i = pos <= 0 ? kNotFound : temp.RFindCharInSet(MOZ_UTF16("<>\""), pos - 1);
+    int32_t i = pos <= 0 ? kNotFound : temp.RFindCharInSet(u"<>\"", pos - 1);
     if (i != kNotFound && (temp[uint32_t(i)] == '<' ||
                            temp[uint32_t(i)] == '"'))
     {
@@ -283,7 +286,7 @@ mozTXTToHTMLConv::FindURLEnd(const char16_t * aInString, int32_t aInStringLength
   {
     nsString temp(aInString, aInStringLength);
 
-    int32_t i = temp.FindCharInSet(MOZ_UTF16("<>\""), pos + 1);
+    int32_t i = temp.FindCharInSet(u"<>\"", pos + 1);
     if (i != kNotFound && temp[uint32_t(i--)] ==
         (check == RFC1738 || temp[start - 1] == '<' ? '>' : '"'))
     {
@@ -305,7 +308,6 @@ mozTXTToHTMLConv::FindURLEnd(const char16_t * aInString, int32_t aInStringLength
       if (aInString[i] == '>' || aInString[i] == '<' ||
           aInString[i] == '"' || aInString[i] == '`' ||
           aInString[i] == '}' || aInString[i] == '{' ||
-          aInString[i] == '|' ||
           (aInString[i] == ')' && !seenOpeningParenthesis) ||
           (aInString[i] == ']' && !seenOpeningSquareBracket) ||
           // Allow IPv6 adresses like http://[1080::8:800:200C:417A]/foo.
@@ -510,7 +512,7 @@ mozTXTToHTMLConv::FindURL(const char16_t * aInString, int32_t aInLength, const u
   {
   case '@':
     state[RFC2396E] = unchecked;
-    // no break here
+    MOZ_FALLTHROUGH;
   case '.':
     state[abbreviated] = unchecked;
     break;
@@ -921,7 +923,7 @@ mozTXTToHTMLConv::GlyphHit(const char16_t * aInString, int32_t aInLength, bool c
   if (text0 == '+' || text1 == '+')
   {
     if (ItMatchesDelimited(aInString, aInLength,
-                           MOZ_UTF16(" +/-"), 4,
+                           u" +/-", 4,
                            LT_IGNORE, LT_IGNORE))
     {
       aOutputString.AppendLiteral(" &plusmn;");
@@ -929,7 +931,7 @@ mozTXTToHTMLConv::GlyphHit(const char16_t * aInString, int32_t aInLength, bool c
       return true;
     }
     if (col0 && ItMatchesDelimited(aInString, aInLength,
-                                   MOZ_UTF16("+/-"), 3,
+                                   u"+/-", 3,
                                    LT_IGNORE, LT_IGNORE))
     {
       aOutputString.AppendLiteral("&plusmn;");
@@ -1123,7 +1125,7 @@ mozTXTToHTMLConv::ScanTXT(const char16_t * aInString, int32_t aInStringLength, u
       {
       case '*':
         if (StructPhraseHit(newOffset, newLength, i == 0,
-                            MOZ_UTF16("*"), 1,
+                            u"*", 1,
                             "b", "class=\"moz-txt-star\"",
                             aOutString, structPhrase_strong))
         {
@@ -1133,7 +1135,7 @@ mozTXTToHTMLConv::ScanTXT(const char16_t * aInString, int32_t aInStringLength, u
         break;
       case '/':
         if (StructPhraseHit(newOffset, newLength, i == 0,
-                            MOZ_UTF16("/"), 1,
+                            u"/", 1,
                             "i", "class=\"moz-txt-slash\"",
                             aOutString, structPhrase_italic))
         {
@@ -1143,7 +1145,7 @@ mozTXTToHTMLConv::ScanTXT(const char16_t * aInString, int32_t aInStringLength, u
         break;
       case '_':
         if (StructPhraseHit(newOffset, newLength, i == 0,
-                            MOZ_UTF16("_"), 1,
+                            u"_", 1,
                             "span" /* <u> is deprecated */,
                             "class=\"moz-txt-underscore\"",
                             aOutString, structPhrase_underline))
@@ -1154,7 +1156,7 @@ mozTXTToHTMLConv::ScanTXT(const char16_t * aInString, int32_t aInStringLength, u
         break;
       case '|':
         if (StructPhraseHit(newOffset, newLength, i == 0,
-                            MOZ_UTF16("|"), 1,
+                            u"|", 1,
                             "code", "class=\"moz-txt-verticalline\"",
                             aOutString, structPhrase_code))
         {
@@ -1223,16 +1225,20 @@ mozTXTToHTMLConv::ScanHTML(nsString& aInString, uint32_t whattodo, nsString &aOu
 #endif
 
   // Look for simple entities not included in a tags and scan them.
-  /* Skip all tags ("<[...]>") and content in an a tag ("<a[...]</a>")
-     or in a tag ("<!--[...]-->").
-     Unescape the rest (text between tags) and pass it to ScanTXT. */
+  // Skip all tags ("<[...]>") and content in an a link tag ("<a [...]</a>"),
+  // comment tag ("<!--[...]-->"), style tag, script tag or head tag.
+  // Unescape the rest (text between tags) and pass it to ScanTXT.
+  nsAutoCString canFollow(" \f\n\r\t>");
   for (int32_t i = 0; i < lengthOfInString;)
   {
     if (aInString[i] == '<')  // html tag
     {
-      uint32_t start = uint32_t(i);
-      if (nsCRT::ToLower((char)aInString[uint32_t(i) + 1]) == 'a')
-           // if a tag, skip until </a>
+      int32_t start = i;
+      if (i + 2 < lengthOfInString &&
+          nsCRT::ToLower(aInString[i + 1]) == 'a' &&
+          canFollow.FindChar(aInString[i + 2]) != kNotFound)
+           // if a tag, skip until </a>.
+           // Make sure there's a white-space character after, not to match "abbr".
       {
         i = aInString.Find("</a>", true, i);
         if (i == kNotFound)
@@ -1240,16 +1246,48 @@ mozTXTToHTMLConv::ScanHTML(nsString& aInString, uint32_t whattodo, nsString &aOu
         else
           i += 4;
       }
-      else if (aInString[uint32_t(i) + 1] == '!' && aInString[uint32_t(i) + 2] == '-' &&
-        aInString[uint32_t(i) + 3] == '-')
-          //if out-commended code, skip until -->
+      else if (Substring(aInString, i + 1, 3).LowerCaseEqualsASCII("!--"))
+          // if out-commended code, skip until -->
       {
         i = aInString.Find("-->", false, i);
         if (i == kNotFound)
           i = lengthOfInString;
         else
           i += 3;
-
+      }
+      else if (i + 6 < lengthOfInString &&
+      Substring(aInString, i + 1, 5).LowerCaseEqualsASCII("style") &&
+               canFollow.FindChar(aInString[i + 6]) != kNotFound)
+           // if style tag, skip until </style>
+      {
+        i = aInString.Find("</style>", true, i);
+        if (i == kNotFound)
+          i = lengthOfInString;
+        else
+          i += 8;
+      }
+      else if (i + 7 < lengthOfInString &&
+               Substring(aInString, i + 1, 6).LowerCaseEqualsASCII("script") &&
+               canFollow.FindChar(aInString[i + 7]) != kNotFound)
+           // if script tag, skip until </script>
+      {
+        i = aInString.Find("</script>", true, i);
+        if (i == kNotFound)
+          i = lengthOfInString;
+        else
+          i += 9;
+      }
+      else if (i + 5 < lengthOfInString &&
+               Substring(aInString, i + 1, 4).LowerCaseEqualsASCII("head") &&
+               canFollow.FindChar(aInString[i + 5]) != kNotFound)
+           // if head tag, skip until </head>
+           // Make sure not to match <header>.
+      {
+        i = aInString.Find("</head>", true, i);
+        if (i == kNotFound)
+          i = lengthOfInString;
+        else
+          i += 7;
       }
       else  // just skip tag (attributes etc.)
       {
@@ -1259,7 +1297,7 @@ mozTXTToHTMLConv::ScanHTML(nsString& aInString, uint32_t whattodo, nsString &aOu
         else
           i++;
       }
-      aOutString.Append(&uniBuffer[start], uint32_t(i) - start);
+      aOutString.Append(&uniBuffer[start], i - start);
     }
     else
     {

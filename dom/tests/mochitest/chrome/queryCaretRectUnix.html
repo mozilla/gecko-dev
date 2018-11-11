@@ -36,8 +36,8 @@
 </style>
 
 <script type="application/javascript;version=1.8">
-  let SimpleTest = window.opener.SimpleTest;
-  let Ci = Components.interfaces;
+  var SimpleTest = window.opener.SimpleTest;
+  var Ci = Components.interfaces;
 
   function ok() { window.opener.ok.apply(window.opener, arguments); }
   function done() { window.opener.done.apply(window.opener, arguments); }
@@ -140,7 +140,7 @@
     offset = cp.offset;
     input.selectionStart = input.selectionEnd = offset;
 
-    let selection = getSelection(text);
+    selection = getSelection(text);
 
     testCaretPosition(domWinUtils, input.selectionStart, {
       min: { left: 390, top: 380 },

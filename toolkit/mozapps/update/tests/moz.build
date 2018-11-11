@@ -1,30 +1,44 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-XPCSHELL_TESTS_MANIFESTS += ['unit_aus_update/xpcshell.ini']
+HAS_MISC_RULE = True
 
-if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'android':
-    MOCHITEST_CHROME_MANIFESTS += ['chrome/chrome.ini']
-    XPCSHELL_TESTS_MANIFESTS += ['unit_base_updater/xpcshell.ini']
+FINAL_TARGET = '_tests/xpcshell/toolkit/mozapps/update/tests/data'
 
-    if CONFIG['MOZ_MAINTENANCE_SERVICE']:
-        XPCSHELL_TESTS_MANIFESTS += ['unit_service_updater/xpcshell.ini']
+MOCHITEST_CHROME_MANIFESTS += ['chrome/chrome.ini']
 
-    SIMPLE_PROGRAMS = [
-        'TestAUSHelper',
-        'TestAUSReadStrings',
+XPCSHELL_TESTS_MANIFESTS += [
+    'unit_aus_update/xpcshell.ini',
+    'unit_base_updater/xpcshell.ini'
+]
+
+if CONFIG['MOZ_MAINTENANCE_SERVICE']:
+    XPCSHELL_TESTS_MANIFESTS += ['unit_service_updater/xpcshell.ini']
+
+SimplePrograms([
+    'TestAUSHelper',
+    'TestAUSReadStrings',
+])
+
+LOCAL_INCLUDES += [
+    '/toolkit/mozapps/update',
+    '/toolkit/mozapps/update/common',
+]
+
+if CONFIG['OS_ARCH'] == 'WINNT':
+    USE_LIBS += [
+        'updatecommon-standalone',
     ]
 
-    SOURCES += [
-        '%s.cpp' % s for s in SIMPLE_PROGRAMS
-    ]
-
-    LOCAL_INCLUDES += [
-        '/toolkit/mozapps/update',
-        '/toolkit/mozapps/update/common',
+    OS_LIBS += [
+        'shlwapi',
+      ]
+else:
+    USE_LIBS += [
+        'updatecommon',
     ]
 
 for var in ('MOZ_APP_NAME', 'MOZ_APP_BASENAME', 'MOZ_APP_DISPLAYNAME',
@@ -43,3 +57,45 @@ if CONFIG['OS_ARCH'] == 'WINNT':
     DEFINES['UNICODE'] = True
     DEFINES['_UNICODE'] = True
     USE_STATIC_LIBS = True
+    if CONFIG['GNU_CC']:
+        WIN32_EXE_LDFLAGS += ['-municode']
+
+TEST_HARNESS_FILES.testing.mochitest.chrome.toolkit.mozapps.update.tests.data += [
+    'data/shared.js',
+    'data/sharedUpdateXML.js',
+    'data/simple.mar',
+]
+
+FINAL_TARGET_FILES += [
+    'data/complete.exe',
+    'data/complete.mar',
+    'data/complete.png',
+    'data/complete_log_success_mac',
+    'data/complete_log_success_win',
+    'data/complete_mac.mar',
+    'data/complete_precomplete',
+    'data/complete_precomplete_mac',
+    'data/complete_removed-files',
+    'data/complete_removed-files_mac',
+    'data/complete_update_manifest',
+    'data/old_version.mar',
+    'data/partial.exe',
+    'data/partial.mar',
+    'data/partial.png',
+    'data/partial_log_failure_mac',
+    'data/partial_log_failure_win',
+    'data/partial_log_success_mac',
+    'data/partial_log_success_win',
+    'data/partial_mac.mar',
+    'data/partial_precomplete',
+    'data/partial_precomplete_mac',
+    'data/partial_removed-files',
+    'data/partial_removed-files_mac',
+    'data/partial_update_manifest',
+    'data/replace_log_success',
+    'data/shared.js',
+    'data/sharedUpdateXML.js',
+    'data/simple.mar',
+    'data/wrong_product_channel.mar',
+    'data/xpcshellUtilsAUS.js',
+]

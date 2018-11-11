@@ -1,0 +1,41 @@
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+EXTRA_COMPONENTS += [
+    'NotificationStorage.js',
+    'NotificationStorage.manifest',
+]
+
+EXTRA_JS_MODULES += [
+    'NotificationDB.jsm'
+]
+
+EXPORTS.mozilla.dom += [
+    'DesktopNotification.h',
+    'Notification.h',
+    'NotificationEvent.h',
+]
+
+UNIFIED_SOURCES += [
+    'DesktopNotification.cpp',
+    'Notification.cpp',
+    'NotificationEvent.cpp',
+]
+
+include('/ipc/chromium/chromium-config.mozbuild')
+
+FINAL_LIBRARY = 'xul'
+LOCAL_INCLUDES += [
+    '/dom/base',
+    '/dom/ipc',
+    '/dom/workers',
+]
+
+BROWSER_CHROME_MANIFESTS += ['test/browser/browser.ini']
+XPCSHELL_TESTS_MANIFESTS += ['test/unit/xpcshell.ini']
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wno-error=shadow']

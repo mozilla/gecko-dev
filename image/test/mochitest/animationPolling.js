@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 var currentTest;
 var gIsRefImageLoaded = false;
 const gShouldOutputDebugInfo = false;
@@ -80,7 +80,7 @@ function AnimationTest(pollFreq, timeout, referenceElementId, imageElementId,
 {
   // We want to test the cold loading behavior, so clear cache in case an
   // earlier test got our image in there already.
-  clearImageCache();
+  clearAllImageCaches();
 
   this.wereFailures = false;
   this.pollFreq = pollFreq;
@@ -185,6 +185,7 @@ AnimationTest.prototype.takeBlankSnapshot = function()
 AnimationTest.prototype.beginTest = function()
 {
   SimpleTest.waitForExplicitFinish();
+  SimpleTest.requestFlakyTimeout("untriaged");
 
   currentTest = this;
   this.preloadImage();

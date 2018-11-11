@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -9,8 +10,10 @@
 #include "CrossProcessMutex.h"
 #include "nsDebug.h"
 #include "nsISupportsImpl.h"
+#include "ProtocolUtils.h"
 
-using namespace base;
+using base::GetCurrentProcessHandle;
+using base::ProcessHandle;
 
 namespace mozilla {
 
@@ -58,12 +61,11 @@ CrossProcessMutex::Unlock()
 }
 
 CrossProcessMutexHandle
-CrossProcessMutex::ShareToProcess(ProcessHandle aHandle)
+CrossProcessMutex::ShareToProcess(base::ProcessId aTargetPid)
 {
   HANDLE newHandle;
-  bool succeeded = ::DuplicateHandle(GetCurrentProcessHandle(),
-                                     mMutex, aHandle, &newHandle,
-                                     0, FALSE, DUPLICATE_SAME_ACCESS);
+  bool succeeded = ipc::DuplicateHandle(mMutex, aTargetPid, &newHandle,
+                                        0, DUPLICATE_SAME_ACCESS);
 
   if (!succeeded) {
     return nullptr;

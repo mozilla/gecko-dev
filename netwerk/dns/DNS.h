@@ -22,6 +22,10 @@
 #include "winsock2.h"
 #endif
 
+#ifndef AF_LOCAL
+#define AF_LOCAL 1  // used for named pipe
+#endif
+
 #define IPv6ADDR_IS_LOOPBACK(a) \
   (((a)->u32[0] == 0)     &&    \
    ((a)->u32[1] == 0)     &&    \
@@ -103,14 +107,16 @@ union NetAddr {
     IPv6Addr ip;                    /* the actual 128 bits of address */
     uint32_t scope_id;              /* set of interfaces for a scope */
   } inet6;
-#if defined(XP_UNIX)
-  struct {                          /* Unix domain socket address */
+#if defined(XP_UNIX) || defined(XP_WIN)
+  struct {                          /* Unix domain socket or
+                                       Windows Named Pipes address */
     uint16_t family;                /* address family (AF_UNIX) */
     char path[104];                 /* null-terminated pathname */
   } local;
 #endif
-  // introduced to support nsTArray<NetAddr> (for DNSRequestParent.cpp)
+  // introduced to support nsTArray<NetAddr> comparisons and sorting
   bool operator == (const NetAddr& other) const;
+  bool operator < (const NetAddr &other) const;
 };
 
 // This class wraps a NetAddr union to provide C++ linked list
@@ -118,7 +124,7 @@ union NetAddr {
 // which is converted to a mozilla::dns::NetAddr.
 class NetAddrElement : public LinkedListElement<NetAddrElement> {
 public:
-  NetAddrElement(const PRNetAddr *prNetAddr);
+  explicit NetAddrElement(const PRNetAddr *prNetAddr);
   NetAddrElement(const NetAddrElement& netAddr);
   ~NetAddrElement();
 
@@ -130,7 +136,7 @@ public:
   // Creates an AddrInfo object. It calls the AddrInfo(const char*, const char*)
   // to initialize the host and the cname.
   AddrInfo(const char *host, const PRAddrInfo *prAddrInfo, bool disableIPv4,
-           const char *cname);
+           bool filterNameCollision, const char *cname);
 
   // Creates a basic AddrInfo object (initialize only the host and the cname).
   AddrInfo(const char *host, const char *cname);
@@ -142,6 +148,9 @@ public:
 
   char *mHostName;
   char *mCanonicalName;
+  uint16_t ttl;
+  static const uint16_t NO_TTL_DATA = (uint16_t) -1;
+
   LinkedList<NetAddrElement> mAddresses;
 
 private:
@@ -165,6 +174,8 @@ bool IsIPAddrAny(const NetAddr *addr);
 bool IsIPAddrV4Mapped(const NetAddr *addr);
 
 bool IsIPAddrLocal(const NetAddr *addr);
+
+nsresult GetPort(const NetAddr *aAddr, uint16_t *aResult);
 
 } // namespace net
 } // namespace mozilla

@@ -5,7 +5,7 @@
 # This file contains a build backend for generating Visual Studio project
 # files.
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
 import errno
 import os
@@ -20,10 +20,16 @@ from mozpack.files import FileFinder
 from .common import CommonBackend
 from ..frontend.data import (
     Defines,
-    LibraryDefinition,
+    GeneratedSources,
+    HostProgram,
+    HostSources,
+    Library,
     LocalInclude,
-    VariablePassthru,
+    Program,
+    Sources,
+    UnifiedSources,
 )
+from mozbuild.base import ExecutionSummary
 
 
 MSBUILD_NAMESPACE = 'http://schemas.microsoft.com/developer/msbuild/2003'
@@ -31,26 +37,17 @@ MSBUILD_NAMESPACE = 'http://schemas.microsoft.com/developer/msbuild/2003'
 def get_id(name):
     return str(uuid.uuid5(uuid.NAMESPACE_URL, name)).upper()
 
-# TODO validate mappings are correct. only 2010 confirmed so far
-def visual_studio_product_to_internal_version(version, solution=False):
-    if solution:
-        if version == '2010':
-            return '11.00'
-        elif version == '2011':
-            return '12.00'
-        elif version == '2012':
-            return '13.00'
-        else:
-            raise Exception('Unknown version seen: %s' % version)
+def visual_studio_product_to_solution_version(version):
+    if version == '2015':
+        return '12.00', '14'
     else:
-        if version == '2010':
-            return '10.00'
-        elif version == '2011':
-            return '11.00'
-        elif version == '2012':
-            return '12.00'
-        else:
-            raise Exception('Unknown version seen: %s' % version)
+        raise Exception('Unknown version seen: %s' % version)
+
+def visual_studio_product_to_platform_toolset_version(version):
+    if version == '2015':
+        return 'v140'
+    else:
+        raise Exception('Unknown version seen: %s' % version)
 
 class VisualStudioBackend(CommonBackend):
     """Generate Visual Studio project files.
@@ -60,11 +57,6 @@ class VisualStudioBackend(CommonBackend):
 
     This backend is currently considered experimental. There are many things
     not optimal about how it works.
-
-    It's worth noting that lots of file I/O here is not using
-    self._write_file(). That's because we need Windows line endings preserved
-    and self._write_file() currently opens files in text mode, which behaves
-    oddly under MozillaBuild.
     """
 
     def _init(self):
@@ -72,63 +64,123 @@ class VisualStudioBackend(CommonBackend):
 
         # These should eventually evolve into parameters.
         self._out_dir = os.path.join(self.environment.topobjdir, 'msvc')
-        # But making this one a parameter requires testing first.
-        self._version = '2010'
+        self._projsubdir = 'projects'
+
+        self._version = self.environment.substs.get('MSVS_VERSION', '2015')
 
         self._paths_to_sources = {}
         self._paths_to_includes = {}
         self._paths_to_defines = {}
         self._paths_to_configs = {}
         self._libs_to_paths = {}
+        self._progs_to_paths = {}
 
-        def detailed(summary):
-            return 'Generated Visual Studio solution at %s' % (
-                os.path.join(self._out_dir, 'mozilla.sln'))
-
-        self.summary.backend_detailed_summary = types.MethodType(detailed,
-            self.summary)
+    def summary(self):
+        return ExecutionSummary(
+            'VisualStudio backend executed in {execution_time:.2f}s\n'
+            'Generated Visual Studio solution at {path:s}',
+            execution_time=self._execution_time,
+            path=os.path.join(self._out_dir, 'mozilla.sln'))
 
     def consume_object(self, obj):
-        # Just acknowledge everything.
-        obj.ack()
-
         reldir = getattr(obj, 'relativedir', None)
 
         if hasattr(obj, 'config') and reldir not in self._paths_to_configs:
             self._paths_to_configs[reldir] = obj.config
 
-        if isinstance(obj, VariablePassthru):
-            for k, v in obj.variables.items():
-                if k.endswith('SRCS'):
-                    s = self._paths_to_sources.setdefault(reldir, set())
-                    s.update(v)
+        if isinstance(obj, Sources):
+            self._add_sources(reldir, obj)
 
-        elif isinstance(obj, LibraryDefinition):
+        elif isinstance(obj, HostSources):
+            self._add_sources(reldir, obj)
+
+        elif isinstance(obj, GeneratedSources):
+            self._add_sources(reldir, obj)
+
+        elif isinstance(obj, UnifiedSources):
+            # XXX we should be letting CommonBackend.consume_object call this
+            # for us instead.
+            self._process_unified_sources(obj);
+
+        elif isinstance(obj, Library):
             self._libs_to_paths[obj.basename] = reldir
+
+        elif isinstance(obj, Program) or isinstance(obj, HostProgram):
+            self._progs_to_paths[obj.program] = reldir
 
         elif isinstance(obj, Defines):
             self._paths_to_defines.setdefault(reldir, {}).update(obj.defines)
 
         elif isinstance(obj, LocalInclude):
-            p = obj.path
             includes = self._paths_to_includes.setdefault(reldir, [])
+            includes.append(obj.path.full_path)
 
-            if p.startswith('/'):
-                includes.append(os.path.join('$(TopSrcDir)', p[1:]))
-            else:
-                includes.append(os.path.join('$(TopSrcDir)', reldir, p))
+        # Just acknowledge everything.
+        return True
+
+    def _add_sources(self, reldir, obj):
+        s = self._paths_to_sources.setdefault(reldir, set())
+        s.update(obj.files)
+
+    def _process_unified_sources(self, obj):
+        reldir = getattr(obj, 'relativedir', None)
+
+        s = self._paths_to_sources.setdefault(reldir, set())
+        s.update(obj.files)
 
     def consume_finished(self):
         out_dir = self._out_dir
-        try:
-            os.makedirs(out_dir)
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise
+        out_proj_dir = os.path.join(self._out_dir, self._projsubdir)
 
+        projects = self._write_projects_for_sources(self._libs_to_paths,
+            "library", out_proj_dir)
+        projects.update(self._write_projects_for_sources(self._progs_to_paths,
+            "binary", out_proj_dir))
+
+        # Generate projects that can be used to build common targets.
+        for target in ('export', 'binaries', 'tools', 'full'):
+            basename = 'target_%s' % target
+            command = '$(SolutionDir)\\mach.bat build'
+            if target != 'full':
+                command += ' %s' % target
+
+            project_id = self._write_vs_project(out_proj_dir, basename, target,
+                build_command=command,
+                clean_command='$(SolutionDir)\\mach.bat build clean')
+
+            projects[basename] = (project_id, basename, target)
+
+        # A project that can be used to regenerate the visual studio projects.
+        basename = 'target_vs'
+        project_id = self._write_vs_project(out_proj_dir, basename, 'visual-studio',
+            build_command='$(SolutionDir)\\mach.bat build-backend -b VisualStudio')
+        projects[basename] = (project_id, basename, 'visual-studio')
+
+        # Write out a shared property file with common variables.
+        props_path = os.path.join(out_proj_dir, 'mozilla.props')
+        with self._write_file(props_path, mode='rb') as fh:
+            self._write_props(fh)
+
+        # Generate some wrapper scripts that allow us to invoke mach inside
+        # a MozillaBuild-like environment. We currently only use the batch
+        # script. We'd like to use the PowerShell script. However, it seems
+        # to buffer output from within Visual Studio (surely this is
+        # configurable) and the default execution policy of PowerShell doesn't
+        # allow custom scripts to be executed.
+        with self._write_file(os.path.join(out_dir, 'mach.bat'), mode='rb') as fh:
+            self._write_mach_batch(fh)
+
+        with self._write_file(os.path.join(out_dir, 'mach.ps1'), mode='rb') as fh:
+            self._write_mach_powershell(fh)
+
+        # Write out a solution file to tie it all together.
+        solution_path = os.path.join(out_dir, 'mozilla.sln')
+        with self._write_file(solution_path, mode='rb') as fh:
+            self._write_solution(fh, projects)
+
+    def _write_projects_for_sources(self, sources, prefix, out_dir):
         projects = {}
-
-        for lib, path in sorted(self._libs_to_paths.items()):
+        for item, path in sorted(sources.items()):
             config = self._paths_to_configs.get(path, None)
             sources = self._paths_to_sources.get(path, set())
             sources = set(os.path.join('$(TopSrcDir)', path, s) for s in sources)
@@ -154,7 +206,7 @@ class VisualStudioBackend(CommonBackend):
                 if not config:
                     break
 
-                args = config.substs.get(v, '').split()
+                args = config.substs.get(v, [])
 
                 for i, arg in enumerate(args):
                     if arg.startswith('-I'):
@@ -172,88 +224,63 @@ class VisualStudioBackend(CommonBackend):
                 else:
                     defines.append('%s=%s' % (k, v))
 
-            basename = 'library_%s' % lib
-            project_id = self._write_vs_project(out_dir, basename, lib,
+            debugger=None
+            if prefix == 'binary':
+                if item.startswith(self.environment.substs['MOZ_APP_NAME']):
+                    debugger = ('$(TopObjDir)\\dist\\bin\\%s' % item, '-no-remote')
+                else:
+                    debugger = ('$(TopObjDir)\\dist\\bin\\%s' % item, '')
+
+            basename = '%s_%s' % (prefix, item)
+
+            project_id = self._write_vs_project(out_dir, basename, item,
                 includes=includes,
                 forced_includes=['$(TopObjDir)\\dist\\include\\mozilla-config.h'],
                 defines=defines,
                 headers=headers,
-                sources=sources)
+                sources=sources,
+                debugger=debugger)
 
-            projects[basename] = (project_id, basename, lib)
+            projects[basename] = (project_id, basename, item)
 
-        # Generate projects that can be used to build common targets.
-        for target in ('export', 'binaries', 'tools', 'full'):
-            basename = 'target_%s' % target
-            command = '$(SolutionDir)\\mach.bat build'
-            if target != 'full':
-                command += ' %s' % target
-
-            project_id = self._write_vs_project(out_dir, basename, target,
-                build_command=command,
-                clean_command='$(SolutionDir)\\mach.bat build clean')
-
-            projects[basename] = (project_id, basename, target)
-
-        # A project that can be used to regenerate the visual studio projects.
-        basename = 'target_vs'
-        project_id = self._write_vs_project(out_dir, basename, 'visual-studio',
-            build_command='$(SolutionDir)\\mach.bat build-backend -b VisualStudio')
-        projects[basename] = (project_id, basename, 'visual-studio')
-
-        # A project to run the main application binary.
-        app_name = self.environment.substs['MOZ_APP_NAME']
-        basename = 'binary_%s' % app_name
-        project_id = self._write_vs_project(out_dir, basename, app_name,
-            debugger=('$(TopObjDir)\\dist\\bin\\%s.exe' % app_name,
-                '-no-remote'))
-        projects[basename] = (project_id, basename, app_name)
-
-        # Projects to run other common binaries.
-        for app in ['js', 'xpcshell']:
-            basename = 'binary_%s' % app
-            project_id = self._write_vs_project(out_dir, basename, app,
-                debugger=('$(TopObjDir)\\dist\\bin\\%s.exe' % app, ''))
-            projects[basename] = (project_id, basename, app)
-
-        # Write out a shared property file with common variables.
-        props_path = os.path.join(out_dir, 'mozilla.props')
-        with open(props_path, 'wb') as fh:
-            self._write_props(fh)
-
-        # Generate some wrapper scripts that allow us to invoke mach inside
-        # a MozillaBuild-like environment. We currently only use the batch
-        # script. We'd like to use the PowerShell script. However, it seems
-        # to buffer output from within Visual Studio (surely this is
-        # configurable) and the default execution policy of PowerShell doesn't
-        # allow custom scripts to be executed.
-        with open(os.path.join(out_dir, 'mach.bat'), 'wb') as fh:
-            self._write_mach_batch(fh)
-
-        with open(os.path.join(out_dir, 'mach.ps1'), 'wb') as fh:
-            self._write_mach_powershell(fh)
-
-        # Write out a solution file to tie it all together.
-        solution_path = os.path.join(out_dir, 'mozilla.sln')
-        with open(solution_path, 'wb') as fh:
-            self._write_solution(fh, projects)
+        return projects
 
     def _write_solution(self, fh, projects):
-        version = visual_studio_product_to_internal_version(self._version, True)
+        # Visual Studio appears to write out its current version in the
+        # solution file. Instead of trying to figure out what version it will
+        # write, try to parse the version out of the existing file and use it
+        # verbatim.
+        vs_version = None
+        try:
+            with open(fh.name, 'rb') as sfh:
+                for line in sfh:
+                    if line.startswith(b'VisualStudioVersion = '):
+                        vs_version = line.split(b' = ', 1)[1].strip()
+        except IOError as e:
+            if e.errno != errno.ENOENT:
+                raise
+
+        format_version, comment_version = visual_studio_product_to_solution_version(self._version)
         # This is a Visual C++ Project type.
         project_type = '8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942'
 
         # Visual Studio seems to require this header.
         fh.write('Microsoft Visual Studio Solution File, Format Version %s\r\n' %
-            version)
-        fh.write('# Visual Studio %s\r\n' % self._version)
+                 format_version)
+        fh.write('# Visual Studio %s\r\n' % comment_version)
+
+        if vs_version:
+            fh.write('VisualStudioVersion = %s\r\n' % vs_version)
+
+        # Corresponds to VS2013.
+        fh.write('MinimumVisualStudioVersion = 12.0.31101.0\r\n')
 
         binaries_id = projects['target_binaries'][0]
 
         # Write out entries for each project.
         for key in sorted(projects):
             project_id, basename, name = projects[key]
-            path = '%s.vcxproj' % basename
+            path = os.path.join(self._projsubdir, '%s.vcxproj' % basename)
 
             fh.write('Project("{%s}") = "%s", "%s", "{%s}"\r\n' % (
                 project_type, name, path, project_id))
@@ -425,11 +452,13 @@ class VisualStudioBackend(CommonBackend):
 
     def _write_vs_project(self, out_dir, basename, name, **kwargs):
         root = '%s.vcxproj' % basename
-        with open(os.path.join(out_dir, root), 'wb') as fh:
-            project_id, name = VisualStudioBackend.write_vs_project(fh,
-                self._version, name, **kwargs)
+        project_id = get_id(basename.encode('utf-8'))
 
-        with open(os.path.join(out_dir, '%s.user' % root), 'w') as fh:
+        with self._write_file(os.path.join(out_dir, root), mode='rb') as fh:
+            project_id, name = VisualStudioBackend.write_vs_project(fh,
+                self._version, project_id, name, **kwargs)
+
+        with self._write_file(os.path.join(out_dir, '%s.user' % root), mode='rb') as fh:
             fh.write('<?xml version="1.0" encoding="utf-8"?>\r\n')
             fh.write('<Project ToolsVersion="4.0" xmlns="%s">\r\n' %
                 MSBUILD_NAMESPACE)
@@ -438,12 +467,10 @@ class VisualStudioBackend(CommonBackend):
         return project_id
 
     @staticmethod
-    def write_vs_project(fh, version, name, includes=[],
+    def write_vs_project(fh, version, project_id, name, includes=[],
         forced_includes=[], defines=[],
         build_command=None, clean_command=None,
         debugger=None, headers=[], sources=[]):
-
-        project_id = get_id(name.encode('utf-8'))
 
         impl = getDOMImplementation()
         doc = impl.createDocument(MSBUILD_NAMESPACE, 'Project', None)
@@ -479,6 +506,9 @@ class VisualStudioBackend(CommonBackend):
 
         rn = pg.appendChild(doc.createElement('RootNamespace'))
         rn.appendChild(doc.createTextNode('mozilla'))
+
+        pts = pg.appendChild(doc.createElement('PlatformToolset'))
+        pts.appendChild(doc.createTextNode(visual_studio_product_to_platform_toolset_version(version)))
 
         i = project.appendChild(doc.createElement('Import'))
         i.setAttribute('Project', '$(VCTargetsPath)\\Microsoft.Cpp.Default.props')

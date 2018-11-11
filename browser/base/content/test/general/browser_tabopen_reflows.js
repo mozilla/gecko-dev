@@ -14,7 +14,8 @@ const EXPECTED_REFLOWS = [
     "onxbltransitionend@chrome://browser/content/tabbrowser.xml|",
 
   // switching focus in updateCurrentBrowser() causes reflows
-  "updateCurrentBrowser@chrome://browser/content/tabbrowser.xml|" +
+  "_adjustFocusAfterTabSwitch@chrome://browser/content/tabbrowser.xml|" +
+    "updateCurrentBrowser@chrome://browser/content/tabbrowser.xml|" +
     "onselect@chrome://browser/content/browser.xul|",
 
   // switching focus in openLinkIn() causes reflows
@@ -28,31 +29,20 @@ const EXPECTED_REFLOWS = [
     "_handleNewTab@chrome://browser/content/tabbrowser.xml|" +
     "onxbltransitionend@chrome://browser/content/tabbrowser.xml|",
 
-  // The TabView iframe causes reflows in the parent document.
-  "iQClass_height@chrome://browser/content/tabview.js|" +
-    "GroupItem_getContentBounds@chrome://browser/content/tabview.js|" +
-    "GroupItem_shouldStack@chrome://browser/content/tabview.js|" +
-    "GroupItem_arrange@chrome://browser/content/tabview.js|" +
-    "GroupItem_add@chrome://browser/content/tabview.js|" +
-    "GroupItems_newTab@chrome://browser/content/tabview.js|" +
-    "TabItem__reconnect@chrome://browser/content/tabview.js|" +
-    "TabItem@chrome://browser/content/tabview.js|" +
-    "TabItems_link@chrome://browser/content/tabview.js|" +
-    "TabItems_init/this._eventListeners.open@chrome://browser/content/tabview.js|",
-
   // SessionStore.getWindowDimensions()
   "ssi_getWindowDimension@resource:///modules/sessionstore/SessionStore.jsm|" +
-    "@resource:///modules/sessionstore/SessionStore.jsm|" +
+    "ssi_updateWindowFeatures/<@resource:///modules/sessionstore/SessionStore.jsm|" +
     "ssi_updateWindowFeatures@resource:///modules/sessionstore/SessionStore.jsm|" +
     "ssi_collectWindowData@resource:///modules/sessionstore/SessionStore.jsm|",
 
-  // tabPreviews.capture()
-  "tabPreviews_capture@chrome://browser/content/browser.js|" +
-    "tabPreviews_handleEvent/<@chrome://browser/content/browser.js|",
+  // selection change notification may cause querying the focused editor content
+  // by IME and that will cause reflow.
+  "select@chrome://global/content/bindings/textbox.xml|" +
+    "focusAndSelectUrlBar@chrome://browser/content/browser.js|" +
+    "openLinkIn@chrome://browser/content/utilityOverlay.js|" +
+    "openUILinkIn@chrome://browser/content/utilityOverlay.js|" +
+    "BrowserOpenTab@chrome://browser/content/browser.js|",
 
-  // tabPreviews.capture()
-  "tabPreviews_capture@chrome://browser/content/browser.js|" +
-    "@chrome://browser/content/browser.js|"
 ];
 
 const PREF_PRELOAD = "browser.newtab.preload";
@@ -62,9 +52,8 @@ const PREF_NEWTAB_DIRECTORYSOURCE = "browser.newtabpage.directory.source";
  * This test ensures that there are no unexpected
  * uninterruptible reflows when opening new tabs.
  */
-function test() {
-  waitForExplicitFinish();
-  let DirectoryLinksProvider = Cu.import("resource://gre/modules/DirectoryLinksProvider.jsm", {}).DirectoryLinksProvider;
+add_task(function*() {
+  let DirectoryLinksProvider = Cu.import("resource:///modules/DirectoryLinksProvider.jsm", {}).DirectoryLinksProvider;
   let NewTabUtils = Cu.import("resource://gre/modules/NewTabUtils.jsm", {}).NewTabUtils;
   let Promise = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
 
@@ -83,35 +72,47 @@ function test() {
     observer.onDownloadFail = observer.onManyLinksChanged;
     DirectoryLinksProvider.addObserver(observer);
     return deferred.promise;
-  };
+  }
 
+  let gOrigDirectorySource = Services.prefs.getCharPref(PREF_NEWTAB_DIRECTORYSOURCE);
   registerCleanupFunction(() => {
     Services.prefs.clearUserPref(PREF_PRELOAD);
-    Services.prefs.clearUserPref(PREF_NEWTAB_DIRECTORYSOURCE);
+    Services.prefs.setCharPref(PREF_NEWTAB_DIRECTORYSOURCE, gOrigDirectorySource);
     return watchLinksChangeOnce();
   });
 
-  // run tests when directory source change completes
-  watchLinksChangeOnce().then(() => {
-    // Add a reflow observer and open a new tab.
-    docShell.addWeakReflowObserver(observer);
-    BrowserOpenTab();
-
-    // Wait until the tabopen animation has finished.
-    waitForTransitionEnd(function () {
-      // Remove reflow observer and clean up.
-      docShell.removeWeakReflowObserver(observer);
-      gBrowser.removeCurrentTab();
-      finish();
-    });
-  });
-
   Services.prefs.setBoolPref(PREF_PRELOAD, false);
-  // set directory source to empty links
-  Services.prefs.setCharPref(PREF_NEWTAB_DIRECTORYSOURCE, "data:application/json,{}");
-}
+  // set directory source to dummy/empty links
+  Services.prefs.setCharPref(PREF_NEWTAB_DIRECTORYSOURCE, 'data:application/json,{"test":1}');
 
-let observer = {
+  // run tests when directory source change completes
+  yield watchLinksChangeOnce();
+
+  // Perform a click in the top left of content to ensure the mouse isn't
+  // hovering over any of the tiles
+  let target = gBrowser.selectedBrowser;
+  let rect = target.getBoundingClientRect();
+  let left = rect.left + 1;
+  let top = rect.top + 1;
+
+  let utils = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                    .getInterface(Ci.nsIDOMWindowUtils);
+  utils.sendMouseEvent("mousedown", left, top, 0, 1, 0, false, 0, 0);
+  utils.sendMouseEvent("mouseup", left, top, 0, 1, 0, false, 0, 0);
+
+  // Add a reflow observer and open a new tab.
+  docShell.addWeakReflowObserver(observer);
+  BrowserOpenTab();
+
+  // Wait until the tabopen animation has finished.
+  yield waitForTransitionEnd();
+
+  // Remove reflow observer and clean up.
+  docShell.removeWeakReflowObserver(observer);
+  gBrowser.removeCurrentTab();
+});
+
+var observer = {
   reflow: function (start, end) {
     // Gather information about the current code path.
     let path = (new Error().stack).split("\n").slice(1).map(line => {
@@ -143,12 +144,14 @@ let observer = {
                                          Ci.nsISupportsWeakReference])
 };
 
-function waitForTransitionEnd(callback) {
-  let tab = gBrowser.selectedTab;
-  tab.addEventListener("transitionend", function onEnd(event) {
-    if (event.propertyName === "max-width") {
-      tab.removeEventListener("transitionend", onEnd);
-      executeSoon(callback);
-    }
+function waitForTransitionEnd() {
+  return new Promise(resolve => {
+    let tab = gBrowser.selectedTab;
+    tab.addEventListener("transitionend", function onEnd(event) {
+      if (event.propertyName === "max-width") {
+        tab.removeEventListener("transitionend", onEnd);
+        resolve();
+      }
+    });
   });
 }

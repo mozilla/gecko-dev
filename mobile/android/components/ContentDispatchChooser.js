@@ -5,6 +5,7 @@
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 const Cc = Components.classes;
+const Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -19,8 +20,10 @@ ContentDispatchChooser.prototype =
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIContentDispatchChooser]),
 
   get protoSvc() {
-    delete this.protoSvc;
-    return this.protoSvc = Cc["@mozilla.org/uriloader/external-protocol-service;1"].getService(Ci.nsIExternalProtocolService);
+    if (!this._protoSvc) {
+      this._protoSvc = Cc["@mozilla.org/uriloader/external-protocol-service;1"].getService(Ci.nsIExternalProtocolService);
+    }
+    return this._protoSvc;
   },
 
   _getChromeWin: function getChromeWin() {
@@ -47,26 +50,32 @@ ContentDispatchChooser.prototype =
     if (aHandler.possibleApplicationHandlers.length > 1) {
       aHandler.launchWithURI(aURI, aWindowContext);
     } else {
+      // xpcshell tests do not have an Android Bridge but we require Android
+      // Bridge when using Messaging so we guard against this case. xpcshell
+      // tests also do not have a window, so we use this state to guard.
       let win = this._getChromeWin();
-      if (win && win.NativeWindow) {
-        let bundle = Services.strings.createBundle("chrome://browser/locale/handling.properties");
-        let failedText = bundle.GetStringFromName("protocol.failed");
-        let searchText = bundle.GetStringFromName("protocol.toast.search");
-
-        win.NativeWindow.toast.show(failedText, "long", {
-          button: {
-            label: searchText,
-            callback: function() {
-              let message = {
-                type: "Intent:Open",
-                url: "market://search?q=" + aURI.scheme,
-              };
-
-              sendMessageToJava(message);
-            }
-          }
-        });
+      if (!win) {
+        return;
       }
+
+      let msg = {
+        type: "Intent:OpenNoHandler",
+        uri: aURI.spec,
+      };
+
+      Messaging.sendRequestForResult(msg).then(() => {
+        // Java opens an app on success: take no action.
+      }, (uri) => {
+        // We couldn't open this. If this was from a click, it's likely that we just
+        // want this to fail silently. If the user entered this on the address bar, though,
+        // we want to show the neterror page.
+
+        let dwu = window.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+        let millis = dwu.millisSinceLastUserInput;
+        if (millis > 0 && millis >= 1000) {
+          window.location.href = uri;
+        }
+      });
     }
   },
 };

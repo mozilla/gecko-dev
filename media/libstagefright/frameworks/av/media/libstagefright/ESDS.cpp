@@ -26,12 +26,17 @@
 namespace stagefright {
 
 ESDS::ESDS(const void *data, size_t size)
-    : mData(new uint8_t[size]),
+    : mData(new (mozilla::fallible) uint8_t[size]),
       mSize(size),
       mInitCheck(NO_INIT),
       mDecoderSpecificOffset(0),
       mDecoderSpecificLength(0),
       mObjectTypeIndication(0) {
+    if (!mData) {
+      mInitCheck = ERROR_BUFFER_TOO_SMALL;
+      return;
+    }
+
     memcpy(mData, data, size);
 
     mInitCheck = parse();
@@ -138,6 +143,9 @@ status_t ESDS::parseESDescriptor(size_t offset, size_t size) {
 
     if (streamDependenceFlag) {
         offset += 2;
+        if (size <= 2) {
+            return ERROR_MALFORMED;
+        }
         size -= 2;
     }
 
@@ -147,14 +155,21 @@ status_t ESDS::parseESDescriptor(size_t offset, size_t size) {
         }
         unsigned URLlength = mData[offset];
         offset += URLlength + 1;
+        if (size <= URLlength + 1) {
+            return ERROR_MALFORMED;
+        }
         size -= URLlength + 1;
     }
 
     if (OCRstreamFlag) {
         offset += 2;
+        if (size <= 2) {
+            return ERROR_MALFORMED;
+        }
         size -= 2;
 
         if ((offset >= size || mData[offset] != kTag_DecoderConfigDescriptor)
+                && offset >= 2
                 && offset - 2 < size
                 && mData[offset - 2] == kTag_DecoderConfigDescriptor) {
             // Content found "in the wild" had OCRstreamFlag set but was

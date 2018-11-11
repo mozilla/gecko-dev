@@ -1,27 +1,49 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/ar_SA.xml
-// *
-// ***************************************************************************
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 ar_SA{
     NumberElements{
         latn{
-            patterns{
-                currencyFormat{"¤#0.00"}
+            symbols{
+                percentSign{"٪"}
             }
         }
     }
-    Version{"2.0.92.87"}
+    Version{"2.1.27.99"}
     calendar{
-        islamic{
-            availableFormats{
-                MEd{"E, M/d"}
-                MMMEd{"E, MMM d"}
-                MMMd{"MMM d"}
-                Md{"M/d"}
+        default{"islamic-umalqura"}
+        gregorian{
+            dayPeriod{
+                format{
+                    abbreviated{
+                        afternoon1{"ظهرًا"}
+                        afternoon2{"بعد الظهر"}
+                        evening1{"مساءً"}
+                        morning1{"فجرًا"}
+                        morning2{"ص"}
+                        night1{"منتصف الليل"}
+                        night2{"ل"}
+                    }
+                }
+                stand-alone{
+                    abbreviated{
+                        afternoon1{"ظهرًا"}
+                        afternoon2{"بعد الظهر"}
+                        evening1{"مساءً"}
+                        morning1{"فجرًا"}
+                        morning2{"ص"}
+                        night1{"منتصف الليل"}
+                        night2{"ليلاً"}
+                    }
+                    narrow{
+                        afternoon1{"ظهرًا"}
+                        afternoon2{"بعد الظهر"}
+                        evening1{"مساءً"}
+                        morning1{"فجرًا"}
+                        morning2{"صباحًا"}
+                        night1{"منتصف الليل"}
+                        night2{"ليلاً"}
+                    }
+                }
             }
         }
     }

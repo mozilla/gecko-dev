@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -43,7 +44,7 @@ nsSMILValue
 nsSMILMappedAttribute::GetBaseValue() const
 {
   nsAutoString baseStringValue;
-  nsRefPtr<nsIAtom> attrName = GetAttrNameAtom();
+  RefPtr<nsIAtom> attrName = GetAttrNameAtom();
   bool success = mElement->GetAttr(kNameSpaceID_None, attrName,
                                      baseStringValue);
   nsSMILValue baseValue;
@@ -91,7 +92,7 @@ nsSMILMappedAttribute::SetAnimValue(const nsSMILValue& aValue)
     return NS_ERROR_FAILURE;
   }
 
-  nsRefPtr<nsIAtom> attrName = GetAttrNameAtom();
+  RefPtr<nsIAtom> attrName = GetAttrNameAtom();
   nsStringBuffer* oldValStrBuf = static_cast<nsStringBuffer*>
     (mElement->GetProperty(SMIL_MAPPED_ATTR_ANIMVAL, attrName));
   if (oldValStrBuf) {
@@ -120,7 +121,7 @@ nsSMILMappedAttribute::SetAnimValue(const nsSMILValue& aValue)
 void
 nsSMILMappedAttribute::ClearAnimValue()
 {
-  nsRefPtr<nsIAtom> attrName = GetAttrNameAtom();
+  RefPtr<nsIAtom> attrName = GetAttrNameAtom();
   mElement->DeleteProperty(SMIL_MAPPED_ATTR_ANIMVAL, attrName);
   FlushChangesToTargetAttr();
 }
@@ -131,7 +132,7 @@ nsSMILMappedAttribute::FlushChangesToTargetAttr() const
   // Clear animated content-style-rule
   mElement->DeleteProperty(SMIL_MAPPED_ATTR_ANIMVAL,
                            SMIL_MAPPED_ATTR_STYLERULE_ATOM);
-  nsIDocument* doc = mElement->GetCurrentDoc();
+  nsIDocument* doc = mElement->GetUncomposedDoc();
 
   // Request animation restyle
   if (doc) {
@@ -145,5 +146,5 @@ nsSMILMappedAttribute::FlushChangesToTargetAttr() const
 already_AddRefed<nsIAtom>
 nsSMILMappedAttribute::GetAttrNameAtom() const
 {
-  return do_GetAtom(nsCSSProps::GetStringValue(mPropID));
+  return NS_Atomize(nsCSSProps::GetStringValue(mPropID));
 }

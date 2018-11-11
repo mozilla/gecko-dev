@@ -4,11 +4,12 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="fill_parent"
+              android:layout_width="match_parent"
               android:layout_height="wrap_content"
               android:minHeight="?android:attr/listPreferredItemHeight"
               android:gravity="center_vertical"
-              android:paddingLeft="15dp"
+              android:paddingLeft="?android:attr/listPreferredItemPaddingLeft"
+              android:paddingStart="?android:attr/listPreferredItemPaddingStart"
               android:paddingRight="?android:attr/scrollbarSize">
 
     <org.mozilla.gecko.widget.FaviconView

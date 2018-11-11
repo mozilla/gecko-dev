@@ -2,14 +2,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
 import sys
 import os
 import stat
 import platform
-import urllib2
 import errno
+import subprocess
 
 from mach.decorators import (
     CommandArgument,
@@ -17,20 +17,11 @@ from mach.decorators import (
     Command,
 )
 
-from mozbuild.base import MachCommandBase
+from mozbuild.base import MachCommandBase, MozbuildObject
 
 
 @CommandProvider
 class SearchProvider(object):
-    @Command('mxr', category='misc',
-        description='Search for something in MXR.')
-    @CommandArgument('term', nargs='+', help='Term(s) to search for.')
-    def mxr(self, term):
-        import webbrowser
-        term = ' '.join(term)
-        uri = 'https://mxr.mozilla.org/mozilla-central/search?string=%s' % term
-        webbrowser.open_new_tab(uri)
-
     @Command('dxr', category='misc',
         description='Search for something in DXR.')
     @CommandArgument('term', nargs='+', help='Term(s) to search for.')
@@ -61,87 +52,12 @@ class SearchProvider(object):
     @Command('search', category='misc',
         description='Search for something on the Internets. '
         'This will open 3 new browser tabs and search for the term on Google, '
-        'MDN, and MXR.')
+        'MDN, and DXR.')
     @CommandArgument('term', nargs='+', help='Term(s) to search for.')
     def search(self, term):
         self.google(term)
         self.mdn(term)
-        self.mxr(term)
-
-
-class Interface(object):
-    '''
-    Represents an XPIDL interface, in what file it is defined, what it derives
-    from, what its uuid is, and where in the source file the uuid is.
-    '''
-    def __init__(self, filename, production):
-        import xpidl
-        assert isinstance(production, xpidl.Interface)
-        self.name = production.name
-        self.base = production.base
-        self.filename = filename
-        self.uuid = production.attributes.uuid
-        location = production.location
-        data = location._lexdata
-        attr_pos = data.rfind(b'[', 0, location._lexpos)
-        # uuid is always lowercase, but actual file content may not be.
-        self.uuid_pos = data[attr_pos:location._lexpos].lower() \
-                        .rfind(self.uuid) + attr_pos
-
-
-class InterfaceRegistry(object):
-    '''
-    Tracks XPIDL interfaces, and allow to search them by name and by the
-    interface they derive from.
-    '''
-    def __init__(self):
-        self.by_name = {}
-        self.by_base = {}
-
-    def get_by_name(self, name):
-        return self.by_name.get(name, [])
-
-    def get_by_base(self, base):
-        return self.by_base.get(base, [])
-
-    def add(self, interface):
-        l = self.by_name.setdefault(interface.name, [])
-        l.append(interface)
-        l = self.by_base.setdefault(interface.base, [])
-        l.append(interface)
-
-
-class IDLUpdater(object):
-    '''
-    Updates interfaces uuids in IDL files.
-    '''
-    def __init__(self, interfaces):
-        from mozpack.copier import FileRegistry
-        self.interfaces = interfaces;
-        self.registry = FileRegistry()
-
-    def add(self, name):
-        for interface in self.interfaces.get_by_name(name):
-            self._add(interface)
-
-    def _add(self, interface):
-        from mozpack.files import GeneratedFile
-        from uuid import uuid4
-        path = interface.filename
-        if not self.registry.contains(path):
-            self.registry.add(path, GeneratedFile(open(path).read()))
-        content = self.registry[path].content
-        content = content[:interface.uuid_pos] + str(uuid4()) + \
-                  content[interface.uuid_pos + len(interface.uuid):]
-        self.registry[path].content = content
-
-        # Recurse through all the interfaces deriving from this one
-        for derived in self.interfaces.get_by_base(interface.name):
-            self._add(derived)
-
-    def update(self):
-        for p, f in self.registry:
-            f.copy(p)
+        self.dxr(term)
 
 
 @CommandProvider
@@ -163,46 +79,59 @@ class UUIDProvider(object):
             pairs = tuple(map(lambda n: u[n:n+2], range(16, 32, 2)))
             print(('  { ' + '0x%s, ' * 7 + '0x%s } }') % pairs)
 
-    @Command('update-uuids', category='misc',
-        description='Update IDL files with new UUIDs.')
-    @CommandArgument('--path', default='.',
-                     help='Base path under which uuids will be searched.')
-    @CommandArgument('interfaces', nargs='+',
-                     help='Changed interfaces whose UUIDs need to be updated. ' +
-                          'Their descendants are updated as well.')
-    def update_uuids(self, path, interfaces):
-        import os
-        import xpidl
-        from mozpack.files import FileFinder
-        import mozpack.path
-        from tempfile import mkdtemp
 
-        finder = FileFinder(path, find_executables=False)
-        # Avoid creating xpidllex and xpidlyacc in the current directory.
-        tmpdir = mkdtemp()
-        try:
-            parser = xpidl.IDLParser(outputdir=tmpdir)
-            registry = InterfaceRegistry()
-            for p, f in finder.find('**/*.idl'):
-                p = mozpack.path.join(path, p)
+@CommandProvider
+class RageProvider(MachCommandBase):
+    @Command('rage', category='misc',
+             description='Express your frustration')
+    def rage(self):
+        """Have a bad experience developing Firefox? Run this command to
+        express your frustration.
+
+        This command will open your default configured web browser to a short
+        form where you can submit feedback. Just close the tab when done.
+        """
+        import getpass
+        import urllib
+        import webbrowser
+
+        # Try to resolve the current user.
+        user = None
+        with open(os.devnull, 'wb') as null:
+            if os.path.exists(os.path.join(self.topsrcdir, '.hg')):
                 try:
-                    content = f.open().read()
-                    idl = parser.parse(content, filename=p)
-                except Exception:
-                    continue
-                for prod in idl.productions:
-                    if isinstance(prod, xpidl.Interface):
-                         registry.add(Interface(p, prod))
-        finally:
-            import shutil
-            shutil.rmtree(tmpdir)
+                    user = subprocess.check_output(['hg', 'config',
+                                                    'ui.username'],
+                                                   cwd=self.topsrcdir,
+                                                   stderr=null)
 
-        updates = IDLUpdater(registry)
+                    i = user.find('<')
+                    if i >= 0:
+                        user = user[i + 1:-2]
+                except subprocess.CalledProcessError:
+                    pass
+            elif os.path.exists(os.path.join(self.topsrcdir, '.git')):
+                try:
+                    user = subprocess.check_output(['git', 'config', '--get',
+                                                    'user.email'],
+                                                   cwd=self.topsrcdir,
+                                                   stderr=null)
+                except subprocess.CalledProcessError:
+                    pass
 
-        for interface in interfaces:
-            updates.add(interface)
+        if not user:
+            try:
+                user = getpass.getuser()
+            except Exception:
+                pass
 
-        updates.update()
+        url = 'https://docs.google.com/a/mozilla.com/forms/d/e/1FAIpQLSeDVC3IXJu5d33Hp_ZTCOw06xEUiYH1pBjAqJ1g_y63sO2vvA/viewform'
+        if user:
+            url += '?entry.1281044204=%s' % urllib.quote(user)
+
+        print('Please leave your feedback in the opened web form')
+        webbrowser.open_new_tab(url)
+
 
 @CommandProvider
 class PastebinProvider(object):
@@ -210,7 +139,7 @@ class PastebinProvider(object):
         description='Command line interface to pastebin.mozilla.org.')
     @CommandArgument('--language', default=None,
                      help='Language to use for syntax highlighting')
-    @CommandArgument('--poster', default=None,
+    @CommandArgument('--poster', default='',
                      help='Specify your name for use with pastebin.mozilla.org')
     @CommandArgument('--duration', default='day',
                      choices=['d', 'day', 'm', 'month', 'f', 'forever'],
@@ -219,10 +148,10 @@ class PastebinProvider(object):
                      help='Specify the file to upload to pastebin.mozilla.org')
 
     def pastebin(self, language, poster, duration, file):
-        import sys
         import urllib
+        import urllib2
 
-        URL = 'http://pastebin.mozilla.org/'
+        URL = 'https://pastebin.mozilla.org/'
 
         FILE_TYPES = [{'value': 'text', 'name': 'None', 'extension': 'txt'},
         {'value': 'bash', 'name': 'Bash', 'extension': 'sh'},
@@ -293,36 +222,19 @@ class PastebinProvider(object):
 
 
 @CommandProvider
-class ReviewboardToolsProvider(MachCommandBase):
-    @Command('rbt', category='devenv', allow_all_args=True,
-        description='Run Reviewboard Tools')
-    @CommandArgument('args', nargs='...', help='Arguments to rbt tool')
-    def rbt(self, args):
-        if not args:
-            args = ['help']
-
-        self._activate_virtualenv()
-        self.virtualenv_manager.install_pip_package('RBTools==0.6')
-
-        from rbtools.commands.main import main
-
-        # main() doesn't accept arguments and instead reads from sys.argv. So,
-        # we fake it out.
-        sys.argv = ['rbt'] + args
-        return main()
-
-@CommandProvider
 class FormatProvider(MachCommandBase):
     @Command('clang-format', category='misc',
         description='Run clang-format on current changes')
     @CommandArgument('--show', '-s', action = 'store_true',
         help = 'Show diff output on instead of applying changes')
     def clang_format(self, show=False):
+        import urllib2
+
         plat = platform.system()
         fmt = plat.lower() + "/clang-format-3.5"
         fmt_diff = "clang-format-diff-3.5"
 
-        # We are currently using a modified verion of clang-format hosted on people.mozilla.org.
+        # We are currently using a modified version of clang-format hosted on people.mozilla.org.
         # This is a temporary work around until we upstream the necessary changes and we can use
         # a system version of clang-format. See bug 961541.
         if plat == "Windows":
@@ -394,3 +306,59 @@ class FormatProvider(MachCommandBase):
             os.rename(temp, target)
         return target
 
+def mozregression_import():
+    # Lazy loading of mozregression.
+    # Note that only the mach_interface module should be used from this file.
+    try:
+        import mozregression.mach_interface
+    except ImportError:
+        return None
+    return mozregression.mach_interface
+
+
+def mozregression_create_parser():
+    # Create the mozregression command line parser.
+    # if mozregression is not installed, or not up to date, it will
+    # first be installed.
+    cmd = MozbuildObject.from_environment()
+    cmd._activate_virtualenv()
+    mozregression = mozregression_import()
+    if not mozregression:
+        # mozregression is not here at all, install it
+        cmd.virtualenv_manager.install_pip_package('mozregression')
+        print("mozregression was installed. please re-run your"
+              " command. If you keep getting this message please "
+              " manually run: 'pip install -U mozregression'.")
+    else:
+        # check if there is a new release available
+        release = mozregression.new_release_on_pypi()
+        if release:
+            print(release)
+            # there is one, so install it. Note that install_pip_package
+            # does not work here, so just run pip directly.
+            cmd.virtualenv_manager._run_pip([
+                'install',
+                'mozregression==%s' % release
+            ])
+            print("mozregression was updated to version %s. please"
+                  " re-run your command." % release)
+        else:
+            # mozregression is up to date, return the parser.
+            return mozregression.parser()
+    # exit if we updated or installed mozregression because
+    # we may have already imported mozregression and running it
+    # as this may cause issues.
+    sys.exit(0)
+
+
+@CommandProvider
+class MozregressionCommand(MachCommandBase):
+    @Command('mozregression',
+             category='misc',
+             description=("Regression range finder for nightly"
+                          " and inbound builds."),
+             parser=mozregression_create_parser)
+    def run(self, **options):
+        self._activate_virtualenv()
+        mozregression = mozregression_import()
+        mozregression.run(options)

@@ -4,9 +4,9 @@
 
 "use strict";
 
-let button, menuButton;
+var button, menuButton;
 /* Clicking a button should close the panel */
-add_task(function() {
+add_task(function*() {
   button = document.createElement("toolbarbutton");
   button.id = "browser_940307_button";
   button.setAttribute("label", "Button");
@@ -19,7 +19,7 @@ add_task(function() {
 });
 
 /* Clicking a menu button should close the panel, opening the popup shouldn't.  */
-add_task(function() {
+add_task(function*() {
   menuButton = document.createElement("toolbarbutton");
   menuButton.setAttribute("type", "menu-button");
   menuButton.id = "browser_940307_menubutton";
@@ -67,6 +67,11 @@ add_task(function*() {
   yield PanelUI.show();
   yield waitForCondition(() => "value" in searchbar && searchbar.value === "");
 
+  // Focusing a non-empty searchbox will cause us to open the
+  // autocomplete panel and search for suggestions, which would
+  // trigger network requests. Temporarily disable suggestions.
+  yield SpecialPowers.pushPrefEnv({set: [["browser.search.suggest.enabled", false]]});
+
   searchbar.value = "foo";
   searchbar.focus();
   // Reaching into this context menu is pretty evil, but hey... it's a test.
@@ -83,12 +88,20 @@ add_task(function*() {
   EventUtils.synthesizeMouseAtCenter(selectAll, {});
   yield contextMenuHidden;
 
+  // Hide the suggestion panel.
+  searchbar.textbox.popup.hidePopup();
+
   ok(isPanelUIOpen(), "Panel should still be open");
 
   let hiddenPanelPromise = promisePanelHidden(window);
   EventUtils.synthesizeKey("VK_ESCAPE", {});
   yield hiddenPanelPromise;
   ok(!isPanelUIOpen(), "Panel should no longer be open");
+
+  // We focused the search bar earlier - ensure we don't keep doing that.
+  gURLBar.select();
+
+  CustomizableUI.reset();
 });
 
 add_task(function*() {
@@ -121,4 +134,3 @@ registerCleanupFunction(function() {
     PanelUI.hide();
   }
 });
-

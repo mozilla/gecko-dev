@@ -4,20 +4,24 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html
+ * https://webaudio.github.io/web-audio-api/
  *
  * Copyright © 2012 W3C® (MIT, ERCIM, Keio), All Rights Reserved. W3C
  * liability, trademark and document use rules apply.
  */
 
+[Pref="dom.webaudio.enabled"]
 interface DynamicsCompressorNode : AudioNode {
 
     readonly attribute AudioParam threshold; // in Decibels
     readonly attribute AudioParam knee; // in Decibels
     readonly attribute AudioParam ratio; // unit-less
-    readonly attribute AudioParam reduction; // in Decibels
+    readonly attribute float reduction; // in Decibels
     readonly attribute AudioParam attack; // in Seconds
     readonly attribute AudioParam release; // in Seconds
 
 };
+
+// Mozilla extension
+DynamicsCompressorNode implements AudioNodePassThrough;
 

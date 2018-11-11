@@ -6,30 +6,50 @@
 #ifndef nsXULAlerts_h__
 #define nsXULAlerts_h__
 
+#include "nsCycleCollectionParticipant.h"
+#include "nsDataHashtable.h"
 #include "nsHashKeys.h"
 #include "nsInterfaceHashtable.h"
 
-#include "nsIDOMWindow.h"
+#include "mozIDOMWindow.h"
 #include "nsIObserver.h"
 
-class nsXULAlerts {
+struct PendingAlert
+{
+  void Init(nsIAlertNotification* aAlert, nsIObserver* aListener)
+  {
+    mAlert = aAlert;
+    mListener = aListener;
+  }
+  nsCOMPtr<nsIAlertNotification> mAlert;
+  nsCOMPtr<nsIObserver> mListener;
+};
+
+class nsXULAlerts : public nsIAlertsService,
+                    public nsIAlertsDoNotDisturb,
+                    public nsIAlertsIconURI
+{
   friend class nsXULAlertObserver;
 public:
+  NS_DECL_NSIALERTSICONURI
+  NS_DECL_NSIALERTSDONOTDISTURB
+  NS_DECL_NSIALERTSSERVICE
+  NS_DECL_ISUPPORTS
+
   nsXULAlerts()
   {
   }
 
-  virtual ~nsXULAlerts() {}
+  static already_AddRefed<nsXULAlerts> GetInstance();
 
-  nsresult ShowAlertNotification(const nsAString& aImageUrl, const nsAString& aAlertTitle,
-                                 const nsAString& aAlertText, bool aAlertTextClickable,
-                                 const nsAString& aAlertCookie, nsIObserver* aAlertListener,
-                                 const nsAString& aAlertName, const nsAString& aBidi,
-                                 const nsAString& aLang);
-
-  nsresult CloseAlert(const nsAString& aAlertName);
 protected:
-  nsInterfaceHashtable<nsStringHashKey, nsIDOMWindow> mNamedWindows;
+  virtual ~nsXULAlerts() {}
+  void PersistentAlertFinished();
+
+  nsInterfaceHashtable<nsStringHashKey, mozIDOMWindowProxy> mNamedWindows;
+  uint32_t mPersistentAlertCount = 0;
+  nsTArray<PendingAlert> mPendingPersistentAlerts;
+  bool mDoNotDisturb = false;
 };
 
 /**
@@ -39,22 +59,25 @@ protected:
  */
 class nsXULAlertObserver : public nsIObserver {
 public:
-  NS_DECL_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSIOBSERVER
+  NS_DECL_CYCLE_COLLECTION_CLASS(nsXULAlertObserver)
 
   nsXULAlertObserver(nsXULAlerts* aXULAlerts, const nsAString& aAlertName,
-                     nsIObserver* aObserver)
+                     nsIObserver* aObserver, bool aIsPersistent)
     : mXULAlerts(aXULAlerts), mAlertName(aAlertName),
-      mObserver(aObserver) {}
+      mObserver(aObserver), mIsPersistent(aIsPersistent) {}
 
-  void SetAlertWindow(nsIDOMWindow* aWindow) { mAlertWindow = aWindow; }
+  void SetAlertWindow(mozIDOMWindowProxy* aWindow) { mAlertWindow = aWindow; }
 
-  virtual ~nsXULAlertObserver() {}
 protected:
-  nsXULAlerts* mXULAlerts;
+  virtual ~nsXULAlertObserver() {}
+
+  RefPtr<nsXULAlerts> mXULAlerts;
   nsString mAlertName;
-  nsCOMPtr<nsIDOMWindow> mAlertWindow;
+  nsCOMPtr<mozIDOMWindowProxy> mAlertWindow;
   nsCOMPtr<nsIObserver> mObserver;
+  bool mIsPersistent;
 };
 
 #endif /* nsXULAlerts_h__ */

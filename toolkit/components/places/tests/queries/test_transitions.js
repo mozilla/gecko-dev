@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* ***** BEGIN LICENSE BLOCK *****
   Any copyright is dedicated to the Public Domain.
@@ -80,7 +80,7 @@ var testData = [
   }];
 // sets of indices of testData array by transition type
 var testDataTyped = [0, 5, 7, 9];
-var testDataDownload = [1, 2, 4, 6, 10]; 
+var testDataDownload = [1, 2, 4, 6, 10];
 var testDataBookmark = [3, 8, 11];
 
 /**
@@ -93,11 +93,11 @@ function run_test()
   run_next_test();
 }
 
-add_task(function test_transitions()
+add_task(function* test_transitions()
 {
   let timeNow = Date.now();
-  for each (let item in testData) {
-    yield promiseAddVisits({
+  for (let item of testData) {
+    yield PlacesTestUtils.addVisits({
       uri: uri(item.uri),
       transition: item.transType,
       visitDate: timeNow++ * 1000,
@@ -105,10 +105,10 @@ add_task(function test_transitions()
     });
   }
 
-  //dump_table("moz_places");
-  //dump_table("moz_historyvisits");
+  // dump_table("moz_places");
+  // dump_table("moz_historyvisits");
 
-  var numSortFunc = function (a,b) { return (a - b); };
+  var numSortFunc = function (a, b) { return (a - b); };
   var arrs = testDataTyped.concat(testDataDownload).concat(testDataBookmark)
               .sort(numSortFunc);
 
@@ -150,7 +150,7 @@ add_task(function test_transitions()
   var root = result.root;
   root.containerOpen = true;
   do_check_eq(testDataDownload.length, root.childCount);
-  yield promiseAddVisits({
+  yield PlacesTestUtils.addVisits({
     uri: uri("http://getfirefox.com"),
     transition: TRANSITION_DOWNLOAD
   });

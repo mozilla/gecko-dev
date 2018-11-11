@@ -7,24 +7,26 @@
 #ifndef jit_arm_LOpcodes_arm_h
 #define jit_arm_LOpcodes_arm_h
 
-#define LIR_CPU_OPCODE_LIST(_)  \
-    _(Unbox)                    \
-    _(UnboxFloatingPoint)       \
-    _(Box)                      \
-    _(BoxFloatingPoint)         \
-    _(DivI)                     \
-    _(SoftDivI)                 \
-    _(DivPowTwoI)               \
-    _(ModI)                     \
-    _(SoftModI)                 \
-    _(ModPowTwoI)               \
-    _(ModMaskI)                 \
-    _(PowHalfD)                 \
-    _(AsmJSUInt32ToDouble)      \
-    _(AsmJSUInt32ToFloat32)     \
-    _(UDiv)                     \
-    _(UMod)                     \
-    _(SoftUDivOrMod)            \
-    _(AsmJSLoadFuncPtr)
+#include "jit/shared/LOpcodes-shared.h"
+
+#define LIR_CPU_OPCODE_LIST(_)     \
+    _(BoxFloatingPoint)            \
+    _(SoftDivI)                    \
+    _(SoftModI)                    \
+    _(ModMaskI)                    \
+    _(UDiv)                        \
+    _(UMod)                        \
+    _(SoftUDivOrMod)               \
+    _(AsmJSCompareExchangeCallout) \
+    _(AsmJSAtomicExchangeCallout)  \
+    _(AsmJSAtomicBinopCallout)     \
+    _(DivOrModI64)                 \
+    _(UDivOrModI64)                \
+    _(WasmTruncateToInt64)         \
+    _(WasmUnalignedLoad)           \
+    _(WasmUnalignedStore)          \
+    _(WasmUnalignedLoadI64)        \
+    _(WasmUnalignedStoreI64)       \
+    _(Int64ToFloatingPointCall)
 
 #endif /* jit_arm_LOpcodes_arm_h */

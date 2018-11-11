@@ -6,8 +6,7 @@
 
 Components.utils.import("resource://gre/modules/addons/AddonRepository.jsm");
 
-Components.utils.import("resource://testing-common/httpd.js");
-let gServer;
+var gServer;
 
 const PORT      = 4444;
 const BASE_URL  = "http://localhost:" + PORT;
@@ -22,7 +21,7 @@ const FILE_DATABASE = "addons.json";
 const ADDON_NAMES = ["test_AddonRepository_1",
                      "test_AddonRepository_2",
                      "test_AddonRepository_3"];
-const ADDON_IDS = ADDON_NAMES.map(function(aName) aName + "@tests.mozilla.org");
+const ADDON_IDS = ADDON_NAMES.map(aName => aName + "@tests.mozilla.org");
 const ADDON_FILES = ADDON_NAMES.map(do_get_addon);
 
 const PREF_ADDON0_CACHE_ENABLED = "extensions." + ADDON_IDS[0] + ".getAddons.cache.enabled";
@@ -133,7 +132,7 @@ const REPOSITORY_ADDONS = [{
                             url:          BASE_URL + "/repo/2/firstFull.png",
                             thumbnailURL: BASE_URL + "/repo/2/firstThumbnail.png",
                             caption:      "Repo Add-on 2 - First Caption"
-                          } , {
+                          }, {
                             url:          BASE_URL + "/repo/2/secondFull.png",
                             thumbnailURL: BASE_URL + "/repo/2/secondThumbnail.png",
                             caption:      "Repo Add-on 2 - Second Caption"
@@ -152,6 +151,7 @@ const REPOSITORY_ADDONS = [{
   repositoryStatus:       9
 }, {
   id:                     ADDON_IDS[2],
+  type:                   "theme",
   name:                   "Repo Add-on 3",
   version:                "2.3",
   iconURL:                BASE_URL + "/repo/3/icon.png",
@@ -160,7 +160,7 @@ const REPOSITORY_ADDONS = [{
                             url:          BASE_URL + "/repo/3/firstFull.png",
                             thumbnailURL: BASE_URL + "/repo/3/firstThumbnail.png",
                             caption:      "Repo Add-on 3 - First Caption"
-                          } , {
+                          }, {
                             url:          BASE_URL + "/repo/3/secondFull.png",
                             thumbnailURL: BASE_URL + "/repo/3/secondThumbnail.png",
                             caption:      "Repo Add-on 3 - Second Caption"
@@ -288,7 +288,7 @@ const WITH_CACHE = [{
                             url:          BASE_URL + "/repo/2/firstFull.png",
                             thumbnailURL: BASE_URL + "/repo/2/firstThumbnail.png",
                             caption:      "Repo Add-on 2 - First Caption"
-                          } , {
+                          }, {
                             url:          BASE_URL + "/repo/2/secondFull.png",
                             thumbnailURL: BASE_URL + "/repo/2/secondThumbnail.png",
                             caption:      "Repo Add-on 2 - Second Caption"
@@ -320,7 +320,7 @@ const WITH_CACHE = [{
                             url:          BASE_URL + "/repo/3/firstFull.png",
                             thumbnailURL: BASE_URL + "/repo/3/firstThumbnail.png",
                             caption:      "Repo Add-on 3 - First Caption"
-                          } , {
+                          }, {
                             url:          BASE_URL + "/repo/3/secondFull.png",
                             thumbnailURL: BASE_URL + "/repo/3/secondThumbnail.png",
                             caption:      "Repo Add-on 3 - Second Caption"
@@ -401,28 +401,7 @@ const WITH_EXTENSION_CACHE = [{
   sourceURI:              NetUtil.newURI(ADDON_FILES[2]).spec
 }];
 
-
-/*
- * Trigger an AddonManager background update check
- *
- * @return Promise{null}
- *         Resolves when the background update notification is received
- */
-function trigger_background_update() {
-  return new Promise((resolve, reject) => {
-    Services.obs.addObserver({
-      observe: function(aSubject, aTopic, aData) {
-        do_print("Observed " + aTopic);
-        Services.obs.removeObserver(this, "addons-background-update-complete");
-        resolve();
-      }
-    }, "addons-background-update-complete", false);
-
-    gInternalManager.notify(null);
-  });
-}
-
-let gDBFile = gProfD.clone();
+var gDBFile = gProfD.clone();
 gDBFile.append(FILE_DATABASE);
 
 /*
@@ -525,9 +504,8 @@ add_task(function* setup() {
   yield promiseInstallAllFiles(ADDON_FILES);
   yield promiseRestartManager();
 
-  gServer = new HttpServer();
+  gServer = createHttpServer(PORT);
   gServer.registerDirectory("/data/", do_get_file("data"));
-  gServer.start(PORT);
 });
 
 // Tests AddonRepository.cacheEnabled
@@ -675,7 +653,7 @@ add_task(function* run_test_13() {
   do_check_true(gDBFile.exists());
   Services.prefs.setCharPref(PREF_GETADDONS_BYIDS_PERFORMANCE, GETADDONS_EMPTY);
 
-  yield trigger_background_update();
+  yield AddonManagerInternal.backgroundUpdateCheck();
   // Database should have been deleted
   do_check_false(gDBFile.exists());
 
@@ -688,7 +666,7 @@ add_task(function* run_test_13() {
 add_task(function* run_test_14() {
   Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, true);
 
-  yield trigger_background_update();
+  yield AddonManagerInternal.backgroundUpdateCheck();
   yield AddonRepository.flush();
   do_check_true(gDBFile.exists());
 
@@ -701,7 +679,7 @@ add_task(function* run_test_14() {
 add_task(function* run_test_15() {
   Services.prefs.setCharPref(PREF_GETADDONS_BYIDS_PERFORMANCE, GETADDONS_RESULTS);
 
-  yield trigger_background_update();
+  yield AddonManagerInternal.backgroundUpdateCheck();
   let aAddons = yield promiseAddonsByIDs(ADDON_IDS);
   check_results(aAddons, WITH_CACHE);
 });
@@ -720,11 +698,7 @@ add_task(function* run_test_16() {
 add_task(function* run_test_17() {
   Services.prefs.setCharPref(PREF_GETADDONS_CACHE_TYPES, "foo,bar,extension,baz");
 
-  yield trigger_background_update();
+  yield AddonManagerInternal.backgroundUpdateCheck();
   let aAddons = yield promiseAddonsByIDs(ADDON_IDS);
   check_results(aAddons, WITH_EXTENSION_CACHE);
-});
-
-add_task(function* end_test() {
-  yield new Promise((resolve, reject) => gServer.stop(resolve));
 });

@@ -4,7 +4,6 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsIAppStartup.h"
-#include "nsIDOMWindow.h"
 #include "nsIFile.h"
 #include "nsIStringBundle.h"
 #include "nsIToolkitProfile.h"
@@ -14,6 +13,7 @@
 
 #include "nsDirectoryServiceDefs.h"
 #include "nsDirectoryServiceUtils.h"
+#include "nsPIDOMWindow.h"
 #include "nsPrintfCString.h"
 #include "nsToolkitCompsCID.h"
 #include "nsXPCOMCIDInternal.h"
@@ -33,7 +33,7 @@ static const char kProfileProperties[] =
 nsresult
 CreateResetProfile(nsIToolkitProfileService* aProfileSvc, nsIToolkitProfile* *aNewProfile)
 {
-  NS_ABORT_IF_FALSE(aProfileSvc, "NULL profile service");
+  MOZ_ASSERT(aProfileSvc, "NULL profile service");
 
   nsCOMPtr<nsIToolkitProfile> newProfile;
   // Make the new profile "default-" + the time in seconds since epoch for uniqueness.
@@ -80,7 +80,7 @@ ProfileResetCleanup(nsIToolkitProfile* aOldProfile)
 
   nsXPIDLString resetBackupDirectoryName;
 
-  static const char16_t* kResetBackupDirectory = MOZ_UTF16("resetBackupDirectory");
+  static const char16_t* kResetBackupDirectory = u"resetBackupDirectory";
   rv = sb->FormatStringFromName(kResetBackupDirectory, params, 2,
                                 getter_Copies(resetBackupDirectoryName));
 
@@ -134,7 +134,7 @@ ProfileResetCleanup(nsIToolkitProfile* aOldProfile)
   nsCOMPtr<nsIAppStartup> appStartup(do_GetService(NS_APPSTARTUP_CONTRACTID));
   if (!appStartup) return NS_ERROR_FAILURE;
 
-  nsCOMPtr<nsIDOMWindow> progressWindow;
+  nsCOMPtr<mozIDOMWindowProxy> progressWindow;
   rv = windowWatcher->OpenWindow(nullptr,
                                  kResetProgressURL,
                                  "_blank",
@@ -164,7 +164,8 @@ ProfileResetCleanup(nsIToolkitProfile* aOldProfile)
     return rv;
   }
   // Close the progress window now that the cleanup thread is done.
-  progressWindow->Close();
+  auto* piWindow = nsPIDOMWindowOuter::From(progressWindow);
+  piWindow->Close();
 
   // Delete the old profile from profiles.ini. The folder was already deleted by the thread above.
   rv = aOldProfile->Remove(false);

@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -73,8 +73,8 @@ AutoCompleteInput.prototype = {
 
 function ensure_results(uris, searchTerm)
 {
-  promiseAsyncUpdates().then(function () ensure_results_internal(uris,
-                                                                 searchTerm));
+  PlacesTestUtils.promiseAsyncUpdates()
+                 .then(() => ensure_results_internal(uris, searchTerm));
 }
 
 function ensure_results_internal(uris, searchTerm)
@@ -84,7 +84,7 @@ function ensure_results_internal(uris, searchTerm)
 
   // Make an AutoCompleteInput that uses our searches
   // and confirms results on search complete
-  var input = new AutoCompleteInput(["history"]);
+  var input = new AutoCompleteInput(["unifiedcomplete"]);
 
   controller.input = input;
 
@@ -118,18 +118,18 @@ try {
                 getService(Ci.nsITaggingService);
   var bmksvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
                 getService(Ci.nsINavBookmarksService);
-} catch(ex) {
+} catch (ex) {
   do_throw("Could not get history service\n");
-} 
+}
 
-function task_setCountDate(aURI, aCount, aDate)
+function* task_setCountDate(aURI, aCount, aDate)
 {
   // We need visits so that frecency can be computed over multiple visits
   let visits = [];
   for (let i = 0; i < aCount; i++) {
     visits.push({ uri: aURI, visitDate: aDate, transition: TRANSITION_TYPED });
   }
-  yield promiseAddVisits(visits);
+  yield PlacesTestUtils.addVisits(visits);
 }
 
 function setBookmark(aURI)
@@ -158,28 +158,28 @@ var c2 = 1;
 
 var tests = [
 // test things without a search term
-function() {
+function*() {
   print("TEST-INFO | Test 0: same count, different date");
   yield task_setCountDate(uri1, c1, d1);
   yield task_setCountDate(uri2, c1, d2);
   tagURI(uri1, ["site"]);
   ensure_results([uri1, uri2], "");
 },
-function() {
+function*() {
   print("TEST-INFO | Test 1: same count, different date");
   yield task_setCountDate(uri1, c1, d2);
   yield task_setCountDate(uri2, c1, d1);
   tagURI(uri1, ["site"]);
   ensure_results([uri2, uri1], "");
 },
-function() {
+function*() {
   print("TEST-INFO | Test 2: different count, same date");
   yield task_setCountDate(uri1, c1, d1);
   yield task_setCountDate(uri2, c2, d1);
   tagURI(uri1, ["site"]);
   ensure_results([uri1, uri2], "");
 },
-function() {
+function*() {
   print("TEST-INFO | Test 3: different count, same date");
   yield task_setCountDate(uri1, c2, d1);
   yield task_setCountDate(uri2, c1, d1);
@@ -188,28 +188,28 @@ function() {
 },
 
 // test things with a search term
-function() {
+function*() {
   print("TEST-INFO | Test 4: same count, different date");
   yield task_setCountDate(uri1, c1, d1);
   yield task_setCountDate(uri2, c1, d2);
   tagURI(uri1, ["site"]);
   ensure_results([uri1, uri2], "site");
 },
-function() {
+function*() {
   print("TEST-INFO | Test 5: same count, different date");
   yield task_setCountDate(uri1, c1, d2);
   yield task_setCountDate(uri2, c1, d1);
   tagURI(uri1, ["site"]);
   ensure_results([uri2, uri1], "site");
 },
-function() {
+function*() {
   print("TEST-INFO | Test 6: different count, same date");
   yield task_setCountDate(uri1, c1, d1);
   yield task_setCountDate(uri2, c2, d1);
   tagURI(uri1, ["site"]);
   ensure_results([uri1, uri2], "site");
 },
-function() {
+function*() {
   print("TEST-INFO | Test 7: different count, same date");
   yield task_setCountDate(uri1, c2, d1);
   yield task_setCountDate(uri2, c1, d1);
@@ -218,43 +218,43 @@ function() {
 },
 // There are multiple tests for 8, hence the multiple functions
 // Bug 426166 section
-function() {
+function*() {
   print("TEST-INFO | Test 8.1a: same count, same date");
   setBookmark(uri3);
   setBookmark(uri4);
   ensure_results([uri4, uri3], "a");
 },
-function() {
+function*() {
   print("TEST-INFO | Test 8.1b: same count, same date");
   setBookmark(uri3);
   setBookmark(uri4);
   ensure_results([uri4, uri3], "aa");
 },
-function() {
+function*() {
   print("TEST-INFO | Test 8.2: same count, same date");
   setBookmark(uri3);
   setBookmark(uri4);
   ensure_results([uri4, uri3], "aaa");
 },
-function() {
+function*() {
   print("TEST-INFO | Test 8.3: same count, same date");
   setBookmark(uri3);
   setBookmark(uri4);
   ensure_results([uri4, uri3], "aaaa");
 },
-function() {
+function*() {
   print("TEST-INFO | Test 8.4: same count, same date");
   setBookmark(uri3);
   setBookmark(uri4);
   ensure_results([uri4, uri3], "aaa");
 },
-function() {
+function*() {
   print("TEST-INFO | Test 8.5: same count, same date");
   setBookmark(uri3);
   setBookmark(uri4);
   ensure_results([uri4, uri3], "aa");
 },
-function() {
+function*() {
   print("TEST-INFO | Test 8.6: same count, same date");
   setBookmark(uri3);
   setBookmark(uri4);
@@ -266,29 +266,29 @@ function() {
  * This deferred object contains a promise that is resolved when the
  * ensure_results_internal function has finished its execution.
  */
-let deferEnsureResults;
+var deferEnsureResults;
 
-/**
- * Test adaptive autocomplete
- */
-function run_test()
+add_task(function* test_frecency()
 {
-  run_next_test();
-}
-
-add_task(function test_frecency()
-{
+  // Disable autoFill for this test.
+  Services.prefs.setBoolPref("browser.urlbar.autoFill", false);
+  do_register_cleanup(() => Services.prefs.clearUserPref("browser.urlbar.autoFill"));
   // always search in history + bookmarks, no matter what the default is
   var prefs = Cc["@mozilla.org/preferences-service;1"].
               getService(Ci.nsIPrefBranch);
-  prefs.setIntPref("browser.urlbar.search.sources", 3);
-  prefs.setIntPref("browser.urlbar.default.behavior", 0);
-  for (let [, test] in Iterator(tests)) {
-    remove_all_bookmarks();
-    yield promiseClearHistory();
+
+  prefs.setBoolPref("browser.urlbar.suggest.history", true);
+  prefs.setBoolPref("browser.urlbar.suggest.bookmark", true);
+  prefs.setBoolPref("browser.urlbar.suggest.openpage", false);
+  for (let test of tests) {
+    yield PlacesUtils.bookmarks.eraseEverything();
+    yield PlacesTestUtils.clearHistory();
 
     deferEnsureResults = Promise.defer();
     yield test();
     yield deferEnsureResults.promise;
+  }
+  for (let type of ["history", "bookmark", "openpage"]) {
+    prefs.clearUserPref("browser.urlbar.suggest." + type);
   }
 });

@@ -31,13 +31,17 @@
 !define DDEApplication        "Firefox"
 !define AppRegName            "Firefox"
 
+!ifndef DEV_EDITION
 !define BrandShortName        "@MOZ_APP_DISPLAYNAME@"
+!endif
 !define BrandFullName         "${BrandFullNameInternal}"
 
-!define NO_UNINSTALL_SURVEY
-
-!define CERTIFICATE_NAME      "Mozilla Corporation"
-!define CERTIFICATE_ISSUER    "DigiCert Assured ID Code Signing CA-1"
+!define CERTIFICATE_NAME            "Mozilla Corporation"
+!define CERTIFICATE_ISSUER          "DigiCert SHA2 Assured ID Code Signing CA"
+; Changing the name or issuer requires us to have both the old and the new
+;  in the registry at the same time, temporarily.
+!define CERTIFICATE_NAME_PREVIOUS   "Mozilla Corporation"
+!define CERTIFICATE_ISSUER_PREVIOUS "DigiCert Assured ID Code Signing CA-1"
 
 # LSP_CATEGORIES is the permitted LSP categories for the application. Each LSP
 # category value is ANDed together to set multiple permitted categories.
@@ -61,25 +65,19 @@
 
 # ARCH is used when it is necessary to differentiate the x64 registry keys from
 # the x86 registry keys (e.g. the uninstall registry key).
-#ifdef HAVE_64BIT_OS
-!define HAVE_64BIT_OS
+#ifdef HAVE_64BIT_BUILD
+!define HAVE_64BIT_BUILD
 !define ARCH "x64"
-!define MinSupportedVer "Microsoft Windows Vista x64"
+!define MinSupportedVer "Microsoft Windows 7 x64"
 #else
 !define ARCH "x86"
 !define MinSupportedVer "Microsoft Windows XP SP2"
 #endif
 
+!define MinSupportedCPU "SSE2"
+
 #ifdef MOZ_MAINTENANCE_SERVICE
 !define MOZ_MAINTENANCE_SERVICE
-#endif
-
-#ifdef MOZ_METRO
-!define MOZ_METRO
-#endif
-
-#ifdef MOZ_CONTENT_SANDBOX
-!define MOZ_CONTENT_SANDBOX
 #endif
 
 # File details shared by both the installer and uninstaller
@@ -96,8 +94,10 @@ VIAddVersionKey "ProductVersion"  "${AppVersion}"
 # VIAddVersionKey "Comments"        "Comments"
 
 # It isn't possible to get the size of the installation prior to downloading
-# so the stub installer uses an estimate.
-!define APPROXIMATE_REQUIRED_SPACE_MB "42.2"
+# so the stub installer uses an estimate. The size is derived from the size of
+# the complete installer, the size of the extracted complete installer, and at
+# least 15 MB additional for working room.
+!define APPROXIMATE_REQUIRED_SPACE_MB "145"
 
 # Control positions in Dialog Units so they are placed correctly with
 # non-default DPI settings

@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -55,14 +55,14 @@ var SMILUtil =
   },
 
   // Smart wrapper for getComputedStyle, which will generate a "fake" computed
-  // style for recognized shorthand properties (font, overflow, marker)
+  // style for recognized shorthand properties (font, font-variant, overflow, marker)
   getComputedStyleWrapper : function(elem, propName)
   {
     // Special cases for shorthand properties (which aren't directly queriable
     // via getComputedStyle)
     var computedStyle;
     if (propName == "font") {
-      var subProps = ["font-style", "font-variant", "font-weight",
+      var subProps = ["font-style", "font-variant-caps", "font-weight",
                       "font-size", "line-height", "font-family"];
       for (var i in subProps) {
         var subPropStyle = SMILUtil.getComputedStyleSimple(elem, subProps[i]);
@@ -78,6 +78,10 @@ var SMILUtil =
           }
         }
       }
+    } else if (propName == "font-variant") {
+      // xxx - this isn't completely correct but it's sufficient for what's
+      //       being tested here
+      computedStyle = SMILUtil.getComputedStyleSimple(elem, "font-variant-caps");
     } else if (propName == "marker") {
       var subProps = ["marker-end", "marker-mid", "marker-start"];
       for (var i in subProps) {
@@ -104,29 +108,6 @@ var SMILUtil =
       computedStyle = SMILUtil.getComputedStyleSimple(elem, propName);
     }
     return computedStyle;
-  },
-  
-  // This method hides (i.e. sets "display: none" on) all of the given node's
-  // descendents.  It also hides the node itself, if requested.
-  hideSubtree : function(node, hideNodeItself, useXMLAttribute)
-  {
-    // Hide node, if requested
-    if (hideNodeItself) {
-      if (useXMLAttribute) {
-        if (node.setAttribute) {
-          node.setAttribute("display", "none");
-        }
-      } else if (node.style) {
-        node.style.display = "none";
-      }
-    }
-
-    // Hide node's descendents
-    var child = node.firstChild;
-    while (child) {
-      SMILUtil.hideSubtree(child, true, useXMLAttribute);
-      child = child.nextSibling;
-    }
   },
 
   getMotionFakeAttributeName : function() {
@@ -344,7 +325,7 @@ AnimTestcase.prototype =
   _animElementTagName : "animate", // Can be overridden for e.g. animateColor
   computedValMap      : null,
   skipReason          : null,
-  
+
   // Methods
   /**
    * runTest: Runs this AnimTestcase
@@ -412,7 +393,7 @@ AnimTestcase.prototype =
     if (this.computedValMap.noEffect) {
       return this.buildSeekListStatic(aAnimAttr, aBaseVal, aTimeData,
                                       "testcase specified to have no effect");
-    }      
+    }
     return this.buildSeekListAnimated(aAnimAttr, aBaseVal,
                                       aTimeData, aIsFreeze)
   },
@@ -650,7 +631,7 @@ AnimTestcasePaced.prototype =
 {
   // Member variables
   valuesString : null,
-  
+
   // Methods
   setupAnimationElement : function(aAnimAttr, aTimeData, aIsFreeze)
   {
@@ -764,7 +745,7 @@ AnimMotionTestcase.prototype =
 {
   // Member variables
   _animElementTagName : "animateMotion",
-  
+
   // Implementations of inherited methods that we need to override:
   // --------------------------------------------------------------
   setupAnimationElement : function(aAnimAttr, aTimeData, aIsFreeze)

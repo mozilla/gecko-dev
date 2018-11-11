@@ -1,0 +1,15 @@
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+
+LINTER = {
+    'name': "StringLinter",
+    'description': "Make sure the string 'foobar' never appears "
+                   "in browser js files because it is bad.",
+    'rule': 'no-foobar',
+    'include': [
+        '**/*.js',
+        '**/*.jsm',
+    ],
+    'type': 'string',
+    'payload': 'foobar',
+}

@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -13,18 +15,20 @@
 #endif
 
 #include "BrowserElementParent.h"
+#include "BrowserElementAudioChannel.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/dom/HTMLIFrameElement.h"
 #include "mozilla/dom/ToJSValue.h"
-#include "nsIDOMCustomEvent.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsVariant.h"
 #include "mozilla/dom/BrowserElementDictionariesBinding.h"
-#include "nsCxPusher.h"
-#include "GeneratedEventClasses.h"
+#include "mozilla/dom/CustomEvent.h"
+#include "mozilla/layout/RenderFrameParent.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
+using namespace mozilla::layers;
+using namespace mozilla::layout;
 
 namespace {
 
@@ -39,13 +43,13 @@ CreateIframe(Element* aOpenerFrameElement, const nsAString& aName, bool aRemote)
   nsNodeInfoManager *nodeInfoManager =
     aOpenerFrameElement->OwnerDoc()->NodeInfoManager();
 
-  nsCOMPtr<nsINodeInfo> nodeInfo =
+  RefPtr<NodeInfo> nodeInfo =
     nodeInfoManager->GetNodeInfo(nsGkAtoms::iframe,
                                  /* aPrefix = */ nullptr,
                                  kNameSpaceID_XHTML,
                                  nsIDOMNode::ELEMENT_NODE);
 
-  nsRefPtr<HTMLIFrameElement> popupFrameElement =
+  RefPtr<HTMLIFrameElement> popupFrameElement =
     static_cast<HTMLIFrameElement*>(
       NS_NewHTMLIFrameElement(nodeInfo.forget(), mozilla::dom::NOT_FROM_PARSER));
 
@@ -78,6 +82,14 @@ CreateIframe(Element* aOpenerFrameElement, const nsAString& aName, bool aRemote)
                                        NS_LITERAL_STRING("false"),
                              /* aNotify = */ false);
 
+  // Copy the opener frame's mozprivatebrowsing attribute to the popup frame.
+  nsAutoString mozprivatebrowsing;
+  if (aOpenerFrameElement->GetAttr(kNameSpaceID_None, nsGkAtoms::mozprivatebrowsing,
+                                   mozprivatebrowsing)) {
+    popupFrameElement->SetAttr(kNameSpaceID_None, nsGkAtoms::mozprivatebrowsing,
+                               mozprivatebrowsing, /* aNotify = */ false);
+  }
+
   return popupFrameElement.forget();
 }
 
@@ -88,40 +100,34 @@ DispatchCustomDOMEvent(Element* aFrameElement, const nsAString& aEventName,
 {
   NS_ENSURE_TRUE(aFrameElement, false);
   nsIPresShell *shell = aFrameElement->OwnerDoc()->GetShell();
-  nsRefPtr<nsPresContext> presContext;
+  RefPtr<nsPresContext> presContext;
   if (shell) {
     presContext = shell->GetPresContext();
   }
 
-  nsCOMPtr<nsIDOMEvent> domEvent;
-  EventDispatcher::CreateEvent(aFrameElement, presContext, nullptr,
-                               NS_LITERAL_STRING("customevent"),
-                               getter_AddRefs(domEvent));
-  NS_ENSURE_TRUE(domEvent, false);
+  RefPtr<CustomEvent> event =
+    NS_NewDOMCustomEvent(aFrameElement, presContext, nullptr);
 
-  nsCOMPtr<nsIDOMCustomEvent> customEvent = do_QueryInterface(domEvent);
-  NS_ENSURE_TRUE(customEvent, false);
   ErrorResult res;
-  CustomEvent* event = static_cast<CustomEvent*>(customEvent.get());
   event->InitCustomEvent(cx,
                          aEventName,
-                         /* bubbles = */ true,
-                         /* cancelable = */ true,
+                         /* aCanBubble = */ true,
+                         /* aCancelable = */ true,
                          aDetailValue,
                          res);
   if (res.Failed()) {
     return false;
   }
-  customEvent->SetTrusted(true);
+  event->SetTrusted(true);
   // Dispatch the event.
-  *aStatus = nsEventStatus_eConsumeNoDefault;
+  // We don't initialize aStatus here, as our callers have already done so.
   nsresult rv =
-    EventDispatcher::DispatchDOMEvent(aFrameElement, nullptr,
-                                      domEvent, presContext, aStatus);
+    EventDispatcher::DispatchDOMEvent(aFrameElement, nullptr, event,
+                                      presContext, aStatus);
   return NS_SUCCEEDED(rv);
 }
 
-} // anonymous namespace
+} // namespace
 
 namespace mozilla {
 
@@ -146,7 +152,12 @@ BrowserElementParent::DispatchOpenWindowEvent(Element* aOpenerFrameElement,
 
   // Create the event's detail object.
   OpenWindowEventDetail detail;
-  detail.mUrl = aURL;
+  if (aURL.IsEmpty()) {
+    // URL should never be empty. Assign about:blank as default.
+    detail.mUrl = NS_LITERAL_STRING("about:blank");
+  } else {
+    detail.mUrl = aURL;
+  }
   detail.mName = aName;
   detail.mFeatures = aFeatures;
   detail.mFrameElement = aPopupFrameElement;
@@ -166,7 +177,7 @@ BrowserElementParent::DispatchOpenWindowEvent(Element* aOpenerFrameElement,
     return BrowserElementParent::OPEN_WINDOW_IGNORED;
   }
 
-  nsEventStatus status;
+  nsEventStatus status = nsEventStatus_eIgnore;
   bool dispatchSucceeded =
     DispatchCustomDOMEvent(aOpenerFrameElement,
                            NS_LITERAL_STRING("mozbrowseropenwindow"),
@@ -174,7 +185,7 @@ BrowserElementParent::DispatchOpenWindowEvent(Element* aOpenerFrameElement,
                            val, &status);
 
   if (dispatchSucceeded) {
-    if (aPopupFrameElement->IsInDoc()) {
+    if (aPopupFrameElement->IsInUncomposedDoc()) {
       return BrowserElementParent::OPEN_WINDOW_ADDED;
     } else if (status == nsEventStatus_eConsumeNoDefault) {
       // If the frame was not added to a document, report to callers whether
@@ -190,15 +201,18 @@ BrowserElementParent::DispatchOpenWindowEvent(Element* aOpenerFrameElement,
 BrowserElementParent::OpenWindowResult
 BrowserElementParent::OpenWindowOOP(TabParent* aOpenerTabParent,
                                     TabParent* aPopupTabParent,
+                                    PRenderFrameParent* aRenderFrame,
                                     const nsAString& aURL,
                                     const nsAString& aName,
-                                    const nsAString& aFeatures)
+                                    const nsAString& aFeatures,
+                                    TextureFactoryIdentifier* aTextureFactoryIdentifier,
+                                    uint64_t* aLayersId)
 {
   // Create an iframe owned by the same document which owns openerFrameElement.
   nsCOMPtr<Element> openerFrameElement = aOpenerTabParent->GetOwnerElement();
   NS_ENSURE_TRUE(openerFrameElement,
                  BrowserElementParent::OPEN_WINDOW_IGNORED);
-  nsRefPtr<HTMLIFrameElement> popupFrameElement =
+  RefPtr<HTMLIFrameElement> popupFrameElement =
     CreateIframe(openerFrameElement, aName, /* aRemote = */ true);
 
   // Normally an <iframe> element will try to create a frameLoader when the
@@ -226,16 +240,24 @@ BrowserElementParent::OpenWindowOOP(TabParent* aOpenerTabParent,
   aPopupTabParent->SetOwnerElement(popupFrameElement);
   popupFrameElement->AllowCreateFrameLoader();
   popupFrameElement->CreateRemoteFrameLoader(aPopupTabParent);
+
+  RenderFrameParent* rfp = static_cast<RenderFrameParent*>(aRenderFrame);
+  if (!aPopupTabParent->SetRenderFrame(rfp) ||
+      !aPopupTabParent->GetRenderFrameInfo(aTextureFactoryIdentifier, aLayersId)) {
+    return BrowserElementParent::OPEN_WINDOW_IGNORED;
+  }
+
   return opened;
 }
 
 /* static */
 BrowserElementParent::OpenWindowResult
-BrowserElementParent::OpenWindowInProcess(nsIDOMWindow* aOpenerWindow,
+BrowserElementParent::OpenWindowInProcess(nsPIDOMWindowOuter* aOpenerWindow,
                                           nsIURI* aURI,
                                           const nsAString& aName,
                                           const nsACString& aFeatures,
-                                          nsIDOMWindow** aReturnWindow)
+                                          bool aForceNoOpener,
+                                          mozIDOMWindowProxy** aReturnWindow)
 {
   *aReturnWindow = nullptr;
 
@@ -247,22 +269,25 @@ BrowserElementParent::OpenWindowInProcess(nsIDOMWindow* aOpenerWindow,
   // GetScriptableTop gets us the <iframe mozbrowser>'s window; we'll use its
   // frame element, rather than aOpenerWindow's frame element, as our "opener
   // frame element" below.
-  nsCOMPtr<nsIDOMWindow> topWindow;
-  aOpenerWindow->GetScriptableTop(getter_AddRefs(topWindow));
-
-  nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(topWindow);
+  nsCOMPtr<nsPIDOMWindowOuter> win = aOpenerWindow->GetScriptableTop();
 
   nsCOMPtr<Element> openerFrameElement = win->GetFrameElementInternal();
   NS_ENSURE_TRUE(openerFrameElement, BrowserElementParent::OPEN_WINDOW_IGNORED);
 
 
-  nsRefPtr<HTMLIFrameElement> popupFrameElement =
+  RefPtr<HTMLIFrameElement> popupFrameElement =
     CreateIframe(openerFrameElement, aName, /* aRemote = */ false);
   NS_ENSURE_TRUE(popupFrameElement, BrowserElementParent::OPEN_WINDOW_IGNORED);
 
   nsAutoCString spec;
   if (aURI) {
     aURI->GetSpec(spec);
+  }
+
+  if (!aForceNoOpener) {
+    ErrorResult res;
+    popupFrameElement->PresetOpenerWindow(aOpenerWindow, res);
+    MOZ_ASSERT(!res.Failed());
   }
 
   OpenWindowResult opened =
@@ -276,85 +301,17 @@ BrowserElementParent::OpenWindowInProcess(nsIDOMWindow* aOpenerWindow,
   }
 
   // Return popupFrameElement's window.
-  nsCOMPtr<nsIFrameLoader> frameLoader;
-  popupFrameElement->GetFrameLoader(getter_AddRefs(frameLoader));
+  RefPtr<nsFrameLoader> frameLoader = popupFrameElement->GetFrameLoader();
   NS_ENSURE_TRUE(frameLoader, BrowserElementParent::OPEN_WINDOW_IGNORED);
 
   nsCOMPtr<nsIDocShell> docshell;
   frameLoader->GetDocShell(getter_AddRefs(docshell));
   NS_ENSURE_TRUE(docshell, BrowserElementParent::OPEN_WINDOW_IGNORED);
 
-  nsCOMPtr<nsIDOMWindow> window = docshell->GetWindow();
+  nsCOMPtr<nsPIDOMWindowOuter> window = docshell->GetWindow();
   window.forget(aReturnWindow);
 
   return !!*aReturnWindow ? opened : BrowserElementParent::OPEN_WINDOW_CANCELLED;
-}
-
-class DispatchAsyncScrollEventRunnable : public nsRunnable
-{
-public:
-  DispatchAsyncScrollEventRunnable(TabParent* aTabParent,
-                                   const CSSRect& aContentRect,
-                                   const CSSSize& aContentSize)
-    : mTabParent(aTabParent)
-    , mContentRect(aContentRect)
-    , mContentSize(aContentSize)
-  {}
-
-  NS_IMETHOD Run();
-
-private:
-  nsRefPtr<TabParent> mTabParent;
-  const CSSRect mContentRect;
-  const CSSSize mContentSize;
-};
-
-NS_IMETHODIMP DispatchAsyncScrollEventRunnable::Run()
-{
-  nsCOMPtr<Element> frameElement = mTabParent->GetOwnerElement();
-  NS_ENSURE_STATE(frameElement);
-  nsIDocument *doc = frameElement->OwnerDoc();
-  nsCOMPtr<nsIGlobalObject> globalObject = doc->GetScopeObject();
-  NS_ENSURE_TRUE(globalObject, NS_ERROR_UNEXPECTED);
-
-  // Create the event's detail object.
-  AsyncScrollEventDetail detail;
-  detail.mLeft = mContentRect.x;
-  detail.mTop = mContentRect.y;
-  detail.mWidth = mContentRect.width;
-  detail.mHeight = mContentRect.height;
-  detail.mScrollWidth = mContentRect.width;
-  detail.mScrollHeight = mContentRect.height;
-
-  AutoSafeJSContext cx;
-  JS::Rooted<JSObject*> globalJSObject(cx, globalObject->GetGlobalJSObject());
-  NS_ENSURE_TRUE(globalJSObject, NS_ERROR_UNEXPECTED);
-
-  JSAutoCompartment ac(cx, globalJSObject);
-  JS::Rooted<JS::Value> val(cx);
-
-  if (!ToJSValue(cx, detail, &val)) {
-    MOZ_CRASH("Failed to convert dictionary to JS::Value due to OOM.");
-    return NS_ERROR_FAILURE;
-  }
-
-  nsEventStatus status = nsEventStatus_eIgnore;
-  DispatchCustomDOMEvent(frameElement,
-                         NS_LITERAL_STRING("mozbrowserasyncscroll"),
-                         cx,
-                         val, &status);
-  return NS_OK;
-}
-
-bool
-BrowserElementParent::DispatchAsyncScrollEvent(TabParent* aTabParent,
-                                               const CSSRect& aContentRect,
-                                               const CSSSize& aContentSize)
-{
-  nsRefPtr<DispatchAsyncScrollEventRunnable> runnable =
-    new DispatchAsyncScrollEventRunnable(aTabParent, aContentRect,
-                                         aContentSize);
-  return NS_SUCCEEDED(NS_DispatchToMainThread(runnable));
 }
 
 } // namespace mozilla

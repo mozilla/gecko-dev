@@ -261,9 +261,6 @@
 /* Define to 1 if `__ss_family' is a member of `struct sockaddr_storage'. */
 /* #undef _EVENT_HAVE_STRUCT_SOCKADDR_STORAGE___SS_FAMILY */
 
-/* Define to 1 if you have the `sysctl' function. */
-#define _EVENT_HAVE_SYSCTL 1
-
 /* Define to 1 if you have the <sys/devpoll.h> header file. */
 /* #undef _EVENT_HAVE_SYS_DEVPOLL_H */
 
@@ -299,9 +296,6 @@
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #define _EVENT_HAVE_SYS_STAT_H 1
-
-/* Define to 1 if you have the <sys/sysctl.h> header file. */
-#define _EVENT_HAVE_SYS_SYSCTL_H 1
 
 /* Define to 1 if you have the <sys/time.h> header file. */
 #define _EVENT_HAVE_SYS_TIME_H 1
@@ -398,26 +392,51 @@
    your system. */
 /* #undef _EVENT_PTHREAD_CREATE_JOINABLE */
 
+/* ------------------------------------------------------------------------ */
+/* MOZILLA NOTE: the following constants are hand-modified to be suitable   */
+/* for both 32-bit and 64-bit platforms. See README.mozilla for details.    */
+/* ------------------------------------------------------------------------ */
+
 /* The size of `int', as computed by sizeof. */
 #define _EVENT_SIZEOF_INT 4
 
 /* The size of `long', as computed by sizeof. */
+#ifdef __LP64__
 #define _EVENT_SIZEOF_LONG 8
+#else
+#define _EVENT_SIZEOF_LONG 4
+#endif
 
 /* The size of `long long', as computed by sizeof. */
 #define _EVENT_SIZEOF_LONG_LONG 8
 
 /* The size of `pthread_t', as computed by sizeof. */
+#ifdef __LP64__
 #define _EVENT_SIZEOF_PTHREAD_T 8
+#else
+#define _EVENT_SIZEOF_PTHREAD_T 4
+#endif
 
 /* The size of `short', as computed by sizeof. */
 #define _EVENT_SIZEOF_SHORT 2
 
 /* The size of `size_t', as computed by sizeof. */
+#ifdef __LP64__
 #define _EVENT_SIZEOF_SIZE_T 8
+#else
+#define _EVENT_SIZEOF_SIZE_T 4
+#endif
 
 /* The size of `void *', as computed by sizeof. */
+#ifdef __LP64__
 #define _EVENT_SIZEOF_VOID_P 8
+#else
+#define _EVENT_SIZEOF_VOID_P 4
+#endif
+
+/* ------------------------------------------------------------------------ */
+/* END MOZILLA NOTE                                                         */
+/* ------------------------------------------------------------------------ */
 
 /* Define to 1 if you have the ANSI C header files. */
 #define _EVENT_STDC_HEADERS 1

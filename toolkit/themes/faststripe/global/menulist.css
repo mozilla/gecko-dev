@@ -38,15 +38,15 @@ menulist[open="true"]:focus > .menulist-label-box {
 
 .menulist-label {
   margin-top: 0 !important;
-  -moz-margin-end: 0 !important;
+  margin-inline-end: 0 !important;
   margin-bottom: 0 !important;
-  -moz-margin-start: 1px !important;
+  margin-inline-start: 1px !important;
 }
 
 .menulist-description {
   font-style: italic;
   color: GrayText;
-  -moz-margin-start: 1ex !important;
+  margin-inline-start: 1ex !important;
 }
 
 /* ..... dropmarker ..... */
@@ -58,8 +58,8 @@ menulist[disabled="true"]:hover:active > .menulist-dropmarker {
 menulist:hover:active > .menulist-dropmarker {
   padding-top: 2px;
   padding-bottom: 0px;
-  -moz-padding-start: 2px;
-  -moz-padding-end: 0px;
+  padding-inline-start: 2px;
+  padding-inline-end: 0px;
 }
 
 /* ..... focused state ..... */
@@ -82,8 +82,8 @@ menulist[disabled="true"] {
 .menulist-editable-box {
   padding-top: 3px;
   padding-bottom: 3px;
-  -moz-padding-start: 2px;
-  -moz-padding-end: 0px;
+  padding-inline-start: 2px;
+  padding-inline-end: 0px;
 }
 
 html|*.menulist-editable-input {
@@ -92,38 +92,4 @@ html|*.menulist-editable-input {
   padding: 0px !important;
   background: inherit;
   font: inherit;
-}
-
-/* ::::: compact menulists ::::: */
-
-.menulist-compact {
-  -moz-box-align: center;
-  -moz-box-pack: center;
-  margin: 0;
-  background-color: #aaaaaa;
-  color: black;
-  list-style-image: url("chrome://global/skin/arrow/arrow-dn.gif");
-}
-
-.menulist-compact > .menulist-label-box > .menulist-label {
-  margin: 0 3px !important;
-  text-align: end;
-}  
-
-.menulist-compact > .menulist-label-box > .menulist-icon {
-  -moz-margin-start: 2px;
-}
-
-.menulist-compact[open="true"] {
-  border-color: #777777;
-}
-
-.menulist-compact[disabled="true"] {
-  list-style-image: url("chrome://global/skin/arrow/arrow-dn-dis.gif");
-}
-
-.menulist-compact:focus > .menulist-label-box {
-  border: 1px dotted;
-  background-color: transparent;
-  color: inherit;
 }

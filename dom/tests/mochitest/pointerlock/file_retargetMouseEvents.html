@@ -93,6 +93,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=633602
 
       //  Event listeners for the parent element
       var startMouseTests = function() {
+        info("Got parent mousemove");
         parent.removeEventListener("mousemove", startMouseTests);
         parent.addEventListener("DOMMouseScroll", parentScrollTest);
         child.addEventListener("DOMMouseScroll", childScrollTest);
@@ -103,6 +104,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=633602
       };
 
       var parentScrollTest = function (e) {
+        info("Got parent DOMMouseScroll");
         parentStats.mouseScroll = true;
         parent.removeEventListener("DOMMouseScroll", parentScrollTest);
         child.removeEventListener("DOMMouseScroll", childScrollTest);
@@ -115,6 +117,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=633602
       };
 
       var parentWheelTest = function (e) {
+        info("Got parent wheel");
         parentStats.wheel = true;
         parent.removeEventListener("wheel", parentWheelTest);
         child.removeEventListener("wheel", childWheelTest);
@@ -126,6 +129,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=633602
       };
 
       var parentDownTest = function (e) {
+        info("Got parent mousedown");
         parentStats.mouseDown = true;
         parent.removeEventListener("mousedown", parentDownTest);
         child.removeEventListener("mousedown", childDownTest);
@@ -137,17 +141,19 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=633602
       };
 
       var parentUpTest = function (e) {
+        info("Got parent mouseup");
         parentStats.mouseUp = true;
         parent.removeEventListener("mouseup", parentUpTest);
         child.removeEventListener("mouseup", childUpTest);
         parent.addEventListener("click", parentClickTest);
         child.addEventListener("click", childClickTest);
         SimpleTest.executeSoon(function () {
-          synthesizeMouseAtCenter(child, {type: "click"}, window);
+          synthesizeMouseAtCenter(child, {}, window);
         });
       };
 
       var parentClickTest = function (e) {
+        info("Got parent click");
         parentStats.mouseClick = true;
         parent.removeEventListener("click", parentClickTest);
         child.removeEventListener("click", childClickTest);
@@ -159,35 +165,41 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=633602
       };
 
       var parentMoveTest = function (e) {
+        info("Got parent mousemove");
         parentStats.mouseMove = true;
         parent.removeEventListener("mousemove", parentMoveTest);
         child.removeEventListener("mousemove", childMoveTest);
         SimpleTest.executeSoon(function () {
-          document.mozCancelFullScreen();
+          info("Exit fullscreen");
+          addFullscreenChangeContinuation("exit", function() {
+            info("Got fullscreenchange for exiting");
+            runTests();
+            SimpleTest.finish();
+          });
+          document.exitFullscreen();
         });
       }
 
-      document.addEventListener("mozpointerlockchange", function (e) {
-        if (document.mozPointerLockElement === parent) {
+      document.addEventListener("pointerlockchange", function (e) {
+        if (document.pointerLockElement === parent) {
+          info("Got pointerlockchange for entering");
           parent.addEventListener("mousemove", startMouseTests);
           child.addEventListener("mousemove", childMoveTest);
           SimpleTest.executeSoon(function () {
             synthesizeMouseAtCenter(parent, {type: "mousemove"}, window);
           });
-        }
-      }, false);
-
-      document.addEventListener("mozfullscreenchange", function (e)  {
-        if (document.mozFullScreenElement === parent) {
-          parent.mozRequestPointerLock();
         } else {
-          runTests();
-          SimpleTest.finish();
+          info("Got pointerlockchange for exiting");
         }
       }, false);
 
       function start() {
-        parent.mozRequestFullScreen();
+        info("Requesting fullscreen on parent");
+        addFullscreenChangeContinuation("enter", function() {
+          info("Got fullscreenchange for entering");
+          parent.requestPointerLock();
+        });
+        parent.requestFullscreen();
       }
     </script>
   </pre>

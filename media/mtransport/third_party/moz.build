@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -50,7 +50,6 @@ nrappkit_non_unified_sources = [
     'nrappkit/src/util/hex.c',
     'nrappkit/src/util/libekr/debug.c',
     'nrappkit/src/util/libekr/r_assoc.c',
-    'nrappkit/src/util/libekr/r_bitfield.c',
     'nrappkit/src/util/libekr/r_crc32.c',
     'nrappkit/src/util/libekr/r_data.c',
     'nrappkit/src/util/libekr/r_errors.c',
@@ -64,10 +63,14 @@ nrappkit_non_unified_sources = [
 
 GYP_DIRS['nICEr'].input = 'nICEr/nicer.gyp'
 GYP_DIRS['nICEr'].variables = gyp_vars
+# We allow warnings for third-party code that can be updated from upstream.
+GYP_DIRS['nICEr'].sandbox_vars['ALLOW_COMPILER_WARNINGS'] = True
 GYP_DIRS['nICEr'].sandbox_vars['FINAL_LIBRARY'] = 'webrtc'
 GYP_DIRS['nICEr'].non_unified_sources += nICEr_non_unified_sources
 
 GYP_DIRS['nrappkit'].input = 'nrappkit/nrappkit.gyp'
 GYP_DIRS['nrappkit'].variables = gyp_vars
+# We allow warnings for third-party code that can be updated from upstream.
+GYP_DIRS['nrappkit'].sandbox_vars['ALLOW_COMPILER_WARNINGS'] = True
 GYP_DIRS['nrappkit'].sandbox_vars['FINAL_LIBRARY'] = 'webrtc'
 GYP_DIRS['nrappkit'].non_unified_sources += nrappkit_non_unified_sources

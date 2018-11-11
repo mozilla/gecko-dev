@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -25,9 +25,18 @@ namespace dom {
 class CallbackFunction : public CallbackObject
 {
 public:
-  explicit CallbackFunction(JS::Handle<JSObject*> aCallable,
+  // See CallbackObject for an explanation of the arguments.
+  explicit CallbackFunction(JSContext* aCx, JS::Handle<JSObject*> aCallable,
                             nsIGlobalObject* aIncumbentGlobal)
-    : CallbackObject(aCallable, aIncumbentGlobal)
+    : CallbackObject(aCx, aCallable, aIncumbentGlobal)
+  {
+  }
+
+  // See CallbackObject for an explanation of the arguments.
+  explicit CallbackFunction(JS::Handle<JSObject*> aCallable,
+                            JS::Handle<JSObject*> aAsyncStack,
+                            nsIGlobalObject* aIncumbentGlobal)
+    : CallbackObject(aCallable, aAsyncStack, aIncumbentGlobal)
   {
   }
 
@@ -36,15 +45,29 @@ public:
     return Callback();
   }
 
+  JS::Handle<JSObject*> CallablePreserveColor() const
+  {
+    return CallbackPreserveColor();
+  }
+
   bool HasGrayCallable() const
   {
     // Play it safe in case this gets called after unlink.
-    return mCallback && xpc_IsGrayGCThing(mCallback);
+    return mCallback && JS::ObjectIsMarkedGray(mCallback);
   }
 
 protected:
   explicit CallbackFunction(CallbackFunction* aCallbackFunction)
     : CallbackObject(aCallbackFunction)
+  {
+  }
+
+  // See CallbackObject for an explanation of the arguments.
+  CallbackFunction(JSContext* aCx, JS::Handle<JSObject*> aCallable,
+                   nsIGlobalObject* aIncumbentGlobal,
+                   const FastCallbackConstructor&)
+    : CallbackObject(aCx, aCallable, aIncumbentGlobal,
+                     FastCallbackConstructor())
   {
   }
 };

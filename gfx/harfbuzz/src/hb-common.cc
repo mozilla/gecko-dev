@@ -57,14 +57,14 @@ _hb_options_init (void)
 
 /**
  * hb_tag_from_string:
- * @str: (array length=len): 
+ * @str: (array length=len) (element-type uint8_t): 
  * @len: 
  *
  * 
  *
  * Return value: 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 hb_tag_t
 hb_tag_from_string (const char *str, int len)
@@ -88,11 +88,11 @@ hb_tag_from_string (const char *str, int len)
 /**
  * hb_tag_to_string:
  * @tag: 
- * @buf: (array fixed-size=4): 
+ * @buf: (out caller-allocates) (array fixed-size=4) (element-type uint8_t): 
  *
  * 
  *
- * Since: 1.0
+ * Since: 0.9.5
  **/
 void
 hb_tag_to_string (hb_tag_t tag, char *buf)
@@ -115,14 +115,14 @@ const char direction_strings[][4] = {
 
 /**
  * hb_direction_from_string:
- * @str: (array length=len): 
+ * @str: (array length=len) (element-type uint8_t): 
  * @len: 
  *
  * 
  *
  * Return value: 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 hb_direction_t
 hb_direction_from_string (const char *str, int len)
@@ -149,7 +149,7 @@ hb_direction_from_string (const char *str, int len)
  *
  * Return value: (transfer none): 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 const char *
 hb_direction_to_string (hb_direction_t direction)
@@ -179,7 +179,7 @@ static const char canon_map[256] = {
   'p', 'q', 'r', 's', 't', 'u', 'v', 'w',  'x', 'y', 'z',  0,   0,   0,   0,   0
 };
 
-static hb_bool_t
+static bool
 lang_equal (hb_language_t  v1,
 	    const void    *v2)
 {
@@ -234,8 +234,8 @@ struct hb_language_item_t {
 
 static hb_language_item_t *langs;
 
-#ifdef HAVE_ATEXIT
-static inline
+#ifdef HB_USE_ATEXIT
+static
 void free_langs (void)
 {
   while (langs) {
@@ -265,11 +265,12 @@ retry:
   *lang = key;
 
   if (!hb_atomic_ptr_cmpexch (&langs, first_lang, lang)) {
+    lang->finish ();
     free (lang);
     goto retry;
   }
 
-#ifdef HAVE_ATEXIT
+#ifdef HB_USE_ATEXIT
   if (!first_lang)
     atexit (free_langs); /* First person registers atexit() callback. */
 #endif
@@ -280,44 +281,51 @@ retry:
 
 /**
  * hb_language_from_string:
- * @str: (array length=len): 
- * @len: 
+ * @str: (array length=len) (element-type uint8_t): a string representing
+ *       ISO 639 language code
+ * @len: length of the @str, or -1 if it is %NULL-terminated.
  *
- * 
+ * Converts @str representing an ISO 639 language code to the corresponding
+ * #hb_language_t.
  *
- * Return value: 
+ * Return value: (transfer none):
+ * The #hb_language_t corresponding to the ISO 639 language code.
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 hb_language_t
 hb_language_from_string (const char *str, int len)
 {
-  char strbuf[64];
-
   if (!str || !len || !*str)
     return HB_LANGUAGE_INVALID;
 
+  hb_language_item_t *item = NULL;
   if (len >= 0)
   {
+    /* NUL-terminate it. */
+    char strbuf[64];
     len = MIN (len, (int) sizeof (strbuf) - 1);
-    str = (char *) memcpy (strbuf, str, len);
+    memcpy (strbuf, str, len);
     strbuf[len] = '\0';
+    item = lang_find_or_insert (strbuf);
   }
-
-  hb_language_item_t *item = lang_find_or_insert (str);
+  else
+    item = lang_find_or_insert (str);
 
   return likely (item) ? item->lang : HB_LANGUAGE_INVALID;
 }
 
 /**
  * hb_language_to_string:
- * @language: 
+ * @language: an #hb_language_t to convert.
  *
- * 
+ * See hb_language_from_string().
  *
- * Return value: (transfer none): 
+ * Return value: (transfer none):
+ * A %NULL-terminated string representing the @language. Must not be freed by
+ * the caller.
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 const char *
 hb_language_to_string (hb_language_t language)
@@ -331,9 +339,9 @@ hb_language_to_string (hb_language_t language)
  *
  * 
  *
- * Return value: 
+ * Return value: (transfer none):
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 hb_language_t
 hb_language_get_default (void)
@@ -343,7 +351,7 @@ hb_language_get_default (void)
   hb_language_t language = (hb_language_t) hb_atomic_ptr_get (&default_language);
   if (unlikely (language == HB_LANGUAGE_INVALID)) {
     language = hb_language_from_string (setlocale (LC_CTYPE, NULL), -1);
-    hb_atomic_ptr_cmpexch (&default_language, HB_LANGUAGE_INVALID, language);
+    (void) hb_atomic_ptr_cmpexch (&default_language, HB_LANGUAGE_INVALID, language);
   }
 
   return default_language;
@@ -354,13 +362,14 @@ hb_language_get_default (void)
 
 /**
  * hb_script_from_iso15924_tag:
- * @tag: 
+ * @tag: an #hb_tag_t representing an ISO 15924 tag.
  *
- * 
+ * Converts an ISO 15924 script tag to a corresponding #hb_script_t.
  *
  * Return value: 
+ * An #hb_script_t corresponding to the ISO 15924 tag.
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 hb_script_t
 hb_script_from_iso15924_tag (hb_tag_t tag)
@@ -369,7 +378,7 @@ hb_script_from_iso15924_tag (hb_tag_t tag)
     return HB_SCRIPT_INVALID;
 
   /* Be lenient, adjust case (one capital letter followed by three small letters) */
-  tag = (tag & 0xDFDFDFDF) | 0x00202020;
+  tag = (tag & 0xDFDFDFDFu) | 0x00202020u;
 
   switch (tag) {
 
@@ -389,7 +398,7 @@ hb_script_from_iso15924_tag (hb_tag_t tag)
   }
 
   /* If it looks right, just use the tag as a script */
-  if (((uint32_t) tag & 0xE0E0E0E0) == 0x40606060)
+  if (((uint32_t) tag & 0xE0E0E0E0u) == 0x40606060u)
     return (hb_script_t) tag;
 
   /* Otherwise, return unknown */
@@ -398,30 +407,35 @@ hb_script_from_iso15924_tag (hb_tag_t tag)
 
 /**
  * hb_script_from_string:
- * @s: (array length=len): 
- * @len: 
+ * @str: (array length=len) (element-type uint8_t): a string representing an
+ *       ISO 15924 tag.
+ * @len: length of the @str, or -1 if it is %NULL-terminated.
  *
- * 
+ * Converts a string @str representing an ISO 15924 script tag to a
+ * corresponding #hb_script_t. Shorthand for hb_tag_from_string() then
+ * hb_script_from_iso15924_tag().
  *
  * Return value: 
+ * An #hb_script_t corresponding to the ISO 15924 tag.
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 hb_script_t
-hb_script_from_string (const char *s, int len)
+hb_script_from_string (const char *str, int len)
 {
-  return hb_script_from_iso15924_tag (hb_tag_from_string (s, len));
+  return hb_script_from_iso15924_tag (hb_tag_from_string (str, len));
 }
 
 /**
  * hb_script_to_iso15924_tag:
- * @script: 
+ * @script: an #hb_script_ to convert.
  *
- * 
+ * See hb_script_from_iso15924_tag().
  *
- * Return value: 
+ * Return value:
+ * An #hb_tag_t representing an ISO 15924 script tag.
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 hb_tag_t
 hb_script_to_iso15924_tag (hb_script_t script)
@@ -437,7 +451,7 @@ hb_script_to_iso15924_tag (hb_script_t script)
  *
  * Return value: 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 hb_direction_t
 hb_script_get_horizontal_direction (hb_script_t script)
@@ -482,6 +496,20 @@ hb_script_get_horizontal_direction (hb_script_t script)
     case HB_SCRIPT_MEROITIC_CURSIVE:
     case HB_SCRIPT_MEROITIC_HIEROGLYPHS:
 
+    /* Unicode-7.0 additions */
+    case HB_SCRIPT_MANICHAEAN:
+    case HB_SCRIPT_MENDE_KIKAKUI:
+    case HB_SCRIPT_NABATAEAN:
+    case HB_SCRIPT_OLD_NORTH_ARABIAN:
+    case HB_SCRIPT_PALMYRENE:
+    case HB_SCRIPT_PSALTER_PAHLAVI:
+
+    /* Unicode-8.0 additions */
+    case HB_SCRIPT_OLD_HUNGARIAN:
+
+    /* Unicode-9.0 additions */
+    case HB_SCRIPT_ADLAM:
+
       return HB_DIRECTION_RTL;
   }
 
@@ -507,7 +535,7 @@ hb_user_data_array_t::set (hb_user_data_key_t *key,
     }
   }
   hb_user_data_item_t item = {key, data, destroy};
-  bool ret = !!items.replace_or_insert (item, lock, replace);
+  bool ret = !!items.replace_or_insert (item, lock, (bool) replace);
 
   return ret;
 }
@@ -515,7 +543,7 @@ hb_user_data_array_t::set (hb_user_data_key_t *key,
 void *
 hb_user_data_array_t::get (hb_user_data_key_t *key)
 {
-  hb_user_data_item_t item = {NULL };
+  hb_user_data_item_t item = {NULL, NULL, NULL};
 
   return items.find (key, &item, lock) ? item.data : NULL;
 }
@@ -531,7 +559,7 @@ hb_user_data_array_t::get (hb_user_data_key_t *key)
  *
  * Returns library version as three integer components.
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 void
 hb_version (unsigned int *major,
@@ -550,7 +578,7 @@ hb_version (unsigned int *major,
  *
  * Return value: library version string.
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 const char *
 hb_version_string (void)
@@ -559,7 +587,7 @@ hb_version_string (void)
 }
 
 /**
- * hb_version_check:
+ * hb_version_atleast:
  * @major: 
  * @minor: 
  * @micro: 
@@ -568,12 +596,12 @@ hb_version_string (void)
  *
  * Return value: 
  *
- * Since: 1.0
+ * Since: 0.9.30
  **/
 hb_bool_t
-hb_version_check (unsigned int major,
-		  unsigned int minor,
-		  unsigned int micro)
+hb_version_atleast (unsigned int major,
+		    unsigned int minor,
+		    unsigned int micro)
 {
-  return HB_VERSION_CHECK (major, minor, micro);
+  return HB_VERSION_ATLEAST (major, minor, micro);
 }

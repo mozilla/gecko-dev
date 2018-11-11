@@ -124,7 +124,7 @@ arguments passed to the method.
 * .crash() - Crashes the plugin
 
 * getObjectValue() - Returns a custom plugin-implemented scriptable object.
-* checkObjectValue(obj) - Returns true if the object from setObjectValue() is
+* checkObjectValue(obj) - Returns true if the object from getObjectValue() is
   the same object passed into this function. It should return true when
   the object is passed to the same plugin instance, and false when passed
   to other plugin instances, see bug 532246 and
@@ -428,3 +428,14 @@ x86-only on some OSes:
 Returns the contents scale factor. On platforms without support for this query
 always returns 1.0 (a double value). Likewise on hardware without HiDPI mode
 support.
+
+== Plugin audio channel support ==
+
+* startAudioPlayback()
+Simulates the plugin starting to play back audio.
+
+* stopAudioPlayback()
+Simulates the plugin stopping to play back audio.
+
+* audioMuted()
+Returns the last value set by NPP_SetValue(NPNVmuteAudioBool).

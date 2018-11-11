@@ -24,9 +24,6 @@
  * Google Author(s): Behdad Esfahbod
  */
 
-#define _WIN32_WINNT 0x0600
-#define WIN32_LEAN_AND_MEAN
-
 #define HB_SHAPER uniscribe
 #include "hb-shaper-impl-private.hh"
 
@@ -44,6 +41,12 @@
 #ifndef HB_DEBUG_UNISCRIBE
 #define HB_DEBUG_UNISCRIBE (HB_DEBUG+0)
 #endif
+
+
+static inline uint16_t hb_uint16_swap (const uint16_t v)
+{ return (v >> 8) | (v << 8); }
+static inline uint32_t hb_uint32_swap (const uint32_t v)
+{ return (hb_uint16_swap (v) << 16) | hb_uint16_swap (v >> 16); }
 
 
 typedef HRESULT (WINAPI *SIOT) /*ScriptItemizeOpenType*/(
@@ -248,7 +251,7 @@ retry:
       goto retry;
     }
 
-#ifdef HAVE_ATEXIT
+#ifdef HB_USE_ATEXIT
     atexit (free_uniscribe_funcs); /* First person registers atexit() callback. */
 #endif
   }
@@ -313,6 +316,7 @@ _hb_generate_unique_face_name (wchar_t *face_name, unsigned int *plen)
   const char *enc = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-";
   UUID id;
   UuidCreate ((UUID*) &id);
+  ASSERT_STATIC (2 + 3 * (16/2) < LF_FACESIZE);
   unsigned int name_str_len = 0;
   face_name[name_str_len++] = 'F';
   face_name[name_str_len++] = '_';
@@ -379,7 +383,7 @@ _hb_rename_font (hb_blob_t *blob, wchar_t *new_name)
     OT::NameRecord &record = name.nameRecord[i];
     record.platformID.set (3);
     record.encodingID.set (1);
-    record.languageID.set (0x0409); /* English */
+    record.languageID.set (0x0409u); /* English */
     record.nameID.set (name_IDs[i]);
     record.length.set (name_str_len * 2);
     record.offset.set (0);
@@ -482,14 +486,16 @@ struct hb_uniscribe_shaper_font_data_t {
   LOGFONTW log_font;
   HFONT hfont;
   SCRIPT_CACHE script_cache;
+  double x_mult, y_mult; /* From LOGFONT space to HB space. */
 };
 
 static bool
 populate_log_font (LOGFONTW  *lf,
-		   hb_font_t *font)
+		   hb_font_t *font,
+		   unsigned int font_size)
 {
   memset (lf, 0, sizeof (*lf));
-  lf->lfHeight = -font->y_scale;
+  lf->lfHeight = -font_size;
   lf->lfCharSet = DEFAULT_CHARSET;
 
   hb_face_t *face = font->face;
@@ -509,9 +515,19 @@ _hb_uniscribe_shaper_font_data_create (hb_font_t *font)
   if (unlikely (!data))
     return NULL;
 
+  int font_size = font->face->get_upem (); /* Default... */
+  /* No idea if the following is even a good idea. */
+  if (font->y_ppem)
+    font_size = font->y_ppem;
+
+  if (font_size < 0)
+    font_size = -font_size;
+  data->x_mult = (double) font->x_scale / font_size;
+  data->y_mult = (double) font->y_scale / font_size;
+
   data->hdc = GetDC (NULL);
 
-  if (unlikely (!populate_log_font (&data->log_font, font))) {
+  if (unlikely (!populate_log_font (&data->log_font, font, font_size))) {
     DEBUG_MSG (UNISCRIBE, font, "Font populate_log_font() failed");
     _hb_uniscribe_shaper_font_data_destroy (data);
     return NULL;
@@ -571,7 +587,9 @@ struct hb_uniscribe_shaper_shape_plan_data_t {};
 hb_uniscribe_shaper_shape_plan_data_t *
 _hb_uniscribe_shaper_shape_plan_data_create (hb_shape_plan_t    *shape_plan HB_UNUSED,
 					     const hb_feature_t *user_features HB_UNUSED,
-					     unsigned int        num_user_features HB_UNUSED)
+					     unsigned int        num_user_features HB_UNUSED,
+					     const int          *coords HB_UNUSED,
+					     unsigned int        num_coords HB_UNUSED)
 {
   return (hb_uniscribe_shaper_shape_plan_data_t *) HB_SHAPER_DATA_SUCCEEDED;
 }
@@ -631,7 +649,7 @@ _hb_uniscribe_shape (hb_shape_plan_t    *shape_plan,
       event->start = false;
       event->feature = feature;
     }
-    feature_events.sort ();
+    feature_events.qsort ();
     /* Add a strategic final event. */
     {
       active_feature_t feature;
@@ -663,7 +681,7 @@ _hb_uniscribe_shape (hb_shape_plan_t    *shape_plan,
 
 	unsigned int offset = feature_records.len;
 
-	active_features.sort ();
+	active_features.qsort ();
 	for (unsigned int j = 0; j < active_features.len; j++)
 	{
 	  if (!j || active_features[j].rec.tagFeature != feature_records[feature_records.len - 1].tagFeature)
@@ -749,13 +767,13 @@ retry:
   {
     hb_codepoint_t c = buffer->info[i].codepoint;
     buffer->info[i].utf16_index() = chars_len;
-    if (likely (c < 0x10000))
+    if (likely (c <= 0xFFFFu))
       pchars[chars_len++] = c;
-    else if (unlikely (c >= 0x110000))
-      pchars[chars_len++] = 0xFFFD;
+    else if (unlikely (c > 0x10FFFFu))
+      pchars[chars_len++] = 0xFFFDu;
     else {
-      pchars[chars_len++] = 0xD800 + ((c - 0x10000) >> 10);
-      pchars[chars_len++] = 0xDC00 + ((c - 0x10000) & ((1 << 10) - 1));
+      pchars[chars_len++] = 0xD800u + ((c - 0x10000u) >> 10);
+      pchars[chars_len++] = 0xDC00u + ((c - 0x10000u) & ((1u << 10) - 1));
     }
   }
 
@@ -771,7 +789,7 @@ retry:
       hb_codepoint_t c = buffer->info[i].codepoint;
       unsigned int cluster = buffer->info[i].cluster;
       log_clusters[chars_len++] = cluster;
-      if (c >= 0x10000 && c < 0x110000)
+      if (hb_in_range (c, 0x10000u, 0x10FFFFu))
 	log_clusters[chars_len++] = cluster; /* Surrogates. */
     }
   }
@@ -811,7 +829,7 @@ retry:
 
   /* MinGW32 doesn't define fMergeNeutralItems, so we bruteforce */
   //bidi_control.fMergeNeutralItems = true;
-  *(uint32_t*)&bidi_control |= 1<<24;
+  *(uint32_t*)&bidi_control |= 1u<<24;
 
   bidi_state.uBidiLevel = HB_DIRECTION_IS_FORWARD (buffer->props.direction) ? 0 : 1;
   bidi_state.fOverrideDirection = 1;
@@ -903,10 +921,9 @@ retry:
 
     if (unlikely (items[i].a.fNoGlyphIndex))
       FAIL ("ScriptShapeOpenType() set fNoGlyphIndex");
-    if (unlikely (hr == E_OUTOFMEMORY))
+    if (unlikely (hr == E_OUTOFMEMORY || hr == E_NOT_SUFFICIENT_BUFFER))
     {
-      buffer->ensure (buffer->allocated * 2);
-      if (buffer->in_error)
+      if (unlikely (!buffer->ensure (buffer->allocated * 2)))
 	FAIL ("Buffer resize failed");
       goto retry;
     }
@@ -975,8 +992,7 @@ retry:
 
 #undef utf16_index
 
-  buffer->ensure (glyphs_len);
-  if (buffer->in_error)
+  if (unlikely (!buffer->ensure (glyphs_len)))
     FAIL ("Buffer in error");
 
 #undef FAIL
@@ -992,21 +1008,22 @@ retry:
 
     /* The rest is crap.  Let's store position info there for now. */
     info->mask = advances[i];
-    info->var1.u32 = offsets[i].du;
-    info->var2.u32 = offsets[i].dv;
+    info->var1.i32 = offsets[i].du;
+    info->var2.i32 = offsets[i].dv;
   }
 
   /* Set glyph positions */
   buffer->clear_positions ();
+  double x_mult = font_data->x_mult, y_mult = font_data->y_mult;
   for (unsigned int i = 0; i < glyphs_len; i++)
   {
     hb_glyph_info_t *info = &buffer->info[i];
     hb_glyph_position_t *pos = &buffer->pos[i];
 
     /* TODO vertical */
-    pos->x_advance = info->mask;
-    pos->x_offset = backward ? -info->var1.u32 : info->var1.u32;
-    pos->y_offset = info->var2.u32;
+    pos->x_advance = x_mult * (int32_t) info->mask;
+    pos->x_offset = x_mult * (backward ? -info->var1.i32 : info->var1.i32);
+    pos->y_offset = y_mult * info->var2.i32;
   }
 
   if (backward)

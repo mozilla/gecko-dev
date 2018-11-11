@@ -44,7 +44,7 @@ namespace google_breakpad {
 struct SystemInfo {
  public:
   SystemInfo() : os(), os_short(), os_version(), cpu(), cpu_info(),
-    cpu_count(0) {}
+    cpu_count(0), gl_version(), gl_vendor(), gl_renderer() {}
 
   // Resets the SystemInfo object to its default values.
   void Clear() {
@@ -54,6 +54,9 @@ struct SystemInfo {
     cpu.clear();
     cpu_info.clear();
     cpu_count = 0;
+    gl_version.clear();
+    gl_vendor.clear();
+    gl_renderer.clear();
   }
 
   // A string identifying the operating system, such as "Windows NT",
@@ -63,10 +66,11 @@ struct SystemInfo {
   string os;
 
   // A short form of the os string, using lowercase letters and no spaces,
-  // suitable for use in a filesystem.  Possible values are "windows",
-  // "mac", and "linux".  Empty if the information is not present in the dump
-  // or if the OS given by the dump is unknown.  The values stored in this
-  // field should match those used by MinidumpSystemInfo::GetOS.
+  // suitable for use in a filesystem.  Possible values include "windows",
+  // "mac", "linux" and "nacl".  Empty if the information is not present
+  // in the dump or if the OS given by the dump is unknown.  The values
+  // stored in this field should match those used by
+  // MinidumpSystemInfo::GetOS.
   string os_short;
 
   // A string identifying the version of the operating system, such as
@@ -90,6 +94,11 @@ struct SystemInfo {
   // The number of processors in the system.  Will be greater than one for
   // multi-core systems.
   int cpu_count;
+
+  // The GPU information. Currently only populated in microdumps.
+  string gl_version;
+  string gl_vendor;
+  string gl_renderer;
 };
 
 }  // namespace google_breakpad

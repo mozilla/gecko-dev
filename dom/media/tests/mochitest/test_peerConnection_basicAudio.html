@@ -1,13 +1,7 @@
 ﻿<!DOCTYPE HTML>
 <html>
 <head>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
-  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script type="application/javascript" src="head.js"></script>
-  <script type="application/javascript" src="mediaStreamPlayback.js"></script>
   <script type="application/javascript" src="pc.js"></script>
-  <script type="application/javascript" src="templates.js"></script>
-  <script type="application/javascript" src="turnConfig.js"></script>
 </head>
 <body>
 <pre id="test">
@@ -21,6 +15,8 @@
   runNetworkTest(function (options) {
     test = new PeerConnectionTest(options);
     test.setMediaConstraints([{audio: true}], [{audio: true}]);
+    // pc.js uses video elements by default, we want to test audio elements here
+    test.pcLocal.audioElementsOnly = true;
     test.run();
   });
 </script>

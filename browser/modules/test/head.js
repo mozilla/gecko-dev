@@ -1,175 +1,113 @@
-/* Any copyright is dedicated to the Public Domain.
- * http://creativecommons.org/publicdomain/zero/1.0/ */
-
 Cu.import("resource://gre/modules/Promise.jsm");
 
-function waitForCondition(condition, nextTest, errorMsg) {
-  var tries = 0;
-  var interval = setInterval(function() {
-    if (tries >= 30) {
-      ok(false, errorMsg);
-      moveOn();
+const SINGLE_TRY_TIMEOUT = 100;
+const NUMBER_OF_TRIES = 30;
+
+function waitForConditionPromise(condition, timeoutMsg, tryCount=NUMBER_OF_TRIES) {
+  let defer = Promise.defer();
+  let tries = 0;
+  function checkCondition() {
+    if (tries >= tryCount) {
+      defer.reject(timeoutMsg);
     }
     var conditionPassed;
     try {
       conditionPassed = condition();
     } catch (e) {
-      ok(false, e + "\n" + e.stack);
-      conditionPassed = false;
+      return defer.reject(e);
     }
     if (conditionPassed) {
-      moveOn();
+      return defer.resolve();
     }
     tries++;
-  }, 100);
-  var moveOn = function() { clearInterval(interval); nextTest(); };
-}
-
-function is_hidden(element) {
-  var style = element.ownerDocument.defaultView.getComputedStyle(element, "");
-  if (style.display == "none")
-    return true;
-  if (style.visibility != "visible")
-    return true;
-  if (style.display == "-moz-popup")
-    return ["hiding","closed"].indexOf(element.state) != -1;
-
-  // Hiding a parent element will hide all its children
-  if (element.parentNode != element.ownerDocument)
-    return is_hidden(element.parentNode);
-
-  return false;
-}
-
-function is_element_visible(element, msg) {
-  isnot(element, null, "Element should not be null, when checking visibility");
-  ok(!is_hidden(element), msg);
-}
-
-function waitForElementToBeVisible(element, nextTest, msg) {
-  waitForCondition(() => !is_hidden(element),
-                   () => {
-                     ok(true, msg);
-                     nextTest();
-                   },
-                   "Timeout waiting for visibility: " + msg);
-}
-
-function waitForElementToBeHidden(element, nextTest, msg) {
-  waitForCondition(() => is_hidden(element),
-                   () => {
-                     ok(true, msg);
-                     nextTest();
-                   },
-                   "Timeout waiting for invisibility: " + msg);
-}
-
-function waitForPopupAtAnchor(popup, anchorNode, nextTest, msg) {
-  waitForCondition(() => popup.popupBoxObject.anchorNode == anchorNode,
-                   () => {
-                     ok(true, msg);
-                     is_element_visible(popup, "Popup should be visible");
-                     nextTest();
-                   },
-                   "Timeout waiting for popup at anchor: " + msg);
-}
-
-function promisePanelShown(win) {
-  let panelEl = win.PanelUI.panel;
-  return promisePanelElementShown(win, panelEl);
-}
-
-function promisePanelElementShown(win, aPanel) {
-  let deferred = Promise.defer();
-  let timeoutId = win.setTimeout(() => {
-    deferred.reject("Panel did not show within 5 seconds.");
-  }, 5000);
-  aPanel.addEventListener("popupshown", function onPanelOpen(e) {
-    aPanel.removeEventListener("popupshown", onPanelOpen);
-    win.clearTimeout(timeoutId);
-    deferred.resolve();
-  });
-  return deferred.promise;
-}
-
-function is_element_hidden(element, msg) {
-  isnot(element, null, "Element should not be null, when checking visibility");
-  ok(is_hidden(element), msg);
-}
-
-function loadUITourTestPage(callback, host = "https://example.com/") {
-  if (gTestTab)
-    gBrowser.removeTab(gTestTab);
-
-  let url = getRootDirectory(gTestPath) + "uitour.html";
-  url = url.replace("chrome://mochitests/content/", host);
-
-  gTestTab = gBrowser.addTab(url);
-  gBrowser.selectedTab = gTestTab;
-
-  gTestTab.linkedBrowser.addEventListener("load", function onLoad() {
-    gTestTab.linkedBrowser.removeEventListener("load", onLoad, true);
-
-    gContentWindow = Components.utils.waiveXrays(gTestTab.linkedBrowser.contentDocument.defaultView);
-    gContentAPI = gContentWindow.Mozilla.UITour;
-
-    waitForFocus(callback, gContentWindow);
-  }, true);
-}
-
-function UITourTest() {
-  Services.prefs.setBoolPref("browser.uitour.enabled", true);
-  let testUri = Services.io.newURI("http://example.com", null, null);
-  Services.perms.add(testUri, "uitour", Services.perms.ALLOW_ACTION);
-
-  waitForExplicitFinish();
-
-  registerCleanupFunction(function() {
-    delete window.UITour;
-    delete window.gContentWindow;
-    delete window.gContentAPI;
-    if (gTestTab)
-      gBrowser.removeTab(gTestTab);
-    delete window.gTestTab;
-    Services.prefs.clearUserPref("browser.uitour.enabled", true);
-    Services.perms.remove("example.com", "uitour");
-  });
-
-  function done() {
-    executeSoon(() => {
-      if (gTestTab)
-        gBrowser.removeTab(gTestTab);
-      gTestTab = null;
-
-      let highlight = document.getElementById("UITourHighlightContainer");
-      is_element_hidden(highlight, "Highlight should be closed/hidden after UITour tab is closed");
-
-      let tooltip = document.getElementById("UITourTooltip");
-      is_element_hidden(tooltip, "Tooltip should be closed/hidden after UITour tab is closed");
-
-      ok(!PanelUI.panel.hasAttribute("noautohide"), "@noautohide on the menu panel should have been cleaned up");
-      ok(!PanelUI.panel.hasAttribute("panelopen"), "The panel shouldn't have @panelopen");
-      isnot(PanelUI.panel.state, "open", "The panel shouldn't be open");
-      is(document.getElementById("PanelUI-menu-button").hasAttribute("open"), false, "Menu button should know that the menu is closed");
-
-      is(UITour.pinnedTabs.get(window), null, "Any pinned tab should be closed after UITour tab is closed");
-
-      executeSoon(nextTest);
-    });
+    setTimeout(checkCondition, SINGLE_TRY_TIMEOUT);
+    return undefined;
   }
+  setTimeout(checkCondition, SINGLE_TRY_TIMEOUT);
+  return defer.promise;
+}
 
-  function nextTest() {
-    if (tests.length == 0) {
-      finish();
-      return;
+function waitForCondition(condition, nextTest, errorMsg) {
+  waitForConditionPromise(condition, errorMsg).then(nextTest, (reason) => {
+    ok(false, reason + (reason.stack ? "\n" + reason.stack : ""));
+  });
+}
+
+/**
+ * Checks if the snapshotted keyed scalars contain the expected
+ * data.
+ *
+ * @param {Object} scalars
+ *        The snapshot of the keyed scalars.
+ * @param {String} scalarName
+ *        The name of the keyed scalar to check.
+ * @param {String} key
+ *        The key that must be within the keyed scalar.
+ * @param {String|Boolean|Number} expectedValue
+ *        The expected value for the provided key in the scalar.
+ */
+function checkKeyedScalar(scalars, scalarName, key, expectedValue) {
+  Assert.ok(scalarName in scalars,
+            scalarName + " must be recorded.");
+  Assert.ok(key in scalars[scalarName],
+            scalarName + " must contain the '" + key + "' key.");
+  Assert.ok(scalars[scalarName][key], expectedValue,
+            scalarName + "['" + key + "'] must contain the expected value");
+}
+
+/**
+ * An utility function to write some text in the search input box
+ * in a content page.
+ * @param {Object} browser
+ *        The browser that contains the content.
+ * @param {String} text
+ *        The string to write in the search field.
+ * @param {String} fieldName
+ *        The name of the field to write to.
+ */
+let typeInSearchField = Task.async(function* (browser, text, fieldName) {
+  yield ContentTask.spawn(browser, { fieldName, text }, function* ({fieldName, text}) {
+    // Avoid intermittent failures.
+    if (fieldName === "searchText") {
+      content.wrappedJSObject.gContentSearchController.remoteTimeout = 5000;
     }
-    let test = tests.shift();
-    info("Starting " + test.name);
-    waitForFocus(function() {
-      loadUITourTestPage(function() {
-        test(done);
-      });
-    });
+    // Put the focus on the search box.
+    let searchInput = content.document.getElementById(fieldName);
+    searchInput.focus();
+    searchInput.value = text;
+  });
+});
+
+/**
+ * Clear and get the SEARCH_COUNTS histogram.
+ */
+function getSearchCountsHistogram() {
+  let search_hist = Services.telemetry.getKeyedHistogramById("SEARCH_COUNTS");
+  search_hist.clear();
+  return search_hist;
+}
+
+/**
+ * Check that the keyed histogram contains the right value.
+ */
+function checkKeyedHistogram(h, key, expectedValue) {
+  const snapshot = h.snapshot();
+  Assert.ok(key in snapshot, `The histogram must contain ${key}.`);
+  Assert.equal(snapshot[key].sum, expectedValue, `The key ${key} must contain ${expectedValue}.`);
+}
+
+function checkEvents(events, expectedEvents) {
+  if (!Services.telemetry.canRecordExtended) {
+    // Currently we only collect the tested events when extended Telemetry is enabled.
+    return;
   }
-  nextTest();
+
+  Assert.equal(events.length, expectedEvents.length, "Should have matching amount of events.");
+
+  // Strip timestamps from the events for easier comparison.
+  events = events.map(e => e.slice(1));
+
+  for (let i = 0; i < events.length; ++i) {
+    Assert.deepEqual(events[i], expectedEvents[i], "Events should match.");
+  }
 }

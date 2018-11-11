@@ -30,7 +30,7 @@ public:
   virtual SurfaceType GetType() const { return SurfaceType::CAIRO; }
   virtual IntSize GetSize() const;
   virtual SurfaceFormat GetFormat() const;
-  virtual TemporaryRef<DataSourceSurface> GetDataSurface();
+  virtual already_AddRefed<DataSourceSurface> GetDataSurface();
 
   cairo_surface_t* GetSurface() const;
 
@@ -49,7 +49,7 @@ class DataSourceSurfaceCairo : public DataSourceSurface
 {
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(DataSourceSurfaceCairo)
-  DataSourceSurfaceCairo(cairo_surface_t* imageSurf);
+  explicit DataSourceSurfaceCairo(cairo_surface_t* imageSurf);
   virtual ~DataSourceSurfaceCairo();
   virtual unsigned char *GetData();
   virtual int32_t Stride();
@@ -64,7 +64,7 @@ private:
   cairo_surface_t* mImageSurface;
 };
 
-}
-}
+} // namespace gfx
+} // namespace mozilla
 
 #endif // _MOZILLA_GFX_OP_SOURCESURFACE_CAIRO_H

@@ -7,11 +7,33 @@
 #ifndef mozilla_Sandbox_h
 #define mozilla_Sandbox_h
 
+#include "mozilla/Types.h"
+#include "nsXULAppAPI.h"
+
+// This defines the entry points for a content process to start
+// sandboxing itself.  See also SandboxInfo.h for what parts of
+// sandboxing are enabled/supported.
+
 namespace mozilla {
 
-void SetCurrentProcessSandbox();
+// This must be called early, while the process is still single-threaded.
+MOZ_EXPORT void SandboxEarlyInit(GeckoProcessType aType);
+
+#ifdef MOZ_CONTENT_SANDBOX
+// Call only if SandboxInfo::CanSandboxContent() returns true.
+// (No-op if MOZ_DISABLE_CONTENT_SANDBOX is set.)
+// aBrokerFd is the filesystem broker client file descriptor,
+// or -1 to allow direct filesystem access.
+MOZ_EXPORT bool SetContentProcessSandbox(int aBrokerFd);
+#endif
+
+#ifdef MOZ_GMP_SANDBOX
+// Call only if SandboxInfo::CanSandboxMedia() returns true.
+// (No-op if MOZ_DISABLE_GMP_SANDBOX is set.)
+// aFilePath is the path to the plugin file.
+MOZ_EXPORT void SetMediaPluginSandbox(const char *aFilePath);
+#endif
 
 } // namespace mozilla
 
 #endif // mozilla_Sandbox_h
-

@@ -1,6 +1,19 @@
-/* -*- Mode: Javascript; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
 
 "use strict";
+
+// gcc appends this to mangled function names for "not in charge"
+// constructors/destructors.
+var internalMarker = " *INTERNAL* ";
+
+if (! Set.prototype.hasOwnProperty("update")) {
+    Object.defineProperty(Set.prototype, "update", {
+        value: function (collection) {
+            for (let elt of collection)
+                this.add(elt);
+        }
+    });
+}
 
 function assert(x, msg)
 {
@@ -107,32 +120,31 @@ function getSuccessors(body)
 // no mangled name was given, use the unmangled name as its mangled name
 function splitFunction(func)
 {
-    var split = func.indexOf("|");
-    if (split == -1)
-        return [ func, func ];
-    return [ func.substr(0, split), func.substr(split+1) ];
+    var split = func.indexOf("$");
+    if (split != -1)
+        return [ func.substr(0, split), func.substr(split+1) ];
+    split = func.indexOf("|");
+    if (split != -1)
+        return [ func.substr(0, split), func.substr(split+1) ];
+    return [ func, func ];
 }
 
 function mangled(fullname)
 {
-    var split = fullname.indexOf("|");
-    if (split == -1)
-        return fullname;
-    return fullname.substr(0, split);
+    var [ mangled, unmangled ] = splitFunction(fullname);
+    return mangled;
 }
 
 function readable(fullname)
 {
-    var split = fullname.indexOf("|");
-    if (split == -1)
-        return fullname;
-    return fullname.substr(split+1);
+    var [ mangled, unmangled ] = splitFunction(fullname);
+    return unmangled;
 }
 
 function xdbLibrary()
 {
-    var lib = ctypes.open(environment['XDB']);
-    return {
+    var lib = ctypes.open(os.getenv('XDB'));
+    var api = {
         open: lib.declare("xdb_open", ctypes.default_abi, ctypes.void_t, ctypes.char.ptr),
         min_data_stream: lib.declare("xdb_min_data_stream", ctypes.default_abi, ctypes.int),
         max_data_stream: lib.declare("xdb_max_data_stream", ctypes.default_abi, ctypes.int),
@@ -140,4 +152,60 @@ function xdbLibrary()
         read_entry: lib.declare("xdb_read_entry", ctypes.default_abi, ctypes.char.ptr, ctypes.char.ptr),
         free_string: lib.declare("xdb_free", ctypes.default_abi, ctypes.void_t, ctypes.char.ptr)
     };
+    try {
+        api.lookup_key = lib.declare("xdb_lookup_key", ctypes.default_abi, ctypes.int, ctypes.char.ptr);
+    } catch (e) {
+        // lookup_key is for development use only and is not strictly necessary.
+    }
+    return api;
+}
+
+function cLibrary()
+{
+    var lib;
+    try {
+        lib = ctypes.open("libc.so.6");
+    } catch(e) {
+        lib = ctypes.open("libc.so");
+    }
+
+    return {
+        fopen: lib.declare("fopen", ctypes.default_abi, ctypes.void_t.ptr, ctypes.char.ptr, ctypes.char.ptr),
+        getline: lib.declare("getline", ctypes.default_abi, ctypes.ssize_t, ctypes.char.ptr.ptr, ctypes.size_t.ptr, ctypes.void_t.ptr),
+        fclose: lib.declare("fclose", ctypes.default_abi, ctypes.int, ctypes.void_t.ptr),
+        free: lib.declare("free", ctypes.default_abi, ctypes.void_t, ctypes.void_t.ptr),
+    };
+}
+
+function* readFileLines_gen(filename)
+{
+    var libc = cLibrary();
+    var linebuf = ctypes.char.ptr();
+    var bufsize = ctypes.size_t(0);
+    var fp = libc.fopen(filename, "r");
+    if (fp.isNull())
+        throw "Unable to open '" + filename + "'"
+
+    while (libc.getline(linebuf.address(), bufsize.address(), fp) > 0)
+        yield linebuf.readString();
+    libc.fclose(fp);
+    libc.free(ctypes.void_t.ptr(linebuf));
+}
+
+function addToKeyedList(collection, key, entry)
+{
+    if (!(key in collection))
+        collection[key] = [];
+    collection[key].push(entry);
+}
+
+function loadTypeInfo(filename)
+{
+    var info = {};
+    for (var line of readFileLines_gen(filename)) {
+        line = line.replace(/\n/, "");
+        let [property, name] = line.split("$$");
+        addToKeyedList(info, property, name);
+    }
+    return info;
 }

@@ -2,10 +2,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 import re
 import os
 from urlparse import urlparse
-import mozpack.path
+import mozpack.path as mozpath
 from mozpack.chrome.flags import Flags
 from mozpack.errors import errors
 
@@ -35,6 +37,7 @@ class ManifestEntry(object):
         'abi',
         'xpcnativewrappers',
         'tablet',
+        'process',
     ]
 
     def __init__(self, base, *flags):
@@ -100,12 +103,12 @@ class ManifestEntryWithRelPath(ManifestEntry):
         entry relative to a new base directory.
         '''
         clone = ManifestEntry.rebase(self, base)
-        clone.relpath = mozpack.path.rebase(self.base, base, self.relpath)
+        clone.relpath = mozpath.rebase(self.base, base, self.relpath)
         return clone
 
     @property
     def path(self):
-        return mozpack.path.normpath(mozpack.path.join(self.base,
+        return mozpath.normpath(mozpath.join(self.base,
                                                        self.relpath))
 
 
@@ -127,7 +130,7 @@ class ManifestChrome(ManifestEntryWithRelPath):
 
     @property
     def location(self):
-        return mozpack.path.join(self.base, self.relpath)
+        return mozpath.join(self.base, self.relpath)
 
 
 class ManifestContent(ManifestChrome):
@@ -250,7 +253,7 @@ class ManifestResource(ManifestEntry):
         if u.scheme and u.scheme != 'jar':
             return ManifestEntry.rebase(self, base)
         clone = ManifestEntry.rebase(self, base)
-        clone.target = mozpack.path.rebase(self.base, base, self.target)
+        clone.target = mozpath.rebase(self.base, base, self.target)
         return clone
 
 
@@ -322,7 +325,7 @@ MANIFESTS_TYPES = dict([(c.type, c) for c in globals().values()
                        if type(c) == type and issubclass(c, ManifestEntry)
                        and hasattr(c, 'type') and c.type])
 
-MANIFEST_RE = re.compile(r'\s*#.*$')
+MANIFEST_RE = re.compile(r'^#.*$')
 
 
 def parse_manifest_line(base, line):
@@ -343,7 +346,7 @@ def parse_manifest(root, path, fileobj=None):
     '''
     Parse a manifest file.
     '''
-    base = mozpack.path.dirname(path)
+    base = mozpath.dirname(path)
     if root:
         path = os.path.normpath(os.path.abspath(os.path.join(root, path)))
     if not fileobj:

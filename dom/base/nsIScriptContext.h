@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,25 +11,14 @@
 #include "nsStringGlue.h"
 #include "nsISupports.h"
 #include "nsCOMPtr.h"
-#include "nsIProgrammingLanguage.h"
 #include "jspubtd.h"
 #include "js/GCAPI.h"
 
 class nsIScriptGlobalObject;
-class nsIScriptSecurityManager;
-class nsIPrincipal;
-class nsIAtom;
-class nsIArray;
-class nsIVariant;
-class nsIObjectInputStream;
-class nsIObjectOutputStream;
-class nsIScriptObjectPrincipal;
-class nsIDOMWindow;
-class nsIURI;
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0x274840b6, 0x7349, 0x4798, \
-  { 0xbe, 0x24, 0xbd, 0x75, 0xa6, 0x46, 0x99, 0xb7 } }
+{ 0x54cbe9cf, 0x7282, 0x421a, \
+ { 0x91, 0x6f, 0xd0, 0x70, 0x73, 0xde, 0xb8, 0xc0 } }
 
 class nsIOffThreadScriptReceiver;
 
@@ -48,12 +38,6 @@ public:
   virtual nsIScriptGlobalObject *GetGlobalObject() = 0;
 
   /**
-   * Return the native script context
-   *
-   **/
-  virtual JSContext* GetNativeContext() = 0;
-
-  /**
    * Initialize the context generally. Does not create a global object.
    **/
   virtual nsresult InitContext() = 0;
@@ -67,19 +51,11 @@ public:
    */
   virtual bool IsContextInitialized() = 0;
 
-  /**
-   * For garbage collected systems, do a synchronous collection pass.
-   * May be a no-op on other systems
-   *
-   * @return NS_OK if the method is successful
-   */
-  virtual void GC(JS::gcreason::Reason aReason) = 0;
-
   // SetProperty is suspect and jst believes should not be needed.  Currenly
   // used only for "arguments".
   virtual nsresult SetProperty(JS::Handle<JSObject*> aTarget,
                                const char* aPropName, nsISupports* aVal) = 0;
-  /** 
+  /**
    * Called to set/get information if the script context is
    * currently processing a script tag
    */
@@ -109,7 +85,6 @@ public:
    */
   virtual void SetWindowProxy(JS::Handle<JSObject*> aWindowProxy) = 0;
   virtual JSObject* GetWindowProxy() = 0;
-  virtual JSObject* GetWindowProxyPreserveColor() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContext, NS_ISCRIPTCONTEXT_IID)
@@ -134,4 +109,3 @@ public:
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIOffThreadScriptReceiver, NS_IOFFTHREADSCRIPTRECEIVER_IID)
 
 #endif // nsIScriptContext_h__
-

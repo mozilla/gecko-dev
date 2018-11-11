@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* ***** BEGIN LICENSE BLOCK *****
   Any copyright is dedicated to the Public Domain.
@@ -14,7 +14,7 @@
 // than six months range.
 // The correspondence between item in |testData| and date range is stored in
 // leveledTestData.
-let testData = [
+var testData = [
   {
     isVisit: true,
     uri: "file:///directory/1",
@@ -60,31 +60,31 @@ let testData = [
   {
     isVisit: true,
     uri: "http://example.net/1",
-    lastVisit: olderthansixmonths + 1,
+    lastVisit: olderthansixmonths + 1000,
     title: "test visit",
     isInQuery: true
   }
 ];
-let domainsInRange = [2, 3];
-let leveledTestData = [// Today
+var domainsInRange = [2, 3];
+var leveledTestData = [// Today
                        [[0],    // Today, local files
-                        [1,2]], // Today, example.com
+                        [1, 2]], // Today, example.com
                        // Older than six months
                        [[3],    // Older than six months, local files
-                        [4,5],  // Older than six months, example.com
+                        [4, 5],  // Older than six months, example.com
                         [6]     // Older than six months, example.net
                         ]];
 
 // This test data is meant for live updating. The |levels| property indicates
 // date range index and then domain index.
-let testDataAddedLater = [
+var testDataAddedLater = [
   {
     isVisit: true,
     uri: "http://example.com/5",
     lastVisit: olderthansixmonths,
     title: "test visit",
     isInQuery: true,
-    levels: [1,1]
+    levels: [1, 1]
   },
   {
     isVisit: true,
@@ -92,7 +92,7 @@ let testDataAddedLater = [
     lastVisit: olderthansixmonths,
     title: "test visit",
     isInQuery: true,
-    levels: [1,1]
+    levels: [1, 1]
   },
   {
     isVisit: true,
@@ -100,7 +100,7 @@ let testDataAddedLater = [
     lastVisit: today,
     title: "test visit",
     isInQuery: true,
-    levels: [0,1]
+    levels: [0, 1]
   },
   {
     isVisit: true,
@@ -108,7 +108,7 @@ let testDataAddedLater = [
     lastVisit: today,
     title: "test visit",
     isInQuery: true,
-    levels: [0,0]
+    levels: [0, 0]
   }
 ];
 
@@ -117,7 +117,7 @@ function run_test()
   run_next_test();
 }
 
-add_task(function test_sort_date_site_grouping()
+add_task(function* test_sort_date_site_grouping()
 {
   yield task_populateDB(testData);
 
@@ -154,7 +154,7 @@ add_task(function test_sort_date_site_grouping()
   }
 
   // Test live updating.
-  testDataAddedLater.forEach(function(visit) {
+  for (let visit of testDataAddedLater) {
     yield task_populateDB([visit]);
     let oldLength = testData.length;
     let i = visit.levels[0];
@@ -162,8 +162,8 @@ add_task(function test_sort_date_site_grouping()
     testData.push(visit);
     leveledTestData[i][j].push(oldLength);
     compareArrayToResult(leveledTestData[i][j].
-                         map(function(x) testData[x]), roots[i][j]);
-  });
+                         map(x => testData[x]), roots[i][j]);
+  }
 
   for (let i = 0; i < roots.length; i++) {
     for (let j = 0; j < roots[i].length; j++)
@@ -219,7 +219,7 @@ function checkSecondLevel(index, secondIndex, child, roots) {
     // results.
     root.containerOpen = true;
     compareArrayToResult(leveledTestData[index][secondIndex].
-                         map(function(x) testData[x]), root);
+                         map(x => testData[x]), root);
     // We close |root|'s container later so that we can test live
     // updates into it.
 }

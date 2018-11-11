@@ -1,4 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,38 +10,39 @@
 
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/dom/MessagePort.h"
 #include "mozilla/dom/SharedWorkerBinding.h"
+#include "mozilla/Telemetry.h"
 #include "nsContentUtils.h"
 #include "nsIClassInfoImpl.h"
 #include "nsIDOMEvent.h"
 
-#include "MessagePort.h"
 #include "RuntimeService.h"
 #include "WorkerPrivate.h"
 
 using mozilla::dom::Optional;
 using mozilla::dom::Sequence;
+using mozilla::dom::MessagePort;
 using namespace mozilla;
 
 USING_WORKERS_NAMESPACE
 
-SharedWorker::SharedWorker(nsPIDOMWindow* aWindow,
-                           WorkerPrivate* aWorkerPrivate)
-: DOMEventTargetHelper(aWindow), mWorkerPrivate(aWorkerPrivate),
-  mSuspended(false)
+SharedWorker::SharedWorker(nsPIDOMWindowInner* aWindow,
+                           WorkerPrivate* aWorkerPrivate,
+                           MessagePort* aMessagePort)
+  : DOMEventTargetHelper(aWindow)
+  , mWorkerPrivate(aWorkerPrivate)
+  , mMessagePort(aMessagePort)
+  , mFrozen(false)
 {
   AssertIsOnMainThread();
   MOZ_ASSERT(aWorkerPrivate);
-
-  mSerial = aWorkerPrivate->NextMessagePortSerial();
-
-  mMessagePort = new MessagePort(aWindow, this, mSerial);
+  MOZ_ASSERT(aMessagePort);
 }
 
 SharedWorker::~SharedWorker()
 {
   AssertIsOnMainThread();
-  MOZ_ASSERT(!mWorkerPrivate);
 }
 
 // static
@@ -63,7 +65,7 @@ SharedWorker::Constructor(const GlobalObject& aGlobal, JSContext* aCx,
     name = NS_ConvertUTF16toUTF8(aName.Value());
   }
 
-  nsRefPtr<SharedWorker> sharedWorker;
+  RefPtr<SharedWorker> sharedWorker;
   nsresult rv = rts->CreateSharedWorker(aGlobal, aScriptURL, name,
                                         getter_AddRefs(sharedWorker));
   if (NS_FAILED(rv)) {
@@ -71,38 +73,38 @@ SharedWorker::Constructor(const GlobalObject& aGlobal, JSContext* aCx,
     return nullptr;
   }
 
+  Telemetry::Accumulate(Telemetry::SHARED_WORKER_COUNT, 1);
+
   return sharedWorker.forget();
 }
 
-already_AddRefed<MessagePort>
+MessagePort*
 SharedWorker::Port()
 {
   AssertIsOnMainThread();
-
-  nsRefPtr<MessagePort> messagePort = mMessagePort;
-  return messagePort.forget();
+  return mMessagePort;
 }
 
 void
-SharedWorker::Suspend()
+SharedWorker::Freeze()
 {
   AssertIsOnMainThread();
-  MOZ_ASSERT(!IsSuspended());
+  MOZ_ASSERT(!IsFrozen());
 
-  mSuspended = true;
+  mFrozen = true;
 }
 
 void
-SharedWorker::Resume()
+SharedWorker::Thaw()
 {
   AssertIsOnMainThread();
-  MOZ_ASSERT(IsSuspended());
+  MOZ_ASSERT(IsFrozen());
 
-  mSuspended = false;
+  mFrozen = false;
 
-  if (!mSuspendedEvents.IsEmpty()) {
+  if (!mFrozenEvents.IsEmpty()) {
     nsTArray<nsCOMPtr<nsIDOMEvent>> events;
-    mSuspendedEvents.SwapElements(events);
+    mFrozenEvents.SwapElements(events);
 
     for (uint32_t index = 0; index < events.Length(); index++) {
       nsCOMPtr<nsIDOMEvent>& event = events[index];
@@ -126,9 +128,9 @@ SharedWorker::QueueEvent(nsIDOMEvent* aEvent)
 {
   AssertIsOnMainThread();
   MOZ_ASSERT(aEvent);
-  MOZ_ASSERT(IsSuspended());
+  MOZ_ASSERT(IsFrozen());
 
-  mSuspendedEvents.AppendElement(aEvent);
+  mFrozenEvents.AppendElement(aEvent);
 }
 
 void
@@ -138,11 +140,6 @@ SharedWorker::Close()
 
   if (mMessagePort) {
     mMessagePort->Close();
-  }
-
-  if (mWorkerPrivate) {
-    AutoSafeJSContext cx;
-    NoteDeadWorker(cx);
   }
 }
 
@@ -155,18 +152,7 @@ SharedWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
   MOZ_ASSERT(mWorkerPrivate);
   MOZ_ASSERT(mMessagePort);
 
-  mWorkerPrivate->PostMessageToMessagePort(aCx, mMessagePort->Serial(),
-                                           aMessage, aTransferable, aRv);
-}
-
-void
-SharedWorker::NoteDeadWorker(JSContext* aCx)
-{
-  AssertIsOnMainThread();
-  MOZ_ASSERT(mWorkerPrivate);
-
-  mWorkerPrivate->UnregisterSharedWorker(aCx, this);
-  mWorkerPrivate = nullptr;
+  mMessagePort->PostMessage(aCx, aMessage, aTransferable, aRv);
 }
 
 NS_IMPL_ADDREF_INHERITED(SharedWorker, DOMEventTargetHelper)
@@ -180,22 +166,21 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(SharedWorker)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(SharedWorker,
                                                   DOMEventTargetHelper)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mMessagePort)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSuspendedEvents)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mFrozenEvents)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(SharedWorker,
                                                 DOMEventTargetHelper)
-  tmp->Close();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mMessagePort)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mSuspendedEvents)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mFrozenEvents)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 JSObject*
-SharedWorker::WrapObject(JSContext* aCx)
+SharedWorker::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
   AssertIsOnMainThread();
 
-  return SharedWorkerBinding::Wrap(aCx, this);
+  return SharedWorkerBinding::Wrap(aCx, this, aGivenProto);
 }
 
 nsresult
@@ -203,9 +188,14 @@ SharedWorker::PreHandleEvent(EventChainPreVisitor& aVisitor)
 {
   AssertIsOnMainThread();
 
-  nsIDOMEvent*& event = aVisitor.mDOMEvent;
+  if (IsFrozen()) {
+    nsCOMPtr<nsIDOMEvent> event = aVisitor.mDOMEvent;
+    if (!event) {
+      event = EventDispatcher::CreateEvent(aVisitor.mEvent->mOriginalTarget,
+                                           aVisitor.mPresContext,
+                                           aVisitor.mEvent, EmptyString());
+    }
 
-  if (IsSuspended() && event) {
     QueueEvent(event);
 
     aVisitor.mCanHandle = false;

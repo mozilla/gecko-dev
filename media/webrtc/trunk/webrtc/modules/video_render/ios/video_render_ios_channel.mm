@@ -8,6 +8,10 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 #include "webrtc/modules/video_render/ios/video_render_ios_channel.h"
 
 using namespace webrtc;
@@ -20,10 +24,9 @@ VideoRenderIosChannel::VideoRenderIosChannel(VideoRenderIosView* view)
 VideoRenderIosChannel::~VideoRenderIosChannel() { delete current_frame_; }
 
 int32_t VideoRenderIosChannel::RenderFrame(const uint32_t stream_id,
-                                           I420VideoFrame& video_frame) {
-  video_frame.set_render_time_ms(0);
-
+                                           const I420VideoFrame& video_frame) {
   current_frame_->CopyFrame(video_frame);
+  current_frame_->set_render_time_ms(0);
   buffer_is_updated_ = true;
 
   return 0;

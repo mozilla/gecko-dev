@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -14,14 +14,15 @@ XULCommandEvent::XULCommandEvent(EventTarget* aOwner,
                                  nsPresContext* aPresContext,
                                  WidgetInputEvent* aEvent)
   : UIEvent(aOwner, aPresContext,
-            aEvent ? aEvent : new WidgetInputEvent(false, 0, nullptr))
+            aEvent ? aEvent :
+                     new WidgetInputEvent(false, eVoidEvent, nullptr))
 {
   if (aEvent) {
     mEventIsInternal = false;
   }
   else {
     mEventIsInternal = true;
-    mEvent->time = PR_Now();
+    mEvent->mTime = PR_Now();
   }
 }
 
@@ -104,7 +105,7 @@ NS_IMETHODIMP
 XULCommandEvent::InitCommandEvent(const nsAString& aType,
                                   bool aCanBubble,
                                   bool aCancelable,
-                                  nsIDOMWindow* aView,
+                                  mozIDOMWindow* aView,
                                   int32_t aDetail,
                                   bool aCtrlKey,
                                   bool aAltKey,
@@ -112,9 +113,10 @@ XULCommandEvent::InitCommandEvent(const nsAString& aType,
                                   bool aMetaKey,
                                   nsIDOMEvent* aSourceEvent)
 {
-  nsresult rv = UIEvent::InitUIEvent(aType, aCanBubble, aCancelable,
-                                     aView, aDetail);
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(!mEvent->mFlags.mIsBeingDispatched, NS_OK);
+
+  auto* view = nsGlobalWindow::Cast(nsPIDOMWindowInner::From(aView));
+  UIEvent::InitUIEvent(aType, aCanBubble, aCancelable, view, aDetail);
 
   mEvent->AsInputEvent()->InitBasicModifiers(aCtrlKey, aAltKey,
                                              aShiftKey, aMetaKey);
@@ -129,14 +131,12 @@ XULCommandEvent::InitCommandEvent(const nsAString& aType,
 using namespace mozilla;
 using namespace mozilla::dom;
 
-nsresult
-NS_NewDOMXULCommandEvent(nsIDOMEvent** aInstancePtrResult,
-                         EventTarget* aOwner,
+already_AddRefed<XULCommandEvent>
+NS_NewDOMXULCommandEvent(EventTarget* aOwner,
                          nsPresContext* aPresContext,
                          WidgetInputEvent* aEvent) 
 {
-  XULCommandEvent* it = new XULCommandEvent(aOwner, aPresContext, aEvent);
-  NS_ADDREF(it);
-  *aInstancePtrResult = static_cast<Event*>(it);
-  return NS_OK;
+  RefPtr<XULCommandEvent> it =
+    new XULCommandEvent(aOwner, aPresContext, aEvent);
+  return it.forget();
 }

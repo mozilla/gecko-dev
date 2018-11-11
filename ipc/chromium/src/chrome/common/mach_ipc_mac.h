@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 // Copyright (c) 2006-2008 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -9,8 +11,6 @@
 #include <mach/message.h>
 #include <servers/bootstrap.h>
 #include <sys/types.h>
-
-#include <CoreServices/CoreServices.h>
 
 #include "base/basictypes.h"
 
@@ -86,7 +86,7 @@ class MachMsgPortDescriptor : public mach_msg_port_descriptor_t {
   }
 
   // For passing send rights to a port
-  MachMsgPortDescriptor(mach_port_t in_name) {
+  explicit MachMsgPortDescriptor(mach_port_t in_name) {
     name = in_name;
     pad1 = 0;
     pad2 = 0;
@@ -145,16 +145,12 @@ class MachMessage {
     return GetDataLength() > 0 ? GetDataPacket()->data : NULL;
   }
 
-  u_int32_t GetDataLength() {
-    return EndianU32_LtoN(GetDataPacket()->data_length);
-  }
+  u_int32_t GetDataLength();
 
   // The message ID may be used as a code identifying the type of message
-  void SetMessageID(int32_t message_id) {
-    GetDataPacket()->id = EndianU32_NtoL(message_id);
-  }
+  void SetMessageID(int32_t message_id);
 
-  int32_t GetMessageID() { return EndianU32_LtoN(GetDataPacket()->id); }
+  int32_t GetMessageID();
 
   // Adds a descriptor (typically a mach port) to be translated
   // returns true if successful, otherwise not enough space
@@ -251,7 +247,7 @@ class MachReceiveMessage : public MachMessage {
 //==============================================================================
 class MachSendMessage : public MachMessage {
  public:
-  MachSendMessage(int32_t message_id);
+  explicit MachSendMessage(int32_t message_id);
   MachSendMessage(void *storage, size_t storage_length, int32_t message_id);
 
  private:
@@ -265,11 +261,11 @@ class MachSendMessage : public MachMessage {
 class ReceivePort {
  public:
   // Creates a new mach port for receiving messages and registers a name for it
-  ReceivePort(const char *receive_port_name);
+  explicit ReceivePort(const char *receive_port_name);
 
   // Given an already existing mach port, use it.  We take ownership of the
   // port and deallocate it in our destructor.
-  ReceivePort(mach_port_t receive_port);
+  explicit ReceivePort(mach_port_t receive_port);
 
   // Create a new mach port for receiving messages
   ReceivePort();
@@ -279,6 +275,9 @@ class ReceivePort {
   // Waits on the mach port until message received or timeout
   kern_return_t WaitForMessage(MachReceiveMessage *out_message,
                                mach_msg_timeout_t timeout);
+
+  kern_return_t SendMessageToSelf(MachSendMessage& msg,
+                                  mach_msg_timeout_t timeout);
 
   // The underlying mach port that we wrap
   mach_port_t  GetPort() const { return port_; }
@@ -295,11 +294,11 @@ class ReceivePort {
 class MachPortSender {
  public:
   // get a port with send rights corresponding to a named registered service
-  MachPortSender(const char *receive_port_name);
+  explicit MachPortSender(const char *receive_port_name);
 
 
   // Given an already existing mach port, use it.
-  MachPortSender(mach_port_t send_port);
+  explicit MachPortSender(mach_port_t send_port);
 
   kern_return_t SendMessage(MachSendMessage &message,
                             mach_msg_timeout_t timeout);

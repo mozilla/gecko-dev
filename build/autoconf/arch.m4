@@ -37,13 +37,13 @@ if test -z "$MOZ_ARCH"; then
         ;;
     arm-Darwin)
         MOZ_ARCH=toolchain-default
-        MOZ_THUMB=yes
         ;;
     esac
 fi
 
 if test "$MOZ_ARCH" = "armv6" -a "$OS_TARGET" = "Android"; then
    MOZ_FPU=vfp
+   MOZ_FLOAT_ABI=softfp
 fi
 
 MOZ_ARG_WITH_STRING(thumb,
@@ -202,6 +202,7 @@ fi
 AC_SUBST(MOZ_THUMB2)
 
 if test "$CPU_ARCH" = "arm"; then
+  NEON_FLAGS="-mfpu=neon"
   AC_MSG_CHECKING(for ARM SIMD support in compiler)
   # We try to link so that this also fails when
   # building with LTO.
@@ -248,14 +249,6 @@ AC_SUBST(HAVE_ARM_SIMD)
 AC_SUBST(HAVE_ARM_NEON)
 AC_SUBST(BUILD_ARM_NEON)
 AC_SUBST(ARM_ARCH)
-
-if test -n "$MOZ_ARCH"; then
-  NSPR_CONFIGURE_ARGS="$NSPR_CONFIGURE_ARGS --with-arch=$MOZ_ARCH"
-  NSPR_CONFIGURE_ARGS="$NSPR_CONFIGURE_ARGS --with-thumb=$MOZ_THUMB"
-  NSPR_CONFIGURE_ARGS="$NSPR_CONFIGURE_ARGS --with-thumb-interwork=$MOZ_THUMB_INTERWORK"
-  NSPR_CONFIGURE_ARGS="$NSPR_CONFIGURE_ARGS --with-fpu=$MOZ_FPU"
-  NSPR_CONFIGURE_ARGS="$NSPR_CONFIGURE_ARGS --with-float-abi=$MOZ_FLOAT_ABI"
-  NSPR_CONFIGURE_ARGS="$NSPR_CONFIGURE_ARGS --with-soft-float=$MOZ_SOFT_FLOAT"
-fi
+AC_SUBST_LIST(NEON_FLAGS)
 
 ])

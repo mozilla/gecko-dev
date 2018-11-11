@@ -59,6 +59,7 @@ struct nr_ice_candidate_ {
   nr_ice_media_stream *stream;        /* The media stream this is associated with */
   nr_ice_component *component;        /* The component this is associated with */
   nr_ice_candidate_type type;         /* The type of the candidate (S 4.1.1) */
+  nr_socket_tcp_type tcp_type;
   UCHAR component_id;                 /* The component id (S 4.1.2.1) */
   nr_transport_addr addr;             /* The advertised address;
                                          JDR calls this the candidate */
@@ -75,6 +76,9 @@ struct nr_ice_candidate_ {
     struct {
       nr_stun_client_ctx *stun;
       void *stun_handle;
+      /* If this is a srflx that is piggybacking on a relay candidate, this is
+       * a back pointer to that relay candidate. */
+      nr_ice_candidate *relay_candidate;
     } srvrflx;
     struct {
       nr_turn_client_ctx *turn;
@@ -97,14 +101,14 @@ struct nr_ice_candidate_ {
 };
 
 extern char *nr_ice_candidate_type_names[];
+extern char *nr_ice_candidate_tcp_type_names[];
 
 
-int nr_ice_candidate_create(struct nr_ice_ctx_ *ctx,nr_ice_component *component, nr_ice_socket *isock, nr_socket *osock, nr_ice_candidate_type ctype, nr_ice_stun_server *stun_server, UCHAR component_id, nr_ice_candidate **candp);
+int nr_ice_candidate_create(struct nr_ice_ctx_ *ctx,nr_ice_component *component, nr_ice_socket *isock, nr_socket *osock, nr_ice_candidate_type ctype, nr_socket_tcp_type tcp_type, nr_ice_stun_server *stun_server, UCHAR component_id, nr_ice_candidate **candp);
 int nr_ice_candidate_initialize(nr_ice_candidate *cand, NR_async_cb ready_cb, void *cb_arg);
 void nr_ice_candidate_compute_codeword(nr_ice_candidate *cand);
 int nr_ice_candidate_process_stun(nr_ice_candidate *cand, UCHAR *msg, int len, nr_transport_addr *faddr);
 int nr_ice_candidate_destroy(nr_ice_candidate **candp);
-void nr_ice_candidate_destroy_cb(NR_SOCKET s, int h, void *cb_arg);
 int nr_ice_format_candidate_attribute(nr_ice_candidate *cand, char *attr, int maxlen);
 int nr_ice_peer_candidate_from_attribute(nr_ice_ctx *ctx,char *attr,nr_ice_media_stream *stream,nr_ice_candidate **candp);
 int nr_ice_peer_peer_rflx_candidate_create(nr_ice_ctx *ctx,char *label, nr_ice_component *comp,nr_transport_addr *addr, nr_ice_candidate **candp);

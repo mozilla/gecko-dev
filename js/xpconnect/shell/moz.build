@@ -1,12 +1,15 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-FAIL_ON_WARNINGS = True
+GeckoProgram('xpcshell', linkage='dependent')
 
-PROGRAM = 'xpcshell'
+if CONFIG['COMPILE_ENVIRONMENT']:
+    SDK_FILES.bin += [
+        '!xpcshell%s' % CONFIG['BIN_SUFFIX'],
+    ]
 
 SOURCES += [
     'xpcshell.cpp',
@@ -16,13 +19,6 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
     SOURCES += [
         'xpcshellMacUtils.mm',
     ]
-
-DEFINES['JS_THREADSAFE'] = True
-
-if CONFIG['MOZ_SHARK']:
-    DEFINES['MOZ_SHARK'] = True
-if CONFIG['MOZ_CALLGRIND']:
-    DEFINES['MOZ_CALLGRIND'] = True
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
@@ -35,5 +31,30 @@ if CONFIG['_MSC_VER']:
     # a console application.
     WIN32_EXE_LDFLAGS += ['-ENTRY:wmainCRTStartup']
 
+# DELAYLOAD_DLLS in this block ensure that the DLL blocklist initializes
 if CONFIG['OS_ARCH'] == 'WINNT':
     RCINCLUDE = 'xpcshell.rc'
+
+    if CONFIG['MOZ_SANDBOX']:
+        # For sandbox includes and the include dependencies those have
+        LOCAL_INCLUDES += [
+            '/security/sandbox/chromium',
+            '/security/sandbox/chromium-shim',
+        ]
+
+        USE_LIBS += [
+            'sandbox_s',
+        ]
+
+        DELAYLOAD_DLLS += [
+            'winmm.dll',
+            'user32.dll',
+        ]
+
+    DELAYLOAD_DLLS += [
+        'xul.dll',
+    ]
+
+CFLAGS += CONFIG['TK_CFLAGS']
+CXXFLAGS += CONFIG['TK_CFLAGS']
+OS_LIBS += CONFIG['TK_LIBS']

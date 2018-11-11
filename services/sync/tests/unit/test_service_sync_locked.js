@@ -5,14 +5,17 @@ Cu.import("resource://services-sync/service.js");
 Cu.import("resource://services-sync/util.js");
 
 function run_test() {
+  validate_all_future_pings();
   let debug = [];
   let info  = [];
 
   function augmentLogger(old) {
     let d = old.debug;
     let i = old.info;
-    old.debug = function(m) { debug.push(m); d.call(old, m); }
-    old.info  = function(m) { info.push(m);  i.call(old, m); }
+    // For the purposes of this test we don't need to do full formatting
+    // of the 2nd param, as the ones we care about are always strings.
+    old.debug = function(m, p) { debug.push(p ? m + ": " + p : m); d.call(old, m, p); }
+    old.info  = function(m, p) { info.push(p ? m + ": " + p : m);  i.call(old, m, p); }
     return old;
   }
 
@@ -28,9 +31,7 @@ function run_test() {
   Service.sync();
   Service._locked = false;
 
-  do_check_eq(debug[debug.length - 2],
-              "Exception: Could not acquire lock. Label: \"service.js: login\". No traceback available");
-  do_check_eq(info[info.length - 1],
-              "Cannot start sync: already syncing?");
+  do_check_true(debug[debug.length - 2].startsWith("Exception calling WrappedLock: Could not acquire lock. Label: \"service.js: login\"."));
+  do_check_eq(info[info.length - 1], "Cannot start sync: already syncing?");
 }
 

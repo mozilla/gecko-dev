@@ -62,16 +62,16 @@ SharedDIB::Attach(Handle aHandle, uint32_t aSize)
 }
 
 nsresult
-SharedDIB::ShareToProcess(base::ProcessHandle aChildProcess, Handle *aChildHandle)
+SharedDIB::ShareToProcess(base::ProcessId aTargetPid, Handle *aNewHandle)
 {
   if (!mShMem)
     return NS_ERROR_UNEXPECTED;
 
-  if (!mShMem->ShareToProcess(aChildProcess, aChildHandle))
+  if (!mShMem->ShareToProcess(aTargetPid, aNewHandle))
     return NS_ERROR_UNEXPECTED;
 
   return NS_OK;
 }
 
-} // gfx
-} // mozilla
+} // namespace gfx
+} // namespace mozilla

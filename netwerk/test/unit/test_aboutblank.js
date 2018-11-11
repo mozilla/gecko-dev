@@ -1,16 +1,19 @@
+Cu.import("resource://gre/modules/NetUtil.jsm");
+
 function run_test() {
-  var ioServ = Components.classes["@mozilla.org/network/io-service;1"]
-                         .getService(Components.interfaces.nsIIOService);
+  var base = NetUtil.newURI("http://www.example.com", null, null);
+  var about1 = NetUtil.newURI("about:blank", null, null);
+  var about2 = NetUtil.newURI("about:blank", null, base);
 
-  var base = ioServ.newURI("http://www.example.com", null, null);
+  var chan1 = NetUtil.newChannel({
+    uri: about1,
+    loadUsingSystemPrincipal: true 
+  }).QueryInterface(Components.interfaces.nsIPropertyBag2);
 
-  var about1 = ioServ.newURI("about:blank", null, null);
-  var about2 = ioServ.newURI("about:blank", null, base);
-
-  var chan1 = ioServ.newChannelFromURI(about1)
-                    .QueryInterface(Components.interfaces.nsIPropertyBag2);
-  var chan2 = ioServ.newChannelFromURI(about2)
-                    .QueryInterface(Components.interfaces.nsIPropertyBag2);
+  var chan2 = NetUtil.newChannel({
+    uri: about2,
+    loadUsingSystemPrincipal: true
+  }).QueryInterface(Components.interfaces.nsIPropertyBag2);
 
   var haveProp = false;
   var propVal = null;

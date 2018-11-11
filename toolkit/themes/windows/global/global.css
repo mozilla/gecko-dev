@@ -17,13 +17,16 @@ radio {
   -moz-binding: url("chrome://global/skin/globalBindings.xml#radio");
 }
 
-menulist > menupopup,
-.menulist-menupopup {
+menulist > menupopup {
   -moz-binding: url("chrome://global/content/bindings/popup.xml#popup-scrollbars");
 }
 
-.menulist-compact {
-  -moz-binding: url("chrome://global/skin/globalBindings.xml#menulist-compact");
+/* ::::: Variables ::::: */
+:root {
+  --arrowpanel-padding: 10px;
+  --arrowpanel-background: -moz-field;
+  --arrowpanel-color: -moz-FieldText;
+  --arrowpanel-border-color: ThreeDShadow;
 }
 
 /* ::::: root elements ::::: */
@@ -43,8 +46,8 @@ prefwindow {
 window.dialog {
   padding-top: 8px;
   padding-bottom: 10px;
-  -moz-padding-start: 8px;
-  -moz-padding-end: 10px;
+  padding-inline-start: 8px;
+  padding-inline-end: 10px;
 }
 
 /* ::::: alert icons :::::*/
@@ -61,6 +64,7 @@ window.dialog {
   list-style-image: url("chrome://global/skin/icons/information-32.png");
 }
 
+.alert-dialog #info\.icon,
 .alert-icon {
   list-style-image: url("chrome://global/skin/icons/Warning.png");
 }
@@ -110,7 +114,7 @@ statusbarpanel:not(.statusbar-resizerpanel):-moz-lwtheme {
   -moz-appearance: none;
   border-top-style: none;
   border-bottom-style: none;
-  -moz-border-start-style: none;
+  border-inline-start-style: none;
 }
 
 .statusbar-resizerpanel {
@@ -138,7 +142,7 @@ sidebarheader {
 }
 
 sidebarheader > label {
-  -moz-padding-start: 4px;
+  padding-inline-start: 4px;
 }
 
 .toolbar-focustarget {
@@ -231,8 +235,8 @@ label {
   cursor: default;
   margin-top: 1px;
   margin-bottom: 2px;
-  -moz-margin-start: 6px;
-  -moz-margin-end: 5px;
+  margin-inline-start: 6px;
+  margin-inline-end: 5px;
 }
 
 description {
@@ -261,7 +265,7 @@ label[disabled="true"]:-moz-system-metric(windows-classic) {
 }
 
 .indent {
-  -moz-margin-start: 23px;
+  margin-inline-start: 23px;
 }
 
 .box-padded {
@@ -278,7 +282,6 @@ label[disabled="true"]:-moz-system-metric(windows-classic) {
 
 .text-link {
   color: -moz-nativehyperlinktext;
-  border: 1px solid transparent;
   cursor: pointer;
 }
 
@@ -287,7 +290,11 @@ label[disabled="true"]:-moz-system-metric(windows-classic) {
 }
 
 .text-link:-moz-focusring {
-  border: 1px dotted -moz-DialogText;
+  outline: 1px dotted;
+}
+
+popupnotificationcontent {
+  margin-top: .5em;
 }
 
 /* :::::: autoscroll popup ::::: */
@@ -326,33 +333,72 @@ label[disabled="true"]:-moz-system-metric(windows-classic) {
 
 .close-icon {
   list-style-image: url("chrome://global/skin/icons/close.png");
-  -moz-image-region: rect(0, 16px, 16px, 0);
+  -moz-image-region: rect(0, 20px, 20px, 0);
 }
 
 .close-icon:hover {
-  -moz-image-region: rect(0, 32px, 16px, 16px);
+  -moz-image-region: rect(0, 40px, 20px, 20px);
 }
 
 .close-icon:hover:active {
-  -moz-image-region: rect(0, 48px, 16px, 32px);
+  -moz-image-region: rect(0, 60px, 20px, 40px);
 }
 
-%ifdef XP_WIN
-@media (-moz-windows-theme: luna-blue) {
+.close-icon > .button-icon,
+.close-icon > .button-box > .button-icon,
+.close-icon > .toolbarbutton-icon {
+  width: 20px;
+}
+
+@media (-moz-os-version: windows-xp),
+       (-moz-os-version: windows-vista),
+       (-moz-os-version: windows-win7) {
   .close-icon {
-    list-style-image: url("chrome://global/skin/icons/close-lunaBlue.png");
+    -moz-image-region: rect(0, 16px, 16px, 0);
+  }
+
+  .close-icon:hover {
+    -moz-image-region: rect(0, 32px, 16px, 16px);
+  }
+
+  .close-icon:hover:active {
+    -moz-image-region: rect(0, 48px, 16px, 32px);
+  }
+
+  .close-icon > .button-icon,
+  .close-icon > .button-box > .button-icon,
+  .close-icon > .toolbarbutton-icon {
+    width: 16px;
   }
 }
 
-@media (-moz-windows-theme: luna-olive) {
+@media (min-resolution: 1.1dppx) {
   .close-icon {
-    list-style-image: url("chrome://global/skin/icons/close-lunaOlive.png");
+    list-style-image: url("chrome://global/skin/icons/close@2x.png");
+    -moz-image-region: rect(0, 40px, 40px, 0);
   }
-}
 
-@media (-moz-windows-theme: luna-silver) {
-  .close-icon {
-    list-style-image: url("chrome://global/skin/icons/close-lunaSilver.png");
+  .close-icon:hover {
+    -moz-image-region: rect(0, 80px, 40px, 40px);
+  }
+
+  .close-icon:hover:active {
+    -moz-image-region: rect(0, 120px, 40px, 80px);
+  }
+
+  @media (-moz-os-version: windows-xp),
+         (-moz-os-version: windows-vista),
+         (-moz-os-version: windows-win7) {
+    .close-icon {
+      -moz-image-region: rect(0, 32px, 32px, 0);
+    }
+
+    .close-icon:hover {
+      -moz-image-region: rect(0, 64px, 32px, 32px);
+    }
+
+    .close-icon:hover:active {
+      -moz-image-region: rect(0, 96px, 32px, 64px);
+    }
   }
 }
-%endif

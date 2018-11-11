@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,10 +11,12 @@ EXPORTS += [
 UNIFIED_SOURCES += [
     'ANPCanvas.cpp',
     'ANPPaint.cpp',
-    'ANPPath.cpp',
     'ANPTypeface.cpp',
     'SkANP.cpp',
 ]
+
+# We allow warnings for third-party code that can be updated from upstream.
+ALLOW_COMPILER_WARNINGS = True
 
 FINAL_LIBRARY = 'xul'
 
@@ -24,7 +26,6 @@ LOCAL_INCLUDES += [
     '/dom/plugins/base',
     '/dom/plugins/base/android',
     '/gfx/gl',
-    '/gfx/skia/trunk/include/config',
-    '/gfx/skia/trunk/include/core',
+    '/gfx/skia/skia/include/config',
+    '/gfx/skia/skia/include/core',
 ]
-

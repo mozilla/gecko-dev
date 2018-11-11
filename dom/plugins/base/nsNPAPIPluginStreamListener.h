@@ -10,7 +10,6 @@
 #include "nsIHTTPHeaderListener.h"
 #include "nsIRequest.h"
 #include "nsITimer.h"
-#include "nsAutoPtr.h"
 #include "nsCOMArray.h"
 #include "nsIOutputStream.h"
 #include "nsIPluginInstanceOwner.h"
@@ -48,11 +47,11 @@ class nsPluginStreamToFile : public nsIOutputStream
 {
 public:
   nsPluginStreamToFile(const char* target, nsIPluginInstanceOwner* owner);
-  virtual ~nsPluginStreamToFile();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOUTPUTSTREAM
 protected:
+  virtual ~nsPluginStreamToFile();
   char* mTarget;
   nsCString mFileURL;
   nsCOMPtr<nsIFile> mTempFile;
@@ -73,7 +72,6 @@ public:
 
   nsNPAPIPluginStreamListener(nsNPAPIPluginInstance* inst, void* notifyData,
                               const char* aURL);
-  virtual ~nsNPAPIPluginStreamListener();
 
   nsresult OnStartBinding(nsPluginStreamListenerPeer* streamPeer);
   nsresult OnDataAvailable(nsPluginStreamListenerPeer* streamPeer,
@@ -84,6 +82,7 @@ public:
   nsresult OnStopBinding(nsPluginStreamListenerPeer* streamPeer, 
                          nsresult status);
   nsresult GetStreamType(int32_t *result);
+  bool SetStreamType(uint16_t aType, bool aNeedsResume = true);
 
   bool IsStarted();
   nsresult CleanUpStream(NPReason reason);
@@ -105,14 +104,32 @@ public:
   void URLRedirectResponse(NPBool allow);
 
 protected:
+
+  enum StreamState
+  {
+    eStreamStopped = 0, // The stream is stopped
+    eNewStreamCalled,   // NPP_NewStream was called but has not completed yet
+    eStreamTypeSet      // The stream is fully initialized
+  };
+
+  enum StreamStopMode
+  {
+    eNormalStop = 0,
+    eDoDeferredStop,
+    eStopPending
+  };
+
+  virtual ~nsNPAPIPluginStreamListener();
+  bool MaybeRunStopBinding();
+
   char* mStreamBuffer;
   char* mNotifyURL;
-  nsRefPtr<nsNPAPIPluginInstance> mInst;
+  RefPtr<nsNPAPIPluginInstance> mInst;
   nsNPAPIStreamWrapper *mNPStreamWrapper;
   uint32_t mStreamBufferSize;
   int32_t mStreamBufferByteCount;
   int32_t mStreamType;
-  bool mStreamStarted;
+  StreamState mStreamState;
   bool mStreamCleanedUp;
   bool mCallNotify;
   bool mIsSuspended;
@@ -122,9 +139,11 @@ protected:
   char* mResponseHeaderBuf;
   nsCOMPtr<nsITimer> mDataPumpTimer;
   nsCOMPtr<nsIAsyncVerifyRedirectCallback> mHTTPRedirectCallback;
+  StreamStopMode mStreamStopMode;
+  nsresult mPendingStopBindingStatus;
 
 public:
-  nsRefPtr<nsPluginStreamListenerPeer> mStreamListenerPeer;
+  RefPtr<nsPluginStreamListenerPeer> mStreamListenerPeer;
 };
 
 #endif // nsNPAPIPluginStreamListener_h_

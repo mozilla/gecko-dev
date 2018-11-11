@@ -21,22 +21,33 @@ const name = readPref("name") || options.name;
 const version = readPref("version") || options.version;
 const loadReason = readPref("load.reason") || options.loadReason;
 const rootURI = readPref("rootURI") || options.rootURI || "";
-const baseURI = readPref("baseURI") || options.prefixURI + name + "/";
+const baseURI = readPref("baseURI") || options.prefixURI + name + "/"
 const addonDataURI = baseURI + "data/";
 const metadata = options.metadata || {};
 const permissions = metadata.permissions || {};
 const isPacked = rootURI && rootURI.indexOf("jar:") === 0;
 
-const uri = (path="") =>
-  path.contains(":") ? path : addonDataURI + path;
+const isPrivateBrowsingSupported = 'private-browsing' in permissions &&
+                                   permissions['private-browsing'] === true;
 
+const uri = (path="") =>
+  path.includes(":") ? path : addonDataURI + path.replace(/^\.\//, "");
+
+var preferencesBranch = ("preferences-branch" in metadata)
+                            ? metadata["preferences-branch"]
+                            : options.preferencesBranch
+
+if (/[^\w{@}.-]/.test(preferencesBranch)) {
+  preferencesBranch = id;
+  console.warn("Ignoring preferences-branch (not a valid branch name)");
+}
 
 // Some XPCOM APIs require valid URIs as an argument for certain operations
 // (see `nsILoginManager` for example). This property represents add-on
 // associated unique URI string that can be used for that.
 exports.uri = 'addon:' + id;
 exports.id = id;
-exports.preferencesBranch = options.preferencesBranch || id;
+exports.preferencesBranch = preferencesBranch || id;
 exports.name = name;
 exports.loadReason = loadReason;
 exports.version = version;
@@ -47,4 +58,4 @@ exports.data = Object.freeze({
     return readURISync(uri(path));
   }
 });
-exports.isPrivateBrowsingSupported = permissions['private-browsing'] === true;
+exports.isPrivateBrowsingSupported = isPrivateBrowsingSupported;

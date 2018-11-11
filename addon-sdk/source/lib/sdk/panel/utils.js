@@ -9,14 +9,17 @@ module.metadata = {
 };
 
 const { Cc, Ci } = require("chrome");
+const { Services } = require("resource://gre/modules/Services.jsm");
 const { setTimeout } = require("../timers");
 const { platform } = require("../system");
 const { getMostRecentBrowserWindow, getOwnerBrowserWindow,
         getHiddenWindow, getScreenPixelsPerCSSPixel } = require("../window/utils");
 
-const { create: createFrame, swapFrameLoaders } = require("../frame/utils");
+const { create: createFrame, swapFrameLoaders, getDocShell } = require("../frame/utils");
 const { window: addonWindow } = require("../addon/window");
 const { isNil } = require("../lang/type");
+const { data } = require('../self');
+
 const events = require("../system/events");
 
 
@@ -93,6 +96,7 @@ function close(panel) {
   // when quitting the host application while a panel is visible.  To suppress
   // these errors, check for "hidePopup" in panel before calling it.
   // It's not clear if there's an issue or it's expected behavior.
+  // See Bug 1151796.
 
   return panel.hidePopup && panel.hidePopup();
 }
@@ -102,8 +106,10 @@ exports.close = close
 function resize(panel, width, height) {
   // Resize the iframe instead of using panel.sizeTo
   // because sizeTo doesn't work with arrow panels
-  panel.firstChild.style.width = width + "px";
-  panel.firstChild.style.height = height + "px";
+  if (panel.firstChild) {
+    panel.firstChild.style.width = width + "px";
+    panel.firstChild.style.height = height + "px";
+  }
 }
 exports.resize = resize
 
@@ -126,7 +132,7 @@ function display(panel, options, anchor) {
 
     let viewportRect = document.defaultView.gBrowser.getBoundingClientRect();
 
-    ({x, y, width, height}) = calculateRegion(options, viewportRect);
+    ({x, y, width, height} = calculateRegion(options, viewportRect));
   }
   else {
     // The XUL Panel has an arrow, so the margin needs to be reset
@@ -142,7 +148,7 @@ function display(panel, options, anchor) {
     // chrome browser window, and therefore there is no need for this check.
     if (CustomizableUI) {
       let node = anchor;
-      ({anchor}) = CustomizableUI.getWidget(anchor.id).forWindow(window);
+      ({anchor} = CustomizableUI.getWidget(anchor.id).forWindow(window));
 
       // if `node` is not the `anchor` itself, it means the widget is
       // positioned in a panel, therefore we have to hide it before show
@@ -183,6 +189,15 @@ function display(panel, options, anchor) {
     panel.setAttribute("flip", "both");
   }
 
+  if (!panel.viewFrame) {
+    panel.viewFrame = document.importNode(panel.backgroundFrame, false);
+    panel.appendChild(panel.viewFrame);
+
+    let {privateBrowsingId} = getDocShell(panel.viewFrame).getOriginAttributes();
+    let principal = Services.scriptSecurityManager.createNullPrincipal({privateBrowsingId});
+    getDocShell(panel.viewFrame).createAboutBlankContentViewer(principal);
+  }
+
   // Resize the iframe instead of using panel.sizeTo
   // because sizeTo doesn't work with arrow panels
   panel.firstChild.style.width = width + "px";
@@ -220,29 +235,43 @@ function show(panel, options, anchor) {
 }
 exports.show = show
 
+function onPanelClick(event) {
+  let { target, metaKey, ctrlKey, shiftKey, button } = event;
+  let accel = platform === "darwin" ? metaKey : ctrlKey;
+  let isLeftClick = button === 0;
+  let isMiddleClick = button === 1;
+
+  if ((isLeftClick && (accel || shiftKey)) || isMiddleClick) {
+    let link = target.closest('a');
+
+    if (link && link.href)
+       getMostRecentBrowserWindow().openUILink(link.href, event)
+  }
+}
+
 function setupPanelFrame(frame) {
   frame.setAttribute("flex", 1);
   frame.setAttribute("transparent", "transparent");
   frame.setAttribute("autocompleteenabled", true);
+  frame.setAttribute("tooltip", "aHTMLTooltip");
   if (platform === "darwin") {
-    frame.style.borderRadius = "6px";
+    frame.style.borderRadius = "var(--arrowpanel-border-radius, 3.5px)";
     frame.style.padding = "1px";
   }
 }
 
-function make(document) {
+function make(document, options) {
   document = document || getMostRecentBrowserWindow().document;
   let panel = document.createElementNS(XUL_NS, "panel");
   panel.setAttribute("type", "arrow");
+  panel.setAttribute("sdkscriptenabled", options.allowJavascript);
 
-  // Note that panel is a parent of `viewFrame` who's `docShell` will be
-  // configured at creation time. If `panel` and there for `viewFrame` won't
-  // have an owner document attempt to access `docShell` will throw. There
-  // for we attach panel to a document.
+  // The panel needs to be attached to a browser window in order for us
+  // to copy browser styles to the content document when it loads.
   attach(panel, document);
 
   let frameOptions =  {
-    allowJavascript: true,
+    allowJavascript: options.allowJavascript,
     allowPlugins: true,
     allowAuth: true,
     allowWindowControl: false,
@@ -250,26 +279,29 @@ function make(document) {
     // history and in consequence do not dispatch "inner-window-destroyed"
     // notifications.
     browser: false,
-    // Note that use of this URL let's use swap frame loaders earlier
-    // than if we used default "about:blank".
-    uri: "data:text/plain;charset=utf-8,"
   };
 
   let backgroundFrame = createFrame(addonWindow, frameOptions);
   setupPanelFrame(backgroundFrame);
 
-  let viewFrame = createFrame(panel, frameOptions);
-  setupPanelFrame(viewFrame);
+  getDocShell(backgroundFrame).inheritPrivateBrowsingId = false;
 
-  function onDisplayChange({type, target}) {
-    // Events from child element like <select /> may propagate (dropdowns are
-    // popups too), in which case frame loader shouldn't be swapped.
-    // See Bug 886329
-    if (target !== this) return;
+  function onPopupShowing({type, target}) {
+    if (target === this) {
+      let attrs = getDocShell(backgroundFrame).getOriginAttributes();
+      getDocShell(panel.viewFrame).setOriginAttributes(attrs);
 
-    try { swapFrameLoaders(backgroundFrame, viewFrame); }
-    catch(error) { console.exception(error); }
-    events.emit(type, { subject: panel });
+      swapFrameLoaders(backgroundFrame, panel.viewFrame);
+    }
+  }
+
+  function onPopupHiding({type, target}) {
+    if (target === this) {
+      swapFrameLoaders(backgroundFrame, panel.viewFrame);
+
+      panel.viewFrame.remove();
+      panel.viewFrame = null;
+    }
   }
 
   function onContentReady({target, type}) {
@@ -284,20 +316,22 @@ function make(document) {
       events.emit(type, { subject: panel });
   }
 
-  function onContentChange({subject, type}) {
-    let document = subject;
+  function onContentChange({subject: document, type}) {
     if (document === getContentDocument(panel) && document.defaultView)
       events.emit(type, { subject: panel });
   }
 
-  function onPanelStateChange({type}) {
-    events.emit(type, { subject: panel })
+  function onPanelStateChange({target, type}) {
+    if (target === this)
+      events.emit(type, { subject: panel })
   }
 
-  panel.addEventListener("popupshowing", onDisplayChange, false);
-  panel.addEventListener("popuphiding", onDisplayChange, false);
-  panel.addEventListener("popupshown", onPanelStateChange, false);
-  panel.addEventListener("popuphidden", onPanelStateChange, false);
+  panel.addEventListener("popupshowing", onPopupShowing);
+  panel.addEventListener("popuphiding", onPopupHiding);
+  for (let event of ["popupshowing", "popuphiding", "popupshown", "popuphidden"])
+    panel.addEventListener(event, onPanelStateChange);
+
+  panel.addEventListener("click", onPanelClick, false);
 
   // Panel content document can be either in panel `viewFrame` or in
   // a `backgroundFrame` depending on panel state. Listeners are set
@@ -311,8 +345,8 @@ function make(document) {
 
   events.on("document-element-inserted", onContentChange);
 
-
   panel.backgroundFrame = backgroundFrame;
+  panel.viewFrame = null;
 
   // Store event listener on the panel instance so that it won't be GC-ed
   // while panel is alive.
@@ -338,7 +372,7 @@ function detach(panel) {
 exports.detach = detach;
 
 function dispose(panel) {
-  panel.backgroundFrame.parentNode.removeChild(panel.backgroundFrame);
+  panel.backgroundFrame.remove();
   panel.backgroundFrame = null;
   events.off("document-element-inserted", panel.onContentChange);
   panel.onContentChange = null;
@@ -361,11 +395,7 @@ function style(panel) {
     let contentDocument = getContentDocument(panel);
     let window = document.defaultView;
     let node = document.getAnonymousElementByAttribute(panel, "class",
-                                                       "panel-arrowcontent") ||
-               // Before bug 764755, anonymous content was different:
-               // TODO: Remove this when targeting FF16+
-                document.getAnonymousElementByAttribute(panel, "class",
-                                                        "panel-inner-arrowcontent");
+                                                       "panel-arrowcontent");
 
     let { color, fontFamily, fontSize, fontWeight } = window.getComputedStyle(node);
 
@@ -393,14 +423,29 @@ function style(panel) {
 }
 exports.style = style;
 
-let getContentFrame = panel =>
-    (isOpen(panel) || isOpening(panel)) ?
-    panel.firstChild :
-    panel.backgroundFrame
+var getContentFrame = panel => panel.viewFrame || panel.backgroundFrame;
 exports.getContentFrame = getContentFrame;
 
-function getContentDocument(panel) getContentFrame(panel).contentDocument
+function getContentDocument(panel) {
+  return getContentFrame(panel).contentDocument;
+}
 exports.getContentDocument = getContentDocument;
 
-function setURL(panel, url) getContentFrame(panel).setAttribute("src", url)
+function setURL(panel, url) {
+  let frame = getContentFrame(panel);
+  let webNav = getDocShell(frame).QueryInterface(Ci.nsIWebNavigation);
+
+  webNav.loadURI(url ? data.url(url) : "about:blank", 0, null, null, null);
+}
+
 exports.setURL = setURL;
+
+function allowContextMenu(panel, allow) {
+  if (allow) {
+    panel.setAttribute("context", "contentAreaContextMenu");
+  }
+  else {
+    panel.removeAttribute("context");
+  }
+}
+exports.allowContextMenu = allowContextMenu;

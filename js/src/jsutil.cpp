@@ -11,10 +11,13 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/PodOperations.h"
+#include "mozilla/ThreadLocal.h"
 
 #include <stdio.h>
 
 #include "jstypes.h"
+
+#include "vm/HelperThreads.h"
 
 #ifdef WIN32
 #    include "jswin.h"
@@ -28,19 +31,59 @@ using mozilla::CeilingLog2Size;
 using mozilla::PodArrayZero;
 
 #if defined(DEBUG) || defined(JS_OOM_BREAKPOINT)
-/* For JS_OOM_POSSIBLY_FAIL in jsutil.h. */
-JS_PUBLIC_DATA(uint32_t) OOM_maxAllocations = UINT32_MAX;
-JS_PUBLIC_DATA(uint32_t) OOM_counter = 0;
-#endif
+/* For OOM testing functionality in Utility.h. */
+namespace js {
 
-/*
- * Checks the assumption that JS_FUNC_TO_DATA_PTR and JS_DATA_TO_FUNC_PTR
- * macros uses to implement casts between function and data pointers.
- */
-JS_STATIC_ASSERT(sizeof(void *) == sizeof(void (*)()));
+mozilla::Atomic<AutoEnterOOMUnsafeRegion*> AutoEnterOOMUnsafeRegion::owner_;
+
+namespace oom {
+
+JS_PUBLIC_DATA(uint32_t) targetThread = 0;
+JS_PUBLIC_DATA(MOZ_THREAD_LOCAL(uint32_t)) threadType;
+JS_PUBLIC_DATA(uint64_t) maxAllocations = UINT64_MAX;
+JS_PUBLIC_DATA(uint64_t) counter = 0;
+JS_PUBLIC_DATA(bool) failAlways = true;
+
+bool
+InitThreadType(void) {
+    return threadType.init();
+}
+
+void
+SetThreadType(ThreadType type) {
+    threadType.set(type);
+}
+
+uint32_t
+GetThreadType(void) {
+    return threadType.get();
+}
+
+void
+SimulateOOMAfter(uint64_t allocations, uint32_t thread, bool always) {
+    MOZ_ASSERT(counter + allocations > counter);
+    MOZ_ASSERT(thread > js::oom::THREAD_TYPE_NONE && thread < js::oom::THREAD_TYPE_MAX);
+    targetThread = thread;
+    maxAllocations = counter + allocations;
+    failAlways = always;
+}
+
+void
+ResetSimulatedOOM() {
+    if (targetThread != THREAD_TYPE_NONE && targetThread != THREAD_TYPE_MAIN)
+        HelperThreadState().waitForAllThreads();
+    targetThread = THREAD_TYPE_NONE;
+    maxAllocations = UINT64_MAX;
+    failAlways = false;
+}
+
+
+} // namespace oom
+} // namespace js
+#endif // defined(DEBUG) || defined(JS_OOM_BREAKPOINT)
 
 JS_PUBLIC_API(void)
-JS_Assert(const char *s, const char *file, int ln)
+JS_Assert(const char* s, const char* file, int ln)
 {
     MOZ_ReportAssertionFailure(s, file, ln);
     MOZ_CRASH();
@@ -56,12 +99,13 @@ namespace js {
 // This function calls all the vanilla heap allocation functions.  It is never
 // called, and exists purely to help config/check_vanilla_allocations.py.  See
 // that script for more details.
-extern void
+extern MOZ_COLD void
 AllTheNonBasicVanillaNewAllocations()
 {
     // posix_memalign and aligned_alloc aren't available on all Linux
     // configurations.
-    //char *q;
+    // valloc was deprecated in Android 5.0
+    //char* q;
     //posix_memalign((void**)&q, 16, 16);
 
     intptr_t p =
@@ -75,7 +119,7 @@ AllTheNonBasicVanillaNewAllocations()
         intptr_t(memalign(16, 16)) +
         //intptr_t(q) +
         //intptr_t(aligned_alloc(16, 16)) +
-        intptr_t(valloc(4096)) +
+        //intptr_t(valloc(4096)) +
         intptr_t(strdup("dummy"));
 
     printf("%u\n", uint32_t(p));  // make sure |p| is not optimized away
@@ -105,13 +149,13 @@ AllTheNonBasicVanillaNewAllocations()
 static uint32_t
 BinToVal(unsigned logscale, unsigned bin)
 {
-    JS_ASSERT(bin <= 10);
+    MOZ_ASSERT(bin <= 10);
     if (bin <= 1 || logscale == 0)
         return bin;
     --bin;
     if (logscale == 2)
         return JS_BIT(bin);
-    JS_ASSERT(logscale == 10);
+    MOZ_ASSERT(logscale == 10);
     return uint32_t(pow(10.0, (double) bin));
 }
 
@@ -131,7 +175,7 @@ ValToBin(unsigned logscale, uint32_t val)
 }
 
 void
-JS_BasicStatsAccum(JSBasicStats *bs, uint32_t val)
+JS_BasicStatsAccum(JSBasicStats* bs, uint32_t val)
 {
     unsigned oldscale, newscale, bin;
     double mean;
@@ -166,7 +210,7 @@ JS_BasicStatsAccum(JSBasicStats *bs, uint32_t val)
 }
 
 double
-JS_MeanAndStdDev(uint32_t num, double sum, double sqsum, double *sigma)
+JS_MeanAndStdDev(uint32_t num, double sum, double sqsum, double* sigma)
 {
     double var;
 
@@ -187,7 +231,7 @@ JS_MeanAndStdDev(uint32_t num, double sum, double sqsum, double *sigma)
 }
 
 void
-JS_DumpBasicStats(JSBasicStats *bs, const char *title, FILE *fp)
+JS_DumpBasicStats(JSBasicStats* bs, const char* title, FILE* fp)
 {
     double mean, sigma;
 
@@ -198,7 +242,7 @@ JS_DumpBasicStats(JSBasicStats *bs, const char *title, FILE *fp)
 }
 
 void
-JS_DumpHistogram(JSBasicStats *bs, FILE *fp)
+JS_DumpHistogram(JSBasicStats* bs, FILE* fp)
 {
     unsigned bin;
     uint32_t cnt, max;

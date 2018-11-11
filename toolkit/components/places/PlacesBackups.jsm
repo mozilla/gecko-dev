@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  * vim: sw=2 ts=2 sts=2 expandtab filetype=javascript
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -29,7 +29,7 @@ XPCOMUtils.defineLazyGetter(this, "localFileCtor",
                                "nsILocalFile", "initWithPath"));
 
 XPCOMUtils.defineLazyGetter(this, "filenamesRegex",
-  () => new RegExp("^bookmarks-([0-9\-]+)(?:_([0-9]+)){0,1}(?:_([a-z0-9=\+\-]{24})){0,1}\.(json(lz4)?)$", "i")
+  () => /^bookmarks-([0-9-]+)(?:_([0-9]+)){0,1}(?:_([a-z0-9=+-]{24})){0,1}\.(json(lz4)?)$/i
 );
 
 /**
@@ -91,7 +91,9 @@ this.PlacesBackups = {
    *  3: contents hash
    *  4: file extension
    */
-  get filenamesRegex() filenamesRegex,
+  get filenamesRegex() {
+    return filenamesRegex;
+  },
 
   get folder() {
     Deprecated.warning(
@@ -110,7 +112,7 @@ this.PlacesBackups = {
     if (!bookmarksBackupDir.exists()) {
       bookmarksBackupDir.create(Ci.nsIFile.DIRECTORY_TYPE, parseInt("0700", 8));
       if (!bookmarksBackupDir.exists())
-        throw("Unable to create bookmarks backup folder");
+        throw ("Unable to create bookmarks backup folder");
     }
     delete this._folder;
     return this._folder = bookmarksBackupDir;
@@ -133,7 +135,9 @@ this.PlacesBackups = {
     }.bind(this));
   },
 
-  get profileRelativeFolderPath() "bookmarkbackups",
+  get profileRelativeFolderPath() {
+    return "bookmarkbackups";
+  },
 
   /**
    * Cache current backups in a sorted (by date DESC) array.
@@ -169,7 +173,7 @@ this.PlacesBackups = {
     this._entries.sort((a, b) => {
       let aDate = this.getDateForFile(a);
       let bDate = this.getDateForFile(b);
-      return aDate < bDate ? 1 : aDate > bDate ? -1 : 0;
+      return bDate - aDate;
     });
     return this._entries;
   },
@@ -193,7 +197,7 @@ this.PlacesBackups = {
         // safely remove .tmp files without risking to remove ongoing backups.
         if (aEntry.name.endsWith(".tmp")) {
           OS.File.remove(aEntry.path);
-          return;
+          return undefined;
         }
 
         if (filenamesRegex.test(aEntry.name)) {
@@ -201,22 +205,41 @@ this.PlacesBackups = {
           let filePath = aEntry.path;
           if (this.getDateForFile(filePath) > new Date()) {
             return OS.File.remove(filePath);
-          } else {
-            this._backupFiles.push(filePath);
           }
+          this._backupFiles.push(filePath);
         }
+
+        return undefined;
       }.bind(this));
       iterator.close();
 
       this._backupFiles.sort((a, b) => {
         let aDate = this.getDateForFile(a);
         let bDate = this.getDateForFile(b);
-        return aDate < bDate ? 1 : aDate > bDate ? -1 : 0;
+        return bDate - aDate;
       });
 
       return this._backupFiles;
     }.bind(this));
   },
+
+  /**
+   * Generates a ISO date string (YYYY-MM-DD) from a Date object.
+   *
+   * @param dateObj
+   *        The date object to parse.
+   * @return an ISO date string.
+   */
+   toISODateString: function toISODateString(dateObj) {
+    if (!dateObj || dateObj.constructor.name != "Date" || !dateObj.getTime())
+      throw new Error("invalid date object");
+    let padDate = val => ("0" + val).substr(-2, 2);
+    return [
+      dateObj.getFullYear(),
+      padDate(dateObj.getMonth() + 1),
+      padDate(dateObj.getDate())
+    ].join("-");
+   },
 
   /**
    * Creates a filename for bookmarks backup files.
@@ -233,7 +256,7 @@ this.PlacesBackups = {
     let dateObj = aDateObj || new Date();
     // Use YYYY-MM-DD (ISO 8601) as it doesn't contain illegal characters
     // and makes the alphabetical order of multiple backup files more useful.
-      return "bookmarks-" + dateObj.toLocaleFormat("%Y-%m-%d") + ".json" +
+      return "bookmarks-" + PlacesBackups.toISODateString(dateObj) + ".json" +
                             (aCompress ? "lz4" : "");
   },
 
@@ -250,7 +273,7 @@ this.PlacesBackups = {
                                                        : OS.Path.basename(aBackupFile);
     let matches = filename.match(filenamesRegex);
     if (!matches)
-      throw("Invalid backup file name: " + filename);
+      throw ("Invalid backup file name: " + filename);
     return new Date(matches[1].replace(/-/g, "/"));
   },
 
@@ -265,7 +288,7 @@ this.PlacesBackups = {
       "https://bugzilla.mozilla.org/show_bug.cgi?id=859695");
 
     for (let i = 0; i < this._entries.length; i++) {
-      let rx = new RegExp("\.json(lz4)?$");
+      let rx = /\.json(lz4)?$/;
       if (this._entries[i].leafName.match(rx))
         return this._entries[i];
     }
@@ -282,7 +305,7 @@ this.PlacesBackups = {
      return Task.spawn(function* () {
        let entries = yield this.getBackupFiles();
        for (let entry of entries) {
-         let rx = new RegExp("\.json(lz4)?$");
+         let rx = /\.json(lz4)?$/;
          if (OS.Path.basename(entry).match(rx)) {
            return entry;
          }
@@ -431,7 +454,10 @@ this.PlacesBackups = {
         newFilenameWithMetaData = appendMetaDataToFilename(newBackupFilename,
                                                            { count: nodeCount,
                                                              hash: hash });
-      } catch (ex if ex.becauseSameHash) {
+      } catch (ex) {
+        if (!ex.becauseSameHash) {
+          throw ex;
+        }
         // The last backup already contained up-to-date information, just
         // rename it as if it was today's backup.
         this._backupFiles.shift();
@@ -490,7 +516,7 @@ this.PlacesBackups = {
    *         * index: the position in the parent
    *         * dateAdded: microseconds from the epoch
    *         * lastModified: microseconds from the epoch
-   *         * type: type of the originating node as defined in PlacesUtils 
+   *         * type: type of the originating node as defined in PlacesUtils
    *         The following properties exist only for a subset of bookmarks:
    *         * annos: array of annotations
    *         * uri: url
@@ -502,13 +528,13 @@ this.PlacesBackups = {
    *         * children: array of child items in a folder
    */
   getBookmarksTree: Task.async(function* () {
-    let rootGUID = yield PlacesUtils.promiseItemGUID(PlacesUtils.placesRootId);
     let startTime = Date.now();
-    let root = yield PlacesUtils.promiseBookmarksTree(rootGUID, {
+    let root = yield PlacesUtils.promiseBookmarksTree(PlacesUtils.bookmarks.rootGuid, {
       excludeItemsCallback: aItem => {
         return aItem.annos &&
           aItem.annos.find(a => a.name == PlacesUtils.EXCLUDE_FROM_BACKUP_ANNO);
-      }
+      },
+      includeItemIds: true
     });
 
     try {

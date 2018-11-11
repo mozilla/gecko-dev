@@ -6,11 +6,10 @@
 #ifndef mozilla_dom_CSSRuleList_h
 #define mozilla_dom_CSSRuleList_h
 
+#include "mozilla/StyleSheetInlines.h"
 #include "nsIDOMCSSRule.h"
 #include "nsIDOMCSSRuleList.h"
 #include "nsWrapperCache.h"
-
-class nsCSSStyleSheet;
 
 namespace mozilla {
 namespace dom {
@@ -24,28 +23,22 @@ class CSSRuleList : public nsIDOMCSSRuleList
                   , public nsWrapperCache
 {
 public:
-  CSSRuleList()
-  {
-    SetIsDOMBinding();
-  }
-  virtual ~CSSRuleList() {}
-
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ICSSRULELIST_IID)
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(CSSRuleList)
 
-  virtual nsCSSStyleSheet* GetParentObject() = 0;
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE MOZ_FINAL;
+  virtual CSSStyleSheet* GetParentObject() = 0;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override final;
 
   NS_IMETHOD
-  GetLength(uint32_t* aLength) MOZ_OVERRIDE MOZ_FINAL
+  GetLength(uint32_t* aLength) override final
   {
     *aLength = Length();
     return NS_OK;
   }
   NS_IMETHOD
-  Item(uint32_t aIndex, nsIDOMCSSRule** aReturn) MOZ_OVERRIDE MOZ_FINAL
+  Item(uint32_t aIndex, nsIDOMCSSRule** aReturn) override final
   {
     NS_IF_ADDREF(*aReturn = Item(aIndex));
     return NS_OK;
@@ -60,6 +53,9 @@ public:
 
   virtual nsIDOMCSSRule* IndexedGetter(uint32_t aIndex, bool& aFound) = 0;
   virtual uint32_t Length() = 0;
+
+protected:
+  virtual ~CSSRuleList() {}
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(CSSRuleList, NS_ICSSRULELIST_IID)

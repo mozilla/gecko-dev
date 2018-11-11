@@ -6,6 +6,10 @@
   -moz-binding: url("chrome://browser/content/tabbrowser.xml#tabbrowser-tabbox");
 }
 
+.tabbrowser-tabpanels {
+  -moz-binding: url("chrome://browser/content/tabbrowser.xml#tabbrowser-tabpanels");
+}
+
 .tabbrowser-arrowscrollbox {
   -moz-binding: url("chrome://browser/content/tabbrowser.xml#tabbrowser-arrowscrollbox");
 }
@@ -15,8 +19,24 @@
 }
 
 .tab-close-button[pinned],
-.tabbrowser-tabs[closebuttons="activetab"] > * > * > * > .tab-close-button:not([selected="true"]) {
+.tabbrowser-tabs[closebuttons="activetab"] > * > * > * > .tab-close-button:not([selected="true"]),
+.tab-icon-image:not([src]):not([pinned]):not([crashed])[selected],
+.tab-icon-image:not([src]):not([pinned]):not([crashed]):not([sharing]),
+.tab-icon-image[busy],
+.tab-throbber:not([busy]),
+.tab-icon-sound:not([soundplaying]):not([muted]):not([blocked]),
+.tab-icon-sound[pinned],
+.tab-sharing-icon-overlay,
+.tab-icon-overlay {
   display: none;
+}
+
+.tab-sharing-icon-overlay[sharing]:not([selected]),
+.tab-icon-overlay[soundplaying][pinned],
+.tab-icon-overlay[muted][pinned],
+.tab-icon-overlay[blocked][pinned],
+.tab-icon-overlay[crashed] {
+  display: -moz-box;
 }
 
 .tab-label[pinned] {
@@ -40,10 +60,11 @@ tabpanels {
   z-index: 2;
 }
 
-.tab-icon-image:not([src]):not([pinned]),
-.tab-throbber:not([busy]),
-.tab-throbber[busy] + .tab-icon-image {
-  display: none;
+/* Apply crisp rendering for favicons at exactly 2dppx resolution */
+@media (resolution: 2dppx) {
+  .tab-icon-image {
+    image-rendering: -moz-crisp-edges;
+  }
 }
 
 .closing-tabs-spacer {
@@ -62,4 +83,16 @@ tabpanels {
  */
 browser[pending] {
   display: none;
+}
+
+browser[pendingpaint] {
+  opacity: 0;
+}
+
+tabbrowser[pendingpaint] {
+  background-image: url(chrome://browser/skin/tabbrowser/pendingpaint.png);
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-color: #f9f9f9 !important;
+  background-size: 30px;
 }

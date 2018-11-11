@@ -12,12 +12,12 @@
 # The following tests will fail if the platform does not have native
 # theme support (which all platforms should have).
 fails-if(!nativeThemePref) != text-input-native.html text-input-nonnative.html
-== text-input-nonnative-when-styled.html text-input-nonnative-when-styled-ref.html
+fuzzy-if(skiaContent,2,88) == text-input-nonnative-when-styled.html text-input-nonnative-when-styled-ref.html
 fails-if(!nativeThemePref) != textarea-native.html textarea-nonnative.html
-== textarea-nonnative-when-styled.html textarea-nonnative-when-styled-ref.html
+fuzzy-if(skiaContent,2,53) == textarea-nonnative-when-styled.html textarea-nonnative-when-styled-ref.html
 fails-if(!nativeThemePref) != button-native.html button-nonnative.html
 == button-nonnative-when-styled.html button-nonnative-when-styled-ref.html
-fails-if(!nativeThemePref) != combobox-native.html combobox-nonnative.html
+fails-if(!nativeThemePref&&!Android) != combobox-native.html combobox-nonnative.html
 == combobox-nonnative-when-styled.html combobox-nonnative-when-styled-ref.html
 fails-if(!nativeThemePref) needs-focus != listbox-native.html listbox-nonnative.html
 needs-focus == listbox-nonnative-when-styled.html listbox-nonnative-when-styled-ref.html
@@ -25,7 +25,7 @@ fails-if(!nativeThemePref) != radio-native.html radio-nonnative.html
 == radio-still-native-when-styled.html radio-still-native-when-styled-ref.html
 fails-if(!nativeThemePref) != checkbox-native.html checkbox-nonnative.html
 == checkbox-still-native-when-styled.html checkbox-still-native-when-styled-ref.html
-fails-if(Android) == native-theme-disabled-cascade-levels.html native-theme-disabled-cascade-levels-ref.html
+== native-theme-disabled-cascade-levels.html native-theme-disabled-cascade-levels-ref.html
 
 != 427122-1.html 427122-1-ref.html
 
@@ -39,7 +39,7 @@ skip-if(!winWidget) != 403458-winmenu-ltr.xul 403458-winmenu-rtl.xul
 == 492155-1.html about:blank
 == 492155-2.html about:blank
 == 492155-3.html about:blank
-fails-if(Android) != 492155-4.html about:blank
+fails-if(Android&&!asyncPan) != 492155-4.html about:blank
 
 != box-shadow-input.html box-shadow-input-ref.html
 != box-shadow-button.html box-shadow-button-ref.html
@@ -55,15 +55,15 @@ skip-if(!cocoaWidget) == select-mirrored-when-rtl.html select-mirrored-when-rtl-
 != resizer-bottomend.xul blank-window.xul
 random-if(d2d) == resizer-bottomend.xul resizer-bottomright.xul # bug 581086 
 != resizer-bottomend.xul resizer-bottomend-rtl.xul
-skip-if(gtk2Widget) != resizer-bottomend-rtl.xul blank-window.xul
-skip-if(gtk2Widget) random-if(d2d) == resizer-bottomend-rtl.xul resizer-bottomend-flipped.xul # bug 581086
+skip-if(gtkWidget) != resizer-bottomend-rtl.xul blank-window.xul
+skip-if(gtkWidget) random-if(d2d) == resizer-bottomend-rtl.xul resizer-bottomend-flipped.xul # bug 581086
 
 != resizer-bottomstart.xul blank-window.xul
 random-if(d2d) == resizer-bottomstart.xul resizer-bottomleft.xul
 random-if(d2d) == resizer-bottomstart.xul resizer-left.xul
 != resizer-bottomstart.xul resizer-bottomstart-rtl.xul
-skip-if(gtk2Widget) != resizer-bottomstart-rtl.xul blank-window.xul
-skip-if(gtk2Widget) random-if(d2d) == resizer-bottomstart-rtl.xul resizer-bottomend.xul
+skip-if(gtkWidget) != resizer-bottomstart-rtl.xul blank-window.xul
+skip-if(gtkWidget) random-if(d2d) == resizer-bottomstart-rtl.xul resizer-bottomend.xul
 
 # Windows-only, depends on native scrollbar metrics
 skip-if(!winWidget) == scroll-thumb-minimum-size-notheme.html scroll-thumb-minimum-size-notheme-ref.html

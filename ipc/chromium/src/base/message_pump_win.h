@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 // Copyright (c) 2006-2008 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -169,20 +171,23 @@ class MessagePumpForUI : public MessagePumpWin {
   // queue can provide, up to some fixed number (to avoid any infinite loops).
   void PumpOutPendingPaintMessages();
 
- private:
-  static LRESULT CALLBACK WndProcThunk(
-      HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
+protected:
   virtual void DoRunLoop();
+
+  bool ProcessNextWindowsMessage();
   void InitMessageWnd();
   void WaitForWork();
   void HandleWorkMessage();
   void HandleTimerMessage();
-  bool ProcessNextWindowsMessage();
   bool ProcessMessageHelper(const MSG& msg);
   bool ProcessPumpReplacementMessage();
 
   // A hidden message-only window.
   HWND message_hwnd_;
+
+ private:
+  static LRESULT CALLBACK WndProcThunk(
+      HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
 };
 
 //-----------------------------------------------------------------------------

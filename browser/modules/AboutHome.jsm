@@ -4,19 +4,23 @@
 
 "use strict";
 
-let Cc = Components.classes;
-let Ci = Components.interfaces;
-let Cu = Components.utils;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
 
 this.EXPORTED_SYMBOLS = [ "AboutHomeUtils", "AboutHome" ];
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
-  "resource://gre/modules/PrivateBrowsingUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
+  "resource://gre/modules/AppConstants.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AutoMigrate",
+  "resource:///modules/AutoMigrate.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "fxAccounts",
   "resource://gre/modules/FxAccounts.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
+  "resource://gre/modules/PrivateBrowsingUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
   "resource://gre/modules/Promise.jsm");
 
@@ -27,7 +31,9 @@ const SNIPPETS_URL_PREF = "browser.aboutHomeSnippets.updateUrl";
 const STARTPAGE_VERSION = 4;
 
 this.AboutHomeUtils = {
-  get snippetsVersion() STARTPAGE_VERSION,
+  get snippetsVersion() {
+    return STARTPAGE_VERSION;
+  },
 
   /*
    * showKnowYourRights - Determines if the user should be shown the
@@ -48,10 +54,10 @@ this.AboutHomeUtils = {
       return !Services.prefs.getBoolPref("browser.EULA.override");
     } catch (e) { }
 
-#ifndef MOZILLA_OFFICIAL
-    // Non-official builds shouldn't show the notification.
-    return false;
-#endif
+    if (!AppConstants.MOZILLA_OFFICIAL) {
+      // Non-official builds shouldn't show the notification.
+      return false;
+    }
 
     // Look to see if the user has seen the current version or not.
     var currentVersion = Services.prefs.getIntPref("browser.rights.version");
@@ -85,18 +91,17 @@ XPCOMUtils.defineLazyGetter(AboutHomeUtils, "snippetsURL", function() {
  * about:home needs to do something chrome-privileged, it sends a
  * message that's handled here.
  */
-let AboutHome = {
+var AboutHome = {
   MESSAGES: [
     "AboutHome:RestorePreviousSession",
     "AboutHome:Downloads",
     "AboutHome:Bookmarks",
     "AboutHome:History",
-    "AboutHome:Apps",
     "AboutHome:Addons",
     "AboutHome:Sync",
     "AboutHome:Settings",
     "AboutHome:RequestUpdate",
-    "AboutHome:Search",
+    "AboutHome:MaybeShowAutoMigrationUndoNotification",
   ],
 
   init: function() {
@@ -105,20 +110,10 @@ let AboutHome = {
     for (let msg of this.MESSAGES) {
       mm.addMessageListener(msg, this);
     }
-
-    Services.obs.addObserver(this, "browser-search-engine-modified", false);
-  },
-
-  observe: function(aEngine, aTopic, aVerb) {
-    switch (aTopic) {
-      case "browser-search-engine-modified":
-        this.sendAboutHomeData(null);
-        break;
-    }
   },
 
   receiveMessage: function(aMessage) {
-    let window = aMessage.target.ownerDocument.defaultView;
+    let window = aMessage.target.ownerGlobal;
 
     switch (aMessage.name) {
       case "AboutHome:RestorePreviousSession":
@@ -134,15 +129,11 @@ let AboutHome = {
         break;
 
       case "AboutHome:Bookmarks":
-        window.PlacesCommandHook.showPlacesOrganizer("AllBookmarks");
+        window.PlacesCommandHook.showPlacesOrganizer("UnfiledBookmarks");
         break;
 
       case "AboutHome:History":
         window.PlacesCommandHook.showPlacesOrganizer("History");
-        break;
-
-      case "AboutHome:Apps":
-        window.openUILinkIn("https://marketplace.mozilla.org/", "tab");
         break;
 
       case "AboutHome:Addons":
@@ -150,21 +141,7 @@ let AboutHome = {
         break;
 
       case "AboutHome:Sync":
-        let weave = Cc["@mozilla.org/weave/service;1"]
-                      .getService(Ci.nsISupports)
-                      .wrappedJSObject;
-
-        if (weave.fxAccountsEnabled) {
-          fxAccounts.getSignedInUser().then(userData => {
-            if (userData) {
-              window.openPreferences("paneSync");
-            } else {
-              window.loadURI("about:accounts");
-            }
-          });
-        } else {
-          window.openPreferences("paneSync");
-        }
+        window.openPreferences("paneSync", { urlParams: { entrypoint: "abouthome" } });
         break;
 
       case "AboutHome:Settings":
@@ -175,33 +152,8 @@ let AboutHome = {
         this.sendAboutHomeData(aMessage.target);
         break;
 
-      case "AboutHome:Search":
-        let data;
-        try {
-          data = JSON.parse(aMessage.data.searchData);
-        } catch(ex) {
-          Cu.reportError(ex);
-          break;
-        }
-
-        Services.search.init(function(status) {
-          if (!Components.isSuccessCode(status)) {
-            return;
-          }
-
-          let engine = Services.search.currentEngine;
-#ifdef MOZ_SERVICES_HEALTHREPORT
-          window.BrowserSearch.recordSearchInHealthReport(engine, "abouthome");
-#endif
-          // Trigger a search through nsISearchEngine.getSubmission()
-          let submission = engine.getSubmission(data.searchTerms, null, "homepage");
-          window.loadURI(submission.uri.spec, null, submission.postData);
-
-          // Used for testing
-          let mm = aMessage.target.messageManager;
-          mm.sendAsyncMessage("AboutHome:SearchTriggered", aMessage.data.searchData);
-        });
-
+      case "AboutHome:MaybeShowAutoMigrationUndoNotification":
+        AutoMigrate.maybeShowUndoNotification(aMessage.target);
         break;
     }
   },
@@ -215,24 +167,11 @@ let AboutHome = {
     let ss = wrapper.SessionStore;
 
     ss.promiseInitialized.then(function() {
-      let deferred = Promise.defer();
-
-      Services.search.init(function (status){
-        if (!Components.isSuccessCode(status)) {
-          deferred.reject(status);
-        } else {
-          deferred.resolve(Services.search.defaultEngine.name);
-        }
-      });
-
-      return deferred.promise;
-    }).then(function(engineName) {
       let data = {
         showRestoreLastSession: ss.canRestoreLastSession,
         snippetsURL: AboutHomeUtils.snippetsURL,
         showKnowYourRights: AboutHomeUtils.showKnowYourRights,
         snippetsVersion: AboutHomeUtils.snippetsVersion,
-        defaultEngineName: engineName
       };
 
       if (AboutHomeUtils.showKnowYourRights) {
@@ -241,7 +180,7 @@ let AboutHome = {
         Services.prefs.setBoolPref("browser.rights." + currentVersion + ".shown", true);
       }
 
-      if (target) {
+      if (target && target.messageManager) {
         target.messageManager.sendAsyncMessage("AboutHome:Update", data);
       } else {
         let mm = Cc["@mozilla.org/globalmessagemanager;1"].getService(Ci.nsIMessageListenerManager);
@@ -251,4 +190,5 @@ let AboutHome = {
       Cu.reportError("Error in AboutHome.sendAboutHomeData: " + x);
     });
   },
+
 };

@@ -1,9 +1,11 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/TelemetryStopwatch.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "MigrationUtils",
                                   "resource:///modules/MigrationUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
@@ -16,6 +18,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "DownloadUtils",
                                   "resource://gre/modules/DownloadUtils.jsm");
 
 const RESTORE_FILEPICKER_FILTER_EXT = "*.json;*.jsonlz4";
+const HISTORY_LIBRARY_SEARCH_TELEMETRY = "PLACES_HISTORY_LIBRARY_SEARCH_TIME_MS";
 
 var PlacesOrganizer = {
   _places: null,
@@ -76,7 +79,6 @@ var PlacesOrganizer = {
             break;
           default:
             throw new Error("Invalid container type found: " + container);
-            break;
         }
         PlacesUtils.asContainer(this._places.selectedNode).containerOpen = true;
       }
@@ -111,20 +113,21 @@ var PlacesOrganizer = {
     PlacesSearchBox.init();
 
     window.addEventListener("AppCommand", this, true);
-#ifdef XP_MACOSX
-    // 1. Map Edit->Find command to OrganizerCommand_find:all.  Need to map
-    // both the menuitem and the Find key.
-    var findMenuItem = document.getElementById("menu_find");
-    findMenuItem.setAttribute("command", "OrganizerCommand_find:all");
-    var findKey = document.getElementById("key_find");
-    findKey.setAttribute("command", "OrganizerCommand_find:all");
 
-    // 2. Disable some keybindings from browser.xul
-    var elements = ["cmd_handleBackspace", "cmd_handleShiftBackspace"];
-    for (var i=0; i < elements.length; i++) {
-      document.getElementById(elements[i]).setAttribute("disabled", "true");
+    if (AppConstants.platform === "macosx") {
+      // 1. Map Edit->Find command to OrganizerCommand_find:all.  Need to map
+      // both the menuitem and the Find key.
+      let findMenuItem = document.getElementById("menu_find");
+      findMenuItem.setAttribute("command", "OrganizerCommand_find:all");
+      let findKey = document.getElementById("key_find");
+      findKey.setAttribute("command", "OrganizerCommand_find:all");
+
+      // 2. Disable some keybindings from browser.xul
+      let elements = ["cmd_handleBackspace", "cmd_handleShiftBackspace"];
+      for (let i = 0; i < elements.length; i++) {
+        document.getElementById(elements[i]).setAttribute("disabled", "true");
+      }
     }
-#endif
 
     // remove the "Properties" context-menu item, we've our own details pane
     document.getElementById("placesContext")
@@ -358,7 +361,8 @@ var PlacesOrganizer = {
    * cookies, history, preferences, and bookmarks.
    */
   importFromBrowser: function PO_importFromBrowser() {
-    MigrationUtils.showMigrationWizard(window);
+    // We pass in the type of source we're using for use in telemetry:
+    MigrationUtils.showMigrationWizard(window, [MigrationUtils.MIGRATION_ENTRYPOINT_PLACES]);
   },
 
   /**
@@ -406,14 +410,17 @@ var PlacesOrganizer = {
   populateRestoreMenu: function PO_populateRestoreMenu() {
     let restorePopup = document.getElementById("fileRestorePopup");
 
-    let dateSvc = Cc["@mozilla.org/intl/scriptabledateformat;1"].
-                  getService(Ci.nsIScriptableDateFormat);
+    const locale = Cc["@mozilla.org/chrome/chrome-registry;1"]
+                   .getService(Ci.nsIXULChromeRegistry)
+                   .getSelectedLocale("global", true);
+    const dtOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+    let dateFormatter = new Intl.DateTimeFormat(locale, dtOptions);
 
     // Remove existing menu items.  Last item is the restoreFromFile item.
     while (restorePopup.childNodes.length > 1)
       restorePopup.removeChild(restorePopup.firstChild);
 
-    Task.spawn(function() {
+    Task.spawn(function* () {
       let backupFiles = yield PlacesBackups.getBackupFiles();
       if (backupFiles.length == 0)
         return;
@@ -439,13 +446,7 @@ var PlacesOrganizer = {
         let backupDate = PlacesBackups.getDateForFile(backupFiles[i]);
         let m = restorePopup.insertBefore(document.createElement("menuitem"),
                                           document.getElementById("restoreFromFile"));
-        m.setAttribute("label",
-                       dateSvc.FormatDate("",
-                                          Ci.nsIScriptableDateFormat.dateFormatLong,
-                                          backupDate.getFullYear(),
-                                          backupDate.getMonth() + 1,
-                                          backupDate.getDate()) +
-                                          sizeInfo);
+        m.setAttribute("label", dateFormatter.format(backupDate) + sizeInfo);
         m.setAttribute("value", OS.Path.basename(backupFiles[i]));
         m.setAttribute("oncommand",
                        "PlacesOrganizer.onRestoreMenuItemClick(this);");
@@ -460,18 +461,16 @@ var PlacesOrganizer = {
   /**
    * Called when a menuitem is selected from the restore menu.
    */
-  onRestoreMenuItemClick: function PO_onRestoreMenuItemClick(aMenuItem) {
-    Task.spawn(function() {
-      let backupName = aMenuItem.getAttribute("value");
-      let backupFilePaths = yield PlacesBackups.getBackupFiles();
-      for (let backupFilePath of backupFilePaths) {
-        if (OS.Path.basename(backupFilePath) == backupName) {
-          PlacesOrganizer.restoreBookmarksFromFile(backupFilePath);
-          break;
-        }
+  onRestoreMenuItemClick: Task.async(function* (aMenuItem) {
+    let backupName = aMenuItem.getAttribute("value");
+    let backupFilePaths = yield PlacesBackups.getBackupFiles();
+    for (let backupFilePath of backupFilePaths) {
+      if (OS.Path.basename(backupFilePath) == backupName) {
+        PlacesOrganizer.restoreBookmarksFromFile(backupFilePath);
+        break;
       }
-    });
-  },
+    }
+  }),
 
   /**
    * Called when 'Choose File...' is selected from the restore menu.
@@ -502,7 +501,8 @@ var PlacesOrganizer = {
    */
   restoreBookmarksFromFile: function PO_restoreBookmarksFromFile(aFilePath) {
     // check file extension
-    if (!aFilePath.endsWith("json") && !aFilePath.endsWith("jsonlz4"))  {
+    if (!aFilePath.toLowerCase().endsWith("json") &&
+        !aFilePath.toLowerCase().endsWith("jsonlz4"))  {
       this._showErrorAlert(PlacesUIUtils.getString("bookmarksRestoreFormatError"));
       return;
     }
@@ -515,10 +515,10 @@ var PlacesOrganizer = {
                          PlacesUIUtils.getString("bookmarksRestoreAlert")))
       return;
 
-    Task.spawn(function() {
+    Task.spawn(function* () {
       try {
         yield BookmarkJSONUtils.importFromFile(aFilePath, true);
-      } catch(ex) {
+      } catch (ex) {
         PlacesOrganizer._showErrorAlert(PlacesUIUtils.getString("bookmarksRestoreParseError"));
       }
     });
@@ -555,21 +555,9 @@ var PlacesOrganizer = {
     fp.appendFilter(PlacesUIUtils.getString("bookmarksRestoreFilterName"),
                     RESTORE_FILEPICKER_FILTER_EXT);
     fp.defaultString = PlacesBackups.getFilenameForDate();
+    fp.defaultExtension = "json";
     fp.displayDirectory = backupsDir;
     fp.open(fpCallback);
-  },
-
-  _paneDisabled: false,
-  _setDetailsFieldsDisabledState:
-  function PO__setDetailsFieldsDisabledState(aDisabled) {
-    if (aDisabled) {
-      document.getElementById("paneElementsBroadcaster")
-              .setAttribute("disabled", "true");
-    }
-    else {
-      document.getElementById("paneElementsBroadcaster")
-              .removeAttribute("disabled");
-    }
   },
 
   _detectAndSetDetailsPaneMinimalState:
@@ -583,7 +571,6 @@ var PlacesOrganizer = {
      * state in a bookmark->folder->bookmark scenario.
      */
     var infoBox = document.getElementById("infoBox");
-    var infoBoxExpander = document.getElementById("infoBoxExpander");
     var infoBoxExpanderWrapper = document.getElementById("infoBoxExpanderWrapper");
     var additionalInfoBroadcaster = document.getElementById("additionalInfoBroadcaster");
 
@@ -603,7 +590,7 @@ var PlacesOrganizer = {
         infoBox.setAttribute("minimal", "true");
       infoBox.removeAttribute("wasminimal");
       infoBoxExpanderWrapper.hidden =
-        this._additionalInfoFields.every(function (id)
+        this._additionalInfoFields.every(id =>
           document.getElementById(id).collapsed);
     }
     additionalInfoBroadcaster.hidden = infoBox.getAttribute("minimal") == "true";
@@ -626,7 +613,8 @@ var PlacesOrganizer = {
     // Make sure the infoBox UI is visible if we need to use it, we hide it
     // below when we don't.
     infoBox.hidden = false;
-    var aSelectedNode = aNodeList.length == 1 ? aNodeList[0] : null;
+    let selectedNode = aNodeList.length == 1 ? aNodeList[0] : null;
+
     // If a textbox within a panel is focused, force-blur it so its contents
     // are saved
     if (gEditItemOverlay.itemId != -1) {
@@ -638,12 +626,12 @@ var PlacesOrganizer = {
 
       // don't update the panel if we are already editing this node unless we're
       // in multi-edit mode
-      if (aSelectedNode) {
-        var concreteId = PlacesUtils.getConcreteItemId(aSelectedNode);
-        var nodeIsSame = gEditItemOverlay.itemId == aSelectedNode.itemId ||
+      if (selectedNode) {
+        let concreteId = PlacesUtils.getConcreteItemId(selectedNode);
+        var nodeIsSame = gEditItemOverlay.itemId == selectedNode.itemId ||
                          gEditItemOverlay.itemId == concreteId ||
-                         (aSelectedNode.itemId == -1 && gEditItemOverlay.uri &&
-                          gEditItemOverlay.uri == aSelectedNode.uri);
+                         (selectedNode.itemId == -1 && gEditItemOverlay.uri &&
+                          gEditItemOverlay.uri == selectedNode.uri);
         if (nodeIsSame && detailsDeck.selectedIndex == 1 &&
             !gEditItemOverlay.multiEdit)
           return;
@@ -653,70 +641,37 @@ var PlacesOrganizer = {
     // Clean up the panel before initing it again.
     gEditItemOverlay.uninitPanel(false);
 
-    if (aSelectedNode && !PlacesUtils.nodeIsSeparator(aSelectedNode)) {
+    if (selectedNode && !PlacesUtils.nodeIsSeparator(selectedNode)) {
       detailsDeck.selectedIndex = 1;
-      // Using the concrete itemId is arguably wrong.  The bookmarks API
-      // does allow setting properties for folder shortcuts as well, but since
-      // the UI does not distinct between the couple, we better just show
-      // the concrete item properties for shortcuts to root nodes.
-      var concreteId = PlacesUtils.getConcreteItemId(aSelectedNode);
-      var isRootItem = concreteId != -1 && PlacesUtils.isRootItem(concreteId);
-      var readOnly = isRootItem ||
-                     aSelectedNode.parent.itemId == PlacesUIUtils.leftPaneFolderId;
-      var useConcreteId = isRootItem ||
-                          PlacesUtils.nodeIsTagQuery(aSelectedNode);
-      var itemId = -1;
-      if (concreteId != -1 && useConcreteId)
-        itemId = concreteId;
-      else if (aSelectedNode.itemId != -1)
-        itemId = aSelectedNode.itemId;
-      else
-        itemId = PlacesUtils._uri(aSelectedNode.uri);
 
-      gEditItemOverlay.initPanel(itemId, { hiddenRows: ["folderPicker"]
-                                         , forceReadOnly: readOnly
-                                         , titleOverride: aSelectedNode.title
-                                         });
+      gEditItemOverlay.initPanel({ node: selectedNode
+                                 , hiddenRows: ["folderPicker"] });
 
-      // Dynamically generated queries, like history date containers, have
-      // itemId !=0 and do not exist in history.  For them the panel is
-      // read-only, but empty, since it can't get a valid title for the object.
-      // In such a case we force the title using the selectedNode one, for UI
-      // polishness.
-      if (aSelectedNode.itemId == -1 &&
-          (PlacesUtils.nodeIsDay(aSelectedNode) ||
-           PlacesUtils.nodeIsHost(aSelectedNode)))
-        gEditItemOverlay._element("namePicker").value = aSelectedNode.title;
-
-      this._detectAndSetDetailsPaneMinimalState(aSelectedNode);
+      this._detectAndSetDetailsPaneMinimalState(selectedNode);
     }
-    else if (!aSelectedNode && aNodeList[0]) {
-      var itemIds = [];
-      for (var i = 0; i < aNodeList.length; i++) {
-        if (!PlacesUtils.nodeIsBookmark(aNodeList[i]) &&
-            !PlacesUtils.nodeIsURI(aNodeList[i])) {
-          detailsDeck.selectedIndex = 0;
-          var selectItemDesc = document.getElementById("selectItemDescription");
-          var itemsCountLabel = document.getElementById("itemsCountText");
-          selectItemDesc.hidden = false;
-          itemsCountLabel.value =
-            PlacesUIUtils.getPluralString("detailsPane.itemsCountLabel",
-                                          aNodeList.length, [aNodeList.length]);
-          infoBox.hidden = true;
-          return;
-        }
-        itemIds[i] = aNodeList[i].itemId != -1 ? aNodeList[i].itemId :
-                     PlacesUtils._uri(aNodeList[i].uri);
+    else if (!selectedNode && aNodeList[0]) {
+      if (aNodeList.every(PlacesUtils.nodeIsURI)) {
+        let uris = aNodeList.map(node => PlacesUtils._uri(node.uri));
+        detailsDeck.selectedIndex = 1;
+        gEditItemOverlay.initPanel({ uris
+                                   , hiddenRows: ["folderPicker",
+                                                  "loadInSidebar",
+                                                  "location",
+                                                  "keyword",
+                                                  "description",
+                                                  "name"]});
+        this._detectAndSetDetailsPaneMinimalState(selectedNode);
       }
-      detailsDeck.selectedIndex = 1;
-      gEditItemOverlay.initPanel(itemIds,
-                                 { hiddenRows: ["folderPicker",
-                                                "loadInSidebar",
-                                                "location",
-                                                "keyword",
-                                                "description",
-                                                "name"]});
-      this._detectAndSetDetailsPaneMinimalState(aSelectedNode);
+      else {
+        detailsDeck.selectedIndex = 0;
+        let selectItemDesc = document.getElementById("selectItemDescription");
+        let itemsCountLabel = document.getElementById("itemsCountText");
+        selectItemDesc.hidden = false;
+        itemsCountLabel.value =
+          PlacesUIUtils.getPluralString("detailsPane.itemsCountLabel",
+                                        aNodeList.length, [aNodeList.length]);
+        infoBox.hidden = true;
+      }
     }
     else {
       detailsDeck.selectedIndex = 0;
@@ -759,7 +714,7 @@ var PlacesOrganizer = {
     ctx.fillStyle = "GrayText";
     ctx.mozTextStyle = "12pt sans serif";
     var len = ctx.mozMeasureText(notAvailableText);
-    ctx.translate(-len/2,0);
+    ctx.translate(-len/2, 0);
     ctx.mozDrawText(notAvailableText);
     ctx.restore();
   },
@@ -798,7 +753,7 @@ var PlacesSearchBox = {
   get searchFilter() {
     return document.getElementById("searchFilter");
   },
-   
+
   /**
    * Folders to include when searching.
    */
@@ -855,7 +810,9 @@ var PlacesSearchBox = {
           currentView.load([query], options);
         }
         else {
+          TelemetryStopwatch.start(HISTORY_LIBRARY_SEARCH_TELEMETRY);
           currentView.applyFilter(filterString, null, true);
+          TelemetryStopwatch.finish(HISTORY_LIBRARY_SEARCH_TELEMETRY);
         }
         break;
       case "downloads":
@@ -916,7 +873,7 @@ var PlacesSearchBox = {
         title = PlacesUIUtils.getString("searchDownloads");
         break;
       default:
-        title = PlacesUIUtils.getString("searchBookmarks");                                    
+        title = PlacesUIUtils.getString("searchBookmarks");
     }
     this.searchFilter.placeholder = title;
   },
@@ -998,7 +955,6 @@ var PlacesQueryBuilder = {
         break;
       default:
         throw "Invalid search scope";
-        break;
     }
 
     // Update the search box.  Re-search if there's an active search.
@@ -1055,9 +1011,8 @@ var ViewMenu = {
         popup.removeChild(startElement.nextSibling);
       return endElement;
     }
-    else {
-      while(popup.hasChildNodes())
-        popup.removeChild(popup.firstChild);
+    while (popup.hasChildNodes()) {
+      popup.removeChild(popup.firstChild);
     }
     return null;
   },
@@ -1087,9 +1042,6 @@ var ViewMenu = {
     var popup = event.target;
     var pivot = this._clean(popup, startID, endID);
 
-    // If no column is "sort-active", the "Unsorted" item needs to be checked,
-    // so track whether or not we find a column that is sort-active.
-    var isSorted = false;
     var content = document.getElementById("placeContent");
     var columns = content.columns;
     for (var i = 0; i < columns.count; ++i) {
@@ -1115,7 +1067,6 @@ var ViewMenu = {
         // This column is the sort key. Its item is checked.
         if (column.getAttribute("sortDirection") != "") {
           menuitem.setAttribute("checked", "true");
-          isSorted = true;
         }
       }
       else if (type == "checkbox") {
@@ -1226,13 +1177,13 @@ var ViewMenu = {
     if (aColumn) {
       columnId = aColumn.getAttribute("anonid");
       if (!aDirection) {
-        var sortColumn = this._getSortColumn();
+        let sortColumn = this._getSortColumn();
         if (sortColumn)
           aDirection = sortColumn.getAttribute("sortDirection");
       }
     }
     else {
-      var sortColumn = this._getSortColumn();
+      let sortColumn = this._getSortColumn();
       columnId = sortColumn ? sortColumn.getAttribute("anonid") : "title";
     }
 
@@ -1249,7 +1200,6 @@ var ViewMenu = {
       url:          { key: "URI",          dir: "ascending"  },
       date:         { key: "DATE",         dir: "descending" },
       visitCount:   { key: "VISITCOUNT",   dir: "descending" },
-      keyword:      { key: "KEYWORD",      dir: "ascending"  },
       dateAdded:    { key: "DATEADDED",    dir: "descending" },
       lastModified: { key: "LASTMODIFIED", dir: "descending" },
       description:  { key: "ANNOTATION",
@@ -1259,7 +1209,7 @@ var ViewMenu = {
 
     // Make sure we have a valid column.
     if (!colLookupTable.hasOwnProperty(columnId))
-      throw("Invalid column");
+      throw new Error("Invalid column");
 
     // Use a default sort direction if none has been specified.  If aDirection
     // is invalid, result.sortingMode will be undefined, which has the effect
@@ -1272,7 +1222,7 @@ var ViewMenu = {
   }
 }
 
-let ContentArea = {
+var ContentArea = {
   _specialViews: new Map(),
 
   init: function CA_init() {
@@ -1303,7 +1253,7 @@ let ContentArea = {
         return view;
       }
     }
-    catch(ex) {
+    catch (ex) {
       Components.utils.reportError(ex);
     }
     return ContentTree.view;
@@ -1328,10 +1278,12 @@ let ContentArea = {
       throw new Error("Invalid arguments");
 
     this._specialViews.set(aQueryString, { view: aView,
-                                           options: aOptions || new Object() });
+                                           options: aOptions || {} });
   },
 
-  get currentView() PlacesUIUtils.getViewForNode(this._deck.selectedPanel),
+  get currentView() {
+    return PlacesUIUtils.getViewForNode(this._deck.selectedPanel);
+  },
   set currentView(aNewView) {
     let oldView = this.currentView;
     if (oldView != aNewView) {
@@ -1345,7 +1297,9 @@ let ContentArea = {
     return aNewView;
   },
 
-  get currentPlace() this.currentView.place,
+  get currentPlace() {
+    return this.currentView.place;
+  },
   set currentPlace(aQueryString) {
     let oldView = this.currentView;
     let newView = this.getContentViewForQueryString(aQueryString);
@@ -1374,11 +1328,11 @@ let ContentArea = {
       // On Windows and Linux the menu buttons are menus wrapped in a menubar.
       if (elt.id == "placesMenu") {
         for (let menuElt of elt.childNodes) {
-          menuElt.hidden = options.toolbarSet.indexOf(menuElt.id) == -1;
+          menuElt.hidden = !options.toolbarSet.includes(menuElt.id);
         }
       }
       else {
-        elt.hidden = options.toolbarSet.indexOf(elt.id) == -1;
+        elt.hidden = !options.toolbarSet.includes(elt.id);
       }
     }
   },
@@ -1392,7 +1346,7 @@ let ContentArea = {
     // Use ContentTree options as default.
     let viewOptions = ContentTree.viewOptions;
     if (this._specialViews.has(this.currentPlace)) {
-      let { view, options } = this._specialViews.get(this.currentPlace);
+      let { options } = this._specialViews.get(this.currentPlace);
       for (let option in options) {
         viewOptions[option] = options[option];
       }
@@ -1405,17 +1359,21 @@ let ContentArea = {
   }
 };
 
-let ContentTree = {
+var ContentTree = {
   init: function CT_init() {
     this._view = document.getElementById("placeContent");
   },
 
-  get view() this._view,
+  get view() {
+    return this._view;
+  },
 
-  get viewOptions() Object.seal({
-    showDetailsPane: true,
-    toolbarSet: "back-button, forward-button, organizeButton, viewMenu, maintenanceButton, libraryToolbarSpacer, searchFilter"
-  }),
+  get viewOptions() {
+    return Object.seal({
+      showDetailsPane: true,
+      toolbarSet: "back-button, forward-button, organizeButton, viewMenu, maintenanceButton, libraryToolbarSpacer, searchFilter"
+    });
+  },
 
   openSelectedNode: function CT_openSelectedNode(aEvent) {
     let view = this.view;

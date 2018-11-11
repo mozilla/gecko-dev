@@ -30,8 +30,8 @@
 #ifndef CLIENT_WINDOWS_CRASH_GENERATION_CLIENT_INFO_H__
 #define CLIENT_WINDOWS_CRASH_GENERATION_CLIENT_INFO_H__
 
-#include <Windows.h>
-#include <DbgHelp.h>
+#include <windows.h>
+#include <dbghelp.h>
 #include "client/windows/common/ipc_protocol.h"
 #include "common/scoped_ptr.h"
 #include "google_breakpad/common/minidump_format.h"
@@ -66,6 +66,9 @@ class ClientInfo {
   HANDLE dump_requested_handle() const { return dump_requested_handle_; }
   HANDLE dump_generated_handle() const { return dump_generated_handle_; }
   DWORD crash_id() const { return crash_id_; }
+  const CustomClientInfo& custom_client_info() const {
+    return custom_client_info_;
+  }
 
   void set_dump_request_wait_handle(HANDLE value) {
     dump_request_wait_handle_ = value;

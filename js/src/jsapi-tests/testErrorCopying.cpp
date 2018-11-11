@@ -10,26 +10,24 @@
 
 #include "jsapi-tests/tests.h"
 
-static uint32_t column = 0;
-
 BEGIN_TEST(testErrorCopying_columnCopied)
 {
-        //0         1         2
-        //0123456789012345678901234567
+        //0        1         2
+        //1234567890123456789012345678
     EXEC("function check() { Object; foo; }");
 
     JS::RootedValue rval(cx);
-    JS_SetErrorReporter(cx, my_ErrorReporter);
     CHECK(!JS_CallFunctionName(cx, global, "check", JS::HandleValueArray::empty(),
                                &rval));
-    CHECK(column == 27);
-    return true;
-}
+    JS::RootedValue exn(cx);
+    CHECK(JS_GetPendingException(cx, &exn));
+    JS_ClearPendingException(cx);
 
-static void
-my_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
-{
-    column = report->column;
+    js::ErrorReport report(cx);
+    CHECK(report.init(cx, exn, js::ErrorReport::WithSideEffects));
+
+    CHECK_EQUAL(report.report()->column, 28u);
+    return true;
 }
 
 END_TEST(testErrorCopying_columnCopied)

@@ -8,46 +8,38 @@
  *
  */
 
-[Pref="dom.serviceWorkers.enabled"]
-interface ServiceWorkerContainer {
+[Func="ServiceWorkerContainer::IsEnabled",
+ Exposed=Window]
+interface ServiceWorkerContainer : EventTarget {
   // FIXME(nsm):
   // https://github.com/slightlyoff/ServiceWorker/issues/198
   // and discussion at https://etherpad.mozilla.org/serviceworker07apr
-  [Unforgeable] readonly attribute ServiceWorker? installing;
-  [Unforgeable] readonly attribute ServiceWorker? waiting;
-  [Unforgeable] readonly attribute ServiceWorker? active;
   [Unforgeable] readonly attribute ServiceWorker? controller;
 
-  // Promise<ServiceWorker>
-  readonly attribute Promise ready;
+  [SameObject, Throws]
+  readonly attribute Promise<ServiceWorkerRegistration> ready;
 
-  // Promise<sequence<ServiceWorker>?>
-  [Throws]
-  Promise getAll();
+  [NewObject]
+  Promise<ServiceWorkerRegistration> register(USVString scriptURL,
+                                              optional RegistrationOptions options);
 
-  // Promise<ServiceWorker>
-  [Throws]
-  Promise register(DOMString url, optional RegistrationOptionList options);
+  [NewObject]
+  Promise<any> getRegistration(optional USVString documentURL = "");
 
-  // Promise<any>
-  [Throws]
-  Promise unregister(DOMString? scope);
+  [NewObject]
+  Promise<sequence<ServiceWorkerRegistration>> getRegistrations();
 
-  attribute EventHandler onupdatefound;
   attribute EventHandler oncontrollerchange;
-  attribute EventHandler onreloadpage;
   attribute EventHandler onerror;
+  attribute EventHandler onmessage;
 };
 
 // Testing only.
-[ChromeOnly, Pref="dom.serviceWorkers.testing.enabled"]
 partial interface ServiceWorkerContainer {
-  [Throws]
-  Promise clearAllServiceWorkerData();
-  [Throws]
-  DOMString getControllingWorkerScriptURLForPath(DOMString path);
+  [Throws,Pref="dom.serviceWorkers.testing.enabled"]
+  DOMString getScopeForUrl(DOMString url);
 };
 
-dictionary RegistrationOptionList {
-  DOMString scope = "/*";
+dictionary RegistrationOptions {
+  USVString scope;
 };

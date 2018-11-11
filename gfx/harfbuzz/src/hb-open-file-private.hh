@@ -53,9 +53,10 @@ struct TTCHeader;
 
 typedef struct TableRecord
 {
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
-    return TRACE_RETURN (c->check_struct (this));
+    return_trace (c->check_struct (this));
   }
 
   Tag		tag;		/* 4-byte identifier. */
@@ -102,17 +103,18 @@ typedef struct OffsetTable
   }
 
   public:
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
-    return TRACE_RETURN (c->check_struct (this) && c->check_array (tables, TableRecord::static_size, numTables));
+    return_trace (c->check_struct (this) && c->check_array (tables, TableRecord::static_size, numTables));
   }
 
   protected:
   Tag		sfnt_version;	/* '\0\001\0\00' if TrueType / 'OTTO' if CFF */
   USHORT	numTables;	/* Number of tables. */
-  USHORT	searchRange;	/* (Maximum power of 2 <= numTables) x 16 */
-  USHORT	entrySelector;	/* Log2(maximum power of 2 <= numTables). */
-  USHORT	rangeShift;	/* NumTables x 16-searchRange. */
+  USHORT	searchRangeZ;	/* (Maximum power of 2 <= numTables) x 16 */
+  USHORT	entrySelectorZ;	/* Log2(maximum power of 2 <= numTables). */
+  USHORT	rangeShiftZ;	/* NumTables x 16-searchRange. */
   TableRecord	tables[VAR];	/* TableRecord entries. numTables items */
   public:
   DEFINE_SIZE_ARRAY (12, tables);
@@ -130,16 +132,17 @@ struct TTCHeaderVersion1
   inline unsigned int get_face_count (void) const { return table.len; }
   inline const OpenTypeFontFace& get_face (unsigned int i) const { return this+table[i]; }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
-    return TRACE_RETURN (table.sanitize (c, this));
+    return_trace (table.sanitize (c, this));
   }
 
   protected:
   Tag		ttcTag;		/* TrueType Collection ID string: 'ttcf' */
-  FixedVersion	version;	/* Version of the TTC Header (1.0),
-				 * 0x00010000 */
-  LongOffsetLongArrayOf<OffsetTable>
+  FixedVersion<>version;	/* Version of the TTC Header (1.0),
+				 * 0x00010000u */
+  ArrayOf<OffsetTo<OffsetTable, ULONG>, ULONG>
 		table;		/* Array of offsets to the OffsetTable for each font
 				 * from the beginning of the file */
   public:
@@ -169,13 +172,14 @@ struct TTCHeader
     }
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
-    if (unlikely (!u.header.version.sanitize (c))) return TRACE_RETURN (false);
+    if (unlikely (!u.header.version.sanitize (c))) return_trace (false);
     switch (u.header.version.major) {
     case 2: /* version 2 is compatible with version 1 */
-    case 1: return TRACE_RETURN (u.version1.sanitize (c));
-    default:return TRACE_RETURN (true);
+    case 1: return_trace (u.version1.sanitize (c));
+    default:return_trace (true);
     }
   }
 
@@ -183,8 +187,8 @@ struct TTCHeader
   union {
   struct {
   Tag		ttcTag;		/* TrueType Collection ID string: 'ttcf' */
-  FixedVersion	version;	/* Version of the TTC Header (1.0 or 2.0),
-				 * 0x00010000 or 0x00020000 */
+  FixedVersion<>version;	/* Version of the TTC Header (1.0 or 2.0),
+				 * 0x00010000u or 0x00020000u */
   }			header;
   TTCHeaderVersion1	version1;
   } u;
@@ -197,6 +201,8 @@ struct TTCHeader
 
 struct OpenTypeFontFile
 {
+  static const hb_tag_t tableTag	= HB_TAG ('_','_','_','_'); /* Sanitizer needs this. */
+
   static const hb_tag_t CFFTag		= HB_TAG ('O','T','T','O'); /* OpenType with Postscript outlines */
   static const hb_tag_t TrueTypeTag	= HB_TAG ( 0 , 1 , 0 , 0 ); /* OpenType with TrueType outlines */
   static const hb_tag_t TTCTag		= HB_TAG ('t','t','c','f'); /* TrueType Collection */
@@ -231,16 +237,17 @@ struct OpenTypeFontFile
     }
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
-    if (unlikely (!u.tag.sanitize (c))) return TRACE_RETURN (false);
+    if (unlikely (!u.tag.sanitize (c))) return_trace (false);
     switch (u.tag) {
     case CFFTag:	/* All the non-collection tags */
     case TrueTag:
     case Typ1Tag:
-    case TrueTypeTag:	return TRACE_RETURN (u.fontFace.sanitize (c));
-    case TTCTag:	return TRACE_RETURN (u.ttcHeader.sanitize (c));
-    default:		return TRACE_RETURN (true);
+    case TrueTypeTag:	return_trace (u.fontFace.sanitize (c));
+    case TTCTag:	return_trace (u.ttcHeader.sanitize (c));
+    default:		return_trace (true);
     }
   }
 

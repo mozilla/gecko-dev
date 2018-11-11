@@ -32,17 +32,19 @@ public:
    * Creates a new CSSVariableResolver that will output a set of resolved,
    * computed variables into aOutput.
    */
-  CSSVariableResolver(CSSVariableValues* aOutput)
+  explicit CSSVariableResolver(CSSVariableValues* aOutput)
     : mOutput(aOutput)
+#ifdef DEBUG
     , mResolved(false)
+#endif
   {
     MOZ_ASSERT(aOutput);
   }
 
   /**
    * Resolves the set of inherited variables from aInherited and the
-   * set of specified variables from aSpecified.  The resoled variables
-   * are written in to mOutput.
+   * set of specified variables from aSpecified.  The resolved variables
+   * are written into mOutput.
    */
   void Resolve(const CSSVariableValues* aInherited,
                const CSSVariableDeclarations* aSpecified);
@@ -135,10 +137,12 @@ private:
   // The object to output the resolved variables into.
   CSSVariableValues* mOutput;
 
+#ifdef DEBUG
   // Whether Resolve has been called.
-  DebugOnly<bool> mResolved;
+  bool mResolved;
+#endif
 };
 
-}
+} // namespace mozilla
 
 #endif

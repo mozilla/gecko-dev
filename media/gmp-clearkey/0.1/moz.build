@@ -1,0 +1,75 @@
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+SharedLibrary('clearkey')
+
+FINAL_TARGET = 'dist/bin/gmp-clearkey/0.1'
+
+FINAL_TARGET_PP_FILES += ['clearkey.info.in']
+
+UNIFIED_SOURCES += [
+    'ClearKeyAsyncShutdown.cpp',
+    'ClearKeyBase64.cpp',
+    'ClearKeyDecryptionManager.cpp',
+    'ClearKeyPersistence.cpp',
+    'ClearKeySession.cpp',
+    'ClearKeySessionManager.cpp',
+    'ClearKeyStorage.cpp',
+    'ClearKeyUtils.cpp',
+    'gmp-clearkey.cpp',
+]
+
+SOURCES += [
+    'openaes/oaes_lib.c',
+]
+
+if CONFIG['OS_ARCH'] == 'WINNT':
+    UNIFIED_SOURCES += [
+        'AnnexB.cpp',
+        'AudioDecoder.cpp',
+        'VideoDecoder.cpp',
+        'WMFAACDecoder.cpp',
+        'WMFH264Decoder.cpp',
+    ]
+
+    SOURCES += [
+        'WMFUtils.cpp',
+    ]
+
+    OS_LIBS += [
+        'mfuuid',
+    ]
+
+    DEFINES['ENABLE_WMF'] = True
+
+TEST_DIRS += [
+    'gtest',
+]
+
+
+LOCAL_INCLUDES += [
+    '/dom/media/gmp',
+]
+
+DISABLE_STL_WRAPPING = True
+DEFINES['MOZ_NO_MOZALLOC'] = True
+
+USE_LIBS += ['psshparser']
+
+# Suppress warnings in third-party code.
+if CONFIG['GNU_CXX']:
+    CFLAGS += [
+        '-Wno-missing-braces',
+        '-Wno-pointer-to-int-cast',
+        '-Wno-sign-compare',
+        '-include', 'stdio.h',      # for sprintf() prototype
+        '-include', 'unistd.h',     # for getpid() prototype
+    ]
+elif CONFIG['_MSC_VER']:
+    CFLAGS += [
+        '-FI', 'stdio.h',           # for sprintf() prototype
+        '-wd4090',                  # '=' : different 'const' qualifiers
+    ]

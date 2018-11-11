@@ -3,7 +3,7 @@
 #
 
 
-# Copyright 1996-2000, 2002, 2004, 2006, 2008, 2013, 2014 by
+# Copyright 1996-2016 by
 # David Turner, Robert Wilhelm, and Werner Lemberg.
 #
 # This file is part of the FreeType project, and may only be used, modified,
@@ -17,7 +17,7 @@ SHELL := @SHELL@
 TOP_DIR := $(shell cd $(TOP_DIR); pwd)
 
 DELETE := rm -f
-DELDIR := @RMDIR@
+DELDIR := rm -rf
 CAT    := cat
 SEP    := /
 
@@ -32,7 +32,7 @@ INSTALL         := @INSTALL@
 INSTALL_DATA    := @INSTALL_DATA@
 INSTALL_PROGRAM := @INSTALL_PROGRAM@
 INSTALL_SCRIPT  := @INSTALL_SCRIPT@
-MKINSTALLDIRS   := $(BUILD_DIR)/mkinstalldirs
+MKINSTALLDIRS   := @MKDIR_P@
 
 CLEAN += $(OBJ_BUILD)/freetype-config \
          $(OBJ_BUILD)/freetype2.pc
@@ -64,7 +64,6 @@ version_info := @version_info@
 #
 REQUIRES_PRIVATE   := @REQUIRES_PRIVATE@
 LIBS_PRIVATE       := @LIBS_PRIVATE@
-LIBS_CONFIG        := @LIBS_CONFIG@
 LIBSSTATIC_CONFIG  := @LIBSSTATIC_CONFIG@
 build_libtool_libs := @build_libtool_libs@
 ft_version         := @ft_version@
@@ -102,8 +101,7 @@ NO_OUTPUT := 2> /dev/null
 
 $(OBJ_BUILD)/freetype-config: $(TOP_DIR)/builds/unix/freetype-config.in
 	rm -f $@ $@.tmp
-	sed -e 's|%LIBS_CONFIG%|$(LIBS_CONFIG)|'               \
-	    -e 's|%LIBSSTATIC_CONFIG%|$(LIBSSTATIC_CONFIG)|'   \
+	sed -e 's|%LIBSSTATIC_CONFIG%|$(LIBSSTATIC_CONFIG)|'   \
 	    -e 's|%build_libtool_libs%|$(build_libtool_libs)|' \
 	    -e 's|%exec_prefix%|$(exec_prefix)|'               \
 	    -e 's|%ft_version%|$(ft_version)|'                 \
@@ -116,22 +114,35 @@ $(OBJ_BUILD)/freetype-config: $(TOP_DIR)/builds/unix/freetype-config.in
 	chmod a-w $@.tmp
 	mv $@.tmp $@
 
+# To support directory names with spaces (as might easily happen on Windows
+# platforms), the right solution would be to surround the pkg-variables in
+# `freetype2.pc' with double quotes.  However, doing so ironically disables
+# the prefix override mechanism especially written for Windows.  This is a
+# bug in pkg-config version 0.28 and earlier.
+#
+# For this reason, we escape spaces with backslashes.
+
+exec_prefix_x := $(subst $(space),\\$(space),$(exec_prefix))
+includedir_x  := $(subst $(space),\\$(space),$(includedir))
+libdir_x      := $(subst $(space),\\$(space),$(libdir))
+prefix_x      := $(subst $(space),\\$(space),$(prefix))
+
 $(OBJ_BUILD)/freetype2.pc: $(TOP_DIR)/builds/unix/freetype2.in
 	rm -f $@ $@.tmp
 	sed -e 's|%REQUIRES_PRIVATE%|$(REQUIRES_PRIVATE)|'     \
 	    -e 's|%LIBS_PRIVATE%|$(LIBS_PRIVATE)|'             \
 	    -e 's|%build_libtool_libs%|$(build_libtool_libs)|' \
-	    -e 's|%exec_prefix%|$(exec_prefix)|'               \
+	    -e 's|%exec_prefix%|$(exec_prefix_x)|'             \
 	    -e 's|%ft_version%|$(ft_version)|'                 \
-	    -e 's|%includedir%|$(includedir)|'                 \
-	    -e 's|%libdir%|$(libdir)|'                         \
-	    -e 's|%prefix%|$(prefix)|'                         \
+	    -e 's|%includedir%|$(includedir_x)|'               \
+	    -e 's|%libdir%|$(libdir_x)|'                       \
+	    -e 's|%prefix%|$(prefix_x)|'                       \
 	    $<                                                 \
 	    > $@.tmp
 	chmod a-w $@.tmp
 	mv $@.tmp $@
 
-all: $(OBJ_BUILD)/freetype-config \
+all install: $(OBJ_BUILD)/freetype-config \
      $(OBJ_BUILD)/freetype2.pc
 
 # EOF

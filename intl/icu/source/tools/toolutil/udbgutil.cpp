@@ -1,22 +1,28 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /********************************************************************
  * COPYRIGHT:
- * Copyright (c) 2007-2013, International Business Machines Corporation and
+ * Copyright (c) 2007-2016, International Business Machines Corporation and
  * others. All Rights Reserved.
  ********************************************************************/
 
 #include "udbgutil.h"
 #include <string.h>
 #include "ustr_imp.h"
+#include "cmemory.h"
 #include "cstring.h"
 #include "putilimp.h"
 #include "unicode/ulocdata.h"
 #include "unicode/ucnv.h"
 #include "unicode/unistr.h"
+#include "cstr.h"
 
 /*
 To add a new enum type
       (For example: UShoeSize  with values USHOE_WIDE=0, USHOE_REGULAR, USHOE_NARROW, USHOE_COUNT)
 
+    0. Make sure that all lines you add are protected with appropriate uconfig guards,
+        such as '#if !UCONFIG_NO_SHOES'.
     1. udbgutil.h:  add  UDBG_UShoeSize to the UDebugEnumType enum before UDBG_ENUM_COUNT
       ( The subsequent steps involve this file, udbgutil.cpp )
     2. Find the marker "Add new enum types above this line"
@@ -57,11 +63,6 @@ struct Field {
 	const char *str;  /**< The actual string value */
 	int32_t num;      /**< The numeric value */
 };
-
-/**
- * Calculate the size of an array.
- */
-#define DBG_ARRAY_COUNT(x) (sizeof(x)/sizeof(x[0]))
 
 /**
  * Define another field name. Used in an array of Field s
@@ -184,6 +185,7 @@ static const Field names_UColAttributeValue[]  = {
 #endif
 
 
+#if UCONFIG_ENABLE_PLUGINS
 #include "unicode/icuplug.h"
 
 #define LEN_UPLUG_REASON 13 /* UPLUG_REASON_ */
@@ -202,6 +204,7 @@ static const Field names_UPlugLevel[]  = {
    FIELD_NAME_STR( LEN_UPLUG_LEVEL, UPLUG_LEVEL_LOW ),
    FIELD_NAME_STR( LEN_UPLUG_LEVEL, UPLUG_LEVEL_HIGH ),
 };
+#endif
 
 #define LEN_UDBG 5 /* "UDBG_" */
 static const int32_t count_UDebugEnumType = UDBG_ENUM_COUNT;
@@ -213,8 +216,10 @@ static const Field names_UDebugEnumType[] =
     FIELD_NAME_STR( LEN_UDBG, UDBG_UCalendarMonths ),
     FIELD_NAME_STR( LEN_UDBG, UDBG_UDateFormatStyle ),
 #endif
+#if UCONFIG_ENABLE_PLUGINS
     FIELD_NAME_STR( LEN_UDBG, UDBG_UPlugReason ),
     FIELD_NAME_STR( LEN_UDBG, UDBG_UPlugLevel ),
+#endif
     FIELD_NAME_STR( LEN_UDBG, UDBG_UAcceptResult ),
 #if !UCONFIG_NO_COLLATION
     FIELD_NAME_STR( LEN_UDBG, UDBG_UColAttributeValue ),
@@ -224,7 +229,7 @@ static const Field names_UDebugEnumType[] =
 
 // --- Add new enum types above this line ---
 
-#define COUNT_CASE(x)  case UDBG_##x: return (actual?count_##x:DBG_ARRAY_COUNT(names_##x));
+#define COUNT_CASE(x)  case UDBG_##x: return (actual?count_##x:UPRV_LENGTHOF(names_##x));
 #define COUNT_FAIL_CASE(x) case UDBG_##x: return -1;
 
 #define FIELD_CASE(x)  case UDBG_##x: return names_##x;
@@ -244,8 +249,10 @@ static int32_t _udbg_enumCount(UDebugEnumType type, UBool actual) {
 		COUNT_CASE(UCalendarMonths)
 		COUNT_CASE(UDateFormatStyle)
 #endif
+#if UCONFIG_ENABLE_PLUGINS
         COUNT_CASE(UPlugReason)
         COUNT_CASE(UPlugLevel)
+#endif
         COUNT_CASE(UAcceptResult)
 #if !UCONFIG_NO_COLLATION
         COUNT_CASE(UColAttributeValue)
@@ -264,10 +271,12 @@ static const Field* _udbg_enumFields(UDebugEnumType type) {
 		FIELD_CASE(UCalendarMonths)
 		FIELD_CASE(UDateFormatStyle)
 #endif
+#if UCONFIG_ENABLE_PLUGINS
         FIELD_CASE(UPlugReason)
         FIELD_CASE(UPlugLevel)
+#endif
         FIELD_CASE(UAcceptResult)
-		// FIELD_FAIL_CASE(UNonExistentEnum)
+       // FIELD_FAIL_CASE(UNonExistentEnum)
 #if !UCONFIG_NO_COLLATION
         FIELD_CASE(UColAttributeValue)
 #endif
@@ -319,15 +328,17 @@ int32_t udbg_enumByName(UDebugEnumType type, const char *value) {
         return -1; // type out of range
     }
 	const Field *fields = _udbg_enumFields(type);
-    for(int32_t field = 0;field<_udbg_enumCount(type, FALSE);field++) {
-        if(!strcmp(value, fields[field].str + fields[field].prefix)) {
-            return fields[field].num;
+    if (fields != NULL) {
+        for(int32_t field = 0;field<_udbg_enumCount(type, FALSE);field++) {
+            if(!strcmp(value, fields[field].str + fields[field].prefix)) {
+                return fields[field].num;
+            }
         }
-    }
-    // try with the prefix
-    for(int32_t field = 0;field<_udbg_enumCount(type, FALSE);field++) {
-        if(!strcmp(value, fields[field].str)) {
-            return fields[field].num;
+        // try with the prefix
+        for(int32_t field = 0;field<_udbg_enumCount(type, FALSE);field++) {
+            if(!strcmp(value, fields[field].str)) {
+                return fields[field].num;
+            }
         }
     }
     // fail
@@ -546,7 +557,7 @@ static const USystemParams systemParams[] = {
 
 };
 
-#define U_SYSPARAM_COUNT (sizeof(systemParams)/sizeof(systemParams[0]))
+#define U_SYSPARAM_COUNT UPRV_LENGTHOF(systemParams)
 
 U_CAPI const char *udbg_getSystemParameterNameByIndex(int32_t i) {
   if(i>=0 && i < (int32_t)U_SYSPARAM_COUNT) {
@@ -681,8 +692,9 @@ void KnownIssues::add(const char *ticket, const char *where, const UChar *msg, U
   }
   if(msg==NULL || !*msg) return;
 
-  std::string str;
-  fTable[ticket][where].insert(icu::UnicodeString(msg).toUTF8String(str));
+  const icu::UnicodeString ustr(msg);
+
+  fTable[ticket][where].insert(std::string(icu::CStr(ustr)()));
 }
 
 void KnownIssues::add(const char *ticket, const char *where, const char *msg, UBool *firstForTicket, UBool *firstForWhere)

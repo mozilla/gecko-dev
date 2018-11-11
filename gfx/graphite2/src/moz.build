@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -27,6 +27,8 @@ UNIFIED_SOURCES += [
     'CachedFace.cpp',
     'CmapCache.cpp',
     'Code.cpp',
+    'Collider.cpp',
+    'Decompressor.cpp',
     'Face.cpp',
     'FeatureMap.cpp',
     'FileFace.cpp',
@@ -40,10 +42,11 @@ UNIFIED_SOURCES += [
     'gr_logging.cpp',
     'gr_segment.cpp',
     'gr_slot.cpp',
+    'Intervals.cpp',
     'json.cpp',
     'Justifier.cpp',
-    'NameTable.cpp',
     'Pass.cpp',
+    'Position.cpp',
     'SegCache.cpp',
     'SegCacheEntry.cpp',
     'SegCacheStore.cpp',
@@ -55,15 +58,18 @@ UNIFIED_SOURCES += [
     'UtfCodec.cpp',
 ]
 
-MSVC_ENABLE_PGO = True
+# Excluded from UNIFIED_SOURCES because <cmath> from other files breaks it,
+# see bug 1272647.
+SOURCES += [
+    'NameTable.cpp',
+]
 
-if CONFIG['GKMEDIAS_SHARED_LIBRARY']:
-    NO_VISIBILITY_FLAGS = True
-    DEFINES['GRAPHITE2_EXPORTING'] = True
-else:
-    # tell graphite2 not to export symbols, we'll be linking it directly with
-    # thebes
-    DEFINES['GRAPHITE2_STATIC'] = True
+# tell graphite2 not to export symbols, we'll be linking it directly with
+# thebes
+DEFINES['GRAPHITE2_STATIC'] = True
+
+# We allow warnings for third-party code that can be updated from upstream.
+ALLOW_COMPILER_WARNINGS = True
 
 FINAL_LIBRARY = 'gkmedias'
 

@@ -13,11 +13,6 @@
 
 // Configuration file for RTP utilities (RTPSender, RTPReceiver ...)
 namespace webrtc {
-enum { kRtpRtcpMaxIdleTimeProcess = 5,
-       kRtpRtcpBitrateProcessTimeMs = 10,
-       kRtpRtcpPacketTimeoutProcessTimeMs = 100,
-       kRtpRtcpRttProcessTimeMs = 1000 };
-
 enum { NACK_BYTECOUNT_SIZE      = 60};   // size of our NACK history
 // A sanity for the NACK list parsing at the send-side.
 enum { kSendSideNackListSizeSanity = 20000 };
@@ -26,6 +21,7 @@ enum { kRtcpMaxNackFields = 253 };
 
 enum { RTCP_INTERVAL_VIDEO_MS       = 1000 };
 enum { RTCP_INTERVAL_AUDIO_MS       = 5000 };
+enum { RTCP_INTERVAL_RAPID_SYNC_MS = 100 }; // RFX 6051
 enum { RTCP_SEND_BEFORE_KEY_FRAME_MS= 100 };
 enum { RTCP_MAX_REPORT_BLOCKS       = 31};      // RFC 3550 page 37
 enum { RTCP_MIN_FRAME_LENGTH_MS     = 17};

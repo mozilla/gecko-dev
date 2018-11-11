@@ -20,6 +20,7 @@
 #include "nsString.h"
 #include "nsCOMArray.h"
 #include "nsThreadUtils.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/TimeStamp.h"
 
@@ -32,7 +33,6 @@ PRTimeToSeconds(PRTime t_usec)
 
 #define NowInSeconds() PRTimeToSeconds(PR_Now())
 
-class nsIStorageStream;
 class nsIOutputStream;
 class nsIURI;
 class nsIThread;
@@ -42,38 +42,39 @@ namespace net {
 
 class CacheStorageService;
 class CacheStorage;
-class CacheFileOutputStream;
 class CacheOutputCloseListener;
 class CacheEntryHandle;
 
-class CacheEntry : public nsICacheEntry
-                 , public nsIRunnable
-                 , public CacheFileListener
+class CacheEntry final : public nsICacheEntry
+                       , public nsIRunnable
+                       , public CacheFileListener
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSICACHEENTRY
   NS_DECL_NSIRUNNABLE
 
-  CacheEntry(const nsACString& aStorageID, nsIURI* aURI, const nsACString& aEnhanceID,
-             bool aUseDisk);
+  CacheEntry(const nsACString& aStorageID, const nsACString& aURI, const nsACString& aEnhanceID,
+             bool aUseDisk, bool aSkipSizeCheck, bool aPin);
 
   void AsyncOpen(nsICacheEntryOpenCallback* aCallback, uint32_t aFlags);
 
   CacheEntryHandle* NewHandle();
+  // For a new and recreated entry w/o a callback, we need to wrap it
+  // with a handle to detect writing consumer is gone.
+  CacheEntryHandle* NewWriteHandle();
 
 public:
   uint32_t GetMetadataMemoryConsumption();
   nsCString const &GetStorageID() const { return mStorageID; }
   nsCString const &GetEnhanceID() const { return mEnhanceID; }
-  nsIURI* GetURI() const { return mURI; }
-  // Accessible only under the CacheStorageService lock (asserts it)
-  bool IsUsingDiskLocked() const;
+  nsCString const &GetURI() const { return mURI; }
   // Accessible at any time
   bool IsUsingDisk() const { return mUseDisk; }
-  bool SetUsingDisk(bool aUsingDisk);
   bool IsReferenced() const;
   bool IsFileDoomed();
+  bool IsDoomed() const { return mIsDoomed; }
+  bool IsPinned() const { return mPinned; }
 
   // Methods for entry management (eviction from memory),
   // called only on the management thread.
@@ -81,10 +82,13 @@ public:
   // TODO make these inline
   double GetFrecency() const;
   uint32_t GetExpirationTime() const;
+  uint32_t UseCount() const { return mUseCount; }
 
   bool IsRegistered() const;
   bool CanRegister() const;
   void SetRegistered(bool aRegistered);
+
+  TimeStamp const& LoadStart() const { return mLoadStart; }
 
   enum EPurge {
     PURGE_DATA_ONLY_DISK_BACKED,
@@ -92,12 +96,13 @@ public:
     PURGE_WHOLE,
   };
 
+  bool DeferOrBypassRemovalOnPinStatus(bool aPinned);
   bool Purge(uint32_t aWhat);
   void PurgeAndDoom();
   void DoomAlreadyRemoved();
 
-  nsresult HashingKeyWithStorage(nsACString &aResult);
-  nsresult HashingKey(nsACString &aResult);
+  nsresult HashingKeyWithStorage(nsACString &aResult) const;
+  nsresult HashingKey(nsACString &aResult) const;
 
   static nsresult HashingKey(nsCSubstring const& aStorageID,
                              nsCSubstring const& aEnhanceID,
@@ -111,7 +116,7 @@ public:
 
   // Accessed only on the service management thread
   double mFrecency;
-  uint32_t mSortingExpirationTime;
+  ::mozilla::Atomic<uint32_t, ::mozilla::Relaxed> mSortingExpirationTime;
 
   // Memory reporting
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
@@ -121,11 +126,11 @@ private:
   virtual ~CacheEntry();
 
   // CacheFileListener
-  NS_IMETHOD OnFileReady(nsresult aResult, bool aIsNew);
-  NS_IMETHOD OnFileDoomed(nsresult aResult);
+  NS_IMETHOD OnFileReady(nsresult aResult, bool aIsNew) override;
+  NS_IMETHOD OnFileDoomed(nsresult aResult) override;
 
   // Keep the service alive during life-time of an entry
-  nsRefPtr<CacheStorageService> mService;
+  RefPtr<CacheStorageService> mService;
 
   // We must monitor when a cache entry whose consumer is responsible
   // for writing it the first time gets released.  We must then invoke
@@ -135,7 +140,10 @@ private:
   public:
     Callback(CacheEntry* aEntry,
              nsICacheEntryOpenCallback *aCallback,
-             bool aReadOnly, bool aCheckOnAnyThread);
+             bool aReadOnly, bool aCheckOnAnyThread, bool aSecret);
+    // Special constructor for Callback objects added to the chain
+    // just to ensure proper defer dooming (recreation) of this entry.
+    Callback(CacheEntry* aEntry, bool aDoomWhenFoundInPinStatus);
     Callback(Callback const &aThat);
     ~Callback();
 
@@ -143,16 +151,29 @@ private:
     // mainly during recreation.
     void ExchangeEntry(CacheEntry* aEntry);
 
+    // Returns true when an entry is about to be "defer" doomed and this is
+    // a "defer" callback.
+    bool DeferDoom(bool *aDoom) const;
+
     // We are raising reference count here to take into account the pending
     // callback (that virtually holds a ref to this entry before it gets
     // it's pointer).
-    nsRefPtr<CacheEntry> mEntry;
+    RefPtr<CacheEntry> mEntry;
     nsCOMPtr<nsICacheEntryOpenCallback> mCallback;
     nsCOMPtr<nsIThread> mTargetThread;
     bool mReadOnly : 1;
+    bool mRevalidating : 1;
     bool mCheckOnAnyThread : 1;
     bool mRecheckAfterWrite : 1;
     bool mNotWanted : 1;
+    bool mSecret : 1;
+
+    // These are set only for the defer-doomer Callback instance inserted
+    // to the callback chain.  When any of these is set and also any of
+    // the corressponding flags on the entry is set, this callback will
+    // indicate (via DeferDoom()) the entry have to be recreated/doomed.
+    bool mDoomWhenFoundPinned : 1;
+    bool mDoomWhenFoundNonPinned : 1;
 
     nsresult OnCheckThread(bool *aOnCheckThread) const;
     nsresult OnAvailThread(bool *aOnAvailThread) const;
@@ -160,7 +181,7 @@ private:
 
   // Since OnCacheEntryAvailable must be invoked on the main thread
   // we need a runnable for it...
-  class AvailableCallbackRunnable : public nsRunnable
+  class AvailableCallbackRunnable : public Runnable
   {
   public:
     AvailableCallbackRunnable(CacheEntry* aEntry,
@@ -170,26 +191,26 @@ private:
     {}
 
   private:
-    NS_IMETHOD Run()
+    NS_IMETHOD Run() override
     {
       mEntry->InvokeAvailableCallback(mCallback);
       return NS_OK;
     }
 
-    nsRefPtr<CacheEntry> mEntry;
+    RefPtr<CacheEntry> mEntry;
     Callback mCallback;
   };
 
   // Since OnCacheEntryDoomed must be invoked on the main thread
   // we need a runnable for it...
-  class DoomCallbackRunnable : public nsRunnable
+  class DoomCallbackRunnable : public Runnable
   {
   public:
     DoomCallbackRunnable(CacheEntry* aEntry, nsresult aRv)
       : mEntry(aEntry), mRv(aRv) {}
 
   private:
-    NS_IMETHOD Run()
+    NS_IMETHOD Run() override
     {
       nsCOMPtr<nsICacheEntryDoomCallback> callback;
       {
@@ -202,26 +223,27 @@ private:
       return NS_OK;
     }
 
-    nsRefPtr<CacheEntry> mEntry;
+    RefPtr<CacheEntry> mEntry;
     nsresult mRv;
   };
 
+  // Starts the load or just invokes the callback, bypasses (when required)
+  // if busy.  Returns true on job done, false on bypass.
+  bool Open(Callback & aCallback, bool aTruncate, bool aPriority, bool aBypassIfBusy);
   // Loads from disk asynchronously
   bool Load(bool aTruncate, bool aPriority);
-  void OnLoaded();
 
-  void RememberCallback(Callback & aCallback, bool aBypassIfBusy);
+  void RememberCallback(Callback & aCallback);
   void InvokeCallbacksLock();
   void InvokeCallbacks();
   bool InvokeCallbacks(bool aReadOnly);
   bool InvokeCallback(Callback & aCallback);
   void InvokeAvailableCallback(Callback const & aCallback);
+  void OnFetched(Callback const & aCallback);
 
   nsresult OpenOutputStreamInternal(int64_t offset, nsIOutputStream * *_retval);
+  nsresult OpenInputStreamInternal(int64_t offset, const char *aAltDataType, nsIInputStream * *_retval);
 
-  // When this entry is new and recreated w/o a callback, we need to wrap it
-  // with a handle to detect writing consumer is gone.
-  CacheEntryHandle* NewWriteHandle();
   void OnHandleClosed(CacheEntryHandle const* aHandle);
 
 private:
@@ -241,10 +263,13 @@ private:
   // When executed on the management thread directly, the operation(s)
   // is (are) executed immediately.
   void BackgroundOp(uint32_t aOperation, bool aForceAsync = false);
-  void StoreFrecency();
+  void StoreFrecency(double aFrecency);
 
   // Called only from DoomAlreadyRemoved()
   void DoomFile();
+  // When this entry is doomed the first time, this method removes
+  // any force-valid timing info for this entry.
+  void RemoveForcedValidity();
 
   already_AddRefed<CacheEntryHandle> ReopenTruncated(bool aMemoryOnly,
                                                      nsICacheEntryOpenCallback* aCallback);
@@ -258,19 +283,25 @@ private:
   nsTArray<Callback> mCallbacks;
   nsCOMPtr<nsICacheEntryDoomCallback> mDoomCallback;
 
-  nsRefPtr<CacheFile> mFile;
-  nsresult mFileStatus;
-  nsCOMPtr<nsIURI> mURI;
+  RefPtr<CacheFile> mFile;
+
+  // Using ReleaseAcquire since we only control access to mFile with this.
+  // When mFileStatus is read and found success it is ensured there is mFile and
+  // that it is after a successful call to Init().
+  ::mozilla::Atomic<nsresult, ::mozilla::ReleaseAcquire> mFileStatus;
+  nsCString mURI;
   nsCString mEnhanceID;
   nsCString mStorageID;
 
+  // mUseDisk, mSkipSizeCheck, mIsDoomed are plain "bool", not "bool:1",
+  // so as to avoid bitfield races with the byte containing
+  // mSecurityInfoLoaded et al.  See bug 1278524.
+  //
   // Whether it's allowed to persist the data to disk
-  // Synchronized by the service management lock.
-  // Hence, leave it as a standalone boolean.
-  bool mUseDisk;
-
+  bool const mUseDisk;
+  // Whether it should skip max size check.
+  bool const mSkipSizeCheck;
   // Set when entry is doomed with AsyncDoom() or DoomAlreadyRemoved().
-  // Left as a standalone flag to not bother with locking (there is no need).
   bool mIsDoomed;
 
   // Following flags are all synchronized with the cache entry lock.
@@ -286,10 +317,13 @@ private:
   // false: after load and a new file, or dropped to back to false when a writer
   //        fails to open an output stream.
   bool mHasData : 1;
+  // The indication of pinning this entry was open with
+  bool mPinned : 1;
+  // Whether the pinning state of the entry is known (equals to the actual state
+  // of the cache file)
+  bool mPinningKnown : 1;
 
-#ifdef PR_LOG
   static char const * StateString(uint32_t aState);
-#endif
 
   enum EState {      // transiting to:
     NOTLOADED = 0,   // -> LOADING | EMPTY
@@ -343,41 +377,42 @@ private:
   nsCOMPtr<nsISupports> mSecurityInfo;
   int64_t mPredictedDataSize;
   mozilla::TimeStamp mLoadStart;
-  nsCOMPtr<nsIThread> mReleaseThread;
+  uint32_t mUseCount;
 };
 
 
 class CacheEntryHandle : public nsICacheEntry
 {
 public:
-  CacheEntryHandle(CacheEntry* aEntry);
-  virtual ~CacheEntryHandle();
+  explicit CacheEntryHandle(CacheEntry* aEntry);
   CacheEntry* Entry() const { return mEntry; }
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_FORWARD_NSICACHEENTRY(mEntry->)
 private:
-  nsRefPtr<CacheEntry> mEntry;
+  virtual ~CacheEntryHandle();
+  RefPtr<CacheEntry> mEntry;
 };
 
 
-class CacheOutputCloseListener : public nsRunnable
+class CacheOutputCloseListener final : public Runnable
 {
 public:
   void OnOutputClosed();
-  virtual ~CacheOutputCloseListener();
 
 private:
   friend class CacheEntry;
 
+  virtual ~CacheOutputCloseListener();
+
   NS_DECL_NSIRUNNABLE
-  CacheOutputCloseListener(CacheEntry* aEntry);
+  explicit CacheOutputCloseListener(CacheEntry* aEntry);
 
 private:
-  nsRefPtr<CacheEntry> mEntry;
+  RefPtr<CacheEntry> mEntry;
 };
 
-} // net
-} // mozilla
+} // namespace net
+} // namespace mozilla
 
 #endif

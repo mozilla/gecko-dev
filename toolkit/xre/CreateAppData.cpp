@@ -101,20 +101,20 @@ XRE_ParseAppData(nsIFile* aINIFile, nsXREAppData *aAppData)
   nsCString str;
 
   ReadString strings[] = {
-    { "App", "Vendor",    &aAppData->vendor },
-    { "App", "Name",      &aAppData->name },
-    { "App", "Version",   &aAppData->version },
-    { "App", "BuildID",   &aAppData->buildID },
-    { "App", "ID",        &aAppData->ID },
-    { "App", "Copyright", &aAppData->copyright },
-    { "App", "Profile",   &aAppData->profile },
+    { "App", "Vendor",        &aAppData->vendor },
+    { "App", "Name",          &aAppData->name },
+    { "App", "RemotingName",  &aAppData->remotingName },
+    { "App", "Version",       &aAppData->version },
+    { "App", "BuildID",       &aAppData->buildID },
+    { "App", "ID",            &aAppData->ID },
+    { "App", "Copyright",     &aAppData->copyright },
+    { "App", "Profile",       &aAppData->profile },
     { nullptr }
   };
   ReadStrings(parser, strings);
 
   ReadFlag flags[] = {
     { "XRE", "EnableProfileMigrator", NS_XRE_ENABLE_PROFILE_MIGRATOR },
-    { "XRE", "EnableExtensionManager", NS_XRE_ENABLE_EXTENSION_MANAGER },
     { nullptr }
   };
   ReadFlags(parser, flags, &aAppData->flags);

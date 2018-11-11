@@ -1,16 +1,14 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
-/* globals FirefoxCom */
 
 'use strict';
 
 // Small subset of the webL10n API by Fabien Cazenave for pdf.js extension.
 (function(window) {
   var gLanguage = '';
+  var gExternalLocalizerServices = null;
 
   // fetch an l10n objects
   function getL10nData(key) {
-    var response = FirefoxCom.requestSync('getStrings', key);
+    var response = gExternalLocalizerServices.getStrings(key);
     var data = JSON.parse(response);
     if (!data) {
       console.warn('[l10n] #' + key + ' missing for [' + gLanguage + ']');
@@ -96,8 +94,8 @@
     }
   }
 
-  window.addEventListener('DOMContentLoaded', function() {
-    gLanguage = FirefoxCom.requestSync('getLocale', null);
+  function translateDocument() {
+    gLanguage = gExternalLocalizerServices.getLocale();
 
     translateFragment();
 
@@ -106,6 +104,13 @@
     evtObject.initEvent('localized', false, false);
     evtObject.language = gLanguage;
     window.dispatchEvent(evtObject);
+  }
+
+  window.addEventListener('DOMContentLoaded', function() {
+    if (gExternalLocalizerServices) {
+      translateDocument();
+    }
+    // ... else see setExternalLocalizerServices below
   });
 
   // Public API
@@ -123,11 +128,24 @@
       // http://www.w3.org/International/questions/qa-scripts
       // Arabic, Hebrew, Farsi, Pashto, Urdu
       var rtlList = ['ar', 'he', 'fa', 'ps', 'ur'];
-      return (rtlList.indexOf(gLanguage) >= 0 ? 'rtl' : 'ltr');
+
+      // use the short language code for "full" codes like 'ar-sa' (issue 5440)
+      var shortCode = gLanguage.split('-')[0];
+
+      return (rtlList.indexOf(shortCode) >= 0) ? 'rtl' : 'ltr';
+    },
+
+    setExternalLocalizerServices: function (externalLocalizerServices) {
+      gExternalLocalizerServices = externalLocalizerServices;
+
+      // ... in case if we missed DOMContentLoaded above.
+      if (window.document.readyState === 'interactive' ||
+          window.document.readyState === 'complete') {
+        translateDocument();
+      }
     },
 
     // translate an element or document fragment
     translate: translateFragment
   };
 })(this);
-

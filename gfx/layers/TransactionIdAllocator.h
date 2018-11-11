@@ -7,15 +7,17 @@
 #define GFX_TRANSACTION_ID_ALLOCATOR_H
 
 #include "nsISupportsImpl.h"
+#include "mozilla/TimeStamp.h"
 
 namespace mozilla {
 namespace layers {
 
 class TransactionIdAllocator {
+protected:
+  virtual ~TransactionIdAllocator() {}
+
 public:
   NS_INLINE_DECL_REFCOUNTING(TransactionIdAllocator)
-
-  virtual ~TransactionIdAllocator() {}
 
   /**
    * Allocate a unique id number for the current refresh tick, can
@@ -25,6 +27,13 @@ public:
    * the refresh driver will suspend until they catch up.
    */
   virtual uint64_t GetTransactionId() = 0;
+
+  /**
+   * Return the transaction id that for the last non-revoked transaction.
+   * This allows the caller to tell whether a composite was triggered by
+   * a paint that occurred after a call to TransactionId().
+   */
+  virtual uint64_t LastTransactionId() const = 0;
 
   /**
    * Notify that all work (including asynchronous composites)
@@ -43,10 +52,15 @@ public:
    * return ordering issues.
    */
   virtual void RevokeTransactionId(uint64_t aTransactionId) = 0;
+
+  /**
+   * Get the start time of the current refresh tick.
+   */
+  virtual mozilla::TimeStamp GetTransactionStart() = 0;
 };
 
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 
 #endif /* GFX_TRANSACTION_ID_ALLOCATOR_H */

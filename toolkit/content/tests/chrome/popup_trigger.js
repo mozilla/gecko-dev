@@ -29,7 +29,7 @@ function runTests()
   gMenuPopup = document.getElementById("thepopup");
   gTrigger = document.getElementById("trigger");
 
-  gIsMenu = gTrigger.boxObject instanceof Components.interfaces.nsIMenuBoxObject;
+  gIsMenu = gTrigger.boxObject instanceof MenuBoxObject;
 
   // a hacky way to get the screen position of the document. Cache the event
   // so that we can use it in calls to openPopup.
@@ -133,10 +133,10 @@ var popupTests = [
   events: function() {
     // On Windows, disabled items are included when navigating, but on
     // other platforms, disabled items are skipped over
-    if (navigator.platform.indexOf("Win") == 0)
+    if (navigator.platform.indexOf("Win") == 0) {
       return [ "DOMMenuItemInactive item1", "DOMMenuItemActive item2" ];
-    else
-      return [ "DOMMenuItemInactive item1", "DOMMenuItemActive amenu" ];
+    }
+    return [ "DOMMenuItemInactive item1", "DOMMenuItemActive amenu" ];
   },
   test: function() {
     document.getElementById("item2").disabled = true;
@@ -147,12 +147,12 @@ var popupTests = [
   // check cursor up when a disabled item exists in the menu
   testname: "cursor up disabled",
   events: function() {
-    if (navigator.platform.indexOf("Win") == 0)
+    if (navigator.platform.indexOf("Win") == 0) {
       return [ "DOMMenuItemInactive item2", "DOMMenuItemActive amenu",
                "DOMMenuItemInactive amenu", "DOMMenuItemActive item2",
                "DOMMenuItemInactive item2", "DOMMenuItemActive item1" ];
-    else
-      return [ "DOMMenuItemInactive amenu", "DOMMenuItemActive item1" ];
+    }
+    return [ "DOMMenuItemInactive amenu", "DOMMenuItemActive item1" ];
   },
   test: function() {
     if (navigator.platform.indexOf("Win") == 0)
@@ -495,7 +495,7 @@ var popupTests = [
     var childframe = document.getElementById("childframe");
     if (childframe) {
       for (var t = 0; t < 2; t++) {
-        var child = childframe.contentDocument; 
+        var child = childframe.contentDocument;
         var evt = child.createEvent("Event");
         evt.initEvent("click", true, true);
         child.documentElement.dispatchEvent(evt);
@@ -507,9 +507,11 @@ var popupTests = [
       }
     }
 
+    var openX = 8;
+    var openY = 16;
     var rect = gMenuPopup.getBoundingClientRect();
-    is(rect.left, 10, testname + " left");
-    is(rect.top, 18, testname + " top");
+    is(rect.left, openX + (platformIsMac() ? 1 : 2), testname + " left");
+    is(rect.top, openY + (platformIsMac() ? -6 : 2), testname + " top");
     ok(rect.right, testname + " right is " + rect.right);
     ok(rect.bottom, testname + " bottom is " + rect.bottom);
   }
@@ -599,12 +601,12 @@ var popupTests = [
   // platforms
   testname: "menuitem with non accelerator disabled",
   events: function() {
-    if (navigator.platform.indexOf("Win") == 0)
+    if (navigator.platform.indexOf("Win") == 0) {
       return [ "DOMMenuItemInactive submenu", "DOMMenuItemActive other",
                "DOMMenuItemInactive other", "DOMMenuItemActive item1" ];
-    else
-      return [ "DOMMenuItemInactive submenu", "DOMMenuItemActive last",
-               "DOMMenuItemInactive last", "DOMMenuItemActive item1" ];
+    }
+    return [ "DOMMenuItemInactive submenu", "DOMMenuItemActive last",
+             "DOMMenuItemInactive last", "DOMMenuItemActive item1" ];
   },
   test: function() { synthesizeKey("O", { }); synthesizeKey("F", { }); },
   result: function(testname) {
@@ -749,7 +751,7 @@ var popupTests = [
   autohide: "thepopup",
   test: function(testname, step) {
     gTrigger.focus();
-    synthesizeKey("VK_DOWN", { altKey: (navigator.platform.indexOf("Mac") == -1) });
+    synthesizeKey("VK_DOWN", { altKey: !platformIsMac() });
   },
   result: function(testname, step) {
     checkOpen("trigger", testname);
@@ -762,7 +764,7 @@ var popupTests = [
   events: [ "popupshowing thepopup", "popupshown thepopup" ],
   test: function(testname, step) {
     gTrigger.focus();
-    synthesizeKey("VK_UP", { altKey: (navigator.platform.indexOf("Mac") == -1) });
+    synthesizeKey("VK_UP", { altKey: !platformIsMac() });
   },
   result: function(testname, step) {
     checkOpen("trigger", testname);
@@ -789,7 +791,7 @@ var popupTests = [
   autohide: "thepopup",
   test: function(testname, step) {
     gTrigger.focus();
-    synthesizeKey((navigator.platform.indexOf("Mac") == -1) ? "VK_F4" : " ", { });
+    synthesizeKey(platformIsMac() ? " " : "VK_F4", { });
   },
   result: function(testname, step) {
     checkOpen("trigger", testname);
@@ -802,10 +804,10 @@ var popupTests = [
   condition: function() { return gIsMenu; },
   test: function(testname, step) {
     gTrigger.focus();
-    if (navigator.platform.indexOf("Mac") == -1)
-      synthesizeKey("", { metaKey: true });
-    else
+    if (platformIsMac())
       synthesizeKey("VK_F4", { altKey: true });
+    else
+      synthesizeKey("", { metaKey: true });
   },
   result: function(testname, step) {
     checkClosed("trigger", testname);
@@ -850,3 +852,8 @@ var popupTests = [
 }
 
 ];
+
+function platformIsMac()
+{
+    return navigator.platform.indexOf("Mac") > -1;
+}

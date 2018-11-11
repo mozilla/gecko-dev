@@ -21,7 +21,7 @@
  *
  * @constructor
  */
-function G_Protocol4Parser() {
+this.G_Protocol4Parser = function G_Protocol4Parser() {
   this.debugZone = "protocol4";
 
   this.protocol4RegExp_ = new RegExp("([^:]+):\\d+:(.*)$");
@@ -80,7 +80,7 @@ G_Protocol4Parser.prototype.serialize = function(map) {
 /**
  * Cheesey unittests
  */
-function TEST_G_Protocol4Parser() {
+this.TEST_G_Protocol4Parser = function TEST_G_Protocol4Parser() {
   if (G_GDEBUG) {
     var z = "protocol4 UNITTEST";
     G_debugService.enableZone(z);
@@ -89,7 +89,7 @@ function TEST_G_Protocol4Parser() {
 
     var p = new G_Protocol4Parser();
     
-    function isEmpty(map) {
+    let isEmpty = function (map) {
       for (var key in map) 
         return false;
       return true;

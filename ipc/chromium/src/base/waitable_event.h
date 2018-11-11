@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 // Copyright (c) 2006-2008 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -16,7 +18,8 @@
 #include <utility>
 #include "base/condition_variable.h"
 #include "base/lock.h"
-#include "base/ref_counted.h"
+#include "nsISupportsImpl.h"
+#include "nsAutoPtr.h"
 #endif
 
 #include "base/message_loop.h"
@@ -50,16 +53,6 @@ class WaitableEvent {
   // system automatically resets the event state to non-signaled after a single
   // waiting thread has been released.
   WaitableEvent(bool manual_reset, bool initially_signaled);
-
-#if defined(OS_WIN)
-  // Create a WaitableEvent from an Event HANDLE which has already been
-  // created. This objects takes ownership of the HANDLE and will close it when
-  // deleted.
-  explicit WaitableEvent(HANDLE event_handle);
-
-  // Releases ownership of the handle from this object.
-  HANDLE Release();
-#endif
 
   ~WaitableEvent();
 
@@ -140,9 +133,9 @@ class WaitableEvent {
   // so we have a kernel of the WaitableEvent, which is reference counted.
   // WaitableEventWatchers may then take a reference and thus match the Windows
   // behaviour.
-  struct WaitableEventKernel :
-      public RefCountedThreadSafe<WaitableEventKernel> {
+  struct WaitableEventKernel final {
    public:
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(WaitableEventKernel)
     WaitableEventKernel(bool manual_reset, bool initially_signaled)
         : manual_reset_(manual_reset),
           signaled_(initially_signaled) {
@@ -154,9 +147,11 @@ class WaitableEvent {
     const bool manual_reset_;
     bool signaled_;
     std::list<Waiter*> waiters_;
+   protected:
+    ~WaitableEventKernel() {}
   };
 
-  scoped_refptr<WaitableEventKernel> kernel_;
+  RefPtr<WaitableEventKernel> kernel_;
 
   bool SignalAll();
   bool SignalOne();

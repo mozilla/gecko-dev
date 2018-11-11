@@ -40,8 +40,6 @@ interface HTMLInputElement : HTMLElement {
   readonly attribute HTMLFormElement? form;
   [Pure]
   readonly attribute FileList? files;
-  [Throws, Pref="dom.input.dirpicker"]
-  void openDirectoryPicker();
   [Pure, SetterThrows]
            attribute DOMString formAction;
   [Pure, SetterThrows]
@@ -67,6 +65,8 @@ interface HTMLInputElement : HTMLElement {
   [Pure, SetterThrows]
            attribute DOMString min;
   [Pure, SetterThrows]
+           attribute long minLength;
+  [Pure, SetterThrows]
            attribute boolean multiple;
   [Pure, SetterThrows]
            attribute DOMString name;
@@ -88,9 +88,9 @@ interface HTMLInputElement : HTMLElement {
            attribute DOMString type;
   [Pure, SetterThrows]
            attribute DOMString defaultValue;
-  [Pure, TreatNullAs=EmptyString, SetterThrows]
+  [Pure, TreatNullAs=EmptyString, Throws]
            attribute DOMString value;
-  [Throws, Pref="dom.experimental_forms"]
+  [Throws, Func="HTMLInputElement::ValueAsDateEnabled"]
            attribute Date? valueAsDate;
   [Pure, SetterThrows]
            attribute unrestricted double valueAsNumber;
@@ -108,6 +108,7 @@ interface HTMLInputElement : HTMLElement {
   [GetterThrows]
   readonly attribute DOMString validationMessage;
   boolean checkValidity();
+  boolean reportValidity();
   void setCustomValidity(DOMString error);
 
   // Bug 850365 readonly attribute NodeList labels;
@@ -116,11 +117,11 @@ interface HTMLInputElement : HTMLElement {
 
   [Throws]
            // TODO: unsigned vs signed
-           attribute long selectionStart;
+           attribute long? selectionStart;
   [Throws]
-           attribute long selectionEnd;
+           attribute long? selectionEnd;
   [Throws]
-           attribute DOMString selectionDirection;
+           attribute DOMString? selectionDirection;
   [Throws]
   void setRangeText(DOMString replacement);
   [Throws]
@@ -148,11 +149,22 @@ partial interface HTMLInputElement {
   [GetterThrows]
   readonly attribute long                  textLength;
 
-  [ChromeOnly]
+  [Throws, ChromeOnly]
   sequence<DOMString> mozGetFileNameArray();
 
-  [ChromeOnly]
+  [ChromeOnly, Throws]
   void mozSetFileNameArray(sequence<DOMString> fileNames);
+
+  [ChromeOnly]
+  void mozSetFileArray(sequence<File> files);
+
+  // This method is meant to use for testing only.
+  [ChromeOnly, Throws]
+  void mozSetDirectory(DOMString directoryPath);
+
+  // This method is meant to use for testing only.
+  [ChromeOnly]
+  void mozSetDndFilesAndDirectories(sequence<(File or Directory)> list);
 
   // Number controls (<input type=number>) have an anonymous text control
   // (<input type=text>) in the anonymous shadow tree that they contain. On
@@ -167,6 +179,11 @@ partial interface HTMLInputElement {
   readonly attribute HTMLInputElement? ownerNumberControl;
 
   boolean mozIsTextField(boolean aExcludePassword);
+
+  [ChromeOnly]
+  // This function will return null if @autocomplete is not defined for the
+  // current @type
+  AutocompleteInfo? getAutocompleteInfo();
 };
 
 partial interface HTMLInputElement {
@@ -179,8 +196,25 @@ partial interface HTMLInputElement {
   // This is similar to set .value on nsIDOMInput/TextAreaElements, but handling
   // of the value change is closer to the normal user input, so 'change' event
   // for example will be dispatched when focusing out the element.
-  [ChromeOnly]
+  [Func="IsChromeOrXBL", NeedsSubjectPrincipal]
   void setUserInput(DOMString input);
+};
+
+partial interface HTMLInputElement {
+  [Pref="dom.input.dirpicker", SetterThrows]
+  attribute boolean allowdirs;
+
+  [Pref="dom.input.dirpicker"]
+  readonly attribute boolean isFilesAndDirectoriesSupported;
+
+  [Throws, Pref="dom.input.dirpicker"]
+  Promise<sequence<(File or Directory)>> getFilesAndDirectories();
+
+  [Throws, Pref="dom.input.dirpicker"]
+  Promise<sequence<File>> getFiles(optional boolean recursiveFlag = false);
+
+  [Throws, Pref="dom.input.dirpicker"]
+  void chooseDirectory();
 };
 
 [NoInterfaceObject]
@@ -191,3 +225,37 @@ interface MozPhonetic {
 
 HTMLInputElement implements MozImageLoadingContent;
 HTMLInputElement implements MozPhonetic;
+
+// Webkit/Blink
+partial interface HTMLInputElement {
+  [Pref="dom.webkitBlink.filesystem.enabled", Frozen, Cached, Pure]
+  readonly attribute sequence<FileSystemEntry> webkitEntries;
+
+  [Pref="dom.webkitBlink.dirPicker.enabled", BinaryName="WebkitDirectoryAttr", SetterThrows]
+          attribute boolean webkitdirectory;
+};
+
+dictionary DateTimeValue {
+  long hour;
+  long minute;
+};
+
+partial interface HTMLInputElement {
+  [Pref="dom.forms.datetime", ChromeOnly]
+  DateTimeValue getDateTimeInputBoxValue();
+
+  [Pref="dom.forms.datetime", ChromeOnly]
+  void updateDateTimeInputBox(optional DateTimeValue value);
+
+  [Pref="dom.forms.datetime", ChromeOnly]
+  void setDateTimePickerState(boolean open);
+
+  [Pref="dom.forms.datetime", Func="IsChromeOrXBL"]
+  void openDateTimePicker(optional DateTimeValue initialValue);
+
+  [Pref="dom.forms.datetime", Func="IsChromeOrXBL"]
+  void updateDateTimePicker(optional DateTimeValue value);
+
+  [Pref="dom.forms.datetime", Func="IsChromeOrXBL"]
+  void closeDateTimePicker();
+};

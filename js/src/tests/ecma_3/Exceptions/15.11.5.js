@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -21,15 +21,16 @@ function test()
   enterFunc ('test');
   printStatus (summary);
 
-  var actual = '';
-  var expect = 'TypeError: Error.prototype is not a constructor';
+  var actual = { name: "no error", message: "no message" };
   try {
       new Error.prototype;
   } catch (e) {
-      actual = '' + e;
+      actual = e;
   }
 
-  reportCompare(actual, expect, "not a constructor");
+  reportCompare("TypeError", actual.name, "must be a TypeError");
+  reportCompare(true, /not a constructor/.test(actual.message),
+                "message must indicate not a constructor");
 
   exitFunc ('test');
 }

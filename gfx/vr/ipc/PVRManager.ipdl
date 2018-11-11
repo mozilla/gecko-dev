@@ -1,0 +1,86 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: sw=2 ts=8 et :
+ */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+include LayersSurfaces;
+include protocol PLayer;
+include protocol PTexture;
+include protocol PVRLayer;
+include LayersMessages;
+include GamepadEventTypes;
+
+include "VRMessageUtils.h";
+
+using struct mozilla::gfx::VRFieldOfView from "gfxVR.h";
+using struct mozilla::gfx::VRDisplayInfo from "gfxVR.h";
+using struct mozilla::gfx::VRSensorUpdate from "gfxVR.h";
+using struct mozilla::gfx::VRHMDSensorState from "gfxVR.h";
+using struct mozilla::gfx::VRControllerInfo from "gfxVR.h";
+using mozilla::layers::LayersBackend from "mozilla/layers/LayersTypes.h";
+using mozilla::layers::TextureFlags from "mozilla/layers/CompositorTypes.h";
+
+
+namespace mozilla {
+namespace gfx {
+
+/**
+ * The PVRManager protocol is used to enable communication of VR display
+ * enumeration and sensor state between the compositor thread and
+ * content threads/processes.
+ */
+sync protocol PVRManager
+{
+  manages PTexture;
+  manages PVRLayer;
+
+parent:
+  async PTexture(SurfaceDescriptor aSharedData, LayersBackend aBackend,
+                 TextureFlags aTextureFlags, uint64_t aSerial);
+
+  async PVRLayer(uint32_t aDisplayID, float aLeftEyeX, float aLeftEyeY, float aLeftEyeWidth, float aLeftEyeHeight, float aRightEyeX, float aRightEyeY, float aRightEyeWidth, float aRightEyeHeight);
+
+  // (Re)Enumerate VR Displays.  An updated list of VR displays will be returned
+  // asynchronously to children via UpdateDisplayInfo.
+  async RefreshDisplays();
+
+  // GetDisplays synchronously returns the VR displays that have already been
+  // enumerated by RefreshDisplays() but does not enumerate new ones.
+  sync GetDisplays() returns(VRDisplayInfo[] aDisplayInfo);
+
+  // Reset the sensor of the display identified by aDisplayID so that the current
+  // sensor state is the "Zero" position.
+  async ResetSensor(uint32_t aDisplayID);
+
+  sync GetSensorState(uint32_t aDisplayID) returns(VRHMDSensorState aState);
+  sync GetImmediateSensorState(uint32_t aDisplayID) returns(VRHMDSensorState aState);
+  sync SetHaveEventListener(bool aHaveEventListener);
+
+  async ControllerListenerAdded();
+  async ControllerListenerRemoved();
+  // GetControllers synchronously returns the VR controllers that have already been
+  // enumerated by RefreshVRControllers() but does not enumerate new ones.
+  sync GetControllers() returns(VRControllerInfo[] aControllerInfo);
+
+child:
+
+  async ParentAsyncMessages(AsyncParentMessageData[] aMessages);
+
+  // Notify children of updated VR display enumeration and details.  This will
+  // be sent to all children when the parent receives RefreshDisplays, even
+  // if no changes have been detected.  This ensures that Promises exposed
+  // through DOM calls are always resolved.
+  async UpdateDisplayInfo(VRDisplayInfo[] aDisplayUpdates);
+
+  async NotifyVSync();
+  async NotifyVRVSync(uint32_t aDisplayID);
+  async GamepadUpdate(GamepadChangeEvent aGamepadEvent);
+
+  async __delete__();
+
+};
+
+} // gfx
+} // mozilla

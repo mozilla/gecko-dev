@@ -1,4 +1,5 @@
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "URL", function() {
   return "http://localhost:" + httpServer.identity.primaryPort;
@@ -19,9 +20,7 @@ function inChildProcess() {
 }
 
 function make_channel(url, callback, ctx) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].
-            getService(Ci.nsIIOService);
-  return ios.newChannel(url, "", null);
+  return NetUtil.newChannel({uri: url, loadUsingSystemPrincipal: true});
 }
 
 const redirectTargetBody = "response body";
@@ -36,13 +35,7 @@ function redirectHandler(metadata, response)
 
 function finish_test(request, buffer)
 {
-  if (inChildProcess()) {
-    // redirects to protocols other than http/ftp will fail until bug 590682 is fixed.
-    do_check_eq(buffer, response301Body);
-  } else {
-    do_check_eq(buffer, redirectTargetBody);
-  }
-
+  do_check_eq(buffer, redirectTargetBody);
   httpServer.stop(do_test_finished);
 }
 
@@ -53,6 +46,6 @@ function run_test()
   httpServer.start(-1);
 
   var chan = make_channel(randomURI);
-  chan.asyncOpen(new ChannelListener(finish_test, null, 0), null);
+  chan.asyncOpen2(new ChannelListener(finish_test, null, 0));
   do_test_pending();
 }

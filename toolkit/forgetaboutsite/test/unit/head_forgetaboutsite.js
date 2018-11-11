@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
 
 var dirSvc = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties);
 var profileDir = do_get_profile();
@@ -15,7 +15,6 @@ var profileDir = do_get_profile();
 function cleanUp()
 {
   let files = [
-    "downloads.sqlite",
     "places.sqlite",
     "cookies.sqlite",
     "signons.sqlite",
@@ -30,14 +29,3 @@ function cleanUp()
   }
 }
 cleanUp();
-
-function oldDownloadManagerDisabled()
-{
-  try {
-    // This method throws an exception if the old Download Manager is disabled.
-    Services.downloads.activeDownloadCount;
-  } catch (ex) {
-    return true;
-  }
-  return false;
-}

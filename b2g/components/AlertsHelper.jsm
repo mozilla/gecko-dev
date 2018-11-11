@@ -25,6 +25,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "appsService",
 XPCOMUtils.defineLazyModuleGetter(this, "SystemAppProxy",
                                   "resource://gre/modules/SystemAppProxy.jsm");
 
+XPCOMUtils.defineLazyServiceGetter(this, "notificationStorage",
+                                   "@mozilla.org/notificationStorage;1",
+                                   "nsINotificationStorage");
+
 XPCOMUtils.defineLazyGetter(this, "ppmm", function() {
   return Cc["@mozilla.org/parentprocessmessagemanager;1"]
          .getService(Ci.nsIMessageListenerManager);
@@ -52,18 +56,15 @@ const kTopicAlertFinished      = "alertfinished";
 const kMozChromeNotificationEvent  = "mozChromeNotificationEvent";
 const kMozContentNotificationEvent = "mozContentNotificationEvent";
 
-const kMessageAppNotificationSend    = "app-notification-send";
-const kMessageAppNotificationReturn  = "app-notification-return";
 const kMessageAlertNotificationSend  = "alert-notification-send";
 const kMessageAlertNotificationClose = "alert-notification-close";
 
 const kMessages = [
-  kMessageAppNotificationSend,
   kMessageAlertNotificationSend,
   kMessageAlertNotificationClose
 ];
 
-let AlertsHelper = {
+var AlertsHelper = {
 
   _listeners: {},
 
@@ -128,33 +129,13 @@ let AlertsHelper = {
         listener.observer.observe(null, topic, listener.cookie);
       } catch (e) { }
     } else {
-      try {
-        listener.mm.sendAsyncMessage(kMessageAppNotificationReturn, {
-          uid: uid,
-          topic: topic,
-          target: listener.target
-        });
-      } catch (e) {
-        // we get an exception if the app is not launched yet
-        gSystemMessenger.sendMessage(kNotificationSystemMessageName, {
-            clicked: (detail.type === kDesktopNotificationClick),
-            title: listener.title,
-            body: listener.text,
-            imageURL: listener.imageURL,
-            lang: listener.lang,
-            dir: listener.dir,
-            id: listener.id,
-            tag: listener.tag,
-            timestamp: listener.timestamp
-          },
-          Services.io.newURI(listener.target, null, null),
-          Services.io.newURI(listener.manifestURL, null, null)
-        );
+      if (detail.type === kDesktopNotificationClose && listener.dbId) {
+        notificationStorage.delete(listener.manifestURL, listener.dbId);
       }
     }
 
     // we"re done with this notification
-    if (topic === kTopicAlertFinished) {
+    if (detail.type === kDesktopNotificationClose) {
       delete this._listeners[uid];
     }
   },
@@ -167,7 +148,8 @@ let AlertsHelper = {
     this._listeners[uid] = listener;
 
     appsService.getManifestFor(listener.manifestURL).then((manifest) => {
-      let helper = new ManifestHelper(manifest, listener.manifestURL);
+      let app = appsService.getAppByManifestURL(listener.manifestURL);
+      let helper = new ManifestHelper(manifest, app.origin, app.manifestURL);
       let getNotificationURLFor = function(messages) {
         if (!messages) {
           return null;
@@ -179,8 +161,7 @@ let AlertsHelper = {
             return helper.fullLaunchPath();
           } else if (typeof message === "object" &&
                      kNotificationSystemMessageName in message) {
-            return helper.resolveFromOrigin(
-              message[kNotificationSystemMessageName]);
+            return helper.resolveURL(message[kNotificationSystemMessageName]);
           }
         }
 
@@ -194,8 +175,33 @@ let AlertsHelper = {
     });
   },
 
+  deserializeStructuredClone: function(dataString) {
+    if (!dataString) {
+      return null;
+    }
+    let scContainer = Cc["@mozilla.org/docshell/structured-clone-container;1"].
+      createInstance(Ci.nsIStructuredCloneContainer);
+
+    // The maximum supported structured-clone serialization format version
+    // as defined in "js/public/StructuredClone.h"
+    let JS_STRUCTURED_CLONE_VERSION = 4;
+    scContainer.initFromBase64(dataString, JS_STRUCTURED_CLONE_VERSION);
+    let dataObj = scContainer.deserializeToVariant();
+
+    // We have to check whether dataObj contains DOM objects (supported by
+    // nsIStructuredCloneContainer, but not by Cu.cloneInto), e.g. ImageData.
+    // After the structured clone callback systems will be unified, we'll not
+    // have to perform this check anymore.
+    try {
+      let data = Cu.cloneInto(dataObj, {});
+    } catch(e) { dataObj = null; }
+
+    return dataObj;
+  },
+
   showNotification: function(imageURL, title, text, textClickable, cookie,
-                             uid, bidi, lang, manifestURL, timestamp) {
+                             uid, dir, lang, dataObj, manifestURL, timestamp,
+                             behavior) {
     function send(appName, appIcon) {
       SystemAppProxy._sendCustomEvent(kMozChromeNotificationEvent, {
         type: kDesktopNotification,
@@ -203,12 +209,14 @@ let AlertsHelper = {
         icon: imageURL,
         title: title,
         text: text,
-        bidi: bidi,
+        dir: dir,
         lang: lang,
         appName: appName,
         appIcon: appIcon,
         manifestURL: manifestURL,
-        timestamp: timestamp
+        timestamp: timestamp,
+        data: dataObj,
+        mozbehavior: behavior
       });
     }
 
@@ -220,7 +228,8 @@ let AlertsHelper = {
     // If we have a manifest URL, get the icon and title from the manifest
     // to prevent spoofing.
     appsService.getManifestFor(manifestURL).then((manifest) => {
-      let helper = new ManifestHelper(manifest, manifestURL);
+      let app = appsService.getAppByManifestURL(manifestURL);
+      let helper = new ManifestHelper(manifest, app.origin, manifestURL);
       send(helper.name, helper.iconURLForSize(kNotificationIconSize));
     });
   },
@@ -232,31 +241,11 @@ let AlertsHelper = {
       currentListener.observer.observe(null, kTopicAlertFinished, currentListener.cookie);
     }
 
+    let dataObj = this.deserializeStructuredClone(data.dataStr);
     this.registerListener(data.name, data.cookie, data.alertListener);
     this.showNotification(data.imageURL, data.title, data.text,
-                          data.textClickable, data.cookie, data.name, data.bidi,
-                          data.lang, null);
-  },
-
-  showAppNotification: function(aMessage) {
-    let data = aMessage.data;
-    let details = data.details;
-    let listener = {
-      mm: aMessage.target,
-      title: data.title,
-      text: data.text,
-      manifestURL: details.manifestURL,
-      imageURL: data.imageURL,
-      lang: details.lang || undefined,
-      id: details.id || undefined,
-      dir: details.dir || undefined,
-      tag: details.tag || undefined,
-      timestamp: details.timestamp || undefined
-    };
-    this.registerAppListener(data.uid, listener);
-    this.showNotification(data.imageURL, data.title, data.text,
-                          details.textClickable, null, data.uid, details.dir,
-                          details.lang, details.manifestURL, details.timestamp);
+                          data.textClickable, data.cookie, data.name, data.dir,
+                          data.lang, dataObj, null, data.inPrivateBrowsing);
   },
 
   closeAlert: function(name) {
@@ -275,10 +264,6 @@ let AlertsHelper = {
     }
 
     switch(aMessage.name) {
-      case kMessageAppNotificationSend:
-        this.showAppNotification(aMessage);
-        break;
-
       case kMessageAlertNotificationSend:
         this.showAlertNotification(aMessage);
         break;

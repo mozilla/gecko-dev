@@ -7,8 +7,8 @@
 #ifndef mozilla_Range_h
 #define mozilla_Range_h
 
-#include "mozilla/NullPtr.h"
 #include "mozilla/RangedPtr.h"
+#include "mozilla/TypeTraits.h"
 
 #include <stddef.h>
 
@@ -18,32 +18,39 @@ namespace mozilla {
 template <typename T>
 class Range
 {
-    RangedPtr<T> mStart;
-    RangedPtr<T> mEnd;
+  const RangedPtr<T> mStart;
+  const RangedPtr<T> mEnd;
 
-    typedef void (Range::* ConvertibleToBool)();
-    void nonNull() {}
+public:
+  Range() : mStart(nullptr, 0), mEnd(nullptr, 0) {}
+  Range(T* aPtr, size_t aLength)
+    : mStart(aPtr, aPtr, aPtr + aLength),
+      mEnd(aPtr + aLength, aPtr, aPtr + aLength)
+  {}
+  Range(const RangedPtr<T>& aStart, const RangedPtr<T>& aEnd)
+    : mStart(aStart.get(), aStart.get(), aEnd.get()),
+      mEnd(aEnd.get(), aStart.get(), aEnd.get())
+  {
+    // Only accept two RangedPtrs within the same range.
+    aStart.checkIdenticalRange(aEnd);
+    MOZ_ASSERT(aStart <= aEnd);
+  }
 
-  public:
-    Range() : mStart(nullptr, 0), mEnd(nullptr, 0) {}
-    Range(T* p, size_t len)
-      : mStart(p, p, p + len),
-        mEnd(p + len, p, p + len)
-    {}
+  template<typename U,
+           class = typename EnableIf<IsConvertible<U (*)[], T (*)[]>::value,
+                                     int>::Type>
+  MOZ_IMPLICIT Range(const Range<U>& aOther)
+    : mStart(aOther.mStart),
+      mEnd(aOther.mEnd)
+  {}
 
-    RangedPtr<T> start() const { return mStart; }
-    RangedPtr<T> end() const { return mEnd; }
-    size_t length() const { return mEnd - mStart; }
+  RangedPtr<T> begin() const { return mStart; }
+  RangedPtr<T> end() const { return mEnd; }
+  size_t length() const { return mEnd - mStart; }
 
-    T& operator[](size_t offset) {
-      return mStart[offset];
-    }
+  T& operator[](size_t aOffset) const { return mStart[aOffset]; }
 
-    const T& operator[](size_t offset) const {
-      return mStart[offset];
-    }
-
-    operator ConvertibleToBool() const { return mStart ? &Range::nonNull : 0; }
+  explicit operator bool() const { return mStart != nullptr; }
 };
 
 } // namespace mozilla

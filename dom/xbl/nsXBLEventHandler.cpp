@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,7 +13,9 @@
 #include "nsContentUtils.h"
 #include "mozilla/dom/Event.h" // for nsIDOMEvent::InternalDOMEvent()
 #include "mozilla/dom/EventTarget.h"
+#include "mozilla/TextEvents.h"
 
+using namespace mozilla;
 using namespace mozilla::dom;
 
 nsXBLEventHandler::nsXBLEventHandler(nsXBLPrototypeHandler* aHandler)
@@ -82,27 +85,40 @@ nsXBLKeyEventHandler::~nsXBLKeyEventHandler()
 NS_IMPL_ISUPPORTS(nsXBLKeyEventHandler, nsIDOMEventListener)
 
 bool
-nsXBLKeyEventHandler::ExecuteMatchedHandlers(nsIDOMKeyEvent* aKeyEvent,
-                                             uint32_t aCharCode,
-                                             bool aIgnoreShiftKey)
+nsXBLKeyEventHandler::ExecuteMatchedHandlers(
+                        nsIDOMKeyEvent* aKeyEvent,
+                        uint32_t aCharCode,
+                        const IgnoreModifierState& aIgnoreModifierState)
 {
-  bool trustedEvent = false;
-  aKeyEvent->GetIsTrusted(&trustedEvent);
-
-  nsCOMPtr<EventTarget> target = aKeyEvent->InternalDOMEvent()->GetCurrentTarget();
+  WidgetEvent* event = aKeyEvent->AsEvent()->WidgetEventPtr();
+  nsCOMPtr<EventTarget> target = aKeyEvent->AsEvent()->InternalDOMEvent()->GetCurrentTarget();
 
   bool executed = false;
   for (uint32_t i = 0; i < mProtoHandlers.Length(); ++i) {
     nsXBLPrototypeHandler* handler = mProtoHandlers[i];
     bool hasAllowUntrustedAttr = handler->HasAllowUntrustedAttr();
-    if ((trustedEvent ||
+    if ((event->IsTrusted() ||
         (hasAllowUntrustedAttr && handler->AllowUntrustedEvents()) ||
         (!hasAllowUntrustedAttr && !mIsBoundToChrome && !mUsingContentXBLScope)) &&
-        handler->KeyEventMatched(aKeyEvent, aCharCode, aIgnoreShiftKey)) {
-      handler->ExecuteHandler(target, aKeyEvent);
+        handler->KeyEventMatched(aKeyEvent, aCharCode, aIgnoreModifierState)) {
+      handler->ExecuteHandler(target, aKeyEvent->AsEvent());
       executed = true;
     }
   }
+#ifdef XP_WIN
+  // Windows native applications ignore Windows-Logo key state when checking
+  // shortcut keys even if the key is pressed.  Therefore, if there is no
+  // shortcut key which exactly matches current modifier state, we should
+  // retry to look for a shortcut key without the Windows-Logo key press.
+  if (!executed && !aIgnoreModifierState.mOS) {
+    WidgetKeyboardEvent* keyEvent = event->AsKeyboardEvent();
+    if (keyEvent && keyEvent->IsOS()) {
+      IgnoreModifierState ignoreModifierState(aIgnoreModifierState);
+      ignoreModifierState.mOS = true;
+      return ExecuteMatchedHandlers(aKeyEvent, aCharCode, ignoreModifierState);
+    }
+  }
+#endif
   return executed;
 }
 
@@ -124,60 +140,48 @@ nsXBLKeyEventHandler::HandleEvent(nsIDOMEvent* aEvent)
   if (!key)
     return NS_OK;
 
-  nsAutoTArray<nsShortcutCandidate, 10> accessKeys;
-  nsContentUtils::GetAccelKeyCandidates(key, accessKeys);
+  WidgetKeyboardEvent* nativeKeyboardEvent =
+    aEvent->WidgetEventPtr()->AsKeyboardEvent();
+  MOZ_ASSERT(nativeKeyboardEvent);
+  AutoShortcutKeyCandidateArray shortcutKeys;
+  nativeKeyboardEvent->GetShortcutKeyCandidates(shortcutKeys);
 
-  if (accessKeys.IsEmpty()) {
-    ExecuteMatchedHandlers(key, 0, false);
+  if (shortcutKeys.IsEmpty()) {
+    ExecuteMatchedHandlers(key, 0, IgnoreModifierState());
     return NS_OK;
   }
 
-  for (uint32_t i = 0; i < accessKeys.Length(); ++i) {
-    if (ExecuteMatchedHandlers(key, accessKeys[i].mCharCode,
-                               accessKeys[i].mIgnoreShift))
+  for (uint32_t i = 0; i < shortcutKeys.Length(); ++i) {
+    IgnoreModifierState ignoreModifierState;
+    ignoreModifierState.mShift = shortcutKeys[i].mIgnoreShift;
+    if (ExecuteMatchedHandlers(key, shortcutKeys[i].mCharCode,
+                               ignoreModifierState)) {
       return NS_OK;
+    }
   }
   return NS_OK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
 
-nsresult
+already_AddRefed<nsXBLEventHandler>
 NS_NewXBLEventHandler(nsXBLPrototypeHandler* aHandler,
-                      nsIAtom* aEventType,
-                      nsXBLEventHandler** aResult)
+                      nsIAtom* aEventType)
 {
-  switch (nsContentUtils::GetEventCategory(nsDependentAtomString(aEventType))) {
-    case NS_DRAG_EVENT:
-    case NS_MOUSE_EVENT:
-    case NS_MOUSE_SCROLL_EVENT:
-    case NS_WHEEL_EVENT:
-    case NS_SIMPLE_GESTURE_EVENT:
-      *aResult = new nsXBLMouseEventHandler(aHandler);
+  RefPtr<nsXBLEventHandler> handler;
+
+  switch (nsContentUtils::GetEventClassID(nsDependentAtomString(aEventType))) {
+    case eDragEventClass:
+    case eMouseEventClass:
+    case eMouseScrollEventClass:
+    case eWheelEventClass:
+    case eSimpleGestureEventClass:
+      handler = new nsXBLMouseEventHandler(aHandler);
       break;
     default:
-      *aResult = new nsXBLEventHandler(aHandler);
+      handler = new nsXBLEventHandler(aHandler);
       break;
   }
 
-  if (!*aResult)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_ADDREF(*aResult);
-
-  return NS_OK;
-}
-
-nsresult
-NS_NewXBLKeyEventHandler(nsIAtom* aEventType, uint8_t aPhase, uint8_t aType,
-                         nsXBLKeyEventHandler** aResult)
-{
-  *aResult = new nsXBLKeyEventHandler(aEventType, aPhase, aType);
-
-  if (!*aResult)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_ADDREF(*aResult);
-
-  return NS_OK;
+  return handler.forget();
 }

@@ -19,7 +19,7 @@ function test() {
         "http://planet.mozilla.org/",
         "https://developer.mozilla.org/",
         "http://hg.mozilla.org/",
-        "http://mxr.mozilla.org/",
+        "http://dxr.mozilla.org/",
         "http://feeds.mozilla.org/",
     ];
     let nsLoginInfo = new Components.Constructor("@mozilla.org/login-manager/loginInfo;1",
@@ -36,7 +36,7 @@ function test() {
         new nsLoginInfo(urls[8], urls[8], null, "my user name", "mozilla", "u9", "p9"),
         new nsLoginInfo(urls[9], urls[9], null, "my username", "mozilla.com", "u10", "p10"),
     ];
-    logins.forEach(function (login) pwmgr.addLogin(login));
+    logins.forEach(login => pwmgr.addLogin(login));
 
     // Open the password manager dialog
     const PWMGR_DLG = "chrome://passwordmgr/content/passwordManager.xul";
@@ -49,7 +49,7 @@ function test() {
         let win = doc.defaultView;
         let filter = doc.getElementById("filter");
         let tree = doc.getElementById("signonsTree");
-        let view = tree.treeBoxObject.view;
+        let view = tree.view;
 
         is(filter.value, "", "Filter box should initially be empty");
         is(view.rowCount, 10, "There should be 10 passwords initially");
@@ -89,10 +89,10 @@ function test() {
                     if (aTopic == "domwindowclosed")
                         Services.ww.unregisterNotification(arguments.callee);
                     else if (aTopic == "domwindowopened") {
-                        let win = aSubject.QueryInterface(Ci.nsIDOMEventTarget);
+                        let targetWin = aSubject.QueryInterface(Ci.nsIDOMEventTarget);
                         SimpleTest.waitForFocus(function() {
-                            EventUtils.sendKey("RETURN", win);
-                        }, win);
+                            EventUtils.sendKey("RETURN", targetWin);
+                        }, targetWin);
                     }
                 });
             }
@@ -115,24 +115,24 @@ function test() {
                 filter.doCommand();
             }
 
-            function runOneTest(test) {
+            function runOneTest(testCase) {
                 function tester() {
-                    is(view.rowCount, expected, expected + " logins should match '" + test.filter + "'");
+                    is(view.rowCount, expected, expected + " logins should match '" + testCase.filter + "'");
                 }
 
                 let expected;
                 switch (mode) {
                 case 1: // without showing passwords
-                    expected = test.count;
+                    expected = testCase.count;
                     break;
                 case 2: // showing passwords
-                    expected = ("count2" in test) ? test.count2 : test.count;
+                    expected = ("count2" in testCase) ? testCase.count2 : testCase.count;
                     break;
                 case 3: // toggle
-                    expected = test.count;
+                    expected = testCase.count;
                     tester();
                     toggleShowPasswords(function () {
-                        expected = ("count2" in test) ? test.count2 : test.count;
+                        expected = ("count2" in testCase) ? testCase.count2 : testCase.count;
                         tester();
                         toggleShowPasswords(proceed);
                     });
@@ -151,9 +151,9 @@ function test() {
             }
 
             function runNextTest() {
-                let test = tests[testCounter++];
-                setFilter(test.filter);
-                setTimeout(runOneTest, 0, test);
+                let testCase = tests[testCounter++];
+                setFilter(testCase.filter);
+                setTimeout(runOneTest, 0, testCase);
             }
 
             runNextTest();

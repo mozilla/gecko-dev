@@ -39,6 +39,16 @@
 
 using namespace google_breakpad;
 
+TEST(LinuxCoreDumperTest, GetMappingAbsolutePath) {
+  const LinuxCoreDumper dumper(getpid(), "core", "/tmp", "/mnt/root");
+  const MappingInfo mapping = { 0, 0, 0, false, "/usr/lib/libc.so" };
+
+  char path[PATH_MAX];
+  dumper.GetMappingAbsolutePath(mapping, path);
+
+  EXPECT_STREQ("/mnt/root/usr/lib/libc.so", path);
+}
+
 TEST(LinuxCoreDumperTest, BuildProcPath) {
   const pid_t pid = getpid();
   const char procfs_path[] = "/procfs_copy";
@@ -74,18 +84,23 @@ TEST(LinuxCoreDumperTest, VerifyDumpWithMultipleThreads) {
   const unsigned kCrashThread = 1;
   const int kCrashSignal = SIGABRT;
   pid_t child_pid;
-  // TODO(benchan): Revert to use ASSERT_TRUE once the flakiness in
-  // CrashGenerator is identified and fixed.
-  if (!crash_generator.CreateChildCrash(kNumOfThreads, kCrashThread,
-                                        kCrashSignal, &child_pid)) {
-    fprintf(stderr, "LinuxCoreDumperTest.VerifyDumpWithMultipleThreads test "
-            "is skipped due to no core dump generated\n");
-    return;
-  }
+  ASSERT_TRUE(crash_generator.CreateChildCrash(kNumOfThreads, kCrashThread,
+                                               kCrashSignal, &child_pid));
 
   const string core_file = crash_generator.GetCoreFilePath();
   const string procfs_path = crash_generator.GetDirectoryOfProcFilesCopy();
+
+#if defined(__ANDROID__)
+  struct stat st;
+  if (stat(core_file.c_str(), &st) != 0) {
+    fprintf(stderr, "LinuxCoreDumperTest.VerifyDumpWithMultipleThreads test is "
+            "skipped due to no core file being generated");
+    return;
+  }
+#endif
+
   LinuxCoreDumper dumper(child_pid, core_file.c_str(), procfs_path.c_str());
+
   EXPECT_TRUE(dumper.Init());
 
   EXPECT_TRUE(dumper.IsPostMortem());

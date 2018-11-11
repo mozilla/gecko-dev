@@ -9,7 +9,6 @@
 #define nsDOMCSSRGBColor_h__
 
 #include "mozilla/Attributes.h"
-#include "nsAutoPtr.h"
 #include "nsWrapperCache.h"
 
 class nsROCSSPrimitiveValue;
@@ -22,8 +21,6 @@ public:
                    nsROCSSPrimitiveValue* aBlue,
                    nsROCSSPrimitiveValue* aAlpha,
                    bool aHasAlpha);
-
-  virtual ~nsDOMCSSRGBColor(void);
 
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(nsDOMCSSRGBColor)
 
@@ -54,14 +51,16 @@ public:
     return nullptr;
   }
 
-  virtual JSObject *WrapObject(JSContext *cx)
-    MOZ_OVERRIDE MOZ_FINAL;
+  virtual JSObject *WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto)
+    override final;
 
 private:
-  nsRefPtr<nsROCSSPrimitiveValue> mRed;
-  nsRefPtr<nsROCSSPrimitiveValue> mGreen;
-  nsRefPtr<nsROCSSPrimitiveValue> mBlue;
-  nsRefPtr<nsROCSSPrimitiveValue> mAlpha;
+  virtual ~nsDOMCSSRGBColor(void);
+
+  RefPtr<nsROCSSPrimitiveValue> mRed;
+  RefPtr<nsROCSSPrimitiveValue> mGreen;
+  RefPtr<nsROCSSPrimitiveValue> mBlue;
+  RefPtr<nsROCSSPrimitiveValue> mAlpha;
   bool mHasAlpha;
 };
 

@@ -35,16 +35,17 @@
 using namespace js;
 using namespace js::irregexp;
 
+template <typename CharT>
 int
-irregexp::CaseInsensitiveCompareStrings(const jschar *substring1, const jschar *substring2,
+irregexp::CaseInsensitiveCompareStrings(const CharT* substring1, const CharT* substring2,
 					size_t byteLength)
 {
-    JS_ASSERT(byteLength % 2 == 0);
-    size_t length = byteLength >> 1;
+    MOZ_ASSERT(byteLength % sizeof(CharT) == 0);
+    size_t length = byteLength / sizeof(CharT);
 
     for (size_t i = 0; i < length; i++) {
-        jschar c1 = substring1[i];
-        jschar c2 = substring2[i];
+        char16_t c1 = substring1[i];
+        char16_t c2 = substring2[i];
         if (c1 != c2) {
             c1 = unicode::ToLowerCase(c1);
             c2 = unicode::ToLowerCase(c2);
@@ -56,7 +57,47 @@ irregexp::CaseInsensitiveCompareStrings(const jschar *substring1, const jschar *
     return 1;
 }
 
-InterpretedRegExpMacroAssembler::InterpretedRegExpMacroAssembler(LifoAlloc *alloc, RegExpShared *shared,
+template int
+irregexp::CaseInsensitiveCompareStrings(const Latin1Char* substring1, const Latin1Char* substring2,
+					size_t byteLength);
+
+template int
+irregexp::CaseInsensitiveCompareStrings(const char16_t* substring1, const char16_t* substring2,
+					size_t byteLength);
+
+template <typename CharT>
+int
+irregexp::CaseInsensitiveCompareUCStrings(const CharT* substring1, const CharT* substring2,
+                                          size_t byteLength)
+{
+    MOZ_ASSERT(byteLength % sizeof(CharT) == 0);
+    size_t length = byteLength / sizeof(CharT);
+
+    for (size_t i = 0; i < length; i++) {
+        char16_t c1 = substring1[i];
+        char16_t c2 = substring2[i];
+        if (c1 != c2) {
+            c1 = unicode::FoldCase(c1);
+            c2 = unicode::FoldCase(c2);
+            if (c1 != c2)
+                return 0;
+        }
+    }
+
+    return 1;
+}
+
+template int
+irregexp::CaseInsensitiveCompareUCStrings(const Latin1Char* substring1,
+                                          const Latin1Char* substring2,
+                                          size_t byteLength);
+
+template int
+irregexp::CaseInsensitiveCompareUCStrings(const char16_t* substring1,
+                                          const char16_t* substring2,
+                                          size_t byteLength);
+
+InterpretedRegExpMacroAssembler::InterpretedRegExpMacroAssembler(LifoAlloc* alloc, RegExpShared* shared,
                                                                  size_t numSavedRegisters)
   : RegExpMacroAssembler(*alloc, shared, numSavedRegisters),
     pc_(0),
@@ -76,13 +117,13 @@ InterpretedRegExpMacroAssembler::~InterpretedRegExpMacroAssembler()
 }
 
 RegExpCode
-InterpretedRegExpMacroAssembler::GenerateCode(JSContext *cx)
+InterpretedRegExpMacroAssembler::GenerateCode(JSContext* cx, bool match_only)
 {
     Bind(&backtrack_);
     Emit(BC_POP_BT, 0);
 
     // Update the number of registers.
-    *(int32_t *)buffer_ = num_registers_;
+    *(int32_t*)buffer_ = num_registers_;
 
     RegExpCode res;
     res.byteCode = buffer_;
@@ -93,8 +134,8 @@ InterpretedRegExpMacroAssembler::GenerateCode(JSContext *cx)
 void
 InterpretedRegExpMacroAssembler::AdvanceCurrentPosition(int by)
 {
-    JS_ASSERT(by >= kMinCPOffset);
-    JS_ASSERT(by <= kMaxCPOffset);
+    MOZ_ASSERT(by >= kMinCPOffset);
+    MOZ_ASSERT(by <= kMaxCPOffset);
     advance_current_start_ = pc_;
     advance_current_offset_ = by;
     Emit(BC_ADVANCE_CP, by);
@@ -119,7 +160,7 @@ void
 InterpretedRegExpMacroAssembler::Bind(jit::Label* label)
 {
     advance_current_end_ = kInvalidPC;
-    JS_ASSERT(!label->bound());
+    MOZ_ASSERT(!label->bound());
     if (label->used()) {
         int pos = label->offset();
         while (pos != jit::Label::INVALID_OFFSET) {
@@ -164,14 +205,14 @@ InterpretedRegExpMacroAssembler::CheckCharacterAfterAnd(unsigned c, unsigned and
 }
 
 void
-InterpretedRegExpMacroAssembler::CheckCharacterGT(jschar limit, jit::Label* on_greater)
+InterpretedRegExpMacroAssembler::CheckCharacterGT(char16_t limit, jit::Label* on_greater)
 {
     Emit(BC_CHECK_GT, limit);
     EmitOrLink(on_greater);
 }
 
 void
-InterpretedRegExpMacroAssembler::CheckCharacterLT(jschar limit, jit::Label* on_less)
+InterpretedRegExpMacroAssembler::CheckCharacterLT(char16_t limit, jit::Label* on_less)
 {
     Emit(BC_CHECK_LT, limit);
     EmitOrLink(on_less);
@@ -194,18 +235,23 @@ InterpretedRegExpMacroAssembler::CheckNotAtStart(jit::Label* on_not_at_start)
 void
 InterpretedRegExpMacroAssembler::CheckNotBackReference(int start_reg, jit::Label* on_no_match)
 {
-    JS_ASSERT(start_reg >= 0);
-    JS_ASSERT(start_reg <= kMaxRegister);
+    MOZ_ASSERT(start_reg >= 0);
+    MOZ_ASSERT(start_reg <= kMaxRegister);
     Emit(BC_CHECK_NOT_BACK_REF, start_reg);
     EmitOrLink(on_no_match);
 }
 
 void
-InterpretedRegExpMacroAssembler::CheckNotBackReferenceIgnoreCase(int start_reg, jit::Label* on_no_match)
+InterpretedRegExpMacroAssembler::CheckNotBackReferenceIgnoreCase(int start_reg,
+                                                                 jit::Label* on_no_match,
+                                                                 bool unicode)
 {
-    JS_ASSERT(start_reg >= 0);
-    JS_ASSERT(start_reg <= kMaxRegister);
-    Emit(BC_CHECK_NOT_BACK_REF_NO_CASE, start_reg);
+    MOZ_ASSERT(start_reg >= 0);
+    MOZ_ASSERT(start_reg <= kMaxRegister);
+    if (unicode)
+        Emit(BC_CHECK_NOT_BACK_REF_NO_CASE_UNICODE, start_reg);
+    else
+        Emit(BC_CHECK_NOT_BACK_REF_NO_CASE, start_reg);
     EmitOrLink(on_no_match);
 }
 
@@ -236,7 +282,7 @@ InterpretedRegExpMacroAssembler::CheckNotCharacterAfterAnd(unsigned c, unsigned 
 }
 
 void
-InterpretedRegExpMacroAssembler::CheckNotCharacterAfterMinusAnd(jschar c, jschar minus, jschar and_with,
+InterpretedRegExpMacroAssembler::CheckNotCharacterAfterMinusAnd(char16_t c, char16_t minus, char16_t and_with,
                                                                 jit::Label* on_not_equal)
 {
     Emit(BC_MINUS_AND_CHECK_NOT_CHAR, c);
@@ -246,7 +292,7 @@ InterpretedRegExpMacroAssembler::CheckNotCharacterAfterMinusAnd(jschar c, jschar
 }
 
 void
-InterpretedRegExpMacroAssembler::CheckCharacterInRange(jschar from, jschar to,
+InterpretedRegExpMacroAssembler::CheckCharacterInRange(char16_t from, char16_t to,
                                                        jit::Label* on_in_range)
 {
     Emit(BC_CHECK_CHAR_IN_RANGE, 0);
@@ -256,7 +302,7 @@ InterpretedRegExpMacroAssembler::CheckCharacterInRange(jschar from, jschar to,
 }
 
 void
-InterpretedRegExpMacroAssembler::CheckCharacterNotInRange(jschar from, jschar to,
+InterpretedRegExpMacroAssembler::CheckCharacterNotInRange(char16_t from, char16_t to,
                                                           jit::Label* on_not_in_range)
 {
     Emit(BC_CHECK_CHAR_NOT_IN_RANGE, 0);
@@ -266,7 +312,7 @@ InterpretedRegExpMacroAssembler::CheckCharacterNotInRange(jschar from, jschar to
 }
 
 void
-InterpretedRegExpMacroAssembler::CheckBitInTable(uint8_t *table, jit::Label* on_bit_set)
+InterpretedRegExpMacroAssembler::CheckBitInTable(uint8_t* table, jit::Label* on_bit_set)
 {
     static const int kBitsPerByte = 8;
 
@@ -283,7 +329,7 @@ InterpretedRegExpMacroAssembler::CheckBitInTable(uint8_t *table, jit::Label* on_
 }
 
 void
-InterpretedRegExpMacroAssembler::JumpOrBacktrack(jit::Label *to)
+InterpretedRegExpMacroAssembler::JumpOrBacktrack(jit::Label* to)
 {
     if (advance_current_end_ == pc_) {
         // Combine advance current and goto.
@@ -334,8 +380,8 @@ void
 InterpretedRegExpMacroAssembler::LoadCurrentCharacter(int cp_offset, jit::Label* on_end_of_input,
                                                       bool check_bounds, int characters)
 {
-    JS_ASSERT(cp_offset >= kMinCPOffset);
-    JS_ASSERT(cp_offset <= kMaxCPOffset);
+    MOZ_ASSERT(cp_offset >= kMinCPOffset);
+    MOZ_ASSERT(cp_offset <= kMaxCPOffset);
     int bytecode;
     if (check_bounds) {
         if (characters == 4) {
@@ -343,7 +389,7 @@ InterpretedRegExpMacroAssembler::LoadCurrentCharacter(int cp_offset, jit::Label*
         } else if (characters == 2) {
             bytecode = BC_LOAD_2_CURRENT_CHARS;
         } else {
-            JS_ASSERT(characters == 1);
+            MOZ_ASSERT(characters == 1);
             bytecode = BC_LOAD_CURRENT_CHAR;
         }
     } else {
@@ -352,7 +398,7 @@ InterpretedRegExpMacroAssembler::LoadCurrentCharacter(int cp_offset, jit::Label*
         } else if (characters == 2) {
             bytecode = BC_LOAD_2_CURRENT_CHARS_UNCHECKED;
         } else {
-            JS_ASSERT(characters == 1);
+            MOZ_ASSERT(characters == 1);
             bytecode = BC_LOAD_CURRENT_CHAR_UNCHECKED;
         }
     }
@@ -404,7 +450,7 @@ InterpretedRegExpMacroAssembler::ReadBacktrackStackPointerFromRegister(int reg)
 void
 InterpretedRegExpMacroAssembler::SetCurrentPositionFromEnd(int by)
 {
-    JS_ASSERT(by >= 0 && by < (1 << 24));
+    MOZ_ASSERT(by >= 0 && by < (1 << 24));
     Emit(BC_SET_CURRENT_POSITION_FROM_END, by);
 }
 
@@ -436,7 +482,7 @@ InterpretedRegExpMacroAssembler::WriteCurrentPositionToRegister(int reg, int cp_
 void
 InterpretedRegExpMacroAssembler::ClearRegisters(int reg_from, int reg_to)
 {
-    JS_ASSERT(reg_from <= reg_to);
+    MOZ_ASSERT(reg_from <= reg_to);
     for (int reg = reg_from; reg <= reg_to; reg++)
         SetRegister(reg, -1);
 }
@@ -449,20 +495,20 @@ InterpretedRegExpMacroAssembler::WriteBacktrackStackPointerToRegister(int reg)
 }
 
 void
-InterpretedRegExpMacroAssembler::PushBacktrack(jit::Label *label)
+InterpretedRegExpMacroAssembler::PushBacktrack(jit::Label* label)
 {
     Emit(BC_PUSH_BT, 0);
     EmitOrLink(label);
 }
 
 void
-InterpretedRegExpMacroAssembler::BindBacktrack(jit::Label *label)
+InterpretedRegExpMacroAssembler::BindBacktrack(jit::Label* label)
 {
     Bind(label);
 }
 
 void
-InterpretedRegExpMacroAssembler::EmitOrLink(jit::Label *label)
+InterpretedRegExpMacroAssembler::EmitOrLink(jit::Label* label)
 {
     if (label == nullptr)
         label = &backtrack_;
@@ -484,7 +530,7 @@ InterpretedRegExpMacroAssembler::Emit(uint32_t byte, uint32_t twenty_four_bits)
 void
 InterpretedRegExpMacroAssembler::Emit32(uint32_t word)
 {
-    JS_ASSERT(pc_ <= length_);
+    MOZ_ASSERT(pc_ <= length_);
     if (pc_  + 3 >= length_)
         Expand();
     *reinterpret_cast<uint32_t*>(buffer_ + pc_) = word;
@@ -494,7 +540,7 @@ InterpretedRegExpMacroAssembler::Emit32(uint32_t word)
 void
 InterpretedRegExpMacroAssembler::Emit16(uint32_t word)
 {
-    JS_ASSERT(pc_ <= length_);
+    MOZ_ASSERT(pc_ <= length_);
     if (pc_ + 1 >= length_)
         Expand();
     *reinterpret_cast<uint16_t*>(buffer_ + pc_) = word;
@@ -504,7 +550,7 @@ InterpretedRegExpMacroAssembler::Emit16(uint32_t word)
 void
 InterpretedRegExpMacroAssembler::Emit8(uint32_t word)
 {
-    JS_ASSERT(pc_ <= length_);
+    MOZ_ASSERT(pc_ <= length_);
     if (pc_ == length_)
         Expand();
     *reinterpret_cast<unsigned char*>(buffer_ + pc_) = word;
@@ -514,12 +560,14 @@ InterpretedRegExpMacroAssembler::Emit8(uint32_t word)
 void
 InterpretedRegExpMacroAssembler::Expand()
 {
+    AutoEnterOOMUnsafeRegion oomUnsafe;
+
     int newLength = Max(100, length_ * 2);
     if (newLength < length_ + 4)
-        CrashAtUnhandlableOOM("InterpretedRegExpMacroAssembler::Expand");
+        oomUnsafe.crash("InterpretedRegExpMacroAssembler::Expand");
 
-    buffer_ = (uint8_t *) js_realloc(buffer_, newLength);
+    buffer_ = (uint8_t*) js_realloc(buffer_, newLength);
     if (!buffer_)
-        CrashAtUnhandlableOOM("InterpretedRegExpMacroAssembler::Expand");
+        oomUnsafe.crash("InterpretedRegExpMacroAssembler::Expand");
     length_ = newLength;
 }

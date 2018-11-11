@@ -47,7 +47,10 @@
 #include <vector>
 
 #include "common/linux/memory_mapped_file.h"
+#include "common/minidump_type_helper.h"
 #include "common/scoped_ptr.h"
+#include "common/using_std_string.h"
+#include "google_breakpad/common/breakpad_types.h"
 #include "google_breakpad/common/minidump_format.h"
 #include "third_party/lss/linux_syscall_support.h"
 #include "tools/linux/md2core/minidump_memory_range.h"
@@ -72,6 +75,8 @@
   #define ELF_ARCH  EM_ARM
 #elif defined(__mips__)
   #define ELF_ARCH  EM_MIPS
+#elif defined(__aarch64__)
+  #define ELF_ARCH  EM_AARCH64
 #endif
 
 #if defined(__arm__)
@@ -79,13 +84,21 @@
 // containing core registers, while they use 'user_regs_struct' on other
 // architectures. This file-local typedef simplifies the source code.
 typedef user_regs user_regs_struct;
+#elif defined (__mips__)
+// This file-local typedef simplifies the source code.
+typedef gregset_t user_regs_struct;
 #endif
 
+using google_breakpad::MDTypeHelper;
 using google_breakpad::MemoryMappedFile;
 using google_breakpad::MinidumpMemoryRange;
 
+typedef MDTypeHelper<sizeof(ElfW(Addr))>::MDRawDebug MDRawDebug;
+typedef MDTypeHelper<sizeof(ElfW(Addr))>::MDRawLinkMap MDRawLinkMap;
+
 static const MDRVA kInvalidMDRVA = static_cast<MDRVA>(-1);
 static bool verbose;
+static string g_custom_so_basedir;
 
 static int usage(const char* argv0) {
   fprintf(stderr, "Usage: %s [-v] <minidump file>\n", argv0);
@@ -126,14 +139,14 @@ typedef struct elf_timeval {    /* Time value with microsecond resolution    */
   long tv_usec;                 /* Microseconds                              */
 } elf_timeval;
 
-typedef struct elf_siginfo {    /* Information about signal (unused)         */
+typedef struct _elf_siginfo {   /* Information about signal (unused)         */
   int32_t si_signo;             /* Signal number                             */
   int32_t si_code;              /* Extra code                                */
   int32_t si_errno;             /* Errno                                     */
-} elf_siginfo;
+} _elf_siginfo;
 
 typedef struct prstatus {       /* Information about thread; includes CPU reg*/
-  elf_siginfo    pr_info;       /* Info associated with signal               */
+  _elf_siginfo   pr_info;       /* Info associated with signal               */
   uint16_t       pr_cursig;     /* Current signal                            */
   unsigned long  pr_sigpend;    /* Set of pending signals                    */
   unsigned long  pr_sighold;    /* Set of held signals                       */
@@ -191,8 +204,8 @@ struct CrashedProcess {
 
     uint32_t permissions;
     uint64_t start_address, end_address, offset;
-    std::string filename;
-    std::string data;
+    string filename;
+    string data;
   };
   std::map<uint64_t, Mapping> mappings;
 
@@ -201,12 +214,19 @@ struct CrashedProcess {
 
   struct Thread {
     pid_t tid;
+#if defined(__mips__)
+    mcontext_t mcontext;
+#else
     user_regs_struct regs;
+#endif
 #if defined(__i386__) || defined(__x86_64__)
     user_fpregs_struct fpregs;
 #endif
 #if defined(__i386__)
     user_fpxregs_struct fpxregs;
+#endif
+#if defined(__aarch64__)
+    user_fpsimd_struct fpregs;
 #endif
     uintptr_t stack_addr;
     const uint8_t* stack;
@@ -219,9 +239,9 @@ struct CrashedProcess {
 
   prpsinfo prps;
 
-  std::map<uintptr_t, std::string> signatures;
+  std::map<uintptr_t, string> signatures;
 
-  std::string dynamic_data;
+  string dynamic_data;
   MDRawDebug debug;
   std::vector<MDRawLinkMap> link_map;
 };
@@ -357,6 +377,53 @@ ParseThreadRegisters(CrashedProcess::Thread* thread,
   thread->regs.uregs[16] = rawregs->cpsr;
   thread->regs.uregs[17] = 0;  // what is ORIG_r0 exactly?
 }
+#elif defined(__aarch64__)
+static void
+ParseThreadRegisters(CrashedProcess::Thread* thread,
+                     const MinidumpMemoryRange& range) {
+  const MDRawContextARM64* rawregs = range.GetData<MDRawContextARM64>(0);
+
+  for (int i = 0; i < 31; ++i)
+    thread->regs.regs[i] = rawregs->iregs[i];
+  thread->regs.sp = rawregs->iregs[MD_CONTEXT_ARM64_REG_SP];
+  thread->regs.pc = rawregs->iregs[MD_CONTEXT_ARM64_REG_PC];
+  thread->regs.pstate = rawregs->cpsr;
+
+  memcpy(thread->fpregs.vregs, rawregs->float_save.regs, 8 * 32);
+  thread->fpregs.fpsr = rawregs->float_save.fpsr;
+  thread->fpregs.fpcr = rawregs->float_save.fpcr;
+}
+#elif defined(__mips__)
+static void
+ParseThreadRegisters(CrashedProcess::Thread* thread,
+                     const MinidumpMemoryRange& range) {
+  const MDRawContextMIPS* rawregs = range.GetData<MDRawContextMIPS>(0);
+
+  for (int i = 0; i < MD_CONTEXT_MIPS_GPR_COUNT; ++i)
+    thread->mcontext.gregs[i] = rawregs->iregs[i];
+
+  thread->mcontext.pc = rawregs->epc;
+
+  thread->mcontext.mdlo = rawregs->mdlo;
+  thread->mcontext.mdhi = rawregs->mdhi;
+
+  thread->mcontext.hi1 = rawregs->hi[0];
+  thread->mcontext.lo1 = rawregs->lo[0];
+  thread->mcontext.hi2 = rawregs->hi[1];
+  thread->mcontext.lo2 = rawregs->lo[1];
+  thread->mcontext.hi3 = rawregs->hi[2];
+  thread->mcontext.lo3 = rawregs->lo[2];
+
+  for (int i = 0; i < MD_FLOATINGSAVEAREA_MIPS_FPR_COUNT; ++i) {
+    thread->mcontext.fpregs.fp_r.fp_fregs[i]._fp_fregs =
+        rawregs->float_save.regs[i];
+  }
+
+  thread->mcontext.fpc_csr = rawregs->float_save.fpcsr;
+#if _MIPS_SIM == _ABIO32
+  thread->mcontext.fpc_eir = rawregs->float_save.fir;
+#endif
+}
 #else
 #error "This code has not been ported to your platform yet"
 #endif
@@ -421,12 +488,35 @@ ParseSystemInfo(CrashedProcess* crashinfo, const MinidumpMemoryRange& range,
             "This version of minidump-2-core only supports ARM (32bit).\n");
     _exit(1);
   }
+#elif defined(__aarch64__)
+  if (sysinfo->processor_architecture != MD_CPU_ARCHITECTURE_ARM64) {
+    fprintf(stderr,
+            "This version of minidump-2-core only supports ARM (64bit).\n");
+    _exit(1);
+  }
+#elif defined(__mips__)
+# if _MIPS_SIM == _ABIO32
+  if (sysinfo->processor_architecture != MD_CPU_ARCHITECTURE_MIPS) {
+    fprintf(stderr,
+            "This version of minidump-2-core only supports mips o32 (32bit).\n");
+    _exit(1);
+  }
+# elif _MIPS_SIM == _ABI64
+  if (sysinfo->processor_architecture != MD_CPU_ARCHITECTURE_MIPS64) {
+    fprintf(stderr,
+            "This version of minidump-2-core only supports mips n64 (64bit).\n");
+    _exit(1);
+  }
+# else
+#  error "This mips ABI is currently not supported (n32)"
+# endif
 #else
 #error "This code has not been ported to your platform yet"
 #endif
   if (!strstr(full_file.GetAsciiMDString(sysinfo->csd_version_rva).c_str(),
-              "Linux")) {
-    fprintf(stderr, "This minidump was not generated by Linux.\n");
+              "Linux") &&
+      sysinfo->platform_id != MD_OS_NACL) {
+    fprintf(stderr, "This minidump was not generated by Linux or NaCl.\n");
     _exit(1);
   }
 
@@ -444,6 +534,10 @@ ParseSystemInfo(CrashedProcess* crashinfo, const MinidumpMemoryRange& range,
             ? "x86-64"
             : sysinfo->processor_architecture == MD_CPU_ARCHITECTURE_ARM
             ? "ARM"
+            : sysinfo->processor_architecture == MD_CPU_ARCHITECTURE_MIPS
+            ? "MIPS"
+            : sysinfo->processor_architecture == MD_CPU_ARCHITECTURE_MIPS64
+            ? "MIPS64"
             : "???",
             sysinfo->number_of_processors,
             sysinfo->processor_level,
@@ -504,8 +598,8 @@ ParseMaps(CrashedProcess* crashinfo, const MinidumpMemoryRange& range) {
        ptr < range.data() + range.length();) {
     const uint8_t* eol = (uint8_t*)memchr(ptr, '\n',
                                        range.data() + range.length() - ptr);
-    std::string line((const char*)ptr,
-                     eol ? eol - ptr : range.data() + range.length() - ptr);
+    string line((const char*)ptr,
+                eol ? eol - ptr : range.data() + range.length() - ptr);
     ptr = eol ? eol + 1 : range.data() + range.length();
     unsigned long long start, stop, offset;
     char* permissions = NULL;
@@ -544,7 +638,7 @@ static void
 ParseEnvironment(CrashedProcess* crashinfo, const MinidumpMemoryRange& range) {
   if (verbose) {
     fputs("MD_LINUX_ENVIRON:\n", stderr);
-    char *env = new char[range.length()];
+    char* env = new char[range.length()];
     memcpy(env, range.data(), range.length());
     int nul_count = 0;
     for (char *ptr = env;;) {
@@ -659,14 +753,14 @@ ParseDSODebugInfo(CrashedProcess* crashinfo, const MinidumpMemoryRange& range,
             "MD_LINUX_DSO_DEBUG:\n"
             "Version: %d\n"
             "Number of DSOs: %d\n"
-            "Brk handler: %p\n"
-            "Dynamic loader at: %p\n"
-            "_DYNAMIC: %p\n",
+            "Brk handler: 0x%" PRIx64 "\n"
+            "Dynamic loader at: 0x%" PRIx64 "\n"
+            "_DYNAMIC: 0x%" PRIx64 "\n",
             debug->version,
             debug->dso_count,
-            debug->brk,
-            debug->ldbase,
-            debug->dynamic);
+            static_cast<uint64_t>(debug->brk),
+            static_cast<uint64_t>(debug->ldbase),
+            static_cast<uint64_t>(debug->dynamic));
   }
   crashinfo->debug = *debug;
   if (range.length() > sizeof(MDRawDebug)) {
@@ -681,8 +775,9 @@ ParseDSODebugInfo(CrashedProcess* crashinfo, const MinidumpMemoryRange& range,
       if (link_map) {
         if (verbose) {
           fprintf(stderr,
-                  "#%03d: %p, %p, \"%s\"\n",
-                  i, link_map->addr, link_map->ld,
+                  "#%03d: %" PRIx64 ", %" PRIx64 ", \"%s\"\n",
+                  i, static_cast<uint64_t>(link_map->addr),
+                  static_cast<uint64_t>(link_map->ld),
                   full_file.GetAsciiMDString(link_map->name).c_str());
         }
         crashinfo->link_map.push_back(*link_map);
@@ -710,7 +805,11 @@ WriteThread(const CrashedProcess::Thread& thread, int fatal_signal) {
   pr.pr_info.si_signo = fatal_signal;
   pr.pr_cursig = fatal_signal;
   pr.pr_pid = thread.tid;
+#if defined(__mips__)
+  memcpy(&pr.pr_reg, &thread.mcontext.gregs, sizeof(user_regs_struct));
+#else
   memcpy(&pr.pr_reg, &thread.regs, sizeof(user_regs_struct));
+#endif
 
   Nhdr nhdr;
   memset(&nhdr, 0, sizeof(nhdr));
@@ -777,14 +876,19 @@ ParseModuleStream(CrashedProcess* crashinfo, const MinidumpMemoryRange& range,
             record->signature.data4[2], record->signature.data4[3],
             record->signature.data4[4], record->signature.data4[5],
             record->signature.data4[6], record->signature.data4[7]);
-    std::string filename =
+    string filename =
         full_file.GetAsciiMDString(rawmodule->module_name_rva);
     size_t slash = filename.find_last_of('/');
-    std::string basename = slash == std::string::npos ?
-      filename : filename.substr(slash + 1);
+    string basename = slash == string::npos ?
+        filename : filename.substr(slash + 1);
     if (strcmp(guid, "00000000-0000-0000-0000-000000000000")) {
-      crashinfo->signatures[rawmodule->base_of_image] =
-        std::string("/var/lib/breakpad/") + guid + "-" + basename;
+      string prefix;
+      if (!g_custom_so_basedir.empty())
+        prefix = g_custom_so_basedir;
+      else
+        prefix = string("/var/lib/breakpad/") + guid + "-" + basename;
+
+      crashinfo->signatures[rawmodule->base_of_image] = prefix + basename;
     }
 
     if (verbose) {
@@ -801,7 +905,7 @@ ParseModuleStream(CrashedProcess* crashinfo, const MinidumpMemoryRange& range,
 }
 
 static void
-AddDataToMapping(CrashedProcess* crashinfo, const std::string& data,
+AddDataToMapping(CrashedProcess* crashinfo, const string& data,
                  uintptr_t addr) {
   for (std::map<uint64_t, CrashedProcess::Mapping>::iterator
          iter = crashinfo->mappings.begin();
@@ -857,7 +961,7 @@ AugmentMappings(CrashedProcess* crashinfo,
   for (unsigned i = 0; i < crashinfo->threads.size(); ++i) {
     const CrashedProcess::Thread& thread = crashinfo->threads[i];
     AddDataToMapping(crashinfo,
-                     std::string((char *)thread.stack, thread.stack_length),
+                     string((char *)thread.stack, thread.stack_length),
                      thread.stack_addr);
   }
 
@@ -865,7 +969,7 @@ AugmentMappings(CrashedProcess* crashinfo,
   // the beginning of the address space, as this area should always be
   // available.
   static const uintptr_t start_addr = 4096;
-  std::string data;
+  string data;
   struct r_debug debug = { 0 };
   debug.r_version = crashinfo->debug.version;
   debug.r_brk = (ElfW(Addr))crashinfo->debug.brk;
@@ -885,11 +989,11 @@ AugmentMappings(CrashedProcess* crashinfo,
     link_map.l_ld = (ElfW(Dyn)*)iter->ld;
     link_map.l_prev = prev;
     prev = (struct link_map*)(start_addr + data.size());
-    std::string filename = full_file.GetAsciiMDString(iter->name);
+    string filename = full_file.GetAsciiMDString(iter->name);
 
     // Look up signature for this filename. If available, change filename
     // to point to GUID, instead.
-    std::map<uintptr_t, std::string>::const_iterator guid =
+    std::map<uintptr_t, string>::const_iterator guid =
       crashinfo->signatures.find((uintptr_t)iter->addr);
     if (guid != crashinfo->signatures.end()) {
       filename = guid->second;
@@ -943,6 +1047,14 @@ main(int argc, char** argv) {
   while (argi < argc && argv[argi][0] == '-') {
     if (!strcmp(argv[argi], "-v")) {
       verbose = true;
+    } else if (!strcmp(argv[argi], "--sobasedir")) {
+      argi++;
+      if (argi >= argc) {
+        fprintf(stderr, "--sobasedir expects an argument.");
+        return usage(argv[0]);
+      }
+
+      g_custom_so_basedir = argv[argi];
     } else {
       return usage(argv[0]);
     }
@@ -952,7 +1064,7 @@ main(int argc, char** argv) {
   if (argc != argi + 1)
     return usage(argv[0]);
 
-  MemoryMappedFile mapped_file(argv[argi]);
+  MemoryMappedFile mapped_file(argv[argi], 0);
   if (!mapped_file.data()) {
     fprintf(stderr, "Failed to mmap dump file\n");
     return 1;
@@ -1127,7 +1239,7 @@ main(int argc, char** argv) {
   nhdr.n_type = NT_AUXV;
   if (!writea(1, &nhdr, sizeof(nhdr)) ||
       !writea(1, "CORE\0\0\0\0", 8) ||
-      !writea(1, &crashinfo.auxv, crashinfo.auxv_length)) {
+      !writea(1, crashinfo.auxv, crashinfo.auxv_length)) {
     return 1;
   }
 

@@ -1,0 +1,362 @@
+/*
+ * Copyright 2012 Google Inc.
+ *
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+#include "SkOpSpan.h"
+#include "SkPathOpsPoint.h"
+#include "SkPathWriter.h"
+#include "SkTSort.h"
+
+// wrap path to keep track of whether the contour is initialized and non-empty
+SkPathWriter::SkPathWriter(SkPath& path)
+    : fPathPtr(&path)
+{
+    init();
+}
+
+void SkPathWriter::close() {
+    if (fCurrent.isEmpty()) {
+        return;
+    }
+    SkASSERT(this->isClosed());
+#if DEBUG_PATH_CONSTRUCTION
+    SkDebugf("path.close();\n");
+#endif
+    fCurrent.close();
+    fPathPtr->addPath(fCurrent);
+    fCurrent.reset();
+    init();
+}
+
+void SkPathWriter::conicTo(const SkPoint& pt1, const SkOpPtT* pt2, SkScalar weight) {
+    this->update(pt2);
+#if DEBUG_PATH_CONSTRUCTION
+    SkDebugf("path.conicTo(%1.9g,%1.9g, %1.9g,%1.9g, %1.9g);\n",
+            pt1.fX, pt1.fY, pt2->fPt.fX, pt2->fPt.fY, weight);
+#endif
+    fCurrent.conicTo(pt1, pt2->fPt, weight);
+}
+
+void SkPathWriter::cubicTo(const SkPoint& pt1, const SkPoint& pt2, const SkOpPtT* pt3) {
+    this->update(pt3);
+#if DEBUG_PATH_CONSTRUCTION
+    SkDebugf("path.cubicTo(%1.9g,%1.9g, %1.9g,%1.9g, %1.9g,%1.9g);\n",
+            pt1.fX, pt1.fY, pt2.fX, pt2.fY, pt3->fPt.fX, pt3->fPt.fY);
+#endif
+    fCurrent.cubicTo(pt1, pt2, pt3->fPt);
+}
+
+void SkPathWriter::deferredLine(const SkOpPtT* pt) {
+    SkASSERT(fFirstPtT);
+    SkASSERT(fDefer[0]);
+    if (fDefer[0] == pt) {
+        // FIXME: why we're adding a degenerate line? Caller should have preflighted this.
+        return;
+    }
+    if (pt->contains(fDefer[0])) {
+        // FIXME: why we're adding a degenerate line?
+        return;
+    }
+    SkASSERT(!this->matchedLast(pt));
+    if (fDefer[1] && this->changedSlopes(pt)) {
+        this->lineTo();
+        fDefer[0] = fDefer[1];
+    }
+    fDefer[1] = pt;
+}
+
+void SkPathWriter::deferredMove(const SkOpPtT* pt) {
+    if (!fDefer[1]) {
+        fFirstPtT = fDefer[0] = pt;
+        return;
+    }
+    SkASSERT(fDefer[0]);
+    if (!this->matchedLast(pt)) {
+        this->finishContour();
+        fFirstPtT = fDefer[0] = pt;
+    }
+}
+
+void SkPathWriter::finishContour() {
+    if (!this->matchedLast(fDefer[0])) {
+        if (!fDefer[1]) {
+          return;
+        }
+        this->lineTo();
+    }
+    if (fCurrent.isEmpty()) {
+        return;
+    }
+    if (this->isClosed()) {
+        this->close();
+    } else {
+        SkASSERT(fDefer[1]);
+        fEndPtTs.push(fFirstPtT);
+        fEndPtTs.push(fDefer[1]);
+        fPartials.push_back(fCurrent);
+        this->init();
+    }
+}
+
+void SkPathWriter::init() {
+    fCurrent.reset();
+    fFirstPtT = fDefer[0] = fDefer[1] = nullptr;
+}
+
+bool SkPathWriter::isClosed() const {
+    return this->matchedLast(fFirstPtT);
+}
+
+void SkPathWriter::lineTo() {
+    if (fCurrent.isEmpty()) {
+        this->moveTo();
+    }
+#if DEBUG_PATH_CONSTRUCTION
+    SkDebugf("path.lineTo(%1.9g,%1.9g);\n", fDefer[1]->fPt.fX, fDefer[1]->fPt.fY);
+#endif
+    fCurrent.lineTo(fDefer[1]->fPt);
+}
+
+bool SkPathWriter::matchedLast(const SkOpPtT* test) const {
+    if (test == fDefer[1]) {
+        return true;
+    }
+    if (!test) {
+        return false;
+    }
+    if (!fDefer[1]) {
+        return false;
+    }
+    return test->contains(fDefer[1]);
+}
+
+void SkPathWriter::moveTo() {
+#if DEBUG_PATH_CONSTRUCTION
+    SkDebugf("path.moveTo(%1.9g,%1.9g);\n", fFirstPtT->fPt.fX, fFirstPtT->fPt.fY);
+#endif
+    fCurrent.moveTo(fFirstPtT->fPt);
+}
+
+void SkPathWriter::quadTo(const SkPoint& pt1, const SkOpPtT* pt2) {
+    this->update(pt2);
+#if DEBUG_PATH_CONSTRUCTION
+    SkDebugf("path.quadTo(%1.9g,%1.9g, %1.9g,%1.9g);\n",
+            pt1.fX, pt1.fY, pt2->fPt.fX, pt2->fPt.fY);
+#endif
+    fCurrent.quadTo(pt1, pt2->fPt);
+}
+
+void SkPathWriter::update(const SkOpPtT* pt) {
+    if (!fDefer[1]) {
+        this->moveTo();
+    } else if (!this->matchedLast(fDefer[0])) {
+        this->lineTo();
+    }
+    fDefer[0] = fDefer[1] = pt;  // set both to know that there is not a pending deferred line
+}
+
+bool SkPathWriter::someAssemblyRequired() {
+    this->finishContour();
+    return fEndPtTs.count() > 0;
+}
+
+bool SkPathWriter::changedSlopes(const SkOpPtT* ptT) const {
+    if (matchedLast(fDefer[0])) {
+        return false;
+    }
+    SkVector deferDxdy = fDefer[1]->fPt - fDefer[0]->fPt;
+    SkVector lineDxdy = ptT->fPt - fDefer[1]->fPt;
+    return deferDxdy.fX * lineDxdy.fY != deferDxdy.fY * lineDxdy.fX;
+}
+
+class DistanceLessThan {
+public:
+    DistanceLessThan(double* distances) : fDistances(distances) { }
+    double* fDistances;
+    bool operator()(const int one, const int two) {
+        return fDistances[one] < fDistances[two];
+    }
+};
+
+    /*
+        check start and end of each contour
+        if not the same, record them
+        match them up
+        connect closest
+        reassemble contour pieces into new path
+    */
+void SkPathWriter::assemble() {
+#if DEBUG_SHOW_TEST_NAME
+    SkDebugf("</div>\n");
+#endif
+    if (!this->someAssemblyRequired()) {
+        return;
+    }
+#if DEBUG_PATH_CONSTRUCTION
+    SkDebugf("%s\n", __FUNCTION__);
+#endif
+    SkOpPtT const* const* runs = fEndPtTs.begin();  // starts, ends of partial contours
+    int endCount = fEndPtTs.count(); // all starts and ends
+    SkASSERT(endCount > 0);
+    SkASSERT(endCount == fPartials.count() * 2);
+#if DEBUG_ASSEMBLE
+    for (int index = 0; index < endCount; index += 2) {
+        const SkOpPtT* eStart = runs[index];
+        const SkOpPtT* eEnd = runs[index + 1];
+        SkASSERT(eStart != eEnd);
+        SkASSERT(!eStart->contains(eEnd));
+        SkDebugf("%s contour start=(%1.9g,%1.9g) end=(%1.9g,%1.9g)\n", __FUNCTION__,
+                eStart->fPt.fX, eStart->fPt.fY, eEnd->fPt.fX, eEnd->fPt.fY);
+    }
+#endif
+    SkTDArray<int> sLink, eLink;
+    int linkCount = endCount / 2; // number of partial contours
+    sLink.append(linkCount);
+    eLink.append(linkCount);
+    int rIndex, iIndex;
+    for (rIndex = 0; rIndex < linkCount; ++rIndex) {
+        sLink[rIndex] = eLink[rIndex] = SK_MaxS32;
+    }
+    const int entries = endCount * (endCount - 1) / 2;  // folded triangle
+    SkSTArray<8, double, true> distances(entries);
+    SkSTArray<8, int, true> sortedDist(entries);
+    SkSTArray<8, int, true> distLookup(entries);
+    int rRow = 0;
+    int dIndex = 0;
+    for (rIndex = 0; rIndex < endCount - 1; ++rIndex) {
+        const SkOpPtT* oPtT = runs[rIndex];
+        for (iIndex = rIndex + 1; iIndex < endCount; ++iIndex) {
+            const SkOpPtT* iPtT = runs[iIndex];
+            double dx = iPtT->fPt.fX - oPtT->fPt.fX;
+            double dy = iPtT->fPt.fY - oPtT->fPt.fY;
+            double dist = dx * dx + dy * dy;
+            distLookup.push_back(rRow + iIndex);
+            distances.push_back(dist);  // oStart distance from iStart
+            sortedDist.push_back(dIndex++); 
+        }
+        rRow += endCount;
+    }
+    SkASSERT(dIndex == entries);
+    SkTQSort<int>(sortedDist.begin(), sortedDist.end() - 1, DistanceLessThan(distances.begin()));
+    int remaining = linkCount;  // number of start/end pairs
+    for (rIndex = 0; rIndex < entries; ++rIndex) {
+        int pair = sortedDist[rIndex];
+        pair = distLookup[pair];
+        int row = pair / endCount;
+        int col = pair - row * endCount;
+        int ndxOne = row >> 1;
+        bool endOne = row & 1;
+        int* linkOne = endOne ? eLink.begin() : sLink.begin();
+        if (linkOne[ndxOne] != SK_MaxS32) {
+            continue;
+        }
+        int ndxTwo = col >> 1;
+        bool endTwo = col & 1;
+        int* linkTwo = endTwo ? eLink.begin() : sLink.begin();
+        if (linkTwo[ndxTwo] != SK_MaxS32) {
+            continue;
+        }
+        SkASSERT(&linkOne[ndxOne] != &linkTwo[ndxTwo]);
+        bool flip = endOne == endTwo;
+        linkOne[ndxOne] = flip ? ~ndxTwo : ndxTwo;
+        linkTwo[ndxTwo] = flip ? ~ndxOne : ndxOne;
+        if (!--remaining) {
+            break;
+        }
+    }
+    SkASSERT(!remaining);
+#if DEBUG_ASSEMBLE
+    for (rIndex = 0; rIndex < linkCount; ++rIndex) {
+        int s = sLink[rIndex];
+        int e = eLink[rIndex];
+        SkDebugf("%s %c%d <- s%d - e%d -> %c%d\n", __FUNCTION__, s < 0 ? 's' : 'e',
+                s < 0 ? ~s : s, rIndex, rIndex, e < 0 ? 'e' : 's', e < 0 ? ~e : e);
+    }
+#endif
+    rIndex = 0;
+    do {
+        bool forward = true;
+        bool first = true;
+        int sIndex = sLink[rIndex];
+        SkASSERT(sIndex != SK_MaxS32);
+        sLink[rIndex] = SK_MaxS32;
+        int eIndex;
+        if (sIndex < 0) {
+            eIndex = sLink[~sIndex];
+            sLink[~sIndex] = SK_MaxS32;
+        } else {
+            eIndex = eLink[sIndex];
+            eLink[sIndex] = SK_MaxS32;
+        }
+        SkASSERT(eIndex != SK_MaxS32);
+#if DEBUG_ASSEMBLE
+        SkDebugf("%s sIndex=%c%d eIndex=%c%d\n", __FUNCTION__, sIndex < 0 ? 's' : 'e',
+                    sIndex < 0 ? ~sIndex : sIndex, eIndex < 0 ? 's' : 'e',
+                    eIndex < 0 ? ~eIndex : eIndex);
+#endif
+        do {
+            const SkPath& contour = fPartials[rIndex];
+            if (forward) {
+                fPathPtr->addPath(contour,
+                        first ? SkPath::kAppend_AddPathMode : SkPath::kExtend_AddPathMode);
+            } else {
+                SkASSERT(!first);
+                fPathPtr->reverseAddPath(contour);
+            }
+            if (first) {
+                first = false;
+            }
+#if DEBUG_ASSEMBLE
+            SkDebugf("%s rIndex=%d eIndex=%s%d close=%d\n", __FUNCTION__, rIndex,
+                eIndex < 0 ? "~" : "", eIndex < 0 ? ~eIndex : eIndex,
+                sIndex == ((rIndex != eIndex) ^ forward ? eIndex : ~eIndex));
+#endif
+            if (sIndex == ((rIndex != eIndex) ^ forward ? eIndex : ~eIndex)) {
+                fPathPtr->close();
+                break;
+            }
+            if (forward) {
+                eIndex = eLink[rIndex];
+                SkASSERT(eIndex != SK_MaxS32);
+                eLink[rIndex] = SK_MaxS32;
+                if (eIndex >= 0) {
+                    SkASSERT(sLink[eIndex] == rIndex);
+                    sLink[eIndex] = SK_MaxS32;
+                } else {
+                    SkASSERT(eLink[~eIndex] == ~rIndex);
+                    eLink[~eIndex] = SK_MaxS32;
+                }
+            } else {
+                eIndex = sLink[rIndex];
+                SkASSERT(eIndex != SK_MaxS32);
+                sLink[rIndex] = SK_MaxS32;
+                if (eIndex >= 0) {
+                    SkASSERT(eLink[eIndex] == rIndex);
+                    eLink[eIndex] = SK_MaxS32;
+                } else {
+                    SkASSERT(sLink[~eIndex] == ~rIndex);
+                    sLink[~eIndex] = SK_MaxS32;
+                }
+            }
+            rIndex = eIndex;
+            if (rIndex < 0) {
+                forward ^= 1;
+                rIndex = ~rIndex;
+            }
+        } while (true);
+        for (rIndex = 0; rIndex < linkCount; ++rIndex) {
+            if (sLink[rIndex] != SK_MaxS32) {
+                break;
+            }
+        }
+    } while (rIndex < linkCount);
+#if DEBUG_ASSEMBLE
+    for (rIndex = 0; rIndex < linkCount; ++rIndex) {
+       SkASSERT(sLink[rIndex] == SK_MaxS32);
+       SkASSERT(eLink[rIndex] == SK_MaxS32);
+    }
+#endif
+    return;
+}

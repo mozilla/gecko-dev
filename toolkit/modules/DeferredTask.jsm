@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80 filetype=javascript: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -82,8 +82,7 @@ this.EXPORTED_SYMBOLS = [
  *                              .then(null, Components.utils.reportError);
  */
 
-////////////////////////////////////////////////////////////////////////////////
-//// Globals
+// Globals
 
 const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
@@ -97,8 +96,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 const Timer = Components.Constructor("@mozilla.org/timer;1", "nsITimer",
                                      "initWithCallback");
 
-////////////////////////////////////////////////////////////////////////////////
-//// DeferredTask
+// DeferredTask
 
 /**
  * Sets up a task whose execution can be triggered after a delay.
@@ -134,7 +132,9 @@ this.DeferredTask.prototype = {
    * Indicates whether the task is currently requested to start again later,
    * regardless of whether it is currently running.
    */
-  get isArmed() this._armed,
+  get isArmed() {
+    return this._armed;
+  },
   _armed: false,
 
   /**
@@ -142,7 +142,9 @@ this.DeferredTask.prototype = {
    * read from code inside the task function, but can also be true when read
    * from external code, in case the task is an asynchronous generator function.
    */
-  get isRunning() !!this._runningPromise,
+  get isRunning() {
+    return !!this._runningPromise;
+  },
 
   /**
    * Promise resolved when the current execution of the task terminates, or null
@@ -273,7 +275,7 @@ this.DeferredTask.prototype = {
     this._armed = false;
     this._runningPromise = runningDeferred.promise;
 
-    runningDeferred.resolve(Task.spawn(function () {
+    runningDeferred.resolve(Task.spawn(function* () {
       // Execute the provided function asynchronously.
       yield Task.spawn(this._taskFn).then(null, Cu.reportError);
 

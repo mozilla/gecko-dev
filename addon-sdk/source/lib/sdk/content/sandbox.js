@@ -10,6 +10,7 @@ module.metadata = {
 const { Class } = require('../core/heritage');
 const { EventTarget } = require('../event/target');
 const { on, off, emit } = require('../event/core');
+const { events } = require('./sandbox/events');
 const { requiresAddonGlobal } = require('./utils');
 const { delay: async } = require('../lang/functional');
 const { Ci, Cu, Cc } = require('chrome');
@@ -17,10 +18,10 @@ const timer = require('../timers');
 const { URL } = require('../url');
 const { sandbox, evaluate, load } = require('../loader/sandbox');
 const { merge } = require('../util/object');
-const { getTabForContentWindow } = require('../tabs/utils');
+const { getTabForContentWindowNoShim } = require('../tabs/utils');
 const { getInnerId } = require('../window/utils');
 const { PlainTextConsole } = require('../console/plain-text');
-
+const { data } = require('../self');const { isChildLoader } = require('../remote/core');
 // WeakMap of sandboxes so we can access private values
 const sandboxes = new WeakMap();
 
@@ -28,7 +29,7 @@ const sandboxes = new WeakMap();
   require('./content-worker.js');
   Then, retrieve URL of these files in the XPI:
 */
-let prefix = module.uri.split('sandbox.js')[0];
+var prefix = module.uri.split('sandbox.js')[0];
 const CONTENT_WORKER_URL = prefix + 'content-worker.js';
 const metadata = require('@loader/options').metadata;
 
@@ -46,6 +47,19 @@ const secMan = Cc["@mozilla.org/scriptsecuritymanager;1"].
   getService(Ci.nsIScriptSecurityManager);
 
 const JS_VERSION = '1.8';
+
+// Tests whether this window is loaded in a tab
+function isWindowInTab(window) {
+  if (isChildLoader) {
+    let { frames } = require('../remote/child');
+    let frame = frames.getFrameForWindow(window.top);
+    return frame && frame.isTab;
+  }
+  else {
+    // The deprecated sync worker API still does everything in the main process
+    return getTabForContentWindowNoShim(window);
+  }
+}
 
 const WorkerSandbox = Class({
   implements: [ EventTarget ],
@@ -74,16 +88,10 @@ const WorkerSandbox = Class({
    *     Mainly used by context-menu in order to avoid breaking it.
    */
   emitSync: function emitSync(...args) {
-    return emitToContent(this, args);
-  },
-
-  /**
-   * Tells if content script has at least one listener registered for one event,
-   * through `self.on('xxx', ...)`.
-   * /!\ Shouldn't be used. Implemented to avoid breaking context-menu API.
-   */
-  hasListenerFor: function hasListenerFor(name) {
-    return modelFor(this).hasListenerFor(name);
+    // because the arguments could be also non JSONable values,
+    // we need to ensure the array instance is created from
+    // the content's sandbox
+    return emitToContent(this, new modelFor(this).sandbox.Array(...args));
   },
 
   /**
@@ -108,7 +116,7 @@ const WorkerSandbox = Class({
     // (This behavior can be turned off for now with the unsafe-content-script
     // flag to give addon developers time for making the necessary changes)
     // But prevent it when the Worker isn't used for a content script but for
-    // injecting `addon` object into a Panel, Widget, ... scope.
+    // injecting `addon` object into a Panel scope, for example.
     // That's because:
     // 1/ It is useless to use multiple domains as the worker is only used
     // to communicate with the addon,
@@ -136,7 +144,7 @@ const WorkerSandbox = Class({
     // have access to all standard globals (window, document, ...)
     let content = sandbox(principals, {
       sandboxPrototype: proto,
-      wantXrays: true,
+      wantXrays: !requiresAddonGlobal(worker),
       wantGlobalProperties: wantGlobalProperties,
       wantExportHelpers: true,
       sameZoneAs: window,
@@ -154,16 +162,28 @@ const WorkerSandbox = Class({
     let parent = window.parent === window ? content : content.parent;
     merge(content, {
       // We need 'this === window === top' to be true in toplevel scope:
-      get window() content,
-      get top() top,
-      get parent() parent,
-      // Use the Greasemonkey naming convention to provide access to the
-      // unwrapped window object so the content script can access document
-      // JavaScript values.
-      // NOTE: this functionality is experimental and may change or go away
-      // at any time!
-      get unsafeWindow() window.wrappedJSObject
+      get window() {
+        return content;
+      },
+      get top() {
+        return top;
+      },
+      get parent() {
+        return parent;
+      }
     });
+
+    // Use the Greasemonkey naming convention to provide access to the
+    // unwrapped window object so the content script can access document
+    // JavaScript values.
+    // NOTE: this functionality is experimental and may change or go away
+    // at any time!
+    //
+    // Note that because waivers aren't propagated between origins, we
+    // need the unsafeWindow getter to live in the sandbox.
+    var unsafeWindowGetter =
+      new content.Function('return window.wrappedJSObject || window;');
+    Object.defineProperty(content, 'unsafeWindow', {get: unsafeWindowGetter});
 
     // Load trusted code that will inject content script API.
     let ContentWorker = load(content, CONTENT_WORKER_URL);
@@ -177,18 +197,13 @@ const WorkerSandbox = Class({
     // by trading two methods that allow to send events to the other side:
     //   - `onEvent` called by content script
     //   - `result.emitToContent` called by addon script
-    // Bug 758203: We have to explicitely define `__exposedProps__` in order
-    // to allow access to these chrome object attributes from this sandbox with
-    // content priviledges
-    // https://developer.mozilla.org/en/XPConnect_wrappers#Other_security_wrappers
-    let onEvent = onContentEvent.bind(null, this);
-    let chromeAPI = createChromeAPI();
+    let onEvent = Cu.exportFunction(onContentEvent.bind(null, this), ContentWorker);
+    let chromeAPI = createChromeAPI(ContentWorker);
     let result = Cu.waiveXrays(ContentWorker).inject(content, chromeAPI, onEvent, options);
 
-    // Merge `emitToContent` and `hasListenerFor` into our private
-    // model of the WorkerSandbox so we can communicate with content
-    // script
-    merge(model, result);
+    // Merge `emitToContent` into our private model of the
+    // WorkerSandbox so we can communicate with content script
+    model.emitToContent = result;
 
     let console = new PlainTextConsole(null, getInnerId(window));
 
@@ -199,15 +214,16 @@ const WorkerSandbox = Class({
     // `addon` in document is equivalent to `self` in content script.
     if (requiresAddonGlobal(worker)) {
       Object.defineProperty(getUnsafeWindow(window), 'addon', {
-          value: content.self
+          value: content.self,
+          configurable: true
         }
       );
     }
 
     // Inject our `console` into target document if worker doesn't have a tab
-    // (e.g Panel, PageWorker, Widget).
+    // (e.g Panel, PageWorker).
     // `worker.tab` can't be used because bug 804935.
-    if (!getTabForContentWindow(window)) {
+    if (!isWindowInTab(window)) {
       let win = getUnsafeWindow(window);
 
       // export our chrome console to content window, as described here:
@@ -234,8 +250,16 @@ const WorkerSandbox = Class({
         timeEnd: genPropDesc('timeEnd'),
         profile: genPropDesc('profile'),
         profileEnd: genPropDesc('profileEnd'),
-       __noSuchMethod__: { enumerable: true, configurable: true, writable: true,
-                            value: function() {} }
+        exception: genPropDesc('exception'),
+        assert: genPropDesc('assert'),
+        count: genPropDesc('count'),
+        table: genPropDesc('table'),
+        clear: genPropDesc('clear'),
+        dirxml: genPropDesc('dirxml'),
+        markTimeline: genPropDesc('markTimeline'),
+        timeline: genPropDesc('timeline'),
+        timelineEnd: genPropDesc('timelineEnd'),
+        timeStamp: genPropDesc('timeStamp'),
       };
 
       Object.defineProperties(con, properties);
@@ -244,15 +268,24 @@ const WorkerSandbox = Class({
       win.console = con;
     };
 
+    emit(events, "content-script-before-inserted", {
+      window: window,
+      worker: worker
+    });
+
     // The order of `contentScriptFile` and `contentScript` evaluation is
     // intentional, so programs can load libraries like jQuery from script URLs
     // and use them in scripts.
-    let contentScriptFile = ('contentScriptFile' in worker) ? worker.contentScriptFile
+    let contentScriptFile = ('contentScriptFile' in worker)
+          ? worker.contentScriptFile
           : null,
-        contentScript = ('contentScript' in worker) ? worker.contentScript : null;
+        contentScript = ('contentScript' in worker)
+          ? worker.contentScript
+          : null;
 
     if (contentScriptFile)
       importScripts.apply(null, [this].concat(contentScriptFile));
+
     if (contentScript) {
       evaluateIn(
         this,
@@ -285,7 +318,8 @@ exports.WorkerSandbox = WorkerSandbox;
 function importScripts (workerSandbox, ...urls) {
   let { worker, sandbox } = modelFor(workerSandbox);
   for (let i in urls) {
-    let contentScriptFile = urls[i];
+    let contentScriptFile = data.url(urls[i]);
+
     try {
       let uri = URL(contentScriptFile);
       if (uri.scheme === 'resource')
@@ -377,29 +411,16 @@ function emitToContent (workerSandbox, args) {
   return modelFor(workerSandbox).emitToContent(args);
 }
 
-function createChromeAPI () {
-  return {
+function createChromeAPI (scope) {
+  return Cu.cloneInto({
     timers: {
-      setTimeout: timer.setTimeout,
-      setInterval: timer.setInterval,
-      clearTimeout: timer.clearTimeout,
-      clearInterval: timer.clearInterval,
-      __exposedProps__: {
-        setTimeout: 'r',
-        setInterval: 'r',
-        clearTimeout: 'r',
-        clearInterval: 'r'
-      },
+      setTimeout: timer.setTimeout.bind(timer),
+      setInterval: timer.setInterval.bind(timer),
+      clearTimeout: timer.clearTimeout.bind(timer),
+      clearInterval: timer.clearInterval.bind(timer),
     },
     sandbox: {
       evaluate: evaluate,
-      __exposedProps__: {
-        evaluate: 'r'
-      }
     },
-    __exposedProps__: {
-      timers: 'r',
-      sandbox: 'r'
-    }
-  };
+  }, scope, {cloneFunctions: true});
 }

@@ -1,7 +1,9 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 ******************************************************************************
 *
-*   Copyright (C) 1997-2011, International Business Machines
+*   Copyright (C) 1997-2015, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *
 ******************************************************************************
@@ -165,7 +167,9 @@ _uRegexErrorName[U_REGEX_ERROR_LIMIT - U_REGEX_ERROR_START] = {
     "U_REGEX_INVALID_RANGE",
     "U_REGEX_STACK_OVERFLOW",
     "U_REGEX_TIME_OUT",
-    "U_REGEX_STOPPED_BY_CALLER"
+    "U_REGEX_STOPPED_BY_CALLER",
+    "U_REGEX_PATTERN_TOO_BIG",
+    "U_REGEX_INVALID_CAPTURE_GROUP_NAME"
 };
 
 static const char * const

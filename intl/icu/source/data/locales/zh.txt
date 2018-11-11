@@ -1,14 +1,5 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/zh.xml
-// *
-// ***************************************************************************
-/**
- * ICU <specials> source: <path>/common/main/zh.xml
- */
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 zh{
     AuxExemplarCharacters{"[仂 侣 傈 傣 僳 卑 卞 厘 吕 坝 堤 奎 屿 巽 撤 楔 楠 滕 瑚 甫 盲 碑 禄 粟 脚 艮 谬 钯 铂 锑 镑 魁]"}
     Ellipsis{
@@ -83,13 +74,63 @@ zh{
         "｝ ﹜ ︸ 〈 ︿ 〉 ﹀ 《 ︽ 》 ︾ 「 ﹁ 」 ﹂ 『 ﹃ 』 ﹄ 【 ︻ 】 ︼ 〔 ﹝ ︹ 〕 ﹞ ︺ 〖 〗 ‖ § @ ＠ ﹫ * ＊ "
         "﹡ / ／ \\\\ ＼ ﹨ \\& ＆ ﹠ # ＃ ﹟ % ％ ﹪ ‰ ′ ″ ‵ 〃 ※]"
     }
-    LocaleScript{
-        "Hani",
-    }
     MoreInformation{"？"}
     NumberElements{
+        arab{
+            patterns{
+                currencyFormat{"¤#,##0.00"}
+                percentFormat{"#,##0%"}
+            }
+            symbols{
+                decimal{"٫"}
+                exponential{"اس"}
+                group{"٬"}
+                infinity{"∞"}
+                list{"؛"}
+                nan{"NaN"}
+                perMille{"؉"}
+                superscriptingExponent{"×"}
+                timeSeparator{":"}
+            }
+        }
+        arabext{
+            symbols{
+                decimal{"٫"}
+                exponential{"×۱۰^"}
+                group{"٬"}
+                infinity{"∞"}
+                list{"؛"}
+                minusSign{"‎-‎"}
+                nan{"NaN"}
+                perMille{"؉"}
+                percentSign{"٪"}
+                plusSign{"‎+‎"}
+                superscriptingExponent{"×"}
+                timeSeparator{"٫"}
+            }
+        }
         default{"latn"}
         finance{"hansfin"}
+        hanidec{
+            patterns{
+                currencyFormat{"¤#,##0.00"}
+                decimalFormat{"#,##0.###"}
+                percentFormat{"#,##0%"}
+                scientificFormat{"#E0"}
+            }
+            symbols{
+                decimal{"."}
+                exponential{"E"}
+                group{","}
+                infinity{"∞"}
+                minusSign{"-"}
+                nan{"NaN"}
+                perMille{"‰"}
+                percentSign{"%"}
+                plusSign{"+"}
+                superscriptingExponent{"×"}
+            }
+        }
         latn{
             miscPatterns{
                 atLeast{"{0}+"}
@@ -97,7 +138,7 @@ zh{
             }
             patterns{
                 accountingFormat{"¤#,##0.00;(¤#,##0.00)"}
-                currencyFormat{"¤ #,##0.00"}
+                currencyFormat{"¤#,##0.00"}
                 decimalFormat{"#,##0.###"}
                 percentFormat{"#,##0%"}
                 scientificFormat{"#E0"}
@@ -143,6 +184,44 @@ zh{
                 }
             }
             patternsShort{
+                currencyFormat{
+                    1000{
+                        other{"¤0千"}
+                    }
+                    10000{
+                        other{"¤0万"}
+                    }
+                    100000{
+                        other{"¤00万"}
+                    }
+                    1000000{
+                        other{"¤000万"}
+                    }
+                    10000000{
+                        other{"¤0000万"}
+                    }
+                    100000000{
+                        other{"¤0亿"}
+                    }
+                    1000000000{
+                        other{"¤00亿"}
+                    }
+                    10000000000{
+                        other{"¤000亿"}
+                    }
+                    100000000000{
+                        other{"¤0000亿"}
+                    }
+                    1000000000000{
+                        other{"¤0兆"}
+                    }
+                    10000000000000{
+                        other{"¤00兆"}
+                    }
+                    100000000000000{
+                        other{"¤000兆"}
+                    }
+                }
                 decimalFormat{
                     1000{
                         other{"0千"}
@@ -194,17 +273,19 @@ zh{
                 percentSign{"%"}
                 plusSign{"+"}
                 superscriptingExponent{"×"}
+                timeSeparator{":"}
             }
         }
+        minimumGroupingDigits{"1"}
         native{"hanidec"}
         traditional{"hans"}
     }
-    Version{"2.0.93.8"}
+    Version{"2.1.29.84"}
     calendar{
         buddhist{
             DateTimePatterns{
-                "zzzzah:mm:ss",
-                "zah:mm:ss",
+                "zzzz ah:mm:ss",
+                "z ah:mm:ss",
                 "ah:mm:ss",
                 "ah:mm",
                 "Gy年M月d日EEEE",
@@ -222,6 +303,7 @@ zh{
                 MEd{"M-dE"}
                 MMM{"LLL"}
                 MMMEd{"M月d日E"}
+                MMMMd{"M月d日"}
                 MMMd{"M月d日"}
                 Md{"M-d"}
                 d{"d日"}
@@ -245,23 +327,23 @@ zh{
         }
         chinese{
             DateTimePatterns{
-                "zzzzah:mm:ss",
-                "zah:mm:ss",
+                "zzzz ah:mm:ss",
+                "z ah:mm:ss",
                 "ah:mm:ss",
                 "ah:mm",
                 {
-                    "U年MMMd日EEEE",
-                    "hanidec",
+                    "rU年MMMdEEEE",
+                    "d=hanidays",
                 }
                 {
-                    "U年MMMd日",
-                    "hanidec",
+                    "rU年MMMd",
+                    "d=hanidays",
                 }
                 {
-                    "U年MMMd日",
-                    "hanidec",
+                    "r年MMMd",
+                    "d=hanidays",
                 }
-                "U-M-d",
+                "r/M/d",
                 "{1} {0}",
                 "{1} {0}",
                 "{1} {0}",
@@ -269,28 +351,35 @@ zh{
                 "{1} {0}",
             }
             availableFormats{
+                E{"ccc"}
                 Ed{"d日E"}
-                Gy{"U年"}
-                GyMMM{"U年MMM"}
-                GyMMMEd{"U年MMMd日E"}
-                GyMMMd{"U年MMMd日"}
+                Gy{"rU年"}
+                GyMMM{"rU年MMM"}
+                GyMMMEd{"rU年MMMdE"}
+                GyMMMd{"r年MMMd"}
                 M{"MMM"}
                 MEd{"M-dE"}
                 MMMEd{"MMMd日E"}
+                MMMMd{"MMMMd日"}
                 MMMd{"MMMd日"}
                 Md{"M-d"}
+                UM{"U年MMM"}
+                UMMM{"U年MMM"}
+                UMMMd{"U年MMMd"}
+                UMd{"U年MMMd"}
                 d{"d日"}
-                y{"U年"}
-                yMd{"U年M月d日"}
-                yyyy{"U年"}
-                yyyyM{"U年M月"}
-                yyyyMEd{"U年M月d日，E"}
-                yyyyMMM{"U年MMM"}
-                yyyyMMMEd{"U年MMMd日E"}
-                yyyyMMMd{"U年MMMd日"}
-                yyyyMd{"U年M月d日"}
-                yyyyQQQ{"U年QQQQ"}
-                yyyyQQQQ{"U年QQQQ"}
+                y{"rU年"}
+                yMd{"r年MMMd"}
+                yyyy{"rU年"}
+                yyyyM{"rU年MMM"}
+                yyyyMEd{"rU年MMMd，E"}
+                yyyyMMM{"rU年MMM"}
+                yyyyMMMEd{"rU年MMMdE"}
+                yyyyMMMM{"rU年MMMM"}
+                yyyyMMMd{"r年MMMd"}
+                yyyyMd{"r年MMMd"}
+                yyyyQQQ{"rU年QQQQ"}
+                yyyyQQQQ{"rU年QQQQ"}
             }
             cyclicNameSets{
                 dayParts{
@@ -308,6 +397,36 @@ zh{
                             "酉",
                             "戌",
                             "亥",
+                        }
+                    }
+                }
+                solarTerms{
+                    format{
+                        abbreviated{
+                            "立春",
+                            "雨水",
+                            "惊蛰",
+                            "春分",
+                            "清明",
+                            "谷雨",
+                            "立夏",
+                            "小满",
+                            "芒种",
+                            "夏至",
+                            "小暑",
+                            "大暑",
+                            "立秋",
+                            "处暑",
+                            "白露",
+                            "秋分",
+                            "寒露",
+                            "霜降",
+                            "立冬",
+                            "小雪",
+                            "大雪",
+                            "冬至",
+                            "小寒",
+                            "大寒",
                         }
                     }
                 }
@@ -397,6 +516,17 @@ zh{
                 }
             }
             intervalFormats{
+                H{
+                    H{"HH至HH"}
+                }
+                Hm{
+                    H{"HH:mm至HH:mm"}
+                    m{"HH:mm至HH:mm"}
+                }
+                Hmv{
+                    H{"HH:mm至HH:mm v"}
+                    m{"HH:mm至HH:mm v"}
+                }
                 Hv{
                     H{"HH–HH v"}
                 }
@@ -445,39 +575,39 @@ zh{
                     h{"vah至h时"}
                 }
                 y{
-                    y{"U至U"}
+                    y{"rU至rU"}
                 }
                 yM{
-                    M{"U-M至U-M"}
-                    y{"U-M至U-M"}
+                    M{"r-M至r-M"}
+                    y{"r-M至r-M"}
                 }
                 yMEd{
-                    M{"U-M-dE至U-M-dE"}
-                    d{"U-M-dE至U-M-dE"}
-                    y{"U-M-dE至U-M-dE"}
+                    M{"r-M-dE至r-M-dE"}
+                    d{"r-M-dE至r-M-dE"}
+                    y{"r-M-dE至r-M-dE"}
                 }
                 yMMM{
-                    M{"U年MMM至MMM"}
-                    y{"U年MMM至U年MMM"}
+                    M{"rU年MMM至MMM"}
+                    y{"rU年MMM至rU年MMM"}
                 }
                 yMMMEd{
-                    M{"U年MMMd日E至MMMd日E"}
-                    d{"U年MMMd日E至d日E"}
-                    y{"U年MMMd日E至U年MMMd日E"}
+                    M{"rU年MMMdE至MMMdE"}
+                    d{"rU年MMMdE至dE"}
+                    y{"rU年MMMdE至rU年MMMdE"}
                 }
                 yMMMM{
-                    M{"U年MMMM至MMMM"}
-                    y{"U年MMMM至U年MMMM"}
+                    M{"rU年MMMM至MMMM"}
+                    y{"rU年MMMM至rU年MMMM"}
                 }
                 yMMMd{
-                    M{"U年MMMd日至MMMd日"}
-                    d{"U年MMMd日至d日"}
-                    y{"U年MMMd日至U年MMMd日"}
+                    M{"r年MMMd至MMMd"}
+                    d{"r年MMMd至d"}
+                    y{"r年MMMd至r年MMMd"}
                 }
                 yMd{
-                    M{"U-M-d至U-M-d"}
-                    d{"U-M-d至U-M-d"}
-                    y{"U-M-d至U-M-d"}
+                    M{"r-M-d至r-M-d"}
+                    d{"r-M-d至r-M-d"}
+                    y{"r-M-d至r-M-d"}
                 }
             }
             monthNames{
@@ -494,7 +624,7 @@ zh{
                         "九月",
                         "十月",
                         "十一月",
-                        "十二月",
+                        "腊月",
                     }
                     narrow{
                         "正",
@@ -508,7 +638,7 @@ zh{
                         "九",
                         "十",
                         "十一",
-                        "十二",
+                        "腊",
                     }
                     wide{
                         "正月",
@@ -522,7 +652,7 @@ zh{
                         "九月",
                         "十月",
                         "十一月",
-                        "十二月",
+                        "腊月",
                     }
                 }
                 stand-alone{
@@ -538,7 +668,7 @@ zh{
                         "九月",
                         "十月",
                         "十一月",
-                        "十二月",
+                        "腊月",
                     }
                     narrow{
                         "正",
@@ -551,8 +681,8 @@ zh{
                         "八",
                         "九",
                         "十",
-                        "十一",
-                        "十二",
+                        "冬",
+                        "腊",
                     }
                     wide{
                         "正月",
@@ -566,7 +696,7 @@ zh{
                         "九月",
                         "十月",
                         "十一月",
-                        "十二月",
+                        "腊月",
                     }
                 }
             }
@@ -589,6 +719,20 @@ zh{
             }
         }
         coptic{
+            eras{
+                abbreviated{
+                    "科普特历前",
+                    "科普特历",
+                }
+                narrow{
+                    "科普特历前",
+                    "科普特历",
+                }
+                wide{
+                    "科普特历前",
+                    "科普特历",
+                }
+            }
             monthNames{
                 format{
                     abbreviated{
@@ -687,6 +831,12 @@ zh{
             }
         }
         ethiopic{
+            eras{
+                wide{
+                    "埃塞俄比亚历前",
+                    "埃塞俄比亚历",
+                }
+            }
             monthNames{
                 format{
                     abbreviated{
@@ -784,15 +934,22 @@ zh{
                 }
             }
         }
+        ethiopic-amete-alem{
+            eras{
+                wide{
+                    "埃塞俄比亚阿米特阿莱姆历",
+                }
+            }
+        }
         generic{
             DateTimePatterns{
-                "zzzzah:mm:ss",
-                "zah:mm:ss",
+                "zzzz ah:mm:ss",
+                "z ah:mm:ss",
                 "ah:mm:ss",
                 "ah:mm",
-                "Gy年M月d日EEEE",
-                "Gy年M月d日",
-                "Gy年M月d日",
+                "Gy年MM月d日EEEE",
+                "Gy年MM月d日",
+                "Gy年MM月d日",
                 "Gy/M/d",
                 "{1} {0}",
                 "{1} {0}",
@@ -801,18 +958,20 @@ zh{
                 "{1} {0}",
             }
             availableFormats{
+                E{"ccc"}
                 Ed{"d日E"}
                 Gy{"Gy年"}
-                GyMMM{"Gy年M月"}
-                GyMMMEd{"Gy年M月d日E"}
-                GyMMMd{"Gy年M月d日"}
+                GyMMM{"Gy年MM月"}
+                GyMMMEd{"Gy年MM月d日E"}
+                GyMMMd{"Gy年MM月d日"}
                 H{"H时"}
                 Hm{"HH:mm"}
                 Hms{"HH:mm:ss"}
-                M{"M月"}
+                M{"L"}
                 MEd{"M/dE"}
-                MMM{"LLL"}
+                MMM{"LL"}
                 MMMEd{"M月d日E"}
+                MMMMd{"M月d日"}
                 MMMd{"M月d日"}
                 Md{"M/d"}
                 d{"d日"}
@@ -823,12 +982,12 @@ zh{
                 y{"Gy年"}
                 yyyy{"Gy年"}
                 yyyyM{"Gy年M月"}
-                yyyyMEd{"Gy/M/dE"}
-                yyyyMMM{"Gy年M月"}
-                yyyyMMMEd{"Gy年M月d日E"}
+                yyyyMEd{"G y/M/dE"}
+                yyyyMMM{"Gy年MM月"}
+                yyyyMMMEd{"Gy年MM月d日E"}
                 yyyyMMMM{"Gy年M月"}
-                yyyyMMMd{"Gy年M月d日"}
-                yyyyMd{"Gy/M/d"}
+                yyyyMMMd{"Gy年MM月d日"}
+                yyyyMd{"G y/M/d"}
                 yyyyQQQ{"Gy年第Q季度"}
                 yyyyQQQQ{"Gy年第Q季度"}
             }
@@ -839,6 +998,10 @@ zh{
                 Hm{
                     H{"HH:mm–HH:mm"}
                     m{"HH:mm–HH:mm"}
+                }
+                Hmv{
+                    H{"v HH:mm – HH:mm"}
+                    m{"v HH:mm – HH:mm"}
                 }
                 Hv{
                     H{"HH–HH v"}
@@ -851,7 +1014,7 @@ zh{
                     d{"M/dE至M/dE"}
                 }
                 MMM{
-                    M{"LLL至LLL"}
+                    M{"MMM – MMM"}
                 }
                 MMMEd{
                     M{"M月d日E至M月d日E"}
@@ -866,7 +1029,7 @@ zh{
                     d{"M/d – M/d"}
                 }
                 d{
-                    d{"d日至d日"}
+                    d{"d至d日"}
                 }
                 fallback{"{0} – {1}"}
                 h{
@@ -929,19 +1092,23 @@ zh{
                 "上午",
                 "下午",
             }
+            AmPmMarkersAbbr{
+                "上午",
+                "下午",
+            }
             AmPmMarkersNarrow{
                 "上午",
                 "下午",
             }
             DateTimePatterns{
-                "zzzzah:mm:ss",
-                "zah:mm:ss",
+                "zzzz ah:mm:ss",
+                "z ah:mm:ss",
                 "ah:mm:ss",
                 "ah:mm",
                 "y年M月d日EEEE",
                 "y年M月d日",
                 "y年M月d日",
-                "yy/M/d",
+                "y/M/d",
                 "{1} {0}",
                 "{1} {0}",
                 "{1} {0}",
@@ -952,6 +1119,7 @@ zh{
                 Timezone{"{1}{0}"}
             }
             availableFormats{
+                E{"ccc"}
                 EHm{"EHH:mm"}
                 EHms{"EHH:mm:ss"}
                 Ed{"d日E"}
@@ -964,11 +1132,16 @@ zh{
                 H{"H时"}
                 Hm{"HH:mm"}
                 Hms{"HH:mm:ss"}
+                Hmsv{"v HH:mm:ss"}
+                Hmv{"v HH:mm"}
                 M{"M月"}
                 MEd{"M/dE"}
                 MMM{"LLL"}
                 MMMEd{"M月d日E"}
-                MMMMdd{"M月dd日"}
+                MMMMW{
+                    other{"MMM第W周"}
+                }
+                MMMMd{"M月d日"}
                 MMMd{"M月d日"}
                 MMdd{"MM/dd"}
                 Md{"M/d"}
@@ -976,9 +1149,11 @@ zh{
                 h{"ah时"}
                 hm{"ah:mm"}
                 hms{"ah:mm:ss"}
+                hmsv{"v ah:mm:ss"}
+                hmv{"v ah:mm"}
                 ms{"mm:ss"}
                 y{"y年"}
-                yM{"y/M"}
+                yM{"y年M月"}
                 yMEd{"y/M/dE"}
                 yMM{"y年M月"}
                 yMMM{"y年M月"}
@@ -988,6 +1163,9 @@ zh{
                 yMd{"y/M/d"}
                 yQQQ{"y年第Q季度"}
                 yQQQQ{"y年第Q季度"}
+                yw{
+                    other{"y年第w周"}
+                }
             }
             dayNames{
                 format{
@@ -1067,6 +1245,72 @@ zh{
                     }
                 }
             }
+            dayPeriod{
+                format{
+                    abbreviated{
+                        afternoon1{"中午"}
+                        afternoon2{"下午"}
+                        evening1{"晚上"}
+                        midnight{"午夜"}
+                        morning1{"清晨"}
+                        morning2{"上午"}
+                        night1{"凌晨"}
+                    }
+                    narrow{
+                        afternoon1{"中午"}
+                        afternoon2{"下午"}
+                        evening1{"晚上"}
+                        midnight{"午夜"}
+                        morning1{"清晨"}
+                        morning2{"上午"}
+                        night1{"凌晨"}
+                    }
+                    wide{
+                        afternoon1{"中午"}
+                        afternoon2{"下午"}
+                        evening1{"晚上"}
+                        midnight{"午夜"}
+                        morning1{"清晨"}
+                        morning2{"上午"}
+                        night1{"凌晨"}
+                    }
+                }
+                stand-alone{
+                    abbreviated{
+                        afternoon1{"中午"}
+                        afternoon2{"下午"}
+                        am{"上午"}
+                        evening1{"晚上"}
+                        midnight{"午夜"}
+                        morning1{"清晨"}
+                        morning2{"上午"}
+                        night1{"凌晨"}
+                        pm{"下午"}
+                    }
+                    narrow{
+                        afternoon1{"中午"}
+                        afternoon2{"下午"}
+                        am{"上午"}
+                        evening1{"晚上"}
+                        midnight{"午夜"}
+                        morning1{"早上"}
+                        morning2{"上午"}
+                        night1{"凌晨"}
+                        pm{"下午"}
+                    }
+                    wide{
+                        afternoon1{"中午"}
+                        afternoon2{"下午"}
+                        am{"上午"}
+                        evening1{"晚上"}
+                        midnight{"午夜"}
+                        morning1{"早上"}
+                        morning2{"上午"}
+                        night1{"凌晨"}
+                        pm{"下午"}
+                    }
+                }
+            }
             eras{
                 abbreviated{
                     "公元前",
@@ -1104,7 +1348,7 @@ zh{
                     d{"M/dE至M/dE"}
                 }
                 MMM{
-                    M{"LLL至LLL"}
+                    M{"MMM – MMM"}
                 }
                 MMMEd{
                     M{"M月d日E至M月d日E"}
@@ -1311,8 +1555,8 @@ zh{
         }
         hebrew{
             DateTimePatterns{
-                "zzzzah:mm:ss",
-                "zah:mm:ss",
+                "zzzz ah:mm:ss",
+                "z ah:mm:ss",
                 "ah:mm:ss",
                 "ah:mm",
                 "Gy年M月d日EEEE",
@@ -1381,6 +1625,22 @@ zh{
                         "12月",
                         "13月",
                         "闰7月",
+                    }
+                    narrow{
+                        "1",
+                        "2",
+                        "3",
+                        "4",
+                        "5",
+                        "6",
+                        "7",
+                        "8",
+                        "9",
+                        "10",
+                        "11",
+                        "12",
+                        "13",
+                        "7",
                     }
                     wide{
                         "一月",
@@ -1500,8 +1760,8 @@ zh{
         }
         islamic{
             DateTimePatterns{
-                "zzzzah:mm:ss",
-                "zah:mm:ss",
+                "zzzz ah:mm:ss",
+                "z ah:mm:ss",
                 "ah:mm:ss",
                 "ah:mm",
                 "Gy年M月d日EEEE",
@@ -1519,13 +1779,14 @@ zh{
                 MEd{"M-dE"}
                 MMM{"LLL"}
                 MMMEd{"M月d日E"}
+                MMMMd{"M月d日"}
                 MMMd{"M月d日"}
                 Md{"M-d"}
                 d{"d日"}
             }
             eras{
                 abbreviated{
-                    "回历",
+                    "伊斯兰历",
                 }
             }
             monthNames{
@@ -1621,8 +1882,8 @@ zh{
         }
         japanese{
             DateTimePatterns{
-                "zzzzah:mm:ss",
-                "zah:mm:ss",
+                "zzzz ah:mm:ss",
+                "z ah:mm:ss",
                 "ah:mm:ss",
                 "ah:mm",
                 "Gy年M月d日EEEE",
@@ -1648,6 +1909,7 @@ zh{
                 MEd{"M-dE"}
                 MMM{"LLL"}
                 MMMEd{"M月d日E"}
+                MMMMd{"M月d日"}
                 MMMd{"M月d日"}
                 Md{"M-d"}
                 d{"d日"}
@@ -1661,6 +1923,7 @@ zh{
                 yyyyMEd{"Gy-M-d（E）"}
                 yyyyMMM{"Gy年M月"}
                 yyyyMMMEd{"Gy年M月d日E"}
+                yyyyMMMM{"Gy年M月"}
                 yyyyMMMd{"Gy年M月d日"}
                 yyyyMd{"Gy-MM-dd"}
                 yyyyQQQ{"Gy年第Q季度"}
@@ -1905,6 +2168,244 @@ zh{
                     "昭和",
                     "平成",
                 }
+                narrow{
+                    "大化(645–650)",
+                    "白雉(650–671)",
+                    "白凤(672–686)",
+                    "朱鸟(686–701)",
+                    "大宝(701–704)",
+                    "庆云(704–708)",
+                    "和铜(708–715)",
+                    "灵龟(715–717)",
+                    "养老(717–724)",
+                    "神龟(724–729)",
+                    "天平(729–749)",
+                    "天平感宝(749–749)",
+                    "天平胜宝(749–757)",
+                    "天平宝字(757–765)",
+                    "天平神护(765–767)",
+                    "神护景云(767–770)",
+                    "宝龟(770–780)",
+                    "天应(781–782)",
+                    "延历(782–806)",
+                    "大同(806–810)",
+                    "弘仁(810–824)",
+                    "天长(824–834)",
+                    "承和(834–848)",
+                    "嘉祥(848–851)",
+                    "仁寿(851–854)",
+                    "齐衡(854–857)",
+                    "天安(857–859)",
+                    "贞观(859–877)",
+                    "元庆(877–885)",
+                    "仁和(885–889)",
+                    "宽平(889–898)",
+                    "昌泰(898–901)",
+                    "延喜(901–923)",
+                    "延长(923–931)",
+                    "承平(931–938)",
+                    "天庆(938–947)",
+                    "天历(947–957)",
+                    "天德(957–961)",
+                    "应和(961–964)",
+                    "康保(964–968)",
+                    "安和(968–970)",
+                    "天禄(970–973)",
+                    "天延(973–976)",
+                    "贞元(976–978)",
+                    "天元(978–983)",
+                    "永观(983–985)",
+                    "宽和(985–987)",
+                    "永延(987–989)",
+                    "永祚(989–990)",
+                    "正历(990–995)",
+                    "长德(995–999)",
+                    "长保(999–1004)",
+                    "宽弘(1004–1012)",
+                    "长和(1012–1017)",
+                    "宽仁(1017–1021)",
+                    "治安(1021–1024)",
+                    "万寿(1024–1028)",
+                    "长元(1028–1037)",
+                    "长历(1037–1040)",
+                    "长久(1040–1044)",
+                    "宽德(1044–1046)",
+                    "永承(1046–1053)",
+                    "天喜(1053–1058)",
+                    "康平(1058–1065)",
+                    "治历(1065–1069)",
+                    "延久(1069–1074)",
+                    "承保(1074–1077)",
+                    "承历(1077–1081)",
+                    "永保(1081–1084)",
+                    "应德(1084–1087)",
+                    "宽治(1087–1094)",
+                    "嘉保(1094–1096)",
+                    "永长(1096–1097)",
+                    "承德(1097–1099)",
+                    "康和(1099–1104)",
+                    "长治(1104–1106)",
+                    "嘉承(1106–1108)",
+                    "天仁(1108–1110)",
+                    "天永(1110–1113)",
+                    "永久(1113–1118)",
+                    "元永(1118–1120)",
+                    "保安(1120–1124)",
+                    "天治(1124–1126)",
+                    "大治(1126–1131)",
+                    "天承(1131–1132)",
+                    "长承(1132–1135)",
+                    "保延(1135–1141)",
+                    "永治(1141–1142)",
+                    "康治(1142–1144)",
+                    "天养(1144–1145)",
+                    "久安(1145–1151)",
+                    "仁平(1151–1154)",
+                    "久寿(1154–1156)",
+                    "保元(1156–1159)",
+                    "平治(1159–1160)",
+                    "永历(1160–1161)",
+                    "应保(1161–1163)",
+                    "长宽(1163–1165)",
+                    "永万(1165–1166)",
+                    "仁安(1166–1169)",
+                    "嘉应(1169–1171)",
+                    "承安(1171–1175)",
+                    "安元(1175–1177)",
+                    "治承(1177–1181)",
+                    "养和(1181–1182)",
+                    "寿永(1182–1184)",
+                    "元历(1184–1185)",
+                    "文治(1185–1190)",
+                    "建久(1190–1199)",
+                    "正治(1199–1201)",
+                    "建仁(1201–1204)",
+                    "元久(1204–1206)",
+                    "建永(1206–1207)",
+                    "承元(1207–1211)",
+                    "建历(1211–1213)",
+                    "建保(1213–1219)",
+                    "承久(1219–1222)",
+                    "贞应(1222–1224)",
+                    "元仁(1224–1225)",
+                    "嘉禄(1225–1227)",
+                    "安贞(1227–1229)",
+                    "宽喜(1229–1232)",
+                    "贞永(1232–1233)",
+                    "天福(1233–1234)",
+                    "文历(1234–1235)",
+                    "嘉祯(1235–1238)",
+                    "历仁(1238–1239)",
+                    "延应(1239–1240)",
+                    "仁治(1240–1243)",
+                    "宽元(1243–1247)",
+                    "宝治(1247–1249)",
+                    "建长(1249–1256)",
+                    "康元(1256–1257)",
+                    "正嘉(1257–1259)",
+                    "正元(1259–1260)",
+                    "文应(1260–1261)",
+                    "弘长(1261–1264)",
+                    "文永(1264–1275)",
+                    "建治(1275–1278)",
+                    "弘安(1278–1288)",
+                    "正应(1288–1293)",
+                    "永仁(1293–1299)",
+                    "正安(1299–1302)",
+                    "乾元(1302–1303)",
+                    "嘉元(1303–1306)",
+                    "德治(1306–1308)",
+                    "延庆(1308–1311)",
+                    "应长(1311–1312)",
+                    "正和(1312–1317)",
+                    "文保(1317–1319)",
+                    "元应(1319–1321)",
+                    "元亨(1321–1324)",
+                    "正中(1324–1326)",
+                    "嘉历(1326–1329)",
+                    "元德(1329–1331)",
+                    "元弘(1331–1334)",
+                    "建武(1334–1336)",
+                    "延元(1336–1340)",
+                    "兴国(1340–1346)",
+                    "正平(1346–1370)",
+                    "建德(1370–1372)",
+                    "文中(1372–1375)",
+                    "天授(1375–1379)",
+                    "Kōryaku (1379–1381)",
+                    "Kōwa (1381–1384)",
+                    "Genchū (1384–1392)",
+                    "Meitoku (1384–1387)",
+                    "Kakei (1387–1389)",
+                    "Kōō (1389–1390)",
+                    "Meitoku (1390–1394)",
+                    "Ōei (1394–1428)",
+                    "Shōchō (1428–1429)",
+                    "Eikyō (1429–1441)",
+                    "Kakitsu (1441–1444)",
+                    "Bun’an (1444–1449)",
+                    "Hōtoku (1449–1452)",
+                    "Kyōtoku (1452–1455)",
+                    "Kōshō (1455–1457)",
+                    "Chōroku (1457–1460)",
+                    "Kanshō (1460–1466)",
+                    "Bunshō (1466–1467)",
+                    "Ōnin (1467–1469)",
+                    "Bunmei (1469–1487)",
+                    "Chōkyō (1487–1489)",
+                    "Entoku (1489–1492)",
+                    "Meiō (1492–1501)",
+                    "Bunki (1501–1504)",
+                    "Eishō (1504–1521)",
+                    "Taiei (1521–1528)",
+                    "Kyōroku (1528–1532)",
+                    "Tenbun (1532–1555)",
+                    "Kōji (1555–1558)",
+                    "Eiroku (1558–1570)",
+                    "Genki (1570–1573)",
+                    "Tenshō (1573–1592)",
+                    "Bunroku (1592–1596)",
+                    "Keichō (1596–1615)",
+                    "Genna (1615–1624)",
+                    "Kan’ei (1624–1644)",
+                    "Shōho (1644–1648)",
+                    "Keian (1648–1652)",
+                    "Jōō (1652–1655)",
+                    "Meireki (1655–1658)",
+                    "Manji (1658–1661)",
+                    "Kanbun (1661–1673)",
+                    "Enpō (1673–1681)",
+                    "Tenna (1681–1684)",
+                    "Jōkyō (1684–1688)",
+                    "Genroku (1688–1704)",
+                    "Hōei (1704–1711)",
+                    "Shōtoku (1711–1716)",
+                    "Kyōhō (1716–1736)",
+                    "Genbun (1736–1741)",
+                    "Kanpō (1741–1744)",
+                    "Enkyō (1744–1748)",
+                    "Kan’en (1748–1751)",
+                    "Hōreki (1751–1764)",
+                    "Meiwa (1764–1772)",
+                    "An’ei (1772–1781)",
+                    "Tenmei (1781–1789)",
+                    "Kansei (1789–1801)",
+                    "Kyōwa (1801–1804)",
+                    "Bunka (1804–1818)",
+                    "Bunsei (1818–1830)",
+                    "Tenpō (1830–1844)",
+                    "Kōka (1844–1848)",
+                    "Kaei (1848–1854)",
+                    "Ansei (1854–1860)",
+                    "Man’en (1860–1861)",
+                    "Bunkyū (1861–1864)",
+                    "Genji (1864–1865)",
+                    "Keiō (1865–1868)",
+                    "M",
+                    "T",
+                    "S",
+                    "H",
+                }
             }
         }
         persian{
@@ -2006,8 +2507,8 @@ zh{
         }
         roc{
             DateTimePatterns{
-                "zzzzah:mm:ss",
-                "zah:mm:ss",
+                "zzzz ah:mm:ss",
+                "z ah:mm:ss",
                 "ah:mm:ss",
                 "ah:mm",
                 "Gy年M月d日EEEE",
@@ -2021,6 +2522,7 @@ zh{
                 "{1} {0}",
             }
             availableFormats{
+                E{"ccc"}
                 Ed{"d日E"}
                 Gy{"Gy年"}
                 GyMMM{"Gy年M月"}
@@ -2030,6 +2532,7 @@ zh{
                 MEd{"M/dE"}
                 MMM{"LLL"}
                 MMMEd{"M月d日E"}
+                MMMMd{"M月d日"}
                 MMMd{"M月d日"}
                 Md{"M/d"}
                 d{"d日"}
@@ -2053,16 +2556,99 @@ zh{
             }
         }
     }
+    characterLabel{
+        activities{"行为"}
+        african_scripts{"非洲文字"}
+        american_scripts{"美洲文字"}
+        animal{"动物"}
+        animals_nature{"动物与自然"}
+        arrows{"箭头"}
+        body{"身体"}
+        box_drawing{"方框"}
+        braille{"盲文"}
+        building{"建筑"}
+        bullets_stars{"项目符号/星形"}
+        consonantal_jamo{"谚文辅音字母"}
+        currency_symbols{"货币符号"}
+        dash_connector{"破折号/连接号"}
+        digits{"数字"}
+        dingbats{"装饰符号"}
+        divination_symbols{"八卦符号"}
+        downwards_arrows{"向下箭头"}
+        downwards_upwards_arrows{"上下箭头"}
+        east_asian_scripts{"东亚文字"}
+        emoji{"绘文字"}
+        european_scripts{"欧洲文字"}
+        female{"女"}
+        flag{"旗"}
+        flags{"旗帜"}
+        food_drink{"饮食"}
+        format{"格式"}
+        format_whitespace{"格式与空白"}
+        full_width_form_variant{"全角变体"}
+        geometric_shapes{"几何图形"}
+        half_width_form_variant{"半角变体"}
+        han_characters{"汉字"}
+        han_radicals{"汉字部首"}
+        hanja{"朝鲜汉字"}
+        hanzi_simplified{"简体字"}
+        hanzi_traditional{"繁体字"}
+        heart{"心"}
+        historic_scripts{"古代文字"}
+        ideographic_desc_characters{"表意文字描述符"}
+        japanese_kana{"日语假名"}
+        kanbun{"汉文训读"}
+        kanji{"日文汉字"}
+        keycap{"按键"}
+        leftwards_arrows{"向左箭头"}
+        leftwards_rightwards_arrows{"左右箭头"}
+        letterlike_symbols{"类字母符号"}
+        limited_use{"限制使用"}
+        male{"男"}
+        math_symbols{"数学符号"}
+        middle_eastern_scripts{"中东文字"}
+        miscellaneous{"杂项"}
+        modern_scripts{"现代文字"}
+        modifier{"修饰符"}
+        musical_symbols{"音乐符号"}
+        nature{"自然"}
+        nonspacing{"非间距"}
+        numbers{"数字"}
+        objects{"物体"}
+        other{"其它"}
+        paired{"成对"}
+        person{"任务"}
+        phonetic_alphabet{"音标"}
+        pictographs{"象形文字"}
+        place{"地点"}
+        plant{"植物"}
+        punctuation{"标点符号"}
+        rightwards_arrows{"向右箭头"}
+        sign_standard_symbols{"标志/标准符号"}
+        small_form_variant{"小型变体形式"}
+        smiley{"笑脸"}
+        smileys_people{"笑脸与人"}
+        south_asian_scripts{"南亚文字"}
+        southeast_asian_scripts{"东南亚文字"}
+        spacing{"空格"}
+        sport{"运动"}
+        symbols{"符号"}
+        technical_symbols{"技术符号"}
+        tone_marks{"声调标记"}
+        travel{"出行"}
+        travel_places{"出行与地点"}
+        upwards_arrows{"向上箭头"}
+        variant_forms{"变体形式"}
+        vocalic_jamo{"谚文元音符号"}
+        weather{"天气"}
+        western_asian_scripts{"西亚文字"}
+        whitespace{"空白字符"}
+    }
     delimiters{
         alternateQuotationEnd{"’"}
         alternateQuotationStart{"‘"}
         quotationEnd{"”"}
         quotationStart{"“"}
-    }
-    durationUnits{
-        hm{"h:mm"}
-        hms{"h:mm:ss"}
-        ms{"m:ss"}
     }
     fields{
         day{
@@ -2074,6 +2660,28 @@ zh{
                 "1"{"明天"}
                 "2"{"后天"}
             }
+            relativeTime{
+                future{
+                    other{"{0}天后"}
+                }
+                past{
+                    other{"{0}天前"}
+                }
+            }
+        }
+        day-narrow{
+            dn{"日"}
+            relativeTime{
+                future{
+                    other{"{0}天后"}
+                }
+                past{
+                    other{"{0}天前"}
+                }
+            }
+        }
+        day-short{
+            dn{"日"}
             relativeTime{
                 future{
                     other{"{0}天后"}
@@ -2095,8 +2703,71 @@ zh{
                 "0"{"本周五"}
                 "1"{"下周五"}
             }
+            relativeTime{
+                future{
+                    other{"{0}个周五后"}
+                }
+                past{
+                    other{"{0}个周五前"}
+                }
+            }
+        }
+        fri-narrow{
+            relative{
+                "-1"{"上周五"}
+                "0"{"本周五"}
+                "1"{"下周五"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}个周五后"}
+                }
+                past{
+                    other{"{0}个周五前"}
+                }
+            }
+        }
+        fri-short{
+            relative{
+                "-1"{"上周五"}
+                "0"{"本周五"}
+                "1"{"下周五"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}个周五后"}
+                }
+                past{
+                    other{"{0}个周五前"}
+                }
+            }
         }
         hour{
+            dn{"小时"}
+            relative{
+                "0"{"这一时间 / 此时"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}小时后"}
+                }
+                past{
+                    other{"{0}小时前"}
+                }
+            }
+        }
+        hour-narrow{
+            dn{"小时"}
+            relativeTime{
+                future{
+                    other{"{0}小时后"}
+                }
+                past{
+                    other{"{0}小时前"}
+                }
+            }
+        }
+        hour-short{
             dn{"小时"}
             relativeTime{
                 future{
@@ -2109,6 +2780,31 @@ zh{
         }
         minute{
             dn{"分钟"}
+            relative{
+                "0"{"此刻"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}分钟后"}
+                }
+                past{
+                    other{"{0}分钟前"}
+                }
+            }
+        }
+        minute-narrow{
+            dn{"分"}
+            relativeTime{
+                future{
+                    other{"{0}分钟后"}
+                }
+                past{
+                    other{"{0}分钟前"}
+                }
+            }
+        }
+        minute-short{
+            dn{"分"}
             relativeTime{
                 future{
                     other{"{0}分钟后"}
@@ -2123,6 +2819,44 @@ zh{
                 "-1"{"上周一"}
                 "0"{"本周一"}
                 "1"{"下周一"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}个周一后"}
+                }
+                past{
+                    other{"{0}个周一前"}
+                }
+            }
+        }
+        mon-narrow{
+            relative{
+                "-1"{"上周一"}
+                "0"{"本周一"}
+                "1"{"下周一"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}个周一后"}
+                }
+                past{
+                    other{"{0}个周一前"}
+                }
+            }
+        }
+        mon-short{
+            relative{
+                "-1"{"上周一"}
+                "0"{"本周一"}
+                "1"{"下周一"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}个周一后"}
+                }
+                past{
+                    other{"{0}个周一前"}
+                }
             }
         }
         month{
@@ -2141,15 +2875,113 @@ zh{
                 }
             }
         }
+        month-narrow{
+            dn{"月"}
+            relativeTime{
+                future{
+                    other{"{0}个月后"}
+                }
+                past{
+                    other{"{0}个月前"}
+                }
+            }
+        }
+        month-short{
+            dn{"月"}
+            relativeTime{
+                future{
+                    other{"{0}个月后"}
+                }
+                past{
+                    other{"{0}个月前"}
+                }
+            }
+        }
+        quarter{
+            dn{"季度"}
+            relative{
+                "-1"{"上季度"}
+                "0"{"本季度"}
+                "1"{"下季度"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}个季度后"}
+                }
+                past{
+                    other{"{0}个季度前"}
+                }
+            }
+        }
+        quarter-narrow{
+            dn{"季"}
+            relativeTime{
+                future{
+                    other{"{0}个季度后"}
+                }
+                past{
+                    other{"{0}个季度前"}
+                }
+            }
+        }
+        quarter-short{
+            dn{"季"}
+            relativeTime{
+                future{
+                    other{"{0}个季度后"}
+                }
+                past{
+                    other{"{0}个季度前"}
+                }
+            }
+        }
         sat{
             relative{
                 "-1"{"上周六"}
                 "0"{"本周六"}
                 "1"{"下周六"}
             }
+            relativeTime{
+                future{
+                    other{"{0}个周六后"}
+                }
+                past{
+                    other{"{0}个周六前"}
+                }
+            }
+        }
+        sat-narrow{
+            relative{
+                "-1"{"上周六"}
+                "0"{"本周六"}
+                "1"{"下周六"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}个周六后"}
+                }
+                past{
+                    other{"{0}个周六前"}
+                }
+            }
+        }
+        sat-short{
+            relative{
+                "-1"{"上周六"}
+                "0"{"本周六"}
+                "1"{"下周六"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}个周六后"}
+                }
+                past{
+                    other{"{0}个周六前"}
+                }
+            }
         }
         second{
-            dn{"秒钟"}
+            dn{"秒"}
             relative{
                 "0"{"现在"}
             }
@@ -2162,11 +2994,71 @@ zh{
                 }
             }
         }
+        second-narrow{
+            dn{"秒"}
+            relativeTime{
+                future{
+                    other{"{0}秒后"}
+                }
+                past{
+                    other{"{0}秒前"}
+                }
+            }
+        }
+        second-short{
+            dn{"秒"}
+            relativeTime{
+                future{
+                    other{"{0}秒后"}
+                }
+                past{
+                    other{"{0}秒前"}
+                }
+            }
+        }
         sun{
             relative{
                 "-1"{"上周日"}
                 "0"{"本周日"}
                 "1"{"下周日"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}个周日后"}
+                }
+                past{
+                    other{"{0}个周日前"}
+                }
+            }
+        }
+        sun-narrow{
+            relative{
+                "-1"{"上周日"}
+                "0"{"本周日"}
+                "1"{"下周日"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}个周日后"}
+                }
+                past{
+                    other{"{0}个周日前"}
+                }
+            }
+        }
+        sun-short{
+            relative{
+                "-1"{"上周日"}
+                "0"{"本周日"}
+                "1"{"下周日"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}个周日后"}
+                }
+                past{
+                    other{"{0}个周日前"}
+                }
             }
         }
         thu{
@@ -2175,6 +3067,44 @@ zh{
                 "0"{"本周四"}
                 "1"{"下周四"}
             }
+            relativeTime{
+                future{
+                    other{"{0}个周四后"}
+                }
+                past{
+                    other{"{0}个周四前"}
+                }
+            }
+        }
+        thu-narrow{
+            relative{
+                "-1"{"上周四"}
+                "0"{"本周四"}
+                "1"{"下周四"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}个周四后"}
+                }
+                past{
+                    other{"{0}个周四前"}
+                }
+            }
+        }
+        thu-short{
+            relative{
+                "-1"{"上周四"}
+                "0"{"本周四"}
+                "1"{"下周四"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}个周四后"}
+                }
+                past{
+                    other{"{0}个周四前"}
+                }
+            }
         }
         tue{
             relative{
@@ -2182,12 +3112,88 @@ zh{
                 "0"{"本周二"}
                 "1"{"下周二"}
             }
+            relativeTime{
+                future{
+                    other{"{0}个周二后"}
+                }
+                past{
+                    other{"{0}个周二前"}
+                }
+            }
+        }
+        tue-narrow{
+            relative{
+                "-1"{"上周二"}
+                "0"{"本周二"}
+                "1"{"下周二"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}个周二后"}
+                }
+                past{
+                    other{"{0}个周二前"}
+                }
+            }
+        }
+        tue-short{
+            relative{
+                "-1"{"上周二"}
+                "0"{"本周二"}
+                "1"{"下周二"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}个周二后"}
+                }
+                past{
+                    other{"{0}个周二前"}
+                }
+            }
         }
         wed{
             relative{
                 "-1"{"上周三"}
                 "0"{"本周三"}
                 "1"{"下周三"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}个周三后"}
+                }
+                past{
+                    other{"{0}个周三前"}
+                }
+            }
+        }
+        wed-narrow{
+            relative{
+                "-1"{"上周三"}
+                "0"{"本周三"}
+                "1"{"下周三"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}个周三后"}
+                }
+                past{
+                    other{"{0}个周三前"}
+                }
+            }
+        }
+        wed-short{
+            relative{
+                "-1"{"上周三"}
+                "0"{"本周三"}
+                "1"{"下周三"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}个周三后"}
+                }
+                past{
+                    other{"{0}个周三前"}
+                }
             }
         }
         week{
@@ -2197,6 +3203,31 @@ zh{
                 "0"{"本周"}
                 "1"{"下周"}
             }
+            relativePeriod{"{0}这周"}
+            relativeTime{
+                future{
+                    other{"{0}周后"}
+                }
+                past{
+                    other{"{0}周前"}
+                }
+            }
+        }
+        week-narrow{
+            dn{"周"}
+            relativePeriod{"{0}这周"}
+            relativeTime{
+                future{
+                    other{"{0}周后"}
+                }
+                past{
+                    other{"{0}周前"}
+                }
+            }
+        }
+        week-short{
+            dn{"周"}
+            relativePeriod{"{0}这周"}
             relativeTime{
                 future{
                     other{"{0}周后"}
@@ -2207,7 +3238,7 @@ zh{
             }
         }
         weekday{
-            dn{"星期"}
+            dn{"工作日"}
         }
         year{
             dn{"年"}
@@ -2216,6 +3247,28 @@ zh{
                 "0"{"今年"}
                 "1"{"明年"}
             }
+            relativeTime{
+                future{
+                    other{"{0}年后"}
+                }
+                past{
+                    other{"{0}年前"}
+                }
+            }
+        }
+        year-narrow{
+            dn{"年"}
+            relativeTime{
+                future{
+                    other{"{0}年后"}
+                }
+                past{
+                    other{"{0}年前"}
+                }
+            }
+        }
+        year-short{
+            dn{"年"}
             relativeTime{
                 future{
                     other{"{0}年后"}
@@ -2236,7 +3289,19 @@ zh{
             middle{"{0}、{1}"}
             start{"{0}、{1}"}
         }
+        standard-short{
+            2{"{0}和{1}"}
+            end{"{0}和{1}"}
+            middle{"{0}、{1}"}
+            start{"{0}、{1}"}
+        }
         unit{
+            2{"{0}{1}"}
+            end{"{0}{1}"}
+            middle{"{0}{1}"}
+            start{"{0}{1}"}
+        }
+        unit-narrow{
             2{"{0}{1}"}
             end{"{0}{1}"}
             middle{"{0}{1}"}
@@ -2253,512 +3318,5 @@ zh{
         UK{"英制"}
         US{"美制"}
         metric{"公制"}
-    }
-    transformNames{
-        BGN{"美国地名委员会 (BGN)"}
-        Numeric{"数字"}
-        Tone{"音调"}
-        UNGEGN{"联合国地名专家组 (UNGEGN)"}
-        x-Accents{"重音符号"}
-        x-Fullwidth{"全角"}
-        x-Halfwidth{"半角"}
-        x-Jamo{"韩文字母"}
-        x-Pinyin{"拼音"}
-        x-Publishing{"印刷体"}
-    }
-    units{
-        acceleration{
-            g-force{
-                other{"{0}G力"}
-            }
-        }
-        angle{
-            arc-minute{
-                other{"{0}分钟"}
-            }
-            arc-second{
-                other{"{0}秒钟"}
-            }
-            degree{
-                other{"{0}度"}
-            }
-        }
-        area{
-            acre{
-                other{"{0}英亩"}
-            }
-            hectare{
-                other{"{0}公顷"}
-            }
-            square-foot{
-                other{"{0}平方英尺"}
-            }
-            square-kilometer{
-                other{"{0}平方公里"}
-            }
-            square-meter{
-                other{"{0}平方米"}
-            }
-            square-mile{
-                other{"{0}平方英里"}
-            }
-        }
-        compound{
-            per{"{0}每{1}"}
-        }
-        duration{
-            day{
-                other{"{0}天"}
-            }
-            hour{
-                other{"{0}小时"}
-            }
-            millisecond{
-                other{"{0}毫秒"}
-            }
-            minute{
-                other{"{0}分钟"}
-            }
-            month{
-                other{"{0}个月"}
-            }
-            second{
-                other{"{0}秒钟"}
-            }
-            week{
-                other{"{0}周"}
-            }
-            year{
-                other{"{0}年"}
-            }
-        }
-        length{
-            centimeter{
-                other{"{0}厘米"}
-            }
-            foot{
-                other{"{0}英尺"}
-            }
-            inch{
-                other{"{0}英寸"}
-            }
-            kilometer{
-                other{"{0}公里"}
-            }
-            light-year{
-                other{"{0}光年"}
-            }
-            meter{
-                other{"{0}米"}
-            }
-            mile{
-                other{"{0}英里"}
-            }
-            millimeter{
-                other{"{0}毫米"}
-            }
-            picometer{
-                other{"{0}皮米"}
-            }
-            yard{
-                other{"{0}码"}
-            }
-        }
-        mass{
-            gram{
-                other{"{0}克"}
-            }
-            kilogram{
-                other{"{0}千克"}
-            }
-            ounce{
-                other{"{0}盎司"}
-            }
-            pound{
-                other{"{0}磅"}
-            }
-        }
-        power{
-            horsepower{
-                other{"{0}马力"}
-            }
-            kilowatt{
-                other{"{0}千瓦"}
-            }
-            watt{
-                other{"{0}瓦特"}
-            }
-        }
-        pressure{
-            hectopascal{
-                other{"{0}百帕斯卡"}
-            }
-            inch-hg{
-                other{"{0}英寸汞柱"}
-            }
-            millibar{
-                other{"{0}毫巴"}
-            }
-        }
-        speed{
-            kilometer-per-hour{
-                other{"{0}千米每小时"}
-            }
-            meter-per-second{
-                other{"{0}米每秒"}
-            }
-            mile-per-hour{
-                other{"{0}英里每小时"}
-            }
-        }
-        temperature{
-            celsius{
-                other{"{0}摄氏度"}
-            }
-            fahrenheit{
-                other{"{0}华氏度"}
-            }
-        }
-        volume{
-            cubic-kilometer{
-                other{"{0}立方公里"}
-            }
-            cubic-mile{
-                other{"{0}立方英里"}
-            }
-            liter{
-                other{"{0}公升"}
-            }
-        }
-    }
-    unitsNarrow{
-        acceleration{
-            g-force{
-                other{"{0}G"}
-            }
-        }
-        angle{
-            arc-minute{
-                other{"{0}′"}
-            }
-            arc-second{
-                other{"{0}″"}
-            }
-            degree{
-                other{"{0}°"}
-            }
-        }
-        area{
-            acre{
-                other{"{0}ac"}
-            }
-            hectare{
-                other{"{0}ha"}
-            }
-            square-foot{
-                other{"{0}ft²"}
-            }
-            square-kilometer{
-                other{"{0}km²"}
-            }
-            square-meter{
-                other{"{0}m²"}
-            }
-            square-mile{
-                other{"{0}mi²"}
-            }
-        }
-        compound{
-            per{"{0}/{1}"}
-        }
-        duration{
-            day{
-                other{"{0}天"}
-            }
-            hour{
-                other{"{0}小时"}
-            }
-            millisecond{
-                other{"{0}毫秒"}
-            }
-            minute{
-                other{"{0}分钟"}
-            }
-            month{
-                other{"{0}个月"}
-            }
-            second{
-                other{"{0}秒"}
-            }
-            week{
-                other{"{0}周"}
-            }
-            year{
-                other{"{0}年"}
-            }
-        }
-        length{
-            centimeter{
-                other{"{0}cm"}
-            }
-            foot{
-                other{"{0}′"}
-            }
-            inch{
-                other{"{0}″"}
-            }
-            kilometer{
-                other{"{0}km"}
-            }
-            light-year{
-                other{"{0}ly"}
-            }
-            meter{
-                other{"{0}m"}
-            }
-            mile{
-                other{"{0}mi"}
-            }
-            millimeter{
-                other{"{0}mm"}
-            }
-            picometer{
-                other{"{0}pm"}
-            }
-            yard{
-                other{"{0}yd"}
-            }
-        }
-        mass{
-            gram{
-                other{"{0}克"}
-            }
-            kilogram{
-                other{"{0}千克"}
-            }
-            ounce{
-                other{"{0}盎司"}
-            }
-            pound{
-                other{"{0}磅"}
-            }
-        }
-        power{
-            horsepower{
-                other{"{0}hp"}
-            }
-            kilowatt{
-                other{"{0}kW"}
-            }
-            watt{
-                other{"{0}W"}
-            }
-        }
-        pressure{
-            hectopascal{
-                other{"{0}hPa"}
-            }
-            inch-hg{
-                other{"{0}\u0022 Hg"}
-            }
-            millibar{
-                other{"{0}mb"}
-            }
-        }
-        speed{
-            kilometer-per-hour{
-                other{"{0}km/h"}
-            }
-            meter-per-second{
-                other{"{0}m/s"}
-            }
-            mile-per-hour{
-                other{"{0}mi/h"}
-            }
-        }
-        temperature{
-            celsius{
-                other{"{0}°"}
-            }
-            fahrenheit{
-                other{"{0}°F"}
-            }
-        }
-        volume{
-            cubic-kilometer{
-                other{"{0}km³"}
-            }
-            cubic-mile{
-                other{"{0}mi³"}
-            }
-            liter{
-                other{"{0}l"}
-            }
-        }
-    }
-    unitsShort{
-        acceleration{
-            g-force{
-                other{"{0} G"}
-            }
-        }
-        angle{
-            arc-minute{
-                other{"{0}分"}
-            }
-            arc-second{
-                other{"{0}秒"}
-            }
-            degree{
-                other{"{0}°"}
-            }
-        }
-        area{
-            acre{
-                other{"{0} ac"}
-            }
-            hectare{
-                other{"{0} ha"}
-            }
-            square-foot{
-                other{"{0} ft²"}
-            }
-            square-kilometer{
-                other{"{0} km²"}
-            }
-            square-meter{
-                other{"{0} m²"}
-            }
-            square-mile{
-                other{"{0} mi²"}
-            }
-        }
-        compound{
-            per{"{0}/{1}"}
-        }
-        duration{
-            day{
-                other{"{0}天"}
-            }
-            hour{
-                other{"{0}小时"}
-            }
-            millisecond{
-                other{"{0}毫秒"}
-            }
-            minute{
-                other{"{0}分钟"}
-            }
-            month{
-                other{"{0}个月"}
-            }
-            second{
-                other{"{0}秒"}
-            }
-            week{
-                other{"{0}周"}
-            }
-            year{
-                other{"{0}年"}
-            }
-        }
-        length{
-            centimeter{
-                other{"{0} cm"}
-            }
-            foot{
-                other{"{0} ft"}
-            }
-            inch{
-                other{"{0} in"}
-            }
-            kilometer{
-                other{"{0} km"}
-            }
-            light-year{
-                other{"{0} ly"}
-            }
-            meter{
-                other{"{0} m"}
-            }
-            mile{
-                other{"{0} mi"}
-            }
-            millimeter{
-                other{"{0} mm"}
-            }
-            picometer{
-                other{"{0} pm"}
-            }
-            yard{
-                other{"{0} yd"}
-            }
-        }
-        mass{
-            gram{
-                other{"{0}克"}
-            }
-            kilogram{
-                other{"{0}千克"}
-            }
-            ounce{
-                other{"{0}盎司"}
-            }
-            pound{
-                other{"{0}磅"}
-            }
-        }
-        power{
-            horsepower{
-                other{"{0} hp"}
-            }
-            kilowatt{
-                other{"{0} kW"}
-            }
-            watt{
-                other{"{0}瓦"}
-            }
-        }
-        pressure{
-            hectopascal{
-                other{"{0} hPa"}
-            }
-            inch-hg{
-                other{"{0} inHg"}
-            }
-            millibar{
-                other{"{0} mb"}
-            }
-        }
-        speed{
-            kilometer-per-hour{
-                other{"{0}千米/小时"}
-            }
-            meter-per-second{
-                other{"{0}米/秒"}
-            }
-            mile-per-hour{
-                other{"{0}英里/小时"}
-            }
-        }
-        temperature{
-            celsius{
-                other{"{0}°C"}
-            }
-            fahrenheit{
-                other{"{0}°F"}
-            }
-        }
-        volume{
-            cubic-kilometer{
-                other{"{0} km³"}
-            }
-            cubic-mile{
-                other{"{0} mi³"}
-            }
-            liter{
-                other{"{0}升"}
-            }
-        }
     }
 }

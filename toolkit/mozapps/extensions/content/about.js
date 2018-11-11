@@ -1,4 +1,4 @@
-// -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+// -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
 
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -6,15 +6,21 @@
 
 "use strict";
 
+/* import-globals-from ../../../content/contentAreaUtils.js */
+
+var Cu = Components.utils;
+Cu.import("resource://gre/modules/AddonManager.jsm");
+
 function init() {
   var addon = window.arguments[0];
   var extensionsStrings = document.getElementById("extensionsStrings");
 
   document.documentElement.setAttribute("addontype", addon.type);
 
-  if (addon.iconURL) {
+  var iconURL = AddonManager.getPreferredIconURL(addon, 48, window);
+  if (iconURL) {
     var extensionIcon = document.getElementById("extensionIcon");
-    extensionIcon.src = addon.iconURL;
+    extensionIcon.src = iconURL;
   }
 
   document.title = extensionsStrings.getFormattedString("aboutWindowTitle", [addon.name]);
@@ -68,7 +74,7 @@ function init() {
 
   var acceptButton = document.documentElement.getButton("accept");
   acceptButton.label = extensionsStrings.getString("aboutWindowCloseButton");
-  
+
   setTimeout(sizeToContent, 0);
 }
 

@@ -7,17 +7,17 @@
 #include <sys/vfs.h>
 #include <fcntl.h>
 #include <errno.h>
+#include "base/message_loop.h"
+#include "base/task.h"
+#include "DiskSpaceWatcher.h"
+#include "fanotify.h"
 #include "nsIObserverService.h"
 #include "nsIDiskSpaceWatcher.h"
-#include "mozilla/ModuleUtils.h"
-#include "nsAutoPtr.h"
 #include "nsThreadUtils.h"
-#include "base/message_loop.h"
+#include "nsXULAppAPI.h"
+#include "mozilla/ModuleUtils.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
-#include "nsXULAppAPI.h"
-#include "fanotify.h"
-#include "DiskSpaceWatcher.h"
 
 using namespace mozilla;
 
@@ -25,22 +25,28 @@ namespace mozilla { namespace hal_impl { class GonkDiskSpaceWatcher; } }
 
 using namespace mozilla::hal_impl;
 
-template<>
-struct RunnableMethodTraits<GonkDiskSpaceWatcher>
-{
-  static void RetainCallee(GonkDiskSpaceWatcher* obj) { }
-  static void ReleaseCallee(GonkDiskSpaceWatcher* obj) { }
-};
-
 namespace mozilla {
 namespace hal_impl {
+
+// NOTE: this should be unnecessary once we no longer support ICS.
+#ifndef __NR_fanotify_init
+#if defined(__ARM_EABI__)
+#define __NR_fanotify_init 367
+#define __NR_fanotify_mark 368
+#elif defined(__i386__)
+#define __NR_fanotify_init 338
+#define __NR_fanotify_mark 339
+#else
+#error "Unhandled architecture"
+#endif
+#endif
 
 // fanotify_init and fanotify_mark functions are syscalls.
 // The user space bits are not part of bionic so we add them here
 // as well as fanotify.h
 int fanotify_init (unsigned int flags, unsigned int event_f_flags)
 {
-  return syscall(367, flags, event_f_flags);
+  return syscall(__NR_fanotify_init, flags, event_f_flags);
 }
 
 // Add, remove, or modify an fanotify mark on a filesystem object.
@@ -56,14 +62,14 @@ int fanotify_mark (int fanotify_fd, unsigned int flags,
       uint32_t _32[2];
     } _mask;
     _mask._64 = mask;
-    return syscall(368, fanotify_fd, flags, _mask._32[0], _mask._32[1],
-                   dfd, pathname);
+    return syscall(__NR_fanotify_mark, fanotify_fd, flags,
+		   _mask._32[0], _mask._32[1], dfd, pathname);
   }
 
-  return syscall(368, fanotify_fd, flags, mask, dfd, pathname);
+  return syscall(__NR_fanotify_mark, fanotify_fd, flags, mask, dfd, pathname);
 }
 
-class GonkDiskSpaceWatcher MOZ_FINAL : public MessageLoopForIO::Watcher
+class GonkDiskSpaceWatcher final : public MessageLoopForIO::Watcher
 {
 public:
   GonkDiskSpaceWatcher();
@@ -107,14 +113,14 @@ static GonkDiskSpaceWatcher* gHalDiskSpaceWatcher = nullptr;
 static const char kWatchedPath[] = "/data";
 
 // Helper class to dispatch calls to xpcom on the main thread.
-class DiskSpaceNotifier : public nsRunnable
+class DiskSpaceNotifier : public Runnable
 {
 public:
   DiskSpaceNotifier(const bool aIsDiskFull, const uint64_t aFreeSpace) :
     mIsDiskFull(aIsDiskFull),
     mFreeSpace(aFreeSpace) {}
 
-  NS_IMETHOD Run()
+  NS_IMETHOD Run() override
   {
     MOZ_ASSERT(NS_IsMainThread());
     DiskSpaceWatcher::UpdateState(mIsDiskFull, mFreeSpace);
@@ -127,10 +133,10 @@ private:
 };
 
 // Helper runnable to delete the watcher on the main thread.
-class DiskSpaceCleaner : public nsRunnable
+class DiskSpaceCleaner : public Runnable
 {
 public:
-  NS_IMETHOD Run()
+  NS_IMETHOD Run() override
   {
     MOZ_ASSERT(NS_IsMainThread());
     if (gHalDiskSpaceWatcher) {
@@ -164,11 +170,17 @@ GonkDiskSpaceWatcher::DoStart()
   NS_ASSERTION(XRE_GetIOMessageLoop() == MessageLoopForIO::current(),
                "Not on the correct message loop");
 
-  mFd = fanotify_init(FAN_CLASS_NOTIF, FAN_CLOEXEC);
+  mFd = fanotify_init(FAN_CLASS_NOTIF, FAN_CLOEXEC | O_LARGEFILE);
   if (mFd == -1) {
-    NS_WARNING("Error calling inotify_init()");
     if (errno == ENOSYS) {
+      // Don't change these printf_stderr since we need these logs even
+      // in opt builds.
       printf_stderr("Warning: No fanotify support in this device's kernel.\n");
+#if ANDROID_VERSION >= 19
+      MOZ_CRASH("Fanotify support must be enabled in the kernel.");
+#endif
+    } else {
+      printf_stderr("Error calling fanotify_init()");
     }
     return;
   }
@@ -241,8 +253,7 @@ GonkDiskSpaceWatcher::OnFileCanReadWithoutBlocking(int aFd)
 
   // We should get an exact multiple of fanotify_event_metadata
   if (len <= 0 || (len % FAN_EVENT_METADATA_LEN != 0)) {
-    printf_stderr("About to crash: fanotify_event_metadata read error.");
-    MOZ_CRASH();
+    MOZ_CRASH("About to crash: fanotify_event_metadata read error.");
   }
 
   fem = reinterpret_cast<fanotify_event_metadata *>(buf);
@@ -294,8 +305,7 @@ StartDiskSpaceWatcher()
   gHalDiskSpaceWatcher = new GonkDiskSpaceWatcher();
 
   XRE_GetIOMessageLoop()->PostTask(
-    FROM_HERE,
-    NewRunnableMethod(gHalDiskSpaceWatcher, &GonkDiskSpaceWatcher::DoStart));
+    NewNonOwningRunnableMethod(gHalDiskSpaceWatcher, &GonkDiskSpaceWatcher::DoStart));
 }
 
 void
@@ -307,8 +317,7 @@ StopDiskSpaceWatcher()
   }
 
   XRE_GetIOMessageLoop()->PostTask(
-    FROM_HERE,
-    NewRunnableMethod(gHalDiskSpaceWatcher, &GonkDiskSpaceWatcher::DoStop));
+    NewNonOwningRunnableMethod(gHalDiskSpaceWatcher, &GonkDiskSpaceWatcher::DoStop));
 }
 
 } // namespace hal_impl

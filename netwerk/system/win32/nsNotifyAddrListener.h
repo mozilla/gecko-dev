@@ -14,11 +14,14 @@
 #include "nsIObserver.h"
 #include "nsThreadUtils.h"
 #include "nsCOMPtr.h"
+#include "mozilla/TimeStamp.h"
 
 class nsNotifyAddrListener : public nsINetworkLinkService,
                              public nsIRunnable,
                              public nsIObserver
 {
+    virtual ~nsNotifyAddrListener();
+
 public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSINETWORKLINKSERVICE
@@ -26,12 +29,12 @@ public:
     NS_DECL_NSIOBSERVER
 
     nsNotifyAddrListener();
-    virtual ~nsNotifyAddrListener();
 
     nsresult Init(void);
+    void CheckLinkStatus(void);
 
 protected:
-    class ChangeEvent : public nsRunnable {
+    class ChangeEvent : public mozilla::Runnable {
     public:
         NS_DECL_NSIRUNNABLE
         ChangeEvent(nsINetworkLinkService *aService, const char *aEventID)
@@ -47,16 +50,51 @@ protected:
     bool mCheckAttempted;
 
     nsresult Shutdown(void);
-    nsresult SendEventToUI(const char *aEventID);
+    nsresult SendEvent(const char *aEventID);
 
     DWORD CheckAdaptersAddresses(void);
-    bool  CheckIsGateway(PIP_ADAPTER_ADDRESSES aAdapter);
+
+    // Checks for an Internet Connection Sharing (ICS) gateway.
+    bool  CheckICSGateway(PIP_ADAPTER_ADDRESSES aAdapter);
     bool  CheckICSStatus(PWCHAR aAdapterName);
-    void  CheckLinkStatus(void);
 
     nsCOMPtr<nsIThread> mThread;
 
-    HANDLE        mShutdownEvent;
+private:
+    // Returns the new timeout period for coalescing (or INFINITE)
+    DWORD nextCoalesceWaitTime();
+
+    // Called for every detected network change
+    nsresult NetworkChanged();
+
+    // Figure out the current network identification
+    void calculateNetworkId(void);
+    bool findMac(char *gateway);
+    nsCString mNetworkId;
+
+    HANDLE mCheckEvent;
+
+    // set true when mCheckEvent means shutdown
+    bool mShutdown;
+
+    // This is a checksum of various meta data for all network interfaces
+    // considered UP at last check.
+    ULONG mIPInterfaceChecksum;
+
+    // start time of the checking
+    mozilla::TimeStamp mStartTime;
+
+    // Network changed events are enabled
+    bool mAllowChangedEvent;
+
+    // Check for IPv6 network changes
+    bool mIPv6Changes;
+
+    // Flag set while coalescing change events
+    bool mCoalescingActive;
+
+    // Time stamp for first event during coalescing
+    mozilla::TimeStamp mChangeTime;
 };
 
 #endif /* NSNOTIFYADDRLISTENER_H_ */

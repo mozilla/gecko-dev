@@ -19,7 +19,7 @@
 
 "use strict";
 
-let SharedAll;
+var SharedAll;
 if (typeof Components != "undefined") {
   let Cu = Components.utils;
   // Module is opened as a jsm module
@@ -28,25 +28,25 @@ if (typeof Components != "undefined") {
   SharedAll = {};
   Cu.import("resource://gre/modules/osfile/osfile_shared_allthreads.jsm", SharedAll);
   this.exports = {};
-} else if (typeof "module" != "undefined" && typeof "require" != "undefined") {
+} else if (typeof module != "undefined" && typeof require != "undefined") {
   // Module is loaded with require()
   SharedAll = require("resource://gre/modules/osfile/osfile_shared_allthreads.jsm");
 } else {
   throw new Error("Please open this module with Component.utils.import or with require()");
 }
 
-let LOG = SharedAll.LOG.bind(SharedAll, "Win", "allthreads");
-let Const = SharedAll.Constants.Win;
+var LOG = SharedAll.LOG.bind(SharedAll, "Win", "allthreads");
+var Const = SharedAll.Constants.Win;
 
 // Open libc
-let libc = new SharedAll.Library("libc", "kernel32.dll");
+var libc = new SharedAll.Library("libc", "kernel32.dll");
 exports.libc = libc;
 
 // Define declareFFI
-let declareFFI = SharedAll.declareFFI.bind(null, libc);
+var declareFFI = SharedAll.declareFFI.bind(null, libc);
 exports.declareFFI = declareFFI;
 
-let Scope = {};
+var Scope = {};
 
 // Define Error
 libc.declareLazy(Scope, "FormatMessage",
@@ -56,7 +56,7 @@ libc.declareLazy(Scope, "FormatMessage",
                  /*source*/ ctypes.voidptr_t,
                  /*msgid*/  ctypes.uint32_t,
                  /*langid*/ ctypes.uint32_t,
-                 /*buf*/    ctypes.jschar.ptr,
+                 /*buf*/    ctypes.char16_t.ptr,
                  /*size*/   ctypes.uint32_t,
                  /*Arguments*/ctypes.voidptr_t);
 
@@ -85,7 +85,7 @@ libc.declareLazy(Scope, "FormatMessage",
  * @constructor
  * @extends {OS.Shared.Error}
  */
-let OSError = function OSError(operation = "unknown operation",
+var OSError = function OSError(operation = "unknown operation",
                                lastError = ctypes.winLastError, path = "") {
   operation = operation;
   SharedAll.OSError.call(this, operation, path);
@@ -93,7 +93,7 @@ let OSError = function OSError(operation = "unknown operation",
 };
 OSError.prototype = Object.create(SharedAll.OSError.prototype);
 OSError.prototype.toString = function toString() {
-  let buf = new (ctypes.ArrayType(ctypes.jschar, 1024))();
+  let buf = new (ctypes.ArrayType(ctypes.char16_t, 1024))();
   let result = Scope.FormatMessage(
     Const.FORMAT_MESSAGE_FROM_SYSTEM |
     Const.FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -112,6 +112,9 @@ OSError.prototype.toString = function toString() {
   return "Win error " + this.winLastError + " during operation "
     + this.operation + (this.path? " on file " + this.path : "") +
     " (" + buf.readString() + ")";
+};
+OSError.prototype.toMsg = function toMsg() {
+  return OSError.toMsg(this);
 };
 
 /**
@@ -178,6 +181,10 @@ Object.defineProperty(OSError.prototype, "becauseInvalidArgument", {
  */
 OSError.toMsg = function toMsg(error) {
   return {
+    exn: "OS.File.Error",
+    fileName: error.moduleName,
+    lineNumber: error.lineNumber,
+    stack: error.moduleStack,
     operation: error.operation,
     winLastError: error.winLastError,
     path: error.path
@@ -188,7 +195,11 @@ OSError.toMsg = function toMsg(error) {
  * Deserialize a message back to an instance of OSError
  */
 OSError.fromMsg = function fromMsg(msg) {
-  return new OSError(msg.operation, msg.winLastError, msg.path);
+  let error = new OSError(msg.operation, msg.winLastError, msg.path);
+  error.stack = msg.stack;
+  error.fileName = msg.fileName;
+  error.lineNumber = msg.lineNumber;
+  return error;
 };
 exports.Error = OSError;
 
@@ -197,9 +208,10 @@ exports.Error = OSError;
  *
  * @constructor
  */
-let AbstractInfo = function AbstractInfo(path, isDir, isSymLink, size,
+var AbstractInfo = function AbstractInfo(path, isDir, isSymLink, size,
                                          winBirthDate,
-                                         lastAccessDate, lastWriteDate) {
+                                         lastAccessDate, lastWriteDate,
+                                         winAttributes) {
   this._path = path;
   this._isDir = isDir;
   this._isSymLink = isSymLink;
@@ -207,6 +219,7 @@ let AbstractInfo = function AbstractInfo(path, isDir, isSymLink, size,
   this._winBirthDate = winBirthDate;
   this._lastAccessDate = lastAccessDate;
   this._lastModificationDate = lastWriteDate;
+  this._winAttributes = winAttributes;
 };
 
 AbstractInfo.prototype = {
@@ -274,6 +287,15 @@ AbstractInfo.prototype = {
    */
   get lastModificationDate() {
     return this._lastModificationDate;
+  },
+  /**
+   * The Object with following boolean properties of this file.
+   * {readOnly, system, hidden}
+   *
+   * @type {object}
+   */
+  get winAttributes() {
+    return this._winAttributes;
   }
 };
 exports.AbstractInfo = AbstractInfo;
@@ -283,7 +305,7 @@ exports.AbstractInfo = AbstractInfo;
  *
  * @constructor
  */
-let AbstractEntry = function AbstractEntry(isDir, isSymLink, name,
+var AbstractEntry = function AbstractEntry(isDir, isSymLink, name,
                                            winCreationDate, winLastWriteDate,
                                            winLastAccessDate, path) {
   this._isDir = isDir;
@@ -354,7 +376,7 @@ exports.POS_END = Const.FILE_END;
 
 // Special types that need to be defined for communication
 // between threads
-let Type = Object.create(SharedAll.Type);
+var Type = Object.create(SharedAll.Type);
 exports.Type = Type;
 
 /**
@@ -382,7 +404,7 @@ OSError.invalidArgument = function invalidArgument(operation) {
   return new OSError(operation, Const.ERROR_NOT_SUPPORTED);
 };
 
-let EXPORTED_SYMBOLS = [
+var EXPORTED_SYMBOLS = [
   "declareFFI",
   "libc",
   "Error",

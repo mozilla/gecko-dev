@@ -10,6 +10,7 @@
 #include "mozilla/Preferences.h"
 #include "mozJSComponentLoader.h"
 #include "nsZipArchive.h"
+#include "xpc_make_class.h"
 
 #define JSPERF_CONTRACTID \
   "@mozilla.org/jsperf;1"
@@ -95,8 +96,8 @@ Module::Call(nsIXPConnectWrappedNative* wrapper,
   return NS_OK;
 }
 
-}
-}
+} // namespace jsperf
+} // namespace mozilla
 
 NS_DEFINE_NAMED_CID(JSPERF_CID);
 

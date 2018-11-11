@@ -1,7 +1,7 @@
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
 
 function info(s) {
   dump("TEST-INFO | test_compmgr_warnings.js | " + s + "\n");
@@ -25,7 +25,7 @@ const kConsoleListener = {
     }
 
     info("Script error... " + message.sourceName + ":" + message.lineNumber + ": " + message.errorMessage);
-    for each (let expected in gMessagesExpected) {
+    for (let expected of gMessagesExpected) {
       if (message.lineNumber != expected.line)
         continue;
 
@@ -56,15 +56,14 @@ function run_test()
   cs.registerListener(kConsoleListener);
 
   var manifest = do_get_file('compmgr_warnings.manifest');
-  Components.manager.QueryInterface(Ci.nsIComponentRegistrar).
-    autoRegister(manifest);
-  manifest = do_get_file('testcomponent.manifest');
-  Components.manager.autoRegister(manifest);
+  registerAppManifest(manifest);
+  manifest = do_get_file('components/testcomponent.manifest');
+  registerAppManifest(manifest);
 
   run_deferred_event(function() {
     cs.unregisterListener(kConsoleListener);
 
-    for each (let expected in gMessagesExpected) {
+    for (let expected of gMessagesExpected) {
       info("checking " + expected.message);
       do_check_true(expected.found);
     }

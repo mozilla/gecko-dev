@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* vim:set ts=4 sw=4 sts=4 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -12,8 +13,8 @@
 #define UNICODE_BMP_LIMIT 0x10000
 #define UNICODE_LIMIT     0x110000
 
-
-const nsCharProps1&
+#ifndef ENABLE_INTL_API
+static const nsCharProps1&
 GetCharProps1(uint32_t aCh)
 {
     if (aCh < UNICODE_BMP_LIMIT) {
@@ -34,6 +35,7 @@ GetCharProps1(uint32_t aCh)
     };
     return undefined;
 }
+#endif
 
 const nsCharProps2&
 GetCharProps2(uint32_t aCh)
@@ -50,14 +52,21 @@ GetCharProps2(uint32_t aCh)
 
     NS_NOTREACHED("Getting CharProps for codepoint outside Unicode range");
     // Default values for unassigned
+    using namespace mozilla::unicode;
     static const nsCharProps2 undefined = {
-        MOZ_SCRIPT_UNKNOWN,                      // Script code
-        0,                                       // East Asian Width
-        HB_UNICODE_GENERAL_CATEGORY_UNASSIGNED,  // General Category
-        eCharType_LeftToRight,                   // Bidi Category
-        mozilla::unicode::XIDMOD_NOT_CHARS,      // Xidmod
-        -1,                                      // Numeric Value
-        mozilla::unicode::HVT_NotHan             // Han variant
+#if ENABLE_INTL_API
+        VERTICAL_ORIENTATION_R,
+        XIDMOD_NOT_CHARS
+#else
+        uint8_t(Script::UNKNOWN),
+        PAIRED_BRACKET_TYPE_NONE,
+        0, // EastAsianWidthFWH
+        HB_UNICODE_GENERAL_CATEGORY_UNASSIGNED,
+        eCharType_LeftToRight,
+        XIDMOD_NOT_CHARS,
+        -1, // Numeric Value
+        VERTICAL_ORIENTATION_R
+#endif
     };
     return undefined;
 }
@@ -87,10 +96,10 @@ to provide the most compact storage, depending on the distribution
 of values.
 */
 
-nsIUGenCategory::nsUGenCategory sDetailedToGeneralCategory[] = {
+const nsIUGenCategory::nsUGenCategory sDetailedToGeneralCategory[] = {
   /*
    * The order here corresponds to the HB_UNICODE_GENERAL_CATEGORY_* constants
-   * of the hb_unicode_general_category_t enum in gfx/harfbuzz/src/hb-common.h.
+   * of the hb_unicode_general_category_t enum in gfx/harfbuzz/src/hb-unicode.h.
    */
   /* CONTROL */             nsIUGenCategory::kOther,
   /* FORMAT */              nsIUGenCategory::kOther,
@@ -124,20 +133,103 @@ nsIUGenCategory::nsUGenCategory sDetailedToGeneralCategory[] = {
   /* SPACE_SEPARATOR */     nsIUGenCategory::kSeparator
 };
 
+#ifdef ENABLE_INTL_API
+const hb_unicode_general_category_t sICUtoHBcategory[U_CHAR_CATEGORY_COUNT] = {
+  HB_UNICODE_GENERAL_CATEGORY_UNASSIGNED, // U_GENERAL_OTHER_TYPES = 0,
+  HB_UNICODE_GENERAL_CATEGORY_UPPERCASE_LETTER, // U_UPPERCASE_LETTER = 1,
+  HB_UNICODE_GENERAL_CATEGORY_LOWERCASE_LETTER, // U_LOWERCASE_LETTER = 2,
+  HB_UNICODE_GENERAL_CATEGORY_TITLECASE_LETTER, // U_TITLECASE_LETTER = 3,
+  HB_UNICODE_GENERAL_CATEGORY_MODIFIER_LETTER, // U_MODIFIER_LETTER = 4,
+  HB_UNICODE_GENERAL_CATEGORY_OTHER_LETTER, // U_OTHER_LETTER = 5,
+  HB_UNICODE_GENERAL_CATEGORY_NON_SPACING_MARK, // U_NON_SPACING_MARK = 6,
+  HB_UNICODE_GENERAL_CATEGORY_ENCLOSING_MARK, // U_ENCLOSING_MARK = 7,
+  HB_UNICODE_GENERAL_CATEGORY_SPACING_MARK, // U_COMBINING_SPACING_MARK = 8,
+  HB_UNICODE_GENERAL_CATEGORY_DECIMAL_NUMBER, // U_DECIMAL_DIGIT_NUMBER = 9,
+  HB_UNICODE_GENERAL_CATEGORY_LETTER_NUMBER, // U_LETTER_NUMBER = 10,
+  HB_UNICODE_GENERAL_CATEGORY_OTHER_NUMBER, // U_OTHER_NUMBER = 11,
+  HB_UNICODE_GENERAL_CATEGORY_SPACE_SEPARATOR, // U_SPACE_SEPARATOR = 12,
+  HB_UNICODE_GENERAL_CATEGORY_LINE_SEPARATOR, // U_LINE_SEPARATOR = 13,
+  HB_UNICODE_GENERAL_CATEGORY_PARAGRAPH_SEPARATOR, // U_PARAGRAPH_SEPARATOR = 14,
+  HB_UNICODE_GENERAL_CATEGORY_CONTROL, // U_CONTROL_CHAR = 15,
+  HB_UNICODE_GENERAL_CATEGORY_FORMAT, // U_FORMAT_CHAR = 16,
+  HB_UNICODE_GENERAL_CATEGORY_PRIVATE_USE, // U_PRIVATE_USE_CHAR = 17,
+  HB_UNICODE_GENERAL_CATEGORY_SURROGATE, // U_SURROGATE = 18,
+  HB_UNICODE_GENERAL_CATEGORY_DASH_PUNCTUATION, // U_DASH_PUNCTUATION = 19,
+  HB_UNICODE_GENERAL_CATEGORY_OPEN_PUNCTUATION, // U_START_PUNCTUATION = 20,
+  HB_UNICODE_GENERAL_CATEGORY_CLOSE_PUNCTUATION, // U_END_PUNCTUATION = 21,
+  HB_UNICODE_GENERAL_CATEGORY_CONNECT_PUNCTUATION, // U_CONNECTOR_PUNCTUATION = 22,
+  HB_UNICODE_GENERAL_CATEGORY_OTHER_PUNCTUATION, // U_OTHER_PUNCTUATION = 23,
+  HB_UNICODE_GENERAL_CATEGORY_MATH_SYMBOL, // U_MATH_SYMBOL = 24,
+  HB_UNICODE_GENERAL_CATEGORY_CURRENCY_SYMBOL, // U_CURRENCY_SYMBOL = 25,
+  HB_UNICODE_GENERAL_CATEGORY_MODIFIER_SYMBOL, // U_MODIFIER_SYMBOL = 26,
+  HB_UNICODE_GENERAL_CATEGORY_OTHER_SYMBOL, // U_OTHER_SYMBOL = 27,
+  HB_UNICODE_GENERAL_CATEGORY_INITIAL_PUNCTUATION, // U_INITIAL_PUNCTUATION = 28,
+  HB_UNICODE_GENERAL_CATEGORY_FINAL_PUNCTUATION, // U_FINAL_PUNCTUATION = 29,
+};
+#endif
+
+#if !ENABLE_INTL_API
+uint8_t GetGeneralCategory(uint32_t aCh) {
+  return GetCharProps2(aCh).mCategory;
+}
+
+nsCharType GetBidiCat(uint32_t aCh) {
+  return nsCharType(GetCharProps2(aCh).mBidiCategory);
+}
+
+int8_t GetNumericValue(uint32_t aCh) {
+  return GetCharProps2(aCh).mNumericValue;
+}
+
 uint32_t
 GetMirroredChar(uint32_t aCh)
 {
     return aCh + sMirrorOffsets[GetCharProps1(aCh).mMirrorOffsetIndex];
 }
 
+bool
+HasMirroredChar(uint32_t aCh)
+{
+    return GetCharProps1(aCh).mMirrorOffsetIndex != 0;
+}
+
+uint8_t
+GetCombiningClass(uint32_t aCh)
+{
+    return GetCharProps1(aCh).mCombiningClass;
+}
+
+uint8_t
+GetLineBreakClass(uint32_t aCh)
+{
+    return GetCharProps2(aCh).mLineBreak;
+}
+
+Script
+GetScriptCode(uint32_t aCh)
+{
+    return Script(GetCharProps2(aCh).mScriptCode);
+}
+
 uint32_t
-GetScriptTagForCode(int32_t aScriptCode)
+GetScriptTagForCode(Script aScriptCode)
 {
     // this will safely return 0 for negative script codes, too :)
-    if (uint32_t(aScriptCode) > ArrayLength(sScriptCodeToTag)) {
+    if (static_cast<uint32_t>(aScriptCode) > ArrayLength(sScriptCodeToTag)) {
         return 0;
     }
-    return sScriptCodeToTag[aScriptCode];
+    return sScriptCodeToTag[static_cast<uint32_t>(aScriptCode)];
+}
+
+PairedBracketType GetPairedBracketType(uint32_t aCh)
+{
+  return PairedBracketType(GetCharProps2(aCh).mPairedBracketType);
+}
+
+uint32_t GetPairedBracket(uint32_t aCh)
+{
+  return GetPairedBracketType(aCh) != PAIRED_BRACKET_TYPE_NONE
+         ? GetMirroredChar(aCh) : aCh;
 }
 
 static inline uint32_t
@@ -204,41 +296,28 @@ GetTitlecaseForAll(uint32_t aCh)
     return aCh;
 }
 
-HanVariantType
-GetHanVariant(uint32_t aCh)
+bool IsEastAsianWidthFWH(uint32_t aCh)
 {
-    // In the sHanVariantValues array, data for 4 successive characters
-    // (2 bits each) is packed in to each uint8_t entry, with the value
-    // for the lowest character stored in the least significant bits.
-    uint8_t v = 0;
-    if (aCh < UNICODE_BMP_LIMIT) {
-        v = sHanVariantValues[sHanVariantPages[0][aCh >> kHanVariantCharBits]]
-                             [(aCh & ((1 << kHanVariantCharBits) - 1)) >> 2];
-    } else if (aCh < (kHanVariantMaxPlane + 1) * 0x10000) {
-        v = sHanVariantValues[sHanVariantPages[sHanVariantPlanes[(aCh >> 16) - 1]]
-                                              [(aCh & 0xffff) >> kHanVariantCharBits]]
-                             [(aCh & ((1 << kHanVariantCharBits) - 1)) >> 2];
-    }
-    // extract the appropriate 2-bit field from the value
-    return HanVariantType((v >> ((aCh & 3) * 2)) & 3);
+    return GetCharProps2(aCh).mEastAsianWidthFWH;
 }
+#endif
 
-uint32_t
-GetFullWidth(uint32_t aCh)
-{
-    // full-width mappings only exist for BMP characters; all others are
-    // returned unchanged
-    if (aCh < UNICODE_BMP_LIMIT) {
-        uint32_t v =
-            sFullWidthValues[sFullWidthPages[aCh >> kFullWidthCharBits]]
-                            [aCh & ((1 << kFullWidthCharBits) - 1)];
-        if (v) {
-            // return the mapped value if non-zero; else return original char
-            return v;
-        }
-    }
-    return aCh;
-}
+#define DEFINE_BMP_1PLANE_MAPPING_GET_FUNC(prefix_) \
+  uint32_t Get##prefix_(uint32_t aCh) \
+  { \
+    if (aCh >= UNICODE_BMP_LIMIT) { \
+      return aCh; \
+    } \
+    auto page = s##prefix_##Pages[aCh >> k##prefix_##CharBits]; \
+    auto index = aCh & ((1 << k##prefix_##CharBits) - 1); \
+    uint32_t v = s##prefix_##Values[page][index]; \
+    return v ? v : aCh; \
+  }
+
+// full-width mappings only exist for BMP characters; all others are
+// returned unchanged
+DEFINE_BMP_1PLANE_MAPPING_GET_FUNC(FullWidth)
+DEFINE_BMP_1PLANE_MAPPING_GET_FUNC(FullWidthInverse)
 
 bool
 IsClusterExtender(uint32_t aCh, uint8_t aCategory)
@@ -249,62 +328,32 @@ IsClusterExtender(uint32_t aCh, uint8_t aCategory)
             (aCh >= 0xff9e && aCh <= 0xff9f));  // katakana sound marks
 }
 
-// TODO: replace this with a properties file or similar;
-// expect this to evolve as harfbuzz shaping support matures.
-//
-// The "shaping type" of each script run, as returned by this
-// function, is compared to the bits set in the
-// gfx.font_rendering.harfbuzz.scripts
-// preference to decide whether to use the harfbuzz shaper.
-//
-int32_t
-ScriptShapingType(int32_t aScriptCode)
+enum HSType {
+#if ENABLE_INTL_API
+    HST_NONE = U_HST_NOT_APPLICABLE,
+    HST_L    = U_HST_LEADING_JAMO,
+    HST_V    = U_HST_VOWEL_JAMO,
+    HST_T    = U_HST_TRAILING_JAMO,
+    HST_LV   = U_HST_LV_SYLLABLE,
+    HST_LVT  = U_HST_LVT_SYLLABLE
+#else
+    HST_NONE = 0x00,
+    HST_L    = 0x01,
+    HST_V    = 0x02,
+    HST_T    = 0x04,
+    HST_LV   = 0x03,
+    HST_LVT  = 0x07
+#endif
+};
+
+static HSType
+GetHangulSyllableType(uint32_t aCh)
 {
-    switch (aScriptCode) {
-    default:
-        return SHAPING_DEFAULT; // scripts not explicitly listed here are
-                                // assumed to just use default shaping
-
-    case MOZ_SCRIPT_ARABIC:
-    case MOZ_SCRIPT_SYRIAC:
-    case MOZ_SCRIPT_NKO:
-    case MOZ_SCRIPT_MANDAIC:
-        return SHAPING_ARABIC; // bidi scripts with Arabic-style shaping
-
-    case MOZ_SCRIPT_HEBREW:
-        return SHAPING_HEBREW;
-
-    case MOZ_SCRIPT_HANGUL:
-        return SHAPING_HANGUL;
-
-    case MOZ_SCRIPT_MONGOLIAN: // to be supported by the Arabic shaper?
-        return SHAPING_MONGOLIAN;
-
-    case MOZ_SCRIPT_THAI: // no complex OT features, but MS engines like to do
-                          // sequence checking
-        return SHAPING_THAI;
-
-    case MOZ_SCRIPT_BENGALI:
-    case MOZ_SCRIPT_DEVANAGARI:
-    case MOZ_SCRIPT_GUJARATI:
-    case MOZ_SCRIPT_GURMUKHI:
-    case MOZ_SCRIPT_KANNADA:
-    case MOZ_SCRIPT_MALAYALAM:
-    case MOZ_SCRIPT_ORIYA:
-    case MOZ_SCRIPT_SINHALA:
-    case MOZ_SCRIPT_TAMIL:
-    case MOZ_SCRIPT_TELUGU:
-    case MOZ_SCRIPT_KHMER:
-    case MOZ_SCRIPT_LAO:
-    case MOZ_SCRIPT_TIBETAN:
-    case MOZ_SCRIPT_NEW_TAI_LUE:
-    case MOZ_SCRIPT_TAI_LE:
-    case MOZ_SCRIPT_MYANMAR:
-    case MOZ_SCRIPT_PHAGS_PA:
-    case MOZ_SCRIPT_BATAK:
-    case MOZ_SCRIPT_BRAHMI:
-        return SHAPING_INDIC; // scripts that require Indic or other "special" shaping
-    }
+#if ENABLE_INTL_API
+    return HSType(u_getIntPropertyValue(aCh, UCHAR_HANGUL_SYLLABLE_TYPE));
+#else
+    return HSType(GetCharProps1(aCh).mHangulType);
+#endif
 }
 
 void
@@ -339,14 +388,15 @@ ClusterIterator::Next()
                 }
                 break;
             case HST_V:
-                if ((hangulState != HST_NONE) && !(hangulState & HST_T)) {
+                if ((hangulState != HST_NONE) && (hangulState != HST_T) &&
+                    (hangulState != HST_LVT)) {
                     hangulState = hangulType;
                     mPos++;
                     continue;
                 }
                 break;
             case HST_T:
-                if (hangulState & (HST_V | HST_T)) {
+                if (hangulState != HST_NONE && hangulState != HST_L) {
                     hangulState = hangulType;
                     mPos++;
                     continue;
@@ -382,6 +432,46 @@ ClusterIterator::Next()
 
     NS_ASSERTION(mText < mPos && mPos <= mLimit,
                  "ClusterIterator::Next has overshot the string!");
+}
+
+void
+ClusterReverseIterator::Next()
+{
+    if (AtEnd()) {
+        NS_WARNING("ClusterReverseIterator has already reached the end");
+        return;
+    }
+
+    uint32_t ch;
+    do {
+        ch = *--mPos;
+
+        if (NS_IS_LOW_SURROGATE(ch) && mPos > mLimit &&
+            NS_IS_HIGH_SURROGATE(*(mPos - 1))) {
+            ch = SURROGATE_TO_UCS4(*--mPos, ch);
+        }
+
+        if (!IsClusterExtender(ch)) {
+            break;
+        }
+    } while (mPos > mLimit);
+
+    // XXX May need to handle conjoining Jamo
+
+    NS_ASSERTION(mPos >= mLimit,
+                 "ClusterReverseIterator::Next has overshot the string!");
+}
+
+uint32_t
+CountGraphemeClusters(const char16_t* aText, uint32_t aLength)
+{
+  ClusterIterator iter(aText, aLength);
+  uint32_t result = 0;
+  while (!iter.AtEnd()) {
+    ++result;
+    iter.Next();
+  }
+  return result;
 }
 
 } // end namespace unicode

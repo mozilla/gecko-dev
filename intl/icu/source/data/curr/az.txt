@@ -1,14 +1,5 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/az.xml
-// *
-// ***************************************************************************
-/**
- * ICU <specials> source: <path>/common/main/az.xml
- */
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 az{
     Currencies{
         ADP{
@@ -88,7 +79,7 @@ az{
             "Azərbaycan Manatı (1993–2006)",
         }
         AZN{
-            "man.",
+            "₼",
             "Azərbaycan Manatı",
         }
         BAD{
@@ -199,9 +190,13 @@ az{
             "BYB",
             "Belarus Yeni Rublu (1994–1999)",
         }
+        BYN{
+            "BYN",
+            "Belarus Rublu",
+        }
         BYR{
             "BYR",
-            "Belarus Rublu",
+            "Belarus Rublu (2000–2016)",
         }
         BZD{
             "BZD",
@@ -349,7 +344,7 @@ az{
         }
         GBP{
             "£",
-            "Britaniya Funt Sterlinqi",
+            "Britaniya Funt",
         }
         GEK{
             "GEK",
@@ -1068,6 +1063,106 @@ az{
             "Zimbabve Dolları (2008)",
         }
     }
+    Currencies%narrow{
+        AOA{"Kz"}
+        ARS{"$"}
+        AUD{"$"}
+        BAM{"KM"}
+        BBD{"$"}
+        BDT{"৳"}
+        BMD{"$"}
+        BND{"$"}
+        BOB{"Bs"}
+        BRL{"R$"}
+        BSD{"$"}
+        BWP{"P"}
+        BYN{"р."}
+        BZD{"$"}
+        CAD{"$"}
+        CLP{"$"}
+        CNY{"¥"}
+        COP{"$"}
+        CRC{"₡"}
+        CUC{"$"}
+        CUP{"$"}
+        CZK{"Kč"}
+        DKK{"kr"}
+        DOP{"$"}
+        EGP{"E£"}
+        EUR{"€"}
+        FJD{"$"}
+        FKP{"£"}
+        GBP{"£"}
+        GEL{"₾"}
+        GIP{"£"}
+        GNF{"FG"}
+        GTQ{"Q"}
+        GYD{"$"}
+        HKD{"$"}
+        HNL{"L"}
+        HRK{"kn"}
+        HUF{"Ft"}
+        IDR{"Rp"}
+        ILS{"₪"}
+        INR{"₹"}
+        ISK{"kr"}
+        JMD{"$"}
+        JPY{"¥"}
+        KHR{"៛"}
+        KMF{"CF"}
+        KPW{"₩"}
+        KRW{"₩"}
+        KYD{"$"}
+        KZT{"₸"}
+        LAK{"₭"}
+        LBP{"L£"}
+        LKR{"Rs"}
+        LRD{"$"}
+        MGA{"Ar"}
+        MMK{"K"}
+        MNT{"₮"}
+        MUR{"Rs"}
+        MXN{"$"}
+        MYR{"RM"}
+        NAD{"$"}
+        NGN{"₦"}
+        NIO{"C$"}
+        NOK{"kr"}
+        NPR{"Rs"}
+        NZD{"$"}
+        PHP{"₱"}
+        PKR{"Rs"}
+        PLN{"zł"}
+        PYG{"₲"}
+        RON{"ley"}
+        RUB{"₽"}
+        RWF{"RF"}
+        SBD{"$"}
+        SEK{"kr"}
+        SGD{"$"}
+        SHP{"£"}
+        SRD{"$"}
+        SSP{"£"}
+        STD{"Db"}
+        SYP{"S£"}
+        THB{"฿"}
+        TOP{"T$"}
+        TRY{"₺"}
+        TTD{"$"}
+        TWD{"NT$"}
+        UAH{"₴"}
+        USD{"$"}
+        UYU{"$"}
+        VEF{"Bs"}
+        VND{"₫"}
+        XCD{"$"}
+        ZAR{"R"}
+        ZMW{"ZK"}
+    }
+    Currencies%variant{
+        GEL{"₾"}
+        TRY{"TL"}
+    }
     CurrencyPlurals{
         ADP{
             one{"Andora pesetası"}
@@ -1257,9 +1352,13 @@ az{
             one{"Belarus yeni rublu (1994–1999)"}
             other{"Belarus yeni rublu (1994–1999)"}
         }
-        BYR{
+        BYN{
             one{"Belarus rublu"}
             other{"Belarus rublu"}
+        }
+        BYR{
+            one{"Belarus rublu (2000–2016)"}
+            other{"Belarus rublu (2000–2016)"}
         }
         BZD{
             one{"Beliz dolları"}
@@ -1406,8 +1505,8 @@ az{
             other{"Fransız markası"}
         }
         GBP{
-            one{"Britaniya funt sterlinqi"}
-            other{"Britaniya funt sterlinqi"}
+            one{"Britaniya funt"}
+            other{"Britaniya funt"}
         }
         GEK{
             one{"Gürcüstan kupon lariti"}
@@ -2066,8 +2165,8 @@ az{
             other{"platinum"}
         }
         XXX{
-            one{"naməlum valyuta"}
-            other{"naməlum valyuta"}
+            one{"(naməlum valyuta vahidi)"}
+            other{"(naməlum valyuta)"}
         }
         YDD{
             one{"Yəmən dinarı"}
@@ -2130,5 +2229,5 @@ az{
         one{"{0} {1}"}
         other{"{0} {1}"}
     }
-    Version{"2.0.92.87"}
+    Version{"2.1.28.79"}
 }

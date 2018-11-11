@@ -10,19 +10,15 @@
 #include <stddef.h>                     // for size_t
 #include <map>                          // for std::map
 #include "GLDefs.h"                     // for GLuint
-#include "mozilla/RefPtr.h"             // for TemporaryRef, RefCounted
+#include "mozilla/RefPtr.h"             // for already_AddRefed, RefCounted
 #include "mozilla/TimeStamp.h"          // for TimeStamp, TimeDuration
-#include "nsTArray.h"                   // for nsAutoTArray, nsTArray_Impl, etc
+#include "nsTArray.h"                   // for AutoTArray, nsTArray_Impl, etc
 #include "prio.h"                       // for NSPR file i/o
 
 namespace mozilla {
-namespace gl {
-class GLContext;
-}
 namespace layers {
 
 class DataTextureSource;
-class ShaderProgramOGL;
 class Compositor;
 
 // Dump the FPS histogram every 10 seconds or kMaxFrameFPS
@@ -58,7 +54,7 @@ const int kMaxFrames = 2400;
  */
 class FPSCounter {
 public:
-  FPSCounter(const char* aName);
+  explicit FPSCounter(const char* aName);
   ~FPSCounter();
 
   void AddFrame(TimeStamp aTimestamp);
@@ -91,7 +87,7 @@ private:
    * read at an offset except our latest write
    * we don't need an explicit read pointer.
    */
-  nsAutoTArray<TimeStamp, kMaxFrames> mFrameTimestamps;
+  AutoTArray<TimeStamp, kMaxFrames> mFrameTimestamps;
   int mWriteIndex;      // points to next open write slot
   int mIteratorIndex;   // used only when iterating
   const char* mFPSName;
@@ -112,7 +108,7 @@ private:
   RefPtr<DataTextureSource> mFPSTextureSource;
 };
 
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 #endif // mozilla_layers_opengl_FPSCounter_h_

@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- tab-width: 2; indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -93,14 +93,14 @@ nsFilePicker.prototype = {
   /* readonly attribute nsISimpleEnumerator files; */
   get files()  { return this.mFilesEnumerator; },
 
-  /* readonly attribute nsIDOMFile domfile; */
-  get domfile()  {
-    let enumerator = this.domfiles;
+  /* we don't support directories, yet */
+  get domFileOrDirectory()  {
+    let enumerator = this.domFileOrDirectoryEnumerator;
     return enumerator ? enumerator.mFiles[0] : null;
   },
 
-  /* readonly attribute nsISimpleEnumerator domfiles; */
-  get domfiles()  {
+  /* readonly attribute nsISimpleEnumerator domFileOrDirectoryEnumerator; */
+  get domFileOrDirectoryEnumerator()  {
     if (!this.mFilesEnumerator) {
       return null;
     }
@@ -234,7 +234,7 @@ nsFilePicker.prototype = {
       let result = Components.interfaces.nsIFilePicker.returnCancel;
       try {
         result = this.show();
-      } catch(ex) {
+      } catch (ex) {
       }
       if (aFilePickerShownCallback) {
         aFilePickerShownCallback.done(result);
@@ -243,17 +243,17 @@ nsFilePicker.prototype = {
   },
 
   show: function() {
-    var o = new Object();
+    var o = {};
     o.title = this.mTitle;
     o.mode = this.mMode;
     o.displayDirectory = this.mDisplayDirectory;
     o.defaultString = this.mDefaultString;
     o.filterIndex = this.mFilterIndex;
-    o.filters = new Object();
+    o.filters = {};
     o.filters.titles = this.mFilterTitles;
     o.filters.types = this.mFilters;
     o.allowURLs = this.mAllowURLs;
-    o.retvals = new Object();
+    o.retvals = {};
 
     var parent;
     if (this.mParentWindow) {
@@ -264,23 +264,12 @@ nsFilePicker.prototype = {
       try {
         var appShellService = Components.classes[APPSHELL_SERV_CONTRACTID].getService(nsIAppShellService);
         parent = appShellService.hiddenDOMWindow;
-      } catch(ex) {
+      } catch (ex) {
         debug("Can't get parent.  xpconnect hates me so we can't get one from the appShellService.\n");
         debug(ex + "\n");
       }
     }
 
-    var parentWin = null;
-    try {
-      parentWin = parent.QueryInterface(nsIInterfaceRequestor)
-                        .getInterface(nsIWebNavigation)
-                        .QueryInterface(nsIDocShellTreeItem)
-                        .treeOwner
-                        .QueryInterface(nsIInterfaceRequestor)
-                        .getInterface(nsIBaseWindow);
-    } catch(ex) {
-      dump("file picker couldn't get base window\n"+ex+"\n");
-    }
     try {
       parent.openDialog("chrome://global/content/filepicker.xul",
                         "",
@@ -292,7 +281,7 @@ nsFilePicker.prototype = {
       this.mFileURL = o.retvals.fileURL;
       lastDirectory = o.retvals.directory;
       return o.retvals.buttonStatus;
-    } catch(ex) { dump("unable to open file picker\n" + ex + "\n"); }
+    } catch (ex) { dump("unable to open file picker\n" + ex + "\n"); }
 
     return null;
   }
@@ -328,4 +317,3 @@ function srGetStrBundle(path)
   }
   return strBundle;
 }
-

@@ -120,10 +120,10 @@ nr_ice_peer_candidate_from_attribute(nr_ice_ctx *ctx,char *orig,nr_ice_media_str
     nr_ice_candidate *cand;
     char *connection_address=0;
     unsigned int port;
-    in_addr_t addr;
     int i;
     unsigned int component_id;
     char *rel_addr=0;
+    unsigned char transport;
 
     if(!(cand=RCALLOC(sizeof(nr_ice_candidate))))
         ABORT(R_NO_MEMORY);
@@ -136,6 +136,10 @@ nr_ice_peer_candidate_from_attribute(nr_ice_ctx *ctx,char *orig,nr_ice_media_str
     cand->state=NR_ICE_CAND_PEER_CANDIDATE_UNPAIRED;
     cand->stream=stream;
     skip_whitespace(&str);
+
+    /* Skip a= if present */
+    if (!strncmp(str, "a=", 2))
+        str += 2;
 
     /* Candidate attr */
     if (strncasecmp(str, "candidate:", 10))
@@ -174,8 +178,12 @@ nr_ice_peer_candidate_from_attribute(nr_ice_ctx *ctx,char *orig,nr_ice_media_str
         ABORT(R_BAD_DATA);
 
     /* Protocol */
-    if (strncasecmp(str, "UDP", 3))
-        ABORT(R_BAD_DATA);
+    if (!strncasecmp(str, "UDP", 3))
+      transport=IPPROTO_UDP;
+    else if (!strncasecmp(str, "TCP", 3))
+      transport=IPPROTO_TCP;
+    else
+      ABORT(R_BAD_DATA);
 
     fast_forward(&str, 3);
     if (*str == '\0')
@@ -203,10 +211,6 @@ nr_ice_peer_candidate_from_attribute(nr_ice_ctx *ctx,char *orig,nr_ice_media_str
     if (*str == '\0')
         ABORT(R_BAD_DATA);
 
-    addr = inet_addr(connection_address);
-    if (addr == INADDR_NONE)
-        ABORT(R_BAD_DATA);
-
     skip_whitespace(&str);
     if (*str == '\0')
         ABORT(R_BAD_DATA);
@@ -217,8 +221,7 @@ nr_ice_peer_candidate_from_attribute(nr_ice_ctx *ctx,char *orig,nr_ice_media_str
     if (port < 1 || port > 0x0FFFF)
         ABORT(R_BAD_DATA);
 
-    /* Assume v4 for now */
-    if(r=nr_ip4_port_to_transport_addr(ntohl(addr),port,IPPROTO_UDP,&cand->addr))
+    if ((r=nr_str_port_to_transport_addr(connection_address,port,transport,&cand->addr)))
       ABORT(r);
 
     skip_to_past_space(&str);
@@ -238,9 +241,6 @@ nr_ice_peer_candidate_from_attribute(nr_ice_ctx *ctx,char *orig,nr_ice_media_str
         ABORT(R_BAD_DATA);
 
     assert(nr_ice_candidate_type_names[0] == 0);
-#if __STDC_VERSION__ >= 201112L
-    _Static_assert(nr_ice_candidate_type_names[0] == 0,"Candidate name array is misformatted");
-#endif
 
     for (i = 1; nr_ice_candidate_type_names[i]; ++i) {
         if(!strncasecmp(nr_ice_candidate_type_names[i], str, strlen(nr_ice_candidate_type_names[i]))) {
@@ -283,10 +283,6 @@ nr_ice_peer_candidate_from_attribute(nr_ice_ctx *ctx,char *orig,nr_ice_media_str
         if (*str == '\0')
             ABORT(R_BAD_DATA);
 
-        addr = inet_addr(rel_addr);
-        if (addr == INADDR_NONE)
-            ABORT(R_BAD_DATA);
-
         skip_whitespace(&str);
         if (*str == '\0')
             ABORT(R_BAD_DATA);
@@ -305,11 +301,10 @@ nr_ice_peer_candidate_from_attribute(nr_ice_ctx *ctx,char *orig,nr_ice_media_str
         if (sscanf(str, "%u", &port) != 1)
             ABORT(R_BAD_DATA);
 
-        if (port < 1 || port > 0x0FFFF)
+        if (port > 0x0FFFF)
             ABORT(R_BAD_DATA);
 
-        /* Assume v4 for now */
-        if(r=nr_ip4_port_to_transport_addr(ntohl(addr),port,IPPROTO_UDP,&cand->base))
+        if ((r=nr_str_port_to_transport_addr(rel_addr,port,transport,&cand->base)))
           ABORT(r);
 
         skip_to_past_space(&str);
@@ -323,6 +318,28 @@ nr_ice_peer_candidate_from_attribute(nr_ice_ctx *ctx,char *orig,nr_ice_media_str
 
     skip_whitespace(&str);
 
+    if (transport == IPPROTO_TCP && cand->type != RELAYED) {
+      /* Parse tcptype extension per RFC 6544 S 4.5 */
+      if (strncasecmp("tcptype ", str, 8))
+        ABORT(R_BAD_DATA);
+
+      fast_forward(&str, 8);
+      skip_whitespace(&str);
+
+      for (i = 1; nr_ice_candidate_tcp_type_names[i]; ++i) {
+        if(!strncasecmp(nr_ice_candidate_tcp_type_names[i], str, strlen(nr_ice_candidate_tcp_type_names[i]))) {
+          cand->tcp_type=i;
+          fast_forward(&str, strlen(nr_ice_candidate_tcp_type_names[i]));
+          break;
+        }
+      }
+
+      if (cand->tcp_type == 0)
+        ABORT(R_BAD_DATA);
+
+      if (*str && *str != ' ')
+        ABORT(R_BAD_DATA);
+    }
     /* Ignore extensions per RFC 5245 S 15.1 */
 #if 0
     /* This used to be an assert, but we don't want to exit on invalid

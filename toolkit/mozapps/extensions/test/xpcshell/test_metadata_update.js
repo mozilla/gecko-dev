@@ -23,12 +23,12 @@ Services.prefs.setBoolPref("extensions.checkUpdateSecurity", false);
 // None of this works without the add-on repository cache
 Services.prefs.setBoolPref("extensions.getAddons.cache.enabled", true);
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-const Cr = Components.results;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
+var Cr = Components.results;
 
-Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://testing-common/MockRegistrar.jsm");
 var testserver;
 
 const profileDir = gProfD.clone();
@@ -37,7 +37,6 @@ profileDir.append("extensions");
 // This will be called to show the compatibility update dialog.
 var WindowWatcher = {
   expected: false,
-  arguments: null,
 
   openWindow: function(parent, url, name, features, args) {
     do_check_true(Services.startup.interrupted);
@@ -55,18 +54,7 @@ var WindowWatcher = {
   }
 }
 
-var WindowWatcherFactory = {
-  createInstance: function createInstance(outer, iid) {
-    if (outer != null)
-      throw Components.results.NS_ERROR_NO_AGGREGATION;
-    return WindowWatcher.QueryInterface(iid);
-  }
-};
-
-var registrar = Components.manager.QueryInterface(Components.interfaces.nsIComponentRegistrar);
-registrar.registerFactory(Components.ID("{1dfeb90a-2193-45d5-9cb8-864928b2af55}"),
-                          "Fake Window Watcher",
-                          "@mozilla.org/embedcomp/window-watcher;1", WindowWatcherFactory);
+MockRegistrar.register("@mozilla.org/embedcomp/window-watcher;1", WindowWatcher);
 
 // Return Date.now() in seconds, rounded
 function now() {
@@ -80,10 +68,9 @@ add_task(function* checkFirstMetadata() {
   Services.prefs.setBoolPref(PREF_EM_SHOW_MISMATCH_UI, true);
 
   // Create and configure the HTTP server.
-  testserver = new HttpServer();
+  testserver = createHttpServer();
   testserver.registerDirectory("/data/", do_get_file("data"));
   testserver.registerDirectory("/addons/", do_get_file("addons"));
-  testserver.start(-1);
   gPort = testserver.identity.primaryPort;
   const BASE_URL  = "http://localhost:" + gPort;
   const GETADDONS_RESULTS = BASE_URL + "/data/test_AddonRepository_cache.xml";
@@ -170,15 +157,3 @@ add_task(function* upgrade_young_pref_lastupdate() {
   yield promiseRestartManager("2");
   do_check_false(WindowWatcher.expected);
 });
-
-
-
-add_task(function* cleanup() {
-  return new Promise((resolve, reject) => {
-    testserver.stop(resolve);
-  });
-});
-
-function run_test() {
-  run_next_test();
-}

@@ -4,6 +4,8 @@
 
 "use strict";
 
+var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
+
 /**
  * This frame script is only loaded for sessionstore mochitests. It contains
  * a bunch of utility functions used to test form data collection and
@@ -36,7 +38,7 @@ function queryElement(data) {
 
 function dispatchUIEvent(input, type) {
   let event = input.ownerDocument.createEvent("UIEvents");
-  event.initUIEvent(type, true, true, input.ownerDocument.defaultView, 0);
+  event.initUIEvent(type, true, true, input.ownerGlobal, 0);
   input.dispatchEvent(event);
 }
 

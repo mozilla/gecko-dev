@@ -7,15 +7,13 @@
 
 #include "nsTArray.h"
 #include "nsCocoaUtils.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "mozilla/TextEvents.h"
 
 namespace mozilla {
 namespace widget {
 
-#ifdef PR_LOGGING
 PRLogModuleInfo* gNativeKeyBindingsLog = nullptr;
-#endif
 
 NativeKeyBindings* NativeKeyBindings::sInstanceForSingleLineEditor = nullptr;
 NativeKeyBindings* NativeKeyBindings::sInstanceForMultiLineEditor = nullptr;
@@ -65,13 +63,11 @@ NativeKeyBindings::NativeKeyBindings()
 void
 NativeKeyBindings::Init(NativeKeyBindingsType aType)
 {
-#ifdef PR_LOGGING
   if (!gNativeKeyBindingsLog) {
     gNativeKeyBindingsLog = PR_NewLogModule("NativeKeyBindings");
   }
-#endif
 
-  PR_LOG(gNativeKeyBindingsLog, PR_LOG_ALWAYS,
+  MOZ_LOG(gNativeKeyBindingsLog, LogLevel::Info,
     ("%p NativeKeyBindings::Init", this));
 
   // Many selectors have a one-to-one mapping to a Gecko command. Those mappings
@@ -207,7 +203,7 @@ NativeKeyBindings::Execute(const WidgetKeyboardEvent& aEvent,
                            DoCommandCallback aCallback,
                            void* aCallbackData)
 {
-  PR_LOG(gNativeKeyBindingsLog, PR_LOG_ALWAYS,
+  MOZ_LOG(gNativeKeyBindingsLog, LogLevel::Info,
     ("%p NativeKeyBindings::KeyPress", this));
 
   // Recover the current event, which should always be the key down we are
@@ -216,38 +212,36 @@ NativeKeyBindings::Execute(const WidgetKeyboardEvent& aEvent,
   NSEvent* cocoaEvent = reinterpret_cast<NSEvent*>(aEvent.mNativeKeyEvent);
 
   if (!cocoaEvent || [cocoaEvent type] != NSKeyDown) {
-    PR_LOG(gNativeKeyBindingsLog, PR_LOG_ALWAYS,
+    MOZ_LOG(gNativeKeyBindingsLog, LogLevel::Info,
       ("%p NativeKeyBindings::KeyPress, no Cocoa key down event", this));
 
     return false;
   }
 
-  PR_LOG(gNativeKeyBindingsLog, PR_LOG_ALWAYS,
+  MOZ_LOG(gNativeKeyBindingsLog, LogLevel::Info,
     ("%p NativeKeyBindings::KeyPress, interpreting", this));
 
-  nsAutoTArray<KeyBindingsCommand, 2> bindingCommands;
+  AutoTArray<KeyBindingsCommand, 2> bindingCommands;
   nsCocoaUtils::GetCommandsFromKeyEvent(cocoaEvent, bindingCommands);
 
-  PR_LOG(gNativeKeyBindingsLog, PR_LOG_ALWAYS,
+  MOZ_LOG(gNativeKeyBindingsLog, LogLevel::Info,
     ("%p NativeKeyBindings::KeyPress, bindingCommands=%u",
      this, bindingCommands.Length()));
 
-  nsAutoTArray<Command, 4> geckoCommands;
+  AutoTArray<Command, 4> geckoCommands;
 
   for (uint32_t i = 0; i < bindingCommands.Length(); i++) {
     SEL selector = bindingCommands[i].selector;
 
-#ifdef PR_LOGGING
-    if (PR_LOG_TEST(gNativeKeyBindingsLog, PR_LOG_ALWAYS)) {
+    if (MOZ_LOG_TEST(gNativeKeyBindingsLog, LogLevel::Info)) {
       NSString* selectorString = NSStringFromSelector(selector);
       nsAutoString nsSelectorString;
       nsCocoaUtils::GetStringForNSString(selectorString, nsSelectorString);
 
-      PR_LOG(gNativeKeyBindingsLog, PR_LOG_ALWAYS,
+      MOZ_LOG(gNativeKeyBindingsLog, LogLevel::Info,
         ("%p NativeKeyBindings::KeyPress, selector=%s",
-         this, ToNewCString(nsSelectorString)));
+         this, NS_LossyConvertUTF16toASCII(nsSelectorString).get()));
     }
-#endif
 
     // Try to find a simple mapping in the hashtable
     Command geckoCommand = static_cast<Command>(mSelectorToCommand.Get(
@@ -271,7 +265,7 @@ NativeKeyBindings::Execute(const WidgetKeyboardEvent& aEvent,
   }
 
   if (geckoCommands.IsEmpty()) {
-    PR_LOG(gNativeKeyBindingsLog, PR_LOG_ALWAYS,
+    MOZ_LOG(gNativeKeyBindingsLog, LogLevel::Info,
       ("%p NativeKeyBindings::KeyPress, handled=false", this));
 
     return false;
@@ -280,15 +274,15 @@ NativeKeyBindings::Execute(const WidgetKeyboardEvent& aEvent,
   for (uint32_t i = 0; i < geckoCommands.Length(); i++) {
     Command geckoCommand = geckoCommands[i];
 
-    PR_LOG(gNativeKeyBindingsLog, PR_LOG_ALWAYS,
+    MOZ_LOG(gNativeKeyBindingsLog, LogLevel::Info,
       ("%p NativeKeyBindings::KeyPress, command=%s",
-       this, geckoCommand));
+       this, WidgetKeyboardEvent::GetCommandStr(geckoCommand)));
 
     // Execute the Gecko command
     aCallback(geckoCommand, aCallbackData);
   }
 
-  PR_LOG(gNativeKeyBindingsLog, PR_LOG_ALWAYS,
+  MOZ_LOG(gNativeKeyBindingsLog, LogLevel::Info,
     ("%p NativeKeyBindings::KeyPress, handled=true", this));
 
   return true;

@@ -4,33 +4,38 @@
 
 function closeWindow(aClose, aPromptFunction)
 {
-# Closing the last window doesn't quit the application on OS X.
-#ifndef XP_MACOSX
-  var windowCount = 0;
-  var wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-                     .getService(Components.interfaces.nsIWindowMediator);
-  var e = wm.getEnumerator(null);
-  
-  while (e.hasMoreElements()) {
-    var w = e.getNext();
-    if (w.closed) {
-      continue;
-    }
-    if (++windowCount == 2) 
-      break;
-  }
-  
-  // If we're down to the last window and someone tries to shut down, check to make sure we can!
-  if (windowCount == 1 && !canQuitApplication("lastwindow"))
-    return false;
-  else if (windowCount != 1)
-#endif
-    if (typeof(aPromptFunction) == "function" && !aPromptFunction())
-      return false;
+  let { AppConstants } = Components.utils.import("resource://gre/modules/AppConstants.jsm");
 
-  if (aClose)    
+  // Closing the last window doesn't quit the application on OS X.
+  if (AppConstants.platform != "macosx") {
+    var windowCount = 0;
+    var wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+                       .getService(Components.interfaces.nsIWindowMediator);
+    var e = wm.getEnumerator(null);
+
+    while (e.hasMoreElements()) {
+      var w = e.getNext();
+      if (w.closed) {
+        continue;
+      }
+      if (++windowCount == 2)
+        break;
+    }
+
+    // If we're down to the last window and someone tries to shut down, check to make sure we can!
+    if (windowCount == 1 && !canQuitApplication("lastwindow"))
+      return false;
+    if (windowCount != 1 && typeof(aPromptFunction) == "function" && !aPromptFunction())
+      return false;
+  } else if (typeof(aPromptFunction) == "function" && !aPromptFunction()) {
+    return false;
+  }
+
+  if (aClose) {
     window.close();
-  
+    return window.closed;
+  }
+
   return true;
 }
 
@@ -39,13 +44,13 @@ function canQuitApplication(aData)
   var os = Components.classes["@mozilla.org/observer-service;1"]
                      .getService(Components.interfaces.nsIObserverService);
   if (!os) return true;
-  
+
   try {
     var cancelQuit = Components.classes["@mozilla.org/supports-PRBool;1"]
                               .createInstance(Components.interfaces.nsISupportsPRBool);
     os.notifyObservers(cancelQuit, "quit-application-requested", aData || null);
-    
-    // Something aborted the quit process. 
+
+    // Something aborted the quit process.
     if (cancelQuit.data)
       return false;
   }
@@ -146,34 +151,6 @@ function goOnEvent(aNode, aEvent)
     if (controller)
       controller.onEvent(aEvent);
   }
-}
-
-function visitLink(aEvent) {
-  var node = aEvent.target;
-  while (node.nodeType != Node.ELEMENT_NODE)
-    node = node.parentNode;
-  var url = node.getAttribute("link");
-  if (!url)
-    return;
-
-  var protocolSvc = Components.classes["@mozilla.org/uriloader/external-protocol-service;1"]
-                              .getService(Components.interfaces.nsIExternalProtocolService);
-  var ioService = Components.classes["@mozilla.org/network/io-service;1"]
-                            .getService(Components.interfaces.nsIIOService);
-  var uri = ioService.newURI(url, null, null);
-
-  // if the scheme is not an exposed protocol, then opening this link
-  // should be deferred to the system's external protocol handler
-  if (protocolSvc.isExposedProtocol(uri.scheme)) {
-    var win = window.top;
-    if (win instanceof Components.interfaces.nsIDOMChromeWindow) {
-      while (win.opener && !win.opener.closed)
-        win = win.opener;
-    }
-    win.open(uri.spec);
-  }
-  else
-    protocolSvc.loadUrl(uri);
 }
 
 function setTooltipText(aID, aTooltipText)

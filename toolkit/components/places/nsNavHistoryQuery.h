@@ -22,11 +22,11 @@
 #define NS_NAVHISTORYQUERY_IID \
 { 0xb10185e0, 0x86eb, 0x4612, { 0x95, 0x7c, 0x09, 0x34, 0xf2, 0xb1, 0xce, 0xd7 } }
 
-class nsNavHistoryQuery MOZ_FINAL : public nsINavHistoryQuery
+class nsNavHistoryQuery final : public nsINavHistoryQuery
 {
 public:
   nsNavHistoryQuery();
-  // note: we use a copy constructor in Clone(), the default is good enough
+  nsNavHistoryQuery(const nsNavHistoryQuery& aOther);
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_NAVHISTORYQUERY_IID)
   NS_DECL_ISUPPORTS
@@ -42,7 +42,6 @@ public:
   bool OnlyBookmarked() { return mOnlyBookmarked; }
   bool DomainIsHost() { return mDomainIsHost; }
   const nsCString& Domain() { return mDomain; }
-  bool UriIsPrefix() { return mUriIsPrefix; }
   nsIURI* Uri() { return mUri; } // NOT AddRef-ed!
   bool AnnotationIsNot() { return mAnnotationIsNot; }
   const nsCString& Annotation() { return mAnnotation; }
@@ -82,7 +81,6 @@ protected:
   bool mOnlyBookmarked;
   bool mDomainIsHost;
   nsCString mDomain; // Default is IsVoid, empty string is valid query
-  bool mUriIsPrefix;
   nsCOMPtr<nsIURI> mUri;
   bool mAnnotationIsNot;
   nsCString mAnnotation;
@@ -99,7 +97,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsNavHistoryQuery, NS_NAVHISTORYQUERY_IID)
 #define NS_NAVHISTORYQUERYOPTIONS_IID \
 {0x95f8ba3b, 0xd681, 0x4d89, {0xab, 0xd1, 0xfd, 0xae, 0xf2, 0xa3, 0xde, 0x18}}
 
-class nsNavHistoryQueryOptions MOZ_FINAL : public nsINavHistoryQueryOptions
+class nsNavHistoryQueryOptions final : public nsINavHistoryQueryOptions
 {
 public:
   nsNavHistoryQueryOptions()
@@ -134,6 +132,7 @@ public:
   nsresult Clone(nsNavHistoryQueryOptions **aResult);
 
 private:
+  ~nsNavHistoryQueryOptions() {}
   nsNavHistoryQueryOptions(const nsNavHistoryQueryOptions& other) {} // no copy
 
   // IF YOU ADD MORE ITEMS:

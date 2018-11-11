@@ -1,0 +1,199 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+html, body {
+  height: 100%;
+  width: 100%;
+}
+
+h2, h3, h4 {
+  margin-bottom: 10px;
+}
+
+button {
+  padding-left: 20px;
+  padding-right: 20px;
+  min-width: 100px;
+  margin: 0 4px;
+}
+
+/* Category panels */
+
+.category {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.category-name {
+  cursor: default;
+}
+
+.app {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+}
+
+.main-content {
+  flex: 1;
+}
+
+.panel {
+  max-width: 800px;
+}
+
+/* Targets */
+
+.targets {
+  margin-bottom: 35px;
+}
+
+.target-list {
+  margin: 0;
+  padding: 0;
+}
+
+.target-container {
+  margin-top: 5px;
+  min-height: 34px;
+  display: flex;
+  flex-direction: row;
+  align-items: start;
+}
+
+.target-icon {
+  height: 24px;
+  margin: 0 5px 0 0;
+}
+
+.target-icon:not([src]) {
+  display: none;
+}
+
+.inverted-icons .target-icon {
+  filter: invert(30%);
+}
+
+.target {
+  flex: 1;
+  margin-top: 2px;
+  /* This is silly: https://bugzilla.mozilla.org/show_bug.cgi?id=1086218#c4. */
+  min-width: 0;
+}
+
+.target-details {
+  margin: 0;
+  padding: 0;
+  list-style-type: none
+}
+
+.target-detail {
+  display: flex;
+  font-size: 12px;
+  margin-top: 7px;
+  margin-bottom: 7px;
+}
+
+.target-detail a {
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.target-detail strong {
+  white-space: nowrap;
+}
+
+.target-detail span {
+  /* Truncate items that are too long (e.g. URLs that would break the UI). */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.target-detail > :not(:first-child) {
+  margin-left: 8px;
+}
+
+.target-status {
+  box-sizing: border-box;
+  display: inline-block;
+
+  min-width: 50px;
+  margin: 4px 5px 0 0;
+  padding: 2px;
+
+  border-width: 1px;
+  border-style: solid;
+
+  font-size: 0.6em;
+  text-align: center;
+}
+
+.target-status-stopped {
+  border-color: grey;
+  background-color: lightgrey;
+}
+
+.target-status-running {
+  border-color: limegreen;
+  background-color: palegreen;
+}
+
+.target-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.addons-controls {
+  display: flex;
+  flex-direction: row;
+}
+
+.addons-install-error {
+  background-color: #f3b0b0;
+  padding: 5px 10px;
+  margin: 5px 4px 5px 0px;
+}
+
+.service-worker-disabled .warning,
+.addons-install-error .warning {
+  background-image: url(chrome://devtools/skin/images/alerticon-warning.png);
+  background-size: 13px 12px;
+  margin-right: 10px;
+  display: inline-block;
+  width: 13px;
+  height: 12px;
+}
+
+@media (min-resolution: 1.1dppx) {
+  .service-worker-disabled .warning,
+  .addons-install-error .warning {
+    background-image: url(chrome://devtools/skin/images/alerticon-warning@2x.png);
+  }
+}
+
+.addons-options {
+  flex: 1;
+}
+
+.addons-debugging-label {
+  display: inline-block;
+  margin-inline-end: 1ch;
+}
+
+.error-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+.error-page .error-page-details {
+  color: gray;
+}

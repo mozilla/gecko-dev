@@ -18,10 +18,13 @@ interface SVGGradientElement : SVGElement {
   const unsigned short SVG_SPREADMETHOD_REFLECT = 2;
   const unsigned short SVG_SPREADMETHOD_REPEAT = 3;
 
+  [Constant]
   readonly attribute SVGAnimatedEnumeration gradientUnits;
+  [Constant]
   readonly attribute SVGAnimatedTransformList gradientTransform;
+  [Constant]
   readonly attribute SVGAnimatedEnumeration spreadMethod;
 };
 
 SVGGradientElement implements SVGURIReference;
-SVGGradientElement implements SVGUnitTypes;
+SVGGradientElement implements SVGUnitTypeValues;

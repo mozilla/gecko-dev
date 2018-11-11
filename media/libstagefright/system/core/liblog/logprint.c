@@ -30,8 +30,10 @@
 #include <log/logprint.h>
 
 #ifdef _MSC_VER
+#if _MSC_VER < 1900
 #include <nspr/prprf.h>
 #define snprintf PR_snprintf
+#endif
 #define inline
 /* We don't want to indent large blocks because it causes unnecessary merge
  * conflicts */
@@ -265,7 +267,6 @@ AndroidLogPrintFormat android_log_formatFromString(const char * formatString)
 int android_log_addFilterRule(AndroidLogFormat *p_format,
         const char *filterExpression)
 {
-    size_t i=0;
     size_t tagNameLength;
     android_LogPriority pri = ANDROID_LOG_DEFAULT;
 
@@ -744,7 +745,6 @@ char *android_log_formatLogLine (
 #endif
     struct tm* ptm;
     char timeBuf[32];
-    char headerBuf[128];
     char prefixBuf[128], suffixBuf[128];
     char priChar;
     int prefixSuffixIsHeaderFooter = 0;
@@ -845,7 +845,6 @@ char *android_log_formatLogLine (
 
     UNINDENTED_BLOCK_START
     size_t numLines;
-    size_t i;
     char *p;
     size_t bufferSize;
     const char *pm;

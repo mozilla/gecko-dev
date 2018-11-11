@@ -20,34 +20,61 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   nsPrintSettingsX();
-  virtual ~nsPrintSettingsX();
   nsresult Init();
   NSPrintInfo* GetCocoaPrintInfo() { return mPrintInfo; }
   void SetCocoaPrintInfo(NSPrintInfo* aPrintInfo);
   virtual nsresult ReadPageFormatFromPrefs();
   virtual nsresult WritePageFormatToPrefs();
+  virtual nsresult GetEffectivePageSize(double *aWidth,
+      double *aHeight) override;
+
+  // In addition to setting the paper width and height, these
+  // overrides set the adjusted width and height returned from
+  // GetEffectivePageSize. This is needed when a paper size is
+  // set manually without using a print dialog a la reftest-print.
+  virtual nsresult SetPaperWidth(double aPaperWidth) override;
+  virtual nsresult SetPaperHeight(double aPaperWidth) override;
 
   PMPrintSettings GetPMPrintSettings();
   PMPrintSession GetPMPrintSession();
   PMPageFormat GetPMPageFormat();
   void SetPMPageFormat(PMPageFormat aPageFormat);
 
-protected:
-  nsPrintSettingsX(const nsPrintSettingsX& src);
-  nsPrintSettingsX& operator=(const nsPrintSettingsX& rhs);
-
-  nsresult _Clone(nsIPrintSettings **_retval);
-  nsresult _Assign(nsIPrintSettings *aPS);
-
   // Re-initialize mUnwriteableMargin with values from mPageFormat.
   // Should be called whenever mPageFormat is initialized or overwritten.
   nsresult InitUnwriteableMargin();
+
+  // Re-initialize mAdjustedPaper{Width,Height} with values from mPageFormat.
+  // Should be called whenever mPageFormat is initialized or overwritten.
+  nsresult InitAdjustedPaperSize();
+
+  void SetInchesScale(float aWidthScale, float aHeightScale);
+  void GetInchesScale(float *aWidthScale, float *aHeightScale);
+
+  void SetAdjustedPaperSize(double aWidth, double aHeight);
+  void GetAdjustedPaperSize(double *aWidth, double *aHeight);
+
+protected:
+  virtual ~nsPrintSettingsX();
+
+  nsPrintSettingsX(const nsPrintSettingsX& src);
+  nsPrintSettingsX& operator=(const nsPrintSettingsX& rhs);
+
+  nsresult _Clone(nsIPrintSettings **_retval) override;
+  nsresult _Assign(nsIPrintSettings *aPS) override;
 
   // The out param has a ref count of 1 on return so caller needs to PMRelase() when done.
   OSStatus CreateDefaultPageFormat(PMPrintSession aSession, PMPageFormat& outFormat);
   OSStatus CreateDefaultPrintSettings(PMPrintSession aSession, PMPrintSettings& outSettings);
 
   NSPrintInfo* mPrintInfo;
+
+  // Scaling factors used to convert the NSPrintInfo
+  // paper size units to inches
+  float mWidthScale;
+  float mHeightScale;
+  double mAdjustedPaperWidth;
+  double mAdjustedPaperHeight;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsPrintSettingsX, NS_PRINTSETTINGSX_IID)

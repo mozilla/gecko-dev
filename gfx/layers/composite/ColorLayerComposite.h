@@ -7,12 +7,9 @@
 #define GFX_ColorLayerComposite_H
 
 #include "Layers.h"                     // for ColorLayer, etc
-#include "mozilla/Attributes.h"         // for MOZ_OVERRIDE
+#include "mozilla/Attributes.h"         // for override
 #include "mozilla/layers/LayerManagerComposite.h"  // for LayerComposite, etc
 #include "nsISupportsImpl.h"            // for MOZ_COUNT_CTOR, etc
-
-struct nsIntPoint;
-struct nsIntRect;
 
 namespace mozilla {
 namespace layers {
@@ -23,34 +20,46 @@ class ColorLayerComposite : public ColorLayer,
                             public LayerComposite
 {
 public:
-  ColorLayerComposite(LayerManagerComposite *aManager)
+  explicit ColorLayerComposite(LayerManagerComposite *aManager)
     : ColorLayer(aManager, nullptr)
     , LayerComposite(aManager)
   {
     MOZ_COUNT_CTOR(ColorLayerComposite);
     mImplData = static_cast<LayerComposite*>(this);
   }
+
+protected:
   ~ColorLayerComposite()
   {
     MOZ_COUNT_DTOR(ColorLayerComposite);
     Destroy();
   }
 
+public:
   // LayerComposite Implementation
-  virtual Layer* GetLayer() MOZ_OVERRIDE { return this; }
+  virtual Layer* GetLayer() override { return this; }
 
-  virtual void Destroy() MOZ_OVERRIDE { mDestroyed = true; }
+  virtual void SetLayerManager(LayerManagerComposite* aManager) override
+  {
+    LayerComposite::SetLayerManager(aManager);
+    mManager = aManager;
+  }
 
-  virtual void RenderLayer(const nsIntRect& aClipRect) MOZ_OVERRIDE;
-  virtual void CleanupResources() MOZ_OVERRIDE {};
+  virtual void Destroy() override { mDestroyed = true; }
 
-  CompositableHost* GetCompositableHost() MOZ_OVERRIDE { return nullptr; }
+  virtual void RenderLayer(const gfx::IntRect& aClipRect) override;
+  virtual void CleanupResources() override {};
 
-  virtual LayerComposite* AsLayerComposite() MOZ_OVERRIDE { return this; }
+  virtual void GenEffectChain(EffectChain& aEffect) override;
 
-  virtual const char* Name() const MOZ_OVERRIDE { return "ColorLayerComposite"; }
+  CompositableHost* GetCompositableHost() override { return nullptr; }
+
+  virtual LayerComposite* AsLayerComposite() override { return this; }
+
+  virtual const char* Name() const override { return "ColorLayerComposite"; }
 };
 
-} /* layers */
-} /* mozilla */
+} // namespace layers
+} // namespace mozilla
+
 #endif /* GFX_ColorLayerComposite_H */

@@ -10,7 +10,7 @@
  */
 
 #include "nsDebug.h"
-#include "nsPluginNativeWindow.h"
+#include "nsPluginNativeWindowGtk.h"
 #include "nsNPAPIPlugin.h"
 #include "npapi.h"
 #include <gtk/gtk.h>
@@ -24,35 +24,7 @@
 #endif
 #include "mozilla/X11Util.h"
 
-class nsPluginNativeWindowGtk : public nsPluginNativeWindow {
-public: 
-  nsPluginNativeWindowGtk();
-  virtual ~nsPluginNativeWindowGtk();
-
-  virtual nsresult CallSetWindow(nsRefPtr<nsNPAPIPluginInstance> &aPluginInstance);
-private:
-  void SetWindow(XID aWindow)
-  {
-    window = reinterpret_cast<void*>(static_cast<uintptr_t>(aWindow));
-  }
-  XID GetWindow() const
-  {
-    return static_cast<XID>(reinterpret_cast<uintptr_t>(window));
-  }
-
-  NPSetWindowCallbackStruct mWsInfo;
-  /**
-   * Either a GtkSocket or a special GtkXtBin widget (derived from GtkSocket)
-   * that encapsulates the Xt toolkit within a Gtk Application.
-   */
-  GtkWidget* mSocketWidget;
-  nsresult  CreateXEmbedWindow(bool aEnableXtFocus);
-#if (MOZ_WIDGET_GTK == 2)
-  nsresult  CreateXtWindow();
-#endif
-  void      SetAllocation();
-};
-
+static void plug_added_cb(GtkWidget *widget, gpointer data);
 static gboolean plug_removed_cb   (GtkWidget *widget, gpointer data);
 static void socket_unrealize_cb   (GtkWidget *widget, gpointer data);
 
@@ -86,7 +58,7 @@ nsresult PLUG_NewPluginNativeWindow(nsPluginNativeWindow ** aPluginNativeWindow)
 {
   NS_ENSURE_ARG_POINTER(aPluginNativeWindow);
   *aPluginNativeWindow = new nsPluginNativeWindowGtk();
-  return *aPluginNativeWindow ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+  return NS_OK;
 }
 
 nsresult PLUG_DeletePluginNativeWindow(nsPluginNativeWindow * aPluginNativeWindow)
@@ -97,10 +69,16 @@ nsresult PLUG_DeletePluginNativeWindow(nsPluginNativeWindow * aPluginNativeWindo
   return NS_OK;
 }
 
-nsresult nsPluginNativeWindowGtk::CallSetWindow(nsRefPtr<nsNPAPIPluginInstance> &aPluginInstance)
+nsresult nsPluginNativeWindowGtk::CallSetWindow(RefPtr<nsNPAPIPluginInstance> &aPluginInstance)
 {
   if (aPluginInstance) {
-    if (type == NPWindowTypeWindow) {
+    if (type == NPWindowTypeWindow &&
+        XRE_IsContentProcess()) {
+      // In this case, most of the initialization code here has already happened
+      // in the chrome process. The window we have in content is the XID of the
+      // socket widget we need to hand to plugins.
+      SetWindow((XID)window);
+	  } else if (type == NPWindowTypeWindow) {
       if (!mSocketWidget) {
         nsresult rv;
 
@@ -145,7 +123,7 @@ nsresult nsPluginNativeWindowGtk::CallSetWindow(nsRefPtr<nsNPAPIPluginInstance> 
 
       // Make sure to resize and re-place the window if required.
       SetAllocation();
-      // Need to reset "window" each time as nsObjectFrame::DidReflow sets it
+      // Need to reset "window" each time as nsPluginFrame::DidReflow sets it
       // to the ancestor window.
 #if (MOZ_WIDGET_GTK == 2)
       if (GTK_IS_XTBIN(mSocketWidget)) {
@@ -165,9 +143,9 @@ nsresult nsPluginNativeWindowGtk::CallSetWindow(nsRefPtr<nsNPAPIPluginInstance> 
 #endif
     } // NPWindowTypeWindow
     aPluginInstance->SetWindow(this);
-  }
-  else if (mPluginInstance)
+  } else if (mPluginInstance) {
     mPluginInstance->SetWindow(nullptr);
+  }
 
   SetPluginInstance(aPluginInstance);
   return NS_OK;
@@ -185,6 +163,9 @@ nsresult nsPluginNativeWindowGtk::CreateXEmbedWindow(bool aEnableXtFocus) {
   // enable/disable focus event handlers,
   // see plugin_window_filter_func() for details
   g_object_set_data(G_OBJECT(mSocketWidget), "enable-xt-focus", (void *)aEnableXtFocus);
+
+  g_signal_connect(mSocketWidget, "plug_added",
+                   G_CALLBACK(plug_added_cb), nullptr);
 
   // Make sure to handle the plug_removed signal.  If we don't the
   // socket will automatically be destroyed when the plug is
@@ -225,7 +206,7 @@ nsresult nsPluginNativeWindowGtk::CreateXEmbedWindow(bool aEnableXtFocus) {
   SetWindow(gtk_socket_get_id(GTK_SOCKET(mSocketWidget)));
 
   // Fill out the ws_info structure.
-  // (The windowless case is done in nsObjectFrame.cpp.)
+  // (The windowless case is done in nsPluginFrame.cpp.)
   GdkWindow *gdkWindow = gdk_x11_window_lookup_for_display(display, GetWindow());
   if(!gdkWindow)
     return NS_ERROR_FAILURE;
@@ -236,7 +217,7 @@ nsresult nsPluginNativeWindowGtk::CreateXEmbedWindow(bool aEnableXtFocus) {
   GdkVisual* gdkVisual = gdk_drawable_get_visual(gdkWindow);
   mWsInfo.depth = gdkVisual->depth;
 #else
-  mWsInfo.colormap = None;
+  mWsInfo.colormap = X11None;
   GdkVisual* gdkVisual = gdk_window_get_visual(gdkWindow);
   mWsInfo.depth = gdk_visual_get_depth(gdkVisual);
 #endif
@@ -301,6 +282,32 @@ nsresult nsPluginNativeWindowGtk::CreateXtWindow() {
 }
 #endif
 
+static void
+plug_window_finalize_cb(gpointer socket, GObject* plug_window)
+{
+  g_object_unref(socket);
+}
+
+static void
+plug_added_cb(GtkWidget *socket, gpointer data)
+{
+  // The plug window has been embedded, and gtk_socket_add_window() has added
+  // a filter to the socket's plug_window, passing the socket as data for the
+  // filter, so the socket must live as long as events may be received on the
+  // plug window.
+  //
+  // https://git.gnome.org/browse/gtk+/tree/gtk/gtksocket.c?h=3.18.7#n1124
+  g_object_ref(socket);
+  // When the socket is unrealized, perhaps during gtk_widget_destroy() from
+  // ~nsPluginNativeWindowGtk, the plug is removed.  The plug in the child
+  // process then destroys its widget and window.  When the browser process
+  // receives the DestroyNotify event for the plug window, GDK releases its
+  // reference to plugWindow.  This is typically the last reference and so the
+  // weak ref callback triggers release of the socket.
+  GdkWindow* plugWindow = gtk_socket_get_plug_window(GTK_SOCKET(socket));
+  g_object_weak_ref(G_OBJECT(plugWindow), plug_window_finalize_cb, socket);
+}
+
 /* static */
 gboolean
 plug_removed_cb (GtkWidget *widget, gpointer data)
@@ -341,5 +348,9 @@ socket_unrealize_cb(GtkWidget *widget, gpointer data)
   if (children) XFree(children);
 
   mozilla::FinishX(display);
+#if (MOZ_WIDGET_GTK == 3)
+  gdk_error_trap_pop_ignored();
+#else
   gdk_error_trap_pop();
+#endif
 }

@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 40; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -39,7 +40,6 @@ WakeLock::WakeLock()
   , mHidden(true)
   , mContentParentID(CONTENT_PROCESS_ID_UNKNOWN)
 {
-  SetIsDOMBinding();
 }
 
 WakeLock::~WakeLock()
@@ -49,13 +49,13 @@ WakeLock::~WakeLock()
 }
 
 JSObject*
-WakeLock::WrapObject(JSContext* aCx)
+WakeLock::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return MozWakeLockBinding::Wrap(aCx, this);
+  return MozWakeLockBinding::Wrap(aCx, this, aGivenProto);
 }
 
 nsresult
-WakeLock::Init(const nsAString &aTopic, nsIDOMWindow *aWindow)
+WakeLock::Init(const nsAString &aTopic, nsPIDOMWindowInner* aWindow)
 {
   // Don't Init() a WakeLock twice.
   MOZ_ASSERT(mTopic.IsEmpty());
@@ -67,14 +67,13 @@ WakeLock::Init(const nsAString &aTopic, nsIDOMWindow *aWindow)
   mTopic.Assign(aTopic);
 
   mWindow = do_GetWeakReference(aWindow);
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aWindow);
 
   /**
    * Null windows are allowed. A wake lock without associated window
    * is always considered invisible.
    */
-  if (window) {
-    nsCOMPtr<nsIDocument> doc = window->GetExtantDoc();
+  if (aWindow) {
+    nsCOMPtr<nsIDocument> doc = aWindow->GetExtantDoc();
     NS_ENSURE_STATE(doc);
     mHidden = doc->Hidden();
   }
@@ -172,9 +171,7 @@ WakeLock::DoUnlock()
 void
 WakeLock::AttachEventListener()
 {
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryReferent(mWindow);
-
-  if (window) {
+  if (nsCOMPtr<nsPIDOMWindowInner> window = do_QueryReferent(mWindow)) {
     nsCOMPtr<nsIDocument> doc = window->GetExtantDoc();
     if (doc) {
       doc->AddSystemEventListener(NS_LITERAL_STRING("visibilitychange"),
@@ -198,9 +195,7 @@ WakeLock::AttachEventListener()
 void
 WakeLock::DetachEventListener()
 {
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryReferent(mWindow);
-
-  if (window) {
+  if (nsCOMPtr<nsPIDOMWindowInner> window = do_QueryReferent(mWindow)) {
     nsCOMPtr<nsIDocument> doc = window->GetExtantDoc();
     if (doc) {
       doc->RemoveSystemEventListener(NS_LITERAL_STRING("visibilitychange"),
@@ -275,12 +270,12 @@ WakeLock::HandleEvent(nsIDOMEvent *aEvent)
   return NS_OK;
 }
 
-nsISupports*
+nsPIDOMWindowInner*
 WakeLock::GetParentObject() const
 {
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(mWindow);
+  nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(mWindow);
   return window;
 }
 
-} // dom
-} // mozilla
+} // namespace dom
+} // namespace mozilla

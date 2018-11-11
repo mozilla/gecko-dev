@@ -1,0 +1,224 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test for notifications</title>
+  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="text/javascript" src="/tests/SimpleTest/SpawnTask.js"></script>
+  <script type="text/javascript" src="/tests/SimpleTest/ExtensionTestUtils.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+
+<script type="text/javascript">
+"use strict";
+
+// A 1x1 PNG image.
+// Source: https://commons.wikimedia.org/wiki/File:1x1.png (Public Domain)
+let image = atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEUAA" +
+                 "ACnej3aAAAAAXRSTlMAQObYZgAAAApJREFUCNdjYAAAAAIAAeIhvDMAAAAASUVORK5CYII=");
+const IMAGE_ARRAYBUFFER = Uint8Array.from(image, byte => byte.charCodeAt(0)).buffer;
+
+add_task(function* test_notification() {
+  async function background() {
+    let opts = {
+      type: "basic",
+      title: "Testing Notification",
+      message: "Carry on",
+    };
+
+    let id = await browser.notifications.create(opts);
+
+    browser.test.sendMessage("running", id);
+    browser.test.notifyPass("background test passed");
+  }
+
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      permissions: ["notifications"],
+    },
+    background,
+  });
+  yield extension.startup();
+  let x = yield extension.awaitMessage("running");
+  is(x, "0", "got correct id from notifications.create");
+  yield extension.awaitFinish();
+  yield extension.unload();
+});
+
+add_task(function* test_notification_events() {
+  async function background() {
+    let opts = {
+      type: "basic",
+      title: "Testing Notification",
+      message: "Carry on",
+    };
+
+    // Test an ignored listener.
+    browser.notifications.onButtonClicked.addListener(function() {});
+
+    // We cannot test onClicked listener without a mock
+    // but we can attempt to add a listener.
+    browser.notifications.onClicked.addListener(function() {});
+
+    // Test onClosed listener.
+    browser.notifications.onClosed.addListener(id => {
+      browser.test.sendMessage("closed", id);
+      browser.test.notifyPass("background test passed");
+    });
+
+    await browser.notifications.create("5", opts);
+    let id = await browser.notifications.create("5", opts);
+    browser.test.sendMessage("running", id);
+  }
+
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      permissions: ["notifications"],
+    },
+    background,
+  });
+  yield extension.startup();
+  let x = yield extension.awaitMessage("closed");
+  is(x, "5", "got correct id from onClosed listener");
+  x = yield extension.awaitMessage("running");
+  is(x, "5", "got correct id from notifications.create");
+  yield extension.awaitFinish();
+  yield extension.unload();
+});
+
+add_task(function* test_notification_clear() {
+  async function background() {
+    let opts = {
+      type: "basic",
+      title: "Testing Notification",
+      message: "Carry on",
+    };
+
+    browser.notifications.onClosed.addListener(id => {
+      browser.test.sendMessage("closed", id);
+    });
+
+    let id = await browser.notifications.create("99", opts);
+
+    let wasCleared = await browser.notifications.clear(id);
+    browser.test.sendMessage("cleared", wasCleared);
+
+    browser.test.notifyPass("background test passed");
+  }
+
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      permissions: ["notifications"],
+    },
+    background,
+  });
+  yield extension.startup();
+  let x = yield extension.awaitMessage("closed");
+  is(x, "99", "got correct id from onClosed listener");
+  x = yield extension.awaitMessage("cleared");
+  is(x, true, "got correct boolean from notifications.clear");
+  yield extension.awaitFinish();
+  yield extension.unload();
+});
+
+add_task(function* test_notifications_empty_getAll() {
+  async function background() {
+    let notifications = await browser.notifications.getAll();
+
+    browser.test.assertEq("object", typeof notifications, "getAll() returned an object");
+    browser.test.assertEq(0, Object.keys(notifications).length, "the object has no properties");
+    browser.test.notifyPass("getAll empty");
+  }
+
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      permissions: ["notifications"],
+    },
+    background,
+  });
+  yield extension.startup();
+  yield extension.awaitFinish("getAll empty");
+  yield extension.unload();
+});
+
+add_task(function* test_notifications_populated_getAll() {
+  async function background() {
+    let opts = {
+      type: "basic",
+      iconUrl: "a.png",
+      title: "Testing Notification",
+      message: "Carry on",
+    };
+
+    await browser.notifications.create("p1", opts);
+    await browser.notifications.create("p2", opts);
+    let notifications = await browser.notifications.getAll();
+
+    browser.test.assertEq("object", typeof notifications, "getAll() returned an object");
+    browser.test.assertEq(2, Object.keys(notifications).length, "the object has 2 properties");
+
+    for (let notificationId of ["p1", "p2"]) {
+      for (let key of Object.keys(opts)) {
+        browser.test.assertEq(
+          opts[key],
+          notifications[notificationId][key],
+          `the notification has the expected value for option: ${key}`
+        );
+      }
+    }
+
+    browser.test.notifyPass("getAll populated");
+  }
+
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      permissions: ["notifications"],
+    },
+    background,
+    files: {
+      "a.png": IMAGE_ARRAYBUFFER,
+    },
+  });
+  yield extension.startup();
+  yield extension.awaitFinish("getAll populated");
+  yield extension.unload();
+});
+
+add_task(function* test_buttons_unsupported() {
+  function background() {
+    let opts = {
+      type: "basic",
+      title: "Testing Notification",
+      message: "Carry on",
+      buttons: [{title: "Button title"}],
+    };
+
+    let exception = {};
+    try {
+      browser.notifications.create(opts);
+    } catch (e) {
+      exception = e;
+    }
+
+    browser.test.assertTrue(
+      String(exception).includes('Property "buttons" is unsupported by Firefox'),
+      "notifications.create with buttons option threw an expected exception"
+    );
+    browser.test.notifyPass("buttons-unsupported");
+  }
+
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      permissions: ["notifications"],
+    },
+    background,
+  });
+  yield extension.startup();
+  yield extension.awaitFinish("buttons-unsupported");
+  yield extension.unload();
+});
+
+</script>
+
+</body>
+</html>

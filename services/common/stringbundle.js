@@ -4,7 +4,7 @@
 
 this.EXPORTED_SYMBOLS = ["StringBundle"];
 
-const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
+var {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
 /**
  * A string bundle.
@@ -24,7 +24,7 @@ const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
  *     new StringBundle("chrome://example/locale/strings.properties");
  *   let foo = strings.get("foo");
  *   let barFormatted = strings.get("bar", [arg1, arg2]);
- *   for each (let string in strings.getAll())
+ *   for (let string of strings.getAll())
  *     dump (string.key + " = " + string.value + "\n");
  *
  * @param url {String}
@@ -60,7 +60,7 @@ StringBundle.prototype = {
     let stringBundle = Cc["@mozilla.org/intl/stringbundle;1"].
                        getService(Ci.nsIStringBundleService).
                        createBundle(this.url, this._appLocale);
-    this.__defineGetter__("_stringBundle", function() stringBundle);
+    this.__defineGetter__("_stringBundle", () => stringBundle);
     return this._stringBundle;
   },
 

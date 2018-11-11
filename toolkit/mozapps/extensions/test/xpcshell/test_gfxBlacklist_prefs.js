@@ -2,6 +2,8 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+var { classes: Cc, interfaces: Ci } = Components;
+
 // Test whether the blacklist succesfully adds and removes the prefs that store
 // its decisions when the remote blacklist is changed.
 // Uses test_gfxBlacklist.xml and test_gfxBlacklist2.xml
@@ -12,6 +14,7 @@ var gTestserver = new HttpServer();
 gTestserver.start(-1);
 gPort = gTestserver.identity.primaryPort;
 mapFile("/data/test_gfxBlacklist.xml", gTestserver);
+mapFile("/data/test_gfxBlacklist2.xml", gTestserver);
 
 function get_platform() {
   var xulRuntime = Components.classes["@mozilla.org/xre/app-info;1"]
@@ -60,7 +63,7 @@ function run_test() {
     case "Darwin":
       gfxInfo.spoofVendorID("0xabcd");
       gfxInfo.spoofDeviceID("0x1234");
-      gfxInfo.spoofOSVersion(0x1050);
+      gfxInfo.spoofOSVersion(0x1090);
       break;
     case "Android":
       gfxInfo.spoofVendorID("abcd");
@@ -87,7 +90,7 @@ function run_test() {
 
     // Make sure unrelated features aren't affected
     status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_DIRECT3D_9_LAYERS);
-    do_check_eq(status, Ci.nsIGfxInfo.FEATURE_NO_INFO);
+    do_check_eq(status, Ci.nsIGfxInfo.FEATURE_STATUS_OK);
 
     var prefs = Cc["@mozilla.org/preferences-service;1"].
           getService(Ci.nsIPrefBranch);
@@ -108,11 +111,11 @@ function run_test() {
   function ensureBlacklistUnset()
   {
     var status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_DIRECT2D);
-    do_check_eq(status, Ci.nsIGfxInfo.FEATURE_NO_INFO);
+    do_check_eq(status, Ci.nsIGfxInfo.FEATURE_STATUS_OK);
 
     // Make sure unrelated features aren't affected
     status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_DIRECT3D_9_LAYERS);
-    do_check_eq(status, Ci.nsIGfxInfo.FEATURE_NO_INFO);
+    do_check_eq(status, Ci.nsIGfxInfo.FEATURE_STATUS_OK);
 
     var prefs = Cc["@mozilla.org/preferences-service;1"].
           getService(Ci.nsIPrefBranch);
@@ -120,7 +123,7 @@ function run_test() {
     try {
       prefs.getIntPref("gfx.blacklist.direct2d");
       exists = true;
-    } catch(e) {}
+    } catch (e) {}
 
     do_check_false(exists);
 

@@ -45,17 +45,14 @@ int MOZ_XMLCheckQName(const char* ptr, const char* end, int ns_aware,
       nmstrt = ns_aware; /* e.g. "a:0" should be valid if !ns_aware */
       break;
     case BT_NONASCII:
-      if (nmstrt && !IS_NMSTRT_CHAR_MINBPC(ptr)) {
-        /* If this is a valid name character and we're namespace-aware, the
-           QName is malformed.  Otherwise, this character's invalid at the
-           start of a name (or, if we're namespace-aware, at the start of a
-           localpart). */
-        return (IS_NAME_CHAR_MINBPC(ptr) && ns_aware) ?
-               MOZ_EXPAT_MALFORMED :
-               MOZ_EXPAT_INVALID_CHARACTER;
-      }
-      if (!IS_NAME_CHAR_MINBPC(ptr)) {
+      if (!IS_NAME_CHAR_MINBPC(ptr) ||
+          (nmstrt && !*colon && !IS_NMSTRT_CHAR_MINBPC(ptr))) {
         return MOZ_EXPAT_INVALID_CHARACTER;
+      }
+      if (nmstrt && *colon && !IS_NMSTRT_CHAR_MINBPC(ptr)) {
+        /* If a non-starting character like a number is right after the colon,
+           this is a namespace error, not invalid character */
+        return MOZ_EXPAT_MALFORMED;
       }
       nmstrt = 0;
       break;
@@ -116,13 +113,18 @@ int MOZ_XMLIsNCNameChar(const char* ptr)
 int MOZ_XMLTranslateEntity(const char* ptr, const char* end, const char** next,
                            XML_Char* result)
 {
+  // Can we assert here somehow?
+  // MOZ_ASSERT(*ptr == '&');
+
   const ENCODING* enc = XmlGetUtf16InternalEncodingNS();
-  int tok = PREFIX(scanRef)(enc, ptr, end, next);
+  /* scanRef expects to be pointed to the char after the '&'. */
+  int tok = PREFIX(scanRef)(enc, ptr + enc->minBytesPerChar, end, next);
   if (tok <= XML_TOK_INVALID) {
     return 0;
   }
 
   if (tok == XML_TOK_CHAR_REF) {
+    /* XmlCharRefNumber expects to be pointed to the '&'. */
     int n = XmlCharRefNumber(enc, ptr);
 
     /* We could get away with just < 0, but better safe than sorry. */
@@ -134,10 +136,13 @@ int MOZ_XMLTranslateEntity(const char* ptr, const char* end, const char** next,
   }
 
   if (tok == XML_TOK_ENTITY_REF) {
-    /* *next points to after the semicolon, so the entity ends at
+    /* XmlPredefinedEntityName expects to be pointed to the char after '&'.
+
+       *next points to after the semicolon, so the entity ends at
        *next - enc->minBytesPerChar. */
     XML_Char ch =
-      (XML_Char)XmlPredefinedEntityName(enc, ptr, *next - enc->minBytesPerChar);
+      (XML_Char)XmlPredefinedEntityName(enc, ptr + enc->minBytesPerChar,
+                                        *next - enc->minBytesPerChar);
     if (!ch) {
       return 0;
     }

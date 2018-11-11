@@ -73,7 +73,10 @@ WindowOpenListener.prototype = {
 var gInstallNotificationObserver = {
   observe: function(aSubject, aTopic, aData) {
     var installInfo = aSubject.QueryInterface(Ci.amIWebInstallInfo);
-    isnot(installInfo.originatingWindow, null, "Notification should have non-null originatingWindow");
+    if (gTestInWindow)
+      is(installInfo.browser, null, "Notification should have a null browser");
+    else
+      isnot(installInfo.browser, null, "Notification should have non-null browser");
     gSawInstallNotification = true;
     Services.obs.removeObserver(this, "addon-install-started");
   }
@@ -105,8 +108,8 @@ add_task(function* test_install_from_file() {
                    get_addon_file_url("browser_bug567127_1.xpi"),
                    get_addon_file_url("browser_bug567127_2.xpi")
                   ];
-  MockFilePicker.returnFiles = filePaths.map(function(aPath) aPath.file);
-  
+  MockFilePicker.returnFiles = filePaths.map(aPath => aPath.file);
+
   Services.obs.addObserver(gInstallNotificationObserver,
                            "addon-install-started", false);
 
@@ -115,8 +118,8 @@ add_task(function* test_install_from_file() {
   let pInstallURIClosed = new Promise((resolve, reject) => {
     new WindowOpenListener(INSTALL_URI, function(aWindow) {
       try {
-        test_confirmation(aWindow, filePaths.map(function(aPath) aPath.spec));
-      } catch(e) {
+        test_confirmation(aWindow, filePaths.map(aPath => aPath.spec));
+      } catch (e) {
         reject(e);
       }
     }, resolve);

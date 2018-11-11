@@ -18,13 +18,6 @@ Components.utils.import("resource://testing-common/httpd.js");
 const profileDir = gProfD.clone();
 profileDir.append("extensions");
 
-// Return a promise that resolves with an addon retrieved by
-// AddonManager.getAddonByID()
-function promiseGetAddon(aID) {
-  let p = Promise.defer();
-  AddonManager.getAddonByID(aID, p.resolve);
-  return p.promise;
-}
 
 function run_test() {
   // Kick off the task-based tests...
@@ -57,9 +50,8 @@ function makeCancelListener() {
 }
 
 // Set up the HTTP server so that we can control when it responds
-let httpReceived = Promise.defer();
+var httpReceived = Promise.defer();
 function dataHandler(aRequest, aResponse) {
-  asyncResponse = aResponse;
   aResponse.processAsync();
   httpReceived.resolve([aRequest, aResponse]);
 }
@@ -82,10 +74,10 @@ writeInstallRDFForExtension({
   name: "Test Addon 1",
 }, profileDir);
 
-add_task(function cancel_during_check() {
+add_task(function* cancel_during_check() {
   startupManager();
 
-  let a1 = yield promiseGetAddon("addon1@tests.mozilla.org");
+  let a1 = yield promiseAddonByID("addon1@tests.mozilla.org");
   do_check_neq(a1, null);
 
   let listener = makeCancelListener();
@@ -116,11 +108,11 @@ add_task(function cancel_during_check() {
 
 // Test that update check is cancelled if the XPI provider shuts down while
 // the update check is in progress
-add_task(function shutdown_during_check() {
+add_task(function* shutdown_during_check() {
   // Reset our HTTP listener
   httpReceived = Promise.defer();
 
-  let a1 = yield promiseGetAddon("addon1@tests.mozilla.org");
+  let a1 = yield promiseAddonByID("addon1@tests.mozilla.org");
   do_check_neq(a1, null);
 
   let listener = makeCancelListener();
@@ -141,9 +133,6 @@ add_task(function shutdown_during_check() {
   let data = loadFile(file);
   response.write(data);
   response.finish();
-
-  // trying to cancel again should return false, i.e. nothing to cancel
-  do_check_false(a1.cancelUpdate());
 
   yield testserver.stop(Promise.defer().resolve);
 });

@@ -49,8 +49,6 @@ interface nsIChannel;
  *          Note that the array could contain a single cookie.
  *          "cleared"
  *          the entire cookie list was cleared. the subject is null.
- *          "reload"
- *          the entire cookie list should be reloaded.  the subject is null.
  *
  * topic  : "cookie-rejected"
  *          broadcast whenever a cookie was rejected from being set as a
@@ -71,9 +69,26 @@ interface nsIChannel;
  *           to set the cookie.
  * data   :  the referrer, or "?" if unknown
  */
-[scriptable, uuid(2aaa897a-293c-4d2b-a657-8c9b7136996d)]
+[scriptable, uuid(1e94e283-2811-4f43-b947-d22b1549d824)]
 interface nsICookieService : nsISupports
 {
+  /*
+   * Possible values for the "network.cookie.cookieBehavior" preference.
+   */
+  const uint32_t BEHAVIOR_ACCEPT         = 0; // allow all cookies
+  const uint32_t BEHAVIOR_REJECT_FOREIGN = 1; // reject all third-party cookies
+  const uint32_t BEHAVIOR_REJECT         = 2; // reject all cookies
+  const uint32_t BEHAVIOR_LIMIT_FOREIGN  = 3; // reject third-party cookies unless the
+                                              // eTLD already has at least one cookie
+
+  /*
+   * Possible values for the "network.cookie.lifetimePolicy" preference.
+   */
+  const uint32_t ACCEPT_NORMALLY   = 0; // accept normally
+  // Value = 1 is considered the same as 0 (See Bug 606655).
+  const uint32_t ACCEPT_SESSION    = 2; // downgrade to session
+  const uint32_t ACCEPT_FOR_N_DAYS = 3; // limit lifetime to N days
+
   /*
    * Get the complete cookie string associated with the URI.
    *

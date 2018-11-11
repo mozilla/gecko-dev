@@ -1,24 +1,18 @@
-function test() {
-  waitForExplicitFinish();
+add_task(function* () {
+  yield new Promise(resolve => {
+    SpecialPowers.pushPrefEnv({"set": [["browser.autofocus", false]]}, resolve);
+  });
 
-  var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-            .getService(Components.interfaces.nsIPrefBranch);
-  var gAutofocusPref = prefs.getBoolPref("browser.autofocus");
-  prefs.setBoolPref("browser.autofocus", false);
+  const url = "data:text/html,<!DOCTYPE html><html><body><input autofocus><button autofocus></button><textarea autofocus></textarea><select autofocus></select></body></html>";
 
-  gBrowser.selectedTab.linkedBrowser.addEventListener("load", function () {
-    gBrowser.selectedTab.linkedBrowser.removeEventListener("load", arguments.callee, true);
+  let loadedPromise = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
+  gBrowser.selectedBrowser.loadURI(url);
+  yield loadedPromise;
 
-    executeSoon(function () {
-      is(gBrowser.selectedTab.linkedBrowser.contentDocument.activeElement,
-         gBrowser.selectedTab.linkedBrowser.contentDocument.body,
-         "foo");
+  yield new Promise(resolve => executeSoon(resolve));
 
-      prefs.setBoolPref("browser.autofocus", gAutofocusPref);
+  yield ContentTask.spawn(gBrowser.selectedBrowser, null, function* () {
+    is(content.document.activeElement, content.document.body, "body focused");
+  });
+});
 
-      finish();
-    });
-  }, true);
-
-  gBrowser.selectedTab.linkedBrowser.loadURI("data:text/html,<!DOCTYPE html><html><body><input autofocus><button autofocus></button><textarea autofocus></textarea><select autofocus></select></body></html>");
-}

@@ -12,20 +12,21 @@
 
 // HTTP responses that count as an error.  We also include any 5xx response
 // as an error.
-const HTTP_FOUND                 = 302;
-const HTTP_SEE_OTHER             = 303;
-const HTTP_TEMPORARY_REDIRECT    = 307;
+this.HTTP_FOUND                 = 302;
+this.HTTP_SEE_OTHER             = 303;
+this.HTTP_TEMPORARY_REDIRECT    = 307;
 
 /**
  * @param maxErrors Number of times to request before backing off.
  * @param retryIncrement Time (ms) for each retry before backing off.
  * @param maxRequests Number the number of requests needed to trigger backoff
  * @param requestPeriod Number time (ms) in which maxRequests have to occur to
- *     trigger the backoff behavior
+ *     trigger the backoff behavior (0 to disable maxRequests)
  * @param timeoutIncrement Number time (ms) the starting timeout period
  *     we double this time for consecutive errors
  * @param maxTimeout Number time (ms) maximum timeout period
  */
+this.RequestBackoff =
 function RequestBackoff(maxErrors, retryIncrement,
                         maxRequests, requestPeriod,
                         timeoutIncrement, maxTimeout) {
@@ -45,7 +46,7 @@ function RequestBackoff(maxErrors, retryIncrement,
 }
 
 /**
- * Reset the object for reuse.
+ * Reset the object for reuse. This deliberately doesn't clear requestTimes_.
  */
 RequestBackoff.prototype.reset = function() {
   this.numErrors_ = 0;

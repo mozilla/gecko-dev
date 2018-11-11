@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -21,9 +22,9 @@
 
 namespace mozilla {
 class TimeStamp;
-}
+} // namespace mozilla
 
-class TimerThread MOZ_FINAL
+class TimerThread final
   : public nsIRunnable
   , public nsIObserver
 {
@@ -43,7 +44,6 @@ public:
   nsresult Shutdown();
 
   nsresult AddTimer(nsTimerImpl* aTimer);
-  nsresult TimerDelayChanged(nsTimerImpl* aTimer);
   nsresult RemoveTimer(nsTimerImpl* aTimer);
 
   void DoBeforeSleep();
@@ -60,12 +60,14 @@ private:
   mozilla::Atomic<bool> mInitInProgress;
   bool    mInitialized;
 
-  // These two internal helper methods must be called while mLock is held.
+  // These two internal helper methods must be called while mMonitor is held.
   // AddTimerInternal returns the position where the timer was added in the
   // list, or -1 if it failed.
   int32_t AddTimerInternal(nsTimerImpl* aTimer);
   bool    RemoveTimerInternal(nsTimerImpl* aTimer);
   void    ReleaseTimerInternal(nsTimerImpl* aTimer);
+
+  already_AddRefed<nsTimerImpl> PostTimerEvent(already_AddRefed<nsTimerImpl> aTimerRef);
 
   nsCOMPtr<nsIThread> mThread;
   Monitor mMonitor;
@@ -91,7 +93,7 @@ struct TimerAdditionComparator
 
   bool LessThan(nsTimerImpl* aFromArray, nsTimerImpl* aNewTimer) const
   {
-    NS_ABORT_IF_FALSE(aNewTimer == timerToInsert, "Unexpected timer ordering");
+    MOZ_ASSERT(aNewTimer == timerToInsert, "Unexpected timer ordering");
 
     // Skip any overdue timers.
     return aFromArray->mTimeout <= now ||

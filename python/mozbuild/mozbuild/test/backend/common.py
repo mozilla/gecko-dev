@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import os
 import unittest
 
+from collections import defaultdict
 from shutil import rmtree
 from tempfile import mkdtemp
 
@@ -15,7 +16,6 @@ from mach.logging import LoggingManager
 from mozbuild.backend.configenvironment import ConfigEnvironment
 from mozbuild.frontend.emitter import TreeMetadataEmitter
 from mozbuild.frontend.reader import BuildReader
-from mozbuild.util import DefaultOnReadDict
 
 import mozpack.path as mozpath
 
@@ -28,61 +28,89 @@ test_data_path = mozpath.abspath(mozpath.dirname(__file__))
 test_data_path = mozpath.join(test_data_path, 'data')
 
 
-CONFIGS = DefaultOnReadDict({
+CONFIGS = defaultdict(lambda: {
+    'defines': {},
+    'non_global_defines': [],
+    'substs': {'OS_TARGET': 'WINNT'},
+}, {
     'android_eclipse': {
-        'defines': [],
+        'defines': {
+            'MOZ_ANDROID_MIN_SDK_VERSION': '15',
+        },
         'non_global_defines': [],
-        'substs': [
-            ('ANDROID_TARGET_SDK', '16'),
-        ],
+        'substs': {
+            'ANDROID_TARGET_SDK': '16',
+            'MOZ_WIDGET_TOOLKIT': 'android',
+        },
+    },
+    'binary-components': {
+        'defines': {},
+        'non_global_defines': [],
+        'substs': {
+            'LIB_PREFIX': 'lib',
+            'LIB_SUFFIX': 'a',
+            'COMPILE_ENVIRONMENT': '1',
+        },
+    },
+    'sources': {
+        'defines': {},
+        'non_global_defines': [],
+        'substs': {
+            'LIB_PREFIX': 'lib',
+            'LIB_SUFFIX': 'a',
+        },
     },
     'stub0': {
-        'defines': [
-            ('MOZ_TRUE_1', '1'),
-            ('MOZ_TRUE_2', '1'),
-        ],
+        'defines': {
+            'MOZ_TRUE_1': '1',
+            'MOZ_TRUE_2': '1',
+        },
         'non_global_defines': [
-            ('MOZ_NONGLOBAL_1', '1'),
-            ('MOZ_NONGLOBAL_2', '1'),
+            'MOZ_NONGLOBAL_1',
+            'MOZ_NONGLOBAL_2',
         ],
-        'substs': [
-            ('MOZ_FOO', 'foo'),
-            ('MOZ_BAR', 'bar'),
-        ],
+        'substs': {
+            'MOZ_FOO': 'foo',
+            'MOZ_BAR': 'bar',
+        },
     },
     'substitute_config_files': {
-        'defines': [],
+        'defines': {},
         'non_global_defines': [],
-        'substs': [
-            ('MOZ_FOO', 'foo'),
-            ('MOZ_BAR', 'bar'),
-        ],
+        'substs': {
+            'MOZ_FOO': 'foo',
+            'MOZ_BAR': 'bar',
+        },
     },
     'test_config': {
-        'defines': [
-            ('foo', 'baz qux'),
-            ('baz', 1)
-        ],
+        'defines': {
+            'foo': 'baz qux',
+            'baz': 1,
+        },
         'non_global_defines': [],
-        'substs': [
-            ('foo', 'bar baz'),
-        ],
+        'substs': {
+            'foo': 'bar baz',
+        },
     },
     'visual-studio': {
-        'defines': [],
+        'defines': {},
         'non_global_defines': [],
-        'substs': [
-            ('MOZ_APP_NAME', 'my_app'),
-        ],
+        'substs': {
+            'MOZ_APP_NAME': 'my_app',
+        },
     },
-}, global_default={
-    'defines': [],
-    'non_global_defines': [],
-    'substs': [],
 })
 
 
 class BackendTester(unittest.TestCase):
+    def setUp(self):
+        self._old_env = dict(os.environ)
+        os.environ.pop('MOZ_OBJDIR', None)
+
+    def tearDown(self):
+        os.environ.clear()
+        os.environ.update(self._old_env)
+
     def _get_environment(self, name):
         """Obtain a new instance of a ConfigEnvironment for a known profile.
 
@@ -95,7 +123,7 @@ class BackendTester(unittest.TestCase):
         self.addCleanup(rmtree, objdir)
 
         srcdir = mozpath.join(test_data_path, name)
-        config['substs'].append(('top_srcdir', srcdir))
+        config['substs']['top_srcdir'] = srcdir
         return ConfigEnvironment(srcdir, objdir, **config)
 
     def _emit(self, name, env=None):

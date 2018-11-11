@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -110,15 +110,6 @@ expectedmatch = null;
 addThis();
 
 /*
- * Now let's set |lastIndex| to -1, so the match should again be null -
- */
-status = inSection(5);
-pattern.lastIndex = -1;
-actualmatch = pattern.exec(string);
-expectedmatch = null;
-addThis();
-
-/*
  * Now try some edge-case values. Thanks to the work done in
  * http://bugzilla.mozilla.org/show_bug.cgi?id=124339, |lastIndex|
  * is now stored as a double instead of a uint32_t (unsigned integer).
@@ -133,20 +124,8 @@ actualmatch = pattern.exec(string);
 expectedmatch = null;
 addThis();
  
-status = inSection(7);
-pattern.lastIndex = -Math.pow(2,32);
-actualmatch = pattern.exec(string);
-expectedmatch = null;
-addThis();
-
 status = inSection(8);
 pattern.lastIndex = Math.pow(2,32) + 1;
-actualmatch = pattern.exec(string);
-expectedmatch = null;
-addThis();
-
-status = inSection(9);
-pattern.lastIndex = -(Math.pow(2,32) + 1);
 actualmatch = pattern.exec(string);
 expectedmatch = null;
 addThis();
@@ -157,20 +136,8 @@ actualmatch = pattern.exec(string);
 expectedmatch = null;
 addThis();
 
-status = inSection(11);
-pattern.lastIndex = -Math.pow(2,32) * 2;
-actualmatch = pattern.exec(string);
-expectedmatch = null;
-addThis();
-
 status = inSection(12);
 pattern.lastIndex = Math.pow(2,40);
-actualmatch = pattern.exec(string);
-expectedmatch = null;
-addThis();
-
-status = inSection(13);
-pattern.lastIndex = -Math.pow(2,40);
 actualmatch = pattern.exec(string);
 expectedmatch = null;
 addThis();
@@ -181,12 +148,6 @@ actualmatch = pattern.exec(string);
 expectedmatch = null;
 addThis();
 
-status = inSection(15);
-pattern.lastIndex = -Number.MAX_VALUE;
-actualmatch = pattern.exec(string);
-expectedmatch = null;
-addThis();
- 
 
 
 /******************************************************************************

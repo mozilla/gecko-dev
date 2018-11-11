@@ -6,19 +6,21 @@
 
 #include "jit/Ion.h"
 
+#include "jscompartmentinlines.h"
+
 using namespace js;
 using namespace js::jit;
 
-JSRuntime *
+JSRuntime*
 CompileRuntime::runtime()
 {
-    return reinterpret_cast<JSRuntime *>(this);
+    return reinterpret_cast<JSRuntime*>(this);
 }
 
-/* static */ CompileRuntime *
-CompileRuntime::get(JSRuntime *rt)
+/* static */ CompileRuntime*
+CompileRuntime::get(JSRuntime* rt)
 {
-    return reinterpret_cast<CompileRuntime *>(rt);
+    return reinterpret_cast<CompileRuntime*>(rt);
 }
 
 bool
@@ -27,87 +29,81 @@ CompileRuntime::onMainThread()
     return js::CurrentThreadCanAccessRuntime(runtime());
 }
 
-js::PerThreadData *
+js::PerThreadData*
 CompileRuntime::mainThread()
 {
-    JS_ASSERT(onMainThread());
+    MOZ_ASSERT(onMainThread());
     return &runtime()->mainThread;
 }
 
-const void *
+const void*
 CompileRuntime::addressOfJitTop()
 {
-    return &runtime()->mainThread.jitTop;
+    return &runtime()->jitTop;
 }
 
-const void *
+const void*
+CompileRuntime::addressOfJitActivation()
+{
+    return &runtime()->jitActivation;
+}
+
+const void*
+CompileRuntime::addressOfProfilingActivation()
+{
+    return (const void*) &runtime()->profilingActivation_;
+}
+
+const void*
 CompileRuntime::addressOfJitStackLimit()
 {
-    return &runtime()->mainThread.jitStackLimit;
+    return runtime()->addressOfJitStackLimit();
 }
 
-const void *
-CompileRuntime::addressOfJSContext()
+#ifdef DEBUG
+const void*
+CompileRuntime::addressOfIonBailAfter()
 {
-    return &runtime()->mainThread.jitJSContext;
+    return runtime()->addressOfIonBailAfter();
 }
+#endif
 
-const void *
+const void*
 CompileRuntime::addressOfActivation()
 {
-    return runtime()->mainThread.addressOfActivation();
-}
-
-const void *
-CompileRuntime::addressOfLastCachedNativeIterator()
-{
-    return &runtime()->nativeIterCache.last;
+    return runtime()->addressOfActivation();
 }
 
 #ifdef JS_GC_ZEAL
-const void *
-CompileRuntime::addressOfGCZeal()
+const void*
+CompileRuntime::addressOfGCZealModeBits()
 {
-    return runtime()->gc.addressOfZealMode();
+    return runtime()->gc.addressOfZealModeBits();
 }
 #endif
 
-const void *
-CompileRuntime::addressOfInterrupt()
+const void*
+CompileRuntime::addressOfInterruptUint32()
 {
-    return &runtime()->interrupt;
+    return runtime()->addressOfInterruptUint32();
 }
 
-#ifdef JS_THREADSAFE
-const void *
-CompileRuntime::addressOfInterruptPar()
+const void*
+CompileRuntime::getJSContext()
 {
-    return &runtime()->interruptPar;
-}
-#endif
-
-const void *
-CompileRuntime::addressOfThreadPool()
-{
-    return &runtime()->threadPool;
+    return runtime()->unsafeContextFromAnyThread();
 }
 
-const JitRuntime *
+const JitRuntime*
 CompileRuntime::jitRuntime()
 {
     return runtime()->jitRuntime();
 }
 
-SPSProfiler &
+SPSProfiler&
 CompileRuntime::spsProfiler()
 {
     return runtime()->spsProfiler;
-}
-
-bool
-CompileRuntime::signalHandlersInstalled()
-{
-    return runtime()->signalHandlersInstalled();
 }
 
 bool
@@ -128,134 +124,161 @@ CompileRuntime::profilingScripts()
     return runtime()->profilingScripts;
 }
 
-const JSAtomState &
+const JSAtomState&
 CompileRuntime::names()
 {
     return *runtime()->commonNames;
 }
 
-const StaticStrings &
+const PropertyName*
+CompileRuntime::emptyString()
+{
+    return runtime()->emptyString;
+}
+
+const StaticStrings&
 CompileRuntime::staticStrings()
 {
     return *runtime()->staticStrings;
 }
 
-const Value &
+const Value&
 CompileRuntime::NaNValue()
 {
     return runtime()->NaNValue;
 }
 
-const Value &
+const Value&
 CompileRuntime::positiveInfinityValue()
 {
     return runtime()->positiveInfinityValue;
 }
 
+const WellKnownSymbols&
+CompileRuntime::wellKnownSymbols()
+{
+    MOZ_ASSERT(onMainThread());
+    return *runtime()->wellKnownSymbols;
+}
+
 #ifdef DEBUG
 bool
-CompileRuntime::isInsideNursery(gc::Cell *cell)
+CompileRuntime::isInsideNursery(gc::Cell* cell)
 {
     return UninlinedIsInsideNursery(cell);
 }
 #endif
 
-const DOMCallbacks *
+const DOMCallbacks*
 CompileRuntime::DOMcallbacks()
 {
-    return GetDOMCallbacks(runtime());
+    return runtime()->DOMcallbacks;
 }
 
-const MathCache *
-CompileRuntime::maybeGetMathCache()
-{
-    return runtime()->maybeGetMathCache();
-}
-
-#ifdef JSGC_GENERATIONAL
-const Nursery &
+const Nursery&
 CompileRuntime::gcNursery()
 {
     return runtime()->gc.nursery;
 }
-#endif
 
-Zone *
+void
+CompileRuntime::setMinorGCShouldCancelIonCompilations()
+{
+    MOZ_ASSERT(onMainThread());
+    runtime()->gc.storeBuffer.setShouldCancelIonCompilations();
+}
+
+bool
+CompileRuntime::runtimeMatches(JSRuntime* rt)
+{
+    return rt == runtime();
+}
+
+Zone*
 CompileZone::zone()
 {
-    return reinterpret_cast<Zone *>(this);
+    return reinterpret_cast<Zone*>(this);
 }
 
-/* static */ CompileZone *
-CompileZone::get(Zone *zone)
+/* static */ CompileZone*
+CompileZone::get(Zone* zone)
 {
-    return reinterpret_cast<CompileZone *>(zone);
+    return reinterpret_cast<CompileZone*>(zone);
 }
 
-const void *
-CompileZone::addressOfNeedsBarrier()
+const void*
+CompileZone::addressOfNeedsIncrementalBarrier()
 {
-    return zone()->addressOfNeedsBarrier();
+    return zone()->addressOfNeedsIncrementalBarrier();
 }
 
-const void *
-CompileZone::addressOfFreeListFirst(gc::AllocKind allocKind)
+const void*
+CompileZone::addressOfFreeList(gc::AllocKind allocKind)
 {
-    return zone()->allocator.arenas.getFreeList(allocKind)->addressOfFirst();
+    return zone()->arenas.addressOfFreeList(allocKind);
 }
 
-const void *
-CompileZone::addressOfFreeListLast(gc::AllocKind allocKind)
-{
-    return zone()->allocator.arenas.getFreeList(allocKind)->addressOfLast();
-}
-
-JSCompartment *
+JSCompartment*
 CompileCompartment::compartment()
 {
-    return reinterpret_cast<JSCompartment *>(this);
+    return reinterpret_cast<JSCompartment*>(this);
 }
 
-/* static */ CompileCompartment *
-CompileCompartment::get(JSCompartment *comp)
+/* static */ CompileCompartment*
+CompileCompartment::get(JSCompartment* comp)
 {
-    return reinterpret_cast<CompileCompartment *>(comp);
+    return reinterpret_cast<CompileCompartment*>(comp);
 }
 
-CompileZone *
+CompileZone*
 CompileCompartment::zone()
 {
     return CompileZone::get(compartment()->zone());
 }
 
-CompileRuntime *
+CompileRuntime*
 CompileCompartment::runtime()
 {
     return CompileRuntime::get(compartment()->runtimeFromAnyThread());
 }
 
-const void *
+const void*
 CompileCompartment::addressOfEnumerators()
 {
     return &compartment()->enumerators;
 }
 
-const CallsiteCloneTable &
-CompileCompartment::callsiteClones()
+const void*
+CompileCompartment::addressOfLastCachedNativeIterator()
 {
-    return compartment()->callsiteClones;
+    return &compartment()->lastCachedNativeIterator;
 }
 
-const JitCompartment *
+const void*
+CompileCompartment::addressOfRandomNumberGenerator()
+{
+    return compartment()->randomNumberGenerator.ptr();
+}
+
+const JitCompartment*
 CompileCompartment::jitCompartment()
 {
     return compartment()->jitCompartment();
 }
 
-bool
-CompileCompartment::hasObjectMetadataCallback()
+const GlobalObject*
+CompileCompartment::maybeGlobal()
 {
-    return compartment()->hasObjectMetadataCallback();
+    // This uses unsafeUnbarrieredMaybeGlobal() so as not to trigger the read
+    // barrier on the global from off the main thread.  This is safe because we
+    // abort Ion compilation when we GC.
+    return compartment()->unsafeUnbarrieredMaybeGlobal();
+}
+
+bool
+CompileCompartment::hasAllocationMetadataBuilder()
+{
+    return compartment()->hasAllocationMetadataBuilder();
 }
 
 // Note: This function is thread-safe because setSingletonAsValue sets a boolean
@@ -268,19 +291,20 @@ CompileCompartment::hasObjectMetadataCallback()
 void
 CompileCompartment::setSingletonsAsValues()
 {
-    return JS::CompartmentOptionsRef(compartment()).setSingletonsAsValues();
+    compartment()->behaviors().setSingletonsAsValues();
 }
 
 JitCompileOptions::JitCompileOptions()
   : cloneSingletons_(false),
-    spsSlowAssertionsEnabled_(false)
+    spsSlowAssertionsEnabled_(false),
+    offThreadCompilationAvailable_(false)
 {
 }
 
-JitCompileOptions::JitCompileOptions(JSContext *cx)
+JitCompileOptions::JitCompileOptions(JSContext* cx)
 {
-    JS::CompartmentOptions &options = cx->compartment()->options();
-    cloneSingletons_ = options.cloneSingletons(cx);
+    cloneSingletons_ = cx->compartment()->creationOptions().cloneSingletons();
     spsSlowAssertionsEnabled_ = cx->runtime()->spsProfiler.enabled() &&
                                 cx->runtime()->spsProfiler.slowAssertionsEnabled();
+    offThreadCompilationAvailable_ = OffThreadCompilationAvailable(cx);
 }

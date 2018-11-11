@@ -1,10 +1,77 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files('nsBlock*'):
+    # Parts of these files are really Layout: Floats
+    BUG_COMPONENT = ('Core', 'Layout: Block and Inline')
+
+with Files('Block*'):
+    # Parts of these files are really Layout: Floats
+    BUG_COMPONENT = ('Core', 'Layout: Block and Inline')
+
+with Files('nsLine*'):
+    # Parts of these files are really Layout: Floats
+    BUG_COMPONENT = ('Core', 'Layout: Block and Inline')
+
+with Files('nsInlineFrame.*'):
+    BUG_COMPONENT = ('Core', 'Layout: Block and Inline')
+
+with Files('nsBRFrame.*'):
+    BUG_COMPONENT = ('Core', 'Layout: Block and Inline')
+
+with Files('nsBulletFrame.*'):
+    BUG_COMPONENT = ('Core', 'Layout: Block and Inline')
+
+with Files('nsFirstLetterFrame.*'):
+    BUG_COMPONENT = ('Core', 'Layout: Block and Inline')
+
+with Files('MathML*'):
+    BUG_COMPONENT = ('Core', 'MathML')
+
+with Files('Text*'):
+    BUG_COMPONENT = ('Core', 'Layout: Text')
+
+with Files('nsText*'):
+    BUG_COMPONENT = ('Core', 'Layout: Text')
+
+with Files('nsFrameSetFrame*'):
+    BUG_COMPONENT = ('Core', 'Layout: HTML Frames')
+
+with Files('nsSubDocumentFrame*'):
+    BUG_COMPONENT = ('Core', 'Layout: HTML Frames')
+
+with Files('nsFloatManager.*'):
+    BUG_COMPONENT = ('Core', 'Layout: Floats')
+
+with Files('nsIntervalSet.*'):
+    BUG_COMPONENT = ('Core', 'Layout: Floats')
+
+with Files('nsHTMLCanvasFrame.*'):
+    BUG_COMPONENT = ('Core', 'Layout: Images')
+
+with Files('nsImage*'):
+    BUG_COMPONENT = ('Core', 'Layout: Images')
+
+with Files('nsAbsoluteContainingBlock.*'):
+    BUG_COMPONENT = ('Core', 'Layout: R & A Pos')
+
+with Files('Sticky*'):
+    BUG_COMPONENT = ('Core', 'Layout: R & A Pos')
+
+with Files('nsPluginFrame.*'):
+    BUG_COMPONENT = ('Core', 'Plug-ins')
+
+with Files('nsVideoFrame.*'):
+    BUG_COMPONENT = ('Core', 'Video/Audio')
+
+with Files('*Selection*'):
+    BUG_COMPONENT = ('Core', 'Selection')
+
 EXPORTS += [
+    'AsyncScrollBase.h',
     'nsCanvasFrame.h',
     'nsContainerFrame.h',
     'nsDirection.h',
@@ -15,8 +82,6 @@ EXPORTS += [
     'nsFrameState.h',
     'nsFrameStateBits.h',
     'nsHTMLParts.h',
-    'nsHTMLReflowMetrics.h',
-    'nsHTMLReflowState.h',
     'nsIAnonymousContentCreator.h',
     'nsIFrame.h',
     'nsIFrameInlines.h',
@@ -25,16 +90,28 @@ EXPORTS += [
     'nsIObjectFrame.h',
     'nsIPageSequenceFrame.h',
     'nsIScrollableFrame.h',
-    'nsIScrollbarOwner.h',
     'nsIScrollPositionListener.h',
     'nsIStatefulFrame.h',
-    'nsObjectFrame.h',
+    'nsPluginFrame.h',
     'nsQueryFrame.h',
+    'nsRubyBaseContainerFrame.h',
+    'nsRubyBaseFrame.h',
+    'nsRubyFrame.h',
+    'nsRubyTextContainerFrame.h',
+    'nsRubyTextFrame.h',
     'nsSplittableFrame.h',
     'nsSubDocumentFrame.h',
     'nsTextRunTransformations.h',
+    'RubyUtils.h',
     'ScrollbarActivity.h',
-    'Selection.h',
+    'ScrollSnap.h',
+    'Visibility.h',
+]
+
+EXPORTS.mozilla += [
+    'CSSAlignUtils.h',
+    'ReflowInput.h',
+    'ReflowOutput.h',
     'WritingModes.h',
 ]
 
@@ -47,12 +124,16 @@ EXPORTS.mozilla.layout += [
 ]
 
 UNIFIED_SOURCES += [
+    'AsyncScrollBase.cpp',
+    'BlockReflowInput.cpp',
+    'CSSAlignUtils.cpp',
+    'DetailsFrame.cpp',
     'FrameChildList.cpp',
     'MathMLTextRunFactory.cpp',
     'nsAbsoluteContainingBlock.cpp',
+    'nsBackdropFrame.cpp',
     'nsBlockFrame.cpp',
     'nsBlockReflowContext.cpp',
-    'nsBlockReflowState.cpp',
     'nsBRFrame.cpp',
     'nsBulletFrame.cpp',
     'nsCanvasFrame.cpp',
@@ -70,8 +151,6 @@ UNIFIED_SOURCES += [
     'nsGfxScrollFrame.cpp',
     'nsGridContainerFrame.cpp',
     'nsHTMLCanvasFrame.cpp',
-    'nsHTMLReflowMetrics.cpp',
-    'nsHTMLReflowState.cpp',
     'nsImageFrame.cpp',
     'nsImageMap.cpp',
     'nsInlineFrame.cpp',
@@ -81,6 +160,12 @@ UNIFIED_SOURCES += [
     'nsPageContentFrame.cpp',
     'nsPageFrame.cpp',
     'nsPlaceholderFrame.cpp',
+    'nsRubyBaseContainerFrame.cpp',
+    'nsRubyBaseFrame.cpp',
+    'nsRubyContentFrame.cpp',
+    'nsRubyFrame.cpp',
+    'nsRubyTextContainerFrame.cpp',
+    'nsRubyTextFrame.cpp',
     'nsSelection.cpp',
     'nsSimplePageSequenceFrame.cpp',
     'nsSplittableFrame.cpp',
@@ -90,36 +175,28 @@ UNIFIED_SOURCES += [
     'nsTextRunTransformations.cpp',
     'nsVideoFrame.cpp',
     'nsViewportFrame.cpp',
+    'ReflowInput.cpp',
+    'ReflowOutput.cpp',
+    'RubyUtils.cpp',
     'ScrollbarActivity.cpp',
+    'ScrollSnap.cpp',
+    'ScrollVelocityQueue.cpp',
     'StickyScrollContainer.cpp',
     'TextOverflow.cpp',
 ]
 
 # nsLineLayout.cpp needs to be built separately because it uses plarena.h.
-# nsObjectFrame.cpp needs to be built separately because of name clashes in the OS X headers.
+# nsPluginFrame.cpp needs to be built separately because of name clashes in the OS X headers.
 SOURCES += [
     'nsLineLayout.cpp',
-    'nsObjectFrame.cpp',
+    'nsPluginFrame.cpp',
 ]
-
-if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
-    UNIFIED_SOURCES += [
-        'nsPluginUtilsOSX.mm',
-    ]
-
-FAIL_ON_WARNINGS = not CONFIG['_MSC_VER']
-
-MSVC_ENABLE_PGO = True
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
-FINAL_LIBRARY = 'gklayout'
+FINAL_LIBRARY = 'xul'
 
 LOCAL_INCLUDES += [
-    '../../content/base/src',
-    '../../content/html/content/src',
-    '../../content/xul/content/src',
-    '../../dom/base',
     '../../dom/plugins/base',
     '../base',
     '../forms',
@@ -127,6 +204,9 @@ LOCAL_INCLUDES += [
     '../svg',
     '../tables',
     '../xul',
+    '/dom/base',
+    '/dom/html',
+    '/dom/xul',
 ]
 
 JAR_MANIFESTS += ['jar.mn']
@@ -137,3 +217,11 @@ RESOURCE_FILES.html = [
 
 MOCHITEST_MANIFESTS += ['test/mochitest.ini']
 MOCHITEST_CHROME_MANIFESTS += ['test/chrome.ini']
+
+CXXFLAGS += CONFIG['MOZ_CAIRO_CFLAGS']
+
+if 'gtk' in CONFIG['MOZ_WIDGET_TOOLKIT']:
+    CXXFLAGS += CONFIG['TK_CFLAGS']
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wno-error=shadow']

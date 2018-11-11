@@ -1,38 +1,23 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files('*'):
+    BUG_COMPONENT = ('Core', 'Video/Audio')
+
 include('sources.mozbuild')
 
 EXPORTS.vpx += files['EXPORTS']
 
-if CONFIG['VPX_NEED_OBJ_INT_EXTRACT']:
-    HOST_SOURCES += [
-        'build/make/obj_int_extract.c',
-    ]
-
-    HOST_PROGRAM = 'host_obj_int_extract'
-
-# Unify fewer files together to reduce the chance of name collision
-FILES_PER_UNIFIED_FILE = 8
-
 SOURCES += files['SOURCES']
-UNIFIED_SOURCES += files['UNIFIED_SOURCES']
 
 if CONFIG['MOZ_VPX_ERROR_CONCEALMENT']:
     SOURCES += files['ERROR_CONCEALMENT']
 
-if CONFIG['VPX_X86_ASM'] and CONFIG['OS_TARGET'] == 'WINNT':
-    offset_sources = [
-        'vp8/encoder/vp8_asm_enc_offsets.c',
-        'vpx_scale/vpx_scale_asm_offsets.c',
-    ]
-    SOURCES += offset_sources
-    if CONFIG['_MSC_VER']:
-        for s in offset_sources:
-            SOURCES[s].no_pgo = True
+if CONFIG['VPX_USE_YASM']:
+    USE_YASM = True
 
 if CONFIG['VPX_X86_ASM']:
     SOURCES += files['X86_ASM']
@@ -40,10 +25,8 @@ if CONFIG['VPX_X86_ASM']:
     if '64' in CONFIG['OS_TEST']:
         SOURCES += files['X86-64_ASM']
 
-    # AVX2 only supported on
-    # Darwin toolchain right now
-    if CONFIG['OS_TARGET'] == 'Darwin':
-        SOURCES += files['AVX2']
+    #avx2 can be enabled on all supported compilters
+    SOURCES += files['AVX2']
 
     #postproc is only enabled on x86 with asm
     SOURCES += files['VP8_POSTPROC']
@@ -53,14 +36,25 @@ if CONFIG['VPX_ARM_ASM']:
     arm_asm_files += files['ARM_ASM']
 
     if CONFIG['VPX_AS_CONVERSION']:
-        GENERATED_SOURCES += [ "%s.%s" % (f, CONFIG['VPX_ASM_SUFFIX'])
-            for f in sorted(arm_asm_files) if f.endswith('.asm')
-        ]
-        SOURCES += [
-            f for f in sorted(arm_asm_files) if not f.endswith('.asm')
-        ]
+        SOURCES += sorted([
+            "!%s.s" % f if f.endswith('.asm') else f for f in arm_asm_files
+        ])
     else:
         SOURCES += sorted(arm_asm_files)
+
+    for f in SOURCES:
+        if f.endswith('.c') and 'neon' in f:
+            SOURCES[f].flags += CONFIG['VPX_ASFLAGS']
+
+    if CONFIG['OS_TARGET'] == 'Android':
+        # For cpu-features.h
+        LOCAL_INCLUDES += [
+            '%%%s/sources/android/cpufeatures' % CONFIG['ANDROID_NDK'],
+        ]
+    if CONFIG['CLANG_CXX']:
+        ASFLAGS += [
+            '-no-integrated-as',
+        ]
 
 # boolhuff_armv5te.asm defines the same functions as boolhuff.c instead of
 # using RTCD, so we have to make sure we only add one of the two.
@@ -69,10 +63,8 @@ if 'vp8/encoder/arm/armv5te/boolhuff_armv5te.asm' not in arm_asm_files:
         'vp8/encoder/boolhuff.c',
     ]
 
-MSVC_ENABLE_PGO = True
-
-if CONFIG['GKMEDIAS_SHARED_LIBRARY']:
-    NO_VISIBILITY_FLAGS = True
+# We allow warnings for third-party code that can be updated from upstream.
+ALLOW_COMPILER_WARNINGS = True
 
 FINAL_LIBRARY = 'gkmedias'
 
@@ -85,19 +77,42 @@ if CONFIG['OS_TARGET'] == 'Android':
 
     if not CONFIG['MOZ_WEBRTC']:
         SOURCES += [
-            '%s/sources/android/cpufeatures/cpu-features.c' % CONFIG['ANDROID_NDK'],
+            '%%%s/sources/android/cpufeatures/cpu-features.c' % CONFIG['ANDROID_NDK'],
         ]
 
-if not CONFIG['_MSC_VER']:
+if CONFIG['CLANG_CL'] or not CONFIG['_MSC_VER']:
     for f in SOURCES:
         if f.endswith('.c'):
             if 'sse2' in f:
                 SOURCES[f].flags += CONFIG['SSE2_FLAGS']
             if 'ssse3' in f:
                 SOURCES[f].flags += ['-mssse3']
+            if 'sse4' in f:
+                SOURCES[f].flags += ['-msse4.1']
             if 'avx2' in f:
                 SOURCES[f].flags += ['-mavx2']
 
 # Suppress warnings in third-party code.
-if CONFIG['GNU_CC']:
-    CFLAGS += ['-Wno-sign-compare']
+if CONFIG['GNU_CC'] or CONFIG['CLANG_CL']:
+    CFLAGS += [
+        '-Wno-sign-compare',
+        '-Wno-unused-function', # so many of these warnings; just ignore them
+    ]
+if CONFIG['CLANG_CXX'] or CONFIG['CLANG_CL']:
+    CFLAGS += [
+        '-Wno-unreachable-code',
+        '-Wno-unneeded-internal-declaration',
+    ]
+
+ASFLAGS += CONFIG['VPX_ASFLAGS']
+ASFLAGS += [
+    '-I.',
+    '-I%s/media/libvpx/' % TOPSRCDIR,
+    '-I%s/media/libvpx/vpx_ports/' % TOPSRCDIR,
+]
+
+if CONFIG['OS_TARGET'] == 'Android':
+    # For LIBVPX_RAND
+    ASFLAGS += [
+        '-D__ANDROID__'
+    ]

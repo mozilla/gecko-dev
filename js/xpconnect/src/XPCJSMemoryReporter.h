@@ -21,12 +21,13 @@ typedef nsDataHashtable<nsUint64HashKey, nsCString> WindowPaths;
 class JSReporter
 {
 public:
-    static nsresult CollectReports(WindowPaths *windowPaths,
-                                   WindowPaths *topWindowPaths,
-                                   nsIMemoryReporterCallback *cb,
-                                   nsISupports *closure);
+    static void CollectReports(WindowPaths* windowPaths,
+                               WindowPaths* topWindowPaths,
+                               nsIMemoryReporterCallback* handleReport,
+                               nsISupports* data,
+                               bool anonymize);
 };
 
-}
+} // namespace xpc
 
 #endif

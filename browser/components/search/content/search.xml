@@ -1,8 +1,7 @@
 <?xml version="1.0"?>
-# -*- Mode: HTML -*-
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!DOCTYPE bindings [
 <!ENTITY % searchBarDTD SYSTEM "chrome://browser/locale/searchbar.dtd" >
@@ -32,15 +31,14 @@
       <xul:textbox class="searchbar-textbox"
                    anonid="searchbar-textbox"
                    type="autocomplete"
+                   inputtype="search"
                    flex="1"
-                   autocompletepopup="PopupAutoComplete"
+                   autocompletepopup="PopupSearchAutoComplete"
                    autocompletesearch="search-autocomplete"
                    autocompletesearchparam="searchbar-history"
-                   timeout="250"
                    maxrows="10"
                    completeselectedindex="true"
-                   showcommentcolumn="true"
-                   tabscrolling="true"
+                   minresultsforpopup="0"
                    xbl:inherits="disabled,disableautocomplete,searchengine,src,newlines">
         <!--
         Empty <box> to properly position the icon within the autocomplete
@@ -48,23 +46,15 @@
         children differently)
         -->
         <xul:box>
-          <xul:button class="searchbar-engine-button"
-                      type="menu"
-                      anonid="searchbar-engine-button">
-            <xul:image class="searchbar-engine-image" xbl:inherits="src"/>
-            <xul:image class="searchbar-dropmarker-image"/>
-            <xul:menupopup class="searchbar-popup"
-                           anonid="searchbar-popup">
-              <xul:menuseparator/>
-              <xul:menuitem class="open-engine-manager"
-                            anonid="open-engine-manager"
-                            label="&cmd_engineManager.label;"
-                            oncommand="openManager(event);"/>
-            </xul:menupopup>
-          </xul:button>
+          <xul:hbox class="searchbar-search-button-container">
+            <xul:image class="searchbar-search-button"
+                       anonid="searchbar-search-button"
+                       xbl:inherits="addengines"
+                       tooltiptext="&searchEndCap.label;"/>
+          </xul:hbox>
         </xul:box>
         <xul:hbox class="search-go-container">
-          <xul:image class="search-go-button"
+          <xul:image class="search-go-button" hidden="true"
                      anonid="search-go-button"
                      onclick="handleSearchCommand(event);"
                      tooltiptext="&searchEndCap.label;"/>
@@ -79,14 +69,11 @@
         // Make sure we rebuild the popup in onpopupshowing
         this._needToBuildPopup = true;
 
-        var os =
-               Components.classes["@mozilla.org/observer-service;1"]
-                         .getService(Components.interfaces.nsIObserverService);
-        os.addObserver(this, "browser-search-engine-modified", false);
+        Services.obs.addObserver(this, "browser-search-engine-modified", false);
 
         this._initialized = true;
 
-        this.searchService.init((function search_init_cb(aStatus) {
+        Services.search.init((function search_init_cb(aStatus) {
           // Bail out if the binding's been destroyed
           if (!this._initialized)
             return;
@@ -94,6 +81,7 @@
           if (Components.isSuccessCode(aStatus)) {
             // Refresh the display (updating icon, etc)
             this.updateDisplay();
+            BrowserSearch.updateOpenSearchBadge();
           } else {
             Components.utils.reportError("Cannot initialize search service, bailing out: " + aStatus);
           }
@@ -101,27 +89,34 @@
       ]]></constructor>
 
       <destructor><![CDATA[
+        this.destroy();
+      ]]></destructor>
+
+      <method name="destroy">
+        <body><![CDATA[
         if (this._initialized) {
           this._initialized = false;
 
-          var os = Components.classes["@mozilla.org/observer-service;1"]
-                             .getService(Components.interfaces.nsIObserverService);
-          os.removeObserver(this, "browser-search-engine-modified");
+          Services.obs.removeObserver(this, "browser-search-engine-modified");
         }
 
         // Make sure to break the cycle from _textbox to us. Otherwise we leak
         // the world. But make sure it's actually pointing to us.
-        if (this._textbox.mController.input == this)
+        // Also make sure the textbox has ever been constructed, otherwise the
+        // _textbox getter will cause the textbox constructor to run, add an
+        // observer, and leak the world too.
+        if (this._textboxInitialized && this._textbox.mController.input == this)
           this._textbox.mController.input = null;
-      ]]></destructor>
+        ]]></body>
+      </method>
 
+      <field name="_ignoreFocus">false</field>
+      <field name="_clickClosedPopup">false</field>
       <field name="_stringBundle">document.getAnonymousElementByAttribute(this,
           "anonid", "searchbar-stringbundle");</field>
+      <field name="_textboxInitialized">false</field>
       <field name="_textbox">document.getAnonymousElementByAttribute(this,
           "anonid", "searchbar-textbox");</field>
-      <field name="_popup">document.getAnonymousElementByAttribute(this,
-          "anonid", "searchbar-popup");</field>
-      <field name="_ss">null</field>
       <field name="_engines">null</field>
       <field name="FormHistory" readonly="true">
         (Components.utils.import("resource://gre/modules/FormHistory.jsm", {})).FormHistory;
@@ -130,22 +125,18 @@
       <property name="engines" readonly="true">
         <getter><![CDATA[
           if (!this._engines)
-            this._engines = this.searchService.getVisibleEngines();
+            this._engines = Services.search.getVisibleEngines();
           return this._engines;
         ]]></getter>
       </property>
 
-      <field name="searchButton">document.getAnonymousElementByAttribute(this,
-          "anonid", "searchbar-engine-button");</field>
-
       <property name="currentEngine">
         <setter><![CDATA[
-          let ss = this.searchService;
-          ss.defaultEngine = ss.currentEngine = val;
+          Services.search.currentEngine = val;
           return val;
         ]]></setter>
         <getter><![CDATA[
-          var currentEngine = this.searchService.currentEngine;
+          var currentEngine = Services.search.currentEngine;
           // Return a dummy engine if there is no currentEngine
           return currentEngine || {name: "", uri: null};
         ]]></getter>
@@ -155,18 +146,6 @@
            clearing form information. -->
       <property name="textbox" readonly="true"
                 onget="return this._textbox;"/>
-
-      <property name="searchService" readonly="true">
-        <getter><![CDATA[
-          if (!this._ss) {
-            const nsIBSS = Components.interfaces.nsIBrowserSearchService;
-            this._ss =
-                 Components.classes["@mozilla.org/browser/search-service;1"]
-                           .getService(nsIBSS);
-          }
-          return this._ss;
-        ]]></getter>
-      </property>
 
       <property name="value" onget="return this._textbox.value;"
                              onset="return this._textbox.value = val;"/>
@@ -196,12 +175,6 @@
             case "engine-added":
               this.hideNewEngine(aEngine);
               break;
-            case "engine-current":
-              // The current engine was changed.  Rebuilding the menu appears to
-              // confuse its idea of whether it should be open when it's just
-              // been clicked, so we force it to close now.
-              this._popup.hidePopup();
-              break;
             case "engine-changed":
               // An engine was removed (or hidden) or added, or an icon was
               // changed.  Do nothing special.
@@ -210,8 +183,8 @@
             // Make sure the engine list is refetched next time it's needed
             this._engines = null;
 
-            // Rebuild the popup and update the display after any modification.
-            this.rebuildPopup();
+            // Update the popup header and update the display after any modification.
+            this._textbox.popup.updateHeader();
             this.updateDisplay();
           }
         ]]></body>
@@ -240,9 +213,7 @@
       <method name="offerNewEngine">
         <parameter name="aEngine"/>
         <body><![CDATA[
-          var allbrowsers = getBrowser().mPanelContainer.childNodes;
-          for (var tab = 0; tab < allbrowsers.length; tab++) {
-            var browser = getBrowser().getBrowserAtIndex(tab);
+          for (let browser of gBrowser.browsers) {
             if (browser.hiddenEngines) {
               // XXX This will need to be changed when engines are identified by
               // URL rather than title; see bug 335102.
@@ -258,6 +229,7 @@
               }
             }
           }
+          BrowserSearch.updateOpenSearchBadge();
         ]]></body>
       </method>
 
@@ -267,9 +239,7 @@
       <method name="hideNewEngine">
         <parameter name="aEngine"/>
         <body><![CDATA[
-          var allbrowsers = getBrowser().mPanelContainer.childNodes;
-          for (var tab = 0; tab < allbrowsers.length; tab++) {
-            var browser = getBrowser().getBrowserAtIndex(tab);
+          for (let browser of gBrowser.browsers) {
             if (browser.engines) {
               // XXX This will need to be changed when engines are identified by
               // URL rather than title; see bug 335102.
@@ -285,6 +255,7 @@
               }
             }
           }
+          BrowserSearch.updateOpenSearchBadge();
         ]]></body>
       </method>
 
@@ -292,11 +263,6 @@
         <parameter name="element"/>
         <parameter name="uri"/>
         <body><![CDATA[
-          if (uri) {
-            let size = Math.round(16 * window.devicePixelRatio);
-            if (!uri.contains("#"))
-              uri += "#-moz-resolution=" + size + "," + size;
-          }
           element.setAttribute("src", uri);
         ]]></body>
       </method>
@@ -308,129 +274,36 @@
 
           var name = this.currentEngine.name;
           var text = this._stringBundle.getFormattedString("searchtip", [name]);
-          this._textbox.placeholder = name;
+
+          this._textbox.placeholder = this._stringBundle.getString("searchPlaceholder");
           this._textbox.label = text;
           this._textbox.tooltipText = text;
         ]]></body>
       </method>
 
-      <!-- Rebuilds the dynamic portion of the popup menu (i.e., the menu items
-           for new search engines that can be added to the available list).  This
-           is called each time the popup is shown.
-      -->
-      <method name="rebuildPopupDynamic">
+      <method name="updateGoButtonVisibility">
         <body><![CDATA[
-          // We might not have added the main popup items yet, do that first
-          // if needed.
-          if (this._needToBuildPopup)
-            this.rebuildPopup();
-
-          var popup = this._popup;
-          // Clear any addengine menuitems, including addengine-item entries and
-          // the addengine-separator.  Work backward to avoid invalidating the
-          // indexes as items are removed.
-          var items = popup.childNodes;
-          for (var i = items.length - 1; i >= 0; i--) {
-            if (items[i].classList.contains("addengine-item") ||
-                items[i].classList.contains("addengine-separator"))
-              popup.removeChild(items[i]);
-          }
-
-          var addengines = getBrowser().mCurrentBrowser.engines;
-          if (addengines && addengines.length > 0) {
-            const kXULNS =
-               "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
-
-            // Find the (first) separator in the remaining menu, or the first item
-            // if no separators are present.
-            var insertLocation = popup.firstChild;
-            while (insertLocation.nextSibling &&
-                   insertLocation.localName != "menuseparator") {
-              insertLocation = insertLocation.nextSibling;
-            }
-            if (insertLocation.localName != "menuseparator")
-              insertLocation = popup.firstChild;
-
-            var separator = document.createElementNS(kXULNS, "menuseparator");
-            separator.setAttribute("class", "addengine-separator");
-            popup.insertBefore(separator, insertLocation);
-
-            // Insert the "add this engine" items.
-            for (var i = 0; i < addengines.length; i++) {
-              var menuitem = document.createElement("menuitem");
-              var engineInfo = addengines[i];
-              var labelStr =
-                  this._stringBundle.getFormattedString("cmd_addFoundEngine",
-                                                        [engineInfo.title]);
-              menuitem = document.createElementNS(kXULNS, "menuitem");
-              menuitem.setAttribute("class", "menuitem-iconic addengine-item");
-              menuitem.setAttribute("label", labelStr);
-              menuitem.setAttribute("tooltiptext", engineInfo.uri);
-              menuitem.setAttribute("uri", engineInfo.uri);
-              if (engineInfo.icon)
-                this.setIcon(menuitem, engineInfo.icon);
-              menuitem.setAttribute("title", engineInfo.title);
-              popup.insertBefore(menuitem, insertLocation);
-            }
-          }
+          document.getAnonymousElementByAttribute(this, "anonid",
+                                                  "search-go-button")
+                  .hidden = !this._textbox.value;
         ]]></body>
       </method>
 
-      <!-- Rebuilds the list of visible search engines in the menu.  Does not remove
-           or update any dynamic entries (i.e., "Add this engine" items) nor the
-           Manage Engines item.  This is called by the observer when the list of
-           visible engines, or the currently selected engine, has changed.
-      -->
-      <method name="rebuildPopup">
+      <method name="openSuggestionsPanel">
+        <parameter name="aShowOnlySettingsIfEmpty"/>
         <body><![CDATA[
-          var popup = this._popup;
+          if (this._textbox.open)
+            return;
 
-          // Clear the popup, down to the first separator
-          while (popup.firstChild && popup.firstChild.localName != "menuseparator")
-            popup.removeChild(popup.firstChild);
+          this._textbox.showHistoryPopup();
 
-          const kXULNS =
-               "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
-
-          var engines = this.engines;
-          for (var i = engines.length - 1; i >= 0; --i) {
-            var menuitem = document.createElementNS(kXULNS, "menuitem");
-            var name = engines[i].name;
-            menuitem.setAttribute("label", name);
-            menuitem.setAttribute("id", name);
-            menuitem.setAttribute("class", "menuitem-iconic searchbar-engine-menuitem menuitem-with-favicon");
-            // Since this menu is rebuilt by the observer method whenever a new
-            // engine is selected, the "selected" attribute does not need to be
-            // explicitly cleared anywhere.
-            if (engines[i] == this.currentEngine)
-              menuitem.setAttribute("selected", "true");
-            var tooltip = this._stringBundle.getFormattedString("searchtip", [name]);
-            menuitem.setAttribute("tooltiptext", tooltip);
-            if (engines[i].iconURI)
-              this.setIcon(menuitem, engines[i].iconURI.spec);
-            popup.insertBefore(menuitem, popup.firstChild);
-            menuitem.engine = engines[i];
+          if (this._textbox.value) {
+            // showHistoryPopup does a startSearch("") call, ensure the
+            // controller handles the text from the input box instead:
+            this._textbox.mController.handleText();
           }
-
-          this._needToBuildPopup = false;
-        ]]></body>
-      </method>
-
-      <method name="openManager">
-        <parameter name="aEvent"/>
-        <body><![CDATA[
-          var wm =
-                Components.classes["@mozilla.org/appshell/window-mediator;1"]
-                          .getService(Components.interfaces.nsIWindowMediator);
-
-          var window = wm.getMostRecentWindow("Browser:SearchManager");
-          if (window)
-            window.focus()
-          else {
-            setTimeout(function () {
-              openDialog("chrome://browser/content/search/engineManager.xul",
-                         "_blank", "chrome,dialog,modal,centerscreen,resizable");
-            }, 0);
+          else if (aShowOnlySettingsIfEmpty) {
+            this.setAttribute("showonlysettings", "true");
           }
         ]]></body>
       </method>
@@ -449,39 +322,106 @@
 
           aEvent.preventDefault();
           aEvent.stopPropagation();
+
+          this.openSuggestionsPanel();
         ]]></body>
       </method>
 
       <method name="handleSearchCommand">
         <parameter name="aEvent"/>
+        <parameter name="aEngine"/>
+        <parameter name="aForceNewTab"/>
         <body><![CDATA[
-          var textBox = this._textbox;
-          var textValue = textBox.value;
-
           var where = "current";
+          let params;
+
+          // Open ctrl/cmd clicks on one-off buttons in a new background tab.
           if (aEvent && aEvent.originalTarget.getAttribute("anonid") == "search-go-button") {
             if (aEvent.button == 2)
               return;
             where = whereToOpenLink(aEvent, false, true);
           }
+          else if (aForceNewTab) {
+            where = "tab";
+            if (Services.prefs.getBoolPref("browser.tabs.loadInBackground"))
+              where += "-background";
+          }
           else {
-            var newTabPref = textBox._prefBranch.getBoolPref("browser.search.openintab");
-            if ((aEvent && aEvent.altKey) ^ newTabPref)
+            var newTabPref = Services.prefs.getBoolPref("browser.search.openintab");
+            if (((aEvent instanceof KeyboardEvent) && aEvent.altKey) ^ newTabPref)
               where = "tab";
+            if ((aEvent instanceof MouseEvent) &&
+                (aEvent.button == 1 || aEvent.getModifierState("Accel"))) {
+              where = "tab";
+              params = {
+                inBackground: true,
+              };
+            }
           }
 
-          this.doSearch(textValue, where);
+          this.handleSearchCommandWhere(aEvent, aEngine, where, params);
+        ]]></body>
+      </method>
+
+      <method name="handleSearchCommandWhere">
+        <parameter name="aEvent"/>
+        <parameter name="aEngine"/>
+        <parameter name="aWhere"/>
+        <parameter name="aParams"/>
+        <body><![CDATA[
+          var textBox = this._textbox;
+          var textValue = textBox.value;
+
+          let selection = this.telemetrySearchDetails;
+          let oneOffRecorded = false;
+
+          if (!selection || (selection.index == -1)) {
+            oneOffRecorded = this.textbox.popup.oneOffButtons
+                                 .maybeRecordTelemetry(aEvent, aWhere, aParams);
+            if (!oneOffRecorded) {
+              let source = "unknown";
+              let type = "unknown";
+              let target = aEvent.originalTarget;
+              if (aEvent instanceof KeyboardEvent) {
+                type = "key";
+              } else if (aEvent instanceof MouseEvent) {
+                type = "mouse";
+                if (target.classList.contains("search-panel-header") ||
+                    target.parentNode.classList.contains("search-panel-header")) {
+                  source = "header";
+                }
+              } else if (aEvent instanceof XULCommandEvent) {
+                if (target.getAttribute("anonid") == "paste-and-search") {
+                  source = "paste";
+                }
+              }
+              if (!aEngine) {
+                aEngine = this.currentEngine;
+              }
+              BrowserSearch.recordOneoffSearchInTelemetry(aEngine, source, type,
+                                                          aWhere);
+            }
+          }
+
+          // This is a one-off search only if oneOffRecorded is true.
+          this.doSearch(textValue, aWhere, aEngine, aParams, oneOffRecorded);
+
+          if (aWhere == "tab" && aParams && aParams.inBackground)
+            this.focus();
         ]]></body>
       </method>
 
       <method name="doSearch">
         <parameter name="aData"/>
         <parameter name="aWhere"/>
+        <parameter name="aEngine"/>
+        <parameter name="aParams"/>
+        <parameter name="aOneOff"/>
         <body><![CDATA[
           var textBox = this._textbox;
-        
+
           // Save the current value in the form history
-          if (aData && !PrivateBrowsingUtils.isWindowPrivate(window)) {
+          if (aData && !PrivateBrowsingUtils.isWindowPrivate(window) && this.FormHistory.enabled) {
             this.FormHistory.update(
               { op : "bump",
                 fieldname : textBox.getAttribute("autocompletesearchparam"),
@@ -490,11 +430,31 @@
                   Components.utils.reportError("Saving search to form history failed: " + aError.message);
               }});
           }
-          
+
+          let engine = aEngine || this.currentEngine;
+          var submission = engine.getSubmission(aData, null, "searchbar");
+          let telemetrySearchDetails = this.telemetrySearchDetails;
+          this.telemetrySearchDetails = null;
+          if (telemetrySearchDetails && telemetrySearchDetails.index == -1) {
+            telemetrySearchDetails = null;
+          }
+          // If we hit here, we come either from a one-off, a plain search or a suggestion.
+          const details = {
+            isOneOff: aOneOff,
+            isSuggestion: (!aOneOff && telemetrySearchDetails),
+            selection: telemetrySearchDetails
+          };
+          BrowserSearch.recordSearchInTelemetry(engine, "searchbar", details);
           // null parameter below specifies HTML response for search
-          var submission = this.currentEngine.getSubmission(aData, null, "searchbar");
-          BrowserSearch.recordSearchInHealthReport(this.currentEngine, "searchbar");
-          openUILinkIn(submission.uri.spec, aWhere, null, submission.postData);
+          let params = {
+            postData: submission.postData,
+          };
+          if (aParams) {
+            for (let key in aParams) {
+              params[key] = aParams[key];
+            }
+          }
+          openUILinkIn(submission.uri.spec, aWhere, params);
         ]]></body>
       </method>
     </implementation>
@@ -505,18 +465,13 @@
         if (target.engine) {
           this.currentEngine = target.engine;
         } else if (target.classList.contains("addengine-item")) {
-          var searchService =
-            Components.classes["@mozilla.org/browser/search-service;1"]
-                      .getService(Components.interfaces.nsIBrowserSearchService);
-          // We only detect OpenSearch files
-          var type = Components.interfaces.nsISearchEngine.DATA_XML;
           // Select the installed engine if the installation succeeds
           var installCallback = {
             onSuccess: engine => this.currentEngine = engine
           }
-          searchService.addEngine(target.getAttribute("uri"), type,
-                                  target.getAttribute("src"), false,
-                                  installCallback);
+          Services.search.addEngine(target.getAttribute("uri"), null,
+                                    target.getAttribute("src"), false,
+                                    installCallback);
         }
         else
           return;
@@ -525,34 +480,73 @@
         this.select();
       ]]></handler>
 
-      <handler event="popupshowing" action="this.rebuildPopupDynamic();"/>
-
       <handler event="DOMMouseScroll"
                phase="capturing"
                modifiers="accel"
                action="this.selectEngine(event, (event.detail > 0));"/>
 
+      <handler event="input" action="this.updateGoButtonVisibility();"/>
+      <handler event="drop" action="this.updateGoButtonVisibility();"/>
+
+      <handler event="blur">
+      <![CDATA[
+        // If the input field is still focused then a different window has
+        // received focus, ignore the next focus event.
+        this._ignoreFocus = (document.activeElement == this._textbox.inputField);
+      ]]></handler>
+
       <handler event="focus">
       <![CDATA[
         // Speculatively connect to the current engine's search URI (and
         // suggest URI, if different) to reduce request latency
+        this.currentEngine.speculativeConnect({window: window});
 
-        const SUGGEST_TYPE = "application/x-suggestions+json";
-        var engine = this.currentEngine;
-        var connector =
-            Services.io.QueryInterface(Components.interfaces.nsISpeculativeConnect);
-        var searchURI = engine.getSubmission("dummy", null, "searchbar").uri;
-        let callbacks = window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-                              .getInterface(Components.interfaces.nsIWebNavigation)
-                              .QueryInterface(Components.interfaces.nsILoadContext);
-        connector.speculativeConnect(searchURI, callbacks);
+        if (this._ignoreFocus) {
+          // This window has been re-focused, don't show the suggestions
+          this._ignoreFocus = false;
+          return;
+        }
 
-        if (engine.supportsResponseType(SUGGEST_TYPE)) {
-          var suggestURI = engine.getSubmission("dummy", SUGGEST_TYPE, "searchbar").uri;
-          if (suggestURI.prePath != searchURI.prePath)
-            connector.speculativeConnect(suggestURI, callbacks);
+        // Don't open the suggestions if there is no text in the textbox.
+        if (!this._textbox.value)
+          return;
+
+        // Don't open the suggestions if the mouse was used to focus the
+        // textbox, that will be taken care of in the click handler.
+        if (Services.focus.getLastFocusMethod(window) & Services.focus.FLAG_BYMOUSE)
+          return;
+
+        this.openSuggestionsPanel();
+      ]]></handler>
+
+      <handler event="mousedown" phase="capturing">
+      <![CDATA[
+        if (event.originalTarget.getAttribute("anonid") == "searchbar-search-button") {
+          this._clickClosedPopup = this._textbox.popup._isHiding;
         }
       ]]></handler>
+
+      <handler event="click" button="0">
+      <![CDATA[
+        // Ignore clicks on the search go button.
+        if (event.originalTarget.getAttribute("anonid") == "search-go-button") {
+          return;
+        }
+
+        let isIconClick = event.originalTarget.getAttribute("anonid") == "searchbar-search-button";
+
+        // Ignore clicks on the icon if they were made to close the popup
+        if (isIconClick && this._clickClosedPopup) {
+          return;
+        }
+
+        // Open the suggestions whenever clicking on the search icon or if there
+        // is text in the textbox.
+        if (isIconClick || this._textbox.value) {
+          this.openSuggestionsPanel(true);
+        }
+      ]]></handler>
+
     </handlers>
   </binding>
 
@@ -569,13 +563,10 @@
 
         // Initialize fields
         this._stringBundle = document.getBindingParent(this)._stringBundle;
-        this._prefBranch =
-                  Components.classes["@mozilla.org/preferences-service;1"]
-                            .getService(Components.interfaces.nsIPrefBranch);
         this._suggestEnabled =
-            this._prefBranch.getBoolPref("browser.search.suggest.enabled");
+          Services.prefs.getBoolPref("browser.search.suggest.enabled");
 
-        if (this._prefBranch.getBoolPref("browser.urlbar.clickSelectsAll"))
+        if (Services.prefs.getBoolPref("browser.urlbar.clickSelectsAll"))
           this.setAttribute("clickSelectsAll", true);
 
         // Add items to context menu and attach controller to handle them
@@ -585,6 +576,7 @@
                                           "anonid", "input-box-contextmenu");
         var pasteAndSearch;
         cxmenu.addEventListener("popupshowing", function() {
+          BrowserSearch.searchBar._textbox.closePopup();
           if (!pasteAndSearch)
             return;
           var controller = document.commandDispatcher.getControllerForCommand("cmd_paste");
@@ -600,6 +592,8 @@
         element = document.createElementNS(kXULNS, "menuseparator");
         cxmenu.appendChild(element);
 
+        this.setAttribute("aria-owns", this.popup.id);
+
         var insertLocation = cxmenu.firstChild;
         while (insertLocation.nextSibling &&
                insertLocation.getAttribute("cmd") != "cmd_paste")
@@ -609,8 +603,7 @@
           label = this._stringBundle.getString("cmd_pasteAndSearch");
           element.setAttribute("label", label);
           element.setAttribute("anonid", "paste-and-search");
-          element.setAttribute("oncommand",
-              "BrowserSearch.searchBar.select(); goDoCommand('cmd_paste'); BrowserSearch.searchBar.handleSearchCommand();");
+          element.setAttribute("oncommand", "BrowserSearch.pasteAndSearch(event)");
           cxmenu.insertBefore(element, insertLocation.nextSibling);
           pasteAndSearch = element;
         }
@@ -636,18 +629,20 @@
         this._suggestMenuItem = element;
         cxmenu.appendChild(element);
 
+        this.addEventListener("keypress", aEvent => {
+          if (navigator.platform.startsWith("Mac") && aEvent.keyCode == KeyEvent.VK_F4)
+            this.openSearch()
+        }, true);
+
         this.controllers.appendController(this.searchbarController);
+        document.getBindingParent(this)._textboxInitialized = true;
 
         // Add observer for suggest preference
-        var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                            .getService(Components.interfaces.nsIPrefBranch);
-        prefs.addObserver("browser.search.suggest.enabled", this, false);
+        Services.prefs.addObserver("browser.search.suggest.enabled", this, false);
       ]]></constructor>
 
       <destructor><![CDATA[
-          var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                              .getService(Components.interfaces.nsIPrefBranch);
-          prefs.removeObserver("browser.search.suggest.enabled", this);
+        Services.prefs.removeObserver("browser.search.suggest.enabled", this);
 
         // Because XBL and the customize toolbar code interacts poorly,
         // there may not be anything to remove here
@@ -657,7 +652,6 @@
       ]]></destructor>
 
       <field name="_stringBundle"/>
-      <field name="_prefBranch"/>
       <field name="_suggestMenuItem"/>
       <field name="_suggestEnabled"/>
 
@@ -675,6 +669,16 @@
                        (PrivateBrowsingUtils.isWindowPrivate(window) ? '|private' : '');"
                 onset="this.setAttribute('autocompletesearchparam', val); return val;"/>
 
+      <!-- This is implemented so that when textbox.value is set directly (e.g.,
+           by tests), the one-off query is updated. -->
+      <method name="onBeforeValueSet">
+        <parameter name="aValue"/>
+        <body><![CDATA[
+          this.popup.oneOffButtons.query = aValue;
+          return aValue;
+        ]]></body>
+      </method>
+
       <!--
         This method overrides the autocomplete binding's openPopup (essentially
         duplicating the logic from the autocomplete popup binding's
@@ -685,7 +689,7 @@
         <body><![CDATA[
           var popup = this.popup;
           if (!popup.mPopupOpen) {
-            // Initially the panel used for the searchbar (PopupAutoComplete
+            // Initially the panel used for the searchbar (PopupSearchAutoComplete
             // in browser.xul) is hidden to avoid impacting startup / new
             // window performance. The base binding's openPopup would normally
             // call the overriden openAutocompletePopup in urlbarBindings.xml's
@@ -694,8 +698,13 @@
             // ourselves.
             popup.hidden = false;
 
+            // Don't roll up on mouse click in the anchor for the search UI.
+            if (popup.id == "PopupSearchAutoComplete") {
+              popup.setAttribute("norolluponanchor", "true");
+            }
+
             popup.mInput = this;
-            popup.view = this.controller.QueryInterface(Components.interfaces.nsITreeView);
+            popup.view = this.controller.QueryInterface(Ci.nsITreeView);
             popup.invalidate();
 
             popup.showCommentColumn = this.showCommentColumn;
@@ -707,11 +716,9 @@
 
             var outerRect = this.getBoundingClientRect();
             var innerRect = this.inputField.getBoundingClientRect();
-            if (isRTL) {
-              var width = innerRect.right - outerRect.left;
-            } else {
-              var width = outerRect.right - innerRect.left;
-            }
+            let width = isRTL ?
+                        innerRect.right - outerRect.left :
+                        outerRect.right - innerRect.left;
             popup.setAttribute("width", width > 100 ? width : 100);
 
             var yOffset = outerRect.bottom - innerRect.bottom;
@@ -727,7 +734,7 @@
         <body><![CDATA[
           if (aTopic == "nsPref:changed") {
             this._suggestEnabled =
-              this._prefBranch.getBoolPref("browser.search.suggest.enabled");
+              Services.prefs.getBoolPref("browser.search.suggest.enabled");
             this._suggestMenuItem.setAttribute("checked", this._suggestEnabled);
           }
         ]]></body>
@@ -736,9 +743,8 @@
       <method name="openSearch">
         <body>
           <![CDATA[
-            // Don't open search popup if history popup is open
             if (!this.popupOpen) {
-              document.getBindingParent(this).searchButton.open = true;
+              document.getBindingParent(this).openSuggestionsPanel();
               return false;
             }
             return true;
@@ -750,9 +756,51 @@
       <method name="onTextEntered">
         <parameter name="aEvent"/>
         <body><![CDATA[
-          var evt = aEvent || this.mEnterEvent;
-          document.getBindingParent(this).handleSearchCommand(evt);
-          this.mEnterEvent = null;
+          let engine;
+          let oneOff = this.selectedButton;
+          if (oneOff) {
+            if (!oneOff.engine) {
+              oneOff.doCommand();
+              return;
+            }
+            engine = oneOff.engine;
+          }
+          if (this._selectionDetails &&
+              this._selectionDetails.currentIndex != -1) {
+            BrowserSearch.searchBar.telemetrySearchDetails = this._selectionDetails;
+            this._selectionDetails = null;
+          }
+          document.getBindingParent(this).handleSearchCommand(aEvent, engine);
+        ]]></body>
+      </method>
+
+      <property name="selectedButton">
+        <getter><![CDATA[
+          return this.popup.oneOffButtons.selectedButton;
+        ]]></getter>
+        <setter><![CDATA[
+          return this.popup.oneOffButtons.selectedButton = val;
+        ]]></setter>
+      </property>
+
+      <method name="handleKeyboardNavigation">
+        <parameter name="aEvent"/>
+        <body><![CDATA[
+          let popup = this.popup;
+          if (!popup.popupOpen)
+            return;
+
+          // accel + up/down changes the default engine and shouldn't affect
+          // the selection on the one-off buttons.
+          if (aEvent.getModifierState("Accel"))
+            return;
+
+          let suggestions =
+            document.getAnonymousElementByAttribute(popup, "anonid", "tree");
+          let suggestionsHidden =
+            suggestions.getAttribute("collapsed") == "true";
+          let numItems = suggestionsHidden ? 0 : this.popup.view.rowCount;
+          this.popup.oneOffButtons.handleKeyPress(aEvent, numItems, true);
         ]]></body>
       </method>
 
@@ -773,16 +821,14 @@
             case "cmd_clearhistory":
               var param = this._self.getAttribute("autocompletesearchparam");
 
-              let searchBar = this._self.parentNode;
-
               BrowserSearch.searchBar.FormHistory.update({ op : "remove", fieldname : param }, null);
               this._self.value = "";
               break;
             case "cmd_togglesuggest":
               // The pref observer will update _suggestEnabled and the menu
               // checkmark.
-              this._self._prefBranch.setBoolPref("browser.search.suggest.enabled",
-                                                 !this._self._suggestEnabled);
+              Services.prefs.setBoolPref("browser.search.suggest.enabled",
+                                         !this._self._suggestEnabled);
               break;
             default:
               // do nothing with unrecognized command
@@ -792,6 +838,13 @@
     </implementation>
 
     <handlers>
+      <handler event="input"><![CDATA[
+        this.popup.removeAttribute("showonlysettings");
+      ]]></handler>
+
+      <handler event="keypress" phase="capturing"
+               action="return this.handleKeyboardNavigation(event);"/>
+
       <handler event="keypress" keycode="VK_UP" modifiers="accel"
                phase="capturing"
                action="document.getBindingParent(this).selectEngine(event, false);"/>
@@ -808,16 +861,10 @@
                phase="capturing"
                action="return this.openSearch();"/>
 
-#ifndef XP_MACOSX
-      <handler event="keypress" keycode="VK_F4"
-               phase="capturing"
-               action="return this.openSearch();"/>
-#endif
-
       <handler event="dragover">
       <![CDATA[
         var types = event.dataTransfer.types;
-        if (types.contains("text/plain") || types.contains("text/x-moz-text-internal"))
+        if (types.includes("text/plain") || types.includes("text/x-moz-text-internal"))
           event.preventDefault();
       ]]>
       </handler>
@@ -831,11 +878,1213 @@
         if (data) {
           event.preventDefault();
           this.value = data;
-          this.onTextEntered(event);
+          document.getBindingParent(this).openSuggestionsPanel();
         }
       ]]>
       </handler>
 
     </handlers>
   </binding>
+
+  <binding id="browser-search-autocomplete-result-popup" extends="chrome://browser/content/urlbarBindings.xml#browser-autocomplete-result-popup">
+    <resources>
+      <stylesheet src="chrome://browser/content/search/searchbarBindings.css"/>
+      <stylesheet src="chrome://browser/skin/searchbar.css"/>
+    </resources>
+    <content ignorekeys="true" level="top" consumeoutsideclicks="never">
+      <xul:hbox anonid="searchbar-engine" xbl:inherits="showonlysettings"
+                class="search-panel-header search-panel-current-engine">
+        <xul:image class="searchbar-engine-image" xbl:inherits="src"/>
+        <xul:label anonid="searchbar-engine-name" flex="1" crop="end"
+                   role="presentation"/>
+      </xul:hbox>
+      <xul:tree anonid="tree" flex="1"
+                class="autocomplete-tree plain search-panel-tree"
+                hidecolumnpicker="true" seltype="single">
+        <xul:treecols anonid="treecols">
+          <xul:treecol id="treecolAutoCompleteValue" class="autocomplete-treecol" flex="1" overflow="true"/>
+        </xul:treecols>
+        <xul:treechildren class="autocomplete-treebody"/>
+      </xul:tree>
+      <xul:vbox anonid="search-one-off-buttons" class="search-one-offs"/>
+    </content>
+    <implementation>
+      <!-- Popup rollup is triggered by native events before the mousedown event
+           reaches the DOM. The will be set to true by the popuphiding event and
+           false after the mousedown event has been triggered to detect what
+           caused rollup. -->
+      <field name="_isHiding">false</field>
+      <field name="_bundle">null</field>
+      <property name="bundle" readonly="true">
+        <getter>
+          <![CDATA[
+            if (!this._bundle) {
+              const kBundleURI = "chrome://browser/locale/search.properties";
+              this._bundle = Services.strings.createBundle(kBundleURI);
+            }
+            return this._bundle;
+          ]]>
+        </getter>
+      </property>
+
+      <field name="oneOffButtons" readonly="true">
+        document.getAnonymousElementByAttribute(this, "anonid",
+                                                "search-one-off-buttons");
+      </field>
+
+      <method name="updateHeader">
+        <body><![CDATA[
+          let currentEngine = Services.search.currentEngine;
+          let uri = currentEngine.iconURI;
+          if (uri) {
+            this.setAttribute("src", uri.spec);
+          }
+          else {
+            // If the default has just been changed to a provider without icon,
+            // avoid showing the icon of the previous default provider.
+            this.removeAttribute("src");
+          }
+
+          let headerText = this.bundle.formatStringFromName("searchHeader",
+                                                            [currentEngine.name], 1);
+          document.getAnonymousElementByAttribute(this, "anonid", "searchbar-engine-name")
+                  .setAttribute("value", headerText);
+          document.getAnonymousElementByAttribute(this, "anonid", "searchbar-engine")
+                  .engine = currentEngine;
+        ]]></body>
+      </method>
+
+      <!-- This is called when a one-off is clicked and when "search in new tab"
+           is selected from a one-off context menu. -->
+      <method name="handleOneOffSearch">
+        <parameter name="event"/>
+        <parameter name="engine"/>
+        <parameter name="where"/>
+        <parameter name="params"/>
+        <body><![CDATA[
+          let searchbar = document.getElementById("searchbar");
+          searchbar.handleSearchCommandWhere(event, engine, where, params);
+        ]]></body>
+      </method>
+    </implementation>
+
+    <handlers>
+      <handler event="popupshowing"><![CDATA[
+        if (!this.oneOffButtons.popup) {
+          // The panel width only spans to the textbox size, but we also want it
+          // to include the magnifier icon's width.
+          let ltr = getComputedStyle(this).direction == "ltr";
+          let magnifierWidth = parseInt(getComputedStyle(this)[
+                                 ltr ? "marginLeft" : "marginRight"
+                               ]) * -1;
+          // Ensure the panel is wide enough to fit at least 3 engines.
+          let minWidth = Math.max(
+            parseInt(this.width) + magnifierWidth,
+            this.oneOffButtons.buttonWidth * 3
+          );
+          this.style.minWidth = minWidth + "px";
+
+          // Set the origin before assigning the popup, as the assignment does
+          // a rebuild and would miss the origin.
+          this.oneOffButtons.telemetryOrigin = "searchbar";
+          // Set popup after setting the minWidth since it builds the buttons.
+          this.oneOffButtons.popup = this;
+          this.oneOffButtons.textbox = this.input;
+        }
+
+        // First handle deciding if we are showing the reduced version of the
+        // popup containing only the preferences button. We do this if the
+        // glass icon has been clicked if the text field is empty.
+        let searchbar = document.getElementById("searchbar");
+        let tree = document.getAnonymousElementByAttribute(this, "anonid",
+                                                           "tree")
+        if (searchbar.hasAttribute("showonlysettings")) {
+          searchbar.removeAttribute("showonlysettings");
+          this.setAttribute("showonlysettings", "true");
+
+          // Setting this with an xbl-inherited attribute gets overridden the
+          // second time the user clicks the glass icon for some reason...
+          tree.collapsed = true;
+        }
+        else {
+          this.removeAttribute("showonlysettings");
+          // Uncollapse as long as we have a tree with a view which has >= 1 row.
+          // The autocomplete binding itself will take care of uncollapsing later,
+          // if we currently have no rows but end up having some in the future
+          // when the search string changes
+          tree.collapsed = !tree.view || !tree.view.rowCount;
+        }
+
+        // Show the current default engine in the top header of the panel.
+        this.updateHeader();
+      ]]></handler>
+
+      <handler event="popuphiding"><![CDATA[
+        this._isHiding = true;
+        setTimeout(() => {
+          this._isHiding = false;
+        }, 0);
+      ]]></handler>
+
+      <!-- This handles clicks on the topmost "Foo Search" header in the
+           popup (hbox[anonid="searchbar-engine"]). -->
+      <handler event="click"><![CDATA[
+        if (event.button == 2) {
+          // Ignore right clicks.
+          return;
+        }
+        let button = event.originalTarget;
+        let engine = button.parentNode.engine;
+        if (!engine) {
+          return;
+        }
+        this.oneOffButtons.handleSearchCommand(event, engine);
+      ]]></handler>
+    </handlers>
+
+  </binding>
+
+  <!-- Used for additional open search providers in the search panel. -->
+  <binding id="addengine-icon" extends="xul:box">
+    <content>
+      <xul:image class="addengine-icon" xbl:inherits="src"/>
+      <xul:image class="addengine-badge"/>
+    </content>
+  </binding>
+
+  <binding id="search-one-offs">
+    <content context="_child">
+      <xul:deck anonid="search-panel-one-offs-header"
+                selectedIndex="0"
+                class="search-panel-header search-panel-current-input">
+        <xul:label anonid="searchbar-oneoffheader-search"
+                   value="&searchWithHeader.label;"/>
+        <xul:hbox anonid="search-panel-searchforwith"
+                  class="search-panel-current-input">
+          <xul:label anonid="searchbar-oneoffheader-before"
+                     value="&searchFor.label;"/>
+          <xul:label anonid="searchbar-oneoffheader-searchtext"
+                     class="search-panel-input-value"
+                     flex="1"
+                     crop="end"/>
+          <xul:label anonid="searchbar-oneoffheader-after"
+                     flex="10000"
+                     value="&searchWith.label;"/>
+        </xul:hbox>
+        <xul:hbox anonid="search-panel-searchonengine"
+                  class="search-panel-current-input">
+          <xul:label anonid="searchbar-oneoffheader-beforeengine"
+                     value="&search.label;"/>
+          <xul:label anonid="searchbar-oneoffheader-engine"
+                     class="search-panel-input-value"
+                     flex="1"
+                     crop="end"/>
+          <xul:label anonid="searchbar-oneoffheader-afterengine"
+                     flex="10000"
+                     value="&searchAfter.label;"/>
+        </xul:hbox>
+      </xul:deck>
+      <xul:description anonid="search-panel-one-offs"
+                       role="group"
+                       class="search-panel-one-offs"
+                       xbl:inherits="compact">
+        <xul:button anonid="search-settings-compact"
+                    oncommand="showSettings();"
+                    class="searchbar-engine-one-off-item search-setting-button-compact"
+                    tooltiptext="&changeSearchSettings.tooltip;"
+                    xbl:inherits="compact"/>
+      </xul:description>
+      <xul:vbox anonid="add-engines"/>
+      <xul:button anonid="search-settings"
+                  oncommand="showSettings();"
+                  class="search-setting-button search-panel-header"
+                  label="&changeSearchSettings.button;"
+                  xbl:inherits="compact"/>
+      <xul:menupopup anonid="search-one-offs-context-menu">
+        <xul:menuitem anonid="search-one-offs-context-open-in-new-tab"
+                      label="&searchInNewTab.label;"
+                      accesskey="&searchInNewTab.accesskey;"/>
+        <xul:menuitem anonid="search-one-offs-context-set-default"
+                      label="&searchSetAsDefault.label;"
+                      accesskey="&searchSetAsDefault.accesskey;"/>
+      </xul:menupopup>
+    </content>
+
+    <implementation implements="nsIDOMEventListener">
+
+      <!-- Width in pixels of the one-off buttons.  49px is the min-width of
+           each search engine button, adapt this const when changing the css.
+           It's actually 48px + 1px of right border. -->
+      <property name="buttonWidth" readonly="true" onget="return 49;"/>
+
+      <field name="_popup">null</field>
+
+      <!-- The popup that contains the one-offs.  This is required, so it should
+           never be null or undefined, except possibly before the one-offs are
+           used. -->
+      <property name="popup">
+        <getter><![CDATA[
+          return this._popup;
+        ]]></getter>
+        <setter><![CDATA[
+          if (this._popup == val) {
+            return val;
+          }
+
+          let events = [
+            "popupshowing",
+            "popuphidden",
+          ];
+          if (this._popup) {
+            for (let event of events) {
+              this._popup.removeEventListener(event, this);
+            }
+          }
+          if (val) {
+            for (let event of events) {
+              val.addEventListener(event, this);
+            }
+          }
+          this._popup = val;
+
+          // If the popup is already open, rebuild the one-offs now.  The
+          // popup may be opening, so check that the state is not closed
+          // instead of checking popupOpen.
+          if (val && val.state != "closed") {
+            this._rebuild();
+          }
+          return val;
+        ]]></setter>
+      </property>
+
+      <field name="_textbox">null</field>
+
+      <!-- The textbox associated with the one-offs.  Set this to a textbox to
+           automatically keep the related one-offs UI up to date.  Otherwise you
+           can leave it null/undefined, and in that case you should update the
+           query property manually. -->
+      <property name="textbox">
+        <getter><![CDATA[
+          return this._textbox;
+        ]]></getter>
+        <setter><![CDATA[
+          if (this._textbox == val) {
+            return val;
+          }
+          if (this._textbox) {
+            this._textbox.removeEventListener("input", this);
+          }
+          if (val) {
+            val.addEventListener("input", this);
+          }
+          return this._textbox = val;
+        ]]></setter>
+      </property>
+
+      <!-- Set this to a string that identifies your one-offs consumer.  It'll
+           be appended to telemetry recorded with maybeRecordTelemetry(). -->
+      <field name="telemetryOrigin">""</field>
+
+      <field name="_query">""</field>
+
+      <!-- The query string currently shown in the one-offs.  If the textbox
+           property is non-null, then this is automatically updated on
+           input. -->
+      <property name="query">
+        <getter><![CDATA[
+          return this._query;
+        ]]></getter>
+        <setter><![CDATA[
+          this._query = val;
+          if (this.popup && this.popup.popupOpen) {
+            this._updateAfterQueryChanged();
+          }
+          return val;
+        ]]></setter>
+      </property>
+
+      <field name="_selectedButton">null</field>
+
+      <!-- The selected one-off, a xul:button, including the add-engine button
+           and the search-settings button.  Null if no one-off is selected. -->
+      <property name="selectedButton">
+        <getter><![CDATA[
+          return this._selectedButton;
+        ]]></getter>
+        <setter><![CDATA[
+          this._changeVisuallySelectedButton(val, true);
+          return val;
+        ]]></setter>
+      </property>
+
+      <!-- The index of the selected one-off, including the add-engine button
+           and the search-settings button.  -1 if no one-off is selected. -->
+      <property name="selectedButtonIndex">
+        <getter><![CDATA[
+          let buttons = this.getSelectableButtons(true);
+          for (let i = 0; i < buttons.length; i++) {
+            if (buttons[i] == this._selectedButton) {
+              return i;
+            }
+          }
+          return -1;
+        ]]></getter>
+        <setter><![CDATA[
+          let buttons = this.getSelectableButtons(true);
+          this.selectedButton = buttons[val];
+          return val;
+        ]]></setter>
+      </property>
+
+      <!-- The visually selected one-off is the same as the selected one-off
+           unless a one-off is moused over.  In that case, the visually selected
+           one-off is the moused-over one-off, which may be different from the
+           selected one-off.  The visually selected one-off is always the one
+           that is visually highlighted.  Includes the add-engine button and the
+           search-settings button.  A xul:button. -->
+      <property name="visuallySelectedButton" readonly="true">
+        <getter><![CDATA[
+          return this.getSelectableButtons(true).find(button => {
+            return button.getAttribute("selected") == "true";
+          });
+        ]]></getter>
+      </property>
+
+      <property name="compact" readonly="true">
+        <getter><![CDATA[
+          return this.getAttribute("compact") == "true";
+        ]]></getter>
+      </property>
+
+      <property name="settingsButton" readonly="true">
+        <getter><![CDATA[
+          let id = this.compact ? "search-settings-compact" : "search-settings";
+          return document.getAnonymousElementByAttribute(this, "anonid", id);
+        ]]></getter>
+      </property>
+
+      <field name="_bundle">null</field>
+
+      <property name="bundle" readonly="true">
+        <getter><![CDATA[
+          if (!this._bundle) {
+            const kBundleURI = "chrome://browser/locale/search.properties";
+            this._bundle = Services.strings.createBundle(kBundleURI);
+          }
+          return this._bundle;
+        ]]></getter>
+      </property>
+
+      <!-- When a context menu is opened on a one-off button, this is set to the
+           engine of that button for use with the context menu actions. -->
+      <field name="_contextEngine">null</field>
+
+      <constructor><![CDATA[
+        // Prevent popup events from the context menu from reaching the autocomplete
+        // binding (or other listeners).
+        let menu = document.getAnonymousElementByAttribute(this, "anonid", "search-one-offs-context-menu");
+        let listener = aEvent => aEvent.stopPropagation();
+        menu.addEventListener("popupshowing", listener);
+        menu.addEventListener("popuphiding", listener);
+        menu.addEventListener("popupshown", aEvent => {
+          this._ignoreMouseEvents = true;
+          aEvent.stopPropagation();
+        });
+        menu.addEventListener("popuphidden", aEvent => {
+          this._ignoreMouseEvents = false;
+          aEvent.stopPropagation();
+        });
+      ]]></constructor>
+
+      <!-- This handles events outside the one-off buttons, like on the popup
+           and textbox. -->
+      <method name="handleEvent">
+        <parameter name="event"/>
+        <body><![CDATA[
+          switch (event.type) {
+            case "input":
+              // Allow the consumer's input to override its value property with
+              // a oneOffSearchQuery property.  That way if the value is not
+              // actually what the user typed (e.g., it's autofilled, or it's a
+              // mozaction URI), the consumer has some way of providing it.
+              this.query = event.target.oneOffSearchQuery || event.target.value;
+              break;
+            case "popupshowing":
+              this._rebuild();
+              break;
+            case "popuphidden":
+              Services.tm.mainThread.dispatch(() => {
+                this.selectedButton = null;
+                this._contextEngine = null;
+              }, Ci.nsIThread.DISPATCH_NORMAL);
+              break;
+          }
+        ]]></body>
+      </method>
+
+      <method name="showSettings">
+        <body><![CDATA[
+          BrowserUITelemetry.countSearchSettingsEvent(this.telemetryOrigin);
+          openPreferences("paneSearch");
+          // If the preference tab was already selected, the panel doesn't
+          // close itself automatically.
+          this.popup.hidePopup();
+        ]]></body>
+      </method>
+
+      <!-- Updates the parts of the UI that show the query string. -->
+      <method name="_updateAfterQueryChanged">
+        <body><![CDATA[
+          let headerSearchText =
+            document.getAnonymousElementByAttribute(this, "anonid",
+                                                    "searchbar-oneoffheader-searchtext");
+          let headerPanel =
+            document.getAnonymousElementByAttribute(this, "anonid",
+                                                    "search-panel-one-offs-header");
+          let list = document.getAnonymousElementByAttribute(this, "anonid",
+                                                             "search-panel-one-offs");
+          headerSearchText.setAttribute("value", this.query);
+          let groupText;
+          let isOneOffSelected =
+            this.selectedButton &&
+            this.selectedButton.classList.contains("searchbar-engine-one-off-item");
+          // Typing de-selects the settings or opensearch buttons at the bottom
+          // of the search panel, as typing shows the user intends to search.
+          if (this.selectedButton && !isOneOffSelected)
+            this.selectedButton = null;
+          if (this.query) {
+            groupText = headerSearchText.previousSibling.value +
+                        '"' + headerSearchText.value + '"' +
+                        headerSearchText.nextSibling.value;
+            if (!isOneOffSelected)
+              headerPanel.selectedIndex = 1;
+          }
+          else {
+            let noSearchHeader =
+              document.getAnonymousElementByAttribute(this, "anonid",
+                                                      "searchbar-oneoffheader-search");
+            groupText = noSearchHeader.value;
+            if (!isOneOffSelected)
+              headerPanel.selectedIndex = 0;
+          }
+          list.setAttribute("aria-label", groupText);
+        ]]></body>
+      </method>
+
+      <!-- Builds all the UI. -->
+      <method name="_rebuild">
+        <body><![CDATA[
+          // Update the 'Search for <keywords> with:" header.
+          this._updateAfterQueryChanged();
+
+          let list = document.getAnonymousElementByAttribute(this, "anonid",
+                                                             "search-panel-one-offs");
+
+          // Handle opensearch items. This needs to be done before building the
+          // list of one off providers, as that code will return early if all the
+          // alternative engines are hidden.
+          let addEngineList =
+            document.getAnonymousElementByAttribute(this, "anonid", "add-engines");
+          while (addEngineList.firstChild)
+            addEngineList.firstChild.remove();
+
+          const kXULNS =
+            "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+
+          // Add a button for each engine that the page in the selected browser
+          // offers.  But not when the one-offs are compact.  Compact one-offs
+          // are shown in the urlbar, and the add-engine buttons span the width
+          // of the popup, so if we added all the engines that a site offers, it
+          // could effectively break the urlbar popup by offering a ton of
+          // engines.  We should probably make a smaller version of the buttons
+          // for compact one-offs.
+          if (!this.compact) {
+            for (let engine of gBrowser.selectedBrowser.engines || []) {
+              let button = document.createElementNS(kXULNS, "button");
+              let label = this.bundle.formatStringFromName("cmd_addFoundEngine",
+                                                           [engine.title], 1);
+              button.id = this.telemetryOrigin + "-add-engine-" +
+                          engine.title.replace(/ /g, '-');
+              button.setAttribute("class", "addengine-item");
+              button.setAttribute("label", label);
+              button.setAttribute("pack", "start");
+
+              button.setAttribute("crop", "end");
+              button.setAttribute("tooltiptext", engine.uri);
+              button.setAttribute("uri", engine.uri);
+              if (engine.icon) {
+                button.setAttribute("image", engine.icon);
+              }
+              button.setAttribute("title", engine.title);
+              addEngineList.appendChild(button);
+            }
+          }
+
+          let settingsButton =
+            document.getAnonymousElementByAttribute(this, "anonid",
+                                                    "search-settings-compact");
+          // Finally, build the list of one-off buttons.
+          while (list.firstChild != settingsButton)
+            list.firstChild.remove();
+          // Remove the trailing empty text node introduced by the binding's
+          // content markup above.
+          if (settingsButton.nextSibling)
+            settingsButton.nextSibling.remove();
+
+          let Preferences =
+            Cu.import("resource://gre/modules/Preferences.jsm", {}).Preferences;
+          let pref = Preferences.get("browser.search.hiddenOneOffs");
+          let hiddenList = pref ? pref.split(",") : [];
+
+          let currentEngineName = Services.search.currentEngine.name;
+          let includeCurrentEngine = this.getAttribute("includecurrentengine");
+          let engines = Services.search.getVisibleEngines().filter(e => {
+            return (includeCurrentEngine || e.name != currentEngineName) &&
+                   !hiddenList.includes(e.name);
+          });
+
+          let header = document.getAnonymousElementByAttribute(this, "anonid",
+                                                               "search-panel-one-offs-header")
+          // header is a xul:deck so collapsed doesn't work on it, see bug 589569.
+          header.hidden = list.collapsed = !engines.length;
+
+          if (!engines.length)
+            return;
+
+          let panelWidth = parseInt(this.popup.clientWidth);
+          // The + 1 is because the last button doesn't have a right border.
+          let enginesPerRow = Math.floor((panelWidth + 1) / this.buttonWidth);
+          let buttonWidth = Math.floor(panelWidth / enginesPerRow);
+          // There will be an emtpy area of:
+          //   panelWidth - enginesPerRow * buttonWidth  px
+          // at the end of each row.
+
+          // If the <description> tag with the list of search engines doesn't have
+          // a fixed height, the panel will be sized incorrectly, causing the bottom
+          // of the suggestion <tree> to be hidden.
+          let oneOffCount = engines.length;
+          if (this.compact)
+            ++oneOffCount;
+          let rowCount = Math.ceil(oneOffCount / enginesPerRow);
+          let height = rowCount * 33; // 32px per row, 1px border.
+          list.setAttribute("height", height + "px");
+
+          // Ensure we can refer to the settings buttons by ID:
+          let settingsEl = document.getAnonymousElementByAttribute(this, "anonid", "search-settings");
+          settingsEl.id = this.telemetryOrigin + "-anon-search-settings";
+          let compactSettingsEl = document.getAnonymousElementByAttribute(this, "anonid", "search-settings-compact");
+          compactSettingsEl.id = this.telemetryOrigin +
+                                 "-anon-search-settings-compact";
+
+          let dummyItems = enginesPerRow - (oneOffCount % enginesPerRow || enginesPerRow);
+          for (let i = 0; i < engines.length; ++i) {
+            let engine = engines[i];
+            let button = document.createElementNS(kXULNS, "button");
+            button.id = this._buttonIDForEngine(engine);
+            let uri = "chrome://browser/skin/search-engine-placeholder.png";
+            if (engine.iconURI) {
+              uri = engine.iconURI.spec;
+            }
+            button.setAttribute("image", uri);
+            button.setAttribute("class", "searchbar-engine-one-off-item");
+            button.setAttribute("tooltiptext", engine.name);
+            button.setAttribute("width", buttonWidth);
+            button.engine = engine;
+
+            if ((i + 1) % enginesPerRow == 0)
+              button.classList.add("last-of-row");
+
+            if (i + 1 == engines.length)
+              button.classList.add("last-engine");
+
+            if (i >= oneOffCount + dummyItems - enginesPerRow)
+              button.classList.add("last-row");
+
+            list.insertBefore(button, settingsButton);
+          }
+
+          let hasDummyItems = !!dummyItems;
+          while (dummyItems) {
+            let button = document.createElementNS(kXULNS, "button");
+            button.setAttribute("class", "searchbar-engine-one-off-item dummy last-row");
+            button.setAttribute("width", buttonWidth);
+
+            if (!--dummyItems)
+              button.classList.add("last-of-row");
+
+            list.insertBefore(button, settingsButton);
+          }
+
+          if (this.compact) {
+            this.settingsButton.setAttribute("width", buttonWidth);
+            if (rowCount == 1 && hasDummyItems) {
+              // When there's only one row, make the compact settings button
+              // hug the right edge of the panel.  It may not due to the panel's
+              // width not being an integral multiple of the button width.  (See
+              // the "There will be an emtpy area" comment above.)  Increase the
+              // width of the last dummy item by the remainder.
+              //
+              // There's one weird thing to guard against.  When layout pixels
+              // aren't an integral multiple of device pixels, the calculated
+              // remainder can end up being ~1px too big, at least on Windows,
+              // which pushes the settings button to a new row.  The remainder
+              // is integral, not a fraction, so that's not the problem.  To
+              // work around that, unscale the remainder, floor it, scale it
+              // back, and then floor that.
+              let scale = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                                .getInterface(Ci.nsIDOMWindowUtils)
+                                .screenPixelsPerCSSPixel;
+              let remainder = panelWidth - (enginesPerRow * buttonWidth);
+              remainder = Math.floor(Math.floor(remainder * scale) / scale);
+              let width = remainder + buttonWidth;
+              let lastDummyItem = this.settingsButton.previousSibling;
+              lastDummyItem.setAttribute("width", width);
+            }
+          }
+        ]]></body>
+      </method>
+
+      <method name="_buttonIDForEngine">
+        <parameter name="engine"/>
+        <body><![CDATA[
+          return this.telemetryOrigin + "-engine-one-off-item-" +
+                 engine.name.replace(/ /g, '-');
+        ]]></body>
+      </method>
+
+      <method name="_buttonForEngine">
+        <parameter name="engine"/>
+        <body><![CDATA[
+          return document.getElementById(this._buttonIDForEngine(engine));
+        ]]></body>
+      </method>
+
+      <method name="_changeVisuallySelectedButton">
+        <parameter name="val"/>
+        <parameter name="aUpdateLogicallySelectedButton"/>
+        <body><![CDATA[
+          let visuallySelectedButton = this.visuallySelectedButton;
+          if (visuallySelectedButton)
+            visuallySelectedButton.removeAttribute("selected");
+
+          let header =
+            document.getAnonymousElementByAttribute(this, "anonid",
+                                                    "search-panel-one-offs-header");
+          // Avoid selecting dummy buttons.
+          if (val && !val.classList.contains("dummy")) {
+            val.setAttribute("selected", "true");
+            if (val.classList.contains("searchbar-engine-one-off-item") &&
+                val.engine) {
+              let headerEngineText =
+                document.getAnonymousElementByAttribute(this, "anonid",
+                                                        "searchbar-oneoffheader-engine");
+              header.selectedIndex = 2;
+              headerEngineText.value = val.engine.name;
+            }
+            else {
+              header.selectedIndex = this.query ? 1 : 0;
+            }
+            if (this.textbox) {
+              this.textbox.setAttribute("aria-activedescendant", val.id);
+            }
+          } else {
+            val = null;
+            header.selectedIndex = this.query ? 1 : 0;
+            if (this.textbox) {
+              this.textbox.removeAttribute("aria-activedescendant");
+            }
+          }
+
+          if (aUpdateLogicallySelectedButton) {
+            this._selectedButton = val;
+            if (val && !val.engine) {
+              // If the button doesn't have an engine, then clear the popup's
+              // selection to indicate that pressing Return while the button is
+              // selected will do the button's command, not search.
+              this.popup.selectedIndex = -1;
+            }
+            let event = document.createEvent("Events");
+            event.initEvent("SelectedOneOffButtonChanged", true, false);
+            this.dispatchEvent(event);
+          }
+        ]]></body>
+      </method>
+
+      <method name="getSelectableButtons">
+        <parameter name="aIncludeNonEngineButtons"/>
+        <body><![CDATA[
+          let buttons = [];
+          let oneOff = document.getAnonymousElementByAttribute(this, "anonid",
+                                                               "search-panel-one-offs");
+          for (oneOff = oneOff.firstChild; oneOff; oneOff = oneOff.nextSibling) {
+            // oneOff may be a text node since the list xul:description contains
+            // whitespace and the compact settings button.  See the markup
+            // above.  _rebuild removes text nodes, but it may not have been
+            // called yet (because e.g. the popup hasn't been opened yet).
+            if (oneOff.nodeType == Node.ELEMENT_NODE) {
+              if (oneOff.classList.contains("dummy") ||
+                  oneOff.classList.contains("search-setting-button-compact"))
+                break;
+              buttons.push(oneOff);
+            }
+          }
+
+          if (!aIncludeNonEngineButtons)
+            return buttons;
+
+          let addEngine =
+            document.getAnonymousElementByAttribute(this, "anonid", "add-engines");
+          for (addEngine = addEngine.firstChild; addEngine; addEngine = addEngine.nextSibling)
+            buttons.push(addEngine);
+
+          buttons.push(this.settingsButton);
+          return buttons;
+        ]]></body>
+      </method>
+
+      <method name="handleSearchCommand">
+        <parameter name="aEvent"/>
+        <parameter name="aEngine"/>
+        <parameter name="aForceNewTab"/>
+        <body><![CDATA[
+          let where = "current";
+          let params;
+
+          // Open ctrl/cmd clicks on one-off buttons in a new background tab.
+          if (aForceNewTab) {
+            where = "tab";
+            if (Services.prefs.getBoolPref("browser.tabs.loadInBackground")) {
+              params = {
+                inBackground: true,
+              };
+            }
+          }
+          else {
+            var newTabPref = Services.prefs.getBoolPref("browser.search.openintab");
+            if (((aEvent instanceof KeyboardEvent) && aEvent.altKey) ^ newTabPref)
+              where = "tab";
+            if ((aEvent instanceof MouseEvent) &&
+                (aEvent.button == 1 || aEvent.getModifierState("Accel"))) {
+              where = "tab";
+              params = {
+                inBackground: true,
+              };
+            }
+          }
+
+          this.popup.handleOneOffSearch(aEvent, aEngine, where, params);
+        ]]></body>
+      </method>
+
+      <!--
+        Increments or decrements the index of the currently selected one-off.
+
+        @param aForward
+               If true, the index is incremented, and if false, the index is
+               decremented.
+        @param aWrapAround
+               This has a couple of effects, depending on whether there is
+               currently a selection.
+               (1) If true and the last one-off is currently selected,
+               incrementing the index will cause the selection to be cleared and
+               this method to return true.  Calling advanceSelection again after
+               that (again with aForward=true) will select the first one-off.
+               Likewise if decrementing the index when the first one-off is
+               selected, except in the opposite direction of course.
+               (2) If true and there currently is no selection, decrementing the
+               index will cause the last one-off to become selected and this
+               method to return true.  Only the aForward=false case is affected
+               because it is always the case that if aForward=true and there
+               currently is no selection, the first one-off becomes selected and
+               this method returns true.
+        @param aCycleEngines
+               If true, only engine buttons are included.
+        @return True if the selection can continue to advance after this method
+                returns and false if not.
+      -->
+      <method name="advanceSelection">
+        <parameter name="aForward"/>
+        <parameter name="aWrapAround"/>
+        <parameter name="aCycleEngines"/>
+        <body><![CDATA[
+          let selectedButton = this.selectedButton;
+          let buttons = this.getSelectableButtons(aCycleEngines);
+
+          if (selectedButton) {
+            // cycle through one-off buttons.
+            let index = buttons.indexOf(selectedButton);
+            if (aForward)
+              ++index;
+            else
+              --index;
+
+            if (index >= 0 && index < buttons.length)
+              this.selectedButton = buttons[index];
+            else
+              this.selectedButton = null;
+
+            if (this.selectedButton || aWrapAround)
+              return true;
+
+            return false;
+          }
+
+          // If no selection, select the first button or ...
+          if (aForward) {
+            this.selectedButton = buttons[0];
+            return true;
+          }
+
+          if (!aForward && aWrapAround) {
+            // the last button.
+            this.selectedButton = buttons[buttons.length - 1];
+            return true;
+          }
+
+          return false;
+        ]]></body>
+      </method>
+
+      <!--
+        This handles key presses specific to the one-off buttons like Tab and
+        Alt-Up/Down, and Up/Down keys within the buttons.  Since one-off buttons
+        are always used in conjunction with a list of some sort (in this.popup),
+        it also handles Up/Down keys that cross the boundaries between list
+        items and the one-off buttons.
+
+        @param event
+               The key event.
+        @param numListItems
+               The number of items in the list.  The reason that this is a
+               parameter at all is that the list may contain items at the end
+               that should be ignored, depending on the consumer.  That's true
+               for the urlbar for example.
+        @param allowEmptySelection
+               Pass true if it's OK that neither the list nor the one-off
+               buttons contains a selection.  Pass false if either the list or
+               the one-off buttons (or both) should always contain a selection.
+        @param textboxUserValue
+               When the last list item is selected and the user presses Down,
+               the first one-off becomes selected and the textbox value is
+               restored to the value that the user typed.  Pass that value here.
+               However, if you pass true for allowEmptySelection, you don't need
+               to pass anything for this parameter.  (Pass undefined or null.)
+        @return True if this method handled the keypress and false if not.  If
+                false, then you should let the autocomplete controller handle
+                the keypress.  The value of event.defaultPrevented will be the
+                same as this return value.
+      -->
+      <method name="handleKeyPress">
+        <parameter name="event"/>
+        <parameter name="numListItems"/>
+        <parameter name="allowEmptySelection"/>
+        <parameter name="textboxUserValue"/>
+        <body><![CDATA[
+          if (!this.popup) {
+            return false;
+          }
+
+          let stopEvent = false;
+
+          // Tab cycles through the one-offs and moves the focus out at the end.
+          // But only if non-Shift modifiers aren't also pressed, to avoid
+          // clobbering other shortcuts.
+          if (event.keyCode == KeyEvent.DOM_VK_TAB &&
+              !event.altKey &&
+              !event.ctrlKey &&
+              !event.metaKey &&
+              this.getAttribute("disabletab") != "true") {
+            stopEvent = this.advanceSelection(!event.shiftKey, false, true);
+          }
+
+          // Alt + up/down is very similar to (shift +) tab but differs in that
+          // it loops through the list, whereas tab will move the focus out.
+          else if (event.altKey &&
+                   (event.keyCode == KeyEvent.DOM_VK_DOWN ||
+                    event.keyCode == KeyEvent.DOM_VK_UP)) {
+            stopEvent =
+              this.advanceSelection(event.keyCode == KeyEvent.DOM_VK_DOWN,
+                                    true, false);
+          }
+
+          else if (event.keyCode == Ci.nsIDOMKeyEvent.DOM_VK_UP) {
+            if (numListItems > 0) {
+              if (this.popup.selectedIndex > 0) {
+                // The autocomplete controller should handle this case.
+              } else if (this.popup.selectedIndex == 0) {
+                if (!allowEmptySelection) {
+                  // Wrap around the selection to the last one-off.
+                  this.selectedButton = null;
+                  this.popup.selectedIndex = -1;
+                  // Call advanceSelection after setting selectedIndex so that
+                  // screen readers see the newly selected one-off. Both trigger
+                  // accessibility events.
+                  this.advanceSelection(false, true, true);
+                  stopEvent = true;
+                }
+              } else {
+                let firstButtonSelected =
+                  this.selectedButton &&
+                  this.selectedButton == this.getSelectableButtons(true)[0];
+                if (firstButtonSelected) {
+                  this.selectedButton = null;
+                } else {
+                  stopEvent = this.advanceSelection(false, true, true);
+                }
+              }
+            } else {
+              stopEvent = this.advanceSelection(false, true, true);
+            }
+          }
+
+          else if (event.keyCode == Ci.nsIDOMKeyEvent.DOM_VK_DOWN) {
+            if (numListItems > 0) {
+              if (this.popup.selectedIndex >= 0 &&
+                  this.popup.selectedIndex < numListItems - 1) {
+                // The autocomplete controller should handle this case.
+              } else if (this.popup.selectedIndex == numListItems - 1) {
+                this.selectedButton = null;
+                if (!allowEmptySelection) {
+                  this.popup.selectedIndex = -1;
+                  stopEvent = true;
+                }
+                if (this.textbox && typeof(textboxUserValue) == "string") {
+                  this.textbox.value = textboxUserValue;
+                }
+                // Call advanceSelection after setting selectedIndex so that
+                // screen readers see the newly selected one-off. Both trigger
+                // accessibility events.
+                this.advanceSelection(true, true, true);
+              } else {
+                let buttons = this.getSelectableButtons(true);
+                let lastButtonSelected =
+                  this.selectedButton &&
+                  this.selectedButton == buttons[buttons.length - 1];
+                if (lastButtonSelected) {
+                  this.selectedButton = null;
+                  stopEvent = allowEmptySelection;
+                } else if (this.selectedButton) {
+                  stopEvent = this.advanceSelection(true, true, true);
+                } else {
+                  // The autocomplete controller should handle this case.
+                }
+              }
+            } else {
+              stopEvent = this.advanceSelection(true, true, true);
+            }
+          }
+
+          if (stopEvent) {
+            event.preventDefault();
+            event.stopPropagation();
+            return true;
+          }
+          return false;
+        ]]></body>
+      </method>
+
+      <!--
+        If the given event is related to the one-offs, this method records
+        one-off telemetry for it.  this.telemetryOrigin will be appended to the
+        computed source, so make sure you set that first.
+
+        @param aEvent
+               An event, like a click on a one-off button.
+        @param aOpenUILinkWhere
+               The "where" passed to openUILink.
+        @param aOpenUILinkParams
+               The "params" passed to openUILink.
+        @return True if telemetry was recorded and false if not.
+      -->
+      <method name="maybeRecordTelemetry">
+        <parameter name="aEvent"/>
+        <parameter name="aOpenUILinkWhere"/>
+        <parameter name="aOpenUILinkParams"/>
+        <body><![CDATA[
+          if (!aEvent) {
+            return false;
+          }
+
+          let source = null;
+          let type = "unknown";
+          let engine = null;
+          let target = aEvent.originalTarget;
+
+          if (aEvent instanceof KeyboardEvent) {
+            type = "key";
+            if (this.selectedButton) {
+              source = "oneoff";
+              engine = this.selectedButton.engine;
+            }
+          } else if (aEvent instanceof MouseEvent) {
+            type = "mouse";
+            if (target.classList.contains("searchbar-engine-one-off-item")) {
+              source = "oneoff";
+              engine = target.engine;
+            }
+          } else if ((aEvent instanceof XULCommandEvent) &&
+                     target.getAttribute("anonid") ==
+                       "search-one-offs-context-open-in-new-tab") {
+            source = "oneoff-context";
+            engine = this._contextEngine;
+          }
+
+          if (!source) {
+            return false;
+          }
+
+          if (this.telemetryOrigin) {
+            source += "-" + this.telemetryOrigin;
+          }
+
+          let tabBackground = aOpenUILinkWhere == "tab" &&
+                              aOpenUILinkParams &&
+                              aOpenUILinkParams.inBackground;
+          let where = tabBackground ? "tab-background" : aOpenUILinkWhere;
+          BrowserSearch.recordOneoffSearchInTelemetry(engine, source, type,
+                                                      where);
+          return true;
+        ]]></body>
+      </method>
+
+    </implementation>
+
+    <handlers>
+
+      <handler event="mousedown"><![CDATA[
+        // Required to receive click events from the buttons on Linux.
+        event.preventDefault();
+      ]]></handler>
+
+      <handler event="mousemove"><![CDATA[
+        let target = event.originalTarget;
+        if (target.localName != "button")
+          return;
+
+        // Ignore mouse events when the context menu is open.
+         if (this._ignoreMouseEvents)
+           return;
+
+        if ((target.classList.contains("searchbar-engine-one-off-item") &&
+             !target.classList.contains("dummy")) ||
+            target.classList.contains("addengine-item") ||
+            target.classList.contains("search-setting-button")) {
+          this._changeVisuallySelectedButton(target);
+        }
+      ]]></handler>
+
+      <handler event="mouseout"><![CDATA[
+        let target = event.originalTarget;
+        if (target.localName != "button") {
+          return;
+        }
+
+        // Don't deselect the current button if the context menu is open.
+        if (this._ignoreMouseEvents)
+          return;
+
+        // Unfortunately this will fire before mouseover hits another item.
+        // If this button is selected, we replace that selection only if
+        // we're not moving to a different one-off item:
+        if (target.getAttribute("selected") == "true" &&
+            (!event.relatedTarget ||
+             !event.relatedTarget.classList.contains("searchbar-engine-one-off-item") ||
+             event.relatedTarget.classList.contains("dummy"))) {
+          this._changeVisuallySelectedButton(this.selectedButton);
+        }
+      ]]></handler>
+
+      <handler event="click"><![CDATA[
+        if (event.button == 2)
+          return; // ignore right clicks.
+
+        let button = event.originalTarget;
+        let engine = button.engine;
+
+        if (!engine)
+          return;
+
+        // Select the clicked button so that consumers can easily tell which
+        // button was acted on.
+        this.selectedButton = button;
+        this.handleSearchCommand(event, engine);
+      ]]></handler>
+
+      <handler event="command"><![CDATA[
+        let target = event.originalTarget;
+        if (target.classList.contains("addengine-item")) {
+          // On success, hide the panel and tell event listeners to reshow it to
+          // show the new engine.
+          let installCallback = {
+            onSuccess: engine => {
+              this._rebuild();
+            },
+            onError: function(errorCode) {
+              if (errorCode != Ci.nsISearchInstallCallback.ERROR_DUPLICATE_ENGINE) {
+                // Download error is shown by the search service
+                return;
+              }
+              const kSearchBundleURI = "chrome://global/locale/search/search.properties";
+              let searchBundle = Services.strings.createBundle(kSearchBundleURI);
+              let brandBundle = document.getElementById("bundle_brand");
+              let brandName = brandBundle.getString("brandShortName");
+              let title = searchBundle.GetStringFromName("error_invalid_engine_title");
+              let text = searchBundle.formatStringFromName("error_duplicate_engine_msg",
+                                                           [brandName, target.getAttribute("uri")], 2);
+              Services.prompt.QueryInterface(Ci.nsIPromptFactory);
+              let prompt = Services.prompt.getPrompt(gBrowser.contentWindow, Ci.nsIPrompt);
+              prompt.QueryInterface(Ci.nsIWritablePropertyBag2);
+              prompt.setPropertyAsBool("allowTabModal", true);
+              prompt.alert(title, text);
+            }
+          }
+          Services.search.addEngine(target.getAttribute("uri"), null,
+                                    target.getAttribute("image"), false,
+                                    installCallback);
+        }
+        let anonid = target.getAttribute("anonid");
+        if (anonid == "search-one-offs-context-open-in-new-tab") {
+          // Select the context-clicked button so that consumers can easily
+          // tell which button was acted on.
+          this.selectedButton = this._buttonForEngine(this._contextEngine);
+          this.handleSearchCommand(event, this._contextEngine, true);
+        }
+        if (anonid == "search-one-offs-context-set-default") {
+          let currentEngine = Services.search.currentEngine;
+
+          if (!this.getAttribute("includecurrentengine")) {
+            // Make the target button of the context menu reflect the current
+            // search engine first. Doing this as opposed to rebuilding all the
+            // one-off buttons avoids flicker.
+            let button = this._buttonForEngine(this._contextEngine);
+            button.id = this._buttonIDForEngine(currentEngine);
+            let uri = "chrome://browser/skin/search-engine-placeholder.png";
+            if (currentEngine.iconURI)
+              uri = currentEngine.iconURI.spec;
+            button.setAttribute("image", uri);
+            button.setAttribute("tooltiptext", currentEngine.name);
+            button.engine = currentEngine;
+          }
+
+          Services.search.currentEngine = this._contextEngine;
+        }
+      ]]></handler>
+
+      <handler event="contextmenu"><![CDATA[
+        let target = event.originalTarget;
+        // Prevent the context menu from appearing except on the one off buttons.
+        if (!target.classList.contains("searchbar-engine-one-off-item") ||
+            target.classList.contains("dummy")) {
+          event.preventDefault();
+          return;
+        }
+        document.getAnonymousElementByAttribute(this, "anonid", "search-one-offs-context-set-default")
+                .setAttribute("disabled", target.engine == Services.search.currentEngine);
+
+        this._contextEngine = target.engine;
+      ]]></handler>
+    </handlers>
+
+  </binding>
+
 </bindings>

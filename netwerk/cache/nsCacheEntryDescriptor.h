@@ -15,12 +15,11 @@
 #include "nsCacheService.h"
 #include "zlib.h"
 #include "mozilla/Mutex.h"
-#include "nsVoidArray.h"
 
 /******************************************************************************
 * nsCacheEntryDescriptor
 *******************************************************************************/
-class nsCacheEntryDescriptor :
+class nsCacheEntryDescriptor final :
     public PRCList,
     public nsICacheEntryDescriptor
 {
@@ -33,7 +32,6 @@ public:
     friend class nsCacheService;
 
     nsCacheEntryDescriptor(nsCacheEntry * entry, nsCacheAccessMode  mode);
-    virtual ~nsCacheEntryDescriptor();
     
     /**
      * utility method to attempt changing data size of associated entry
@@ -46,7 +44,7 @@ public:
     nsCacheEntry * CacheEntry(void)      { return mCacheEntry; }
     bool           ClearCacheEntry(void)
     {
-      NS_ASSERTION(mInputWrappers.Count() == 0, "Bad state");
+      NS_ASSERTION(mInputWrappers.IsEmpty(), "Bad state");
       NS_ASSERTION(!mOutputWrapper, "Bad state");
 
       bool doomEntry = false;
@@ -66,6 +64,8 @@ public:
     }
 
 private:
+    virtual ~nsCacheEntryDescriptor();
+
      /*************************************************************************
       * input stream wrapper class -
       *
@@ -93,12 +93,13 @@ private:
          {
              NS_ADDREF(mDescriptor);
          }
+
+     private:
          virtual ~nsInputStreamWrapper()
          {
              NS_IF_RELEASE(mDescriptor);
          }
 
-     private:
          nsresult LazyInit();
          nsresult EnsureInit();
          nsresult Read_Locked(char *buf, uint32_t count, uint32_t *countRead);
@@ -115,7 +116,7 @@ private:
          bool mStreamInitialized;
          bool mStreamEnded;
      public:
-         NS_DECL_THREADSAFE_ISUPPORTS
+         NS_DECL_ISUPPORTS_INHERITED
 
          nsDecompressInputStreamWrapper(nsCacheEntryDescriptor * desc,
                                       uint32_t off)
@@ -126,13 +127,13 @@ private:
           , mStreamEnded(false)
          {
          }
+         NS_IMETHOD Read(char* buf, uint32_t count, uint32_t * result) override;
+         NS_IMETHOD Close() override;
+     private:
          virtual ~nsDecompressInputStreamWrapper()
          {
              Close();
          }
-         NS_IMETHOD Read(char* buf, uint32_t count, uint32_t * result);
-         NS_IMETHOD Close();
-     private:
          nsresult InitZstream();
          nsresult EndZstream();
      };
@@ -165,6 +166,8 @@ private:
          {
              NS_ADDREF(mDescriptor); // owning ref
          }
+
+     private:
          virtual ~nsOutputStreamWrapper()
          {
              Close();
@@ -173,7 +176,6 @@ private:
              NS_ASSERTION(!mDescriptor, "Bad state");
          }
 
-     private:
          nsresult LazyInit();
          nsresult EnsureInit();
          nsresult OnWrite(uint32_t count);
@@ -194,7 +196,7 @@ private:
          bool mStreamEnded;
          uint32_t mUncompressedCount;
      public:
-         NS_DECL_THREADSAFE_ISUPPORTS
+         NS_DECL_ISUPPORTS_INHERITED
 
          nsCompressOutputStreamWrapper(nsCacheEntryDescriptor * desc, 
                                        uint32_t off)
@@ -206,13 +208,13 @@ private:
           , mUncompressedCount(0)
          {
          }
+         NS_IMETHOD Write(const char* buf, uint32_t count, uint32_t * result) override;
+         NS_IMETHOD Close() override;
+     private:
          virtual ~nsCompressOutputStreamWrapper()
          { 
              Close();
          }
-         NS_IMETHOD Write(const char* buf, uint32_t count, uint32_t * result);
-         NS_IMETHOD Close();
-     private:
          nsresult InitZstream();
          nsresult WriteBuffer();
      };
@@ -223,7 +225,7 @@ private:
       */
      nsCacheEntry          * mCacheEntry; // we are a child of the entry
      nsCacheAccessMode       mAccessGranted;
-     nsVoidArray             mInputWrappers;
+     nsTArray<nsInputStreamWrapper*> mInputWrappers;
      nsOutputStreamWrapper * mOutputWrapper;
      mozilla::Mutex          mLock;
      bool                    mAsyncDoomPending;

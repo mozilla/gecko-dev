@@ -37,6 +37,9 @@ std::string WideToUTF8(const std::wstring& wide, bool* success = 0);
 
 #endif
 
+#define UI_CRASH_REPORTER_FILENAME "crashreporter"
+#define UI_MINIDUMP_ANALYZER_FILENAME "minidump-analyzer"
+
 typedef std::map<std::string, std::string> StringTable;
 
 #define ST_CRASHREPORTERTITLE        "CrashReporterTitle"
@@ -82,6 +85,7 @@ typedef std::map<std::string, std::string> StringTable;
 namespace CrashReporter {
   extern StringTable  gStrings;
   extern std::string  gSettingsPath;
+  extern std::string  gEventsPath;
   extern int          gArgc;
   extern char**       gArgv;
 
@@ -124,7 +128,7 @@ void UIShowDefaultUI();
 // Run the UI for when the app was launched with a dump file
 // Return true if the user sent (or tried to send) the crash report,
 // false if they chose not to, and it should be deleted.
-bool UIShowCrashUI(const std::string& dumpfile,
+bool UIShowCrashUI(const StringTable& files,
                    const StringTable& queryParameters,
                    const std::string& sendURL,
                    const std::vector<std::string>& restartArgs);
@@ -140,8 +144,12 @@ bool UIFileExists(const std::string& path);
 bool UIMoveFile(const std::string& oldfile, const std::string& newfile);
 bool UIDeleteFile(const std::string& oldfile);
 std::ifstream* UIOpenRead(const std::string& filename);
-std::ofstream* UIOpenWrite(const std::string& filename, bool append=false);
+std::ofstream* UIOpenWrite(const std::string& filename,
+                           bool append=false,
+                           bool binary=false);
 void UIPruneSavedDumps(const std::string& directory);
+void UIRunMinidumpAnalyzer(const std::string& exename,
+                           const std::string& filename);
 
 #ifdef _MSC_VER
 # pragma warning( pop )

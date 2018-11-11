@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,6 +23,7 @@
 #include "nsWrapperCache.h"
 #include "xpcexception.h"
 #include "nsString.h"
+#include "mozilla/dom/BindingDeclarations.h"
 
 class nsIStackFrame;
 class nsString;
@@ -32,7 +34,11 @@ NS_GetNameAndMessageForDOMNSResult(nsresult aNSResult, nsACString& aName,
                                    uint16_t* aCode = nullptr);
 
 namespace mozilla {
+class ErrorResult;
+
 namespace dom {
+
+class GlobalObject;
 
 #define MOZILLA_EXCEPTION_IID \
 { 0x55eda557, 0xeba0, 0x4fe3, \
@@ -58,8 +64,8 @@ public:
   void StowJSVal(JS::Value& aVp);
 
   // WebIDL API
-  virtual JSObject* WrapObject(JSContext* cx)
-    MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto)
+    override;
 
   nsISupports* GetParentObject() const { return nullptr; }
 
@@ -69,19 +75,32 @@ public:
 
   void GetName(nsString& retval);
 
-  // The XPCOM GetFilename does the right thing.
+  virtual void GetErrorMessage(nsAString& aRetVal)
+  {
+    // Since GetName and GetMessageMoz are non-virtual and they deal with
+    // different member variables in Exception vs. DOMException, have a 
+    // virtual method to ensure the right error message creation.
+    nsAutoString name;
+    nsAutoString message;
+    GetName(name);
+    GetMessageMoz(message);
+    CreateErrorMessage(name, message, aRetVal);
+  }
 
-  uint32_t LineNumber() const;
+  // The XPCOM GetFilename does the right thing.  It might throw, but we want to
+  // return an empty filename in that case anyway, instead of throwing.
+
+  uint32_t LineNumber(JSContext* aCx) const;
 
   uint32_t ColumnNumber() const;
 
   already_AddRefed<nsIStackFrame> GetLocation() const;
 
-  already_AddRefed<nsISupports> GetInner() const;
-
   already_AddRefed<nsISupports> GetData() const;
 
-  void Stringify(nsString& retval);
+  void GetStack(JSContext* aCx, nsAString& aStack, ErrorResult& aRv) const;
+
+  void Stringify(JSContext* aCx, nsString& retval);
 
   // XPCOM factory ctor.
   Exception();
@@ -95,14 +114,28 @@ public:
 protected:
   virtual ~Exception();
 
+  void CreateErrorMessage(const nsAString& aName, const nsAString& aMessage,
+                          nsAString& aRetVal)
+  {
+    // Create similar error message as what ErrorReport::init does in jsexn.cpp.
+    if (!aName.IsEmpty() && !aMessage.IsEmpty()) {
+      aRetVal.Assign(aName);
+      aRetVal.AppendLiteral(": ");
+      aRetVal.Append(aMessage);
+    } else if (!aName.IsEmpty()) {
+      aRetVal.Assign(aName);
+    } else if (!aMessage.IsEmpty()) {
+      aRetVal.Assign(aMessage);
+    } else {
+      aRetVal.Truncate();
+    }
+  }
+
   nsCString       mMessage;
   nsresult        mResult;
   nsCString       mName;
   nsCOMPtr<nsIStackFrame> mLocation;
   nsCOMPtr<nsISupports> mData;
-  nsString        mFilename;
-  int             mLineNumber;
-  nsCOMPtr<nsIException> mInner;
   bool            mInitialized;
 
   bool mHoldingJSVal;
@@ -125,11 +158,17 @@ public:
   NS_DECL_NSIDOMDOMEXCEPTION
 
   // nsIException overrides
-  NS_IMETHOD ToString(nsACString& aReturn) MOZ_OVERRIDE;
+  NS_IMETHOD ToString(JSContext* aCx, nsACString& aReturn) override;
 
   // nsWrapperCache overrides
-  virtual JSObject* WrapObject(JSContext* aCx)
-    MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
+    override;
+
+  static already_AddRefed<DOMException>
+  Constructor(GlobalObject& /* unused */,
+              const nsAString& aMessage,
+              const Optional<nsAString>& aName,
+              ErrorResult& aError);
 
   uint16_t Code() const {
     return mCode;
@@ -139,8 +178,21 @@ public:
   void GetMessageMoz(nsString& retval);
   void GetName(nsString& retval);
 
+  virtual void GetErrorMessage(nsAString& aRetVal) override
+  {
+    // See the comment in Exception::GetErrorMessage.
+    nsAutoString name;
+    nsAutoString message;
+    GetName(name);
+    GetMessageMoz(message);
+    CreateErrorMessage(name, message, aRetVal);
+  }
+
   static already_AddRefed<DOMException>
   Create(nsresult aRv);
+
+  static already_AddRefed<DOMException>
+  Create(nsresult aRv, const nsACString& aMessage);
 
 protected:
 

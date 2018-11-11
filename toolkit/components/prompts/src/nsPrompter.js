@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -21,7 +22,7 @@ Prompter.prototype = {
     QueryInterface   : XPCOMUtils.generateQI([Ci.nsIPromptFactory, Ci.nsIPromptService, Ci.nsIPromptService2]),
 
 
-    /* ----------  private memebers  ---------- */
+    /* ----------  private members  ---------- */
 
     pickPrompter : function (domWin) {
         return new ModalPrompter(domWin);
@@ -116,14 +117,13 @@ Prompter.prototype = {
 
 
 // Common utils not specific to a particular prompter style.
-let PromptUtilsTemp = {
+var PromptUtilsTemp = {
     __proto__ : PromptUtils,
 
     getLocalizedString : function (key, formatArgs) {
         if (formatArgs)
             return this.strBundle.formatStringFromName(key, formatArgs, formatArgs.length);
-        else
-            return this.strBundle.GetStringFromName(key);
+        return this.strBundle.GetStringFromName(key);
     },
 
     confirmExHelper : function (flags, button0, button1, button2) {
@@ -203,21 +203,11 @@ let PromptUtilsTemp = {
         authInfo.password = password;
     },
 
-    // Copied from login manager
+    /**
+     * Strip out things like userPass and path for display.
+     */
     getFormattedHostname : function (uri) {
-        let scheme = uri.scheme;
-        let hostname = scheme + "://" + uri.host;
-
-        // If the URI explicitly specified a port, only include it when
-        // it's not the default. (We never want "http://foo.com:80")
-        port = uri.port;
-        if (port != -1) {
-            let handler = Services.io.getProtocolHandler(scheme);
-            if (port != handler.defaultPort)
-                hostname += ":" + port;
-        }
-
-        return hostname;
+        return uri.scheme + "://" + uri.hostPort;
     },
 
     // Copied from login manager
@@ -264,6 +254,8 @@ let PromptUtilsTemp = {
     makeAuthMessage : function (channel, authInfo) {
         let isProxy    = (authInfo.flags & Ci.nsIAuthInformation.AUTH_PROXY);
         let isPassOnly = (authInfo.flags & Ci.nsIAuthInformation.ONLY_PASSWORD);
+        let isCrossOrig = (authInfo.flags &
+                           Ci.nsIAuthInformation.CROSS_ORIGIN_SUB_RESOURCE);
 
         let username = authInfo.username;
         let [displayHost, realm] = this.getAuthTarget(channel, authInfo);
@@ -280,14 +272,17 @@ let PromptUtilsTemp = {
         }
 
         let text;
-        if (isProxy)
-            text = PromptUtils.getLocalizedString("EnterLoginForProxy", [realm, displayHost]);
-        else if (isPassOnly)
+        if (isProxy) {
+            text = PromptUtils.getLocalizedString("EnterLoginForProxy3", [realm, displayHost]);
+        } else if (isPassOnly) {
             text = PromptUtils.getLocalizedString("EnterPasswordFor", [username, displayHost]);
-        else if (!realm)
-            text = PromptUtils.getLocalizedString("EnterUserPasswordFor", [displayHost]);
-        else
-            text = PromptUtils.getLocalizedString("EnterLoginForRealm", [realm, displayHost]);
+        } else if (isCrossOrig) {
+            text = PromptUtils.getLocalizedString("EnterUserPasswordForCrossOrigin2", [displayHost]);
+        } else if (!realm) {
+            text = PromptUtils.getLocalizedString("EnterUserPasswordFor2", [displayHost]);
+        } else {
+            text = PromptUtils.getLocalizedString("EnterLoginForRealm3", [realm, displayHost]);
+        }
 
         return text;
     },
@@ -370,11 +365,19 @@ function openModalWindow(domWin, uri, args) {
 }
 
 function openTabPrompt(domWin, tabPrompt, args) {
-    PromptUtils.fireDialogEvent(domWin, "DOMWillOpenModalDialog");
+    let docShell = domWin.QueryInterface(Ci.nsIInterfaceRequestor)
+                         .getInterface(Ci.nsIDocShell);
+    let inPermitUnload = docShell.contentViewer && docShell.contentViewer.inPermitUnload;
+    let eventDetail = Cu.cloneInto({tabPrompt: true, inPermitUnload}, domWin);
+    PromptUtils.fireDialogEvent(domWin, "DOMWillOpenModalDialog", null, eventDetail);
 
     let winUtils = domWin.QueryInterface(Ci.nsIInterfaceRequestor)
                          .getInterface(Ci.nsIDOMWindowUtils);
     winUtils.enterModalState();
+
+    let frameMM = docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                          .getInterface(Ci.nsIContentFrameMessageManager);
+    frameMM.QueryInterface(Ci.nsIDOMEventTarget);
 
     // We provide a callback so the prompt can close itself. We don't want to
     // wait for this event loop to return... Otherwise the presence of other
@@ -389,16 +392,25 @@ function openTabPrompt(domWin, tabPrompt, args) {
         if (newPrompt)
             tabPrompt.removePrompt(newPrompt);
 
-        domWin.removeEventListener("pagehide", pagehide);
+        frameMM.removeEventListener("pagehide", pagehide, true);
 
         winUtils.leaveModalState();
 
         PromptUtils.fireDialogEvent(domWin, "DOMModalDialogClosed");
     }
 
-    domWin.addEventListener("pagehide", pagehide);
-    function pagehide() {
-        domWin.removeEventListener("pagehide", pagehide);
+    frameMM.addEventListener("pagehide", pagehide, true);
+    function pagehide(e) {
+        // Check whether the event relates to our window or its ancestors
+        let window = domWin;
+        let eventWindow = e.target.defaultView;
+        while (window != eventWindow && window.parent != window) {
+          window = window.parent;
+        }
+        if (window != eventWindow) {
+          return;
+        }
+        frameMM.removeEventListener("pagehide", pagehide, true);
 
         if (newPrompt) {
             newPrompt.abortPrompt();
@@ -432,19 +444,23 @@ function openTabPrompt(domWin, tabPrompt, args) {
 }
 
 function openRemotePrompt(domWin, args, tabPrompt) {
-    let messageManager = domWin.QueryInterface(Ci.nsIInterfaceRequestor)
-                         .getInterface(Ci.nsIWebNavigation)
-                         .QueryInterface(Ci.nsIDocShell)
-                         .QueryInterface(Ci.nsIInterfaceRequestor)
-                         .getInterface(Ci.nsITabChild)
-                         .messageManager;
+    let docShell = domWin.QueryInterface(Ci.nsIInterfaceRequestor)
+                         .getInterface(Ci.nsIDocShell);
+    let messageManager = docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                                 .getInterface(Ci.nsITabChild)
+                                 .messageManager;
 
-    PromptUtils.fireDialogEvent(domWin, "DOMWillOpenModalDialog");
+    let inPermitUnload = docShell.contentViewer && docShell.contentViewer.inPermitUnload;
+    let eventDetail = Cu.cloneInto({tabPrompt, inPermitUnload}, domWin);
+    PromptUtils.fireDialogEvent(domWin, "DOMWillOpenModalDialog", null, eventDetail);
 
     let winUtils = domWin.QueryInterface(Ci.nsIInterfaceRequestor)
                          .getInterface(Ci.nsIDOMWindowUtils);
     winUtils.enterModalState();
     let closed = false;
+
+    let frameMM = docShell.getInterface(Ci.nsIContentFrameMessageManager);
+    frameMM.QueryInterface(Ci.nsIDOMEventTarget);
 
     // It should be hard or impossible to cause a window to create multiple
     // prompts, but just in case, give our prompt an ID.
@@ -457,7 +473,7 @@ function openRemotePrompt(domWin, args, tabPrompt) {
         }
 
         messageManager.removeMessageListener("Prompt:Close", listener);
-        domWin.removeEventListener("pagehide", pagehide);
+        frameMM.removeEventListener("pagehide", pagehide, true);
 
         winUtils.leaveModalState();
         PromptUtils.fireDialogEvent(domWin, "DOMModalDialogClosed");
@@ -474,15 +490,26 @@ function openRemotePrompt(domWin, args, tabPrompt) {
         closed = true;
     });
 
-    domWin.addEventListener("pagehide", pagehide);
-    function pagehide() {
-        domWin.removeEventListener("pagehide", pagehide);
+    frameMM.addEventListener("pagehide", pagehide, true);
+    function pagehide(e) {
+        // Check whether the event relates to our window or its ancestors
+        let window = domWin;
+        let eventWindow = e.target.defaultView;
+        while (window != eventWindow && window.parent != window) {
+          window = window.parent;
+        }
+        if (window != eventWindow) {
+          return;
+        }
+        frameMM.removeEventListener("pagehide", pagehide, true);
         messageManager.sendAsyncMessage("Prompt:ForceClose", { _remoteId: id });
     }
 
     let topPrincipal = domWin.top.document.nodePrincipal;
     let promptPrincipal = domWin.document.nodePrincipal;
+    args.promptPrincipal = promptPrincipal;
     args.showAlertOrigin = topPrincipal.equals(promptPrincipal);
+    args.inPermitUnload = inPermitUnload;
 
     args._remoteId = id;
 
@@ -567,24 +594,21 @@ ModalPrompter.prototype = {
         // also, the nsIPrompt flavor has 5 args instead of 6.
         if (typeof arguments[2] == "object")
             return this.nsIPrompt_prompt.apply(this, arguments);
-        else
-            return this.nsIAuthPrompt_prompt.apply(this, arguments);
+        return this.nsIAuthPrompt_prompt.apply(this, arguments);
     },
 
     promptUsernameAndPassword : function() {
         // Both have 6 args, so use types.
         if (typeof arguments[2] == "object")
             return this.nsIPrompt_promptUsernameAndPassword.apply(this, arguments);
-        else
-            return this.nsIAuthPrompt_promptUsernameAndPassword.apply(this, arguments);
+        return this.nsIAuthPrompt_promptUsernameAndPassword.apply(this, arguments);
     },
 
     promptPassword : function() {
         // Both have 5 args, so use types.
         if (typeof arguments[2] == "object")
             return this.nsIPrompt_promptPassword.apply(this, arguments);
-        else
-            return this.nsIAuthPrompt_promptPassword.apply(this, arguments);
+        return this.nsIAuthPrompt_promptPassword.apply(this, arguments);
     },
 
 

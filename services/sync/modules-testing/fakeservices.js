@@ -11,16 +11,30 @@ this.EXPORTED_SYMBOLS = [
   "fakeSHA256HMAC",
 ];
 
-const {utils: Cu} = Components;
+var {utils: Cu} = Components;
 
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/util.js");
 
-let btoa = Cu.import("resource://gre/modules/Log.jsm").btoa;
+var btoa = Cu.import("resource://gre/modules/Log.jsm").btoa;
 
 this.FakeFilesystemService = function FakeFilesystemService(contents) {
   this.fakeContents = contents;
   let self = this;
+
+  // Save away the unmocked versions of the functions we replace here for tests
+  // that really want the originals. As this may be called many times per test,
+  // we must be careful to not replace them with ones we previously replaced.
+  // (And WTF are we bothering with these mocks in the first place? Is the
+  // performance of the filesystem *really* such that it outweighs the downside
+  // of not running our real JSON functions in the tests? Eg, these mocks don't
+  // always throw exceptions when the real ones do. Anyway...)
+  for (let name of ["jsonSave", "jsonLoad", "jsonMove", "jsonRemove"]) {
+    let origName = "_real_" + name;
+    if (!Utils[origName]) {
+      Utils[origName] = Utils[name];
+    }
+  }
 
   Utils.jsonSave = function jsonSave(filePath, that, obj, callback) {
     let json = typeof obj == "function" ? obj.call(that) : obj;
@@ -36,6 +50,18 @@ this.FakeFilesystemService = function FakeFilesystemService(contents) {
     }
     cb.call(that, obj);
   };
+
+  Utils.jsonMove = function jsonMove(aFrom, aTo, that) {
+    const fromPath = "weave/" + aFrom + ".json";
+    self.fakeContents["weave/" + aTo + ".json"] = self.fakeContents[fromPath];
+    delete self.fakeContents[fromPath];
+    return Promise.resolve();
+  };
+
+  Utils.jsonRemove = function jsonRemove(filePath, that) {
+    delete self.fakeContents["weave/" + filePath + ".json"];
+    return Promise.resolve();
+  };
 };
 
 this.fakeSHA256HMAC = function fakeSHA256HMAC(message) {
@@ -50,7 +76,9 @@ this.FakeGUIDService = function FakeGUIDService() {
   let latestGUID = 0;
 
   Utils.makeGUID = function makeGUID() {
-    return "fake-guid-" + latestGUID++;
+    // ensure that this always returns a unique 12 character string
+    let nextGUID = "fake-guid-" + String(latestGUID++).padStart(2, "0");
+    return nextGUID.slice(nextGUID.length-12, nextGUID.length);
   };
 }
 

@@ -23,7 +23,6 @@
 #include <utils/Vector.h>
 #include <utils/threads.h>
 
-#include "CameraCommon.h"
 #include "GonkConsumerBaseJB.h"
 #include "GrallocImages.h"
 #include "mozilla/layers/LayersSurfaces.h"
@@ -110,13 +109,13 @@ class GonkNativeWindow: public GonkConsumerBase
     status_t setDefaultBufferFormat(uint32_t defaultFormat);
 
     // Get next frame from the queue, caller owns the returned buffer.
-    mozilla::TemporaryRef<TextureClient> getCurrentBuffer();
+    already_AddRefed<TextureClient> getCurrentBuffer();
 
     // Return the buffer to the queue and mark it as FREE. After that
     // the buffer is useable again for the decoder.
     void returnBuffer(TextureClient* client);
 
-    mozilla::TemporaryRef<TextureClient> getTextureClientFromBuffer(ANativeWindowBuffer* buffer);
+    already_AddRefed<TextureClient> getTextureClientFromBuffer(ANativeWindowBuffer* buffer);
 
     void setNewFrameCallback(GonkNativeWindowNewFrameCallback* callback);
 

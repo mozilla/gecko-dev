@@ -30,6 +30,8 @@ exports.testMatchPatternTestTrue = function(assert) {
   ok("http://example.com/ice-cream", "http://example.com/ice-cream");
 
   ok(/.*zilla.*/, "https://bugzilla.redhat.com/show_bug.cgi?id=569753");
+  ok(/.*A.*/i, "http://A.com");
+  ok(/.*A.*/i, "http://a.com");
   ok(/https:.*zilla.*/, "https://bugzilla.redhat.com/show_bug.cgi?id=569753");
   ok('*.sample.com', 'http://ex.sample.com/foo.html');
   ok('*.amp.le.com', 'http://ex.amp.le.com');
@@ -84,38 +86,32 @@ exports.testMatchPatternTestFalse = function(assert) {
 
 exports.testMatchPatternErrors = function(assert) {
   assert.throws(
-    function() new MatchPattern("*.google.com/*"),
+    () => new MatchPattern("*.google.com/*"),
     /There can be at most one/,
     "MatchPattern throws when supplied multiple '*'"
   );
 
   assert.throws(
-    function() new MatchPattern("google.com"),
+    () => new MatchPattern("google.com"),
     /expected to be either an exact URL/,
     "MatchPattern throws when the wildcard doesn't use '*' and doesn't " +
     "look like a URL"
   );
 
   assert.throws(
-    function() new MatchPattern("http://google*.com"),
+    () => new MatchPattern("http://google*.com"),
     /expected to be the first or the last/,
     "MatchPattern throws when a '*' is in the middle of the wildcard"
   );
 
   assert.throws(
-    function() new MatchPattern(/ /g),
+    () => new MatchPattern(/ /g),
     /^A RegExp match pattern cannot be set to `global` \(i\.e\. \/\/g\)\.$/,
     "MatchPattern throws on a RegExp set to `global` (i.e. //g)."
   );
 
   assert.throws(
-    function() new MatchPattern(/ /i),
-    /^A RegExp match pattern cannot be set to `ignoreCase` \(i\.e\. \/\/i\)\.$/,
-    "MatchPattern throws on a RegExp set to `ignoreCase` (i.e. //i)."
-  );
-
-  assert.throws(
-    function() new MatchPattern( / /m ),
+    () => new MatchPattern( / /m ),
     /^A RegExp match pattern cannot be set to `multiline` \(i\.e\. \/\/m\)\.$/,
     "MatchPattern throws on a RegExp set to `multiline` (i.e. //m)."
   );

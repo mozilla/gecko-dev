@@ -9,8 +9,9 @@
 #include <stdint.h>                     // for uint32_t
 #include <sys/types.h>                  // for int32_t
 #include "gfxTypes.h"                   // for gfxFloat
+#include "gfxFont.h"                    // for gfxFont::Orientation
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT_HELPER2
-#include "nsAutoPtr.h"                  // for nsRefPtr
+#include "mozilla/RefPtr.h"             // for RefPtr
 #include "nsCOMPtr.h"                   // for nsCOMPtr
 #include "nsCoord.h"                    // for nscoord
 #include "nsError.h"                    // for nsresult
@@ -18,24 +19,31 @@
 #include "nsMathUtils.h"                // for NS_round
 #include "nscore.h"                     // for char16_t, nsAString
 #include "mozilla/AppUnits.h"           // for AppUnits
+#include "nsFontMetrics.h"              // for nsFontMetrics::Params
 
-class gfxASurface;
+class gfxContext;
 class gfxTextPerfMetrics;
 class gfxUserFontSet;
-class nsFont;
+struct nsFont;
 class nsFontCache;
-class nsFontMetrics;
 class nsIAtom;
 class nsIDeviceContextSpec;
 class nsIScreen;
 class nsIScreenManager;
 class nsIWidget;
-class nsRect;
-class nsRenderingContext;
+struct nsRect;
 
-class nsDeviceContext MOZ_FINAL
+namespace mozilla {
+namespace gfx {
+class PrintTarget;
+}
+}
+
+class nsDeviceContext final
 {
 public:
+    typedef mozilla::gfx::PrintTarget PrintTarget;
+
     nsDeviceContext();
 
     NS_INLINE_DECL_REFCOUNTING(nsDeviceContext)
@@ -60,7 +68,15 @@ public:
      *
      * @return the new rendering context (guaranteed to be non-null)
      */
-    already_AddRefed<nsRenderingContext> CreateRenderingContext();
+    already_AddRefed<gfxContext> CreateRenderingContext();
+
+    /**
+     * Create a reference rendering context and initialize it.  Only call this
+     * method on device contexts that were initialized for printing.
+     *
+     * @return the new rendering context.
+     */
+    already_AddRefed<gfxContext> CreateReferenceRenderingContext();
 
     /**
      * Gets the number of app units in one CSS pixel; this number is global,
@@ -102,25 +118,19 @@ public:
     static int32_t AppUnitsPerCSSInch() { return mozilla::AppUnitsPerCSSInch(); }
 
     /**
-     * Get the unscaled ratio of app units to dev pixels; useful if something
-     * needs to be converted from to unscaled pixels
+     * Get the ratio of app units to dev pixels that would be used at unit
+     * (100%) full zoom.
      */
-    int32_t UnscaledAppUnitsPerDevPixel() const
-    { return mAppUnitsPerDevNotScaledPixel; }
+    int32_t AppUnitsPerDevPixelAtUnitFullZoom() const
+    { return mAppUnitsPerDevPixelAtUnitFullZoom; }
 
     /**
      * Get the nsFontMetrics that describe the properties of
      * an nsFont.
      * @param aFont font description to obtain metrics for
-     * @param aLanguage the language of the document
-     * @param aMetrics out parameter for font metrics
-     * @param aUserFontSet user font set
-     * @return error status
      */
-    nsresult GetMetricsFor(const nsFont& aFont, nsIAtom* aLanguage,
-                           gfxUserFontSet* aUserFontSet,
-                           gfxTextPerfMetrics* aTextPerf,
-                           nsFontMetrics*& aMetrics);
+    already_AddRefed<nsFontMetrics> GetMetricsFor(
+        const nsFont& aFont, const nsFontMetrics::Params& aParams);
 
     /**
      * Notification when a font metrics instance created for this device is
@@ -179,8 +189,8 @@ public:
      * EndDocument() or AbortDocument().
      *
      * @param aTitle - title of Document
-     * @param aPrintToFileName - name of file to print to, if nullptr
-     * then don't print to file
+     * @param aPrintToFileName - name of file to print to, if empty then don't
+     *                           print to file
      * @param aStartPage - starting page number (must be greater than zero)
      * @param aEndPage - ending page number (must be less than or
      * equal to number of pages)
@@ -188,7 +198,7 @@ public:
      * @return error status
      */
     nsresult BeginDocument(const nsAString& aTitle,
-                           char16_t*       aPrintToFileName,
+                           const nsAString& aPrintToFileName,
                            int32_t          aStartPage,
                            int32_t          aEndPage);
 
@@ -224,57 +234,77 @@ public:
     nsresult EndPage();
 
     /**
-     * Check to see if the DPI has changed
+     * Check to see if the DPI has changed, or impose a new DPI scale value.
+     * @param  aScale - If non-null, the default (unzoomed) CSS to device pixel
+     *                  scale factor will be returned here; and if it is > 0.0
+     *                  on input, the given value will be used instead of
+     *                  getting it from the widget (if any). This is used to
+     *                  allow subdocument contexts to inherit the resolution
+     *                  setting of their parent.
      * @return whether there was actually a change in the DPI (whether
      *         AppUnitsPerDevPixel() or AppUnitsPerPhysicalInch()
      *         changed)
      */
-    bool CheckDPIChange();
+    bool CheckDPIChange(double* aScale = nullptr);
 
     /**
-     * Set the pixel scaling factor: all lengths are multiplied by this factor
+     * Set the full zoom factor: all lengths are multiplied by this factor
      * when we convert them to device pixels. Returns whether the ratio of
-     * app units to dev pixels changed because of the scale factor.
+     * app units to dev pixels changed because of the zoom factor.
      */
-    bool SetPixelScale(float aScale);
+    bool SetFullZoom(float aScale);
 
     /**
-     * Returns the pixel scaling factor (page zoom factor) applied.
+     * Returns the page full zoom factor applied.
      */
-    float GetPixelScale() const { return mPixelScale; }
+    float GetFullZoom() const { return mFullZoom; }
 
     /**
      * True if this device context was created for printing.
      */
-    bool IsPrinterSurface();
+    bool IsPrinterContext();
+
+    mozilla::DesktopToLayoutDeviceScale GetDesktopToDeviceScale();
 
 private:
     // Private destructor, to discourage deletion outside of Release():
     ~nsDeviceContext();
 
-    void SetDPI();
+    /**
+     * Implementation shared by CreateRenderingContext and
+     * CreateReferenceRenderingContext.
+     */
+    already_AddRefed<gfxContext>
+    CreateRenderingContextCommon(bool aWantReferenceContext);
+
+    void SetDPI(double* aScale = nullptr);
     void ComputeClientRectUsingScreen(nsRect *outRect);
     void ComputeFullAreaUsingScreen(nsRect *outRect);
     void FindScreen(nsIScreen **outScreen);
-    void CalcPrintingSize();
-    void UpdateScaledAppUnits();
+
+    // Return false if the surface is not right
+    bool CalcPrintingSize();
+    void UpdateAppUnitsForFullZoom();
 
     nscoord  mWidth;
     nscoord  mHeight;
     uint32_t mDepth;
     int32_t  mAppUnitsPerDevPixel;
-    int32_t  mAppUnitsPerDevNotScaledPixel;
+    int32_t  mAppUnitsPerDevPixelAtUnitFullZoom;
     int32_t  mAppUnitsPerPhysicalInch;
-    float    mPixelScale;
+    float    mFullZoom;
     float    mPrintingScale;
 
-    nsFontCache*                   mFontCache;
+    RefPtr<nsFontCache>            mFontCache;
     nsCOMPtr<nsIWidget>            mWidget;
     nsCOMPtr<nsIScreenManager>     mScreenManager;
     nsCOMPtr<nsIDeviceContextSpec> mDeviceContextSpec;
-    nsRefPtr<gfxASurface>          mPrintingSurface;
+    RefPtr<PrintTarget>            mPrintTarget;
 #ifdef XP_MACOSX
-    nsRefPtr<gfxASurface>          mCachedPrintingSurface;
+    RefPtr<PrintTarget>            mCachedPrintTarget;
+#endif
+#ifdef DEBUG
+    bool mIsInitialized;
 #endif
 };
 

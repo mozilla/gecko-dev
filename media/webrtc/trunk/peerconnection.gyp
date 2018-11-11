@@ -21,25 +21,23 @@
       ['build_with_mozilla==1', {
         'target_name': 'dummy',
         'type': 'none',
-        'actions': [
-	{
-          'action_name': 'dummy',
-	  'action': [
-	     'echo ARGHHHHHHHHHHHHHHHHHHHH',
-          ],
-	  'inputs': [
-	     'dummy_file.txt',
-          ],
-          'message': 'Generating scream',
-        }, ],
         'dependencies': [
           'webrtc/modules/modules.gyp:audio_device',
           'webrtc/modules/modules.gyp:video_capture_module',
-#          'webrtc/modules/modules.gyp:video_render_module',
+	  'webrtc/modules/modules.gyp:video_capture_module_internal_impl',
+          'webrtc/modules/modules.gyp:video_render',
 #          'webrtc/system_wrappers/source/system_wrappers.gyp:system_wrappers',
+#	  'webrtc/system_wrappers/source/system_wrappers.gyp:metrics_default',
           'webrtc/video_engine/video_engine.gyp:video_engine_core',
           'webrtc/voice_engine/voice_engine.gyp:voice_engine',
         ],
+        'conditions': [
+          ['OS!="android" and OS!="ios"', {
+            'dependencies': [
+              'webrtc/modules/modules.gyp:desktop_capture',
+            ],
+          },
+         ]],
       }, ],
     ],
   }, ],

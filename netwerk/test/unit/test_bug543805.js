@@ -1,6 +1,8 @@
 const URL = "ftp://localhost/bug543805/";
 
+var dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 var year = new Date().getFullYear().toString();
+var day = dayNames[new Date(year, 0, 1).getDay()];
 
 const tests = [
   // AIX ls format
@@ -13,12 +15,12 @@ const tests = [
 
    "300: " + URL + "\n" +
    "200: filename content-length last-modified file-type\n" +
-   "201: \"%20nodup.file\" 11 Sun%2C%2001%20Jan%20" + year + "%2020%3A19%3A00 FILE \n" +
-   "201: \"%20test.blankfile\" 22 Sun%2C%2001%20Jan%20" + year + "%2020%3A19%3A00 FILE \n" +
-   "201: \"%20test2.blankfile\" 33 Sun%2C%2001%20Apr%202008%2000%3A00%3A00 FILE \n" +
-   "201: \"nodup.file\" 44 Sun%2C%2001%20Jan%20" + year + "%2020%3A19%3A00 FILE \n" +
-   "201: \"test.file\" 55 Sun%2C%2001%20Jan%20" + year + "%2020%3A19%3A00 FILE \n" +
-   "201: \"test2.file\" 66 Sun%2C%2001%20Apr%202008%2000%3A00%3A00 FILE \n"],
+   "201: \"%20nodup.file\" 11 " + day + "%2C%2001%20Jan%20" + year + "%2020%3A19%3A00 FILE \n" +
+   "201: \"%20test.blankfile\" 22 " + day + "%2C%2001%20Jan%20" + year + "%2020%3A19%3A00 FILE \n" +
+   "201: \"%20test2.blankfile\" 33 Tue%2C%2001%20Apr%202008%2000%3A00%3A00 FILE \n" +
+   "201: \"nodup.file\" 44 " + day + "%2C%2001%20Jan%20" + year + "%2020%3A19%3A00 FILE \n" +
+   "201: \"test.file\" 55 " + day + "%2C%2001%20Jan%20" + year + "%2020%3A19%3A00 FILE \n" +
+   "201: \"test2.file\" 66 Tue%2C%2001%20Apr%202008%2000%3A00%3A00 FILE \n"],
 
   // standard ls format
   [
@@ -31,47 +33,57 @@ const tests = [
 
    "300: " + URL + "\n" +
    "200: filename content-length last-modified file-type\n" +
-   "201: \"%20nodup.file\" 11 Sun%2C%2001%20Jan%20" + year + "%2020%3A19%3A00 FILE \n" +
-   "201: \"%20test.blankfile\" 22 Sun%2C%2001%20Jan%20" + year + "%2020%3A19%3A00 FILE \n" +
-   "201: \"%20test2.blankfile\" 33 Sun%2C%2001%20Apr%202008%2000%3A00%3A00 FILE \n" +
-   "201: \"nodup.file\" 44 Sun%2C%2001%20Jan%20" + year + "%2020%3A19%3A00 FILE \n" +
-   "201: \"test.file\" 55 Sun%2C%2001%20Jan%20" + year + "%2020%3A19%3A00 FILE \n" +
-   "201: \"test2.file\" 66 Sun%2C%2001%20Apr%202008%2000%3A00%3A00 FILE \n"]
+   "201: \"%20nodup.file\" 11 " + day + "%2C%2001%20Jan%20" + year + "%2020%3A19%3A00 FILE \n" +
+   "201: \"%20test.blankfile\" 22 " + day + "%2C%2001%20Jan%20" + year + "%2020%3A19%3A00 FILE \n" +
+   "201: \"%20test2.blankfile\" 33 Tue%2C%2001%20Apr%202008%2000%3A00%3A00 FILE \n" +
+   "201: \"nodup.file\" 44 " + day + "%2C%2001%20Jan%20" + year + "%2020%3A19%3A00 FILE \n" +
+   "201: \"test.file\" 55 " + day + "%2C%2001%20Jan%20" + year + "%2020%3A19%3A00 FILE \n" +
+   "201: \"test2.file\" 66 Tue%2C%2001%20Apr%202008%2000%3A00%3A00 FILE \n"]
 ]
 
 function checkData(request, data, ctx) {
   do_check_eq(tests[0][1], data);
   tests.shift();
-  next_test();
+  do_execute_soon(next_test);
 }
 
 function storeData(status, entry) {
-  do_check_eq(status, Components.results.NS_OK);
-  entry.setMetaDataElement("servertype", "0");
-  var os = entry.openOutputStream(0);
+  var scs = Cc["@mozilla.org/streamConverters;1"].
+            getService(Ci.nsIStreamConverterService);
+  var converter = scs.asyncConvertData("text/ftp-dir", "application/http-index-format",
+                                       new ChannelListener(checkData, null, CL_ALLOW_UNKNOWN_CL), null);
 
-  var written = os.write(tests[0][0], tests[0][0].length);
-  if (written != tests[0][0].length) {
-    do_throw("os.write has not written all data!\n" +
-             "  Expected: " + written  + "\n" +
-             "  Actual: " + tests[0][0].length + "\n");
-  }
-  os.close();
-  entry.close();
+  var stream = Cc["@mozilla.org/io/string-input-stream;1"].
+               createInstance(Ci.nsIStringInputStream);
+  stream.data = tests[0][0];
 
-  var ios = Components.classes["@mozilla.org/network/io-service;1"].
-            getService(Components.interfaces.nsIIOService);
-  var channel = ios.newChannel(URL, "", null);
-  channel.asyncOpen(new ChannelListener(checkData, null, CL_ALLOW_UNKNOWN_CL), null);
+  var url = {
+    password: "",
+    asciiSpec: URL,
+    QueryInterface: XPCOMUtils.generateQI([Ci.nsIURI])
+  };
+
+  var channel = {
+    URI: url,
+    contentLength: -1,
+    pending: true,
+    isPending: function() {
+      return this.pending;
+    },
+    QueryInterface: XPCOMUtils.generateQI([Ci.nsIChannel])
+  };
+
+  converter.onStartRequest(channel, null);
+  converter.onDataAvailable(channel, null, stream, 0, 0);
+  channel.pending = false;
+  converter.onStopRequest(channel, null, Cr.NS_OK);
 }
 
 function next_test() {
   if (tests.length == 0)
     do_test_finished();
   else {
-    asyncOpenCacheEntry(URL,
-                        "disk", Ci.nsICacheStorage.OPEN_NORMALLY, null,
-                        storeData);
+    storeData();
   }
 }
 

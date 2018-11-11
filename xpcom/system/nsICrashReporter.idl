@@ -14,7 +14,7 @@ interface nsIURL;
  *                    future releases.
  */
 
-[scriptable, uuid(a2080795-e54c-4ecb-b001-bdc08a2021dd)]
+[scriptable, uuid(4b74c39a-cf69-4a8a-8e63-169d81ad1ecf)]
 interface nsICrashReporter : nsISupports
 {
   /**
@@ -61,7 +61,7 @@ interface nsICrashReporter : nsISupports
    *                             Invalid characters for key are '=' and
    *                             '\n'.  Invalid character for data is '\0'.
    */
-  void annotateCrashReport(in ACString key, in ACString data);
+  void annotateCrashReport(in AUTF8String key, in AUTF8String data);
 
   /**
    * Append some data to the "Notes" field, to be submitted with a crash report.
@@ -117,4 +117,19 @@ interface nsICrashReporter : nsISupports
    * change.
    */
   void UpdateCrashEventsDir();
+
+  /**
+   * Save an anonymized memory report file for inclusion in a future crash
+   * report in this session.
+   *
+   * @throws NS_ERROR_NOT_INITIALIZED if crash reporting is disabled.
+   */
+  void saveMemoryReport();
+
+  /**
+   * Set the telemetry session ID which is recorded in crash metadata. This is
+   * saved in the crash manager and telemetry but is not submitted as a
+   * crash-stats annotation.
+   */
+  void setTelemetrySessionId(in AUTF8String id);
 };

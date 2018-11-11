@@ -1,4 +1,5 @@
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 var httpServer = null;
 var path = "/bug699001";
@@ -8,9 +9,7 @@ XPCOMUtils.defineLazyGetter(this, "URI", function() {
 });
 
 function make_channel(url) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].
-            getService(Ci.nsIIOService);
-  return ios.newChannel(url, "", null);
+  return NetUtil.newChannel({uri: url, loadUsingSystemPrincipal: true});
 }
 
 var fetched;
@@ -109,7 +108,7 @@ function nextTest()
   // Give the old channel a chance to close the cache entry first.
   // XXX This is actually a race condition that might be considered a bug...
   do_execute_soon(function() {
-    chan.asyncOpen(new ChannelListener(checkAndShiftTest, null), null);
+    chan.asyncOpen2(new ChannelListener(checkAndShiftTest, null));
   });
 }
 

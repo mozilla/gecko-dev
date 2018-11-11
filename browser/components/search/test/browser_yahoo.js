@@ -13,12 +13,26 @@ function test() {
   let engine = Services.search.getEngineByName("Yahoo");
   ok(engine, "Yahoo");
 
-  let base = "https://search.yahoo.com/search?p=foo&ei=UTF-8&fr=moz35";
+  let base = "https://search.yahoo.com/yhs/search?p=foo&ei=UTF-8&hspart=mozilla";
   let url;
 
   // Test search URLs (including purposes).
   url = engine.getSubmission("foo").uri.spec;
-  is(url, base, "Check search URL for 'foo'");
+  is(url, base + "&hsimp=yhs-001", "Check search URL for 'foo'");
+  url = engine.getSubmission("foo", null, "searchbar").uri.spec;
+  is(url, base + "&hsimp=yhs-001", "Check search bar search URL for 'foo'");
+  url = engine.getSubmission("foo", null, "keyword").uri.spec;
+  is(url, base + "&hsimp=yhs-002", "Check keyword search URL for 'foo'");
+  url = engine.getSubmission("foo", null, "homepage").uri.spec;
+  is(url, base + "&hsimp=yhs-003", "Check homepage search URL for 'foo'");
+  url = engine.getSubmission("foo", null, "newtab").uri.spec;
+  is(url, base + "&hsimp=yhs-004", "Check newtab search URL for 'foo'");
+  url = engine.getSubmission("foo", null, "contextmenu").uri.spec;
+  is(url, base + "&hsimp=yhs-005", "Check context menu search URL for 'foo'");
+  url = engine.getSubmission("foo", null, "system").uri.spec;
+  is(url, base + "&hsimp=yhs-007", "Check system search URL for 'foo'");
+  url = engine.getSubmission("foo", null, "invalid").uri.spec;
+  is(url, base + "&hsimp=yhs-001", "Check invalid URL for 'foo'");
 
   // Check search suggestion URL.
   url = engine.getSubmission("foo", "application/x-suggestions+json").uri.spec;
@@ -29,8 +43,7 @@ function test() {
     name: "Yahoo",
     alias: null,
     description: "Yahoo Search",
-    searchForm: "https://search.yahoo.com/",
-    type: Ci.nsISearchEngine.TYPE_MOZSEARCH,
+    searchForm: "https://search.yahoo.com/yhs/search?p=&ei=UTF-8&hspart=mozilla&hsimp=yhs-001",
     hidden: false,
     wrappedJSObject: {
       queryCharset: "UTF-8",
@@ -61,7 +74,7 @@ function test() {
         {
           type: "text/html",
           method: "GET",
-          template: "https://search.yahoo.com/search",
+          template: "https://search.yahoo.com/yhs/search",
           params: [
             {
               name: "p",
@@ -74,9 +87,39 @@ function test() {
               purpose: undefined,
             },
             {
-              name: "fr",
-              value: "moz35",
+              name: "hspart",
+              value: "mozilla",
               purpose: undefined,
+            },
+            {
+              name: "hsimp",
+              value: "yhs-001",
+              purpose: "searchbar",
+            },
+            {
+              name: "hsimp",
+              value: "yhs-002",
+              purpose: "keyword",
+            },
+            {
+              name: "hsimp",
+              value: "yhs-003",
+              purpose: "homepage",
+            },
+            {
+              name: "hsimp",
+              value: "yhs-004",
+              purpose: "newtab",
+            },
+            {
+              name: "hsimp",
+              value: "yhs-005",
+              purpose: "contextmenu",
+            },
+            {
+              name: "hsimp",
+              value: "yhs-007",
+              purpose: "system",
             },
           ],
           mozparams: {},

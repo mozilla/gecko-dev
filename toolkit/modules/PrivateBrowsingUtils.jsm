@@ -10,20 +10,56 @@ const kAutoStartPref = "browser.privatebrowsing.autostart";
 
 // This will be set to true when the PB mode is autostarted from the command
 // line for the current session.
-let gTemporaryAutoStartMode = false;
+var gTemporaryAutoStartMode = false;
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
 this.PrivateBrowsingUtils = {
+  // Rather than passing content windows to this function, please use
+  // isBrowserPrivate since it works with e10s.
   isWindowPrivate: function pbu_isWindowPrivate(aWindow) {
+    if (!(aWindow instanceof Components.interfaces.nsIDOMChromeWindow)) {
+      dump("WARNING: content window passed to PrivateBrowsingUtils.isWindowPrivate. " +
+           "Use isContentWindowPrivate instead (but only for frame scripts).\n"
+           + new Error().stack);
+    }
+
     return this.privacyContextFromWindow(aWindow).usePrivateBrowsing;
+  },
+
+  // This should be used only in frame scripts.
+  isContentWindowPrivate: function pbu_isWindowPrivate(aWindow) {
+    return this.privacyContextFromWindow(aWindow).usePrivateBrowsing;
+  },
+
+  isBrowserPrivate: function(aBrowser) {
+    let chromeWin = aBrowser.ownerDocument.defaultView;
+    if (chromeWin.gMultiProcessBrowser) {
+      // In e10s we have to look at the chrome window's private
+      // browsing status since the only alternative is to check the
+      // content window, which is in another process.
+      return this.isWindowPrivate(chromeWin);
+    }
+    return this.privacyContextFromWindow(aBrowser.contentWindow).usePrivateBrowsing;
   },
 
   privacyContextFromWindow: function pbu_privacyContextFromWindow(aWindow) {
     return aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                   .getInterface(Ci.nsIWebNavigation)
                   .QueryInterface(Ci.nsILoadContext);
+  },
+
+  addToTrackingAllowlist(aURI) {
+    let pbmtpWhitelist = Cc["@mozilla.org/pbm-tp-whitelist;1"]
+                           .getService(Ci.nsIPrivateBrowsingTrackingProtectionWhitelist);
+    pbmtpWhitelist.addToAllowList(aURI);
+  },
+
+  removeFromTrackingAllowlist(aURI) {
+    let pbmtpWhitelist = Cc["@mozilla.org/pbm-tp-whitelist;1"]
+                           .getService(Ci.nsIPrivateBrowsingTrackingProtectionWhitelist);
+    pbmtpWhitelist.removeFromAllowList(aURI);
   },
 
   get permanentPrivateBrowsing() {

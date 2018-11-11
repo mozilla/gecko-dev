@@ -1,11 +1,13 @@
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 var httpServer = null;
 
 function make_channel(url, callback, ctx) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].
-            getService(Ci.nsIIOService);
-  return ios.newChannel(url, "", null);
+  return NetUtil.newChannel({
+    uri: url,
+    loadUsingSystemPrincipal: true
+  });
 }
 
 const responseBody = "response body";
@@ -47,7 +49,7 @@ function run_test()
 
   var chan = make_channel("http://localhost:" +
                           httpServer.identity.primaryPort + "/content");
-  chan.asyncOpen(new ChannelListener(finish_test, null, CL_EXPECT_FAILURE), null);
+  chan.asyncOpen2(new ChannelListener(finish_test, null, CL_EXPECT_FAILURE));
   chan.cancel(Cr.NS_BINDING_ABORTED);
   do_test_pending();
 }

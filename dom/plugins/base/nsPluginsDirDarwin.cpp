@@ -23,6 +23,12 @@
 #include "nsPluginsDirUtils.h"
 
 #include "nsILocalFileMac.h"
+#include "mozilla/UniquePtr.h"
+
+#include "nsCocoaFeatures.h"
+#if defined(MOZ_CRASHREPORTER)
+#include "nsExceptionHandler.h"
+#endif
 
 #include <string.h>
 #include <stdio.h>
@@ -36,7 +42,6 @@
 
 typedef NS_NPAPIPLUGIN_CALLBACK(const char *, NP_GETMIMEDESCRIPTION) ();
 typedef NS_NPAPIPLUGIN_CALLBACK(OSErr, BP_GETSUPPORTEDMIMETYPES) (BPSupportedMIMETypes *mimeInfo, UInt32 flags);
-
 
 /*
 ** Returns a CFBundleRef if the path refers to a Mac OS X bundle directory.
@@ -99,27 +104,27 @@ static char* CFStringRefToUTF8Buffer(CFStringRef cfString)
   int bufferLength =
     ::CFStringGetMaximumSizeForEncoding(::CFStringGetLength(cfString),
                                         kCFStringEncodingUTF8) + 1;
-  char* newBuffer = static_cast<char*>(NS_Alloc(bufferLength));
+  char* newBuffer = static_cast<char*>(moz_xmalloc(bufferLength));
   if (!newBuffer) {
     return nullptr;
   }
 
   if (!::CFStringGetCString(cfString, newBuffer, bufferLength,
                             kCFStringEncodingUTF8)) {
-    NS_Free(newBuffer);
+    free(newBuffer);
     return nullptr;
   }
 
-  newBuffer = static_cast<char*>(NS_Realloc(newBuffer,
-                                            strlen(newBuffer) + 1));
+  newBuffer = static_cast<char*>(moz_xrealloc(newBuffer,
+                                              strlen(newBuffer) + 1));
   return newBuffer;
 }
 
 class AutoCFTypeObject {
 public:
-  AutoCFTypeObject(CFTypeRef object)
+  explicit AutoCFTypeObject(CFTypeRef aObject)
   {
-    mObject = object;
+    mObject = aObject;
   }
   ~AutoCFTypeObject()
   {
@@ -219,30 +224,30 @@ static void ParsePlistPluginInfo(nsPluginInfo& info, CFBundleRef bundle)
 
   // Allocate memory for mime data
   int mimeDataArraySize = mimeDictKeyCount * sizeof(char*);
-  info.fMimeTypeArray = static_cast<char**>(NS_Alloc(mimeDataArraySize));
+  info.fMimeTypeArray = static_cast<char**>(moz_xmalloc(mimeDataArraySize));
   if (!info.fMimeTypeArray)
     return;
   memset(info.fMimeTypeArray, 0, mimeDataArraySize);
-  info.fExtensionArray = static_cast<char**>(NS_Alloc(mimeDataArraySize));
+  info.fExtensionArray = static_cast<char**>(moz_xmalloc(mimeDataArraySize));
   if (!info.fExtensionArray)
     return;
   memset(info.fExtensionArray, 0, mimeDataArraySize);
-  info.fMimeDescriptionArray = static_cast<char**>(NS_Alloc(mimeDataArraySize));
+  info.fMimeDescriptionArray = static_cast<char**>(moz_xmalloc(mimeDataArraySize));
   if (!info.fMimeDescriptionArray)
     return;
   memset(info.fMimeDescriptionArray, 0, mimeDataArraySize);
 
   // Allocate memory for mime dictionary keys and values
-  nsAutoArrayPtr<CFTypeRef> keys(new CFTypeRef[mimeDictKeyCount]);
+  mozilla::UniquePtr<CFTypeRef[]> keys(new CFTypeRef[mimeDictKeyCount]);
   if (!keys)
     return;
-  nsAutoArrayPtr<CFTypeRef> values(new CFTypeRef[mimeDictKeyCount]);
+  mozilla::UniquePtr<CFTypeRef[]> values(new CFTypeRef[mimeDictKeyCount]);
   if (!values)
     return;
   
   info.fVariantCount = 0;
 
-  ::CFDictionaryGetKeysAndValues(mimeDict, keys, values);
+  ::CFDictionaryGetKeysAndValues(mimeDict, keys.get(), values.get());
   for (int i = 0; i < mimeDictKeyCount; i++) {
     CFTypeRef mimeString = keys[i];
     if (!mimeString || ::CFGetTypeID(mimeString) != ::CFStringGetTypeID()) {
@@ -345,7 +350,7 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
 static char* p2cstrdup(StringPtr pstr)
 {
   int len = pstr[0];
-  char* cstr = static_cast<char*>(NS_Alloc(len + 1));
+  char* cstr = static_cast<char*>(moz_xmalloc(len + 1));
   if (cstr) {
     memmove(cstr, pstr + 1, len);
     cstr[len] = '\0';
@@ -469,6 +474,29 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
       return NS_OK;
   }
 
+  // Don't load "fbplugin" or any plugins whose name starts with "fbplugin_"
+  // (Facebook plugins) if we're running on OS X 10.10 (Yosemite) or later.
+  // A "fbplugin" file crashes on load, in the call to LoadPlugin() below.
+  // See bug 1086977.
+  if (nsCocoaFeatures::OnYosemiteOrLater()) {
+    if (fileName.EqualsLiteral("fbplugin") ||
+        StringBeginsWith(fileName, NS_LITERAL_CSTRING("fbplugin_"))) {
+      nsAutoCString msg;
+      msg.AppendPrintf("Preventing load of %s (see bug 1086977)",
+                       fileName.get());
+      NS_WARNING(msg.get());
+      return NS_ERROR_FAILURE;
+    }
+#if defined(MOZ_CRASHREPORTER)
+    // The block above assumes that "fbplugin" is the filename of the plugin
+    // to be blocked, or that the filename starts with "fbplugin_".  But we
+    // don't yet know for sure if this is always true.  So for the time being
+    // record extra information in our crash logs.
+    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("Bug_1086977"),
+                                       fileName);
+#endif
+  }
+
   // It's possible that our plugin has 2 entry points that'll give us mime type
   // info. Quicktime does this to get around the need of having admin rights to
   // change mime info in the resource fork. We need to use this info instead of
@@ -476,6 +504,14 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
 
   // Sadly we have to load the library for this to work.
   rv = LoadPlugin(outLibrary);
+#if defined(MOZ_CRASHREPORTER)
+  if (nsCocoaFeatures::OnYosemiteOrLater()) {
+    // If we didn't crash in LoadPlugin(), change the previous annotation so we
+    // don't sow confusion.
+    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("Bug_1086977"),
+                                       NS_LITERAL_CSTRING("Didn't crash, please ignore"));
+  }
+#endif
   if (NS_FAILED(rv))
     return rv;
 
@@ -504,14 +540,14 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
 
   // Fill in the info struct based on the data in the BPSupportedMIMETypes struct
   int variantCount = info.fVariantCount;
-  info.fMimeTypeArray = static_cast<char**>(NS_Alloc(variantCount * sizeof(char*)));
+  info.fMimeTypeArray = static_cast<char**>(moz_xmalloc(variantCount * sizeof(char*)));
   if (!info.fMimeTypeArray)
     return NS_ERROR_OUT_OF_MEMORY;
-  info.fExtensionArray = static_cast<char**>(NS_Alloc(variantCount * sizeof(char*)));
+  info.fExtensionArray = static_cast<char**>(moz_xmalloc(variantCount * sizeof(char*)));
   if (!info.fExtensionArray)
     return NS_ERROR_OUT_OF_MEMORY;
   if (mi.infoStrings) {
-    info.fMimeDescriptionArray = static_cast<char**>(NS_Alloc(variantCount * sizeof(char*)));
+    info.fMimeDescriptionArray = static_cast<char**>(moz_xmalloc(variantCount * sizeof(char*)));
     if (!info.fMimeDescriptionArray)
       return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -536,20 +572,20 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
 
 nsresult nsPluginFile::FreePluginInfo(nsPluginInfo& info)
 {
-  NS_Free(info.fName);
-  NS_Free(info.fDescription);
+  free(info.fName);
+  free(info.fDescription);
   int variantCount = info.fVariantCount;
   for (int i = 0; i < variantCount; i++) {
-    NS_Free(info.fMimeTypeArray[i]);
-    NS_Free(info.fExtensionArray[i]);
-    NS_Free(info.fMimeDescriptionArray[i]);
+    free(info.fMimeTypeArray[i]);
+    free(info.fExtensionArray[i]);
+    free(info.fMimeDescriptionArray[i]);
   }
-  NS_Free(info.fMimeTypeArray);
-  NS_Free(info.fMimeDescriptionArray);
-  NS_Free(info.fExtensionArray);
-  NS_Free(info.fFileName);
-  NS_Free(info.fFullPath);
-  NS_Free(info.fVersion);
+  free(info.fMimeTypeArray);
+  free(info.fMimeDescriptionArray);
+  free(info.fExtensionArray);
+  free(info.fFileName);
+  free(info.fFullPath);
+  free(info.fVersion);
 
   return NS_OK;
 }

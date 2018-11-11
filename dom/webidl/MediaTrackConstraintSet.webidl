@@ -7,29 +7,32 @@
  * http://dev.w3.org/2011/webrtc/editor/getusermedia.html
  */
 
-enum SupportedVideoConstraints {
-    "other",
-    "facingMode",
-    "width",
-    "height",
-    "frameRate",
+// These dictionaries need to be in a separate file from their use in unions
+// in MediaSreamTrack.webidl due to a webidl compiler limitation:
+//
+// TypeError: Dictionary contains a union that contains a dictionary in the same
+// WebIDL file.  This won't compile.  Move the inner dictionary to a different file.
+
+dictionary ConstrainLongRange {
+    long min;
+    long max;
+    long exact;
+    long ideal;
 };
 
-enum SupportedAudioConstraints {
-    "other"
+dictionary ConstrainDoubleRange {
+    double min;
+    double max;
+    double exact;
+    double ideal;
 };
 
-dictionary MediaTrackConstraintSet {
-    ConstrainLongRange width;
-    ConstrainLongRange height;
-    ConstrainDoubleRange frameRate;
-    ConstrainVideoFacingMode facingMode;
+dictionary ConstrainBooleanParameters {
+    boolean exact;
+    boolean ideal;
 };
 
-// TODO: Bug 995352 can't nest unions
-//typedef (long or ConstrainLongRange) ConstrainLong;
-//typedef (double or ConstrainDoubleRange) ConstrainDouble;
-
-typedef VideoFacingModeEnum ConstrainVideoFacingMode;
-// TODO: Bug 767924 sequences in unions
-//typedef (VideoFacingModeEnum or sequence<VideoFacingModeEnum>) ConstrainVideoFacingMode;
+dictionary ConstrainDOMStringParameters {
+    (DOMString or sequence<DOMString>) exact;
+    (DOMString or sequence<DOMString>) ideal;
+};

@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -6,14 +6,29 @@
 
 TEST_DIRS += ['tests']
 
-for var in ('target', 'ac_configure_args', 'CC', 'CC_VERSION', 'CFLAGS',
-            'CXX', 'CXX_VERSION'):
+for var in ('target', 'MOZ_CONFIGURE_OPTIONS', 'CC', 'CC_VERSION', 'CXX'):
     DEFINES[var] = CONFIG[var]
+
+DEFINES['CFLAGS'] = CONFIG['OS_CFLAGS']
 
 if CONFIG['OS_TARGET'] == 'Android':
     DEFINES['ANDROID_PACKAGE_NAME'] = CONFIG['ANDROID_PACKAGE_NAME']
 
-if 'stlport' in CONFIG['STLPORT_LIBS']:
-    DEFINES['USE_STLPORT'] = True
+if CONFIG['MOZ_ANDROID_CXX_STL'] == 'libc++':
+    DEFINES['MOZ_USE_LIBCXX'] = True
+
+if CONFIG['MOZ_BUILD_APP'] == 'mobile/android':
+    DEFINES['MOZ_FENNEC'] = True
 
 JAR_MANIFESTS += ['jar.mn']
+
+with Files('aboutTelemetry.*'):
+    BUG_COMPONENT = ('Toolkit', 'Telemetry')
+
+with Files('customizeToolbar.*'):
+    BUG_COMPONENT = ('Toolkit', 'Toolbars and Toolbar Customization')
+
+with Files('widgets/*'):
+    BUG_COMPONENT = ('Toolkit', 'XUL Widgets')
+
+DEFINES['TOPOBJDIR'] = TOPOBJDIR

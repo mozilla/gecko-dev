@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,6 +8,8 @@
 #include "nsSMILTimeValue.h"
 #include "nsSMILTimedElement.h"
 #include <algorithm>
+
+#include "mozilla/AutoRestore.h"
 
 nsSMILTimeContainer::nsSMILTimeContainer()
 :
@@ -17,6 +20,7 @@ nsSMILTimeContainer::nsSMILTimeContainer()
   mNeedsPauseSample(false),
   mNeedsRewind(false),
   mIsSeeking(false),
+  mHoldingEntries(false),
   mPauseState(PAUSE_BEGIN)
 {
 }
@@ -212,12 +216,14 @@ nsSMILTimeContainer::AddMilestone(const nsSMILMilestone& aMilestone,
   // time may change (e.g. if attributes are changed on the timed element in
   // between samples). If this happens, then we may do an unecessary sample
   // but that's pretty cheap.
+  MOZ_RELEASE_ASSERT(!mHoldingEntries);
   return mMilestoneEntries.Push(MilestoneEntry(aMilestone, aElement));
 }
 
 void
 nsSMILTimeContainer::ClearMilestones()
 {
+  MOZ_RELEASE_ASSERT(!mHoldingEntries);
   mMilestoneEntries.Clear();
 }
 
@@ -254,9 +260,11 @@ nsSMILTimeContainer::PopMilestoneElementsAtMilestone(
   nsSMILMilestone containerMilestone(containerTime.GetMillis(),
                                      aMilestone.mIsEnd);
 
-  NS_ABORT_IF_FALSE(mMilestoneEntries.Top().mMilestone >= containerMilestone,
-      "Trying to pop off earliest times but we have earlier ones that were "
-      "overlooked");
+  MOZ_ASSERT(mMilestoneEntries.Top().mMilestone >= containerMilestone,
+             "Trying to pop off earliest times but we have earlier ones that "
+             "were overlooked");
+
+  MOZ_RELEASE_ASSERT(!mHoldingEntries);
 
   bool gotOne = false;
   while (!mMilestoneEntries.IsEmpty() &&
@@ -272,6 +280,8 @@ nsSMILTimeContainer::PopMilestoneElementsAtMilestone(
 void
 nsSMILTimeContainer::Traverse(nsCycleCollectionTraversalCallback* aCallback)
 {
+  AutoRestore<bool> saveHolding(mHoldingEntries);
+  mHoldingEntries = true;
   const MilestoneEntry* p = mMilestoneEntries.Elements();
   while (p < mMilestoneEntries.Elements() + mMilestoneEntries.Length()) {
     NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*aCallback, "mTimebase");
@@ -283,6 +293,7 @@ nsSMILTimeContainer::Traverse(nsCycleCollectionTraversalCallback* aCallback)
 void
 nsSMILTimeContainer::Unlink()
 {
+  MOZ_RELEASE_ASSERT(!mHoldingEntries);
   mMilestoneEntries.Clear();
 }
 
@@ -291,7 +302,7 @@ nsSMILTimeContainer::UpdateCurrentTime()
 {
   nsSMILTime now = IsPaused() ? mPauseStart : GetParentTime();
   mCurrentTime = now - mParentOffset;
-  NS_ABORT_IF_FALSE(mCurrentTime >= 0, "Container has negative time");
+  MOZ_ASSERT(mCurrentTime >= 0, "Container has negative time");
 }
 
 void
@@ -306,16 +317,23 @@ nsSMILTimeContainer::NotifyTimeChange()
   // milestone elements. This is because any timed element with dependents and
   // with significant transitions yet to fire should have their next milestone
   // registered. Other timed elements don't matter.
-  const MilestoneEntry* p = mMilestoneEntries.Elements();
-#if DEBUG
-  uint32_t queueLength = mMilestoneEntries.Length();
-#endif
-  while (p < mMilestoneEntries.Elements() + mMilestoneEntries.Length()) {
-    mozilla::dom::SVGAnimationElement* elem = p->mTimebase.get();
+
+  // Copy the timed elements to a separate array before calling
+  // HandleContainerTimeChange on each of them in case doing so mutates
+  // mMilestoneEntries.
+  nsTArray<RefPtr<mozilla::dom::SVGAnimationElement>> elems;
+
+  {
+    AutoRestore<bool> saveHolding(mHoldingEntries);
+    mHoldingEntries = true;
+    for (const MilestoneEntry* p = mMilestoneEntries.Elements();
+        p < mMilestoneEntries.Elements() + mMilestoneEntries.Length();
+        ++p) {
+      elems.AppendElement(p->mTimebase.get());
+    }
+  }
+
+  for (auto& elem : elems) {
     elem->TimedElement().HandleContainerTimeChange();
-    NS_ABORT_IF_FALSE(queueLength == mMilestoneEntries.Length(),
-        "Call to HandleContainerTimeChange resulted in a change to the "
-        "queue of milestones");
-    ++p;
   }
 }

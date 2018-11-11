@@ -27,14 +27,6 @@ public: // new functions
 
     FT2FontEntry *GetFontEntry();
 
-    static already_AddRefed<gfxFT2Font>
-    GetOrMakeFont(const nsAString& aName, const gfxFontStyle *aStyle,
-                  bool aNeedsBold = false);
-
-    static already_AddRefed<gfxFT2Font>
-    GetOrMakeFont(FT2FontEntry *aFontEntry, const gfxFontStyle *aStyle,
-                  bool aNeedsBold = false);
-
     struct CachedGlyphData {
         CachedGlyphData()
             : glyphIndex(0xffffffffU) { }
@@ -63,22 +55,18 @@ public: // new functions
     }
 
     virtual void AddSizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf,
-                                        FontCacheSizes* aSizes) const;
+                                        FontCacheSizes* aSizes) const override;
     virtual void AddSizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf,
-                                        FontCacheSizes* aSizes) const;
-
-#ifdef USE_SKIA
-    virtual mozilla::TemporaryRef<mozilla::gfx::GlyphRenderingOptions> GetGlyphRenderingOptions();
-#endif
+                                        FontCacheSizes* aSizes) const override;
 
 protected:
-    virtual bool ShapeText(gfxContext      *aContext,
+    virtual bool ShapeText(DrawTarget      *aDrawTarget,
                            const char16_t *aText,
                            uint32_t         aOffset,
                            uint32_t         aLength,
-                           int32_t          aScript,
-                           gfxShapedText   *aShapedText,
-                           bool             aPreferPlatformShaping);
+                           Script           aScript,
+                           bool             aVertical,
+                           gfxShapedText   *aShapedText) override;
 
     void FillGlyphDataForChar(uint32_t ch, CachedGlyphData *gd);
 

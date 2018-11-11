@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 **********************************************************************
-*   Copyright (C) 1997-2012, International Business Machines
+*   Copyright (C) 1997-2015, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 **********************************************************************
 *
@@ -24,9 +26,14 @@
 ******************************************************************************
 */
 
+#if defined(__CYGWIN__) && !defined(_GNU_SOURCE)
+#define _GNU_SOURCE
+#endif
+
 #include "digitlst.h"
 
 #if !UCONFIG_NO_FORMATTING
+
 #include "unicode/putil.h"
 #include "charstr.h"
 #include "cmemory.h"
@@ -34,11 +41,32 @@
 #include "mutex.h"
 #include "putilimp.h"
 #include "uassert.h"
+#include "digitinterval.h" 
+#include "ucln_in.h"
+#include "umutex.h"
 #include <stdlib.h>
 #include <limits.h>
 #include <string.h>
 #include <stdio.h>
 #include <limits>
+
+#if !defined(U_USE_STRTOD_L)
+# if U_PLATFORM_USES_ONLY_WIN32_API
+#   define U_USE_STRTOD_L 1
+# elif defined(U_HAVE_STRTOD_L)
+#   define U_USE_STRTOD_L U_HAVE_STRTOD_L
+# else
+#   define U_USE_STRTOD_L 0
+# endif
+#endif
+
+#if U_USE_STRTOD_L
+# if U_PLATFORM_USES_ONLY_WIN32_API || U_PLATFORM == U_PF_CYGWIN
+#   include <locale.h>
+# else
+#   include <xlocale.h>
+# endif
+#endif
 
 // ***************************************************************************
 // class DigitList
@@ -57,10 +85,6 @@
 //static const char LONG_MIN_REP[] = "2147483648";
 //static const char I64_MIN_REP[] = "9223372036854775808";
 
-
-static const uint8_t DIGIT_HAVE_NONE=0;
-static const uint8_t DIGIT_HAVE_DOUBLE=1;
-static const uint8_t DIGIT_HAVE_INT64=2;
 
 U_NAMESPACE_BEGIN
 
@@ -121,9 +145,7 @@ DigitList::operator=(const DigitList& other)
             Mutex mutex;
 
             if(other.fHave==kDouble) {
-              fUnion.fDouble = other.fUnion.fDouble;
-            } else if(other.fHave==kInt64) {
-              fUnion.fInt64 = other.fUnion.fInt64;
+                fUnion.fDouble = other.fUnion.fDouble;
             }
             fHave = other.fHave;
         }
@@ -412,26 +434,11 @@ DigitList::append(char digit)
 double
 DigitList::getDouble() const
 {
-    static char gDecimal = 0;
-    char decimalSeparator;
     {
         Mutex mutex;
         if (fHave == kDouble) {
             return fUnion.fDouble;
-        } else if(fHave == kInt64) {
-            return (double)fUnion.fInt64;
         }
-        decimalSeparator = gDecimal;
-    }
-
-    if (decimalSeparator == 0) {
-        // We need to know the decimal separator character that will be used with strtod().
-        // Depends on the C runtime global locale.
-        // Most commonly is '.'
-        // TODO: caching could fail if the global locale is changed on the fly.
-        char rep[MAX_DIGITS];
-        sprintf(rep, "%+1.1f", 1.0);
-        decimalSeparator = rep[2];
     }
 
     double tDouble = 0.0;
@@ -468,23 +475,70 @@ DigitList::getDouble() const
             uprv_decNumberToString(this->fDecNumber, s.getAlias());
         }
         U_ASSERT(uprv_strlen(&s[0]) < MAX_DBL_DIGITS+18);
-        
-        if (decimalSeparator != '.') {
-            char *decimalPt = strchr(s.getAlias(), '.');
-            if (decimalPt != NULL) {
-                *decimalPt = decimalSeparator;
-            }
-        }
+
         char *end = NULL;
-        tDouble = uprv_strtod(s.getAlias(), &end);
+        tDouble = decimalStrToDouble(s.getAlias(), &end);
     }
     {
         Mutex mutex;
         DigitList *nonConstThis = const_cast<DigitList *>(this);
         nonConstThis->internalSetDouble(tDouble);
-        gDecimal = decimalSeparator;
     }
     return tDouble;
+}
+
+#if U_USE_STRTOD_L && U_PLATFORM_USES_ONLY_WIN32_API
+# define locale_t _locale_t
+# define freelocale _free_locale
+# define strtod_l _strtod_l
+#endif
+
+#if U_USE_STRTOD_L
+static locale_t gCLocale = (locale_t)0;
+#endif
+static icu::UInitOnce gCLocaleInitOnce = U_INITONCE_INITIALIZER;
+
+U_CDECL_BEGIN
+// Cleanup callback func
+static UBool U_CALLCONV digitList_cleanup(void)
+{
+#if U_USE_STRTOD_L
+    if (gCLocale != (locale_t)0) {
+        freelocale(gCLocale);
+    }
+#endif
+    return TRUE;
+}
+// C Locale initialization func
+static void U_CALLCONV initCLocale(void) {
+    ucln_i18n_registerCleanup(UCLN_I18N_DIGITLIST, digitList_cleanup);
+#if U_USE_STRTOD_L
+# if U_PLATFORM_USES_ONLY_WIN32_API
+    gCLocale = _create_locale(LC_ALL, "C");
+# else
+    gCLocale = newlocale(LC_ALL_MASK, "C", (locale_t)0);
+# endif
+#endif
+}
+U_CDECL_END
+
+double
+DigitList::decimalStrToDouble(char *decstr, char **end) {
+    umtx_initOnce(gCLocaleInitOnce, &initCLocale);
+#if U_USE_STRTOD_L
+    return strtod_l(decstr, end, gCLocale);
+#else
+    char *decimalPt = strchr(decstr, '.');
+    if (decimalPt) {
+        // We need to know the decimal separator character that will be used with strtod().
+        // Depends on the C runtime global locale.
+        // Most commonly is '.'
+        char rep[MAX_DIGITS];
+        sprintf(rep, "%+1.1f", 1.0);
+        *decimalPt = rep[2];
+    }
+    return uprv_strtod(decstr, end);
+#endif
 }
 
 // -------------------------------------
@@ -496,7 +550,7 @@ DigitList::getDouble() const
 int32_t DigitList::getLong() /*const*/
 {
     int32_t result = 0;
-    if (fDecNumber->digits + fDecNumber->exponent > 10) {
+    if (getUpperExponent() > 10) { 
         // Overflow, absolute value too big.
         return result;
     }
@@ -519,14 +573,13 @@ int32_t DigitList::getLong() /*const*/
  *  Return zero if the number cannot be represented.
  */
 int64_t DigitList::getInt64() /*const*/ {
-    if(fHave==kInt64) {
-      return fUnion.fInt64;
-    } 
+    // TODO: fast conversion if fHave == fDouble
+
     // Truncate if non-integer.
     // Return 0 if out of range.
     // Range of in64_t is -9223372036854775808 to 9223372036854775807  (19 digits)
     //
-    if (fDecNumber->digits + fDecNumber->exponent > 19) {
+    if (getUpperExponent() > 19) { 
         // Overflow, absolute value too big.
         return 0;
     }
@@ -540,7 +593,7 @@ int64_t DigitList::getInt64() /*const*/ {
     // TODO:  It would be faster to store a table of powers of ten to multiply by
     //        instead of looping over zero digits, multiplying each time.
 
-    int32_t numIntDigits = fDecNumber->digits + fDecNumber->exponent;
+    int32_t numIntDigits = getUpperExponent(); 
     uint64_t value = 0;
     for (int32_t i = 0; i < numIntDigits; i++) {
         // Loop is iterating over digits starting with the most significant.
@@ -615,7 +668,7 @@ DigitList::fitsIntoLong(UBool ignoreNegativeZero) /*const*/
         // Negative Zero, not ingored.  Cannot represent as a long.
         return FALSE;
     }
-    if (fDecNumber->digits + fDecNumber->exponent < 10) {
+    if (getUpperExponent() < 10) { 
         // The number is 9 or fewer digits.
         // The max and min int32 are 10 digts, so this number fits.
         // This is the common case.
@@ -662,7 +715,7 @@ DigitList::fitsIntoInt64(UBool ignoreNegativeZero) /*const*/
         // Negative Zero, not ingored.  Cannot represent as a long.
         return FALSE;
     }
-    if (fDecNumber->digits + fDecNumber->exponent < 19) {
+    if (getUpperExponent() < 19) { 
         // The number is 18 or fewer digits.
         // The max and min int64 are 19 digts, so this number fits.
         // This is the common case.
@@ -708,19 +761,8 @@ DigitList::set(int64_t source)
     U_ASSERT(uprv_strlen(str) < sizeof(str));
 
     uprv_decNumberFromString(fDecNumber, str, &fContext);
-    internalSetDouble(source);
+    internalSetDouble(static_cast<double>(source));
 }
-
-/**
- * Set an int64, with no decnumber
- */
-void
-DigitList::setInteger(int64_t source)
-{
-  fDecNumber=NULL;
-  internalSetInt64(source);
-}
-
 
 // -------------------------------------
 /**
@@ -732,7 +774,7 @@ DigitList::setInteger(int64_t source)
  * be acceptable for a public API.
  */
 void
-DigitList::set(const StringPiece &source, UErrorCode &status, uint32_t /*fastpathBits*/) {
+DigitList::set(StringPiece source, UErrorCode &status, uint32_t /*fastpathBits*/) {
     if (U_FAILURE(status)) {
         return;
     }
@@ -836,6 +878,9 @@ DigitList::set(double source)
  */
 void
 DigitList::mult(const DigitList &other, UErrorCode &status) {
+    if (U_FAILURE(status)) { 
+        return; 
+    } 
     fContext.status = 0;
     int32_t requiredDigits = this->digits() + other.digits();
     if (requiredDigits > fContext.digits) {
@@ -906,18 +951,23 @@ DigitList::ensureCapacity(int32_t requestedCapacity, UErrorCode &status) {
 void
 DigitList::round(int32_t maximumDigits)
 {
+    reduce(); 
+    if (maximumDigits >= fDecNumber->digits) { 
+        return; 
+    } 
     int32_t savedDigits  = fContext.digits;
     fContext.digits = maximumDigits;
     uprv_decNumberPlus(fDecNumber, fDecNumber, &fContext);
     fContext.digits = savedDigits;
     uprv_decNumberTrim(fDecNumber);
+    reduce(); 
     internalClear();
 }
 
 
 void
 DigitList::roundFixedPoint(int32_t maximumFractionDigits) {
-    trim();        // Remove trailing zeros.
+    reduce();        // Remove trailing zeros. 
     if (fDecNumber->exponent >= -maximumFractionDigits) {
         return;
     }
@@ -927,7 +977,7 @@ DigitList::roundFixedPoint(int32_t maximumFractionDigits) {
     scale.lsu[0] = 1;
     
     uprv_decNumberQuantize(fDecNumber, fDecNumber, &scale, &fContext);
-    trim();
+    reduce(); 
     internalClear();
 }
 
@@ -944,6 +994,98 @@ UBool
 DigitList::isZero() const
 {
     return decNumberIsZero(fDecNumber);
+}
+
+// -------------------------------------
+int32_t
+DigitList::getUpperExponent() const {
+    return fDecNumber->digits + fDecNumber->exponent;
+}
+
+DigitInterval &
+DigitList::getSmallestInterval(DigitInterval &result) const {
+    result.setLeastSignificantInclusive(fDecNumber->exponent);
+    result.setMostSignificantExclusive(getUpperExponent());
+    return result;
+}
+
+uint8_t
+DigitList::getDigitByExponent(int32_t exponent) const {
+    int32_t idx = exponent - fDecNumber->exponent;
+    if (idx < 0 || idx >= fDecNumber->digits) {
+        return 0;
+    }
+    return fDecNumber->lsu[idx];
+}
+
+void
+DigitList::appendDigitsTo(CharString &str, UErrorCode &status) const {
+    str.append((const char *) fDecNumber->lsu, fDecNumber->digits, status);
+}
+
+void
+DigitList::roundAtExponent(int32_t exponent, int32_t maxSigDigits) {
+    reduce();
+    if (maxSigDigits < fDecNumber->digits) {
+        int32_t minExponent = getUpperExponent() - maxSigDigits;
+        if (exponent < minExponent) {
+            exponent = minExponent;
+        }
+    }
+    if (exponent <= fDecNumber->exponent) {
+        return;
+    }
+    int32_t digits = getUpperExponent() - exponent;
+    if (digits > 0) {
+        round(digits);
+    } else {
+        roundFixedPoint(-exponent);
+    }
+}
+
+void
+DigitList::quantize(const DigitList &quantity, UErrorCode &status) {
+    if (U_FAILURE(status)) {
+        return;
+    }
+    div(quantity, status);
+    roundAtExponent(0);
+    mult(quantity, status);
+    reduce();
+}
+
+int32_t
+DigitList::getScientificExponent(
+        int32_t minIntDigitCount, int32_t exponentMultiplier) const {
+    // The exponent for zero is always zero.
+    if (isZero()) {
+        return 0;
+    }
+    int32_t intDigitCount = getUpperExponent();
+    int32_t exponent;
+    if (intDigitCount >= minIntDigitCount) {
+        int32_t maxAdjustment = intDigitCount - minIntDigitCount;
+        exponent = (maxAdjustment / exponentMultiplier) * exponentMultiplier;
+    } else {
+        int32_t minAdjustment = minIntDigitCount - intDigitCount;
+        exponent = ((minAdjustment + exponentMultiplier - 1) / exponentMultiplier) * -exponentMultiplier;
+    }
+    return exponent;
+}
+
+int32_t
+DigitList::toScientific(
+        int32_t minIntDigitCount, int32_t exponentMultiplier) {
+    int32_t exponent = getScientificExponent(
+            minIntDigitCount, exponentMultiplier);
+    shiftDecimalRight(-exponent);
+    return exponent;
+}
+
+void
+DigitList::shiftDecimalRight(int32_t n) {
+    fDecNumber->exponent += n;
+    internalClear();
 }
 
 U_NAMESPACE_END

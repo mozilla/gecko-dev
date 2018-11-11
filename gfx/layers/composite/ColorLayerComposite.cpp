@@ -4,7 +4,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ColorLayerComposite.h"
-#include "gfxColor.h"                   // for gfxRGBA
 #include "mozilla/RefPtr.h"             // for RefPtr
 #include "mozilla/gfx/Matrix.h"         // for Matrix4x4
 #include "mozilla/gfx/Point.h"          // for Point
@@ -14,41 +13,35 @@
 #include "mozilla/layers/CompositorTypes.h"  // for DiagnosticFlags::COLOR
 #include "mozilla/layers/Effects.h"     // for Effect, EffectChain, etc
 #include "mozilla/mozalloc.h"           // for operator delete, etc
-#include "nsPoint.h"                    // for nsIntPoint
-#include "nsRect.h"                     // for nsIntRect
 
 namespace mozilla {
 namespace layers {
 
+using namespace mozilla::gfx;
+
 void
-ColorLayerComposite::RenderLayer(const nsIntRect& aClipRect)
+ColorLayerComposite::RenderLayer(const IntRect& aClipRect)
 {
-  EffectChain effects(this);
-  gfxRGBA color(GetColor());
-  effects.mPrimaryEffect = new EffectSolidColor(gfx::Color(color.r,
-                                                           color.g,
-                                                           color.b,
-                                                           color.a));
-  nsIntRect boundRect = GetBounds();
+  Rect rect(GetBounds());
+  const Matrix4x4& transform = GetEffectiveTransform();
 
-  LayerManagerComposite::AutoAddMaskEffect autoMaskEffect(GetMaskLayer(),
-                                                          effects);
+  RenderWithAllMasks(this, mCompositor, aClipRect,
+                     [&](EffectChain& effectChain, const IntRect& clipRect) {
+    GenEffectChain(effectChain);
+    mCompositor->DrawQuad(rect, clipRect, effectChain, GetEffectiveOpacity(),
+                          transform);
+  });
 
-  gfx::Rect rect(boundRect.x, boundRect.y,
-                 boundRect.width, boundRect.height);
-  gfx::Rect clipRect(aClipRect.x, aClipRect.y,
-                     aClipRect.width, aClipRect.height);
-
-  float opacity = GetEffectiveOpacity();
-
-  AddBlendModeEffect(effects);
-
-  const gfx::Matrix4x4& transform = GetEffectiveTransform();
-  mCompositor->DrawQuad(rect, clipRect, effects, opacity, transform);
-  mCompositor->DrawDiagnostics(DiagnosticFlags::COLOR,
-                               rect, clipRect,
+  mCompositor->DrawDiagnostics(DiagnosticFlags::COLOR, rect, aClipRect,
                                transform);
 }
 
-} /* layers */
-} /* mozilla */
+void
+ColorLayerComposite::GenEffectChain(EffectChain& aEffect)
+{
+  aEffect.mLayerRef = this;
+  aEffect.mPrimaryEffect = new EffectSolidColor(GetColor());
+}
+
+} // namespace layers
+} // namespace mozilla

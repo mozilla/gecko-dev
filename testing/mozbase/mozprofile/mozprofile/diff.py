@@ -12,16 +12,17 @@ import sys
 
 __all__ = ['diff', 'diff_profiles']
 
+
 def diff(profile1, profile2, diff_function=difflib.unified_diff):
 
     profiles = (profile1, profile2)
     parts = {}
     parts_dict = {}
     for index in (0, 1):
-        profile = profiles[index]
+        prof = profiles[index]
 
         # first part, the path, isn't useful for diffing
-        parts[index] = profile.summary(return_parts=True)[1:]
+        parts[index] = prof.summary(return_parts=True)[1:]
 
         parts_dict[index] = dict(parts[index])
 
@@ -34,7 +35,8 @@ def diff(profile1, profile2, diff_function=difflib.unified_diff):
     retval = []
     for key, value in parts[0]:
         other = parts_dict[1].get(key, '')
-        value = value.strip(); other = other.strip()
+        value = value.strip()
+        other = other.strip()
 
         if key == 'Files':
             # first line of files is the path; we don't care to diff that
@@ -49,6 +51,7 @@ def diff(profile1, profile2, diff_function=difflib.unified_diff):
             retval.append((key, '\n'.join(section_diff)))
 
     return retval
+
 
 def diff_profiles(args=sys.argv[1:]):
 

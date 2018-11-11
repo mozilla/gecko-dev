@@ -1,6 +1,8 @@
+# Copyright (C) 2016 and later: Unicode, Inc. and others.
+# License & terms of use: http://www.unicode.org/copyright.html
 #******************************************************************************
 #
-#   Copyright (C) 1999-2013, International Business Machines
+#   Copyright (C) 1999-2016, International Business Machines
 #   Corporation and others.  All Rights Reserved.
 #
 #******************************************************************************
@@ -33,12 +35,13 @@ BUILDDIR := $(BUILDDIR:test\\intltest/../../=)
 BUILDDIR := $(BUILDDIR:TEST\\INTLTEST/../../=)
 
 CPPFLAGS += -I$(top_srcdir)/common -I$(top_srcdir)/i18n -I$(top_srcdir)/tools/toolutil -I$(top_srcdir)/tools/ctestfw
+CPPFLAGS += -DUNISTR_FROM_CHAR_EXPLICIT= -DUNISTR_FROM_STRING_EXPLICIT=
 DEFS += -D'U_TOPSRCDIR="$(top_srcdir)/"' -D'U_TOPBUILDDIR="$(BUILDDIR)"'
 LIBS = $(LIBCTESTFW) $(LIBICUI18N) $(LIBICUUC) $(LIBICUTOOLUTIL) $(DEFAULT_LIBS) $(LIB_M) $(LIB_THREAD)
 
 OBJECTS = aliastst.o allcoll.o apicoll.o astrotst.o callimts.o calregts.o caltest.o \
-caltztst.o canittst.o citrtest.o cntabcol.o colldata.o convtest.o currcoll.o \
-fldset.o dadrfmt.o dadrcal.o dadrcoll.o dcfmapts.o decoll.o dtfmapts.o dtfmrgts.o dtfmtrtts.o dtfmttst.o	\
+caltztst.o canittst.o citrtest.o colldata.o convtest.o currcoll.o collationtest.o \
+fldset.o dadrfmt.o dadrcal.o dcfmapts.o decoll.o dtfmapts.o dtfmrgts.o dtfmtrtts.o dtfmttst.o	\
 dtptngts.o encoll.o escoll.o ficoll.o frcoll.o g7coll.o intltest.o	\
 itercoll.o itformat.o itmajor.o itutil.o jacoll.o lcukocol.o	\
 loctest.o miscdtfm.o mnkytst.o msfmrgts.o nmfmapts.o nmfmtrt.o		\
@@ -48,14 +51,17 @@ tfsmalls.o tmsgfmt.o trcoll.o tscoll.o tsdate.o tsdcfmsy.o tsdtfmsy.o	\
 tsmthred.o tsnmfmt.o tsputil.o tstnrapi.o tstnorm.o tzbdtest.o		\
 tzregts.o tztest.o ucdtest.o usettest.o ustrtest.o strcase.o transtst.o strtest.o thcoll.o \
 bytestrietest.o ucharstrietest.o \
-itrbbi.o rbbiapts.o rbbitst.o ittrans.o transapi.o cpdtrtst.o \
+itrbbi.o rbbiapts.o rbbitst.o rbbimonkeytest.o ittrans.o transapi.o cpdtrtst.o \
 testutil.o transrt.o trnserr.o normconf.o sfwdchit.o \
 jamotest.o srchtest.o reptest.o regextst.o \
 itrbnf.o itrbnfrt.o itrbnfp.o ucaconf.o icusvtst.o \
 uobjtest.o idnaref.o idnaconf.o nptrans.o punyref.o testidn.o testidna.o uts46test.o \
 incaltst.o calcasts.o v32test.o uvectest.o textfile.o tokiter.o utxttest.o \
 windttst.o winnmtst.o winutil.o csdetest.o tzrulets.o tzoffloc.o tzfmttst.o ssearch.o dtifmtts.o \
-tufmtts.o itspoof.o simplethread.o bidiconf.o locnmtst.o dcfmtest.o alphaindextst.o listformattertest.o genderinfotest.o compactdecimalformattest.o regiontst.o
+tufmtts.o itspoof.o simplethread.o bidiconf.o locnmtst.o dcfmtest.o alphaindextst.o listformattertest.o genderinfotest.o compactdecimalformattest.o regiontst.o \
+reldatefmttest.o simpleformattertest.o measfmttest.o numfmtspectest.o unifiedcachetest.o quantityformattertest.o \
+scientificnumberformattertest.o datadrivennumberformattestsuite.o \
+numberformattesttuple.o numberformat2test.o pluralmaptest.o
 
 DEPS = $(OBJECTS:.o=.d)
 

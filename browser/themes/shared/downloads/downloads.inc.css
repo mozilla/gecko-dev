@@ -1,0 +1,372 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+%filter substitution
+
+%define keyfocus #downloadsPanel[keyfocus]
+%define notKeyfocus #downloadsPanel:not([keyfocus])
+%define item richlistitem[type="download"]
+%define itemFinished @item@[state="1"]
+%define itemNotFinished @item@:not([state="1"])
+%define itemFocused #downloadsListBox:focus > @item@[selected]
+
+/*** Panel and outer controls ***/
+
+#downloadsPanel > .panel-arrowcontainer > .panel-arrowcontent {
+  overflow: hidden;
+  display: block;
+}
+
+#downloadsPanel > .panel-arrowcontainer > .panel-arrowcontent,
+#downloadsPanel-multiView > .panel-viewcontainer > .panel-viewstack > .panel-subviews {
+  padding: 0;
+}
+
+#downloadsListBox {
+  background: transparent;
+  color: inherit;
+  -moz-appearance: none;
+  margin: 0;
+}
+
+#emptyDownloads {
+  padding: 16px 25px;
+  margin: 0;
+  /* The panel can be wider than this description after the blocked subview is
+     shown, so center the text. */
+  text-align: center;
+}
+
+.downloadsPanelFooter {
+  background-color: var(--arrowpanel-dimmed);
+  border-top: 1px solid var(--panel-separator-color);
+}
+
+.downloadsPanelFooter toolbarseparator,
+@item@ > toolbarseparator {
+  margin: 0;
+  border: 0;
+  min-width: 0;
+  border-left: 1px solid var(--panel-separator-color);
+  -moz-appearance: none;
+}
+
+.downloadsPanelFooterButton {
+  -moz-appearance: none;
+  background-color: transparent;
+  color: inherit;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  min-height: 40px;
+  border: none;
+}
+
+.downloadsPanelFooterButton:hover {
+  outline: 1px solid var(--arrowpanel-dimmed);
+  background-color: var(--arrowpanel-dimmed);
+}
+
+.downloadsPanelFooterButton:hover:active,
+.downloadsPanelFooterButton[open="true"] {
+  outline: 1px solid var(--arrowpanel-dimmed-further);
+  background-color: var(--arrowpanel-dimmed-further);
+  box-shadow: 0 1px 0 hsla(210,4%,10%,.05) inset;
+}
+
+.downloadsPanelFooterButton[default] {
+  background-color: #0996f8;
+  color: white;
+}
+
+.downloadsPanelFooterButton[default]:hover {
+  background-color: #0675d3;
+}
+
+.downloadsPanelFooterButton[default]:hover:active {
+  background-color: #0568ba;
+}
+
+.downloadsPanelFooterButton > .button-box {
+  padding: 0;
+  margin: 0;
+  border: none;
+}
+
+#downloadsHistory {
+  padding-inline-start: 10px;
+  padding-inline-end: 10px;
+}
+
+#downloadsPanel[hasdownloads] #downloadsFooterButtons:not(.downloadsHideDropmarker) > #downloadsHistory {
+  padding-inline-start: 68px;
+}
+
+toolbarseparator.downloadsDropmarkerSplitter {
+  margin: 7px 0;
+}
+
+@item@ > toolbarseparator {
+  margin: 10px 0;
+}
+
+@item@:hover > toolbarseparator,
+#downloadsFooter:hover toolbarseparator.downloadsDropmarkerSplitter,
+#downloadsFooter[showingdropdown] toolbarseparator {
+  margin: 0;
+}
+
+.downloadsDropmarker {
+  padding: 0 21px;
+}
+
+.downloadsDropmarker > .button-box > hbox {
+  display: none;
+}
+
+.downloadsDropmarker > .button-box > .button-menu-dropmarker {
+  /* This is to override the linux !important */
+  -moz-appearance: none !important;
+  display: -moz-box;
+  padding: 0;
+  margin: 0;
+}
+
+.downloadsDropmarker > .button-box > .button-menu-dropmarker > .dropmarker-icon {
+  width: 16px;
+  height: 16px;
+  list-style-image: url("chrome://browser/skin/downloads/menubutton-dropmarker.svg");
+  filter: url("chrome://browser/skin/filters.svg#fill");
+  fill: currentColor;
+}
+
+/* Override default icon size which is too small for this dropdown */
+.downloadsDropmarker > .button-box > .button-menu-dropmarker {
+  width: 16px;
+  height: 16px;
+}
+
+#downloadsSummary {
+  -moz-user-focus: normal;
+}
+
+#downloadsSummary > .downloadTypeIcon {
+  list-style-image: url("chrome://browser/skin/downloads/download-summary.svg");
+}
+
+#downloadsSummaryDescription {
+  color: -moz-nativehyperlinktext;
+}
+
+/*** List items and similar elements in the summary ***/
+
+#downloadsSummary,
+richlistitem[type="download"] {
+  height: var(--downloads-item-height);
+}
+
+richlistitem[type="download"] {
+  border-bottom: 1px solid var(--panel-separator-color);
+  background: transparent;
+  color: inherit;
+}
+
+richlistitem[type="download"]:last-child {
+  border-bottom: none;
+}
+
+.downloadTypeIcon {
+  margin: 8px 13px;
+  width: 32px;
+  height: 32px;
+}
+
+.downloadBlockedBadge {
+  margin: 0 5px;
+  background: url("chrome://browser/skin/downloads/download-blocked.svg") top right / 16px no-repeat;
+}
+
+.downloadBlockedBadge:-moz-locale-dir(rtl) {
+  background-position-x: left;
+}
+
+@item@[verdict="PotentiallyUnwanted"] .downloadBlockedBadge {
+  background-image: url("chrome://browser/skin/warning.svg");
+}
+
+@item@[verdict="Uncommon"] .downloadBlockedBadge {
+  background-image: url("chrome://browser/skin/info.svg");
+}
+
+/* We hold .downloadTarget, .downloadProgress and .downloadDetails inside of
+   a vbox with class .downloadContainer. We set the font-size of the entire
+   container to --downloads-item-font-size-factor because:
+
+   1) This is the size that we want .downloadDetails to be
+   2) The container's width is set by localizers by &downloadDetails.width;,
+      which is a ch unit. Since this is the value that should control the
+      panel width, we apply it to the outer container to constrain
+      .downloadTarget and .downloadProgress.
+
+   Finally, since we want .downloadTarget's font-size to be at 100% of the
+   font-size of .downloadContainer's parent, we use calc to go from the
+   smaller font-size back to the original font-size.
+ */
+.downloadContainer {
+  font-size: calc(100% * var(--downloads-item-font-size-factor));
+  margin-inline-end: 13px;
+}
+
+#downloadsSummaryDescription,
+.downloadTarget {
+  margin: 0;
+  font-size: calc(100% / var(--downloads-item-font-size-factor));
+}
+
+#downloadsSummaryDetails,
+.downloadDetails {
+  opacity: var(--downloads-item-details-opacity);
+  /* Use calc() to keep the height consistent with .downloadTarget, so that the
+     progress bar can be vertically centered. */
+  margin: 4px 0 calc(1em / var(--downloads-item-font-size-factor) - 1em);
+}
+
+@item@[verdict] > toolbarseparator {
+  visibility: hidden;
+}
+
+.downloadButton {
+  -moz-appearance: none;
+  min-width: 58px;
+  margin: 0;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.downloadButton > .button-box > .button-icon {
+  width: 16px;
+  height: 16px;
+  margin: 1px;
+  filter: url("chrome://browser/skin/filters.svg#fill");
+  fill: currentColor;
+}
+
+.downloadButton > .button-box > .button-text {
+  margin: 0 !important;
+  padding: 0;
+}
+
+@itemFinished@[exists] .downloadMainArea:hover,
+@item@:not([verdict]) > .downloadButtonArea:hover,
+@item@[verdict]:hover {
+  background-color: var(--arrowpanel-dimmed);
+}
+
+@itemFinished@[exists] > .downloadMainArea:hover:active,
+@item@:not([verdict]) > .downloadButtonArea:hover:active,
+@item@[verdict]:hover:active {
+  background-color: var(--arrowpanel-dimmed-further);
+}
+
+@item@[showingsubview] {
+  background-color: Highlight;
+  color: HighlightText;
+  transition: background-color var(--panelui-subview-transition-duration),
+              color var(--panelui-subview-transition-duration);
+}
+
+@item@[verdict="Malware"]:hover,
+@item@[verdict="Malware"]:hover:active,
+@item@[verdict="Malware"][showingsubview] {
+  background-color: #aa1b08;
+  color: white;
+}
+
+/*** Button icons ***/
+
+.downloadIconCancel > .button-box > .button-icon {
+  list-style-image: url("chrome://browser/skin/panel-icons.svg#cancel");
+}
+
+.downloadIconShow > .button-box > .button-icon {
+%ifdef XP_MACOSX
+  list-style-image: url("chrome://browser/skin/panel-icons.svg#magnifier");
+%else
+  list-style-image: url("chrome://browser/skin/panel-icons.svg#folder");
+%endif
+}
+
+.downloadIconRetry > .button-box > .button-icon {
+  list-style-image: url("chrome://browser/skin/panel-icons.svg#retry");
+}
+
+.downloadShowBlockedInfo > .button-box > .button-icon {
+  list-style-image: url("chrome://browser/skin/panel-icons.svg#arrow-right");
+}
+
+.downloadShowBlockedInfo > .button-box > .button-icon:-moz-locale-dir(rtl) {
+  list-style-image: url("chrome://browser/skin/panel-icons.svg#arrow-left");
+}
+
+/*** Blocked subview ***/
+
+#downloadsPanel-multiView > .panel-viewcontainer > .panel-viewstack[viewtype=main] > .panel-subviews {
+  /* When the main view is showing, the shadow on the left edge of the subview is
+     barely visible on the right edge of the main view, so set it to none. */
+  box-shadow: none;
+}
+
+/* When the subview is showing, turn the download button into an arrow pointing
+   back to the main view. */
+#downloadsPanel-multiView > .panel-viewcontainer > .panel-viewstack[viewtype="subview"] .download-state[showingsubview] .downloadButton {
+  color: HighlightText;
+}
+
+#downloadsPanel-multiView > .panel-viewcontainer > .panel-viewstack[viewtype="subview"] .download-state[showingsubview] .downloadButton > .button-box > .button-icon {
+  list-style-image: url("chrome://browser/skin/panel-icons.svg#arrow-left");
+}
+
+#downloadsPanel-multiView > .panel-viewcontainer > .panel-viewstack[viewtype="subview"] .download-state[showingsubview] .downloadButton > .button-box > .button-icon:-moz-locale-dir(rtl) {
+  list-style-image: url("chrome://browser/skin/panel-icons.svg#arrow-right");
+}
+
+#downloadsPanel-blockedSubview {
+  background-image: url("chrome://browser/skin/warning.svg");
+  background-size: 32px 32px;
+  background-position: 16px 16px;
+  background-repeat: no-repeat;
+}
+
+#downloadsPanel-blockedSubview:-moz-locale-dir(rtl) {
+  background-position: calc(100% - 16px) 16px;
+}
+
+#downloadsPanel-blockedSubview[verdict=Malware] {
+  background-image: url("chrome://browser/skin/downloads/download-blocked.svg");
+}
+
+#downloadsPanel-blockedSubview-title {
+  margin-top: 16px;
+  margin-bottom: 16px;
+  font-size: calc(100% / var(--downloads-item-font-size-factor));
+}
+
+#downloadsPanel-blockedSubview-details1,
+#downloadsPanel-blockedSubview-details2 {
+  font-size: calc(100% * var(--downloads-item-font-size-factor));
+  margin-bottom: 16px;
+  opacity: var(--downloads-item-details-opacity);
+}
+
+#downloadsPanel-blockedSubview-title,
+#downloadsPanel-blockedSubview-details1,
+#downloadsPanel-blockedSubview-details2 {
+  -moz-margin-start: 64px;
+  -moz-margin-end: 16px;
+}
+
+/*** Progressmeter ***/
+%include progressmeter.inc.css

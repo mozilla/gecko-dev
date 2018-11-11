@@ -298,6 +298,13 @@ PREFIX (_equal) (region_type_t *reg1, region_type_t *reg2)
     box_type_t *rects1;
     box_type_t *rects2;
 
+    /*
+     * If the region is empty the extents are undefined so we need to check
+     * for empty before comparing the extents.
+     */
+    if (PIXREGION_NIL (reg1) && PIXREGION_NIL(reg2))
+        return TRUE;
+
     if (reg1->extents.x1 != reg2->extents.x1)
 	return FALSE;
     
@@ -1333,6 +1340,15 @@ PREFIX(_intersect_rect) (region_type_t *dest,
     region.extents.y1 = y;
     region.extents.x2 = x + width;
     region.extents.y2 = y + height;
+
+    if (!GOOD_RECT (&region.extents))
+    {
+        if (BAD_RECT (&region.extents))
+            _pixman_log_error (FUNC, "Invalid rectangle passed");
+        FREE_DATA (dest);
+        PREFIX (_init) (dest);
+        return TRUE;
+    }
 
     return PREFIX(_intersect) (dest, source, &region);
 }

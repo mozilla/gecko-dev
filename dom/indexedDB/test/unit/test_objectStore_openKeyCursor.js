@@ -3,7 +3,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-let testGenerator = testSteps();
+var testGenerator = testSteps();
 
 function testSteps() {
   const dbName = this.window ?
@@ -327,7 +327,7 @@ function testSteps() {
 
   is(seenKeys.length, allKeys.length - 9, "Saw the right number of keys");
 
-  let match = true;
+  match = true;
   for (let i = 0, j = 0; i < seenKeys.length; i++) {
     if (seenKeys[i] !== allKeys[i + j]) {
       match = false;
@@ -383,7 +383,7 @@ function testSteps() {
 
   is(seenKeys.length, allKeys.length - 9, "Saw the right number of keys");
 
-  let match = true;
+  match = true;
   for (let i = 0, j = 0; i < seenKeys.length; i++) {
     if (seenKeys[i] !== allKeys[i + j]) {
       match = false;

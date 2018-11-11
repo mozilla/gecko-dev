@@ -1,0 +1,59 @@
+/* vim:set ts=2 sw=2 sts=2 et: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+@import "resource://devtools/client/shared/components/reps/reps.css";
+@import "resource://devtools/client/shared/components/tree/tree-view.css";
+@import "resource://devtools/client/shared/components/tabs/tabs.css";
+
+@import "general.css";
+@import "search-box.css";
+@import "toolbar.css";
+@import "json-panel.css";
+@import "text-panel.css";
+@import "headers-panel.css";
+
+/******************************************************************************/
+/* Panel Content */
+
+.panelContent {
+  overflow-y: auto;
+  width: 100%;
+}
+
+/* The tree takes the entire horizontal space within the panel content. */
+.panelContent .treeTable {
+  width: 100%;
+  font-family: var(--monospace-font-family);
+}
+
+:root[platform="linux"] .treeTable {
+  font-size: 80%; /* To handle big monospace font */
+}
+
+/* Make sure there is a little space between label and value columns. */
+.panelContent .treeTable .treeLabelCell {
+  padding-right: 17px;
+}
+
+/******************************************************************************/
+/* Theme Firebug */
+
+.theme-firebug .panelContent {
+  height: calc(100% - 30px);
+}
+
+/* JSON View is using bigger font-size for the main tabs so,
+  let's overwrite the default value. */
+.theme-firebug .tabs .tabs-navigation {
+  font-size: 14px;
+}
+
+/******************************************************************************/
+/* Theme Light & Theme Dark*/
+
+.theme-dark .panelContent,
+.theme-light .panelContent {
+  height: calc(100% - 27px);
+}

@@ -34,10 +34,10 @@ public:
 
     // nsFTPDirListingConv methods
     nsFTPDirListingConv();
-    virtual ~nsFTPDirListingConv();
-    nsresult Init();
 
 private:
+    virtual ~nsFTPDirListingConv();
+
     // Get the application/http-index-format headers
     nsresult GetHeaders(nsACString& str, nsIURI* uri);
     char*    DigestBufferLines(char *aBuffer, nsCString &aString);

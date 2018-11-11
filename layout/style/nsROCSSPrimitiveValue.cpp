@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -21,7 +22,6 @@ nsROCSSPrimitiveValue::nsROCSSPrimitiveValue()
   : CSSValue(), mType(CSS_PX)
 {
   mValue.mAppUnits = 0;
-  SetIsDOMBinding();
 }
 
 
@@ -33,8 +33,6 @@ nsROCSSPrimitiveValue::~nsROCSSPrimitiveValue()
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsROCSSPrimitiveValue)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsROCSSPrimitiveValue)
 
-
-// QueryInterface implementation for nsROCSSPrimitiveValue
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsROCSSPrimitiveValue)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
   NS_INTERFACE_MAP_ENTRY(nsIDOMCSSPrimitiveValue)
@@ -63,9 +61,9 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsROCSSPrimitiveValue)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 JSObject*
-nsROCSSPrimitiveValue::WrapObject(JSContext *cx)
+nsROCSSPrimitiveValue::WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto)
 {
-  return dom::CSSPrimitiveValueBinding::Wrap(cx, this);
+  return dom::CSSPrimitiveValueBinding::Wrap(cx, this, aGivenProto);
 }
 
 // nsIDOMCSSValue
@@ -102,7 +100,8 @@ nsROCSSPrimitiveValue::GetCssText(nsAString& aCssText)
       {
         if (mValue.mURI) {
           nsAutoCString specUTF8;
-          mValue.mURI->GetSpec(specUTF8);
+          nsresult rv = mValue.mURI->GetSpec(specUTF8);
+          NS_ENSURE_SUCCESS(rv, rv);
 
           tmpStr.AssignLiteral("url(");
           nsStyleUtil::AppendEscapedCSSString(NS_ConvertUTF8toUTF16(specUTF8),
@@ -113,7 +112,7 @@ nsROCSSPrimitiveValue::GetCssText(nsAString& aCssText)
           // 'about:invalid' as the default value for url attributes,
           // so let's also use it here as the default computed value
           // for invalid URLs.
-          tmpStr.AssignLiteral(MOZ_UTF16("url(about:invalid)"));
+          tmpStr.AssignLiteral(u"url(about:invalid)");
         }
         break;
       }
@@ -431,7 +430,7 @@ nsROCSSPrimitiveValue::GetFloatValue(uint16_t aType, float *aVal)
 {
   ErrorResult rv;
   *aVal = GetFloatValue(aType, rv);
-  return rv.ErrorCode();
+  return rv.StealNSResult();
 }
 
 
@@ -463,10 +462,13 @@ nsROCSSPrimitiveValue::GetStringValue(nsAString& aReturn)
       break;
     case CSS_URI: {
       nsAutoCString spec;
-      if (mValue.mURI)
-        mValue.mURI->GetSpec(spec);
+      if (mValue.mURI) {
+        nsresult rv = mValue.mURI->GetSpec(spec);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
       CopyUTF8toUTF16(spec, aReturn);
-      } break;
+      break;
+    }
     default:
       aReturn.Truncate();
       return NS_ERROR_DOM_INVALID_ACCESS_ERR;
@@ -511,7 +513,7 @@ nsROCSSPrimitiveValue::GetRectValue(nsIDOMRect** aRect)
 {
   ErrorResult error;
   NS_IF_ADDREF(*aRect = GetRectValue(error));
-  return error.ErrorCode();
+  return error.StealNSResult();
 }
 
 nsDOMCSSRGBColor*
@@ -529,9 +531,9 @@ nsROCSSPrimitiveValue::GetRGBColorValue(ErrorResult& aRv)
 void
 nsROCSSPrimitiveValue::SetNumber(float aValue)
 {
-    Reset();
-    mValue.mFloat = aValue;
-    mType = CSS_NUMBER;
+  Reset();
+  mValue.mFloat = aValue;
+  mType = CSS_NUMBER;
 }
 
 void
@@ -700,7 +702,7 @@ nsROCSSPrimitiveValue::Reset()
     case CSS_ATTR:
     case CSS_COUNTER: // FIXME: Counter should use an object
       NS_ASSERTION(mValue.mString, "Null string should never happen");
-      nsMemory::Free(mValue.mString);
+      free(mValue.mString);
       mValue.mString = nullptr;
       break;
     case CSS_URI:

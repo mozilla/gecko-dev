@@ -20,6 +20,8 @@ typedef struct JSProperty JSProperty;
 
 namespace js {
 
+class FutexWaiter;
+
 /*
  * SharedArrayRawBuffer
  *
@@ -30,30 +32,65 @@ namespace js {
  *           |<------ sizeof ------>|<- length ->|
  *
  *   | waste | SharedArrayRawBuffer | data array | waste |
+ *
+ * Observe that if we want to map the data array on a specific address, such
+ * as absolute zero (bug 1056027), then the SharedArrayRawBuffer cannot be
+ * prefixed to the data array, it has to be a separate object, also in
+ * shared memory.  (That would get rid of ~4KB of waste, as well.)  Very little
+ * else would have to change throughout the engine, the SARB would point to
+ * the data array using a constant pointer, instead of computing its
+ * address.
  */
 class SharedArrayRawBuffer
 {
   private:
-    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> refcount;
+    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> refcount_;
     uint32_t length;
+    bool preparedForAsmJS;
+
+    // A list of structures representing tasks waiting on some
+    // location within this buffer.
+    FutexWaiter* waiters_;
 
   protected:
-    SharedArrayRawBuffer(uint8_t *buffer, uint32_t length)
-      : refcount(1), length(length)
+    SharedArrayRawBuffer(uint8_t* buffer, uint32_t length, bool preparedForAsmJS)
+      : refcount_(1),
+        length(length),
+        preparedForAsmJS(preparedForAsmJS),
+        waiters_(nullptr)
     {
-        JS_ASSERT(buffer == dataPointer());
+        MOZ_ASSERT(buffer == dataPointerShared());
     }
 
   public:
-    static SharedArrayRawBuffer *New(uint32_t length);
+    static SharedArrayRawBuffer* New(JSContext* cx, uint32_t length);
 
-    inline uint8_t *dataPointer() const {
-        return ((uint8_t *)this) + sizeof(SharedArrayRawBuffer);
+    // This may be called from multiple threads.  The caller must take
+    // care of mutual exclusion.
+    FutexWaiter* waiters() const {
+        return waiters_;
     }
 
-    inline uint32_t byteLength() const {
+    // This may be called from multiple threads.  The caller must take
+    // care of mutual exclusion.
+    void setWaiters(FutexWaiter* waiters) {
+        waiters_ = waiters;
+    }
+
+    SharedMem<uint8_t*> dataPointerShared() const {
+        uint8_t* ptr = reinterpret_cast<uint8_t*>(const_cast<SharedArrayRawBuffer*>(this));
+        return SharedMem<uint8_t*>::shared(ptr + sizeof(SharedArrayRawBuffer));
+    }
+
+    uint32_t byteLength() const {
         return length;
     }
+
+    bool isPreparedForAsmJS() const {
+        return preparedForAsmJS;
+    }
+
+    uint32_t refcount() const { return refcount_; }
 
     void addReference();
     void dropReference();
@@ -62,44 +99,90 @@ class SharedArrayRawBuffer
 /*
  * SharedArrayBufferObject
  *
- * When transferred to a WebWorker, the buffer is not neutered on the parent side,
- * and both child and parent reference the same buffer.
+ * When transferred to a WebWorker, the buffer is not detached on the
+ * parent side, and both child and parent reference the same buffer.
+ *
+ * The underlying memory is memory-mapped and reference counted
+ * (across workers and/or processes).  The SharedArrayBuffer object
+ * has a finalizer that decrements the refcount, the last one to leave
+ * (globally) unmaps the memory.  The sender ups the refcount before
+ * transmitting the memory to another worker.
+ *
+ * SharedArrayBufferObject (or really the underlying memory) /is
+ * racy/: more than one worker can access the memory at the same time.
+ *
+ * A TypedArrayObject (a view) references a SharedArrayBuffer
+ * and keeps it alive.  The SharedArrayBuffer does /not/ reference its
+ * views.
  */
-class SharedArrayBufferObject : public ArrayBufferObject
+class SharedArrayBufferObject : public ArrayBufferObjectMaybeShared
 {
-    static bool byteLengthGetterImpl(JSContext *cx, CallArgs args);
+    static bool byteLengthGetterImpl(JSContext* cx, const CallArgs& args);
 
   public:
+    // RAWBUF_SLOT holds a pointer (as "private" data) to the
+    // SharedArrayRawBuffer object, which is manually managed storage.
+    static const uint8_t RAWBUF_SLOT = 0;
+
+    static const uint8_t RESERVED_SLOTS = 1;
+
     static const Class class_;
-    static const Class protoClass;
 
-    // Slot used for storing a pointer to the SharedArrayRawBuffer.
-    static const uint8_t RAWBUF_SLOT = ArrayBufferObject::RESERVED_SLOTS;
+    static bool byteLengthGetter(JSContext* cx, unsigned argc, Value* vp);
 
-    static const uint8_t RESERVED_SLOTS = ArrayBufferObject::RESERVED_SLOTS + 1;
-
-    static bool class_constructor(JSContext *cx, unsigned argc, Value *vp);
+    static bool class_constructor(JSContext* cx, unsigned argc, Value* vp);
 
     // Create a SharedArrayBufferObject with a new SharedArrayRawBuffer.
-    static JSObject *New(JSContext *cx, uint32_t length);
+    static SharedArrayBufferObject* New(JSContext* cx,
+                                        uint32_t length,
+                                        HandleObject proto = nullptr);
 
     // Create a SharedArrayBufferObject using an existing SharedArrayRawBuffer.
-    static JSObject *New(JSContext *cx, SharedArrayRawBuffer *buffer);
+    static SharedArrayBufferObject* New(JSContext* cx,
+                                        SharedArrayRawBuffer* buffer,
+                                        HandleObject proto = nullptr);
 
-    static bool byteLengthGetter(JSContext *cx, unsigned argc, Value *vp);
+    static void Finalize(FreeOp* fop, JSObject* obj);
 
-    static void Finalize(FreeOp *fop, JSObject *obj);
+    static void addSizeOfExcludingThis(JSObject* obj, mozilla::MallocSizeOf mallocSizeOf,
+                                       JS::ClassInfo* info);
 
-    void acceptRawBuffer(SharedArrayRawBuffer *buffer);
+    static void copyData(Handle<SharedArrayBufferObject*> toBuffer,
+                         Handle<SharedArrayBufferObject*> fromBuffer,
+                         uint32_t fromIndex, uint32_t count);
+
+    SharedArrayRawBuffer* rawBufferObject() const;
+
+    // Invariant: This method does not cause GC and can be called
+    // without anchoring the object it is called on.
+    uintptr_t globalID() const {
+        // The buffer address is good enough as an ID provided the memory is not shared
+        // between processes or, if it is, it is mapped to the same address in every
+        // process.  (At the moment, shared memory cannot be shared between processes.)
+        return dataPointerShared().asValue();
+    }
+
+    uint32_t byteLength() const {
+        return rawBufferObject()->byteLength();
+    }
+    bool isPreparedForAsmJS() const {
+        return rawBufferObject()->isPreparedForAsmJS();
+    }
+
+    SharedMem<uint8_t*> dataPointerShared() const {
+        return rawBufferObject()->dataPointerShared();
+    }
+
+private:
+    void acceptRawBuffer(SharedArrayRawBuffer* buffer);
     void dropRawBuffer();
-
-    SharedArrayRawBuffer *rawBufferObject() const;
-    uint8_t *dataPointer() const;
-    uint32_t byteLength() const;
 };
 
-bool
-IsSharedArrayBuffer(HandleValue v);
+bool IsSharedArrayBuffer(HandleValue v);
+bool IsSharedArrayBuffer(HandleObject o);
+bool IsSharedArrayBuffer(JSObject* o);
+
+SharedArrayBufferObject& AsSharedArrayBuffer(HandleObject o);
 
 } // namespace js
 

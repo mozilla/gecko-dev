@@ -3,204 +3,233 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
-#ifndef _COMPILER_INTERFACE_INCLUDED_
-#define _COMPILER_INTERFACE_INCLUDED_
+#ifndef GLSLANG_SHADERLANG_H_
+#define GLSLANG_SHADERLANG_H_
 
-#if defined(COMPONENT_BUILD)
-#if defined(_WIN32) || defined(_WIN64)
-
-#if defined(COMPILER_IMPLEMENTATION)
-#define COMPILER_EXPORT __declspec(dllexport)
-#else
-#define COMPILER_EXPORT __declspec(dllimport)
-#endif  // defined(COMPILER_IMPLEMENTATION)
-
-#else  // defined(WIN32)
-#define COMPILER_EXPORT __attribute__((visibility("default")))
-#endif
-
-#else  // defined(COMPONENT_BUILD)
-#define COMPILER_EXPORT
-#endif
-
-#include "khrplatform.h"
 #include <stddef.h>
+
+#include "KHR/khrplatform.h"
+
+#include <array>
+#include <map>
+#include <string>
+#include <vector>
 
 //
 // This is the platform independent interface between an OGL driver
 // and the shading language compiler.
 //
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace sh
+{
+// GLenum alias
+typedef unsigned int GLenum;
+}
+
+// Must be included after GLenum proxy typedef
+// Note: make sure to increment ANGLE_SH_VERSION when changing ShaderVars.h
+#include "ShaderVars.h"
 
 // Version number for shader translation API.
-// It is incremented everytime the API changes.
-#define ANGLE_SH_VERSION 110
+// It is incremented every time the API changes.
+#define ANGLE_SH_VERSION 167
 
-//
-// The names of the following enums have been derived by replacing GL prefix
-// with SH. For example, SH_INFO_LOG_LENGTH is equivalent to GL_INFO_LOG_LENGTH.
-// The enum values are also equal to the values of their GL counterpart. This
-// is done to make it easier for applications to use the shader library.
-//
-typedef enum {
-  SH_FRAGMENT_SHADER = 0x8B30,
-  SH_VERTEX_SHADER   = 0x8B31
-} ShShaderType;
+enum ShShaderSpec
+{
+    SH_GLES2_SPEC,
+    SH_WEBGL_SPEC,
 
-typedef enum {
-  SH_GLES2_SPEC = 0x8B40,
-  SH_WEBGL_SPEC = 0x8B41,
+    SH_GLES3_SPEC,
+    SH_WEBGL2_SPEC,
 
-  // The CSS Shaders spec is a subset of the WebGL spec.
-  //
-  // In both CSS vertex and fragment shaders, ANGLE:
-  // (1) Reserves the "css_" prefix.
-  // (2) Renames the main function to css_main.
-  // (3) Disables the gl_MaxDrawBuffers built-in.
-  //
-  // In CSS fragment shaders, ANGLE:
-  // (1) Disables the gl_FragColor built-in.
-  // (2) Disables the gl_FragData built-in.
-  // (3) Enables the css_MixColor built-in.
-  // (4) Enables the css_ColorMatrix built-in.
-  //
-  // After passing a CSS shader through ANGLE, the browser is expected to append
-  // a new main function to it.
-  // This new main function will call the css_main function.
-  // It may also perform additional operations like varying assignment, texture
-  // access, and gl_FragColor assignment in order to implement the CSS Shaders
-  // blend modes.
-  //
-  SH_CSS_SHADERS_SPEC = 0x8B42
-} ShShaderSpec;
+    SH_GLES3_1_SPEC,
+    SH_WEBGL3_SPEC,
+};
 
-typedef enum {
-  SH_ESSL_OUTPUT   = 0x8B45,
-  SH_GLSL_OUTPUT   = 0x8B46,
-  SH_HLSL_OUTPUT   = 0x8B47,
-  SH_HLSL9_OUTPUT  = 0x8B47,
-  SH_HLSL11_OUTPUT = 0x8B48
-} ShShaderOutput;
+enum ShShaderOutput
+{
+    // ESSL output only supported in some configurations.
+    SH_ESSL_OUTPUT = 0x8B45,
 
-typedef enum {
-  SH_NONE           = 0,
-  SH_INT            = 0x1404,
-  SH_FLOAT          = 0x1406,
-  SH_FLOAT_VEC2     = 0x8B50,
-  SH_FLOAT_VEC3     = 0x8B51,
-  SH_FLOAT_VEC4     = 0x8B52,
-  SH_INT_VEC2       = 0x8B53,
-  SH_INT_VEC3       = 0x8B54,
-  SH_INT_VEC4       = 0x8B55,
-  SH_BOOL           = 0x8B56,
-  SH_BOOL_VEC2      = 0x8B57,
-  SH_BOOL_VEC3      = 0x8B58,
-  SH_BOOL_VEC4      = 0x8B59,
-  SH_FLOAT_MAT2     = 0x8B5A,
-  SH_FLOAT_MAT3     = 0x8B5B,
-  SH_FLOAT_MAT4     = 0x8B5C,
-  SH_SAMPLER_2D     = 0x8B5E,
-  SH_SAMPLER_CUBE   = 0x8B60,
-  SH_SAMPLER_2D_RECT_ARB = 0x8B63,
-  SH_SAMPLER_EXTERNAL_OES = 0x8D66
-} ShDataType;
+    // GLSL output only supported in some configurations.
+    SH_GLSL_COMPATIBILITY_OUTPUT = 0x8B46,
+    // Note: GL introduced core profiles in 1.5.
+    SH_GLSL_130_OUTPUT      = 0x8B47,
+    SH_GLSL_140_OUTPUT      = 0x8B80,
+    SH_GLSL_150_CORE_OUTPUT = 0x8B81,
+    SH_GLSL_330_CORE_OUTPUT = 0x8B82,
+    SH_GLSL_400_CORE_OUTPUT = 0x8B83,
+    SH_GLSL_410_CORE_OUTPUT = 0x8B84,
+    SH_GLSL_420_CORE_OUTPUT = 0x8B85,
+    SH_GLSL_430_CORE_OUTPUT = 0x8B86,
+    SH_GLSL_440_CORE_OUTPUT = 0x8B87,
+    SH_GLSL_450_CORE_OUTPUT = 0x8B88,
 
-typedef enum {
-  SH_INFO_LOG_LENGTH             =  0x8B84,
-  SH_OBJECT_CODE_LENGTH          =  0x8B88,  // GL_SHADER_SOURCE_LENGTH
-  SH_ACTIVE_UNIFORMS             =  0x8B86,
-  SH_ACTIVE_UNIFORM_MAX_LENGTH   =  0x8B87,
-  SH_ACTIVE_ATTRIBUTES           =  0x8B89,
-  SH_ACTIVE_ATTRIBUTE_MAX_LENGTH =  0x8B8A,
-  SH_MAPPED_NAME_MAX_LENGTH      =  0x6000,
-  SH_NAME_MAX_LENGTH             =  0x6001,
-  SH_HASHED_NAME_MAX_LENGTH      =  0x6002,
-  SH_HASHED_NAMES_COUNT          =  0x6003,
-  SH_ACTIVE_UNIFORMS_ARRAY       =  0x6004
-} ShShaderInfo;
+    // Prefer using these to specify HLSL output type:
+    SH_HLSL_3_0_OUTPUT       = 0x8B48,  // D3D 9
+    SH_HLSL_4_1_OUTPUT       = 0x8B49,  // D3D 11
+    SH_HLSL_4_0_FL9_3_OUTPUT = 0x8B4A   // D3D 11 feature level 9_3
+};
 
 // Compile options.
-typedef enum {
-  SH_VALIDATE                = 0,
-  SH_VALIDATE_LOOP_INDEXING  = 0x0001,
-  SH_INTERMEDIATE_TREE       = 0x0002,
-  SH_OBJECT_CODE             = 0x0004,
-  SH_ATTRIBUTES_UNIFORMS     = 0x0008,
-  SH_LINE_DIRECTIVES         = 0x0010,
-  SH_SOURCE_PATH             = 0x0020,
-  SH_MAP_LONG_VARIABLE_NAMES = 0x0040,
-  SH_UNROLL_FOR_LOOP_WITH_INTEGER_INDEX = 0x0080,
 
-  // This is needed only as a workaround for certain OpenGL driver bugs.
-  SH_EMULATE_BUILT_IN_FUNCTIONS = 0x0100,
+using ShCompileOptions = uint64_t;
 
-  // This is an experimental flag to enforce restrictions that aim to prevent 
-  // timing attacks.
-  // It generates compilation errors for shaders that could expose sensitive
-  // texture information via the timing channel.
-  // To use this flag, you must compile the shader under the WebGL spec
-  // (using the SH_WEBGL_SPEC flag).
-  SH_TIMING_RESTRICTIONS = 0x0200,
-    
-  // This flag prints the dependency graph that is used to enforce timing
-  // restrictions on fragment shaders.
-  // This flag only has an effect if all of the following are true:
-  // - The shader spec is SH_WEBGL_SPEC.
-  // - The compile options contain the SH_TIMING_RESTRICTIONS flag.
-  // - The shader type is SH_FRAGMENT_SHADER.
-  SH_DEPENDENCY_GRAPH = 0x0400,
+const ShCompileOptions SH_VALIDATE                           = 0;
+const ShCompileOptions SH_VALIDATE_LOOP_INDEXING             = UINT64_C(1) << 0;
+const ShCompileOptions SH_INTERMEDIATE_TREE                  = UINT64_C(1) << 1;
+const ShCompileOptions SH_OBJECT_CODE                        = UINT64_C(1) << 2;
+const ShCompileOptions SH_VARIABLES                          = UINT64_C(1) << 3;
+const ShCompileOptions SH_LINE_DIRECTIVES                    = UINT64_C(1) << 4;
+const ShCompileOptions SH_SOURCE_PATH                        = UINT64_C(1) << 5;
+const ShCompileOptions SH_UNROLL_FOR_LOOP_WITH_INTEGER_INDEX = UINT64_C(1) << 6;
+// If a sampler array index happens to be a loop index,
+//   1) if its type is integer, unroll the loop.
+//   2) if its type is float, fail the shader compile.
+// This is to work around a mac driver bug.
+const ShCompileOptions SH_UNROLL_FOR_LOOP_WITH_SAMPLER_ARRAY_INDEX = UINT64_C(1) << 7;
 
-  // Enforce the GLSL 1.017 Appendix A section 7 packing restrictions.
-  SH_ENFORCE_PACKING_RESTRICTIONS = 0x0800,
+// This flag works around bug in Intel Mac drivers related to abs(i) where
+// i is an integer.
+const ShCompileOptions SH_EMULATE_ABS_INT_FUNCTION = UINT64_C(1) << 8;
 
-  // This flag ensures all indirect (expression-based) array indexing
-  // is clamped to the bounds of the array. This ensures, for example,
-  // that you cannot read off the end of a uniform, whether an array
-  // vec234, or mat234 type. The ShArrayIndexClampingStrategy enum,
-  // specified in the ShBuiltInResources when constructing the
-  // compiler, selects the strategy for the clamping implementation.
-  SH_CLAMP_INDIRECT_ARRAY_BOUNDS = 0x1000,
+// Enforce the GLSL 1.017 Appendix A section 7 packing restrictions.
+// This flag only enforces (and can only enforce) the packing
+// restrictions for uniform variables in both vertex and fragment
+// shaders. ShCheckVariablesWithinPackingLimits() lets embedders
+// enforce the packing restrictions for varying variables during
+// program link time.
+const ShCompileOptions SH_ENFORCE_PACKING_RESTRICTIONS = UINT64_C(1) << 9;
 
-  // This flag limits the complexity of an expression.
-  SH_LIMIT_EXPRESSION_COMPLEXITY = 0x2000,
+// This flag ensures all indirect (expression-based) array indexing
+// is clamped to the bounds of the array. This ensures, for example,
+// that you cannot read off the end of a uniform, whether an array
+// vec234, or mat234 type. The ShArrayIndexClampingStrategy enum,
+// specified in the ShBuiltInResources when constructing the
+// compiler, selects the strategy for the clamping implementation.
+const ShCompileOptions SH_CLAMP_INDIRECT_ARRAY_BOUNDS = UINT64_C(1) << 10;
 
-  // This flag limits the depth of the call stack.
-  SH_LIMIT_CALL_STACK_DEPTH = 0x4000,
-} ShCompileOptions;
+// This flag limits the complexity of an expression.
+const ShCompileOptions SH_LIMIT_EXPRESSION_COMPLEXITY = UINT64_C(1) << 11;
+
+// This flag limits the depth of the call stack.
+const ShCompileOptions SH_LIMIT_CALL_STACK_DEPTH = UINT64_C(1) << 12;
+
+// This flag initializes gl_Position to vec4(0,0,0,0) at the
+// beginning of the vertex shader's main(), and has no effect in the
+// fragment shader. It is intended as a workaround for drivers which
+// incorrectly fail to link programs if gl_Position is not written.
+const ShCompileOptions SH_INIT_GL_POSITION = UINT64_C(1) << 13;
+
+// This flag replaces
+//   "a && b" with "a ? b : false",
+//   "a || b" with "a ? true : b".
+// This is to work around a MacOSX driver bug that |b| is executed
+// independent of |a|'s value.
+const ShCompileOptions SH_UNFOLD_SHORT_CIRCUIT = UINT64_C(1) << 14;
+
+// This flag initializes output variables to 0 at the beginning of main().
+// It is to avoid undefined behaviors.
+const ShCompileOptions SH_INIT_OUTPUT_VARIABLES = UINT64_C(1) << 15;
+
+// This flag scalarizes vec/ivec/bvec/mat constructor args.
+// It is intended as a workaround for Linux/Mac driver bugs.
+const ShCompileOptions SH_SCALARIZE_VEC_AND_MAT_CONSTRUCTOR_ARGS = UINT64_C(1) << 16;
+
+// This flag overwrites a struct name with a unique prefix.
+// It is intended as a workaround for drivers that do not handle
+// struct scopes correctly, including all Mac drivers and Linux AMD.
+const ShCompileOptions SH_REGENERATE_STRUCT_NAMES = UINT64_C(1) << 17;
+
+// This flag makes the compiler not prune unused function early in the
+// compilation process. Pruning coupled with SH_LIMIT_CALL_STACK_DEPTH
+// helps avoid bad shaders causing stack overflows.
+const ShCompileOptions SH_DONT_PRUNE_UNUSED_FUNCTIONS = UINT64_C(1) << 18;
+
+// This flag works around a bug in NVIDIA 331 series drivers related
+// to pow(x, y) where y is a constant vector.
+const ShCompileOptions SH_REMOVE_POW_WITH_CONSTANT_EXPONENT = UINT64_C(1) << 19;
+
+// This flag works around bugs in Mac drivers related to do-while by
+// transforming them into an other construct.
+const ShCompileOptions SH_REWRITE_DO_WHILE_LOOPS = UINT64_C(1) << 20;
+
+// This flag works around a bug in the HLSL compiler optimizer that folds certain
+// constant pow expressions incorrectly. Only applies to the HLSL back-end. It works
+// by expanding the integer pow expressions into a series of multiplies.
+const ShCompileOptions SH_EXPAND_SELECT_HLSL_INTEGER_POW_EXPRESSIONS = UINT64_C(1) << 21;
+
+// Flatten "#pragma STDGL invariant(all)" into the declarations of
+// varying variables and built-in GLSL variables. This compiler
+// option is enabled automatically when needed.
+const ShCompileOptions SH_FLATTEN_PRAGMA_STDGL_INVARIANT_ALL = UINT64_C(1) << 22;
+
+// Some drivers do not take into account the base level of the texture in the results of the
+// HLSL GetDimensions builtin.  This flag instructs the compiler to manually add the base level
+// offsetting.
+const ShCompileOptions SH_HLSL_GET_DIMENSIONS_IGNORES_BASE_LEVEL = UINT64_C(1) << 23;
+
+// This flag works around an issue in translating GLSL function texelFetchOffset on
+// INTEL drivers. It works by translating texelFetchOffset into texelFetch.
+const ShCompileOptions SH_REWRITE_TEXELFETCHOFFSET_TO_TEXELFETCH = UINT64_C(1) << 24;
+
+// This flag works around condition bug of for and while loops in Intel Mac OSX drivers.
+// Condition calculation is not correct. Rewrite it from "CONDITION" to "CONDITION && true".
+const ShCompileOptions SH_ADD_AND_TRUE_TO_LOOP_CONDITION = UINT64_C(1) << 25;
+
+// This flag works around a bug in evaluating unary minus operator on integer on some INTEL
+// drivers. It works by translating -(int) into ~(int) + 1.
+const ShCompileOptions SH_REWRITE_INTEGER_UNARY_MINUS_OPERATOR = UINT64_C(1) << 26;
+
+// This flag works around a bug in evaluating isnan() on some INTEL D3D and Mac OSX drivers.
+// It works by using an expression to emulate this function.
+const ShCompileOptions SH_EMULATE_ISNAN_FLOAT_FUNCTION = UINT64_C(1) << 27;
+
+// This flag will use all uniforms of unused std140 and shared uniform blocks at the
+// beginning of the vertex/fragment shader's main(). It is intended as a workaround for Mac
+// drivers with shader version 4.10. In those drivers, they will treat unused
+// std140 and shared uniform blocks' members as inactive. However, WebGL2.0 based on
+// OpenGL ES3.0.4 requires all members of a named uniform block declared with a shared or std140
+// layout qualifier to be considered active. The uniform block itself is also considered active.
+const ShCompileOptions SH_USE_UNUSED_STANDARD_SHARED_BLOCKS = UINT64_C(1) << 28;
+
+// This flag will keep invariant declaration for input in fragment shader for GLSL >=4.20 on AMD.
+// From GLSL >= 4.20, it's optional to add invariant for fragment input, but GPU vendors have
+// different implementations about this. Some drivers forbid invariant in fragment for GLSL>= 4.20,
+// e.g. Linux Mesa, some drivers treat that as optional, e.g. NVIDIA, some drivers require invariant
+// must match between vertex and fragment shader, e.g. AMD. The behavior on AMD is obviously wrong.
+// Remove invariant for input in fragment shader to workaround the restriction on Intel Mesa.
+// But don't remove on AMD Linux to avoid triggering the bug on AMD.
+const ShCompileOptions SH_DONT_REMOVE_INVARIANT_FOR_FRAGMENT_INPUT = UINT64_C(1) << 29;
+
+// Due to spec difference between GLSL 4.1 or lower and ESSL3, some platforms (for example, Mac OSX
+// core profile) require a variable's "invariant"/"centroid" qualifiers to match between vertex and
+// fragment shader. A simple solution to allow such shaders to link is to omit the two qualifiers.
+// Note that the two flags only take effect on ESSL3 input shaders translated to GLSL 4.1 or lower.
+// TODO(zmo): This is not a good long-term solution. Simply dropping these qualifiers may break some
+// developers' content. A more complex workaround of dynamically generating, compiling, and
+// re-linking shaders that use these qualifiers should be implemented.
+const ShCompileOptions SH_REMOVE_INVARIANT_AND_CENTROID_FOR_ESSL3 = UINT64_C(1) << 30;
 
 // Defines alternate strategies for implementing array index clamping.
-typedef enum {
-  // Use the clamp intrinsic for array index clamping.
-  SH_CLAMP_WITH_CLAMP_INTRINSIC = 1,
+enum ShArrayIndexClampingStrategy
+{
+    // Use the clamp intrinsic for array index clamping.
+    SH_CLAMP_WITH_CLAMP_INTRINSIC = 1,
 
-  // Use a user-defined function for array index clamping.
-  SH_CLAMP_WITH_USER_DEFINED_INT_CLAMP_FUNCTION
-} ShArrayIndexClampingStrategy;
-
-//
-// Driver must call this first, once, before doing any other
-// compiler operations.
-// If the function succeeds, the return value is nonzero, else zero.
-//
-COMPILER_EXPORT int ShInitialize();
-//
-// Driver should call this at shutdown.
-// If the function succeeds, the return value is nonzero, else zero.
-//
-COMPILER_EXPORT int ShFinalize();
+    // Use a user-defined function for array index clamping.
+    SH_CLAMP_WITH_USER_DEFINED_INT_CLAMP_FUNCTION
+};
 
 // The 64 bits hash function. The first parameter is the input string; the
 // second parameter is the string length.
-typedef khronos_uint64_t (*ShHashFunction64)(const char*, size_t);
+using ShHashFunction64 = khronos_uint64_t (*)(const char *, size_t);
 
 //
 // Implementation dependent built-in resources (constants and extensions).
 // The names for these resources has been obtained by stripping gl_/GL_.
 //
-typedef struct
+struct ShBuiltInResources
 {
     // Constants.
     int MaxVertexAttribs;
@@ -216,13 +245,42 @@ typedef struct
     // Set to 1 to enable the extension, else 0.
     int OES_standard_derivatives;
     int OES_EGL_image_external;
+    int OES_EGL_image_external_essl3;
+    int NV_EGL_stream_consumer_external;
     int ARB_texture_rectangle;
+    int EXT_blend_func_extended;
     int EXT_draw_buffers;
     int EXT_frag_depth;
+    int EXT_shader_texture_lod;
+    int WEBGL_debug_shader_precision;
+    int EXT_shader_framebuffer_fetch;
+    int NV_shader_framebuffer_fetch;
+    int ARM_shader_framebuffer_fetch;
 
-    // Set to 1 if highp precision is supported in the fragment language.
+    // Set to 1 to enable replacing GL_EXT_draw_buffers #extension directives
+    // with GL_NV_draw_buffers in ESSL output. This flag can be used to emulate
+    // EXT_draw_buffers by using it in combination with GLES3.0 glDrawBuffers
+    // function. This applies to Tegra K1 devices.
+    int NV_draw_buffers;
+
+    // Set to 1 if highp precision is supported in the ESSL 1.00 version of the
+    // fragment language. Does not affect versions of the language where highp
+    // support is mandatory.
     // Default is 0.
     int FragmentPrecisionHigh;
+
+    // GLSL ES 3.0 constants.
+    int MaxVertexOutputVectors;
+    int MaxFragmentInputVectors;
+    int MinProgramTexelOffset;
+    int MaxProgramTexelOffset;
+
+    // Extension constants.
+
+    // Value of GL_MAX_DUAL_SOURCE_DRAW_BUFFERS_EXT for OpenGL ES output context.
+    // Value of GL_MAX_DUAL_SOURCE_DRAW_BUFFERS for OpenGL output context.
+    // GLES SL version 100 gl_MaxDualSourceDrawBuffersEXT value for EXT_blend_func_extended.
+    int MaxDualSourceDrawBuffers;
 
     // Name Hashing.
     // Set a 64 bit hash function to enable user-defined name hashing.
@@ -233,26 +291,113 @@ typedef struct
     // Default is SH_CLAMP_WITH_CLAMP_INTRINSIC.
     ShArrayIndexClampingStrategy ArrayIndexClampingStrategy;
 
-    // The maximum complexity an expression can be.
+    // The maximum complexity an expression can be when SH_LIMIT_EXPRESSION_COMPLEXITY is turned on.
     int MaxExpressionComplexity;
 
     // The maximum depth a call stack can be.
     int MaxCallStackDepth;
-} ShBuiltInResources;
 
-//
-// Initialize built-in resources with minimum expected values.
-//
-COMPILER_EXPORT void ShInitBuiltInResources(ShBuiltInResources* resources);
+    // The maximum number of parameters a function can have when SH_LIMIT_EXPRESSION_COMPLEXITY is
+    // turned on.
+    int MaxFunctionParameters;
+
+    // GLES 3.1 constants
+
+    // maximum number of available image units
+    int MaxImageUnits;
+
+    // maximum number of image uniforms in a vertex shader
+    int MaxVertexImageUniforms;
+
+    // maximum number of image uniforms in a fragment shader
+    int MaxFragmentImageUniforms;
+
+    // maximum number of image uniforms in a compute shader
+    int MaxComputeImageUniforms;
+
+    // maximum total number of image uniforms in a program
+    int MaxCombinedImageUniforms;
+
+    // maximum number of ssbos and images in a shader
+    int MaxCombinedShaderOutputResources;
+
+    // maximum number of groups in each dimension
+    std::array<int, 3> MaxComputeWorkGroupCount;
+    // maximum number of threads per work group in each dimension
+    std::array<int, 3> MaxComputeWorkGroupSize;
+
+    // maximum number of total uniform components
+    int MaxComputeUniformComponents;
+
+    // maximum number of texture image units in a compute shader
+    int MaxComputeTextureImageUnits;
+
+    // maximum number of atomic counters in a compute shader
+    int MaxComputeAtomicCounters;
+
+    // maximum number of atomic counter buffers in a compute shader
+    int MaxComputeAtomicCounterBuffers;
+
+    // maximum number of atomic counters in a vertex shader
+    int MaxVertexAtomicCounters;
+
+    // maximum number of atomic counters in a fragment shader
+    int MaxFragmentAtomicCounters;
+
+    // maximum number of atomic counters in a program
+    int MaxCombinedAtomicCounters;
+
+    // maximum binding for an atomic counter
+    int MaxAtomicCounterBindings;
+
+    // maximum number of atomic counter buffers in a vertex shader
+    int MaxVertexAtomicCounterBuffers;
+
+    // maximum number of atomic counter buffers in a fragment shader
+    int MaxFragmentAtomicCounterBuffers;
+
+    // maximum number of atomic counter buffers in a program
+    int MaxCombinedAtomicCounterBuffers;
+
+    // maximum number of buffer object storage in machine units
+    int MaxAtomicCounterBufferSize;
+};
 
 //
 // ShHandle held by but opaque to the driver.  It is allocated,
-// managed, and de-allocated by the compiler. It's contents 
+// managed, and de-allocated by the compiler. Its contents
 // are defined by and used by the compiler.
 //
 // If handle creation fails, 0 will be returned.
 //
-typedef void* ShHandle;
+using ShHandle = void *;
+
+//
+// Driver must call this first, once, before doing any other
+// compiler operations.
+// If the function succeeds, the return value is true, else false.
+//
+bool ShInitialize();
+//
+// Driver should call this at shutdown.
+// If the function succeeds, the return value is true, else false.
+//
+bool ShFinalize();
+
+//
+// Initialize built-in resources with minimum expected values.
+// Parameters:
+// resources: The object to initialize. Will be comparable with memcmp.
+//
+void ShInitBuiltInResources(ShBuiltInResources *resources);
+
+//
+// Returns the a concatenated list of the items in ShBuiltInResources as a
+// null-terminated string.
+// This function must be updated whenever ShBuiltInResources is changed.
+// Parameters:
+// handle: Specifies the handle of the compiler to be used.
+const std::string &ShGetBuiltInResourcesString(const ShHandle handle);
 
 //
 // Driver calls these to create and destroy compiler objects.
@@ -260,22 +405,22 @@ typedef void* ShHandle;
 // Returns the handle of constructed compiler, null if the requested compiler is
 // not supported.
 // Parameters:
-// type: Specifies the type of shader - SH_FRAGMENT_SHADER or SH_VERTEX_SHADER.
+// type: Specifies the type of shader - GL_FRAGMENT_SHADER or GL_VERTEX_SHADER.
 // spec: Specifies the language spec the compiler must conform to -
 //       SH_GLES2_SPEC or SH_WEBGL_SPEC.
-// output: Specifies the output code type - SH_ESSL_OUTPUT, SH_GLSL_OUTPUT,
-//         SH_HLSL9_OUTPUT or SH_HLSL11_OUTPUT.
+// output: Specifies the output code type - for example SH_ESSL_OUTPUT, SH_GLSL_OUTPUT,
+//         SH_HLSL_3_0_OUTPUT or SH_HLSL_4_1_OUTPUT. Note: Each output type may only
+//         be supported in some configurations.
 // resources: Specifies the built-in resources.
-COMPILER_EXPORT ShHandle ShConstructCompiler(
-    ShShaderType type,
-    ShShaderSpec spec,
-    ShShaderOutput output,
-    const ShBuiltInResources* resources);
-COMPILER_EXPORT void ShDestruct(ShHandle handle);
+ShHandle ShConstructCompiler(sh::GLenum type,
+                             ShShaderSpec spec,
+                             ShShaderOutput output,
+                             const ShBuiltInResources *resources);
+void ShDestruct(ShHandle handle);
 
 //
 // Compiles the given shader source.
-// If the function succeeds, the return value is nonzero, else zero.
+// If the function succeeds, the return value is true, else false.
 // Parameters:
 // handle: Specifies the handle of compiler to be used.
 // shaderStrings: Specifies an array of pointers to null-terminated strings
@@ -291,156 +436,222 @@ COMPILER_EXPORT void ShDestruct(ShHandle handle);
 //                            There is no need to specify this parameter when
 //                            compiling for WebGL - it is implied.
 // SH_INTERMEDIATE_TREE: Writes intermediate tree to info log.
-//                       Can be queried by calling ShGetInfoLog().
+//                       Can be queried by calling sh::GetInfoLog().
 // SH_OBJECT_CODE: Translates intermediate tree to glsl or hlsl shader.
-//                 Can be queried by calling ShGetObjectCode().
-// SH_ATTRIBUTES_UNIFORMS: Extracts attributes and uniforms.
-//                         Can be queried by calling ShGetActiveAttrib() and
-//                         ShGetActiveUniform().
+//                 Can be queried by calling sh::GetObjectCode().
+// SH_VARIABLES: Extracts attributes, uniforms, and varyings.
+//               Can be queried by calling ShGetVariableInfo().
 //
-COMPILER_EXPORT int ShCompile(
-    const ShHandle handle,
-    const char* const shaderStrings[],
-    size_t numStrings,
-    int compileOptions
-    );
+bool ShCompile(const ShHandle handle,
+               const char *const shaderStrings[],
+               size_t numStrings,
+               ShCompileOptions compileOptions);
 
-// Returns a parameter from a compiled shader.
+// Clears the results from the previous compilation.
+void ShClearResults(const ShHandle handle);
+
+// Return the version of the shader language.
+int ShGetShaderVersion(const ShHandle handle);
+
+// Return the currently set language output type.
+ShShaderOutput ShGetShaderOutputType(const ShHandle handle);
+
+// Returns null-terminated information log for a compiled shader.
 // Parameters:
 // handle: Specifies the compiler
-// pname: Specifies the parameter to query.
-// The following parameters are defined:
-// SH_INFO_LOG_LENGTH: the number of characters in the information log
-//                     including the null termination character.
-// SH_OBJECT_CODE_LENGTH: the number of characters in the object code
-//                        including the null termination character.
-// SH_ACTIVE_ATTRIBUTES: the number of active attribute variables.
-// SH_ACTIVE_ATTRIBUTE_MAX_LENGTH: the length of the longest active attribute
-//                                 variable name including the null
-//                                 termination character.
-// SH_ACTIVE_UNIFORMS: the number of active uniform variables.
-// SH_ACTIVE_UNIFORM_MAX_LENGTH: the length of the longest active uniform
-//                               variable name including the null
-//                               termination character.
-// SH_MAPPED_NAME_MAX_LENGTH: the length of the mapped variable name including
-//                            the null termination character.
-// SH_NAME_MAX_LENGTH: the max length of a user-defined name including the
-//                     null termination character.
-// SH_HASHED_NAME_MAX_LENGTH: the max length of a hashed name including the
-//                            null termination character.
-// SH_HASHED_NAMES_COUNT: the number of hashed names from the latest compile.
-//
-// params: Requested parameter
-COMPILER_EXPORT void ShGetInfo(const ShHandle handle,
-                               ShShaderInfo pname,
-                               size_t* params);
-
-// Returns nul-terminated information log for a compiled shader.
-// Parameters:
-// handle: Specifies the compiler
-// infoLog: Specifies an array of characters that is used to return
-//          the information log. It is assumed that infoLog has enough memory
-//          to accomodate the information log. The size of the buffer required
-//          to store the returned information log can be obtained by calling
-//          ShGetInfo with SH_INFO_LOG_LENGTH.
-COMPILER_EXPORT void ShGetInfoLog(const ShHandle handle, char* infoLog);
+const std::string &ShGetInfoLog(const ShHandle handle);
 
 // Returns null-terminated object code for a compiled shader.
 // Parameters:
 // handle: Specifies the compiler
-// infoLog: Specifies an array of characters that is used to return
-//          the object code. It is assumed that infoLog has enough memory to
-//          accomodate the object code. The size of the buffer required to
-//          store the returned object code can be obtained by calling
-//          ShGetInfo with SH_OBJECT_CODE_LENGTH.
-COMPILER_EXPORT void ShGetObjectCode(const ShHandle handle, char* objCode);
+const std::string &ShGetObjectCode(const ShHandle handle);
 
-// Returns information about an active attribute variable.
+// Returns a (original_name, hash) map containing all the user defined
+// names in the shader, including variable names, function names, struct
+// names, and struct field names.
 // Parameters:
 // handle: Specifies the compiler
-// index: Specifies the index of the attribute variable to be queried.
-// length: Returns the number of characters actually written in the string
-//         indicated by name (excluding the null terminator) if a value other
-//         than NULL is passed.
-// size: Returns the size of the attribute variable.
-// type: Returns the data type of the attribute variable.
-// name: Returns a null terminated string containing the name of the
-//       attribute variable. It is assumed that name has enough memory to
-//       accomodate the attribute variable name. The size of the buffer
-//       required to store the attribute variable name can be obtained by
-//       calling ShGetInfo with SH_ACTIVE_ATTRIBUTE_MAX_LENGTH.
-// mappedName: Returns a null terminated string containing the mapped name of
-//             the attribute variable, It is assumed that mappedName has enough
-//             memory (SH_MAPPED_NAME_MAX_LENGTH), or NULL if don't care
-//             about the mapped name. If the name is not mapped, then name and
-//             mappedName are the same.
-COMPILER_EXPORT void ShGetActiveAttrib(const ShHandle handle,
-                                       int index,
-                                       size_t* length,
-                                       int* size,
-                                       ShDataType* type,
-                                       char* name,
-                                       char* mappedName);
+const std::map<std::string, std::string> *ShGetNameHashingMap(const ShHandle handle);
 
-// Returns information about an active uniform variable.
+// Shader variable inspection.
+// Returns a pointer to a list of variables of the designated type.
+// (See ShaderVars.h for type definitions, included above)
+// Returns NULL on failure.
 // Parameters:
 // handle: Specifies the compiler
-// index: Specifies the index of the uniform variable to be queried.
-// length: Returns the number of characters actually written in the string
-//         indicated by name (excluding the null terminator) if a value
-//         other than NULL is passed.
-// size: Returns the size of the uniform variable.
-// type: Returns the data type of the uniform variable.
-// name: Returns a null terminated string containing the name of the
-//       uniform variable. It is assumed that name has enough memory to
-//       accomodate the uniform variable name. The size of the buffer required
-//       to store the uniform variable name can be obtained by calling
-//       ShGetInfo with SH_ACTIVE_UNIFORMS_MAX_LENGTH.
-// mappedName: Returns a null terminated string containing the mapped name of
-//             the uniform variable, It is assumed that mappedName has enough
-//             memory (SH_MAPPED_NAME_MAX_LENGTH), or NULL if don't care
-//             about the mapped name. If the name is not mapped, then name and
-//             mappedName are the same.
-COMPILER_EXPORT void ShGetActiveUniform(const ShHandle handle,
-                                        int index,
-                                        size_t* length,
-                                        int* size,
-                                        ShDataType* type,
-                                        char* name,
-                                        char* mappedName);
+const std::vector<sh::Uniform> *ShGetUniforms(const ShHandle handle);
+const std::vector<sh::Varying> *ShGetVaryings(const ShHandle handle);
+const std::vector<sh::Attribute> *ShGetAttributes(const ShHandle handle);
+const std::vector<sh::OutputVariable> *ShGetOutputVariables(const ShHandle handle);
+const std::vector<sh::InterfaceBlock> *ShGetInterfaceBlocks(const ShHandle handle);
+sh::WorkGroupSize ShGetComputeShaderLocalGroupSize(const ShHandle handle);
 
-// Returns information about a name hashing entry from the latest compile.
+// Returns true if the passed in variables pack in maxVectors following
+// the packing rules from the GLSL 1.017 spec, Appendix A, section 7.
+// Returns false otherwise. Also look at the SH_ENFORCE_PACKING_RESTRICTIONS
+// flag above.
+// Parameters:
+// maxVectors: the available rows of registers.
+// variables: an array of variables.
+bool ShCheckVariablesWithinPackingLimits(int maxVectors,
+                                         const std::vector<sh::ShaderVariable> &variables);
+
+// Gives the compiler-assigned register for an interface block.
+// The method writes the value to the output variable "indexOut".
+// Returns true if it found a valid interface block, false otherwise.
 // Parameters:
 // handle: Specifies the compiler
-// index: Specifies the index of the name hashing entry to be queried.
-// name: Returns a null terminated string containing the user defined name.
-//       It is assumed that name has enough memory to accomodate the name.
-//       The size of the buffer required to store the user defined name can
-//       be obtained by calling ShGetInfo with SH_NAME_MAX_LENGTH.
-// hashedName: Returns a null terminated string containing the hashed name of
-//             the uniform variable, It is assumed that hashedName has enough
-//             memory to accomodate the name. The size of the buffer required
-//             to store the name can be obtained by calling ShGetInfo with
-//             SH_HASHED_NAME_MAX_LENGTH.
-COMPILER_EXPORT void ShGetNameHashingEntry(const ShHandle handle,
-                                           int index,
-                                           char* name,
-                                           char* hashedName);
+// interfaceBlockName: Specifies the interface block
+// indexOut: output variable that stores the assigned register
+bool ShGetInterfaceBlockRegister(const ShHandle handle,
+                                 const std::string &interfaceBlockName,
+                                 unsigned int *indexOut);
 
-// Returns a parameter from a compiled shader.
+// Gives a map from uniform names to compiler-assigned registers in the default
+// interface block. Note that the map contains also registers of samplers that
+// have been extracted from structs.
+const std::map<std::string, unsigned int> *ShGetUniformRegisterMap(const ShHandle handle);
+
+// Temporary duplicate of the scoped APIs, to be removed when we roll ANGLE and fix Chromium.
+// TODO(jmadill): Consolidate with these APIs once we roll ANGLE.
+
+namespace sh
+{
+
+//
+// Driver must call this first, once, before doing any other compiler operations.
+// If the function succeeds, the return value is true, else false.
+//
+bool Initialize();
+//
+// Driver should call this at shutdown.
+// If the function succeeds, the return value is true, else false.
+//
+bool Finalize();
+
+//
+// Initialize built-in resources with minimum expected values.
+// Parameters:
+// resources: The object to initialize. Will be comparable with memcmp.
+//
+void InitBuiltInResources(ShBuiltInResources *resources);
+
+//
+// Returns the a concatenated list of the items in ShBuiltInResources as a null-terminated string.
+// This function must be updated whenever ShBuiltInResources is changed.
+// Parameters:
+// handle: Specifies the handle of the compiler to be used.
+const std::string &GetBuiltInResourcesString(const ShHandle handle);
+
+//
+// Driver calls these to create and destroy compiler objects.
+//
+// Returns the handle of constructed compiler, null if the requested compiler is not supported.
+// Parameters:
+// type: Specifies the type of shader - GL_FRAGMENT_SHADER or GL_VERTEX_SHADER.
+// spec: Specifies the language spec the compiler must conform to - SH_GLES2_SPEC or SH_WEBGL_SPEC.
+// output: Specifies the output code type - for example SH_ESSL_OUTPUT, SH_GLSL_OUTPUT,
+//         SH_HLSL_3_0_OUTPUT or SH_HLSL_4_1_OUTPUT. Note: Each output type may only
+//         be supported in some configurations.
+// resources: Specifies the built-in resources.
+ShHandle ConstructCompiler(sh::GLenum type,
+                           ShShaderSpec spec,
+                           ShShaderOutput output,
+                           const ShBuiltInResources *resources);
+void Destruct(ShHandle handle);
+
+//
+// Compiles the given shader source.
+// If the function succeeds, the return value is true, else false.
+// Parameters:
+// handle: Specifies the handle of compiler to be used.
+// shaderStrings: Specifies an array of pointers to null-terminated strings containing the shader
+// source code.
+// numStrings: Specifies the number of elements in shaderStrings array.
+// compileOptions: A mask containing the following parameters:
+// SH_VALIDATE: Validates shader to ensure that it conforms to the spec
+//              specified during compiler construction.
+// SH_VALIDATE_LOOP_INDEXING: Validates loop and indexing in the shader to
+//                            ensure that they do not exceed the minimum
+//                            functionality mandated in GLSL 1.0 spec,
+//                            Appendix A, Section 4 and 5.
+//                            There is no need to specify this parameter when
+//                            compiling for WebGL - it is implied.
+// SH_INTERMEDIATE_TREE: Writes intermediate tree to info log.
+//                       Can be queried by calling sh::GetInfoLog().
+// SH_OBJECT_CODE: Translates intermediate tree to glsl or hlsl shader.
+//                 Can be queried by calling sh::GetObjectCode().
+// SH_VARIABLES: Extracts attributes, uniforms, and varyings.
+//               Can be queried by calling ShGetVariableInfo().
+//
+bool Compile(const ShHandle handle,
+             const char *const shaderStrings[],
+             size_t numStrings,
+             ShCompileOptions compileOptions);
+
+// Clears the results from the previous compilation.
+void ClearResults(const ShHandle handle);
+
+// Return the version of the shader language.
+int GetShaderVersion(const ShHandle handle);
+
+// Return the currently set language output type.
+ShShaderOutput GetShaderOutputType(const ShHandle handle);
+
+// Returns null-terminated information log for a compiled shader.
 // Parameters:
 // handle: Specifies the compiler
-// pname: Specifies the parameter to query.
-// The following parameters are defined:
-// SH_ACTIVE_UNIFORMS_ARRAY: an STL vector of active uniforms. Valid only for
-//                           HLSL output.
-// params: Requested parameter
-COMPILER_EXPORT void ShGetInfoPointer(const ShHandle handle,
-                                      ShShaderInfo pname,
-                                      void** params);
+const std::string &GetInfoLog(const ShHandle handle);
 
-#ifdef __cplusplus
-}
-#endif
+// Returns null-terminated object code for a compiled shader.
+// Parameters:
+// handle: Specifies the compiler
+const std::string &GetObjectCode(const ShHandle handle);
 
-#endif // _COMPILER_INTERFACE_INCLUDED_
+// Returns a (original_name, hash) map containing all the user defined names in the shader,
+// including variable names, function names, struct names, and struct field names.
+// Parameters:
+// handle: Specifies the compiler
+const std::map<std::string, std::string> *GetNameHashingMap(const ShHandle handle);
+
+// Shader variable inspection.
+// Returns a pointer to a list of variables of the designated type.
+// (See ShaderVars.h for type definitions, included above)
+// Returns NULL on failure.
+// Parameters:
+// handle: Specifies the compiler
+const std::vector<sh::Uniform> *GetUniforms(const ShHandle handle);
+const std::vector<sh::Varying> *GetVaryings(const ShHandle handle);
+const std::vector<sh::Attribute> *GetAttributes(const ShHandle handle);
+const std::vector<sh::OutputVariable> *GetOutputVariables(const ShHandle handle);
+const std::vector<sh::InterfaceBlock> *GetInterfaceBlocks(const ShHandle handle);
+sh::WorkGroupSize GetComputeShaderLocalGroupSize(const ShHandle handle);
+
+// Returns true if the passed in variables pack in maxVectors followingthe packing rules from the
+// GLSL 1.017 spec, Appendix A, section 7.
+// Returns false otherwise. Also look at the SH_ENFORCE_PACKING_RESTRICTIONS
+// flag above.
+// Parameters:
+// maxVectors: the available rows of registers.
+// variables: an array of variables.
+bool CheckVariablesWithinPackingLimits(int maxVectors,
+                                       const std::vector<sh::ShaderVariable> &variables);
+
+// Gives the compiler-assigned register for an interface block.
+// The method writes the value to the output variable "indexOut".
+// Returns true if it found a valid interface block, false otherwise.
+// Parameters:
+// handle: Specifies the compiler
+// interfaceBlockName: Specifies the interface block
+// indexOut: output variable that stores the assigned register
+bool GetInterfaceBlockRegister(const ShHandle handle,
+                               const std::string &interfaceBlockName,
+                               unsigned int *indexOut);
+
+// Gives a map from uniform names to compiler-assigned registers in the default interface block.
+// Note that the map contains also registers of samplers that have been extracted from structs.
+const std::map<std::string, unsigned int> *GetUniformRegisterMap(const ShHandle handle);
+
+}  // namespace sh
+
+#endif // GLSLANG_SHADERLANG_H_

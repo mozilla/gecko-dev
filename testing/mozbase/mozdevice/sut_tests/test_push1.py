@@ -7,12 +7,13 @@ import posixpath
 
 from dmunit import DeviceManagerTestCase
 
+
 class Push1TestCase(DeviceManagerTestCase):
 
     def runTest(self):
         """This tests copying a directory structure to the device.
         """
-        dvroot = self.dm.getDeviceRoot()
+        dvroot = self.dm.deviceRoot
         dvpath = posixpath.join(dvroot, 'infratest')
         self.dm.removeDir(dvpath)
         self.dm.mkDir(dvpath)

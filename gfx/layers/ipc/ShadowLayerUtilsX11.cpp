@@ -11,6 +11,7 @@
 #include <X11/extensions/Xrender.h>     // for XRenderPictFormat, etc
 #include <X11/extensions/render.h>      // for PictFormat
 #include "cairo-xlib.h"
+#include "X11UndefineNone.h"
 #include <stdint.h>                     // for uint32_t
 #include "GLDefs.h"                     // for GLenum
 #include "gfxPlatform.h"                // for gfxPlatform
@@ -25,10 +26,9 @@
 #include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor, etc
 #include "mozilla/layers/ShadowLayers.h"  // for ShadowLayerForwarder, etc
 #include "mozilla/mozalloc.h"           // for operator new
-#include "nsAutoPtr.h"                  // for nsRefPtr
+#include "gfxEnv.h"
 #include "nsCOMPtr.h"                   // for already_AddRefed
 #include "nsDebug.h"                    // for NS_ERROR
-#include "prenv.h"                      // for PR_GetEnv
 
 using namespace mozilla::gl;
 
@@ -45,7 +45,7 @@ namespace layers {
 static bool
 UsingXCompositing()
 {
-  if (!PR_GetEnv("MOZ_LAYERS_ENABLE_XLIB_SURFACES")) {
+  if (!gfxEnv::LayersEnableXlibSurfaces()) {
       return false;
   }
   return (gfxSurfaceType::Xlib ==
@@ -62,9 +62,11 @@ GetXRenderPictFormatFromId(Display* aDisplay, PictFormat aFormatId)
   return XRenderFindFormat(aDisplay, PictFormatID, &tmplate, 0);
 }
 
-SurfaceDescriptorX11::SurfaceDescriptorX11(gfxXlibSurface* aSurf)
+SurfaceDescriptorX11::SurfaceDescriptorX11(gfxXlibSurface* aSurf,
+                                           bool aForwardGLX)
   : mId(aSurf->XDrawable())
-  , mSize(aSurf->GetSize().ToIntSize())
+  , mSize(aSurf->GetSize())
+  , mGLXPixmap(X11None)
 {
   const XRenderPictFormat *pictFormat = aSurf->XRenderFormat();
   if (pictFormat) {
@@ -72,6 +74,12 @@ SurfaceDescriptorX11::SurfaceDescriptorX11(gfxXlibSurface* aSurf)
   } else {
     mFormat = cairo_xlib_surface_get_visual(aSurf->CairoSurface())->visualid;
   }
+
+#ifdef GL_PROVIDER_GLX
+  if (aForwardGLX) {
+    mGLXPixmap = aSurf->GetGLXPixmap();
+  }
+#endif
 }
 
 SurfaceDescriptorX11::SurfaceDescriptorX11(Drawable aDrawable, XID aFormatID,
@@ -79,6 +87,7 @@ SurfaceDescriptorX11::SurfaceDescriptorX11(Drawable aDrawable, XID aFormatID,
   : mId(aDrawable)
   , mFormat(aFormatID)
   , mSize(aSize)
+  , mGLXPixmap(X11None)
 { }
 
 already_AddRefed<gfxXlibSurface>
@@ -87,10 +96,10 @@ SurfaceDescriptorX11::OpenForeign() const
   Display* display = DefaultXDisplay();
   Screen* screen = DefaultScreenOfDisplay(display);
 
-  nsRefPtr<gfxXlibSurface> surf;
+  RefPtr<gfxXlibSurface> surf;
   XRenderPictFormat* pictFormat = GetXRenderPictFormatFromId(display, mFormat);
   if (pictFormat) {
-    surf = new gfxXlibSurface(screen, mId, pictFormat, gfx::ThebesIntSize(mSize));
+    surf = new gfxXlibSurface(screen, mId, pictFormat, mSize);
   } else {
     Visual* visual;
     int depth;
@@ -98,8 +107,14 @@ SurfaceDescriptorX11::OpenForeign() const
     if (!visual)
       return nullptr;
 
-    surf = new gfxXlibSurface(display, mId, visual, gfx::ThebesIntSize(mSize));
+    surf = new gfxXlibSurface(display, mId, visual, mSize);
   }
+
+#ifdef GL_PROVIDER_GLX
+  if (mGLXPixmap)
+    surf->BindGLXPixmap(mGLXPixmap);
+#endif
+
   return surf->CairoStatus() ? nullptr : surf.forget();
 }
 

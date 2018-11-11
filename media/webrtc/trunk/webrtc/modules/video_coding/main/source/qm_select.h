@@ -42,6 +42,11 @@ struct VCMResolutionScale {
   bool change_resolution_temporal;
 };
 
+// Other possibilities:
+// aspect 1.333*
+// kQQVGA = 160x120
+// k???     192x144
+// k???     256x192 (good step between 320x240 and 160x120)
 enum ImageType {
   kQCIF = 0,            // 176x144
   kHCIF,                // 264x216 = half(~3/4x3/4) CIF.
@@ -216,8 +221,7 @@ class VCMQmResolution : public VCMQmMethod {
 
   // Update with actual bit rate (size of the latest encoded frame)
   // and frame type, after every encoded frame.
-  void UpdateEncodedSize(int encoded_size,
-                         FrameType encoded_frame_type);
+  void UpdateEncodedSize(size_t encoded_size);
 
   // Update with new target bitrate, actual encoder sent rate, frame_rate,
   // loss rate: every ~1 sec from SetTargetRates in media_opt.
@@ -280,10 +284,6 @@ class VCMQmResolution : public VCMQmMethod {
 
   // Covert 2 stages of 3/4 (=9/16) spatial decimation to 1/2.
   void ConvertSpatialFractionalToWhole();
-
-  // Returns true if the new frame sizes, under the selected spatial action,
-  // are of even size.
-  bool EvenFrameSize();
 
   // Insert latest down-sampling action into the history list.
   void InsertLatestDownAction();
@@ -358,7 +358,7 @@ class VCMQmRobustness : public VCMQmMethod {
   float AdjustFecFactor(uint8_t code_rate_delta,
                         float total_rate,
                         float framerate,
-                        uint32_t rtt_time,
+                        int64_t rtt_time,
                         uint8_t packet_loss);
 
   // Set the UEP protection on/off.
@@ -370,7 +370,7 @@ class VCMQmRobustness : public VCMQmMethod {
  private:
   // Previous state of network parameters.
   float prev_total_rate_;
-  uint32_t prev_rtt_time_;
+  int64_t prev_rtt_time_;
   uint8_t prev_packet_loss_;
   uint8_t prev_code_rate_delta_;
 };

@@ -81,6 +81,9 @@ function xfail_compute(property, value)
   return false;
 }
 
+// constructed to map longhands ==> list of containing shorthands
+var gPropertyShorthands = {};
+
 var gElement = document.getElementById("testnode");
 var gDeclaration = gElement.style;
 var gComputedStyle = window.getComputedStyle(gElement, "");
@@ -88,12 +91,43 @@ var gComputedStyle = window.getComputedStyle(gElement, "");
 var gPrereqDeclaration =
   document.getElementById("prereqsheet").sheet.cssRules[0].style;
 
+// On Android, avoid most 'TEST-PASS' logging by overriding
+// SimpleTest.is/isnot, to improve performance
+if (navigator.appVersion.indexOf("Android") >= 0) {
+  is = function is(a, b, name)
+  {
+    var pass = Object.is(a, b);
+    if (!pass)
+      SimpleTest.is(a, b, name);
+  }
+
+  isnot = function isnot(a, b, name)
+  {
+    var pass = !Object.is(a, b);
+    if (!pass)
+      SimpleTest.isnot(a, b, name);
+  }
+}
+
+// Returns true if propA and propB are equivalent, considering aliasing.
+// (i.e. if one is an alias of the other, or if they're both aliases of
+// the same 3rd property)
+function are_properties_aliased(propA, propB)
+{
+  // If either property is an alias, replace it with the property it aliases.
+  if ("alias_for" in gCSSProperties[propA]) {
+    propA = gCSSProperties[propA].alias_for;
+  }
+  if ("alias_for" in gCSSProperties[propB]) {
+    propB = gCSSProperties[propB].alias_for;
+  }
+
+  return propA == propB;
+}
+
 function test_property(property)
 {
-  ok(SpecialPowers.getBoolPref("layout.css.variables.enabled"), "pref not set #2");
   var info = gCSSProperties[property];
-
-  var test_computed = !("backend_only" in info);
 
   // can all properties be removed from the style?
   function test_remove_all_properties(property, value) {
@@ -103,6 +137,19 @@ function test_property(property)
     var errstr = "when setting property " + property + " to " + value;
     is(gDeclaration.length, 0, "unremovable properties " + errstr);
     is(gDeclaration.cssText, "", "non-empty serialization after removing all properties " + errstr);
+  }
+
+  function test_other_shorthands_empty(value, subprop) {
+    if (!(subprop in gPropertyShorthands)) return;
+    var shorthands = gPropertyShorthands[subprop];
+    for (idx in shorthands) {
+      var sh = shorthands[idx];
+      if (are_properties_aliased(sh, property)) {
+        continue;
+      }
+      is(gDeclaration.getPropertyValue(sh), "",
+         "setting '" + value + "' on '" + property + "' (for shorthand '" + sh + "')");
+    }
   }
 
   function test_value(value, resolved_value) {
@@ -120,13 +167,13 @@ function test_property(property)
         step1vals.push(gDeclaration.getPropertyValue(info.subproperties[idx]));
     var step1comp;
     var step1comps = [];
-    if (test_computed && info.type != CSS_TYPE_TRUE_SHORTHAND)
+    if (info.type != CSS_TYPE_TRUE_SHORTHAND)
       step1comp = gComputedStyle.getPropertyValue(property);
-    if (test_computed && "subproperties" in info)
+    if ("subproperties" in info)
       for (idx in info.subproperties)
         step1comps.push(gComputedStyle.getPropertyValue(info.subproperties[idx]));
 
-    isnot(step1val, "", "setting '" + value + "' on '" + property + "'");
+    SimpleTest.isnot(step1val, "", "setting '" + value + "' on '" + property + "'");
     if ("subproperties" in info)
       for (idx in info.subproperties) {
         var subprop = info.subproperties[idx];
@@ -134,6 +181,7 @@ function test_property(property)
             (!info.alias_for || info.type == CSS_TYPE_TRUE_SHORTHAND)) {
           is(gDeclaration.getPropertyValue(subprop), "",
              "setting '" + value + "' on '" + property + "' (for '" + subprop + "')");
+          test_other_shorthands_empty(value, subprop);
         } else {
           isnot(gDeclaration.getPropertyValue(subprop), "",
                 "setting '" + value + "' on '" + property + "' (for '" + subprop + "')");
@@ -159,7 +207,7 @@ function test_property(property)
     is(gDeclaration.getPropertyValue(property), step1val,
        "parse+serialize should be idempotent for '" +
          property + ": " + value + "'");
-    if (test_computed && info.type != CSS_TYPE_TRUE_SHORTHAND) {
+    if (info.type != CSS_TYPE_TRUE_SHORTHAND) {
       is(gComputedStyle.getPropertyValue(property), step1comp,
          "serialize+parse should be identity transform for '" +
          property + ": " + value + "'");
@@ -183,18 +231,17 @@ function test_property(property)
       // the computed values of other parts.
       for (idx in info.subproperties) {
         var subprop = info.subproperties[idx];
-        if (test_computed && !("backend_only" in gCSSProperties[subprop])) {
-          is(gComputedStyle.getPropertyValue(subprop), step1comps[idx],
-             "serialize(" + subprop + ")+parse should be the identity " +
-             "transform for '" + property + ": " + value + "'");
-        }
+        is(gComputedStyle.getPropertyValue(subprop), step1comps[idx],
+           "serialize(" + subprop + ")+parse should be the identity " +
+           "transform for '" + property + ": " + value + "'");
       }
       is(gDeclaration.getPropertyValue(property), step1val,
          "parse+split+serialize should be idempotent for '" +
          property + ": " + value + "'");
     }
 
-    if (test_computed && info.type != CSS_TYPE_TRUE_SHORTHAND) {
+    if (info.type != CSS_TYPE_TRUE_SHORTHAND &&
+          property != "mask") {
       gDeclaration.removeProperty(property);
       gDeclaration.setProperty(property, step1comp, "");
       var func = xfail_compute(property, value) ? todo_is : is;
@@ -202,12 +249,10 @@ function test_property(property)
            "parse+compute+serialize should be idempotent for '" +
            property + ": " + value + "'");
     }
-    if (test_computed && "subproperties" in info) {
+    if ("subproperties" in info) {
       gDeclaration.removeProperty(property);
       for (idx in info.subproperties) {
         var subprop = info.subproperties[idx];
-        if ("backend_only" in gCSSProperties[subprop])
-          continue;
         gDeclaration.setProperty(subprop, step1comps[idx], "");
       }
 
@@ -216,8 +261,6 @@ function test_property(property)
       // the computed values of other parts.
       for (idx in info.subproperties) {
         var subprop = info.subproperties[idx];
-        if ("backend_only" in gCSSProperties[subprop])
-          continue;
         is(gComputedStyle.getPropertyValue(subprop), step1comps[idx],
            "parse+compute+serialize(" + subprop + ") should be idempotent for '" +
            property + ": " + value + "'");
@@ -273,8 +316,19 @@ function runTest() {
   // property at a time.
   ok(SpecialPowers.getBoolPref("layout.css.variables.enabled"), "pref not set #1");
   var props = [];
-  for (var prop in gCSSProperties)
+  for (var prop in gCSSProperties) {
+    var info = gCSSProperties[prop];
+    if ("subproperties" in info) {
+      for (var idx in info.subproperties) {
+        var subprop = info.subproperties[idx];
+        if (!(subprop in gPropertyShorthands)) {
+          gPropertyShorthands[subprop] = [];
+        }
+        gPropertyShorthands[subprop].push(prop);
+      }
+    }
     props.push(prop);
+  }
   props = props.reverse();
   function do_one() {
     if (props.length == 0) {
@@ -288,7 +342,7 @@ function runTest() {
 }
 
 SimpleTest.waitForExplicitFinish();
-SimpleTest.requestLongerTimeout(2);
+SimpleTest.requestLongerTimeout(7);
 
 SpecialPowers.pushPrefEnv({ set: [["layout.css.variables.enabled", true]] },
                           runTest);

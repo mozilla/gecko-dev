@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 **********************************************************************
-*   Copyright (C) 2002-2013, International Business Machines
+*   Copyright (C) 2002-2016, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 **********************************************************************
 *
@@ -43,42 +45,6 @@ static int elapsedTime() {
   return (int)uprv_floor((uprv_getRawUTCtime()-startTime)/1000.0);
 }
 
-#if U_PLATFORM_IMPLEMENTS_POSIX && !U_PLATFORM_HAS_WIN32_API
-
-#include <signal.h>
-#include <unistd.h>
-
-const char *wToolname="gendict";
-const char *wOutname="(some file)";
-
-const int firstSeconds = 5; /* seconds between notices*/
-const int nextSeconds = 15; /* seconds between notices*/
-
-static void alarm_fn(int /*n*/) {
-  printf("%s: still writing\t%s (%ds)\t...\n",    wToolname, wOutname, elapsedTime());
-  
-  signal(SIGALRM, &alarm_fn);
-  alarm(nextSeconds); // reset the alarm
-}
-
-static void install_watchdog(const char *toolName, const char *outFileName) {
-  wToolname=toolName;
-  wOutname=outFileName;
-
-  signal(SIGALRM, &alarm_fn);
-
-  alarm(firstSeconds); // set the alarm
-}
-
-#else
-static void install_watchdog(const char*, const char*) {
-  // not implemented
-}
-#endif
-
-
-
-
 U_NAMESPACE_USE
 
 static char *progName;
@@ -91,6 +57,7 @@ static UOption options[]={
     { "uchars", NULL, NULL, NULL, '\1', UOPT_NO_ARG, 0}, /* 6 */
     { "bytes", NULL, NULL, NULL, '\1', UOPT_NO_ARG, 0}, /* 7 */
     { "transform", NULL, NULL, NULL, '\1', UOPT_REQUIRES_ARG, 0}, /* 8 */
+    UOPTION_QUIET,              /* 9 */
 };
 
 enum arguments {
@@ -101,7 +68,8 @@ enum arguments {
     ARG_COPYRIGHT,
     ARG_UCHARS,
     ARG_BYTES,
-    ARG_TRANSFORM
+    ARG_TRANSFORM,
+    ARG_QUIET
 };
 
 // prints out the standard usage method describing command line arguments, 
@@ -115,6 +83,7 @@ static void usageAndDie(UErrorCode retCode) {
            "\t-V or --version     show a version message\n"
            "\t-c or --copyright   include a copyright notice\n"
            "\t-v or --verbose     turn on verbose output\n"
+           "\t-q or --quiet       do not display warnings and progress\n"
            "\t-i or --icudatadir  directory for locating any needed intermediate data files,\n" // TODO: figure out if we need this option
            "\t                    followed by path, defaults to %s\n"
            "\t--uchars            output a UCharsTrie (mutually exclusive with -b!)\n"
@@ -278,7 +247,7 @@ int  main(int argc, char **argv) {
     //
     U_MAIN_INIT_ARGS(argc, argv);
     progName = argv[0];
-    argc=u_parseArgs(argc, argv, sizeof(options)/sizeof(options[0]), options);
+    argc=u_parseArgs(argc, argv, UPRV_LENGTHOF(options), options);
     if(argc<0) {
         // Unrecognized option
         fprintf(stderr, "error in command line argument \"%s\"\n", argv[-argc]);
@@ -291,6 +260,7 @@ int  main(int argc, char **argv) {
     }
 
     UBool verbose = options[ARG_VERBOSE].doesOccur;
+    UBool quiet = options[ARG_QUIET].doesOccur;
 
     if (argc < 3) {
         fprintf(stderr, "input and output file must both be specified.\n");
@@ -300,10 +270,8 @@ int  main(int argc, char **argv) {
     const char *wordFileName = argv[1];
 
     startTime = uprv_getRawUTCtime(); // initialize start timer
-    // set up the watchdog
-    install_watchdog(progName, outFileName);
 
-    if (options[ARG_ICUDATADIR].doesOccur) {
+	if (options[ARG_ICUDATADIR].doesOccur) {
         u_setDataDirectory(options[ARG_ICUDATADIR].value);
     }
 
@@ -482,7 +450,7 @@ int  main(int argc, char **argv) {
         exit(U_INTERNAL_PROGRAM_ERROR);
     }
 
-    printf("%s: done writing\t%s (%ds).\n", progName, outFileName, elapsedTime());
+    if (!quiet) { printf("%s: done writing\t%s (%ds).\n", progName, outFileName, elapsedTime()); }
 
 #ifdef TEST_GENDICT
     if (isBytesTrie) {

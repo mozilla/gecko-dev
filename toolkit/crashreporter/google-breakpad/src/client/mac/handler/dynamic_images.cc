@@ -364,7 +364,7 @@ static uint64_t LookupSymbol(const char* symbol_name,
   return list.n_value;
 }
 
-#if TARGET_OS_IPHONE
+#if TARGET_OS_IPHONE || MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6
 static bool HasTaskDyldInfo() {
   return true;
 }
@@ -381,13 +381,9 @@ static SInt32 GetOSVersion() {
 }
 
 static bool HasTaskDyldInfo() {
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6
-  return true;
-#else
   return GetOSVersion() >= 0x1060;
-#endif
 }
-#endif  // TARGET_OS_IPHONE
+#endif  // TARGET_OS_IPHONE || MAC_OS_X_VERSION_MIN_REQUIRED >= 10_6
 
 uint64_t DynamicImages::GetDyldAllImageInfosPointer() {
   if (HasTaskDyldInfo()) {
@@ -567,7 +563,7 @@ cpu_type_t DynamicImages::DetermineTaskCPUType(task_t task) {
 
     cpu_type_t cpu_type;
     size_t cpuTypeSize = sizeof(cpu_type);
-    sysctl(mib, mibLen, &cpu_type, &cpuTypeSize, 0, 0);
+    sysctl(mib, static_cast<u_int>(mibLen), &cpu_type, &cpuTypeSize, 0, 0);
     return cpu_type;
   }
 

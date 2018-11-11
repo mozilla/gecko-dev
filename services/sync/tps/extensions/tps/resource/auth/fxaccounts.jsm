@@ -12,6 +12,7 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/FxAccounts.jsm");
 Cu.import("resource://gre/modules/FxAccountsClient.jsm");
+Cu.import("resource://gre/modules/FxAccountsConfig.jsm");
 Cu.import("resource://services-common/async.js");
 Cu.import("resource://services-sync/main.js");
 Cu.import("resource://tps/logger.jsm");
@@ -67,7 +68,10 @@ var Authentication = {
     Logger.AssertTrue(account["username"], "Username has been found");
     Logger.AssertTrue(account["password"], "Password has been found");
 
-    Logger.logInfo("Login user: " + account["username"] + '\n');
+    Logger.logInfo("Login user: " + account["username"]);
+
+    // Required here since we don't go through the real login page
+    Async.promiseSpinningly(FxAccountsConfig.ensureConfigured());
 
     let client = new FxAccountsClient();
     client.signIn(account["username"], account["password"], true).then(credentials => {
@@ -91,6 +95,27 @@ var Authentication = {
       return true;
     } catch (error) {
       throw new Error("signIn() failed with: " + error.message);
+    }
+  },
+
+  /**
+   * Sign out of Firefox Accounts. It also clears out the device ID, if we find one.
+   */
+  signOut() {
+    if (Authentication.isLoggedIn) {
+      let user = Authentication.getSignedInUser();
+      if (!user) {
+        throw new Error("Failed to get signed in user!");
+      }
+      let fxc = new FxAccountsClient();
+      let { sessionToken, deviceId } = user;
+      if (deviceId) {
+        Logger.logInfo("Destroying device " + deviceId);
+        Async.promiseSpinningly(fxc.signOutAndDestroyDevice(sessionToken, deviceId, { service: "sync" }));
+      } else {
+        Logger.logError("No device found.");
+        Async.promiseSpinningly(fxc.signOut(sessionToken, { service: "sync" }));
+      }
     }
   }
 };

@@ -4,27 +4,30 @@
 const NOW = Date.now() * 1000;
 const URL = "http://fake-site.com/";
 
-let tmp = {};
+var tmp = {};
 Cc["@mozilla.org/moz/jssubscript-loader;1"]
   .getService(Ci.mozIJSSubScriptLoader)
   .loadSubScript("chrome://browser/content/sanitize.js", tmp);
 
-let {Sanitizer} = tmp;
+var {Sanitizer} = tmp;
 
-function runTests() {
-  sanitizeHistory();
-  yield addFakeVisits();
-  yield addNewTabPageTab();
+add_task(function* () {
+  yield promiseSanitizeHistory();
+  yield promiseAddFakeVisits();
+  yield* addNewTabPageTab();
 
-  is(getCell(0).site.url, URL, "first site is our fake site");
+  let cellUrl = yield performOnCell(0, cell => { return cell.site.url; });
+  is(cellUrl, URL, "first site is our fake site");
 
-  whenPagesUpdated();
-  yield sanitizeHistory();
+  let updatedPromise = whenPagesUpdated();
+  yield promiseSanitizeHistory();
+  yield updatedPromise;
 
-  ok(!getCell(0).site, "the fake site is gone");
-}
+  let isGone = yield performOnCell(0, cell => { return cell.site == null; });
+  ok(isGone, "fake site is gone");
+});
 
-function addFakeVisits() {
+function promiseAddFakeVisits() {
   let visits = [];
   for (let i = 59; i > 0; i--) {
     visits.push({
@@ -37,19 +40,21 @@ function addFakeVisits() {
     title: "fake site",
     visits: visits
   };
-  PlacesUtils.asyncHistory.updatePlaces(place, {
-    handleError: function () ok(false, "couldn't add visit"),
-    handleResult: function () {},
-    handleCompletion: function () {
-      NewTabUtils.links.populateCache(function () {
-        NewTabUtils.allPages.update();
-        TestRunner.next();
-      }, true);
-    }
+  return new Promise((resolve, reject) => {
+    PlacesUtils.asyncHistory.updatePlaces(place, {
+      handleError: () => reject(new Error("Couldn't add visit")),
+      handleResult: function () {},
+      handleCompletion: function () {
+        NewTabUtils.links.populateCache(function () {
+          NewTabUtils.allPages.update();
+          resolve();
+        }, true);
+      }
+    });
   });
 }
 
-function sanitizeHistory() {
+function promiseSanitizeHistory() {
   let s = new Sanitizer();
   s.prefDomain = "privacy.cpd.";
 
@@ -64,5 +69,5 @@ function sanitizeHistory() {
   prefs.setBoolPref("sessions", false);
   prefs.setBoolPref("siteSettings", false);
 
-  s.sanitize();
+  return s.sanitize();
 }

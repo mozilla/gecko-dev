@@ -19,7 +19,7 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta name="viewport" content="width=device-width; user-scalable=false;" /> 
+    <meta name="viewport" content="width=device-width; user-scalable=false;" />
     <title>&loadError.label;</title>
     <link rel="stylesheet" href="chrome://global/skin/netError.css" type="text/css" media="all" />
     <!-- If the location of the favicon is changed here, the FAVICON_ERRORPAGE_URL symbol in
@@ -88,14 +88,12 @@
           // We probably tried to reload a URI that caused an exception to
           // occur;  e.g. a nonexistent file.
         }
-
-        buttonEl.disabled = true;
       }
 
       function initPage()
       {
         var err = getErrorCode();
-        
+
         // if it's an unknown error or there's no title or description
         // defined, get the generic message
         var errTitle = document.getElementById("et_" + err);
@@ -139,7 +137,7 @@
 
           // Also, if they specified a CSS class, they must supply their own
           // favicon.  In order to trigger the browser to repaint though, we
-          // need to remove/add the link element. 
+          // need to remove/add the link element.
           var favicon = document.getElementById("favicon");
           var faviconParent = favicon.parentNode;
           faviconParent.removeChild(favicon);
@@ -156,8 +154,8 @@
           document.getElementById("errorTryAgain").style.display = "none";
         }
 
-        if (err == "cspFrameAncestorBlocked") {
-          // Remove the "Try again" button for CSP frame ancestors violation, since it's
+        if (err == "cspBlocked") {
+          // Remove the "Try again" button for CSP violations, since it's
           // almost certainly useless. (Bug 553180)
           document.getElementById("errorTryAgain").style.display = "none";
         }
@@ -167,7 +165,6 @@
           // almost certainly useless.
           document.getElementById("errorTryAgain").style.display = "none";
           document.getElementById("errorPage").setAttribute("class", "certerror");
-          addDomainErrorLink();
         }
         else {
           // Remove the override block for non-certificate errors.  CSS-hiding
@@ -175,56 +172,81 @@
           var secOverride = document.getElementById("securityOverrideDiv");
           secOverride.parentNode.removeChild(secOverride);
         }
+
+        if (err == "inadequateSecurityError") {
+          // Remove the "Try again" button for HTTP/2 inadequate security as it
+          // is useless.
+          document.getElementById("errorTryAgain").style.display = "none";
+
+          var container = document.getElementById("errorLongDesc");
+          for (var span of container.querySelectorAll("span.hostname")) {
+            span.textContent = document.location.hostname;
+          }
+        }
+
+        addDomainErrorLinks();
       }
-      
+
       function showSecuritySection() {
         // Swap link out, content in
         document.getElementById('securityOverrideContent').style.display = '';
         document.getElementById('securityOverrideLink').style.display = 'none';
       }
-      
-      /* In the case of SSL error pages about domain mismatch, see if
+
+      /* Try to preserve the links contained in the error description, like
+         the error code.
+
+         Also, in the case of SSL error pages about domain mismatch, see if
          we can hyperlink the user to the correct site.  We don't want
          to do this generically since it allows MitM attacks to redirect
          users to a site under attacker control, but in certain cases
          it is safe (and helpful!) to do so.  Bug 402210
       */
-      function addDomainErrorLink() {
+      function addDomainErrorLinks() {
         // Rather than textContent, we need to treat description as HTML
         var sd = document.getElementById("errorShortDescText");
         if (sd) {
           var desc = getDescription();
-          
+
           // sanitize description text - see bug 441169
-          
-          // First, find the index of the <a> tag we care about, being careful not to
-          // use an over-greedy regex
-          var re = /<a id="cert_domain_link" title="([^"]+)">/;
-          var result = re.exec(desc);
-          if(!result)
+
+          // First, find the index of the <a> tags we care about, being
+          // careful not to use an over-greedy regex.
+          var codeRe = /<a id="errorCode" title="([^"]+)">/;
+          var codeResult = codeRe.exec(desc);
+          var domainRe = /<a id="cert_domain_link" title="([^"]+)">/;
+          var domainResult = domainRe.exec(desc);
+
+          // The order of these links in the description is fixed in
+          // TransportSecurityInfo.cpp:formatOverridableCertErrorMessage.
+          var firstResult = domainResult;
+          if(!domainResult)
+            firstResult = codeResult;
+          if (!firstResult)
             return;
-          
           // Remove sd's existing children
           sd.textContent = "";
 
-          // Everything up to the link should be text content
-          sd.appendChild(document.createTextNode(desc.slice(0, result.index)));
-          
-          // Now create the link itself
-          var anchorEl = document.createElement("a");
-          anchorEl.setAttribute("id", "cert_domain_link");
-          anchorEl.setAttribute("title", result[1]);
-          anchorEl.appendChild(document.createTextNode(result[1]));
-          sd.appendChild(anchorEl);
-          
-          // Finally, append text for anything after the closing </a>
-          sd.appendChild(document.createTextNode(desc.slice(desc.indexOf("</a>") + "</a>".length)));
+          // Everything up to the first link should be text content.
+          sd.appendChild(document.createTextNode(desc.slice(0, firstResult.index)));
+
+          // Now create the actual links.
+          if (domainResult) {
+            createLink(sd, "cert_domain_link", domainResult[1])
+            // Append text for anything between the two links.
+            sd.appendChild(document.createTextNode(desc.slice(desc.indexOf("</a>") + "</a>".length, codeResult.index)));
+          }
+          createLink(sd, "errorCode", codeResult[1])
+
+          // Finally, append text for anything after the last closing </a>.
+          sd.appendChild(document.createTextNode(desc.slice(desc.lastIndexOf("</a>") + "</a>".length)));
         }
 
+        // Initialize the cert domain link.
         var link = document.getElementById('cert_domain_link');
         if (!link)
           return;
-        
+
         var okHost = link.getAttribute("title");
         var thisHost = document.location.hostname;
         var proto = document.location.protocol;
@@ -234,7 +256,7 @@
         // get anyone anywhere useful. bug 432491
         okHost = okHost.replace(/^\*\./, "www.");
 
-        /* case #1: 
+        /* case #1:
          * example.com uses an invalid security certificate.
          *
          * The certificate is only valid for www.example.com
@@ -247,7 +269,7 @@
          * domain names are famous for having '.' characters in them,
          * which would allow spurious and possibly hostile matches.
          */
-        if (endsWith(okHost, "." + thisHost))
+        if (okHost.endsWith("." + thisHost))
           link.href = proto + okHost;
 
         /* case #2:
@@ -255,14 +277,17 @@
          *
          * The certificate is only valid for garage.maemo.org
          */
-        if (endsWith(thisHost, "." + okHost))
+        if (thisHost.endsWith("." + okHost))
           link.href = proto + okHost;
       }
-      
-      function endsWith(haystack, needle) {
-        return haystack.slice(-needle.length) == needle;
-      }
 
+      function createLink(el, id, text) {
+        var anchorEl = document.createElement("a");
+        anchorEl.setAttribute("id", id);
+        anchorEl.setAttribute("title", text);
+        anchorEl.appendChild(document.createTextNode(text));
+        el.appendChild(anchorEl);
+      }
     ]]></script>
   </head>
 
@@ -274,6 +299,7 @@
         <h1 id="et_generic">&generic.title;</h1>
         <h1 id="et_dnsNotFound">&dnsNotFound.title;</h1>
         <h1 id="et_fileNotFound">&fileNotFound.title;</h1>
+        <h1 id="et_fileAccessDenied">&fileAccessDenied.title;</h1>
         <h1 id="et_malformedURI">&malformedURI.title;</h1>
         <h1 id="et_unknownProtocolFound">&unknownProtocolFound.title;</h1>
         <h1 id="et_connectionFailure">&connectionFailure.title;</h1>
@@ -282,11 +308,11 @@
         <h1 id="et_unknownSocketType">&unknownSocketType.title;</h1>
         <h1 id="et_netReset">&netReset.title;</h1>
         <h1 id="et_notCached">&notCached.title;</h1>
-       
-        <!-- Since Fennec not yet have offline mode, change the title to 
+
+        <!-- Since Fennec not yet have offline mode, change the title to
         connectionFailure to prevent confusion -->
         <h1 id="et_netOffline">&connectionFailure.title;</h1>
-        
+
         <h1 id="et_netInterrupt">&netInterrupt.title;</h1>
         <h1 id="et_deniedPortAccess">&deniedPortAccess.title;</h1>
         <h1 id="et_proxyResolveFailure">&proxyResolveFailure.title;</h1>
@@ -295,38 +321,45 @@
         <h1 id="et_unsafeContentType">&unsafeContentType.title;</h1>
         <h1 id="et_nssFailure2">&nssFailure2.title;</h1>
         <h1 id="et_nssBadCert">&nssBadCert.title;</h1>
-        <h1 id="et_cspFrameAncestorBlocked">&cspFrameAncestorBlocked.title;</h1>
+        <h1 id="et_cspBlocked">&cspBlocked.title;</h1>
         <h1 id="et_remoteXUL">&remoteXUL.title;</h1>
-        <h1 id="et_corruptedContentError">&corruptedContentError.title;</h1>
+        <h1 id="et_corruptedContentErrorv2">&corruptedContentErrorv2.title;</h1>
+        <h1 id="et_sslv3Used">&sslv3Used.title;</h1>
+        <h1 id="et_weakCryptoUsed">&weakCryptoUsed.title;</h1>
+        <h1 id="et_inadequateSecurityError">&inadequateSecurityError.title;</h1>
       </div>
       <div id="errorDescriptionsContainer">
         <div id="ed_generic">&generic.longDesc;</div>
-        <div id="ed_dnsNotFound">&dnsNotFound.longDesc2;</div>
+        <div id="ed_dnsNotFound">&dnsNotFound.longDesc4;</div>
         <div id="ed_fileNotFound">&fileNotFound.longDesc;</div>
-        <div id="ed_malformedURI">&malformedURI.longDesc;</div>
+        <div id="ed_fileAccessDenied">&fileAccessDenied.longDesc;</div>
+        <div id="ed_malformedURI">&malformedURI.longDesc2;</div>
         <div id="ed_unknownProtocolFound">&unknownProtocolFound.longDesc;</div>
-        <div id="ed_connectionFailure">&connectionFailure.longDesc;</div>
-        <div id="ed_netTimeout">&netTimeout.longDesc;</div>
+        <div id="ed_connectionFailure">&connectionFailure.longDesc2;</div>
+        <div id="ed_netTimeout">&netTimeout.longDesc2;</div>
         <div id="ed_redirectLoop">&redirectLoop.longDesc;</div>
         <div id="ed_unknownSocketType">&unknownSocketType.longDesc;</div>
-        <div id="ed_netReset">&netReset.longDesc;</div>
+        <div id="ed_netReset">&netReset.longDesc2;</div>
         <div id="ed_notCached">&notCached.longDesc;</div>
-        
+
         <!-- Change longDesc from netOffline to connectionFailure,
         suggesting user to check their wifi/cell_data connection -->
-        <div id="ed_netOffline">&connectionFailure.longDesc;</div>
-        
-        <div id="ed_netInterrupt">&netInterrupt.longDesc;</div>
+        <div id="ed_netOffline">&connectionFailure.longDesc2;</div>
+
+        <div id="ed_netInterrupt">&netInterrupt.longDesc2;</div>
         <div id="ed_deniedPortAccess">&deniedPortAccess.longDesc;</div>
-        <div id="ed_proxyResolveFailure">&proxyResolveFailure.longDesc2;</div>
+        <div id="ed_proxyResolveFailure">&proxyResolveFailure.longDesc3;</div>
         <div id="ed_proxyConnectFailure">&proxyConnectFailure.longDesc;</div>
         <div id="ed_contentEncodingError">&contentEncodingError.longDesc;</div>
         <div id="ed_unsafeContentType">&unsafeContentType.longDesc;</div>
         <div id="ed_nssFailure2">&nssFailure2.longDesc2;</div>
         <div id="ed_nssBadCert">&nssBadCert.longDesc2;</div>
-        <div id="ed_cspFrameAncestorBlocked">&cspFrameAncestorBlocked.longDesc;</div>
+        <div id="ed_cspBlocked">&cspBlocked.longDesc;</div>
         <div id="ed_remoteXUL">&remoteXUL.longDesc;</div>
-        <div id="ed_corruptedContentError">&corruptedContentError.longDesc;</div>
+        <div id="ed_corruptedContentErrorv2">&corruptedContentErrorv2.longDesc;</div>
+        <div id="ed_sslv3Used">&sslv3Used.longDesc;</div>
+        <div id="ed_weakCryptoUsed">&weakCryptoUsed.longDesc;</div>
+        <div id="ed_inadequateSecurityError">&inadequateSecurityError.longDesc;</div>
       </div>
     </div>
 
@@ -340,7 +373,7 @@
 
       <!-- LONG CONTENT (the section most likely to require scrolling) -->
       <div id="errorLongContent">
-      
+
         <!-- Short Description -->
         <div id="errorShortDesc">
           <p id="errorShortDescText" />

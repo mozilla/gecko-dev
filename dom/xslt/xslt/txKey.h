@@ -39,7 +39,7 @@ public:
     typedef const txKeyValueHashKey& KeyType;
     typedef const txKeyValueHashKey* KeyTypePointer;
 
-    txKeyValueHashEntry(KeyTypePointer aKey)
+    explicit txKeyValueHashEntry(KeyTypePointer aKey)
         : mKey(*aKey),
           mNodeSet(new txNodeSet(nullptr)) { }
 
@@ -56,7 +56,7 @@ public:
     enum { ALLOW_MEMMOVE = true };
     
     txKeyValueHashKey mKey;
-    nsRefPtr<txNodeSet> mNodeSet;
+    RefPtr<txNodeSet> mNodeSet;
 };
 
 typedef nsTHashtable<txKeyValueHashEntry> txKeyValueHash;
@@ -81,7 +81,7 @@ public:
     typedef const txIndexedKeyHashKey& KeyType;
     typedef const txIndexedKeyHashKey* KeyTypePointer;
 
-    txIndexedKeyHashEntry(KeyTypePointer aKey)
+    explicit txIndexedKeyHashEntry(KeyTypePointer aKey)
         : mKey(*aKey),
           mIndexed(false) { }
 
@@ -110,7 +110,7 @@ typedef nsTHashtable<txIndexedKeyHashEntry> txIndexedKeyHash;
 class txXSLKey {
     
 public:
-    txXSLKey(const txExpandedName& aName) : mName(aName)
+    explicit txXSLKey(const txExpandedName& aName) : mName(aName)
     {
     }
     
@@ -178,8 +178,8 @@ private:
 class txKeyHash
 {
 public:
-    txKeyHash(const txOwningExpandedNameMap<txXSLKey>& aKeys)
-        : mKeyValues(8)
+    explicit txKeyHash(const txOwningExpandedNameMap<txXSLKey>& aKeys)
+        : mKeyValues(4)
         , mIndexedKeys(1)
         , mKeys(aKeys)
     {
@@ -205,7 +205,7 @@ private:
     const txOwningExpandedNameMap<txXSLKey>& mKeys;
     
     // Empty nodeset returned if no key is found
-    nsRefPtr<txNodeSet> mEmptyNodeSet;
+    RefPtr<txNodeSet> mEmptyNodeSet;
 };
 
 

@@ -7,14 +7,15 @@
 #include "nsISupports.idl"
 
 interface nsIInterfaceRequestor;
+interface nsIX509Cert;
 
 %{C++
-template<class T> class nsTArray;
+#include "nsTArrayForwardDeclare.h"
 class nsCString;
 %}
 [ref] native nsCStringTArrayRef(nsTArray<nsCString>);
 
-[scriptable, builtinclass, uuid(ec72446c-8241-457f-ba75-83d214392289)]
+[scriptable, builtinclass, uuid(418265c8-654e-4fbb-ba62-4eed27de1f03)]
 interface nsISSLSocketControl : nsISupports {
     attribute nsIInterfaceRequestor     notificationCallbacks;
 
@@ -43,6 +44,22 @@ interface nsISSLSocketControl : nsISupports {
      */
     readonly attribute ACString negotiatedNPN;
 
+    /* For 0RTT we need to know the alpn protocol selected for the last tls
+     * session. This function will return a value if applicable or an error
+     * NS_ERROR_NOT_AVAILABLE.
+     */
+    ACString getAlpnEarlySelection();
+
+    /* If 0RTT handshake was applied and some data has been sent, as soon as
+     * the handshake finishes this attribute will be set to appropriate value.
+     */
+    readonly attribute bool earlyDataAccepted;
+
+    /* When 0RTT is performed, PR_Write will not drive the handshake forward.
+     * It must be forced by calling this function.
+     */
+    void driveHandshake();
+
     /* Determine if a potential SSL connection to hostname:port with
      * a desired NPN negotiated protocol of npnProtocol can use the socket
      * associated with this object instead of making a new one.
@@ -52,11 +69,15 @@ interface nsISSLSocketControl : nsISupports {
       in ACString hostname,
       in long port);
 
-    /* The Key Exchange Algorithm is used when determining whether or
-       not to do false start and whether or not HTTP/2 can be used.
+    /* Determine if existing connection should be trusted to convey information about
+     * a hostname.
+     */
+    boolean isAcceptableForHost(in ACString hostname);
 
-       After a handshake is complete it can be read from KEAUsed,
-       before a handshake is started it may be set through KEAExpected.
+    /* The Key Exchange Algorithm is used when determining whether or
+       not HTTP/2 can be used.
+
+       After a handshake is complete it can be read from KEAUsed.
        The values correspond to the SSLKEAType enum in NSS or the
        KEY_EXCHANGE_UNKNOWN constant defined below.
 
@@ -64,7 +85,6 @@ interface nsISSLSocketControl : nsISupports {
     */
 
     [infallible] readonly attribute short KEAUsed;
-    [infallible] attribute short KEAExpected;
     [infallible] readonly attribute unsigned long KEAKeyBits;
 
     const short KEY_EXCHANGE_UNKNOWN = -1;
@@ -79,8 +99,42 @@ interface nsISSLSocketControl : nsISupports {
     const short TLS_VERSION_1   = 0x0301;
     const short TLS_VERSION_1_1 = 0x0302;
     const short TLS_VERSION_1_2 = 0x0303;
+    const short TLS_VERSION_1_3 = 0x0304;
     const short SSL_VERSION_UNKNOWN = -1;
 
     [infallible] readonly attribute short SSLVersionUsed;
+    [infallible] readonly attribute short SSLVersionOffered;
+
+    /* These values match the NSS defined values in sslt.h */
+    const short SSL_MAC_UNKNOWN = -1;
+    const short SSL_MAC_NULL    = 0;
+    const short SSL_MAC_MD5     = 1;
+    const short SSL_MAC_SHA     = 2;
+    const short SSL_HMAC_MD5    = 3;
+    const short SSL_HMAC_SHA    = 4;
+    const short SSL_HMAC_SHA256 = 5;
+    const short SSL_MAC_AEAD    = 6;
+
+    [infallible] readonly attribute short MACAlgorithmUsed;
+
+    /**
+     * If set before the server requests a client cert (assuming it does so at
+     * all), then this cert will be presented to the server, instead of asking
+     * the user or searching the set of rememebered user cert decisions.
+     */
+    attribute nsIX509Cert clientCert;
+
+    /**
+     * bypassAuthentication is true if the server certificate checks are
+     * not be enforced. This is to enable non-secure transport over TLS.
+     */
+    [infallible] readonly attribute boolean bypassAuthentication;
+
+    /*
+     * failedVerification is true if any enforced certificate checks have failed.
+     * Connections that have not yet tried to verify, have verifications bypassed,
+     * or are using acceptable exceptions will all return false.
+     */
+    [infallible] readonly attribute boolean failedVerification;
 };
 

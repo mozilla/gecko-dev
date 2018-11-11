@@ -21,6 +21,10 @@ Cu.import("resource://gre/modules/FxAccounts.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
 
+XPCOMUtils.defineLazyServiceGetter(this, "permissionManager",
+                                   "@mozilla.org/permissionmanager;1",
+                                   "nsIPermissionManager");
+
 this.FxAccountsManager = {
 
   init: function() {
@@ -58,7 +62,8 @@ this.FxAccountsManager = {
 
     return {
       email: this._activeSession.email,
-      verified: this._activeSession.verified
+      verified: this._activeSession.verified,
+      profile: this._activeSession.profile,
     }
   },
 
@@ -95,7 +100,7 @@ this.FxAccountsManager = {
     return this._fxAccounts.getAccountsClient();
   },
 
-  _signInSignUp: function(aMethod, aEmail, aPassword) {
+  _signInSignUp: function(aMethod, aEmail, aPassword, aFetchKeys) {
     if (Services.io.offline) {
       return this._error(ERROR_OFFLINE);
     }
@@ -123,7 +128,7 @@ this.FxAccountsManager = {
             user: this._user
           });
         }
-        return client[aMethod](aEmail, aPassword);
+        return client[aMethod](aEmail, aPassword, aFetchKeys);
       }
     ).then(
       user => {
@@ -138,17 +143,45 @@ this.FxAccountsManager = {
         // capitalization from what we sent down.  This is the server's
         // canonical capitalization and should be used instead.
         user.email = user.email || aEmail;
+
+        // If we're using server-side sign to refreshAuthentication
+        // we don't need to update local state; also because of two
+        // interacting glitches we need to bypass an event emission.
+        // See https://bugzilla.mozilla.org/show_bug.cgi?id=1031580
+        if (this._refreshing) {
+          return Promise.resolve({user: this._user});
+        }
+
         return this._fxAccounts.setSignedInUser(user).then(
           () => {
             this._activeSession = user;
             log.debug("User signed in: " + JSON.stringify(this._user) +
                       " - Account created " + (aMethod == "signUp"));
-            return Promise.resolve({
-              accountCreated: aMethod === "signUp",
-              user: this._user
+
+            // There is no way to obtain the key fetch token afterwards
+            // without login out the user and asking her to log in again.
+            // Also, key fetch tokens are designed to be short-lived, so
+            // we need to fetch kB as soon as we have the key fetch token.
+            if (aFetchKeys) {
+              this._fxAccounts.getKeys();
+            }
+
+            return this._fxAccounts.getSignedInUserProfile().catch(error => {
+              // Not fetching the profile is sad but the FxA logs will already
+              // have noise.
+              return null;
             });
           }
-        );
+        ).then(profile => {
+          if (profile) {
+            this._activeSession.profile = profile;
+          }
+
+          return Promise.resolve({
+            accountCreated: aMethod === "signUp",
+            user: this._user
+          });
+        });
       },
       reason => { return this._serverError(reason); }
     );
@@ -166,7 +199,8 @@ this.FxAccountsManager = {
    *       FxAccountsClient.signCertificate()
    * See the latter method for possible (error code, errno) pairs.
    */
-  _handleGetAssertionError: function(reason, aAudience) {
+  _handleGetAssertionError: function(reason, aAudience, aPrincipal) {
+    log.debug("FxAccountsManager._handleGetAssertionError()");
     let errno = (reason ? reason.errno : NaN) || NaN;
     // If the previously valid email/password pair is no longer valid ...
     if (errno == ERRNO_INVALID_AUTH_TOKEN) {
@@ -177,34 +211,41 @@ this.FxAccountsManager = {
           if (exists) {
             return this.getAccount().then(
               (user) => {
-                return this._refreshAuthentication(aAudience, user.email, true);
-              }
-            );
-          // ... otherwise, the account was deleted, so ask for Sign In/Up
-          } else {
-            return this._localSignOut().then(
-              () => {
-                return this._uiRequest(UI_REQUEST_SIGN_IN_FLOW, aAudience);
-              },
-              (reason) => { // reject primary problem, not signout failure
-                log.error("Signing out in response to server error threw: " + reason);
-                return this._error(reason);
+                return this._refreshAuthentication(aAudience, user.email,
+                                                   aPrincipal,
+                                                   true /* logoutOnFailure */);
               }
             );
           }
+          // ... otherwise, the account was deleted, so ask for Sign In/Up
+          return this._localSignOut().then(
+            () => {
+              return this._uiRequest(UI_REQUEST_SIGN_IN_FLOW, aAudience,
+                                     aPrincipal);
+            },
+            (reason) => {
+              // reject primary problem, not signout failure
+              log.error("Signing out in response to server error threw: " +
+                        reason);
+              return this._error(reason);
+            }
+          );
         }
       );
     }
-    return rejection;
+    return Promise.reject(reason.message ? { error: reason.message } : reason);
   },
 
-  _getAssertion: function(aAudience) {
+  _getAssertion: function(aAudience, aPrincipal) {
     return this._fxAccounts.getAssertion(aAudience).then(
       (result) => {
+        if (aPrincipal) {
+          this._addPermission(aPrincipal);
+        }
         return result;
       },
       (reason) => {
-        return this._handleGetAssertionError(reason, aAudience);
+        return this._handleGetAssertionError(reason, aAudience, aPrincipal);
       }
     );
   },
@@ -219,10 +260,11 @@ this.FxAccountsManager = {
    *   2) The person typing can't prove knowledge of the password used
    *      to log in. Failure should do nothing.
    */
-  _refreshAuthentication: function(aAudience, aEmail, logoutOnFailure=false) {
+  _refreshAuthentication: function(aAudience, aEmail, aPrincipal,
+                                   logoutOnFailure=false) {
     this._refreshing = true;
     return this._uiRequest(UI_REQUEST_REFRESH_AUTH,
-                           aAudience, aEmail).then(
+                           aAudience, aPrincipal, aEmail).then(
       (assertion) => {
         this._refreshing = false;
         return assertion;
@@ -284,7 +326,10 @@ this.FxAccountsManager = {
     );
   },
 
-  _uiRequest: function(aRequest, aAudience, aParams) {
+  _uiRequest: function(aRequest, aAudience, aPrincipal, aParams) {
+    if (Services.io.offline) {
+      return this._error(ERROR_OFFLINE);
+    }
     let ui = Cc["@mozilla.org/fxaccounts/fxaccounts-ui-glue;1"]
                .createInstance(Ci.nsIFxAccountsUIGlue);
     if (!ui[aRequest]) {
@@ -300,7 +345,7 @@ this.FxAccountsManager = {
         // Even if we get a successful result from the UI, the account will
         // most likely be unverified, so we cannot get an assertion.
         if (result && result.verified) {
-          return this._getAssertion(aAudience);
+          return this._getAssertion(aAudience, aPrincipal);
         }
 
         return this._error(ERROR_UNVERIFIED_ACCOUNT, {
@@ -313,14 +358,25 @@ this.FxAccountsManager = {
     );
   },
 
-  // -- API --
-
-  signIn: function(aEmail, aPassword) {
-    return this._signInSignUp("signIn", aEmail, aPassword);
+  _addPermission: function(aPrincipal) {
+    // This will fail from tests cause we are running them in the child
+    // process until we have chrome tests in b2g. Bug 797164.
+    try {
+      permissionManager.addFromPrincipal(aPrincipal, FXACCOUNTS_PERMISSION,
+                                         Ci.nsIPermissionManager.ALLOW_ACTION);
+    } catch (e) {
+      log.warn("Could not add permission " + e);
+    }
   },
 
-  signUp: function(aEmail, aPassword) {
-    return this._signInSignUp("signUp", aEmail, aPassword);
+  // -- API --
+
+  signIn: function(aEmail, aPassword, aFetchKeys) {
+    return this._signInSignUp("signIn", aEmail, aPassword, aFetchKeys);
+  },
+
+  signUp: function(aEmail, aPassword, aFetchKeys) {
+    return this._signInSignUp("signUp", aEmail, aPassword, aFetchKeys);
   },
 
   signOut: function() {
@@ -355,11 +411,9 @@ this.FxAccountsManager = {
     if (this._activeSession) {
       // If our cache says that the account is not yet verified,
       // we kick off verification before returning what we have.
-      if (this._activeSession && !this._activeSession.verified &&
-          !Services.io.offline) {
+      if (!this._activeSession.verified) {
         this.verificationStatus(this._activeSession);
       }
-
       log.debug("Account " + JSON.stringify(this._user));
       return Promise.resolve(this._user);
     }
@@ -375,13 +429,25 @@ this.FxAccountsManager = {
         this._activeSession = user;
         // If we get a stored information of a not yet verified account,
         // we kick off verification before returning what we have.
-        if (!user.verified && !Services.io.offline) {
-          log.debug("Unverified account");
+        if (!user.verified) {
           this.verificationStatus(user);
+          // Trying to get the profile for unverified users will fail, so we
+          // don't even try in that case.
+          log.debug("Account ", this._user);
+          return Promise.resolve(this._user);
         }
 
-        log.debug("Account " + JSON.stringify(this._user));
-        return Promise.resolve(this._user);
+        return this._fxAccounts.getSignedInUserProfile().then(profile => {
+          if (profile) {
+            this._activeSession.profile = profile;
+          }
+          log.debug("Account ", this._user);
+          return Promise.resolve(this._user);
+        }).catch(error => {
+          // FxAccounts logs already inform about the error.
+          log.debug("Account ", this._user);
+          return Promise.resolve(this._user);
+        });
       }
     );
   },
@@ -429,7 +495,8 @@ this.FxAccountsManager = {
     }
 
     if (Services.io.offline) {
-      this._error(ERROR_OFFLINE);
+      log.warn("Offline; skipping verification.");
+      return;
     }
 
     let client = this._getFxAccountsClient();
@@ -443,6 +510,13 @@ this.FxAccountsManager = {
         if (this._activeSession.verified != data.verified) {
           this._activeSession.verified = data.verified;
           this._fxAccounts.setSignedInUser(this._activeSession);
+          this._fxAccounts.getSignedInUserProfile().then(profile => {
+            if (profile) {
+              this._activeSession.profile = profile;
+            }
+          }).catch(error => {
+            // FxAccounts logs already inform about the error.
+          });
         }
         log.debug(JSON.stringify(this._user));
       },
@@ -460,22 +534,27 @@ this.FxAccountsManager = {
    *     trigger the sign in flow.
    *   else if we were asked to refresh and the grace period is up:
    *     trigger the refresh flow.
-   *   else ask the core code for an assertion, which might itself
-   *   trigger either the sign in or refresh flows (if our account
-   *   changed on the server).
+   *   else:
+   *      request user permission to share an assertion if we don't have it
+   *      already and ask the core code for an assertion, which might itself
+   *      trigger either the sign in or refresh flows (if our account
+   *      changed on the server).
    *
    * aOptions can include:
    *   refreshAuthentication  - (bool) Force re-auth.
    *   silent                 - (bool) Prevent any UI interaction.
    *                            I.e., try to get an automatic assertion.
    */
-  getAssertion: function(aAudience, aOptions) {
+  getAssertion: function(aAudience, aPrincipal, aOptions) {
     if (!aAudience) {
       return this._error(ERROR_INVALID_AUDIENCE);
     }
-    if (Services.io.offline) {
-      return this._error(ERROR_OFFLINE);
-    }
+
+    let principal = aPrincipal;
+    log.debug("FxAccountsManager.getAssertion() aPrincipal: ",
+              principal.origin, principal.appId,
+              principal.isInIsolatedMozBrowserElement);
+
     return this.getAccount().then(
       user => {
         if (user) {
@@ -497,25 +576,79 @@ this.FxAccountsManager = {
             if (aOptions.silent) {
               return this._error(ERROR_NO_SILENT_REFRESH_AUTH);
             }
-            let secondsSinceAuth = (Date.now() / 1000) - this._activeSession.authAt;
+            let secondsSinceAuth = (Date.now() / 1000) -
+                                   this._activeSession.authAt;
             if (secondsSinceAuth > gracePeriod) {
-              return this._refreshAuthentication(aAudience, user.email);
+              return this._refreshAuthentication(aAudience, user.email,
+                                                 principal,
+                                                 false /* logoutOnFailure */);
             }
           }
           // Third case: we are all set *locally*. Probably we just return
           // the assertion, but the attempt might lead to the server saying
           // we are deleted or have a new password, which will trigger a flow.
-          return this._getAssertion(aAudience);
+          // Also we need to check if we have permission to get the assertion,
+          // otherwise we need to show the forceAuth UI to let the user know
+          // that the RP with no fxa permissions is trying to obtain an
+          // assertion. Once the user authenticates herself in the forceAuth UI
+          // the permission will be remembered by default.
+          let permission = permissionManager.testPermissionFromPrincipal(
+            principal,
+            FXACCOUNTS_PERMISSION
+          );
+          if (permission == Ci.nsIPermissionManager.PROMPT_ACTION &&
+              !this._refreshing) {
+            return this._refreshAuthentication(aAudience, user.email,
+                                               principal,
+                                               false /* logoutOnFailure */);
+          } else if (permission == Ci.nsIPermissionManager.DENY_ACTION &&
+                     !this._refreshing) {
+            return this._error(ERROR_PERMISSION_DENIED);
+          } else if (this._refreshing) {
+            // If we are blocked asking for a password we should not continue
+            // the getAssertion process.
+            return Promise.resolve(null);
+          }
+          return this._getAssertion(aAudience, principal);
         }
         log.debug("No signed in user");
         if (aOptions && aOptions.silent) {
           return Promise.resolve(null);
         }
-        return this._uiRequest(UI_REQUEST_SIGN_IN_FLOW, aAudience);
+        return this._uiRequest(UI_REQUEST_SIGN_IN_FLOW, aAudience, principal);
+      }
+    );
+  },
+
+  getKeys: function() {
+    let syncEnabled = false;
+    try {
+      syncEnabled = Services.prefs.getBoolPref("services.sync.enabled");
+    } catch(e) {
+      dump("Sync is disabled, so you won't get the keys. " + e + "\n");
+    }
+
+    if (!syncEnabled) {
+      return Promise.reject(ERROR_SYNC_DISABLED);
+    }
+
+    return this.getAccount().then(
+      user => {
+        if (!user) {
+          log.debug("No signed in user");
+          return Promise.resolve(null);
+        }
+
+        if (!user.verified) {
+          return this._error(ERROR_UNVERIFIED_ACCOUNT, {
+            user: user
+          });
+        }
+
+        return this._fxAccounts.getKeys();
       }
     );
   }
-
 };
 
 FxAccountsManager.init();

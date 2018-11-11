@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -33,20 +33,20 @@ function run_test()
   run_next_test();
 }
 
-add_task(function test_execute()
+add_task(function* test_execute()
 {
   // add pages to global history
-  for (var i = 0; i < TOTAL_SITES; i++) {
+  for (let i = 0; i < TOTAL_SITES; i++) {
     let site = "http://www.test-" + i + ".com/";
     let testURI = uri(site);
     let when = Date.now() * 1000 + (i * TOTAL_SITES);
-    yield promiseAddVisits({ uri: testURI, visitDate: when });
+    yield PlacesTestUtils.addVisits({ uri: testURI, visitDate: when });
   }
-  for (var i = 0; i < TOTAL_SITES; i++) {
+  for (let i = 0; i < TOTAL_SITES; i++) {
     let site = "http://www.test.com/" + i + "/";
     let testURI = uri(site);
     let when = Date.now() * 1000 + (i * TOTAL_SITES);
-    yield promiseAddVisits({ uri: testURI, visitDate: when });
+    yield PlacesTestUtils.addVisits({ uri: testURI, visitDate: when });
   }
 
   // set a page annotation on one of the urls that will be removed
@@ -71,14 +71,14 @@ add_task(function test_execute()
   PlacesUtils.history.removePagesFromHost("www.test.com", false);
 
   // check that all pages in www.test.com have been removed
-  for (var i = 0; i < TOTAL_SITES; i++) {
+  for (let i = 0; i < TOTAL_SITES; i++) {
     let site = "http://www.test.com/" + i + "/";
     let testURI = uri(site);
     do_check_false(uri_in_db(testURI));
   }
 
   // check that all pages in www.test-X.com have NOT been removed
-  for (var i = 0; i < TOTAL_SITES; i++) {
+  for (let i = 0; i < TOTAL_SITES; i++) {
     let site = "http://www.test-" + i + ".com/";
     let testURI = uri(site);
     do_check_true(uri_in_db(testURI));
@@ -88,13 +88,13 @@ add_task(function test_execute()
   try {
     PlacesUtils.annotations.getPageAnnotation(testAnnoDeletedURI, testAnnoName);
     do_throw("fetching page-annotation that doesn't exist, should've thrown");
-  } catch(ex) {}
+  } catch (ex) {}
 
   // check that annotation on the NOT removed item still exists
   try {
     var annoVal = PlacesUtils.annotations.getPageAnnotation(testAnnoRetainedURI,
                                                             testAnnoRetainedName);
-  } catch(ex) {
+  } catch (ex) {
     do_throw("The annotation has been removed erroneously");
   }
   do_check_eq(annoVal, testAnnoRetainedValue);

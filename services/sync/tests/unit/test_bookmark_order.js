@@ -2,53 +2,61 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 _("Making sure after processing incoming bookmarks, they show up in the right order");
-Cu.import("resource://gre/modules/PlacesUtils.jsm", this);
+Cu.import("resource://gre/modules/PlacesUtils.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://services-sync/engines/bookmarks.js");
 Cu.import("resource://services-sync/service.js");
 Cu.import("resource://services-sync/util.js");
 
-function getBookmarks(folderId) {
-  let bookmarks = [];
+var check = Task.async(function* (expected, message) {
+  let root = yield PlacesUtils.promiseBookmarksTree();
 
-  let pos = 0;
-  while (true) {
-    let itemId = PlacesUtils.bookmarks.getIdForItemAt(folderId, pos);
-    _("Got itemId", itemId, "under", folderId, "at", pos);
-    if (itemId == -1)
-      break;
-
-    switch (PlacesUtils.bookmarks.getItemType(itemId)) {
-      case PlacesUtils.bookmarks.TYPE_BOOKMARK:
-        bookmarks.push(PlacesUtils.bookmarks.getItemTitle(itemId));
-        break;
-      case PlacesUtils.bookmarks.TYPE_FOLDER:
-        bookmarks.push(getBookmarks(itemId));
-        break;
-      default:
-        _("Unsupported item type..");
-    }
-
-    pos++;
-  }
-
-  return bookmarks;
-}
-
-function check(expected) {
-  let bookmarks = getBookmarks(PlacesUtils.bookmarks.unfiledBookmarksFolder);
+  let bookmarks = (function mapTree(children) {
+    return children.map(child => {
+      let result = {
+        guid: child.guid,
+        index: child.index,
+      };
+      if (child.children) {
+        result.children = mapTree(child.children);
+      }
+      if (child.annos) {
+        let orphanAnno = child.annos.find(
+          anno => anno.name == "sync/parent");
+        if (orphanAnno) {
+          result.requestedParent = orphanAnno.value;
+        }
+      }
+      return result;
+    });
+  }(root.children));
 
   _("Checking if the bookmark structure is", JSON.stringify(expected));
   _("Got bookmarks:", JSON.stringify(bookmarks));
-  do_check_true(Utils.deepEquals(bookmarks, expected));
-}
+  deepEqual(bookmarks, expected);
+});
 
-function run_test() {
+add_task(function* test_bookmark_order() {
   let store = new BookmarksEngine(Service)._store;
   initTestLogging("Trace");
 
   _("Starting with a clean slate of no bookmarks");
   store.wipe();
-  check([]);
+  yield check([{
+    guid: PlacesUtils.bookmarks.menuGuid,
+    index: 0,
+  }, {
+    guid: PlacesUtils.bookmarks.toolbarGuid,
+    index: 1,
+  }, {
+    // Index 2 is the tags root. (Root indices depend on the order of the
+    // `CreateRoot` calls in `Database::CreateBookmarkRoots`).
+    guid: PlacesUtils.bookmarks.unfiledGuid,
+    index: 3,
+  }, {
+    guid: PlacesUtils.bookmarks.mobileGuid,
+    index: 4,
+  }], "clean slate");
 
   function bookmark(name, parent) {
     let bookmark = new Bookmark("http://weave.server/my-bookmark");
@@ -75,64 +83,447 @@ function run_test() {
     store._orderChildren();
     delete store._childrenToOrder;
   }
-
+  let id10 = "10_aaaaaaaaa";
   _("basic add first bookmark");
-  apply(bookmark("10", ""));
-  check(["10"]);
-
+  apply(bookmark(id10, ""));
+  yield check([{
+    guid: PlacesUtils.bookmarks.menuGuid,
+    index: 0,
+  }, {
+    guid: PlacesUtils.bookmarks.toolbarGuid,
+    index: 1,
+  }, {
+    guid: PlacesUtils.bookmarks.unfiledGuid,
+    index: 3,
+    children: [{
+      guid: id10,
+      index: 0,
+    }],
+  }, {
+    guid: PlacesUtils.bookmarks.mobileGuid,
+    index: 4,
+  }], "basic add first bookmark");
+  let id20 = "20_aaaaaaaaa";
   _("basic append behind 10");
-  apply(bookmark("20", ""));
-  check(["10", "20"]);
+  apply(bookmark(id20, ""));
+  yield check([{
+    guid: PlacesUtils.bookmarks.menuGuid,
+    index: 0,
+  }, {
+    guid: PlacesUtils.bookmarks.toolbarGuid,
+    index: 1,
+  }, {
+    guid: PlacesUtils.bookmarks.unfiledGuid,
+    index: 3,
+    children: [{
+      guid: id10,
+      index: 0,
+    }, {
+      guid: id20,
+      index: 1,
+    }],
+  }, {
+    guid: PlacesUtils.bookmarks.mobileGuid,
+    index: 4,
+  }], "basic append behind 10");
 
+  let id31 = "31_aaaaaaaaa";
+  let id30 = "f30_aaaaaaaa";
   _("basic create in folder");
-  apply(bookmark("31", "f30"));
-  let f30 = folder("f30", "", ["31"]);
+  apply(bookmark(id31, id30));
+  let f30 = folder(id30, "", [id31]);
   apply(f30);
-  check(["10", "20", ["31"]]);
+  yield check([{
+    guid: PlacesUtils.bookmarks.menuGuid,
+    index: 0,
+  }, {
+    guid: PlacesUtils.bookmarks.toolbarGuid,
+    index: 1,
+  }, {
+    guid: PlacesUtils.bookmarks.unfiledGuid,
+    index: 3,
+    children: [{
+      guid: id10,
+      index: 0,
+    }, {
+      guid: id20,
+      index: 1,
+    }, {
+      guid: id30,
+      index: 2,
+      children: [{
+        guid: id31,
+        index: 0,
+      }],
+    }],
+  }, {
+    guid: PlacesUtils.bookmarks.mobileGuid,
+    index: 4,
+  }], "basic create in folder");
 
+  let id41 = "41_aaaaaaaaa";
+  let id40 = "f40_aaaaaaaa";
   _("insert missing parent -> append to unfiled");
-  apply(bookmark("41", "f40"));
-  check(["10", "20", ["31"], "41"]);
+  apply(bookmark(id41, id40));
+  yield check([{
+    guid: PlacesUtils.bookmarks.menuGuid,
+    index: 0,
+  }, {
+    guid: PlacesUtils.bookmarks.toolbarGuid,
+    index: 1,
+  }, {
+    guid: PlacesUtils.bookmarks.unfiledGuid,
+    index: 3,
+    children: [{
+      guid: id10,
+      index: 0,
+    }, {
+      guid: id20,
+      index: 1,
+    }, {
+      guid: id30,
+      index: 2,
+      children: [{
+        guid: id31,
+        index: 0,
+      }],
+    }, {
+      guid: id41,
+      index: 3,
+      requestedParent: id40,
+    }],
+  }, {
+    guid: PlacesUtils.bookmarks.mobileGuid,
+    index: 4,
+  }], "insert missing parent -> append to unfiled");
+
+  let id42 = "42_aaaaaaaaa";
 
   _("insert another missing parent -> append");
-  apply(bookmark("42", "f40"));
-  check(["10", "20", ["31"], "41", "42"]);
+  apply(bookmark(id42, id40));
+  yield check([{
+    guid: PlacesUtils.bookmarks.menuGuid,
+    index: 0,
+  }, {
+    guid: PlacesUtils.bookmarks.toolbarGuid,
+    index: 1,
+  }, {
+    guid: PlacesUtils.bookmarks.unfiledGuid,
+    index: 3,
+    children: [{
+      guid: id10,
+      index: 0,
+    }, {
+      guid: id20,
+      index: 1,
+    }, {
+      guid: id30,
+      index: 2,
+      children: [{
+        guid: id31,
+        index: 0,
+      }],
+    }, {
+      guid: id41,
+      index: 3,
+      requestedParent: id40,
+    }, {
+      guid: id42,
+      index: 4,
+      requestedParent: id40,
+    }],
+  }, {
+    guid: PlacesUtils.bookmarks.mobileGuid,
+    index: 4,
+  }], "insert another missing parent -> append");
 
   _("insert folder -> move children and followers");
-  let f40 = folder("f40", "", ["41", "42"]);
+  let f40 = folder(id40, "", [id41, id42]);
   apply(f40);
-  check(["10", "20", ["31"], ["41", "42"]]);
+  yield check([{
+    guid: PlacesUtils.bookmarks.menuGuid,
+    index: 0,
+  }, {
+    guid: PlacesUtils.bookmarks.toolbarGuid,
+    index: 1,
+  }, {
+    guid: PlacesUtils.bookmarks.unfiledGuid,
+    index: 3,
+    children: [{
+      guid: id10,
+      index: 0,
+    }, {
+      guid: id20,
+      index: 1,
+    }, {
+      guid: id30,
+      index: 2,
+      children: [{
+        guid: id31,
+        index: 0,
+      }],
+    }, {
+      guid: id40,
+      index: 3,
+      children: [{
+        guid: id41,
+        index: 0,
+      }, {
+        guid: id42,
+        index: 1,
+      }]
+    }],
+  }, {
+    guid: PlacesUtils.bookmarks.mobileGuid,
+    index: 4,
+  }], "insert folder -> move children and followers");
 
   _("Moving 41 behind 42 -> update f40");
-  f40.children = ["42", "41"];
+  f40.children = [id42, id41];
   apply(f40);
-  check(["10", "20", ["31"], ["42", "41"]]);
+  yield check([{
+    guid: PlacesUtils.bookmarks.menuGuid,
+    index: 0,
+  }, {
+    guid: PlacesUtils.bookmarks.toolbarGuid,
+    index: 1,
+  }, {
+    guid: PlacesUtils.bookmarks.unfiledGuid,
+    index: 3,
+    children: [{
+      guid: id10,
+      index: 0,
+    }, {
+      guid: id20,
+      index: 1,
+    }, {
+      guid: id30,
+      index: 2,
+      children: [{
+        guid: id31,
+        index: 0,
+      }],
+    }, {
+      guid: id40,
+      index: 3,
+      children: [{
+        guid: id42,
+        index: 0,
+      }, {
+        guid: id41,
+        index: 1,
+      }]
+    }],
+  }, {
+    guid: PlacesUtils.bookmarks.mobileGuid,
+    index: 4,
+  }], "Moving 41 behind 42 -> update f40");
 
   _("Moving 10 back to front -> update 10, 20");
-  f40.children = ["41", "42"];
+  f40.children = [id41, id42];
   apply(f40);
-  check(["10", "20", ["31"], ["41", "42"]]);
+  yield check([{
+    guid: PlacesUtils.bookmarks.menuGuid,
+    index: 0,
+  }, {
+    guid: PlacesUtils.bookmarks.toolbarGuid,
+    index: 1,
+  }, {
+    guid: PlacesUtils.bookmarks.unfiledGuid,
+    index: 3,
+    children: [{
+      guid: id10,
+      index: 0,
+    }, {
+      guid: id20,
+      index: 1,
+    }, {
+      guid: id30,
+      index: 2,
+      children: [{
+        guid: id31,
+        index: 0,
+      }],
+    }, {
+      guid: id40,
+      index: 3,
+      children: [{
+        guid: id41,
+        index: 0,
+      }, {
+        guid: id42,
+        index: 1,
+      }]
+    }],
+  }, {
+    guid: PlacesUtils.bookmarks.mobileGuid,
+    index: 4,
+  }], "Moving 10 back to front -> update 10, 20");
 
   _("Moving 20 behind 42 in f40 -> update 50");
-  apply(bookmark("20", "f40"));
-  check(["10", ["31"], ["41", "42", "20"]]);
+  apply(bookmark(id20, id40));
+  yield check([{
+    guid: PlacesUtils.bookmarks.menuGuid,
+    index: 0,
+  }, {
+    guid: PlacesUtils.bookmarks.toolbarGuid,
+    index: 1,
+  }, {
+    guid: PlacesUtils.bookmarks.unfiledGuid,
+    index: 3,
+    children: [{
+      guid: id10,
+      index: 0,
+    }, {
+      guid: id30,
+      index: 1,
+      children: [{
+        guid: id31,
+        index: 0,
+      }],
+    }, {
+      guid: id40,
+      index: 2,
+      children: [{
+        guid: id41,
+        index: 0,
+      }, {
+        guid: id42,
+        index: 1,
+      }, {
+        guid: id20,
+        index: 2,
+      }]
+    }],
+  }, {
+    guid: PlacesUtils.bookmarks.mobileGuid,
+    index: 4,
+  }], "Moving 20 behind 42 in f40 -> update 50");
 
   _("Moving 10 in front of 31 in f30 -> update 10, f30");
-  apply(bookmark("10", "f30"));
-  f30.children = ["10", "31"];
+  apply(bookmark(id10, id30));
+  f30.children = [id10, id31];
   apply(f30);
-  check([["10", "31"], ["41", "42", "20"]]);
+  yield check([{
+    guid: PlacesUtils.bookmarks.menuGuid,
+    index: 0,
+  }, {
+    guid: PlacesUtils.bookmarks.toolbarGuid,
+    index: 1,
+  }, {
+    guid: PlacesUtils.bookmarks.unfiledGuid,
+    index: 3,
+    children: [{
+      guid: id30,
+      index: 0,
+      children: [{
+        guid: id10,
+        index: 0,
+      }, {
+        guid: id31,
+        index: 1,
+      }],
+    }, {
+      guid: id40,
+      index: 1,
+      children: [{
+        guid: id41,
+        index: 0,
+      }, {
+        guid: id42,
+        index: 1,
+      }, {
+        guid: id20,
+        index: 2,
+      }]
+    }],
+  }, {
+    guid: PlacesUtils.bookmarks.mobileGuid,
+    index: 4,
+  }], "Moving 10 in front of 31 in f30 -> update 10, f30");
 
   _("Moving 20 from f40 to f30 -> update 20, f30");
-  apply(bookmark("20", "f30"));
-  f30.children = ["10", "20", "31"];
+  apply(bookmark(id20, id30));
+  f30.children = [id10, id20, id31];
   apply(f30);
-  check([["10", "20", "31"], ["41", "42"]]);
+  yield check([{
+    guid: PlacesUtils.bookmarks.menuGuid,
+    index: 0,
+  }, {
+    guid: PlacesUtils.bookmarks.toolbarGuid,
+    index: 1,
+  }, {
+    guid: PlacesUtils.bookmarks.unfiledGuid,
+    index: 3,
+    children: [{
+      guid: id30,
+      index: 0,
+      children: [{
+        guid: id10,
+        index: 0,
+      }, {
+        guid: id20,
+        index: 1,
+      }, {
+        guid: id31,
+        index: 2,
+      }],
+    }, {
+      guid: id40,
+      index: 1,
+      children: [{
+        guid: id41,
+        index: 0,
+      }, {
+        guid: id42,
+        index: 1,
+      }]
+    }],
+  }, {
+    guid: PlacesUtils.bookmarks.mobileGuid,
+    index: 4,
+  }], "Moving 20 from f40 to f30 -> update 20, f30");
 
   _("Move 20 back to front -> update 20, f30");
-  apply(bookmark("20", ""));
-  f30.children = ["10", "31"];
+  apply(bookmark(id20, ""));
+  f30.children = [id10, id31];
   apply(f30);
-  check([["10", "31"], ["41", "42"], "20"]);
+  yield check([{
+    guid: PlacesUtils.bookmarks.menuGuid,
+    index: 0,
+  }, {
+    guid: PlacesUtils.bookmarks.toolbarGuid,
+    index: 1,
+  }, {
+    guid: PlacesUtils.bookmarks.unfiledGuid,
+    index: 3,
+    children: [{
+      guid: id30,
+      index: 0,
+      children: [{
+        guid: id10,
+        index: 0,
+      }, {
+        guid: id31,
+        index: 1,
+      }],
+    }, {
+      guid: id40,
+      index: 1,
+      children: [{
+        guid: id41,
+        index: 0,
+      }, {
+        guid: id42,
+        index: 1,
+      }],
+    }, {
+      guid: id20,
+      index: 2,
+    }],
+  }, {
+    guid: PlacesUtils.bookmarks.mobileGuid,
+    index: 4,
+  }], "Move 20 back to front -> update 20, f30");
 
-}
+});

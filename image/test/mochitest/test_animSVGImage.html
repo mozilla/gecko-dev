@@ -5,10 +5,10 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=610419
 -->
 <head>
   <title>Test for Bug 610419</title>
-  <script type="application/javascript" src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
-  <script type="application/javascript" src="chrome://mochikit/content/tests/SimpleTest/WindowSnapshot.js"></script>
+  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="application/javascript" src="/tests/SimpleTest/WindowSnapshot.js"></script>
   <script type="application/javascript" src="imgutils.js"></script>
-  <link rel="stylesheet" type="text/css" href="chrome://mochikit/content/tests/SimpleTest/test.css" />
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
 <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=610419">Mozilla Bug 610419</a>
@@ -22,19 +22,22 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=610419
 <script type="application/javascript;version=1.8">
 /** Test for Bug 610419**/
 
+SimpleTest.requestFlakyTimeout("Pre-existing timeouts when converting from mochitest-chrome");
 SimpleTest.waitForExplicitFinish();
 
 const FAILURE_TIMEOUT = 120000; // Fail early after 120 seconds (2 minutes)
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
 const gImg = document.getElementsByTagName("img")[0];
 
 var gMyDecoderObserver; // value will be set in main()
 var gReferenceSnapshot; // value will be set in takeReferenceSnapshot()
-var gOnStopFrameCounter = 0;
+var gPollCounter = 0;
 var gIsTestFinished = false;
-
+var gSVGImages = [
+  "lime-anim-100x100.svg",    // SMIL animation
+  "lime-css-anim-100x100.svg" // CSS animation
+]
+var gSVGCurrentImage = 0;
 
 function takeReferenceSnapshot() {
   // Take a snapshot of the initial (essentially blank) page
@@ -54,29 +57,41 @@ function takeReferenceSnapshot() {
      "reference div should disappear when it becomes display:none");
 }
 
-function myOnStopFrame() {
-  gOnStopFrameCounter++;
-  ok(true, "myOnStopFrame called");
+function loadNextImageAndPoll()
+{
+  setTimeout(myPoll, 1);
+  // kick off image-loading! myPoll handles the rest.
+  gImg.setAttribute("src", gSVGImages[gSVGCurrentImage]);
+}
+
+function myPoll() {
+  gPollCounter++;
+  ok(true, "myPoll called");
   let currentSnapshot = snapshotWindow(window, false);
   if (compareSnapshots(currentSnapshot, gReferenceSnapshot, true)[0]) {
     // SUCCESS!
     ok(true, "Animated image looks correct, " +
-             "at call #" + gOnStopFrameCounter + " to onStopFrame");
-    cleanUpAndFinish();
+             "at call #" + gPollCounter + " to myPoll");
+
+    if (++gSVGCurrentImage > gSVGImages.length) {
+      cleanUpAndFinish();
+    } else {
+      loadNextImageAndPoll();
+    }
   }
   else
-    setTimeout(myOnStopFrame, 1);
+    setTimeout(myPoll, 1);
 }
 
 function failTest() {
   ok(false, "timing out after " + FAILURE_TIMEOUT + "ms.  " +
             "Animated image still doesn't look correct, " +
-            "after call #" + gOnStopFrameCounter + " to onStopFrame");
+            "after call #" + gPollCounter + " to myPoll");
   cleanUpAndFinish();
 }
 
 function cleanUpAndFinish() {
-  // On the off chance that failTest and myOnStopFrame are triggered
+  // On the off chance that failTest and myPoll are triggered
   // back-to-back, use a flag to prevent multiple calls to SimpleTest.finish.
   if (gIsTestFinished) {
     return;
@@ -90,12 +105,9 @@ function main() {
 
   // We want to test the cold loading behavior, so clear cache in case an
   // earlier test got our image in there already.
-  clearImageCache();
+  clearAllImageCaches();
 
-  setTimeout(myOnStopFrame, 1);
-
-  // kick off image-loading! myOnStopFrame handles the rest.
-  gImg.setAttribute("src", "lime-anim-100x100.svg");
+  loadNextImageAndPoll();
 
   // In case something goes wrong, fail earlier than mochitest timeout,
   // and with more information.

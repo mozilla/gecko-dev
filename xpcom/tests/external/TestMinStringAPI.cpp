@@ -1,4 +1,5 @@
-/* vim:set ts=2 sw=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -49,7 +50,7 @@ static bool test_basic_1()
         NS_ERROR("unexpected result");
         return false;
       }
-    NS_Free(clone);
+    free(clone);
 
     nsCStringContainer temp;
     NS_CStringContainerInit(temp);
@@ -108,7 +109,7 @@ static bool test_basic_2()
         NS_ERROR("unexpected result");
         return false;
       }
-    NS_Free(clone);
+    free(clone);
 
     nsStringContainer temp;
     NS_StringContainerInit(temp);
@@ -177,12 +178,12 @@ static void ReplaceSubstring( nsACString& str,
                               const nsACString& matchVal,
                               const nsACString& newVal )
   {
-    const char* sp, *mp, *np;
-    uint32_t sl, ml, nl;
-
-    sl = NS_CStringGetData(str, &sp);
-    ml = NS_CStringGetData(matchVal, &mp);
-    nl = NS_CStringGetData(newVal, &np);
+    const char* sp;
+    const char* mp;
+    const char* np;
+    uint32_t sl = NS_CStringGetData(str, &sp);
+    uint32_t ml = NS_CStringGetData(matchVal, &mp);
+    uint32_t nl = NS_CStringGetData(newVal, &np);
 
     for (const char* iter = sp; iter <= sp + sl - ml; ++iter)
       {
@@ -264,7 +265,7 @@ static bool test_replace()
     return true;
   }
 
-static const char* kWhitespace="\b\t\r\n ";
+static const char* kWhitespace="\f\t\r\n ";
 
 static void
 CompressWhitespace(nsACString &str)

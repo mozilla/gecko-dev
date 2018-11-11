@@ -1,16 +1,11 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/de_LI.xml
-// *
-// ***************************************************************************
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 de_LI{
     NumberElements{
         latn{
             patterns{
                 currencyFormat{"¤ #,##0.00"}
+                percentFormat{"#,##0%"}
             }
             symbols{
                 decimal{"."}
@@ -18,5 +13,17 @@ de_LI{
             }
         }
     }
-    Version{"2.0.92.87"}
+    Version{"2.1.27.40"}
+    calendar{
+        gregorian{
+            dayPeriod{
+                stand-alone{
+                    narrow{
+                        am{"vm."}
+                        pm{"nm."}
+                    }
+                }
+            }
+        }
+    }
 }

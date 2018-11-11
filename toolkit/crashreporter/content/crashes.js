@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const { classes: Cc, utils: Cu, interfaces: Ci } = Components;
+var { classes: Cc, utils: Cu, interfaces: Ci } = Components;
 
 var reportURL;
 
@@ -17,49 +17,42 @@ XPCOMUtils.defineLazyModuleGetter(this, "CrashSubmit",
 
 const buildID = Services.appinfo.appBuildID;
 
-function submitSuccess(dumpid, ret) {
-  let link = document.getElementById(dumpid);
-  if (link) {
-    link.className = "";
-    // reset the link to point at our new crash report. this way, if the
-    // user clicks "Back", the link will be correct.
-    let CrashID = ret.CrashID;
-    link.firstChild.textContent = CrashID;
-    link.setAttribute("id", CrashID);
-    link.removeEventListener("click", submitPendingReport, true);
-
-    if (reportURL) {
-      link.setAttribute("href", reportURL + CrashID);
-      // redirect the user to their brand new crash report
-      window.location.href = reportURL + CrashID;
-    }
-  }
-}
-
-function submitError(dumpid) {
-  //XXX: do something more useful here
-  let link = document.getElementById(dumpid);
-  if (link)
-    link.className = "";
-  // dispatch an event, useful for testing
-  let event = document.createEvent("Events");
-  event.initEvent("CrashSubmitFailed", true, false);
-  document.dispatchEvent(event);
-}
-
 function submitPendingReport(event) {
-  var link = event.target;
-  var id = link.firstChild.textContent;
-  if (CrashSubmit.submit(id, { submitSuccess: submitSuccess,
-                               submitError: submitError,
-                               noThrottle: true })) {
-    link.className = "submitting";
-  }
+  let link = event.target;
+  let id = link.firstChild.textContent;
+  link.className = "submitting";
+  CrashSubmit.submit(id, { noThrottle: true }).then(
+    (remoteCrashID) => {
+      link.className = "";
+      // Reset the link to point at our new crash report. This way, if the
+      // user clicks "Back", the link will be correct.
+      link.firstChild.textContent = remoteCrashID;
+      link.setAttribute("id", remoteCrashID);
+      link.removeEventListener("click", submitPendingReport, true);
+
+      if (reportURL) {
+        link.setAttribute("href", reportURL + remoteCrashID);
+        // redirect the user to their brand new crash report
+        window.location.href = reportURL + remoteCrashID;
+      }
+    },
+    () => {
+      // XXX: do something more useful here
+      link.className = "";
+
+      // Dispatch an event, useful for testing
+      let event = document.createEvent("Events");
+      event.initEvent("CrashSubmitFailed", true, false);
+      document.dispatchEvent(event);
+    });
   event.preventDefault();
   return false;
 }
 
 function populateReportList() {
+
+  Services.telemetry.getHistogramById("ABOUTCRASHES_OPENED_COUNT").add(1);
+
   var prefService = Cc["@mozilla.org/preferences-service;1"].
                     getService(Ci.nsIPrefBranch);
 
@@ -85,9 +78,14 @@ function populateReportList() {
     return;
   }
 
-  var formatter = Cc["@mozilla.org/intl/scriptabledateformat;1"].
-                  createInstance(Ci.nsIScriptableDateFormat);
-  var body = document.getElementById("tbody");
+  const locale = Cc["@mozilla.org/chrome/chrome-registry;1"]
+                 .getService(Ci.nsIXULChromeRegistry)
+                 .getSelectedLocale("global", true);
+  var dateFormatter = new Intl.DateTimeFormat(locale, { year: '2-digit',
+                                                        month: 'numeric',
+                                                        day: 'numeric' });
+  var timeFormatter = new Intl.DateTimeFormat(locale, { hour: 'numeric',
+                                                        minute: 'numeric' });
   var ios = Cc["@mozilla.org/network/io-service;1"].
             getService(Ci.nsIIOService);
   var reportURI = ios.newURI(reportURL, null, null);
@@ -107,31 +105,26 @@ function populateReportList() {
       link.setAttribute("href", reportURL + reports[i].id);
     }
     link.setAttribute("id", reports[i].id);
+    link.classList.add("crashReport");
     link.appendChild(document.createTextNode(reports[i].id));
     cell.appendChild(link);
 
     var date = new Date(reports[i].date);
     cell = document.createElement("td");
-    var datestr = formatter.FormatDate("",
-                                       Ci.nsIScriptableDateFormat.dateFormatShort,
-                                       date.getFullYear(),
-                                       date.getMonth() + 1,
-                                       date.getDate());
-    cell.appendChild(document.createTextNode(datestr));
+    cell.appendChild(document.createTextNode(dateFormatter.format(date)));
     row.appendChild(cell);
     cell = document.createElement("td");
-    var timestr = formatter.FormatTime("",
-                                       Ci.nsIScriptableDateFormat.timeFormatNoSeconds,
-                                       date.getHours(),
-                                       date.getMinutes(),
-                                       date.getSeconds());
-    cell.appendChild(document.createTextNode(timestr));
+    cell.appendChild(document.createTextNode(timeFormatter.format(date)));
     row.appendChild(cell);
-    body.appendChild(row);
+    if (reports[i].pending) {
+      document.getElementById("unsubmitted").appendChild(row);
+    } else {
+      document.getElementById("submitted").appendChild(row);
+    }
   }
 }
 
-let clearReports = Task.async(function*() {
+var clearReports = Task.async(function*() {
   let bundle = Services.strings.createBundle("chrome://global/locale/crashes.properties");
 
   if (!Services.
@@ -149,7 +142,10 @@ let clearReports = Task.async(function*() {
           yield OS.File.remove(aEntry.path);
         }
       }));
-    } catch (e if e instanceof OS.File.Error && e.becauseNoSuchFile) {
+    } catch (e) {
+      if (!(e instanceof OS.File.Error) || !e.becauseNoSuchFile) {
+        throw e;
+      }
     } finally {
       iterator.close();
     }

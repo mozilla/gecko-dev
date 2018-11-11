@@ -16,8 +16,18 @@
 #include "nsIStringBundle.h"
 #include "nsIStandardURL.h"
 #include "nsMimeTypes.h"
+#include "nsNetCID.h"
 #include "nsNetUtil.h"
+#include "nsServiceManagerUtils.h"
+#include "nsIURI.h"
+#include "nsIAuthPrompt.h"
+#include "nsIChannel.h"
+#include "nsIInputStream.h"
+#include "nsIProtocolHandler.h"
+#include "nsNullPrincipal.h"
 #include "mozilla/Monitor.h"
+#include "plstr.h"
+#include "prtime.h"
 #include <gio/gio.h>
 #include <algorithm>
 
@@ -27,12 +37,8 @@
 //-----------------------------------------------------------------------------
 
 // NSPR_LOG_MODULES=gio:5
-#ifdef PR_LOGGING
-static PRLogModuleInfo *sGIOLog;
-#define LOG(args) PR_LOG(sGIOLog, PR_LOG_DEBUG, args)
-#else
-#define LOG(args)
-#endif
+static mozilla::LazyLogModule sGIOLog("gio");
+#define LOG(args) MOZ_LOG(sGIOLog, mozilla::LogLevel::Debug, args)
 
 
 //-----------------------------------------------------------------------------
@@ -135,13 +141,15 @@ static void mount_operation_ask_password (GMountOperation   *mount_op,
                                           gpointer          user_data);
 //-----------------------------------------------------------------------------
 
-class nsGIOInputStream MOZ_FINAL : public nsIInputStream
+class nsGIOInputStream final : public nsIInputStream
 {
+   ~nsGIOInputStream() { Close(); }
+
   public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSIINPUTSTREAM
 
-    nsGIOInputStream(const nsCString &uriSpec)
+    explicit nsGIOInputStream(const nsCString &uriSpec)
       : mSpec(uriSpec)
       , mChannel(nullptr)
       , mHandle(nullptr)
@@ -153,8 +161,6 @@ class nsGIOInputStream MOZ_FINAL : public nsIInputStream
       , mDirBufCursor(0)
       , mDirOpen(false)
       , mMonitorMountInProgress("GIOInputStream::MountFinished") { }
-
-   ~nsGIOInputStream() { Close(); }
 
     void SetChannel(nsIChannel *channel)
     {
@@ -536,7 +542,7 @@ nsGIOInputStream::DoRead(char *aBuf, uint32_t aCount, uint32_t *aCountRead)
 /**
  * This class is used to implement SetContentTypeOfChannel.
  */
-class nsGIOSetContentTypeEvent : public nsRunnable
+class nsGIOSetContentTypeEvent : public mozilla::Runnable
 {
   public:
     nsGIOSetContentTypeEvent(nsIChannel *channel, const char *contentType)
@@ -546,7 +552,7 @@ class nsGIOSetContentTypeEvent : public nsRunnable
       // in SetContentTypeOfchannel.
     }
 
-    NS_IMETHOD Run()
+    NS_IMETHOD Run() override
     {
       mChannel->SetContentType(mContentType);
       return NS_OK;
@@ -609,17 +615,10 @@ nsGIOInputStream::Close()
     mDirListPtr = nullptr;
   }
 
-  if (mChannel)
-  {
-    nsresult rv = NS_OK;
+  if (mChannel) {
+    NS_ReleaseOnMainThread(dont_AddRef(mChannel));
 
-    nsCOMPtr<nsIThread> thread = do_GetMainThread();
-    if (thread)
-      rv = NS_ProxyRelease(thread, mChannel);
-
-    NS_ASSERTION(thread && NS_SUCCEEDED(rv), "leaking channel reference");
     mChannel = nullptr;
-    (void) rv;
   }
 
   mSpec.Truncate(); // free memory
@@ -827,17 +826,17 @@ mount_operation_ask_password (GMountOperation   *mount_op,
     if (flags & G_ASK_PASSWORD_NEED_USERNAME) {
       if (!realm.IsEmpty()) {
         const char16_t *strings[] = { realm.get(), dispHost.get() };
-        bundle->FormatStringFromName(MOZ_UTF16("EnterLoginForRealm"),
+        bundle->FormatStringFromName(u"EnterLoginForRealm3",
                                      strings, 2, getter_Copies(nsmessage));
       } else {
         const char16_t *strings[] = { dispHost.get() };
-        bundle->FormatStringFromName(MOZ_UTF16("EnterUserPasswordFor"),
+        bundle->FormatStringFromName(u"EnterUserPasswordFor2",
                                      strings, 1, getter_Copies(nsmessage));
       }
     } else {
       NS_ConvertUTF8toUTF16 userName(default_user);
       const char16_t *strings[] = { userName.get(), dispHost.get() };
-      bundle->FormatStringFromName(MOZ_UTF16("EnterPasswordFor"),
+      bundle->FormatStringFromName(u"EnterPasswordFor",
                                    strings, 2, getter_Copies(nsmessage));
     }
   } else {
@@ -869,20 +868,22 @@ mount_operation_ask_password (GMountOperation   *mount_op,
   }
   if (NS_FAILED(rv) || !retval) {  //  was || user == '\0' || pass == '\0'
     g_mount_operation_reply(mount_op, G_MOUNT_OPERATION_ABORTED);
+    free(user);
+    free(pass);
     return;
   }
   /* GIO should accept UTF8 */
   g_mount_operation_set_username(mount_op, NS_ConvertUTF16toUTF8(user).get());
   g_mount_operation_set_password(mount_op, NS_ConvertUTF16toUTF8(pass).get());
-  nsMemory::Free(user);
-  nsMemory::Free(pass);
+  free(user);
+  free(pass);
   g_mount_operation_reply(mount_op, G_MOUNT_OPERATION_HANDLED);
 }
 
 //-----------------------------------------------------------------------------
 
-class nsGIOProtocolHandler MOZ_FINAL : public nsIProtocolHandler
-                                     , public nsIObserver
+class nsGIOProtocolHandler final : public nsIProtocolHandler
+                                 , public nsIObserver
 {
   public:
     NS_DECL_ISUPPORTS
@@ -892,6 +893,8 @@ class nsGIOProtocolHandler MOZ_FINAL : public nsIProtocolHandler
     nsresult Init();
 
   private:
+    ~nsGIOProtocolHandler() {}
+
     void InitSupportedProtocolsPref(nsIPrefBranch *prefs);
     bool IsSupportedProtocol(const nsCString &spec);
 
@@ -903,10 +906,6 @@ NS_IMPL_ISUPPORTS(nsGIOProtocolHandler, nsIProtocolHandler, nsIObserver)
 nsresult
 nsGIOProtocolHandler::Init()
 {
-#ifdef PR_LOGGING
-  sGIOLog = PR_NewLogModule("gio");
-#endif
-
   nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
   if (prefs)
   {
@@ -1043,7 +1042,9 @@ nsGIOProtocolHandler::NewURI(const nsACString &aSpec,
 }
 
 NS_IMETHODIMP
-nsGIOProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **aResult)
+nsGIOProtocolHandler::NewChannel2(nsIURI* aURI,
+                                  nsILoadInfo* aLoadInfo,
+                                  nsIChannel** aResult)
 {
   NS_ENSURE_ARG_POINTER(aURI);
   nsresult rv;
@@ -1053,23 +1054,27 @@ nsGIOProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **aResult)
   if (NS_FAILED(rv))
     return rv;
 
-  nsRefPtr<nsGIOInputStream> stream = new nsGIOInputStream(spec);
-  if (!stream)
-  {
-    rv = NS_ERROR_OUT_OF_MEMORY;
+  RefPtr<nsGIOInputStream> stream = new nsGIOInputStream(spec);
+  if (!stream) {
+    return NS_ERROR_OUT_OF_MEMORY;
   }
-  else
-  {
-    // start out assuming an unknown content-type.  we'll set the content-type
-    // to something better once we open the URI.
-    rv = NS_NewInputStreamChannel(aResult,
-                                  aURI,
-                                  stream,
-                                  NS_LITERAL_CSTRING(UNKNOWN_CONTENT_TYPE));
-    if (NS_SUCCEEDED(rv))
-      stream->SetChannel(*aResult);
+
+  rv = NS_NewInputStreamChannelInternal(aResult,
+                                        aURI,
+                                        stream,
+                                        NS_LITERAL_CSTRING(UNKNOWN_CONTENT_TYPE),
+                                        EmptyCString(), // aContentCharset
+                                        aLoadInfo);
+  if (NS_SUCCEEDED(rv)) {
+    stream->SetChannel(*aResult);
   }
   return rv;
+}
+
+NS_IMETHODIMP
+nsGIOProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **aResult)
+{
+    return NewChannel2(aURI, nullptr, aResult);
 }
 
 NS_IMETHODIMP

@@ -7,27 +7,27 @@ module.metadata = {
   'stability': 'experimental'
 };
 
-let { Ci } = require('chrome');
-let subprocess = require('./child_process/subprocess');
-let { EventTarget } = require('../event/target');
-let { Stream } = require('../io/stream');
-let { on, emit, off } = require('../event/core');
-let { Class } = require('../core/heritage');
-let { platform } = require('../system');
-let { isFunction, isArray } = require('../lang/type');
-let { delay } = require('../lang/functional');
-let { merge } = require('../util/object');
-let { setTimeout, clearTimeout } = require('../timers');
-let isWindows = platform.indexOf('win') === 0;
+var { Ci } = require('chrome');
+var subprocess = require('./child_process/subprocess');
+var { EventTarget } = require('../event/target');
+var { Stream } = require('../io/stream');
+var { on, emit, off } = require('../event/core');
+var { Class } = require('../core/heritage');
+var { platform } = require('../system');
+var { isFunction, isArray } = require('../lang/type');
+var { delay } = require('../lang/functional');
+var { merge } = require('../util/object');
+var { setTimeout, clearTimeout } = require('../timers');
+var isWindows = platform.indexOf('win') === 0;
 
-let processes = WeakMap();
+var processes = new WeakMap();
 
 
 /**
  * The `Child` class wraps a subprocess command, exposes
  * the stdio streams, and methods to manipulate the subprocess
  */
-let Child = Class({
+var Child = Class({
   implements: [EventTarget],
   initialize: function initialize (options) {
     let child = this;
@@ -61,7 +61,10 @@ let Child = Class({
             stream.write(data);
           }
         },
-        done: function (result) {
+        done: function (result, error) {
+          if (error)
+            return handleError(error);
+
           // Only emit if child is not killed; otherwise,
           // the `kill` method will handle this
           if (!child.killed) {
@@ -170,7 +173,7 @@ function exec (cmd, ...args) {
 
   if (isWindows) {
     file = 'C:\\Windows\\System32\\cmd.exe';
-    cmdArgs = ['/s', '/c', (cmd || '').split(' ')];
+    cmdArgs = ['/S/C', cmd || ''];
   }
   else {
     file = '/bin/sh';
@@ -195,7 +198,7 @@ function execFile (file, ...args) {
     env: null,
     encoding: 'utf8',
     timeout: 0,
-    maxBuffer: 200 * 1024,
+    maxBuffer: 204800,    //200 KB (200*1024 bytes)
     killSignal: 'SIGTERM'
   };
 

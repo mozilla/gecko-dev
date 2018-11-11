@@ -1,96 +1,107 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 if CONFIG['MOZ_ENABLE_PROFILER_SPS']:
-    FAIL_ON_WARNINGS = True
-
     XPIDL_MODULE = 'profiler'
     XPIDL_SOURCES += [
-        'nsIProfiler.idl',
-        'nsIProfileSaveEvent.idl',
+        'gecko/nsIProfiler.idl',
+        'gecko/nsIProfileSaveEvent.idl',
     ]
     EXPORTS += [
-        'GeckoProfilerFunc.h',
-        'GeckoProfilerImpl.h',
-        'ProfilerMarkers.h',
-        'PseudoStack.h',
-        'shared-libraries.h',
+        'public/GeckoProfilerFunc.h',
+        'public/GeckoProfilerImpl.h',
+        'public/ProfilerBacktrace.h',
+        'public/ProfilerMarkers.h',
+        'public/PseudoStack.h',
+        'public/shared-libraries.h',
     ]
-    EXTRA_JS_MODULES = [
-        'Profiler.jsm',
+    EXPORTS.mozilla += [
+        'public/ProfileGatherer.h',
+    ]
+    EXTRA_JS_MODULES += [
+        'gecko/Profiler.jsm',
     ]
     UNIFIED_SOURCES += [
-        'BreakpadSampler.cpp',
-        'JSStreamWriter.cpp',
-        'nsProfiler.cpp',
-        'nsProfilerFactory.cpp',
-        'platform.cpp',
-        'ProfileEntry.cpp',
-        'ProfilerBacktrace.cpp',
-        'ProfilerIOInterposeObserver.cpp',
-        'ProfilerMarkers.cpp',
-        'SaveProfileTask.cpp',
-        'SyncProfile.cpp',
-        'TableTicker.cpp',
-        'ThreadResponsiveness.cpp',
-        'UnwinderThread2.cpp',
-    ]
-
-    # This file cannot be built in unified mode because of name clashes with mozglue headers on Android.
-    SOURCES += [
-        'local_debug_info_symbolizer.cc',
+        'core/GeckoSampler.cpp',
+        'core/platform.cpp',
+        'core/ProfileBuffer.cpp',
+        'core/ProfileEntry.cpp',
+        'core/ProfileJSONWriter.cpp',
+        'core/ProfilerBacktrace.cpp',
+        'core/ProfilerMarkers.cpp',
+        'core/StackTop.cpp',
+        'core/SyncProfile.cpp',
+        'core/ThreadInfo.cpp',
+        'core/ThreadProfile.cpp',
+        'gecko/nsProfiler.cpp',
+        'gecko/nsProfilerFactory.cpp',
+        'gecko/nsProfilerStartParams.cpp',
+        'gecko/ProfileGatherer.cpp',
+        'gecko/ProfilerIOInterposeObserver.cpp',
+        'gecko/SaveProfileTask.cpp',
+        'gecko/ThreadResponsiveness.cpp',
     ]
 
     if CONFIG['OS_TARGET'] in ('Android', 'Linux'):
         UNIFIED_SOURCES += [
-            'AutoObjectMapper.cpp',
-            'LulCommon.cpp',
-            'LulDwarf.cpp',
-            'LulDwarfSummariser.cpp',
-            'LulElf.cpp',
-            'LulMain.cpp',
-            'LulRWLock.cpp',
+            'lul/AutoObjectMapper.cpp',
+            'lul/LulCommon.cpp',
+            'lul/LulDwarf.cpp',
+            'lul/LulDwarfSummariser.cpp',
+            'lul/LulElf.cpp',
+            'lul/LulMain.cpp',
+            'lul/platform-linux-lul.cpp',
         ]
         # These files cannot be built in unified mode because of name clashes with mozglue headers on Android.
         SOURCES += [
-            'platform-linux.cc',
-            'shared-libraries-linux.cc',
+            'core/platform-linux.cc',
+            'core/shared-libraries-linux.cc',
         ]
-        if CONFIG['CPU_ARCH'] == 'arm':
-            UNIFIED_SOURCES += [
-                'LulExidx.cpp',
-            ]
+        if not CONFIG['MOZ_CRASHREPORTER']:
             SOURCES += [
-                'EHABIStackWalk.cpp',
+                '/toolkit/crashreporter/google-breakpad/src/common/linux/elfutils.cc',
+                '/toolkit/crashreporter/google-breakpad/src/common/linux/file_id.cc',
+                '/toolkit/crashreporter/google-breakpad/src/common/linux/guid_creator.cc',
+                '/toolkit/crashreporter/google-breakpad/src/common/linux/linux_libc_support.cc',
+                '/toolkit/crashreporter/google-breakpad/src/common/linux/memory_mapped_file.cc',
+            ]
+        if CONFIG['CPU_ARCH'] == 'arm':
+            SOURCES += [
+                'core/EHABIStackWalk.cpp',
             ]
     elif CONFIG['OS_TARGET'] == 'Darwin':
         UNIFIED_SOURCES += [
-            'platform-macos.cc',
-            'shared-libraries-macos.cc',
-            'shim_mac_dump_syms.mm',
+            'core/platform-macos.cc',
+            'core/shared-libraries-macos.cc',
         ]
     elif CONFIG['OS_TARGET'] == 'WINNT':
         SOURCES += [
-            'IntelPowerGadget.cpp',
-            'platform-win32.cc',
-            'shared-libraries-win32.cc',
+            'core/IntelPowerGadget.cpp',
+            'core/platform-win32.cc',
+            'core/shared-libraries-win32.cc',
         ]
 
     LOCAL_INCLUDES += [
+        '/docshell/base',
         '/ipc/chromium/src',
         '/mozglue/linker',
         '/toolkit/crashreporter/google-breakpad/src',
+        '/tools/profiler/core/',
+        '/tools/profiler/gecko/',
         '/xpcom/base',
     ]
 
-    # We need access to Breakpad's getcontext(3) which is suitable for Android
     if CONFIG['OS_TARGET'] == 'Android':
         LOCAL_INCLUDES += [
+            # We need access to Breakpad's getcontext(3) which is suitable for Android
             '/toolkit/crashreporter/google-breakpad/src/common/android/include',
         ]
+
+    if not CONFIG['MOZ_CRASHREPORTER'] and CONFIG['OS_TARGET'] == 'Android':
+        SOURCES += ['/toolkit/crashreporter/google-breakpad/src/common/android/breakpad_getcontext.S']
 
     if CONFIG['ANDROID_CPU_ARCH'] == 'armeabi':
         DEFINES['ARCH_ARMV6'] = True
@@ -98,24 +109,39 @@ if CONFIG['MOZ_ENABLE_PROFILER_SPS']:
     if CONFIG['ENABLE_TESTS']:
         DIRS += ['tests/gtest']
 
-    if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and CONFIG['ANDROID_VERSION'] <= '17':
+    if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and (CONFIG['ANDROID_VERSION'] <= '17' or CONFIG['ANDROID_VERSION'] >= '21'):
         DEFINES['ELFSIZE'] = 32
 
     FINAL_LIBRARY = 'xul'
 
+IPDL_SOURCES += [
+    'gecko/ProfilerTypes.ipdlh',
+]
+
+include('/ipc/chromium/chromium-config.mozbuild')
+
 EXPORTS += [
-    'GeckoProfiler.h',
+    'public/GeckoProfiler.h',
 ]
 
 if CONFIG['MOZ_TASK_TRACER']:
     EXPORTS += [
-        'GeckoTaskTracer.h',
-        'GeckoTaskTracerImpl.h',
-        'TracedTaskCommon.h',
+        'tasktracer/GeckoTaskTracer.h',
+        'tasktracer/GeckoTaskTracerImpl.h',
+        'tasktracer/TracedTaskCommon.h',
     ]
     UNIFIED_SOURCES += [
-        'GeckoTaskTracer.cpp',
-        'TracedTaskCommon.cpp',
+        'tasktracer/GeckoTaskTracer.cpp',
+        'tasktracer/TracedTaskCommon.cpp',
     ]
 
 XPCSHELL_TESTS_MANIFESTS += ['tests/xpcshell.ini']
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += [
+        '-Wno-error=shadow',
+        '-Wno-ignored-qualifiers', # due to use of breakpad headers
+    ]
+
+with Files('**'):
+    BUG_COMPONENT = ('Core', 'Gecko Profiler')

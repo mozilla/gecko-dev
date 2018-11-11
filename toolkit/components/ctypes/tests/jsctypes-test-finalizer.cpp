@@ -3,10 +3,6 @@
 #include "jsctypes-test.h"
 #include "jsctypes-test-finalizer.h"
 
-#if defined(XP_WIN)
-#define snprintf _snprintf
-#endif // defined(XP_WIN)
-
 /**
  * Shared infrastructure
  */
@@ -325,4 +321,3 @@ reset_errno()
 {
   errno = 0;
 }
-

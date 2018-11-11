@@ -9,90 +9,37 @@
 #ifndef mtransport_test_utils_h__
 #define mtransport_test_utils_h__
 
-#include <iostream>
-
-#include "nspr.h"
 #include "nsCOMPtr.h"
 #include "nsNetCID.h"
-#include "nsXPCOMGlue.h"
-#include "nsXPCOM.h"
 
-#include "nsIComponentManager.h"
-#include "nsIComponentRegistrar.h"
-#include "nsNetUtil.h"
-#include "nsIIOService.h"
-#include "nsIServiceManager.h"
-#include "nsISocketTransportService.h"
-#include "nsDirectoryServiceUtils.h"
-#include "nsDirectoryServiceDefs.h"
-#ifdef MOZ_CRASHREPORTER
-#include "nsICrashReporter.h"
-#endif
+#include "nsIEventTarget.h"
 #include "nsPISocketTransportService.h"
 #include "nsServiceManagerUtils.h"
-#include "TestHarness.h"
 
 class MtransportTestUtils {
  public:
-  MtransportTestUtils() : xpcom_("") {
-    if (!sts_) {
+  MtransportTestUtils() {
       InitServices();
-    }
   }
 
   ~MtransportTestUtils() {
-    sts_->Shutdown();
   }
 
   void InitServices() {
     nsresult rv;
-    ioservice_ = do_GetIOService(&rv);
-    MOZ_ASSERT(NS_SUCCEEDED(rv));
     sts_target_ = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
     sts_ = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
-
-#ifdef MOZ_CRASHREPORTER
-    char *crashreporter = PR_GetEnv("MOZ_CRASHREPORTER");
-    if (crashreporter && !strcmp(crashreporter, "1")) {
-      //TODO: move this to an even-more-common location to use in all
-      // C++ unittests
-      crashreporter_ = do_GetService("@mozilla.org/toolkit/crash-reporter;1");
-      if (crashreporter_) {
-        std::cerr << "Setting up crash reporting" << std::endl;
-
-        nsCOMPtr<nsIProperties> dirsvc =
-            do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID);
-        nsCOMPtr<nsIFile> cwd;
-        rv = dirsvc->Get(NS_OS_CURRENT_WORKING_DIR,
-                         NS_GET_IID(nsIFile),
-                         getter_AddRefs(cwd));
-        MOZ_ASSERT(NS_SUCCEEDED(rv));
-        crashreporter_->SetEnabled(true);
-        crashreporter_->SetMinidumpPath(cwd);
-      }
-    }
-#endif
   }
 
-  nsCOMPtr<nsIEventTarget> sts_target() { return sts_target_; }
+  nsIEventTarget* sts_target() { return sts_target_; }
 
  private:
-  ScopedXPCOM xpcom_;
-  nsCOMPtr<nsIIOService> ioservice_;
   nsCOMPtr<nsIEventTarget> sts_target_;
   nsCOMPtr<nsPISocketTransportService> sts_;
-#ifdef MOZ_CRASHREPORTER
-  nsCOMPtr<nsICrashReporter> crashreporter_;
-#endif
 };
 
-
-MtransportTestUtils *mtransport_test_utils;
-
-#define SETUP_MTRANSPORT_TEST_UTILS() \
-  MtransportTestUtils utils_; mtransport_test_utils = &utils_
 
 #define CHECK_ENVIRONMENT_FLAG(envname) \
   char *test_flag = getenv(envname); \
@@ -103,4 +50,3 @@ MtransportTestUtils *mtransport_test_utils;
 
 
 #endif
-

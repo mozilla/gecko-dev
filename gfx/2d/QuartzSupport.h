@@ -20,7 +20,6 @@
 CGColorSpaceRef CreateSystemColorSpace();
 
 // Manages a CARenderer
-struct _CGLPBufferObject;
 struct _CGLContextObject;
 
 enum AllowOfflineRendererEnum { ALLOW_OFFLINE_RENDERER, DISALLOW_OFFLINE_RENDERER };
@@ -85,7 +84,7 @@ private:
   _CGLContextObject        *mOpenGLContext;
   CGImageRef                mCGImage;
   void                     *mCGData;
-  mozilla::RefPtr<MacIOSurface> mIOSurface;
+  RefPtr<MacIOSurface> mIOSurface;
   uint32_t                  mFBO;
   uint32_t                  mIOTexture;
   int                       mUnsupportedWidth;

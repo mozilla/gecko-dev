@@ -24,8 +24,8 @@
 #include <media/stagefright/MediaExtractor.h>
 #include <media/stagefright/Utils.h>
 #include <utils/List.h>
-#include <utils/Vector.h>
 #include <utils/String8.h>
+#include "nsTArray.h"
 
 namespace stagefright {
 
@@ -41,18 +41,17 @@ struct SidxEntry {
 
 class MPEG4Extractor : public MediaExtractor {
 public:
-    // Extractor assumes ownership of "source".
     MPEG4Extractor(const sp<DataSource> &source);
 
-    virtual size_t countTracks();
-    virtual sp<MediaSource> getTrack(size_t index);
-    virtual sp<MetaData> getTrackMetaData(size_t index, uint32_t flags);
+    size_t countTracks() override;
+    sp<MediaSource> getTrack(size_t index) override;
+    sp<MetaData> getTrackMetaData(size_t index, uint32_t flags) override;
 
-    virtual sp<MetaData> getMetaData();
-    virtual uint32_t flags() const;
+    sp<MetaData> getMetaData() override;
+    uint32_t flags() const override;
 
     // for DRM
-    virtual char* getDrmTrackInfo(size_t trackID, int *len);
+    char* getDrmTrackInfo(size_t trackID, int *len) override;
 
 protected:
     virtual ~MPEG4Extractor();
@@ -68,16 +67,21 @@ private:
         Track *next;
         sp<MetaData> meta;
         uint32_t timescale;
+        // Temporary storage for elst until we've
+        // parsed mdhd and can interpret them.
+        uint64_t empty_duration;
+        uint64_t segment_duration;
+        int64_t media_time;
+
         sp<SampleTable> sampleTable;
         bool includes_expensive_metadata;
         bool skipTrack;
     };
 
-    Vector<SidxEntry> mSidxEntries;
+    nsTArray<SidxEntry> mSidxEntries;
     uint64_t mSidxDuration;
-    off64_t mMoofOffset;
 
-    Vector<PsshInfo> mPssh;
+    nsTArray<PsshInfo> mPssh;
 
     sp<DataSource> mDataSource;
     status_t mInitCheck;
@@ -88,7 +92,7 @@ private:
 
     sp<MetaData> mFileMetaData;
 
-    Vector<uint32_t> mPath;
+    nsTArray<uint32_t> mPath;
     String8 mLastCommentMean;
     String8 mLastCommentName;
     String8 mLastCommentData;
@@ -113,21 +117,19 @@ private:
     SINF *mFirstSINF;
 
     bool mIsDrm;
+    uint32_t mDrmScheme;
+
     status_t parseDrmSINF(off64_t *offset, off64_t data_offset);
 
     status_t parseTrackHeader(off64_t data_offset, off64_t data_size);
 
     status_t parseSegmentIndex(off64_t data_offset, size_t data_size);
 
-    Track *findTrackByMimePrefix(const char *mimePrefix);
+    void storeEditList();
 
     MPEG4Extractor(const MPEG4Extractor &);
     MPEG4Extractor &operator=(const MPEG4Extractor &);
 };
-
-bool SniffMPEG4(
-        const sp<DataSource> &source, String8 *mimeType, float *confidence,
-        sp<AMessage> *);
 
 }  // namespace stagefright
 

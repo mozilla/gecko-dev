@@ -1,4 +1,5 @@
-/* vim:set ts=2 sw=2 sts=2 et: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
@@ -79,7 +80,8 @@ TEST(ReadSysFile, Main) {
   /* If we have a file which contains "abcd" and we read it with ReadSysFile(),
   providing a buffer of size 10 bytes, we would expect 5 bytes to be written
   to that buffer: "abcd\0". */
-  struct {
+  struct
+  {
     /* input (file contents), e.g. "abcd" */
     const char* input;
     /* pretended output buffer size, e.g. 10; the actual buffer is larger
@@ -188,7 +190,8 @@ TEST(ReadSysFile, Main) {
 
 TEST(ReadSysFile, Int) {
   static const char* fn = "TestReadSysFileInt";
-  struct {
+  struct
+  {
     /* input (file contents), e.g. "5" */
     const char* input;
     /* expected return value, if false, then the output is not checked */
@@ -237,7 +240,8 @@ TEST(ReadSysFile, Int) {
 
 TEST(ReadSysFile, Bool) {
   static const char* fn = "TestReadSysFileBool";
-  struct {
+  struct
+  {
     /* input (file contents), e.g. "1" */
     const char* input;
     /* expected return value */
@@ -276,4 +280,4 @@ TEST(ReadSysFile, Bool) {
 
 #endif /* ReadSysFile_PRESENT */
 
-}
+} // namespace mozilla

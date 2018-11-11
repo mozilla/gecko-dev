@@ -28,36 +28,10 @@ static nsMemoryImpl sGlobalMemory;
 
 NS_IMPL_QUERY_INTERFACE(nsMemoryImpl, nsIMemory)
 
-NS_IMETHODIMP_(void*)
-nsMemoryImpl::Alloc(size_t aSize)
-{
-  return NS_Alloc(aSize);
-}
-
-NS_IMETHODIMP_(void*)
-nsMemoryImpl::Realloc(void* aPtr, size_t aSize)
-{
-  return NS_Realloc(aPtr, aSize);
-}
-
-NS_IMETHODIMP_(void)
-nsMemoryImpl::Free(void* aPtr)
-{
-  NS_Free(aPtr);
-}
-
 NS_IMETHODIMP
 nsMemoryImpl::HeapMinimize(bool aImmediate)
 {
-  return FlushMemory(MOZ_UTF16("heap-minimize"), aImmediate);
-}
-
-NS_IMETHODIMP
-nsMemoryImpl::IsLowMemory(bool* aResult)
-{
-  NS_ERROR("IsLowMemory is deprecated.  See bug 592308.");
-  *aResult = false;
-  return NS_OK;
+  return FlushMemory(u"heap-minimize", aImmediate);
 }
 
 NS_IMETHODIMP
@@ -202,24 +176,6 @@ nsMemoryImpl::sLastFlushTime = 0;
 
 nsMemoryImpl::FlushEvent
 nsMemoryImpl::sFlushEvent;
-
-XPCOM_API(void*)
-NS_Alloc(size_t aSize)
-{
-  return moz_xmalloc(aSize);
-}
-
-XPCOM_API(void*)
-NS_Realloc(void* aPtr, size_t aSize)
-{
-  return moz_xrealloc(aPtr, aSize);
-}
-
-XPCOM_API(void)
-NS_Free(void* aPtr)
-{
-  moz_free(aPtr);
-}
 
 nsresult
 NS_GetMemoryManager(nsIMemory** aResult)

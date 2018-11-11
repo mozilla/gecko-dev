@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,6 +19,23 @@ var _fromByTestLists =
                            { fromComp: "rgb(50, 50, 50)",
                              midComp:  "rgb(65, 60, 55)",
                              toComp:   "rgb(80, 70, 60)"}),
+    new AnimTestcaseFromBy("rgba(10, 20, 30, 0.2)", "rgba(50, 50, 50, 1)",
+                             // (rgb(10, 20, 30) * 0.2 * 0.5 + rgb(52, 54, 56) * 1.0 * 0.5) * (1 / 0.6)
+                           { midComp: "rgba(45, 48, 52, 0.6)",
+                             // (rgb(10, 20, 30) * 0.2 + rgb(50, 50, 50) * 1) / 1.0
+                             toComp:  "rgb(52, 54, 56)"}),
+    // Note: technically, the "from" and "by" values in the test case below
+    // would overflow the maxium color-channel values when added together.
+    // (e.g. for red [ignoring alpha for now], 100 + 240 = 340 which is > 255)
+    // The SVG Animation spec says we should clamp color values "as late as
+    // possible," i.e. allow the channel overflow and clamp at paint-time.
+    // But for now, we instead clamp the implicit "to" value for the animation
+    // and interpolate up to that clamped result.
+    new AnimTestcaseFromBy("rgba(100, 100, 100, 0.6)", "rgba(240, 240, 240, 1)",
+                             // (rgb(100, 100, 100) * 0.6 * 0.5 + rgb(255, 255, 255) * 1.0 * 0.5) * (1 / 0.8)
+                           { midComp: "rgba(197, 197, 197, 0.8)",
+                             // (rgb(100, 100, 100) * 0.6 + rgb(240, 240, 240) is overflowed
+                             toComp:  "rgb(255, 255, 255)"}),
   ],
   lengthNoUnits: [
     new AnimTestcaseFromBy("0", "50",  { fromComp: "0px", // 0 acts like 0px
@@ -41,6 +58,14 @@ var _fromByTestLists =
                                            midComp: "4px",
                                            toComp: "8px"}),
     new AnimTestcaseFromBy("1px", "10px", { midComp: "6px", toComp: "11px"}),
+  ],
+  lengthPxSVG: [
+    new AnimTestcaseFromBy("0px", "8px", { fromComp: "0",
+                                           midComp: "4",
+                                           toComp: "8"}),
+    new AnimTestcaseFromBy("1px", "10px", { fromComp: "1",
+                                            midComp: "6",
+                                            toComp: "11"}),
   ],
   opacity: [
     new AnimTestcaseFromBy("1", "-1", { midComp: "0.5", toComp: "0"}),
@@ -137,5 +162,5 @@ var gFromByBundles =
   ]),
   new TestcaseBundle(gPropList.stroke_width,
                      [].concat(_fromByTestLists.lengthNoUnitsSVG,
-                               _fromByTestLists.lengthPx))
+                               _fromByTestLists.lengthPxSVG))
 ];

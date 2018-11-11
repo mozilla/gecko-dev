@@ -45,22 +45,17 @@
 
     <!-- ActionBar -->
     <style name="ActionBar" parent="android:style/Widget.Holo.ActionBar" />
- 
-    <!-- GeckoPreferences ActionBar -->
-    <style name="ActionBar.GeckoPreferences">
-         <item name="android:displayOptions">showHome|homeAsUp|showTitle</item>
-    </style>
- 
-    <!-- TabsTray ActionBar -->
-    <style name="ActionBar.TabsTray">
+
+    <!-- TabsLayout ActionBar -->
+    <style name="ActionBar.TabsLayout">
          <item name="android:visibility">gone</item>
     </style>
 
     <!-- DropDown List View -->
     <style name="DropDownListView" parent="@android:style/Widget.Holo.ListView.DropDown">
          <item name="android:listSelector">@drawable/action_bar_button</item>
-         <item name="android:divider">#FFD1D5DA</item>
-         <item name="android:dividerHeight">1dp</item>
+         <item name="android:divider">@color/toolbar_divider_grey</item>
+         <item name="android:dividerHeight">@dimen/page_row_divider_height</item>
     </style>
 
     <!-- Spinner DropDown Item -->
@@ -76,15 +71,17 @@
         <item name="android:textColor">#FF000000</item>
     </style>
 
-    <style name="GeckoActionBar" parent="@android:style/Widget.Holo.Light.ActionMode">
-        <item name="android:background">@drawable/ab_stacked_transparent_light_holo</item>
-    </style>
+    <style name="TextAppearance.Widget.ActionBar.Title" parent="@android:style/TextAppearance.Medium"/>
 
-    <style name="GeckoActionBar.Title" parent="@android:style/TextAppearance.Holo.Widget.ActionBar.Title">
+    <style name="GeckoActionBar.Title" parent="TextAppearance.Widget.ActionBar.Title">
         <item name="android:drawableLeft">@drawable/ab_done</item>
         <item name="android:background">@android:color/transparent</item>
         <item name="android:paddingLeft">15dp</item>
         <item name="android:paddingRight">15dp</item>
+        <!-- gravity and minWidth are added here to more resemble our values/styles.xml
+             counterpart. This is solely to correct bug 1233709 -->
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:minWidth">0dp</item>
     </style>
 
     <style name="GeckoActionBar.Button" parent="android:style/Widget.Holo.Light.ActionButton">
@@ -95,9 +92,12 @@
     </style>
 
     <style name="GeckoActionBar.Button.MenuButton" parent="android:style/Widget.Holo.Light.ActionButton.Overflow">
-        <item name="android:scaleType">center</item>
+        <item name="android:scaleType">centerInside</item>
         <item name="android:background">@android:color/transparent</item>
-        <item name="android:src">@drawable/menu_light</item>
+        <item name="android:src">@drawable/menu</item>
+        <item name="android:tint">@color/toolbar_icon_grey</item>
+        <item name="android:layout_marginTop">16dp</item>
+        <item name="android:layout_marginBottom">16dp</item>
     </style>
 
     <style name="TabInput"></style>

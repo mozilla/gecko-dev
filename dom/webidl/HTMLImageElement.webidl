@@ -14,7 +14,6 @@
 interface imgINotificationObserver;
 interface imgIRequest;
 interface URI;
-interface MozChannel;
 interface nsIStreamListener;
 
 [NamedConstructor=Image(optional unsigned long width, optional unsigned long height)]
@@ -23,12 +22,14 @@ interface HTMLImageElement : HTMLElement {
            attribute DOMString alt;
            [SetterThrows]
            attribute DOMString src;
-           [SetterThrows, Pref="dom.image.srcset.enabled"]
+           [SetterThrows]
            attribute DOMString srcset;
            [SetterThrows]
-           attribute DOMString crossOrigin;
+           attribute DOMString? crossOrigin;
            [SetterThrows]
            attribute DOMString useMap;
+           [SetterThrows, Pref="network.http.enablePerElementReferrer"]
+           attribute DOMString referrerPolicy;
            [SetterThrows]
            attribute boolean isMap;
            [SetterThrows]
@@ -59,8 +60,9 @@ partial interface HTMLImageElement {
 // [Update me: not in whatwg spec yet]
 // http://picture.responsiveimages.org/#the-img-element
 partial interface HTMLImageElement {
-           [Pref="dom.image.srcset.enabled"]
-  readonly attribute DOMString? currentSrc;
+           [SetterThrows]
+           attribute DOMString sizes;
+  readonly attribute DOMString currentSrc;
 };
 
 // Mozilla extensions.
@@ -99,9 +101,7 @@ interface MozImageLoadingContent {
   [ChromeOnly,Throws]
   readonly attribute URI? currentURI;
   [ChromeOnly,Throws]
-  nsIStreamListener? loadImageWithChannel(MozChannel aChannel);
-  [ChromeOnly,Throws]
-  void forceReload();
+  void forceReload(optional boolean aNotify);
   [ChromeOnly]
   void forceImageState(boolean aForce, unsigned long long aState);
 };

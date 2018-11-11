@@ -19,25 +19,23 @@ class nsIDOMKeyEvent;
 
 /** editor Implementation of the DragListener interface
  */
-class nsMenuBarListener : public nsIDOMEventListener
+class nsMenuBarListener final : public nsIDOMEventListener
 {
 public:
   /** default constructor
    */
-  nsMenuBarListener(nsMenuBarFrame* aMenuBar);
-  /** default destructor
-   */
-  virtual ~nsMenuBarListener();
+  explicit nsMenuBarListener(nsMenuBarFrame* aMenuBar);
 
   static void InitializeStatics();
    
-  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) MOZ_OVERRIDE;
+  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) override;
   
   nsresult KeyUp(nsIDOMEvent* aMouseEvent);
   nsresult KeyDown(nsIDOMEvent* aMouseEvent);
   nsresult KeyPress(nsIDOMEvent* aMouseEvent);
   nsresult Blur(nsIDOMEvent* aEvent);
   nsresult MouseDown(nsIDOMEvent* aMouseEvent);
+  nsresult Fullscreen(nsIDOMEvent* aEvent);
 
   static nsresult GetMenuAccessKey(int32_t* aAccessKey);
   
@@ -45,7 +43,13 @@ public:
 
   static bool IsAccessKeyPressed(nsIDOMKeyEvent* event);
 
+  void OnDestroyMenuBarFrame();
+
 protected:
+  /** default destructor
+   */
+  virtual ~nsMenuBarListener();
+
   static void InitAccessKey();
 
   static mozilla::Modifiers GetModifiersForAccessKey(nsIDOMKeyEvent* event);
@@ -53,6 +57,8 @@ protected:
   // This should only be called by the nsMenuBarListener during event dispatch,
   // thus ensuring that this doesn't get destroyed during the process.
   void ToggleMenuActiveState();
+
+  bool Destroyed() const { return !mMenuBarFrame; }
 
   nsMenuBarFrame* mMenuBarFrame; // The menu bar object.
   // Whether or not the ALT key is currently down.

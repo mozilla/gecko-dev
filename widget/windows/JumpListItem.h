@@ -10,12 +10,12 @@
 #include <shobjidl.h>
 #undef LogSeverity // SetupAPI.h #defines this as DWORD
 
+#include "mozilla/RefPtr.h"
 #include "nsIJumpListItem.h"  // defines nsIJumpListItem
 #include "nsIMIMEInfo.h" // defines nsILocalHandlerApp
 #include "nsTArray.h"
 #include "nsIMutableArray.h"
 #include "nsCOMPtr.h"
-#include "nsAutoPtr.h"
 #include "nsIURI.h"
 #include "nsICryptoHash.h"
 #include "nsString.h"
@@ -37,15 +37,15 @@ public:
    mItemType(type)
   {}
 
-  virtual ~JumpListItem() 
-  {}
-
   NS_DECL_ISUPPORTS
   NS_DECL_NSIJUMPLISTITEM
 
   static const char kJumpListCacheDir[];
 
 protected:
+  virtual ~JumpListItem()
+  {}
+
   short Type() { return mItemType; }
   short mItemType;
 
@@ -53,31 +53,35 @@ protected:
 
 class JumpListSeparator : public JumpListItem, public nsIJumpListSeparator
 {
+  ~JumpListSeparator() {}
+
 public:
   JumpListSeparator() :
    JumpListItem(nsIJumpListItem::JUMPLIST_ITEM_SEPARATOR)
   {}
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_IMETHOD GetType(int16_t *aType) { return JumpListItem::GetType(aType); }
-  NS_IMETHOD Equals(nsIJumpListItem *item, bool *_retval) { return JumpListItem::Equals(item, _retval); }
+  NS_IMETHOD GetType(int16_t *aType) override { return JumpListItem::GetType(aType); }
+  NS_IMETHOD Equals(nsIJumpListItem *item, bool *_retval) override { return JumpListItem::Equals(item, _retval); }
 
-  static nsresult GetSeparator(nsRefPtr<IShellLinkW>& aShellLink);
+  static nsresult GetSeparator(RefPtr<IShellLinkW>& aShellLink);
 };
 
 class JumpListLink : public JumpListItem, public nsIJumpListLink
 {
+  ~JumpListLink() {}
+
 public:
   JumpListLink() :
    JumpListItem(nsIJumpListItem::JUMPLIST_ITEM_LINK)
   {}
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_IMETHOD GetType(int16_t *aType) { return JumpListItem::GetType(aType); }
-  NS_IMETHOD Equals(nsIJumpListItem *item, bool *_retval);
+  NS_IMETHOD GetType(int16_t *aType) override { return JumpListItem::GetType(aType); }
+  NS_IMETHOD Equals(nsIJumpListItem *item, bool *_retval) override;
   NS_DECL_NSIJUMPLISTLINK
 
-  static nsresult GetShellItem(nsCOMPtr<nsIJumpListItem>& item, nsRefPtr<IShellItem2>& aShellItem);
+  static nsresult GetShellItem(nsCOMPtr<nsIJumpListItem>& item, RefPtr<IShellItem2>& aShellItem);
   static nsresult GetJumpListLink(IShellItem *pItem, nsCOMPtr<nsIJumpListLink>& aLink);
 
 protected:
@@ -88,6 +92,8 @@ protected:
 
 class JumpListShortcut : public JumpListItem, public nsIJumpListShortcut
 {
+  ~JumpListShortcut() {}
+
 public:
   JumpListShortcut() :
    JumpListItem(nsIJumpListItem::JUMPLIST_ITEM_SHORTCUT)
@@ -95,15 +101,15 @@ public:
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(JumpListShortcut, JumpListItem)
-  NS_IMETHOD GetType(int16_t *aType) { return JumpListItem::GetType(aType); }
-  NS_IMETHOD Equals(nsIJumpListItem *item, bool *_retval);
+  NS_IMETHOD GetType(int16_t *aType) override { return JumpListItem::GetType(aType); }
+  NS_IMETHOD Equals(nsIJumpListItem *item, bool *_retval) override;
   NS_DECL_NSIJUMPLISTSHORTCUT
 
-  static nsresult GetShellLink(nsCOMPtr<nsIJumpListItem>& item, 
-                               nsRefPtr<IShellLinkW>& aShellLink, 
+  static nsresult GetShellLink(nsCOMPtr<nsIJumpListItem>& item,
+                               RefPtr<IShellLinkW>& aShellLink,
                                nsCOMPtr<nsIThread> &aIOThread);
   static nsresult GetJumpListShortcut(IShellLinkW *pLink, nsCOMPtr<nsIJumpListShortcut>& aShortcut);
-  static nsresult GetOutputIconPath(nsCOMPtr<nsIURI> aFaviconPageURI, 
+  static nsresult GetOutputIconPath(nsCOMPtr<nsIURI> aFaviconPageURI,
                                     nsCOMPtr<nsIFile> &aICOFile);
 
 protected:
@@ -112,10 +118,10 @@ protected:
   nsCOMPtr<nsILocalHandlerApp> mHandlerApp;
 
   bool ExecutableExists(nsCOMPtr<nsILocalHandlerApp>& handlerApp);
-  static nsresult ObtainCachedIconFile(nsCOMPtr<nsIURI> aFaviconPageURI, 
+  static nsresult ObtainCachedIconFile(nsCOMPtr<nsIURI> aFaviconPageURI,
                                        nsString &aICOFilePath,
                                        nsCOMPtr<nsIThread> &aIOThread);
-  static nsresult CacheIconFileFromFaviconURIAsync(nsCOMPtr<nsIURI> aFaviconPageURI, 
+  static nsresult CacheIconFileFromFaviconURIAsync(nsCOMPtr<nsIURI> aFaviconPageURI,
                                                    nsCOMPtr<nsIFile> aICOFile,
                                                    nsCOMPtr<nsIThread> &aIOThread);
 };

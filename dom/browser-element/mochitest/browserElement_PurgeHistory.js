@@ -7,7 +7,6 @@
 "use strict";
 SimpleTest.waitForExplicitFinish();
 browserElementTestHelpers.setEnabledPref(true);
-browserElementTestHelpers.addPermission();
 
 var iframe;
 function addOneShotIframeEventListener(event, fn) {
@@ -21,7 +20,9 @@ function addOneShotIframeEventListener(event, fn) {
 
 function runTest() {
   iframe = document.createElement('iframe');
-  SpecialPowers.wrap(iframe).mozbrowser = true;
+  iframe.setAttribute('mozbrowser', 'true');
+  // FIXME: Bug 1270790
+  iframe.setAttribute('remote', 'true');
 
   addOneShotIframeEventListener('mozbrowserloadend', function() {
     SimpleTest.executeSoon(test2);
@@ -74,7 +75,7 @@ function test3() {
 
 function test4() {
   addOneShotIframeEventListener('mozbrowserlocationchange', function(e) {
-    is(e.detail, browserElementTestHelpers.emptyPage3);
+    is(e.detail.url, browserElementTestHelpers.emptyPage3);
     purgeHistory(SimpleTest.finish);
   });
 

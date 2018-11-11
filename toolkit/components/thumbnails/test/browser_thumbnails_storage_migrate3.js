@@ -7,11 +7,11 @@ const URL3 = URL + "#3";
 const THUMBNAIL_DIRECTORY = "thumbnails";
 const PREF_STORAGE_VERSION = "browser.pagethumbnails.storage_version";
 
-let tmp = {};
+var tmp = {};
 Cc["@mozilla.org/moz/jssubscript-loader;1"]
   .getService(Ci.mozIJSSubScriptLoader)
   .loadSubScript("resource://gre/modules/PageThumbs.jsm", tmp);
-let {PageThumbsStorageMigrator} = tmp;
+var {PageThumbsStorageMigrator} = tmp;
 
 XPCOMUtils.defineLazyServiceGetter(this, "gDirSvc",
   "@mozilla.org/file/directory_service;1", "nsIProperties");
@@ -21,15 +21,11 @@ XPCOMUtils.defineLazyServiceGetter(this, "gDirSvc",
  * This means copying existing thumbnails from the roaming to the local profile
  * directory and should just apply to Linux.
  */
-function runTests() {
-  let dirSvc = Cc["@mozilla.org/file/directory_service;1"]
-                 .getService(Ci.nsIProperties);
-
+function* runTests() {
   // Prepare a local profile directory.
   let localProfile = FileUtils.getDir("ProfD", ["local-test"], true);
   changeLocation("ProfLD", localProfile);
 
-  let local = FileUtils.getDir("ProfLD", [THUMBNAIL_DIRECTORY], true);
   let roaming = FileUtils.getDir("ProfD", [THUMBNAIL_DIRECTORY], true);
 
   // Set up some data in the roaming profile.
@@ -74,7 +70,7 @@ function runTests() {
   // function |getFileForURL| points to the same path as
   // |getFilePathForURL|.
   if ("getFileForURL" in PageThumbsStorage) {
-    let file = PageThumbsStorage.getFileForURL(URL);
+    file = PageThumbsStorage.getFileForURL(URL);
     is(file.path, PageThumbsStorage.getFilePathForURL(URL),
        "Deprecated getFileForURL and getFilePathForURL return the same path");
   }

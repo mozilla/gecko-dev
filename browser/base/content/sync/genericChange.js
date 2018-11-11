@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const Ci = Components.interfaces;
-const Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cc = Components.classes;
 
 Components.utils.import("resource://services-sync/main.js");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
-let Change = {
+var Change = {
   _dialog: null,
   _dialogType: null,
   _status: null,
@@ -32,7 +32,6 @@ let Change = {
   onLoad: function Change_onLoad() {
     /* Load labels */
     let introText = document.getElementById("introText");
-    let introText2 = document.getElementById("introText2");
     let warningText = document.getElementById("warningText");
 
     // load some other elements & info from the window
@@ -121,7 +120,7 @@ let Change = {
   _updateStatus: function Change__updateStatus(str, state) {
      this._updateStatusWithString(this._str(str), state);
   },
-  
+
   _updateStatusWithString: function Change__updateStatusWithString(string, state) {
     this._statusRow.hidden = false;
     this._status.value = string;
@@ -142,11 +141,10 @@ let Change = {
       case "UpdatePassphrase":
       case "ResetPassphrase":
         return this.doChangePassphrase();
-        break;
       case "ChangePassword":
         return this.doChangePassword();
-        break;
     }
+    return undefined;
   },
 
   doGeneratePassphrase: function () {

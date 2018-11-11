@@ -1,4 +1,4 @@
-/* -*- Mode: javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -33,7 +33,7 @@ function test() {
   // cleanup functions registration
   registerCleanupFunction(function () {
     Services.prefs.clearUserPref("browser.download.lastDir");
-    [dir1, dir2, dir3].forEach(function(dir) dir.remove(true));
+    [dir1, dir2, dir3].forEach(dir => dir.remove(true));
     MockFilePicker.cleanup();
   });
   prefs.setComplexValue("lastDir", Ci.nsIFile, tmpDir);
@@ -48,8 +48,6 @@ function test() {
 
   function testDownloadDir(aWin, gDownloadLastDir, aFile, aDisplayDir, aLastDir,
                            aGlobalLastDir, aCallback) {
-    let context = aWin.gBrowser.selectedBrowser.contentWindow;
-
     // Check lastDir preference.
     is(prefs.getComplexValue("lastDir", Ci.nsIFile).path, aDisplayDir.path,
        "LastDir should be the expected display dir");
@@ -78,7 +76,7 @@ function test() {
       aCallback();
     };
 
-    launcherDialog.promptForSaveToFileAsync(launcher, context, null, null, null);
+    launcherDialog.promptForSaveToFileAsync(launcher, aWin, null, null, null);
   }
 
   testOnWindow(false, function(win, downloadDir) {

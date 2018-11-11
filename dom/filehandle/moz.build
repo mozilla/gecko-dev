@@ -1,37 +1,45 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-TEST_DIRS += ['test']
+EXPORTS.mozilla.dom.filehandle += [
+    'ActorsChild.h',
+    'ActorsParent.h',
+    'SerializationHelpers.h',
+]
 
 EXPORTS.mozilla.dom += [
-    'File.h',
-    'FileHandle.h',
-    'FileHelper.h',
-    'FileRequest.h',
-    'FileService.h',
-    'MutableFile.h',
+    'FileHandleBase.h',
+    'FileHandleCommon.h',
+    'FileHandleStorage.h',
+    'FileRequestBase.h',
+    'MutableFileBase.h',
 ]
 
 UNIFIED_SOURCES += [
-    'AsyncHelper.cpp',
-    'File.cpp',
-    'FileHandle.cpp',
-    'FileHelper.cpp',
-    'FileRequest.cpp',
-    'FileService.cpp',
-    'FileStreamWrappers.cpp',
-    'MemoryStreams.cpp',
-    'MetadataHelper.cpp',
-    'MutableFile.cpp',
+    'ActorsChild.cpp',
+    'ActorsParent.cpp',
+    'FileHandleBase.cpp',
+    'FileHandleCommon.cpp',
+    'MutableFileBase.cpp',
 ]
 
-FAIL_ON_WARNINGS = True
+IPDL_SOURCES += [
+    'PBackgroundFileHandle.ipdl',
+    'PBackgroundFileRequest.ipdl',
+    'PBackgroundMutableFile.ipdl',
+]
+
+include('/ipc/chromium/chromium-config.mozbuild')
 
 LOCAL_INCLUDES += [
     '../base',
 ]
 
-FINAL_LIBRARY = 'gklayout'
+FINAL_LIBRARY = 'xul'
+
+LOCAL_INCLUDES += [
+    '/xpcom/threads',
+]

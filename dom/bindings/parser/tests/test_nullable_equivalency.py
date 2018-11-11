@@ -53,16 +53,6 @@ def WebIDLTest(parser, harness):
           attribute object  a;
           attribute object? b;
         };
-
-        interface TestNullableEquivalency11 {
-          attribute double[]  a;
-          attribute double[]? b;
-        };
-
-        interface TestNullableEquivalency12 {
-          attribute TestNullableEquivalency9[]  a;
-          attribute TestNullableEquivalency9[]? b;
-        };
     """)
 
     for decl in parser.finish():
@@ -90,7 +80,7 @@ def checkEquivalent(iface, harness):
     for attr in dir(type1):
         if attr.startswith('_') or \
            attr in ['nullable', 'builtin', 'filename', 'location',
-                    'inner', 'QName', 'getDeps'] or \
+                    'inner', 'QName', 'getDeps', 'name'] or \
            (hasattr(type(type1), attr) and not callable(getattr(type1, attr))):
             continue
 

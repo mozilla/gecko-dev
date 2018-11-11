@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -26,10 +27,10 @@ class nsXBLMaybeCompiled
 public:
   nsXBLMaybeCompiled() : mUncompiled(BIT_UNCOMPILED) {}
 
-  nsXBLMaybeCompiled(UncompiledT* uncompiled)
+  explicit nsXBLMaybeCompiled(UncompiledT* uncompiled)
     : mUncompiled(reinterpret_cast<uintptr_t>(uncompiled) | BIT_UNCOMPILED) {}
 
-  nsXBLMaybeCompiled(JSObject* compiled) : mCompiled(compiled) {}
+  explicit nsXBLMaybeCompiled(JSObject* compiled) : mCompiled(compiled) {}
 
   bool IsCompiled() const
   {
@@ -78,51 +79,63 @@ private:
     JSObject* mCompiled;
   };
 
-  friend class js::GCMethods<nsXBLMaybeCompiled<UncompiledT> >;
+  friend struct js::BarrierMethods<nsXBLMaybeCompiled<UncompiledT>>;
 };
 
 /* Add support for JS::Heap<nsXBLMaybeCompiled>. */
+namespace JS {
+
+template <class UncompiledT>
+struct GCPolicy<nsXBLMaybeCompiled<UncompiledT>>
+{
+  static nsXBLMaybeCompiled<UncompiledT> initial() { return nsXBLMaybeCompiled<UncompiledT>(); }
+};
+
+} // namespace JS
+
 namespace js {
 
 template <class UncompiledT>
-struct GCMethods<nsXBLMaybeCompiled<UncompiledT> >
+struct BarrierMethods<nsXBLMaybeCompiled<UncompiledT>>
 {
-  typedef struct GCMethods<JSObject *> Base;
+  typedef struct BarrierMethods<JSObject *> Base;
 
-  static nsXBLMaybeCompiled<UncompiledT> initial() { return nsXBLMaybeCompiled<UncompiledT>(); }
-
-  static bool poisoned(nsXBLMaybeCompiled<UncompiledT> function)
+  static void postBarrier(nsXBLMaybeCompiled<UncompiledT>* functionp,
+                          nsXBLMaybeCompiled<UncompiledT> prev,
+                          nsXBLMaybeCompiled<UncompiledT> next)
   {
-    return function.IsCompiled() && Base::poisoned(function.GetJSFunction());
+    if (next.IsCompiled()) {
+      Base::postBarrier(&functionp->UnsafeGetJSFunction(),
+                        prev.IsCompiled() ? prev.UnsafeGetJSFunction() : nullptr,
+                        next.UnsafeGetJSFunction());
+    } else if (prev.IsCompiled()) {
+      Base::postBarrier(&prev.UnsafeGetJSFunction(),
+                        prev.UnsafeGetJSFunction(),
+                        nullptr);
+    }
   }
+  static void exposeToJS(nsXBLMaybeCompiled<UncompiledT> fun) {
+    if (fun.IsCompiled()) {
+      JS::ExposeObjectToActiveJS(fun.UnsafeGetJSFunction());
+    }
+  }
+};
 
-  static bool needsPostBarrier(nsXBLMaybeCompiled<UncompiledT> function)
-  {
-    return function.IsCompiled() && Base::needsPostBarrier(function.GetJSFunction());
-  }
-
-#ifdef JSGC_GENERATIONAL
-  static void postBarrier(nsXBLMaybeCompiled<UncompiledT>* functionp)
-  {
-    Base::postBarrier(&functionp->UnsafeGetJSFunction());
-  }
-
-  static void relocate(nsXBLMaybeCompiled<UncompiledT>* functionp)
-  {
-    Base::relocate(&functionp->UnsafeGetJSFunction());
-  }
-#endif
+template <class T>
+struct IsHeapConstructibleType<nsXBLMaybeCompiled<T>>
+{ // Yes, this is the exception to the rule. Sorry.
+  static constexpr bool value = true;
 };
 
 template <class UncompiledT>
-class HeapBase<nsXBLMaybeCompiled<UncompiledT> >
+class HeapBase<nsXBLMaybeCompiled<UncompiledT>>
 {
-  const JS::Heap<nsXBLMaybeCompiled<UncompiledT> >& wrapper() const {
-    return *static_cast<const JS::Heap<nsXBLMaybeCompiled<UncompiledT> >*>(this);
+  const JS::Heap<nsXBLMaybeCompiled<UncompiledT>>& wrapper() const {
+    return *static_cast<const JS::Heap<nsXBLMaybeCompiled<UncompiledT>>*>(this);
   }
 
-  JS::Heap<nsXBLMaybeCompiled<UncompiledT> >& wrapper() {
-    return *static_cast<JS::Heap<nsXBLMaybeCompiled<UncompiledT> >*>(this);
+  JS::Heap<nsXBLMaybeCompiled<UncompiledT>>& wrapper() {
+    return *static_cast<JS::Heap<nsXBLMaybeCompiled<UncompiledT>>*>(this);
   }
 
   const nsXBLMaybeCompiled<UncompiledT>* extract() const {
@@ -140,11 +153,11 @@ public:
   JSObject* GetJSFunctionPreserveColor() const { return extract()->GetJSFunctionPreserveColor(); }
 
   void SetUncompiled(UncompiledT* source) {
-    wrapper().set(nsXBLMaybeCompiled<UncompiledT>(source));
+    wrapper() = nsXBLMaybeCompiled<UncompiledT>(source);
   }
 
   void SetJSFunction(JSObject* function) {
-    wrapper().set(nsXBLMaybeCompiled<UncompiledT>(function));
+    wrapper() = nsXBLMaybeCompiled<UncompiledT>(function);
   }
 
   JS::Heap<JSObject*>& AsHeapObject()

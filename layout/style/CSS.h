@@ -21,7 +21,7 @@ class GlobalObject;
 
 class CSS {
 private:
-  CSS() MOZ_DELETE;
+  CSS() = delete;
 
 public:
   static bool Supports(const GlobalObject& aGlobal,
@@ -35,8 +35,7 @@ public:
 
   static void Escape(const GlobalObject& aGlobal,
                      const nsAString& aIdent,
-                     nsAString& aReturn,
-                     ErrorResult& aRv);
+                     nsAString& aReturn);
 };
 
 } // namespace dom

@@ -27,23 +27,23 @@ public:
   nsCOMPtr<nsIScreen> mScreen;
 };
 
-class nsScreenManagerWin MOZ_FINAL : public nsIScreenManager
+class nsScreenManagerWin final : public nsIScreenManager
 {
 public:
   nsScreenManagerWin ( );
-  ~nsScreenManagerWin();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSISCREENMANAGER
 
 private:
+  ~nsScreenManagerWin();
 
   nsIScreen* CreateNewScreenObject ( HMONITOR inScreen ) ;
 
   uint32_t mNumberOfScreens;
 
     // cache the screens to avoid the memory allocations
-  nsAutoTArray<ScreenListItem, 8> mScreenList;
+  AutoTArray<ScreenListItem, 8> mScreenList;
 
 };
 

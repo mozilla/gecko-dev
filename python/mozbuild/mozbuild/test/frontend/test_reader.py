@@ -10,8 +10,11 @@ import unittest
 
 from mozunit import main
 
-from mozbuild.frontend.reader import BuildReaderError
-from mozbuild.frontend.reader import BuildReader
+from mozbuild.frontend.context import BugzillaComponent
+from mozbuild.frontend.reader import (
+    BuildReaderError,
+    BuildReader,
+)
 
 from mozbuild.test.common import MockConfig
 
@@ -28,16 +31,26 @@ data_path = mozpath.join(data_path, 'data')
 
 
 class TestBuildReader(unittest.TestCase):
+    def setUp(self):
+        self._old_env = dict(os.environ)
+        os.environ.pop('MOZ_OBJDIR', None)
+
+    def tearDown(self):
+        os.environ.clear()
+        os.environ.update(self._old_env)
+
     def config(self, name, **kwargs):
         path = mozpath.join(data_path, name)
 
         return MockConfig(path, **kwargs)
 
-    def reader(self, name, enable_tests=False, **kwargs):
+    def reader(self, name, enable_tests=False, error_is_fatal=True, **kwargs):
         extra = {}
         if enable_tests:
             extra['ENABLE_TESTS'] = '1'
-        config = self.config(name, extra_substs=extra)
+        config = self.config(name,
+                             extra_substs=extra,
+                             error_is_fatal=error_is_fatal)
 
         return BuildReader(config, **kwargs)
 
@@ -47,60 +60,45 @@ class TestBuildReader(unittest.TestCase):
     def test_dirs_traversal_simple(self):
         reader = self.reader('traversal-simple')
 
-        sandboxes = list(reader.read_topsrcdir())
+        contexts = list(reader.read_topsrcdir())
 
-        self.assertEqual(len(sandboxes), 4)
+        self.assertEqual(len(contexts), 4)
 
     def test_dirs_traversal_no_descend(self):
         reader = self.reader('traversal-simple')
 
-        path = mozpath.join(reader.topsrcdir, 'moz.build')
+        path = mozpath.join(reader.config.topsrcdir, 'moz.build')
         self.assertTrue(os.path.exists(path))
 
-        sandboxes = list(reader.read_mozbuild(path, reader.config,
-            filesystem_absolute=True, descend=False))
+        contexts = list(reader.read_mozbuild(path, reader.config,
+            descend=False))
 
-        self.assertEqual(len(sandboxes), 1)
+        self.assertEqual(len(contexts), 1)
 
     def test_dirs_traversal_all_variables(self):
+        reader = self.reader('traversal-all-vars')
+
+        contexts = list(reader.read_topsrcdir())
+        self.assertEqual(len(contexts), 2)
+
         reader = self.reader('traversal-all-vars', enable_tests=True)
 
-        sandboxes = list(reader.read_topsrcdir())
-        self.assertEqual(len(sandboxes), 6)
-
-    def test_tiers_traversal(self):
-        reader = self.reader('traversal-tier-simple')
-
-        sandboxes = list(reader.read_topsrcdir())
-        self.assertEqual(len(sandboxes), 4)
-
-        for sandbox in sandboxes:
-            self.assertIsInstance(sandbox.metadata, dict)
-            self.assertIn('tier', sandbox.metadata)
-
-            if sandbox['RELATIVEDIR'].startswith('foo'):
-                self.assertEqual(sandbox.metadata['tier'], 't1')
-
-    def test_tier_subdir(self):
-        # add_tier_dir() should fail when not in the top directory.
-        reader = self.reader('traversal-tier-fails-in-subdir')
-
-        with self.assertRaises(Exception):
-            list(reader.read_topsrcdir())
+        contexts = list(reader.read_topsrcdir())
+        self.assertEqual(len(contexts), 3)
 
     def test_relative_dirs(self):
         # Ensure relative directories are traversed.
         reader = self.reader('traversal-relative-dirs')
 
-        sandboxes = list(reader.read_topsrcdir())
-        self.assertEqual(len(sandboxes), 3)
+        contexts = list(reader.read_topsrcdir())
+        self.assertEqual(len(contexts), 3)
 
     def test_repeated_dirs_ignored(self):
         # Ensure repeated directories are ignored.
         reader = self.reader('traversal-repeated-dirs')
 
-        sandboxes = list(reader.read_topsrcdir())
-        self.assertEqual(len(sandboxes), 3)
+        contexts = list(reader.read_topsrcdir())
+        self.assertEqual(len(contexts), 3)
 
     def test_outside_topsrcdir(self):
         # References to directories outside the topsrcdir should fail.
@@ -233,8 +231,7 @@ class TestBuildReader(unittest.TestCase):
             list(reader.read_topsrcdir())
 
         e = bre.exception
-        self.assertIn('Directory (foo) registered multiple times in DIRS',
-            str(e))
+        self.assertIn('Directory (foo) registered multiple times', str(e))
 
     def test_error_error_func(self):
         reader = self.reader('reader-error-error-func')
@@ -246,40 +243,242 @@ class TestBuildReader(unittest.TestCase):
         self.assertIn('A moz.build file called the error() function.', str(e))
         self.assertIn('    Some error.', str(e))
 
-    def test_error_traversal_tools(self):
-        reader = self.reader('reader-error-traversal-tools')
+    def test_error_error_func_ok(self):
+        reader = self.reader('reader-error-error-func', error_is_fatal=False)
+
+        contexts = list(reader.read_topsrcdir())
+
+    def test_error_empty_list(self):
+        reader = self.reader('reader-error-empty-list')
 
         with self.assertRaises(BuildReaderError) as bre:
             list(reader.read_topsrcdir())
 
         e = bre.exception
-        self.assertIn('The DIRS variable is not allowed in such directories.', str(e))
+        self.assertIn('Variable DIRS assigned an empty value.', str(e))
 
     def test_inheriting_variables(self):
         reader = self.reader('inheriting-variables')
 
-        sandboxes = list(reader.read_topsrcdir())
+        contexts = list(reader.read_topsrcdir())
 
-        self.assertEqual(len(sandboxes), 4)
-        self.assertEqual([sandbox['RELATIVEDIR'] for sandbox in sandboxes],
+        self.assertEqual(len(contexts), 4)
+        self.assertEqual([context.relsrcdir for context in contexts],
             ['', 'foo', 'foo/baz', 'bar'])
-        self.assertEqual([sandbox['XPIDL_MODULE'] for sandbox in sandboxes],
-            ['foobar', 'foobar', 'foobar', 'foobar'])
+        self.assertEqual([context['XPIDL_MODULE'] for context in contexts],
+            ['foobar', 'foobar', 'baz', 'foobar'])
 
-    def test_process_eval_callback(self):
-        def strip_dirs(sandbox):
-            sandbox['DIRS'][:] = []
-            count[0] += 1
+    def test_find_relevant_mozbuilds(self):
+        reader = self.reader('reader-relevant-mozbuild')
 
-        reader = self.reader('traversal-simple',
-            sandbox_post_eval_cb=strip_dirs)
+        # Absolute paths outside topsrcdir are rejected.
+        with self.assertRaises(Exception):
+            reader._find_relevant_mozbuilds(['/foo'])
 
-        count = [0]
+        # File in root directory.
+        paths = reader._find_relevant_mozbuilds(['file'])
+        self.assertEqual(paths, {'file': ['moz.build']})
 
-        sandboxes = list(reader.read_topsrcdir())
+        # File in child directory.
+        paths = reader._find_relevant_mozbuilds(['d1/file1'])
+        self.assertEqual(paths, {'d1/file1': ['moz.build', 'd1/moz.build']})
 
-        self.assertEqual(len(sandboxes), 1)
-        self.assertEqual(len(count), 1)
+        # Multiple files in same directory.
+        paths = reader._find_relevant_mozbuilds(['d1/file1', 'd1/file2'])
+        self.assertEqual(paths, {
+            'd1/file1': ['moz.build', 'd1/moz.build'],
+            'd1/file2': ['moz.build', 'd1/moz.build']})
+
+        # Missing moz.build from missing intermediate directory.
+        paths = reader._find_relevant_mozbuilds(
+            ['d1/no-intermediate-moz-build/child/file'])
+        self.assertEqual(paths, {
+            'd1/no-intermediate-moz-build/child/file': [
+                'moz.build', 'd1/moz.build', 'd1/no-intermediate-moz-build/child/moz.build']})
+
+        # Lots of empty directories.
+        paths = reader._find_relevant_mozbuilds([
+            'd1/parent-is-far/dir1/dir2/dir3/file'])
+        self.assertEqual(paths, {
+            'd1/parent-is-far/dir1/dir2/dir3/file':
+                ['moz.build', 'd1/moz.build', 'd1/parent-is-far/moz.build']})
+
+        # Lots of levels.
+        paths = reader._find_relevant_mozbuilds([
+            'd1/every-level/a/file', 'd1/every-level/b/file'])
+        self.assertEqual(paths, {
+            'd1/every-level/a/file': [
+                'moz.build',
+                'd1/moz.build',
+                'd1/every-level/moz.build',
+                'd1/every-level/a/moz.build',
+            ],
+            'd1/every-level/b/file': [
+                'moz.build',
+                'd1/moz.build',
+                'd1/every-level/moz.build',
+                'd1/every-level/b/moz.build',
+            ],
+        })
+
+        # Different root directories.
+        paths = reader._find_relevant_mozbuilds(['d1/file', 'd2/file', 'file'])
+        self.assertEqual(paths, {
+            'file': ['moz.build'],
+            'd1/file': ['moz.build', 'd1/moz.build'],
+            'd2/file': ['moz.build', 'd2/moz.build'],
+        })
+
+    def test_read_relevant_mozbuilds(self):
+        reader = self.reader('reader-relevant-mozbuild')
+
+        paths, contexts = reader.read_relevant_mozbuilds(['d1/every-level/a/file',
+            'd1/every-level/b/file', 'd2/file'])
+        self.assertEqual(len(paths), 3)
+        self.assertEqual(len(contexts), 6)
+
+        self.assertEqual([ctx.relsrcdir for ctx in paths['d1/every-level/a/file']],
+            ['', 'd1', 'd1/every-level', 'd1/every-level/a'])
+        self.assertEqual([ctx.relsrcdir for ctx in paths['d1/every-level/b/file']],
+            ['', 'd1', 'd1/every-level', 'd1/every-level/b'])
+        self.assertEqual([ctx.relsrcdir for ctx in paths['d2/file']],
+            ['', 'd2'])
+
+    def test_files_bad_bug_component(self):
+        reader = self.reader('files-info')
+
+        with self.assertRaises(BuildReaderError):
+            reader.files_info(['bug_component/bad-assignment/moz.build'])
+
+    def test_files_bug_component_static(self):
+        reader = self.reader('files-info')
+
+        v = reader.files_info(['bug_component/static/foo',
+                               'bug_component/static/bar',
+                               'bug_component/static/foo/baz'])
+        self.assertEqual(len(v), 3)
+        self.assertEqual(v['bug_component/static/foo']['BUG_COMPONENT'],
+                         BugzillaComponent('FooProduct', 'FooComponent'))
+        self.assertEqual(v['bug_component/static/bar']['BUG_COMPONENT'],
+                         BugzillaComponent('BarProduct', 'BarComponent'))
+        self.assertEqual(v['bug_component/static/foo/baz']['BUG_COMPONENT'],
+                         BugzillaComponent('default_product', 'default_component'))
+
+    def test_files_bug_component_simple(self):
+        reader = self.reader('files-info')
+
+        v = reader.files_info(['bug_component/simple/moz.build'])
+        self.assertEqual(len(v), 1)
+        flags = v['bug_component/simple/moz.build']
+        self.assertEqual(flags['BUG_COMPONENT'].product, 'Core')
+        self.assertEqual(flags['BUG_COMPONENT'].component, 'Build Config')
+
+    def test_files_bug_component_different_matchers(self):
+        reader = self.reader('files-info')
+
+        v = reader.files_info([
+            'bug_component/different-matchers/foo.jsm',
+            'bug_component/different-matchers/bar.cpp',
+            'bug_component/different-matchers/baz.misc'])
+        self.assertEqual(len(v), 3)
+
+        js_flags = v['bug_component/different-matchers/foo.jsm']
+        cpp_flags = v['bug_component/different-matchers/bar.cpp']
+        misc_flags = v['bug_component/different-matchers/baz.misc']
+
+        self.assertEqual(js_flags['BUG_COMPONENT'], BugzillaComponent('Firefox', 'JS'))
+        self.assertEqual(cpp_flags['BUG_COMPONENT'], BugzillaComponent('Firefox', 'C++'))
+        self.assertEqual(misc_flags['BUG_COMPONENT'], BugzillaComponent('default_product', 'default_component'))
+
+    def test_files_bug_component_final(self):
+        reader = self.reader('files-info')
+
+        v = reader.files_info([
+            'bug_component/final/foo',
+            'bug_component/final/Makefile.in',
+            'bug_component/final/subcomponent/Makefile.in',
+            'bug_component/final/subcomponent/bar'])
+
+        self.assertEqual(v['bug_component/final/foo']['BUG_COMPONENT'],
+            BugzillaComponent('default_product', 'default_component'))
+        self.assertEqual(v['bug_component/final/Makefile.in']['BUG_COMPONENT'],
+            BugzillaComponent('Core', 'Build Config'))
+        self.assertEqual(v['bug_component/final/subcomponent/Makefile.in']['BUG_COMPONENT'],
+            BugzillaComponent('Core', 'Build Config'))
+        self.assertEqual(v['bug_component/final/subcomponent/bar']['BUG_COMPONENT'],
+            BugzillaComponent('Another', 'Component'))
+
+    def test_file_test_deps(self):
+        reader = self.reader('files-test-metadata')
+
+        expected = {
+            'simple/src/module.jsm': set(['simple/tests/test_general.html',
+                                          'simple/browser/**.js']),
+            'simple/base.cpp': set(['simple/tests/*',
+                                    'default/tests/xpcshell/test_default_mod.js']),
+        }
+
+        v = reader.files_info([
+            'simple/src/module.jsm',
+            'simple/base.cpp',
+        ])
+
+        for path, pattern_set in expected.items():
+            self.assertEqual(v[path].test_files,
+                             expected[path])
+
+    def test_file_test_deps_default(self):
+        reader = self.reader('files-test-metadata')
+        v = reader.files_info([
+            'default/module.js',
+        ])
+
+        expected = {
+            'default/module.js': set(['default/tests/xpcshell/**',
+                                      'default/tests/reftests/**']),
+        }
+
+        for path, pattern_set in expected.items():
+            self.assertEqual(v[path].test_files,
+                             expected[path])
+
+    def test_file_test_deps_tags(self):
+        reader = self.reader('files-test-metadata')
+        v = reader.files_info([
+            'tagged/src/bar.jsm',
+            'tagged/src/submodule/foo.js',
+        ])
+
+        expected_patterns = {
+            'tagged/src/submodule/foo.js': set([]),
+            'tagged/src/bar.jsm': set(['tagged/**.js']),
+        }
+
+        for path, pattern_set in expected_patterns.items():
+            self.assertEqual(v[path].test_files,
+                             expected_patterns[path])
+
+        expected_tags = {
+            'tagged/src/submodule/foo.js': set(['submodule']),
+            'tagged/src/bar.jsm': set([]),
+        }
+        for path, pattern_set in expected_tags.items():
+            self.assertEqual(v[path].test_tags,
+                             expected_tags[path])
+
+        expected_flavors = {
+            'tagged/src/bar.jsm': set(['browser-chrome']),
+            'tagged/src/submodule/foo.js': set([]),
+        }
+        for path, pattern_set in expected_flavors.items():
+            self.assertEqual(v[path].test_flavors,
+                             expected_flavors[path])
+
+    def test_invalid_flavor(self):
+        reader = self.reader('invalid-files-flavor')
+
+        with self.assertRaises(BuildReaderError):
+            reader.files_info(['foo.js'])
 
 
 if __name__ == '__main__':

@@ -1,10 +1,12 @@
 from sut import MockAgent
+import mozfile
 import mozdevice
-import mozlog
+import logging
 import unittest
 import hashlib
 import tempfile
 import os
+
 
 class PushTest(unittest.TestCase):
 
@@ -15,10 +17,10 @@ class PushTest(unittest.TestCase):
         expectedResponse = mdsum.hexdigest()
 
         # (good response, no exception), (bad response, exception)
-        for response in [ (expectedResponse, False), ("BADHASH", True) ]:
+        for response in [(expectedResponse, False), ("BADHASH", True)]:
             cmd = "push /mnt/sdcard/foobar %s\r\n%s" % (len(pushfile), pushfile)
-            a = MockAgent(self, commands = [("isdir /mnt/sdcard", "TRUE"),
-                                            (cmd, response[0])])
+            a = MockAgent(self, commands=[("isdir /mnt/sdcard", "TRUE"),
+                                          (cmd, response[0])])
             exceptionThrown = False
             with tempfile.NamedTemporaryFile() as f:
                 try:
@@ -26,7 +28,7 @@ class PushTest(unittest.TestCase):
                     f.flush()
                     d = mozdevice.DroidSUT("127.0.0.1", port=a.port)
                     d.pushFile(f.name, '/mnt/sdcard/foobar')
-                except mozdevice.DMError, e:
+                except mozdevice.DMError:
                     exceptionThrown = True
                 self.assertEqual(exceptionThrown, response[1])
             a.wait()
@@ -38,41 +40,43 @@ class PushTest(unittest.TestCase):
         expectedFileResponse = mdsum.hexdigest()
 
         tempdir = tempfile.mkdtemp()
+        self.addCleanup(mozfile.remove, tempdir)
         complex_path = os.path.join(tempdir, "baz")
         os.mkdir(complex_path)
         f = tempfile.NamedTemporaryFile(dir=complex_path)
         f.write(pushfile)
         f.flush()
 
-        subTests = [ { 'cmds': [ ("isdir /mnt/sdcard/baz", "TRUE"),
-                                 ("push /mnt/sdcard/baz/%s %s\r\n%s" %
-                                  (os.path.basename(f.name), len(pushfile),
-                                   pushfile),
-                                  expectedFileResponse) ],
-                       'expectException': False },
-                     { 'cmds': [ ("isdir /mnt/sdcard/baz", "TRUE"),
-                                 ("push /mnt/sdcard/baz/%s %s\r\n%s" %
-                                  (os.path.basename(f.name), len(pushfile),
-                                   pushfile),
-                                  "BADHASH") ],
-                       'expectException': True },
-                     { 'cmds': [ ("isdir /mnt/sdcard/baz", "FALSE"),
-                                 ("isdir /mnt", "FALSE"),
-                                 ("mkdr /mnt",
-                                  "##AGENT-WARNING## Could not create the directory /mnt") ],
-                       'expectException': True },
+        subTests = [{'cmds': [("isdir /mnt/sdcard/baz", "TRUE"),
+                              ("push /mnt/sdcard/baz/%s %s\r\n%s" %
+                               (os.path.basename(f.name), len(pushfile),
+                                pushfile),
+                               expectedFileResponse)],
+                     'expectException': False},
+                    {'cmds': [("isdir /mnt/sdcard/baz", "TRUE"),
+                              ("push /mnt/sdcard/baz/%s %s\r\n%s" %
+                               (os.path.basename(f.name), len(pushfile),
+                                pushfile),
+                               "BADHASH")],
+                     'expectException': True},
+                    {'cmds': [("isdir /mnt/sdcard/baz", "FALSE"),
+                              ('info os', 'android'),
+                              ("isdir /mnt", "FALSE"),
+                              ("mkdr /mnt",
+                               "##AGENT-WARNING## Could not create the directory /mnt")],
+                     'expectException': True},
 
-                     ]
+                    ]
 
         for subTest in subTests:
-            a = MockAgent(self, commands = subTest['cmds'])
+            a = MockAgent(self, commands=subTest['cmds'])
 
             exceptionThrown = False
             try:
                 d = mozdevice.DroidSUT("127.0.0.1", port=a.port,
-                                       logLevel=mozlog.DEBUG)
+                                       logLevel=logging.DEBUG)
                 d.pushDir(tempdir, "/mnt/sdcard")
-            except mozdevice.DMError, e:
+            except mozdevice.DMError:
                 exceptionThrown = True
             self.assertEqual(exceptionThrown, subTest['expectException'])
 

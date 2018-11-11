@@ -3,9 +3,10 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  *
- * Helper functions related to fetching process information. Used by _psutil_bsd
- * module methods.
+ * Helper functions related to fetching process information.
+ * Used by _psutil_bsd module methods.
  */
+
 
 #include <Python.h>
 #include <assert.h>
@@ -35,7 +36,7 @@ int
 psutil_get_proc_list(struct kinfo_proc **procList, size_t *procCount)
 {
     int err;
-    struct kinfo_proc * result;
+    struct kinfo_proc *result;
     int done;
     static const int name[] = { CTL_KERN, KERN_PROC, KERN_PROC_PROC, 0 };
     // Declaring name as const requires us to cast it when passing it to
@@ -82,7 +83,7 @@ psutil_get_proc_list(struct kinfo_proc **procList, size_t *procCount)
         // error, toss away our buffer and start again.
         if (err == 0) {
             err = sysctl((int *) name, (sizeof(name) / sizeof(*name)) - 1,
-                          result, &length, NULL, 0);
+                         result, &length, NULL, 0);
             if (err == -1)
                 err = errno;
             if (err == 0) {
@@ -114,7 +115,7 @@ psutil_get_proc_list(struct kinfo_proc **procList, size_t *procCount)
 char
 *psutil_get_cmd_path(long pid, size_t *pathsize)
 {
-    int  mib[4];
+    int mib[4];
     char *path;
     size_t size = 0;
 
@@ -127,9 +128,8 @@ char
     mib[3] = pid;
 
     // call with a null buffer first to determine if we need a buffer
-    if (sysctl(mib, 4, NULL, &size, NULL, 0) == -1) {
+    if (sysctl(mib, 4, NULL, &size, NULL, 0) == -1)
         return NULL;
-    }
 
     path = malloc(size);
     if (path == NULL) {
@@ -140,7 +140,7 @@ char
     *pathsize = size;
     if (sysctl(mib, 4, path, &size, NULL, 0) == -1) {
         free(path);
-        return NULL;       /* Insufficient privileges */
+        return NULL;       // Insufficient privileges
     }
 
     return path;
@@ -167,7 +167,7 @@ char
     size_t size = sizeof(argmax);
     char *procargs = NULL;
 
-    /* Get the maximum process arguments size. */
+    // Get the maximum process arguments size.
     mib[0] = CTL_KERN;
     mib[1] = KERN_ARGMAX;
 
@@ -175,7 +175,7 @@ char
     if (sysctl(mib, 2, &argmax, &size, NULL, 0) == -1)
         return NULL;
 
-    /* Allocate space for the arguments. */
+    // Allocate space for the arguments.
     procargs = (char *)malloc(argmax);
     if (procargs == NULL) {
         PyErr_NoMemory();
@@ -193,7 +193,7 @@ char
     size = argmax;
     if (sysctl(mib, 4, procargs, &size, NULL, 0) == -1) {
         free(procargs);
-        return NULL;       /* Insufficient privileges */
+        return NULL;       // Insufficient privileges
     }
 
     // return string and set the length of arguments
@@ -202,8 +202,8 @@ char
 }
 
 
-/* returns the command line as a python list object */
-PyObject*
+// returns the command line as a python list object
+PyObject *
 psutil_get_arg_list(long pid)
 {
     char *argstr = NULL;
@@ -212,20 +212,17 @@ psutil_get_arg_list(long pid)
     PyObject *retlist = Py_BuildValue("[]");
     PyObject *item = NULL;
 
-    if (pid < 0) {
+    if (pid < 0)
         return retlist;
-    }
-
     argstr = psutil_get_cmd_args(pid, &argsize);
-    if (argstr == NULL) {
+    if (argstr == NULL)
         goto error;
-    }
 
     // args are returned as a flattened string with \0 separators between
     // arguments add each string to the list then step forward to the next
     // separator
     if (argsize > 0) {
-        while(pos < argsize) {
+        while (pos < argsize) {
             item = Py_BuildValue("s", &argstr[pos]);
             if (!item)
                 goto error;
@@ -255,30 +252,14 @@ int
 psutil_pid_exists(long pid)
 {
     int kill_ret;
-    if (pid < 0) {
-        return 0;
-    }
 
+    if (pid < 0)
+        return 0;
     // if kill returns success of permission denied we know it's a valid PID
     kill_ret = kill(pid , 0);
-    if ((0 == kill_ret) || (EPERM == errno)) {
+    if ((0 == kill_ret) || (EPERM == errno))
         return 1;
-    }
-
     // otherwise return 0 for PID not found
     return 0;
 }
 
-
-/*
- * Set exception to AccessDenied if pid exists else NoSuchProcess.
- */
-int
-psutil_raise_ad_or_nsp(pid) {
-    if (psutil_pid_exists(pid) == 0) {
-        NoSuchProcess();
-    }
-    else {
-        AccessDenied();
-    }
-}

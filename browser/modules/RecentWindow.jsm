@@ -8,14 +8,9 @@ this.EXPORTED_SYMBOLS = ["RecentWindow"];
 
 const Cu = Components.utils;
 
+Cu.import("resource://gre/modules/AppConstants.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
-
-#ifdef XP_UNIX
-#ifndef XP_MACOSX
-#define BROKEN_WM_Z_ORDER
-#endif
-#endif
 
 this.RecentWindow = {
   /*
@@ -41,22 +36,25 @@ this.RecentWindow = {
                PrivateBrowsingUtils.isWindowPrivate(win) == aOptions.private));
     }
 
-#ifdef BROKEN_WM_Z_ORDER
-    let win = Services.wm.getMostRecentWindow("navigator:browser");
+    let broken_wm_z_order =
+      AppConstants.platform != "macosx" && AppConstants.platform != "win";
 
-    // if we're lucky, this isn't a popup, and we can just return this
-    if (win && !isSuitableBrowserWindow(win)) {
-      win = null;
-      let windowList = Services.wm.getEnumerator("navigator:browser");
-      // this is oldest to newest, so this gets a bit ugly
-      while (windowList.hasMoreElements()) {
-        let nextWin = windowList.getNext();
-        if (isSuitableBrowserWindow(nextWin))
-          win = nextWin;
+    if (broken_wm_z_order) {
+      let win = Services.wm.getMostRecentWindow("navigator:browser");
+
+      // if we're lucky, this isn't a popup, and we can just return this
+      if (win && !isSuitableBrowserWindow(win)) {
+        win = null;
+        let windowList = Services.wm.getEnumerator("navigator:browser");
+        // this is oldest to newest, so this gets a bit ugly
+        while (windowList.hasMoreElements()) {
+          let nextWin = windowList.getNext();
+          if (isSuitableBrowserWindow(nextWin))
+            win = nextWin;
+        }
       }
+      return win;
     }
-    return win;
-#else
     let windowList = Services.wm.getZOrderDOMWindowEnumerator("navigator:browser", true);
     while (windowList.hasMoreElements()) {
       let win = windowList.getNext();
@@ -64,7 +62,6 @@ this.RecentWindow = {
         return win;
     }
     return null;
-#endif
   }
 };
 

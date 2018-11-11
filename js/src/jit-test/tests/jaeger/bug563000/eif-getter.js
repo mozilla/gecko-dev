@@ -1,5 +1,4 @@
-// |jit-test| debug
-setDebug(true);
+load(libdir + "evalInFrame.js");
 
 this.__defineGetter__("someProperty", function () { evalInFrame(1, "x = 'success'"); });
 function caller(obj) {

@@ -12,6 +12,8 @@
   <script type="text/javascript"
           src="chrome://mochikit/content/tests/SimpleTest/MemoryStats.js"/>
   <script type="text/javascript"
+          src="chrome://mochikit/content/tests/SimpleTest/StructuredLog.jsm"/>
+  <script type="text/javascript"
           src="chrome://mochikit/content/tests/SimpleTest/TestRunner.js"/>
   <script type="text/javascript"
           src="chrome://mochikit/content/tests/SimpleTest/MozillaLogger.js"/>
@@ -82,7 +84,7 @@ function linkAndHookup(links) {
         </div>
         <div class="clear"></div>
         <div class="frameholder">
-          <iframe type="content" scrolling="no" id="testframe" width="550" height="350"></iframe>
+          <iframe type="content" id="testframe" width="550" height="350"></iframe>
         </div>
         <div class="clear"></div>
         <div class="toggle">

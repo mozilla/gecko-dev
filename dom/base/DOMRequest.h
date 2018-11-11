@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,14 +16,21 @@
 #include "nsCOMPtr.h"
 
 namespace mozilla {
+
+class ErrorResult;
+
 namespace dom {
+
+class AnyCallback;
+class Promise;
 
 class DOMRequest : public DOMEventTargetHelper,
                    public nsIDOMDOMRequest
 {
 protected:
   JS::Heap<JS::Value> mResult;
-  nsRefPtr<DOMError> mError;
+  RefPtr<DOMError> mError;
+  RefPtr<Promise> mPromise;
   bool mDone;
 
 public:
@@ -35,12 +42,12 @@ public:
                                                          DOMEventTargetHelper)
 
   // WrapperCache
-  nsPIDOMWindow* GetParentObject() const
+  nsPIDOMWindowInner* GetParentObject() const
   {
     return GetOwner();
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL Interface
   DOMRequestReadyState ReadyState() const
@@ -51,9 +58,8 @@ public:
 
   void GetResult(JSContext*, JS::MutableHandle<JS::Value> aRetval) const
   {
-    NS_ASSERTION(mDone || mResult == JSVAL_VOID,
+    NS_ASSERTION(mDone || mResult.isUndefined(),
                  "Result should be undefined when pending");
-    JS::ExposeValueToActiveJS(mResult);
     aRetval.set(mResult);
   }
 
@@ -67,28 +73,32 @@ public:
   IMPL_EVENT_HANDLER(success)
   IMPL_EVENT_HANDLER(error)
 
+  void
+  Then(JSContext* aCx, AnyCallback* aResolveCallback,
+       AnyCallback* aRejectCallback,
+       JS::MutableHandle<JS::Value> aRetval,
+       mozilla::ErrorResult& aRv);
 
   void FireSuccess(JS::Handle<JS::Value> aResult);
   void FireError(const nsAString& aError);
   void FireError(nsresult aError);
   void FireDetailedError(DOMError* aError);
 
-  DOMRequest(nsPIDOMWindow* aWindow);
-
-  virtual ~DOMRequest()
-  {
-    mResult = JSVAL_VOID;
-    mozilla::DropJSObjects(this);
-  }
+  explicit DOMRequest(nsPIDOMWindowInner* aWindow);
+  explicit DOMRequest(nsIGlobalObject* aGlobal);
 
 protected:
+  virtual ~DOMRequest();
+
   void FireEvent(const nsAString& aType, bool aBubble, bool aCancelable);
 
   void RootResultVal();
 };
 
-class DOMRequestService MOZ_FINAL : public nsIDOMRequestService
+class DOMRequestService final : public nsIDOMRequestService
 {
+  ~DOMRequestService() {}
+
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMREQUESTSERVICE

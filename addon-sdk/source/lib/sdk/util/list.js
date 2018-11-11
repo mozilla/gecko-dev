@@ -9,7 +9,6 @@ module.metadata = {
 
 const { Class } = require('../core/heritage');
 const listNS = require('../core/namespace').ns();
-const { iteratorSymbol } = require('../util/iteration');
 
 const listOptions = {
   /**
@@ -28,12 +27,16 @@ const listOptions = {
    * Number of elements in this list.
    * @type {Number}
    */
-  get length() listNS(this).keyValueMap.length,
+  get length() {
+    return listNS(this).keyValueMap.length;
+  },
    /**
     * Returns a string representing this list.
     * @returns {String}
     */
-  toString: function toString() 'List(' + listNS(this).keyValueMap + ')',
+  toString: function toString() {
+    return 'List(' + listNS(this).keyValueMap + ')';
+  },
   /**
    * Custom iterator providing `List`s enumeration behavior.
    * We cant reuse `_iterator` that is defined by `Iterable` since it provides
@@ -44,12 +47,12 @@ const listOptions = {
   __iterator__: function __iterator__(onKeys, onKeyValue) {
     let array = listNS(this).keyValueMap.slice(0),
                 i = -1;
-    for each(let element in array)
+    for (let element of array)
       yield onKeyValue ? [++i, element] : onKeys ? ++i : element;
   },
 };
-listOptions[iteratorSymbol] = function iterator() {
-    return listNS(this).keyValueMap.slice(0)[iteratorSymbol]();
+listOptions[Symbol.iterator] = function iterator() {
+    return listNS(this).keyValueMap.slice(0)[Symbol.iterator]();
 };
 const List = Class(listOptions);
 exports.List = List;

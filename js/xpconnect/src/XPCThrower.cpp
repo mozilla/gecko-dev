@@ -11,6 +11,7 @@
 #include "jsprf.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/Exceptions.h"
+#include "nsStringGlue.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -26,13 +27,13 @@ XPCThrower::Throw(nsresult rv, JSContext* cx)
         return;
     if (!nsXPCException::NameAndFormatForNSResult(rv, nullptr, &format))
         format = "";
-    dom::Throw(cx, rv, format);
+    dom::Throw(cx, rv, nsDependentCString(format));
 }
 
 namespace xpc {
 
 bool
-Throw(JSContext *cx, nsresult rv)
+Throw(JSContext* cx, nsresult rv)
 {
     XPCThrower::Throw(rv, cx);
     return false;
@@ -47,19 +48,18 @@ Throw(JSContext *cx, nsresult rv)
  */
 // static
 bool
-XPCThrower::CheckForPendingException(nsresult result, JSContext *cx)
+XPCThrower::CheckForPendingException(nsresult result, JSContext* cx)
 {
-    nsCOMPtr<nsIException> e = XPCJSRuntime::Get()->GetPendingException();
+    nsCOMPtr<nsIException> e = XPCJSContext::Get()->GetPendingException();
     if (!e)
         return false;
-    XPCJSRuntime::Get()->SetPendingException(nullptr);
+    XPCJSContext::Get()->SetPendingException(nullptr);
 
     nsresult e_result;
     if (NS_FAILED(e->GetResult(&e_result)) || e_result != result)
         return false;
 
-    if (!ThrowExceptionObject(cx, e))
-        JS_ReportOutOfMemory(cx);
+    ThrowExceptionObject(cx, e);
     return true;
 }
 
@@ -77,11 +77,12 @@ XPCThrower::Throw(nsresult rv, XPCCallContext& ccx)
         format = "";
 
     sz = (char*) format;
+    NS_ENSURE_TRUE_VOID(sz);
 
     if (sz && sVerbose)
         Verbosify(ccx, &sz, false);
 
-    dom::Throw(ccx, rv, sz);
+    dom::Throw(ccx, rv, nsDependentCString(sz));
 
     if (sz && sz != format)
         JS_smprintf_free(sz);
@@ -100,7 +101,10 @@ XPCThrower::ThrowBadResult(nsresult rv, nsresult result, XPCCallContext& ccx)
     *  If there is a pending exception when the native call returns and
     *  it has the same error result as returned by the native call, then
     *  the native call may be passing through an error from a previous JS
-    *  call. So we'll just throw that exception into our JS.
+    *  call. So we'll just throw that exception into our JS.  Note that
+    *  we don't need to worry about NS_ERROR_UNCATCHABLE_EXCEPTION,
+    *  because presumably there would be no pending exception for that
+    *  nsresult!
     */
 
     if (CheckForPendingException(result, ccx))
@@ -112,14 +116,15 @@ XPCThrower::ThrowBadResult(nsresult rv, nsresult result, XPCCallContext& ccx)
         format = "";
 
     if (nsXPCException::NameAndFormatForNSResult(result, &name, nullptr) && name)
-        sz = JS_smprintf("%s 0x%x (%s)", format, result, name);
+        sz = JS_smprintf("%s 0x%x (%s)", format, (unsigned) result, name);
     else
-        sz = JS_smprintf("%s 0x%x", format, result);
+        sz = JS_smprintf("%s 0x%x", format, (unsigned) result);
+    NS_ENSURE_TRUE_VOID(sz);
 
     if (sz && sVerbose)
         Verbosify(ccx, &sz, true);
 
-    dom::Throw(ccx, result, sz);
+    dom::Throw(ccx, result, nsDependentCString(sz));
 
     if (sz)
         JS_smprintf_free(sz);
@@ -136,11 +141,12 @@ XPCThrower::ThrowBadParam(nsresult rv, unsigned paramNum, XPCCallContext& ccx)
         format = "";
 
     sz = JS_smprintf("%s arg %d", format, paramNum);
+    NS_ENSURE_TRUE_VOID(sz);
 
     if (sz && sVerbose)
         Verbosify(ccx, &sz, true);
 
-    dom::Throw(ccx, rv, sz);
+    dom::Throw(ccx, rv, nsDependentCString(sz));
 
     if (sz)
         JS_smprintf_free(sz);
@@ -158,7 +164,7 @@ XPCThrower::Verbosify(XPCCallContext& ccx,
         XPCNativeInterface* iface = ccx.GetInterface();
         jsid id = ccx.GetMember()->GetName();
         JSAutoByteString bytes;
-        const char *name = JSID_IS_VOID(id) ? "Unknown" : bytes.encodeLatin1(ccx, JSID_TO_STRING(id));
+        const char* name = JSID_IS_VOID(id) ? "Unknown" : bytes.encodeLatin1(ccx, JSID_TO_STRING(id));
         if (!name) {
             name = "";
         }

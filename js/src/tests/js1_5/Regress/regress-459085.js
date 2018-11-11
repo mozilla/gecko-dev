@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /*
  * Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/licenses/publicdomain/
@@ -22,13 +22,11 @@ function test()
   printBugNumber(BUGNUMBER);
   printStatus (summary);
   
-  jit(true);
 
   var m = new Number(3);
   function foo() { for (var i=0; i<20;i++) m.toString(); } 
   foo();
 
-  jit(false);
 
   reportCompare(expect, actual, summary);
 

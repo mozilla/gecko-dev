@@ -3,7 +3,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-let testGenerator = testSteps();
+var testGenerator = testSteps();
 
 function testSteps() {
   const dbName = this.window ?
@@ -35,6 +35,14 @@ function testSteps() {
 
   db = event.target.result;
 
+  try {
+    db.transaction(objectStoreName, "versionchange");
+    ok(false, "TypeError shall be thrown if transaction mode is wrong.");
+  } catch (e) {
+    ok(e instanceof DOMException, "got a database exception");
+    is(e.name, "TypeError", "correct error");
+  }
+
   let transaction = db.transaction(objectStoreName, "readwrite");
   transaction.onerror = grabEventAndContinueHandler;
   transaction.oncomplete = grabEventAndContinueHandler;
@@ -43,7 +51,7 @@ function testSteps() {
 
   info("Adding duplicate entry with preventDefault()");
 
-  let request = objectStore.add(data, dataKey);
+  request = objectStore.add(data, dataKey);
   request.onsuccess = unexpectedSuccessHandler;
   request.onerror = grabEventAndContinueHandler;
   event = yield undefined;
@@ -82,6 +90,18 @@ function testSteps() {
 
   if ("SimpleTest" in this) {
     SimpleTest.expectUncaughtException();
+  } else if ("DedicatedWorkerGlobalScope" in self &&
+             self instanceof DedicatedWorkerGlobalScope) {
+    let oldErrorFunction = self.onerror;
+    self.onerror = function(message, file, line) {
+      self.onerror = oldErrorFunction;
+      oldErrorFunction = null;
+
+      is(message,
+        "ConstraintError",
+        "Got expected ConstraintError on DedicatedWorkerGlobalScope");
+      return true;
+    };
   }
 
   request = objectStore.add(data, dataKey);

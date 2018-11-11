@@ -1,16 +1,7 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/am.xml
-// *
-// ***************************************************************************
-/**
- * ICU <specials> source: <path>/common/main/am.xml
- */
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 am{
-    Version{"2.0.92.87"}
+    Version{"2.1.28.79"}
     zoneStrings{
         "Africa:Abidjan"{
             ec{"አቢጃን"}
@@ -106,7 +97,7 @@ am{
             ec{"ሌጎስ"}
         }
         "Africa:Libreville"{
-            ec{"ሊብርልቪል"}
+            ec{"ሊበርቪል"}
         }
         "Africa:Lome"{
             ec{"ሎሜ"}
@@ -130,7 +121,7 @@ am{
             ec{"ማሴሩ"}
         }
         "Africa:Mbabane"{
-            ec{"ምባቤን"}
+            ec{"ምባባኔ"}
         }
         "Africa:Mogadishu"{
             ec{"ሞቃዲሹ"}
@@ -166,7 +157,7 @@ am{
             ec{"ቱኒዝ"}
         }
         "Africa:Windhoek"{
-            ec{"ዊንድሆይክ"}
+            ec{"ዊንድሆክ"}
         }
         "America:Adak"{
             ec{"አዳክ"}
@@ -311,6 +302,9 @@ am{
         }
         "America:El_Salvador"{
             ec{"ኤልሳልቫዶር"}
+        }
+        "America:Fort_Nelson"{
+            ec{"ፎርት ኔልሰን"}
         }
         "America:Fortaleza"{
             ec{"ፎርታሌዛ"}
@@ -459,9 +453,6 @@ am{
         "America:Montevideo"{
             ec{"ሞንቴቪድዮ"}
         }
-        "America:Montreal"{
-            ec{"ሞንትሪያል"}
-        }
         "America:Montserrat"{
             ec{"ሞንትሴራት"}
         }
@@ -529,7 +520,7 @@ am{
             ec{"ረጂና"}
         }
         "America:Resolute"{
-            ec{"ቆራጥ"}
+            ec{"ሪዞሊዩት"}
         }
         "America:Rio_Branco"{
             ec{"ሪዮ ብራንኮ"}
@@ -547,13 +538,10 @@ am{
             ec{"ሳንቶ ዶሚንጎ"}
         }
         "America:Sao_Paulo"{
-            ec{"ሴኦ ፖሎ"}
+            ec{"ሳኦ ፖሎ"}
         }
         "America:Scoresbysund"{
             ec{"ስኮርስባይሰንድ"}
-        }
-        "America:Shiprock"{
-            ec{"ሺፕሮክ"}
         }
         "America:Sitka"{
             ec{"ሲትካ"}
@@ -636,11 +624,11 @@ am{
         "Antarctica:Rothera"{
             ec{"ሮቴራ"}
         }
-        "Antarctica:South_Pole"{
-            ec{"የደቡብ ዋልታ"}
-        }
         "Antarctica:Syowa"{
             ec{"ስዮዋ"}
+        }
+        "Antarctica:Troll"{
+            ec{"ትሮል"}
         }
         "Antarctica:Vostok"{
             ec{"ቭስቶክ"}
@@ -681,6 +669,9 @@ am{
         "Asia:Bangkok"{
             ec{"ባንኮክ"}
         }
+        "Asia:Barnaul"{
+            ec{"ባርናኡል"}
+        }
         "Asia:Beirut"{
             ec{"ቤሩት"}
         }
@@ -693,11 +684,11 @@ am{
         "Asia:Calcutta"{
             ec{"ኮልካታ"}
         }
+        "Asia:Chita"{
+            ec{"ቺታ"}
+        }
         "Asia:Choibalsan"{
             ec{"ቾይባልሳን"}
-        }
-        "Asia:Chongqing"{
-            ec{"ቾንግኪንግ"}
         }
         "Asia:Colombo"{
             ec{"ኮሎምቦ"}
@@ -719,9 +710,6 @@ am{
         }
         "Asia:Gaza"{
             ec{"ጋዛ"}
-        }
-        "Asia:Harbin"{
-            ec{"ሃሪቢን"}
         }
         "Asia:Hebron"{
             ec{"ኬብሮን"}
@@ -752,9 +740,6 @@ am{
         }
         "Asia:Karachi"{
             ec{"ካራቺ"}
-        }
-        "Asia:Kashgar"{
-            ec{"ካሽጋር"}
         }
         "Asia:Katmandu"{
             ec{"ካትማንዱ"}
@@ -843,6 +828,9 @@ am{
         "Asia:Singapore"{
             ec{"ሲንጋፖር"}
         }
+        "Asia:Srednekolymsk"{
+            ec{"ስሬድኔስኮልምስክ"}
+        }
         "Asia:Taipei"{
             ec{"ታይፓይ"}
         }
@@ -860,6 +848,9 @@ am{
         }
         "Asia:Tokyo"{
             ec{"ቶኪዮ"}
+        }
+        "Asia:Tomsk"{
+            ec{"ቶምስክ"}
         }
         "Asia:Ulaanbaatar"{
             ec{"ኡላአንባአታር"}
@@ -960,6 +951,9 @@ am{
         "Europe:Andorra"{
             ec{"አንዶራ"}
         }
+        "Europe:Astrakhan"{
+            ec{"አስትራክሃን"}
+        }
         "Europe:Athens"{
             ec{"አቴንስ"}
         }
@@ -973,7 +967,7 @@ am{
             ec{"ብራቲስላቫ"}
         }
         "Europe:Brussels"{
-            ec{"ብራስል"}
+            ec{"ብራሰልስ"}
         }
         "Europe:Bucharest"{
             ec{"ቡካሬስት"}
@@ -992,6 +986,7 @@ am{
         }
         "Europe:Dublin"{
             ec{"ደብሊን"}
+            ld{"የአይሪሽ መደበኛ ሰዓት አቆጣጠር"}
         }
         "Europe:Gibraltar"{
             ec{"ጂብራልታር"}
@@ -1017,6 +1012,9 @@ am{
         "Europe:Kiev"{
             ec{"ኪየቭ"}
         }
+        "Europe:Kirov"{
+            ec{"ኪሮቭ"}
+        }
         "Europe:Lisbon"{
             ec{"ሊዝበን"}
         }
@@ -1025,6 +1023,7 @@ am{
         }
         "Europe:London"{
             ec{"ለንደን"}
+            ld{"የብሪትሽ የበጋ ሰዓት አቆጣጠር"}
         }
         "Europe:Luxembourg"{
             ec{"ሉክሰምበርግ"}
@@ -1092,6 +1091,9 @@ am{
         "Europe:Tirane"{
             ec{"ቴራን"}
         }
+        "Europe:Ulyanovsk"{
+            ec{"ኡልያኖቭስክ"}
+        }
         "Europe:Uzhgorod"{
             ec{"ኡዝጎሮድ"}
         }
@@ -1111,10 +1113,10 @@ am{
             ec{"ቮልጎራድ"}
         }
         "Europe:Warsaw"{
-            ec{"ዋርሳው"}
+            ec{"ዋርሶው"}
         }
         "Europe:Zagreb"{
-            ec{"ዛግረብ"}
+            ec{"ዛግሬብ"}
         }
         "Europe:Zaporozhye"{
             ec{"ዛፖሮዚይ"}
@@ -1160,6 +1162,9 @@ am{
         }
         "Pacific:Auckland"{
             ec{"ኦክላንድ"}
+        }
+        "Pacific:Bougainville"{
+            ec{"ቦጌይንቪል"}
         }
         "Pacific:Chatham"{
             ec{"ቻታም"}
@@ -1297,9 +1302,9 @@ am{
             ls{"የአማዞን መደበኛ ሰዓት አቆጣጠር"}
         }
         "meta:America_Central"{
-            ld{"የመካከላዊ የቀን ሰዓት አቆጣጠር"}
-            lg{"መካከለኛ የሰዓት አቆጣጠር"}
-            ls{"የመካከላዊ መደበኛ ሰዓት አቆጣጠር"}
+            ld{"የመካከለኛ የቀን ሰዓት አቆጣጠር"}
+            lg{"የመካከለኛ ሰዓት አቆጣጠር"}
+            ls{"የመካከለኛ መደበኛ ሰዓት አቆጣጠር"}
         }
         "meta:America_Eastern"{
             ld{"የምዕራባዊ የቀን ሰዓት አቆጣጠር"}
@@ -1321,15 +1326,20 @@ am{
             lg{"የአናድይር ሰዓት አቆጣጠር"}
             ls{"የአናዲይር ሰዓት አቆጣጠር"}
         }
+        "meta:Apia"{
+            ld{"የአፒያ የቀን ጊዜ ሰዓት"}
+            lg{"የአፒያ ሰዓት"}
+            ls{"የአፒያ መደበኛ ሰዓት"}
+        }
         "meta:Arabian"{
-            ld{"የአረቢያ የቀን ብርሃን ሰዓት"}
-            lg{"የአረቢያ ሰዓት"}
-            ls{"የአረቢያ መደበኛ ሰዓት"}
+            ld{"የዓረቢያ የቀን ብርሃን ሰዓት"}
+            lg{"የዓረቢያ ሰዓት"}
+            ls{"የዓረቢያ መደበኛ ሰዓት"}
         }
         "meta:Argentina"{
             ld{"የአርጀንቲና የበጋ ሰዓት አቆጣጠር"}
             lg{"የአርጀንቲና የሰዓት አቆጣጠር"}
-            ls{"የአርጀንቲና መደበኛ ጊዜ"}
+            ls{"የአርጀንቲና መደበኛ ሰዓት አቆጣጠር"}
         }
         "meta:Argentina_Western"{
             ld{"የአርጀንቲና ምስራቃዊ በጋ ሰዓት አቆጣጠር"}
@@ -1358,7 +1368,7 @@ am{
         }
         "meta:Australia_Eastern"{
             ld{"የአውስትራሊያ ምዕራባዊ የቀን ሰዓት አቆጣጠር"}
-            lg{"የምዕራባዊ አውስትራሊያ የሰአት አቆጣጠር"}
+            lg{"የምዕራባዊ አውስትራሊያ የሰዓት አቆጣጠር"}
             ls{"የአውስትራሊያ ምዕራባዊ መደበኛ የሰዓት አቆጣጠር"}
         }
         "meta:Australia_Western"{
@@ -1390,7 +1400,7 @@ am{
         "meta:Brasilia"{
             ld{"የብራዚላ የበጋ ሰዓት አቆጣጠር"}
             lg{"የብራዚላዊ ሰዓት አቆጣጠር"}
-            ls{"የብራሲሊያ መደበኛ ጊዜ"}
+            ls{"የብራሲሊያ መደበኛ ሰዓት አቆጣጠር"}
         }
         "meta:Brunei"{
             ls{"የብሩኔይ ዳሩሳላም ሰዓት"}
@@ -1470,6 +1480,9 @@ am{
             ld{"የምስራቃዊ አውሮፓ ክረምት ሰዓት"}
             lg{"የምስራቃዊ አውሮፓ ሰዓት"}
             ls{"የምስራቃዊ አውሮፓ መደበኛ ሰዓት"}
+        }
+        "meta:Europe_Further_Eastern"{
+            ls{"የሩቅ ምስራቅ የአውሮፓ ሰዓት"}
         }
         "meta:Europe_Western"{
             ld{"የምዕራባዊ አውሮፓ ክረምት ሰዓት"}
@@ -1584,10 +1597,10 @@ am{
             ls{"የፔትሮፓቭሎስኪ - ካምቻትስኪ ሰዓት አቆጣጠር"}
         }
         "meta:Kazakhstan_Eastern"{
-            ls{"የምስራቅ ካዛኪስታን ጊዜ"}
+            ls{"የምስራቅ ካዛኪስታን ሰዓት"}
         }
         "meta:Kazakhstan_Western"{
-            ls{"የምዕራብ ካዛኪስታን ጊዜ"}
+            ls{"የምዕራብ ካዛኪስታን ሰዓት"}
         }
         "meta:Korea"{
             ld{"የኮሪያ የቀን ብርሃን ሰዓት"}
@@ -1640,6 +1653,16 @@ am{
         }
         "meta:Mawson"{
             ls{"የማውሰን ሰዓት"}
+        }
+        "meta:Mexico_Northwest"{
+            ld{"ሰሜናዊ ምእራብ የሜክሲኮ የቀን ሰዓት አቆጣጠር"}
+            lg{"ሰሜናዊ ምእራብ የሜክሲኮ ሰዓት አቆጣጠር"}
+            ls{"ሰሜናዊ ምእራብ የሜክሲኮ መደበኛ ሰዓት አቆጣጠር"}
+        }
+        "meta:Mexico_Pacific"{
+            ld{"የሜክሲኮ ፓሲፊክ የቀን ሰዓት አቆጣጠር"}
+            lg{"የሜክሲኮ ፓሲፊክ ሰዓት አቆጣጠር"}
+            ls{"የሜክሲኮ ፓሲፊክ መደበኛ ሰዓት አቆጣጠር"}
         }
         "meta:Mongolia"{
             ld{"የኡላን ባቶር የበጋ ሰዓት አቆጣጠር"}
@@ -1735,6 +1758,9 @@ am{
         }
         "meta:Ponape"{
             ls{"የፖናፔ ሰዓት"}
+        }
+        "meta:Pyongyang"{
+            ls{"የፕዮንግያንግ ሰዓት"}
         }
         "meta:Reunion"{
             ls{"የሬዩኒየን ሰዓት"}

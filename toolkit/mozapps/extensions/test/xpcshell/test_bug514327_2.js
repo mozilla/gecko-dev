@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
 
 const nsIBLS = Ci.nsIBlocklistService;
 
@@ -21,27 +21,21 @@ function get_test_plugintag() {
 function run_test() {
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9");
 
-  var blocklistFile = gProfD.clone();
-  blocklistFile.append("blocklist.xml");
-  if (blocklistFile.exists())
-    blocklistFile.remove(false);
-  var source = do_get_file("data/test_bug514327_2.xml");
-  source.copyTo(gProfD, "blocklist.xml");
+  copyBlocklistToProfile(do_get_file("data/test_bug514327_2.xml"));
 
   var blocklist = Cc["@mozilla.org/extensions/blocklist;1"].getService(nsIBLS);
   var prefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
+
+  prefs.setBoolPref("plugin.load_flash_only", false);
 
   var plugin = get_test_plugintag();
   if (!plugin)
     do_throw("Plugin tag not found");
 
-  //run the code after the blocklist is closed
+  // run the code after the blocklist is closed
   Services.obs.notifyObservers(null, "addon-blocklist-closed", null);
   do_execute_soon(function() {
     // should be marked as outdated by the blocklist
     do_check_true(blocklist.getPluginBlocklistState(plugin, "1", "1.9") == nsIBLS.STATE_OUTDATED);
-
-    // should indicate that a warning should be shown
-    do_check_true(prefs.getBoolPref("plugins.update.notifyUser"));
   });
 }

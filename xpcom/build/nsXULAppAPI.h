@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,12 +11,16 @@
 #include "xrecore.h"
 #include "nsXPCOM.h"
 #include "nsISupports.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsXREAppData.h"
 #include "js/TypeDecls.h"
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/Vector.h"
+#include "mozilla/TimeStamp.h"
+#include "XREChildData.h"
+#include "XREShellData.h"
 
 /**
  * A directory service key which provides the platform-correct "application
@@ -103,6 +108,16 @@
  */
 #define XRE_SYS_SHARE_EXTENSION_PARENT_DIR "XRESysSExtPD"
 
+#if defined(XP_UNIX) || defined(XP_MACOSX)
+/**
+ * Directory service keys for the system-wide and user-specific
+ * directories where host manifests used by the WebExtensions
+ * native messaging feature are found.
+ */
+#define XRE_SYS_NATIVE_MESSAGING_MANIFESTS "XRESysNativeMessaging"
+#define XRE_USER_NATIVE_MESSAGING_MANIFESTS "XREUserNativeMessaging"
+#endif
+
 /**
  * A directory service key which specifies the user system extension
  * parent directory.
@@ -116,19 +131,50 @@
 #define XRE_APP_DISTRIBUTION_DIR "XREAppDist"
 
 /**
- * A directory service key which provides the update directory.
- * At present this is supported only on Windows.
- * Windows: Documents and Settings\<User>\Local Settings\Application Data\
- *          <Vendor>\<Application>\<relative path to app dir from Program Files>
- * If appDir is not under the Program Files, directory service will fail.
- * Callers should fallback to appDir.
+ * A directory service key which specifies the location for system add-ons.
+ */
+#define XRE_APP_FEATURES_DIR "XREAppFeat"
+
+/**
+ * A directory service key which specifies the location for app dir add-ons.
+ * Should be a synonym for XCurProcD everywhere except in tests.
+ */
+#define XRE_ADDON_APP_DIR "XREAddonAppDir"
+
+/**
+ * A directory service key which provides the update directory. Callers should
+ * fall back to appDir.
+ * Windows:    If vendor name exists:
+ *             Documents and Settings\<User>\Local Settings\Application Data\
+ *             <vendor name>\updates\
+ *             <hash of the path to XRE_EXECUTABLE_FILE’s parent directory>
+ *
+ *             If vendor name doesn't exist, but product name exists:
+ *             Documents and Settings\<User>\Local Settings\Application Data\
+ *             <product name>\updates\
+ *             <hash of the path to XRE_EXECUTABLE_FILE’s parent directory>
+ *
+ *             If neither vendor nor product name exists:
+ *               If app dir is under Program Files:
+ *               Documents and Settings\<User>\Local Settings\Application Data\
+ *               <relative path to app dir from Program Files>
+ *
+ *               If app dir isn’t under Program Files:
+ *               Documents and Settings\<User>\Local Settings\Application Data\
+ *               <MOZ_APP_NAME>
+ *
+ * Mac:        ~/Library/Caches/Mozilla/updates/<absolute path to app dir>
+ *
+ * Gonk:       /data/local
+ *
+ * All others: Parent directory of XRE_EXECUTABLE_FILE.
  */
 #define XRE_UPDATE_ROOT_DIR "UpdRootD"
 
 /**
- * A directory service key which provides an alternate location 
- * to UpdRootD to  to store large files. This key is currently 
- * only implemented in the Gonk directory service provider. 
+ * A directory service key which provides an alternate location
+ * to UpdRootD to  to store large files. This key is currently
+ * only implemented in the Gonk directory service provider.
  */
 
 #define XRE_UPDATE_ARCHIVE_DIR "UpdArchD"
@@ -139,14 +185,6 @@
  * At present this is supported only in Gonk.
  */
 #define XRE_OS_UPDATE_APPLY_TO_DIR "OSUpdApplyToD"
-
-/**
- * Platform flag values for XRE_main.
- *
- * XRE_MAIN_FLAG_USE_METRO - On Windows, use the winrt backend. Defaults
- * to win32 backend.
- */
-#define XRE_MAIN_FLAG_USE_METRO 0x01
 
 /**
  * Begin an XUL application. Does not return until the user exits the
@@ -176,16 +214,16 @@ XRE_API(int,
  * @note Pass UTF8 strings on Windows... native charset on other platforms.
  */
 XRE_API(nsresult,
-        XRE_GetFileFromPath, (const char *aPath, nsIFile* *aResult))
+        XRE_GetFileFromPath, (const char* aPath, nsIFile** aResult))
 
 /**
  * Get the path of the running application binary and store it in aResult.
- * @param argv0   The value passed as argv[0] of main(). This value is only
+ * @param aArgv0  The value passed as argv[0] of main(). This value is only
  *                used on *nix, and only when other methods of determining
  *                the binary path have failed.
  */
 XRE_API(nsresult,
-        XRE_GetBinaryPath, (const char *argv0, nsIFile* *aResult))
+        XRE_GetBinaryPath, (const char* aArgv0, nsIFile** aResult))
 
 /**
  * Get the static module built in to libxul.
@@ -202,7 +240,7 @@ XRE_API(const mozilla::Module*,
  */
 XRE_API(nsresult,
         XRE_LockProfileDirectory, (nsIFile* aDirectory,
-                                   nsISupports* *aLockObject))
+                                   nsISupports** aLockObject))
 
 /**
  * Initialize libXUL for embedding purposes.
@@ -225,9 +263,9 @@ XRE_API(nsresult,
  */
 
 XRE_API(nsresult,
-        XRE_InitEmbedding2, (nsIFile *aLibXULDirectory,
-                             nsIFile *aAppDirectory,
-                             nsIDirectoryServiceProvider *aAppDirProvider))
+        XRE_InitEmbedding2, (nsIFile* aLibXULDirectory,
+                             nsIFile* aAppDirectory,
+                             nsIDirectoryServiceProvider* aAppDirProvider))
 
 /**
  * Register static XPCOM component information.
@@ -246,15 +284,19 @@ XRE_API(nsresult,
  * @param aFileCount the number of items in the aFiles array.
  * @note appdir/components is registered automatically.
  *
- * NS_COMPONENT_LOCATION specifies a location to search for binary XPCOM
+ * NS_APP_LOCATION specifies a location to search for binary XPCOM
  * components as well as component/chrome manifest files.
+ *
+ * NS_EXTENSION_LOCATION excludes binary XPCOM components but allows other
+ * manifest instructions.
  *
  * NS_SKIN_LOCATION specifies a location to search for chrome manifest files
  * which are only allowed to register only skin packages and style overlays.
  */
 enum NSLocationType
 {
-  NS_COMPONENT_LOCATION,
+  NS_APP_LOCATION,
+  NS_EXTENSION_LOCATION,
   NS_SKIN_LOCATION,
   NS_BOOTSTRAPPED_LOCATION
 };
@@ -329,7 +371,7 @@ XRE_API(void,
  */
 XRE_API(nsresult,
         XRE_CreateAppData, (nsIFile* aINIFile,
-                            nsXREAppData **aAppData))
+                            nsXREAppData** aAppData))
 
 /**
  * Parse an INI file (application.ini or override.ini) into an existing
@@ -340,15 +382,16 @@ XRE_API(nsresult,
  */
 XRE_API(nsresult,
         XRE_ParseAppData, (nsIFile* aINIFile,
-                           nsXREAppData *aAppData))
+                           nsXREAppData* aAppData))
 
 /**
  * Free a nsXREAppData structure that was allocated with XRE_CreateAppData.
  */
 XRE_API(void,
-        XRE_FreeAppData, (nsXREAppData *aAppData))
+        XRE_FreeAppData, (nsXREAppData* aAppData))
 
-enum GeckoProcessType {
+enum GeckoProcessType
+{
   GeckoProcessType_Default = 0,
 
   GeckoProcessType_Plugin,
@@ -357,6 +400,8 @@ enum GeckoProcessType {
   GeckoProcessType_IPDLUnitTest,
 
   GeckoProcessType_GMPlugin, // Gecko Media Plugin
+
+  GeckoProcessType_GPU,      // GPU and compositor process
 
   GeckoProcessType_End,
   GeckoProcessType_Invalid = GeckoProcessType_End
@@ -367,7 +412,8 @@ static const char* const kGeckoProcessTypeString[] = {
   "plugin",
   "tab",
   "ipdlunittest",
-  "geckomediaplugin"
+  "geckomediaplugin",
+  "gpu"
 };
 
 static_assert(MOZ_ARRAY_LENGTH(kGeckoProcessTypeString) ==
@@ -377,8 +423,8 @@ static_assert(MOZ_ARRAY_LENGTH(kGeckoProcessTypeString) ==
 XRE_API(const char*,
         XRE_ChildProcessTypeToString, (GeckoProcessType aProcessType))
 
-XRE_API(GeckoProcessType,
-        XRE_StringToChildProcessType, (const char* aProcessTypeString))
+XRE_API(void,
+        XRE_SetProcessType, (const char* aProcessTypeString))
 
 #if defined(MOZ_CRASHREPORTER)
 // Used in the "master" parent process hosting the crash server
@@ -391,13 +437,28 @@ XRE_API(bool,
         XRE_SetRemoteExceptionHandler, (const char* aPipe))
 #endif
 
+namespace mozilla {
+namespace gmp {
+class GMPLoader;
+} // namespace gmp
+} // namespace mozilla
+
 XRE_API(nsresult,
         XRE_InitChildProcess, (int aArgc,
                                char* aArgv[],
-                               GeckoProcessType aProcess))
+                               const XREChildData* aChildData))
 
 XRE_API(GeckoProcessType,
         XRE_GetProcessType, ())
+
+XRE_API(bool,
+        XRE_IsParentProcess, ())
+
+XRE_API(bool,
+        XRE_IsContentProcess, ())
+
+XRE_API(bool,
+        XRE_IsGPUProcess, ())
 
 typedef void (*MainFunction)(void* aData);
 
@@ -442,32 +503,36 @@ XRE_API(void,
         XRE_TelemetryAccumulate, (int aID, uint32_t aSample))
 
 XRE_API(void,
-        XRE_StartupTimelineRecord, (int aEvent, PRTime aWhen))
+        XRE_StartupTimelineRecord, (int aEvent, mozilla::TimeStamp aWhen))
 
 XRE_API(void,
-        XRE_InitOmnijar, (nsIFile* greOmni,
-                          nsIFile* appOmni))
+        XRE_InitOmnijar, (nsIFile* aGreOmni,
+                          nsIFile* aAppOmni))
 XRE_API(void,
         XRE_StopLateWriteChecks, (void))
 
-#ifdef XP_WIN
-/**
- * Valid environment types for XRE_GetWindowsEnvironment.
- */
-enum WindowsEnvironmentType {
-  WindowsEnvironmentType_Desktop = 0,
-  WindowsEnvironmentType_Metro = 1
-};
-
-/**
- * Retrieve the Windows desktop environment libXUL is running
- * under. Valid after a call to XRE_main.
- */
-XRE_API(WindowsEnvironmentType,
-        XRE_GetWindowsEnvironment, ())
-#endif // XP_WIN
+XRE_API(void,
+        XRE_EnableSameExecutableForContentProc, ())
 
 XRE_API(int,
-        XRE_XPCShellMain, (int argc, char** argv, char** envp))
+        XRE_XPCShellMain, (int argc, char** argv, char** envp,
+                           const XREShellData* aShellData))
+
+#if MOZ_WIDGET_GTK == 2
+XRE_API(void,
+        XRE_GlibInit, ())
+#endif
+
+
+#ifdef LIBFUZZER
+#include "LibFuzzerRegistry.h"
+
+XRE_API(void,
+        XRE_LibFuzzerSetMain, (int, char**, LibFuzzerMain))
+
+XRE_API(void,
+        XRE_LibFuzzerGetFuncs, (const char*, LibFuzzerInitFunc*,
+                                LibFuzzerTestingFunc*))
+#endif // LIBFUZZER
 
 #endif // _nsXULAppAPI_h__

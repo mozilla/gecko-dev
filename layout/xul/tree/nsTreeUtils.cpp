@@ -10,7 +10,7 @@
 #include "nsIAtom.h"
 #include "nsNameSpaceManager.h"
 #include "nsGkAtoms.h"
-#include "nsINodeInfo.h"
+#include "nsIContent.h"
 
 using namespace mozilla;
 
@@ -44,7 +44,7 @@ nsTreeUtils::TokenizeProperties(const nsAString& aProperties, AtomArray & aPrope
     if (iter == first)
       break;
 
-    nsCOMPtr<nsIAtom> atom = do_GetAtom(Substring(first, iter));
+    nsCOMPtr<nsIAtom> atom = NS_Atomize(Substring(first, iter));
     aPropertiesArray.AppendElement(atom);
   } while (iter != end);
 
@@ -56,7 +56,7 @@ nsTreeUtils::GetImmediateChild(nsIContent* aContainer, nsIAtom* aTag)
 {
   dom::FlattenedChildIterator iter(aContainer);
   for (nsIContent* child = iter.GetNextChild(); child; child = iter.GetNextChild()) {
-    if (child->Tag() == aTag) {
+    if (child->IsXULElement(aTag)) {
       return child;
     }
   }
@@ -69,7 +69,7 @@ nsTreeUtils::GetDescendantChild(nsIContent* aContainer, nsIAtom* aTag)
 {
   dom::FlattenedChildIterator iter(aContainer);
   for (nsIContent* child = iter.GetNextChild(); child; child = iter.GetNextChild()) {
-    if (child->Tag() == aTag) {
+    if (child->IsXULElement(aTag)) {
       return child;
     }
 

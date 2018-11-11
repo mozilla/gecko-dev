@@ -102,6 +102,11 @@ void TexturePoolOGL::Fill(GLContext* aContext)
   sMonitor->NotifyAll();
 }
 
+GLContext* TexturePoolOGL::GetGLContext()
+{
+  return sActiveContext;
+}
+
 void TexturePoolOGL::Init()
 {
   sMonitor = new Monitor("TexturePoolOGL.sMonitor");
@@ -114,5 +119,5 @@ void TexturePoolOGL::Shutdown()
   delete sTextures;
 }
 
-} // gl
-} // mozilla
+} // namespace gl
+} // namespace mozilla

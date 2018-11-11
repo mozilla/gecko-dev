@@ -4,6 +4,7 @@
 // is correctly modified.
 
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 var httpserver = new HttpServer();
 httpserver.start(-1);
@@ -26,13 +27,11 @@ TracingListener.prototype = {
     request.QueryInterface(Components.interfaces.nsIHttpChannelInternal);
 
 // local/remote addresses broken in e10s: disable for now
-/*
     do_check_eq(request.localAddress, "127.0.0.1");
     do_check_eq(request.localPort > 0, true);
     do_check_neq(request.localPort, PORT);
     do_check_eq(request.remoteAddress, "127.0.0.1");
     do_check_eq(request.remotePort, PORT);
-*/
 
     // Make sure listener can't be replaced after OnStartRequest was called.
     request.QueryInterface(Components.interfaces.nsITraceableChannel);
@@ -130,10 +129,8 @@ function test_handler(metadata, response) {
 }
 
 function make_channel(url) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].
-    getService(Ci.nsIIOService);
-  return ios.newChannel(url, null, null).
-    QueryInterface(Components.interfaces.nsIHttpChannel);
+  return NetUtil.newChannel({uri: url, loadUsingSystemPrincipal: true})
+                .QueryInterface(Components.interfaces.nsIHttpChannel);
 }
 
 // Check if received body is correctly modified.
@@ -148,6 +145,6 @@ function run_test() {
   httpserver.registerPathHandler("/testdir", test_handler);
 
   var channel = make_channel("http://localhost:" + PORT + "/testdir");
-  channel.asyncOpen(new ChannelListener(channel_finished), null);
+  channel.asyncOpen2(new ChannelListener(channel_finished));
   do_test_pending();
 }

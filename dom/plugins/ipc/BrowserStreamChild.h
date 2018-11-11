@@ -8,6 +8,8 @@
 
 #include "mozilla/plugins/PBrowserStreamChild.h"
 #include "mozilla/plugins/AStream.h"
+#include "base/task.h"
+#include "base/timer.h"
 
 namespace mozilla {
 namespace plugins {
@@ -23,14 +25,10 @@ public:
                      const uint32_t& length,
                      const uint32_t& lastmodified,
                      StreamNotifyChild* notifyData,
-                     const nsCString& headers,
-                     const nsCString& mimeType,
-                     const bool& seekable,
-                     NPError* rv,
-                     uint16_t* stype);
+                     const nsCString& headers);
   virtual ~BrowserStreamChild();
 
-  virtual bool IsBrowserStream() MOZ_OVERRIDE { return true; }
+  virtual bool IsBrowserStream() override { return true; }
 
   NPError StreamConstructed(
             const nsCString& mimeType,
@@ -38,11 +36,11 @@ public:
             uint16_t* stype);
 
   virtual bool RecvWrite(const int32_t& offset,
-                         const Buffer& data,
-                         const uint32_t& newsize) MOZ_OVERRIDE;
-  virtual bool RecvNPP_StreamAsFile(const nsCString& fname) MOZ_OVERRIDE;
-  virtual bool RecvNPP_DestroyStream(const NPReason& reason) MOZ_OVERRIDE;
-  virtual bool Recv__delete__() MOZ_OVERRIDE;
+                         const uint32_t& newsize,
+                         const Buffer& data) override;
+  virtual bool RecvNPP_StreamAsFile(const nsCString& fname) override;
+  virtual bool RecvNPP_DestroyStream(const NPReason& reason) override;
+  virtual bool Recv__delete__() override;
 
   void EnsureCorrectInstance(PluginInstanceChild* i)
   {

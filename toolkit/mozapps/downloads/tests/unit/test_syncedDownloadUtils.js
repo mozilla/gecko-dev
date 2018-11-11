@@ -8,19 +8,19 @@
  * "last time".
  */
 
-let Cu = Components.utils;
+var Cu = Components.utils;
 Cu.import("resource://gre/modules/DownloadUtils.jsm");
 
 function run_test()
 {
   // Simulate having multiple downloads requesting time left
   let downloadTimes = {};
-  for each (let time in [1, 30, 60, 3456, 9999])
+  for (let time of [1, 30, 60, 3456, 9999])
     downloadTimes[time] = DownloadUtils.getTimeLeft(time)[0];
 
   // Pretend we're a download status bar also asking for a time left, but we're
   // using a different "last sec". We need to make sure we get the same time.
   let lastSec = 314;
-  for (let [time, text] in Iterator(downloadTimes))
+  for (let [time, text] of Object.entries(downloadTimes))
     do_check_eq(DownloadUtils.getTimeLeft(time, lastSec)[0], text);
 }

@@ -40,29 +40,33 @@
 #include <vector>
 
 #include "breakpad_googletest_includes.h"
+#include "common/linux/elf_gnu_compat.h"
+#include "common/linux/elfutils.h"
+#include "common/linux/dump_symbols.h"
 #include "common/linux/synth_elf.h"
 #include "common/module.h"
 #include "common/using_std_string.h"
 
 namespace google_breakpad {
+
 bool ReadSymbolDataInternal(const uint8_t* obj_file,
                             const string& obj_filename,
                             const std::vector<string>& debug_dir,
-                            SymbolData symbol_data,
+                            const DumpOptions& options,
                             Module** module);
-}
 
 using google_breakpad::synth_elf::ELF;
+using google_breakpad::synth_elf::Notes;
 using google_breakpad::synth_elf::StringTable;
 using google_breakpad::synth_elf::SymbolTable;
 using google_breakpad::test_assembler::kLittleEndian;
 using google_breakpad::test_assembler::Section;
-using google_breakpad::Module;
-using google_breakpad::ReadSymbolDataInternal;
 using std::stringstream;
 using std::vector;
 using ::testing::Test;
+using ::testing::Types;
 
+template<typename ElfClass>
 class DumpSymbols : public Test {
  public:
   void GetElfContents(ELF& elf) {
@@ -79,19 +83,24 @@ class DumpSymbols : public Test {
   uint8_t* elfdata;
 };
 
-TEST_F(DumpSymbols, Invalid) {
+typedef Types<ElfClass32, ElfClass64> ElfClasses;
+
+TYPED_TEST_CASE(DumpSymbols, ElfClasses);
+
+TYPED_TEST(DumpSymbols, Invalid) {
   Elf32_Ehdr header;
   memset(&header, 0, sizeof(header));
   Module* module;
+  DumpOptions options(ALL_SYMBOL_DATA, true);
   EXPECT_FALSE(ReadSymbolDataInternal(reinterpret_cast<uint8_t*>(&header),
                                       "foo",
                                       vector<string>(),
-                                      ALL_SYMBOL_DATA,
+                                      options,
                                       &module));
 }
 
-TEST_F(DumpSymbols, SimplePublic32) {
-  ELF elf(EM_386, ELFCLASS32, kLittleEndian);
+TYPED_TEST(DumpSymbols, SimplePublic) {
+  ELF elf(TypeParam::kMachine, TypeParam::kClass, kLittleEndian);
   // Zero out text section for simplicity.
   Section text(kLittleEndian);
   text.Append(4096, 0);
@@ -99,8 +108,11 @@ TEST_F(DumpSymbols, SimplePublic32) {
 
   // Add a public symbol.
   StringTable table(kLittleEndian);
-  SymbolTable syms(kLittleEndian, 4, table);
-  syms.AddSymbol("superfunc", (uint32_t)0x1000, (uint32_t)0x10,
+  SymbolTable syms(kLittleEndian, TypeParam::kAddrSize, table);
+  syms.AddSymbol("superfunc",
+                   (typename TypeParam::Addr)0x1000,
+                   (typename TypeParam::Addr)0x10,
+                 // ELF32_ST_INFO works for 32-or 64-bit.
                  ELF32_ST_INFO(STB_GLOBAL, STT_FUNC),
                  SHN_UNDEF + 1);
   int index = elf.AddSection(".dynstr", table, SHT_STRTAB);
@@ -109,38 +121,55 @@ TEST_F(DumpSymbols, SimplePublic32) {
                  SHF_ALLOC,           // flags
                  0,                   // addr
                  index,               // link
-                 sizeof(Elf32_Sym));  // entsize
+                 sizeof(typename TypeParam::Sym));  // entsize
 
   elf.Finish();
-  GetElfContents(elf);
+  this->GetElfContents(elf);
 
   Module* module;
-  EXPECT_TRUE(ReadSymbolDataInternal(elfdata,
+  DumpOptions options(ALL_SYMBOL_DATA, true);
+  EXPECT_TRUE(ReadSymbolDataInternal(this->elfdata,
                                      "foo",
                                      vector<string>(),
-                                     ALL_SYMBOL_DATA,
+                                     options,
                                      &module));
 
   stringstream s;
   module->Write(s, ALL_SYMBOL_DATA);
-  EXPECT_EQ("MODULE Linux x86 000000000000000000000000000000000 foo\n"
-            "PUBLIC 1000 0 superfunc\n",
-            s.str());
+  const string expected =
+    string("MODULE Linux ") + TypeParam::kMachineName
+    + " 000000000000000000000000000000000 foo\n"
+    "INFO CODE_ID 00000000000000000000000000000000\n"
+    "PUBLIC 1000 0 superfunc\n";
+  EXPECT_EQ(expected, s.str());
   delete module;
 }
 
-TEST_F(DumpSymbols, SimplePublic64) {
-  ELF elf(EM_X86_64, ELFCLASS64, kLittleEndian);
+TYPED_TEST(DumpSymbols, SimpleBuildID) {
+  ELF elf(TypeParam::kMachine, TypeParam::kClass, kLittleEndian);
   // Zero out text section for simplicity.
   Section text(kLittleEndian);
   text.Append(4096, 0);
   elf.AddSection(".text", text, SHT_PROGBITS);
 
+  // Add a Build ID
+  const uint8_t kExpectedIdentifierBytes[] =
+    {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+     0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+     0x10, 0x11, 0x12, 0x13};
+  Notes notes(kLittleEndian);
+  notes.AddNote(NT_GNU_BUILD_ID, "GNU", kExpectedIdentifierBytes,
+                sizeof(kExpectedIdentifierBytes));
+  elf.AddSection(".note.gnu.build-id", notes, SHT_NOTE);
+
   // Add a public symbol.
   StringTable table(kLittleEndian);
-  SymbolTable syms(kLittleEndian, 8, table);
-  syms.AddSymbol("superfunc", (uint64_t)0x1000, (uint64_t)0x10,
-                 ELF64_ST_INFO(STB_GLOBAL, STT_FUNC),
+  SymbolTable syms(kLittleEndian, TypeParam::kAddrSize, table);
+  syms.AddSymbol("superfunc",
+                   (typename TypeParam::Addr)0x1000,
+                   (typename TypeParam::Addr)0x10,
+                 // ELF32_ST_INFO works for 32-or 64-bit.
+                 ELF32_ST_INFO(STB_GLOBAL, STT_FUNC),
                  SHN_UNDEF + 1);
   int index = elf.AddSection(".dynstr", table, SHT_STRTAB);
   elf.AddSection(".dynsym", syms,
@@ -148,21 +177,28 @@ TEST_F(DumpSymbols, SimplePublic64) {
                  SHF_ALLOC,           // flags
                  0,                   // addr
                  index,               // link
-                 sizeof(Elf64_Sym));  // entsize
+                 sizeof(typename TypeParam::Sym));  // entsize
 
   elf.Finish();
-  GetElfContents(elf);
+  this->GetElfContents(elf);
 
   Module* module;
-  EXPECT_TRUE(ReadSymbolDataInternal(elfdata,
+  DumpOptions options(ALL_SYMBOL_DATA, true);
+  EXPECT_TRUE(ReadSymbolDataInternal(this->elfdata,
                                      "foo",
                                      vector<string>(),
-                                     ALL_SYMBOL_DATA,
+                                     options,
                                      &module));
 
   stringstream s;
   module->Write(s, ALL_SYMBOL_DATA);
-  EXPECT_EQ("MODULE Linux x86_64 000000000000000000000000000000000 foo\n"
-            "PUBLIC 1000 0 superfunc\n",
-            s.str());
+  const string expected =
+    string("MODULE Linux ") + TypeParam::kMachineName
+    + " 030201000504070608090A0B0C0D0E0F0 foo\n"
+    "INFO CODE_ID 000102030405060708090A0B0C0D0E0F10111213\n"
+    "PUBLIC 1000 0 superfunc\n";
+  EXPECT_EQ(expected, s.str());
+  delete module;
 }
+
+}  // namespace google_breakpad

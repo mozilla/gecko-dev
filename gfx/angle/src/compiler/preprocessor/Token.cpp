@@ -4,11 +4,10 @@
 // found in the LICENSE file.
 //
 
-#include "Token.h"
+#include "compiler/preprocessor/Token.h"
 
-#include <cassert>
-
-#include "numeric_lex.h"
+#include "common/debug.h"
+#include "compiler/preprocessor/numeric_lex.h"
 
 namespace pp
 {
@@ -21,7 +20,7 @@ void Token::reset()
     text.clear();
 }
 
-bool Token::equals(const Token& other) const
+bool Token::equals(const Token &other) const
 {
     return (type == other.type) &&
            (flags == other.flags) &&
@@ -53,25 +52,25 @@ void Token::setExpansionDisabled(bool disable)
         flags &= ~EXPANSION_DISABLED;
 }
 
-bool Token::iValue(int* value) const
+bool Token::iValue(int *value) const
 {
-    assert(type == CONST_INT);
+    ASSERT(type == CONST_INT);
     return numeric_lex_int(text, value);
 }
 
-bool Token::uValue(unsigned int* value) const
+bool Token::uValue(unsigned int *value) const
 {
-    assert(type == CONST_INT);
+    ASSERT(type == CONST_INT);
     return numeric_lex_int(text, value);
 }
 
-bool Token::fValue(float* value) const
+bool Token::fValue(float *value) const
 {
-    assert(type == CONST_FLOAT);
+    ASSERT(type == CONST_FLOAT);
     return numeric_lex_float(text, value);
 }
 
-std::ostream& operator<<(std::ostream& out, const Token& token)
+std::ostream &operator<<(std::ostream &out, const Token &token)
 {
     if (token.hasLeadingSpace())
         out << " ";

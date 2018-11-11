@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,6 +8,7 @@ if CONFIG['OS_ARCH'] == 'WINNT':
     TEST_DIRS += ['test/win']
 
 MOCHITEST_MANIFESTS += ['test/mochitest.ini']
+BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
 
 XPIDL_SOURCES += [
     'nsINativeAppSupport.idl',
@@ -20,6 +21,8 @@ if CONFIG['OS_ARCH'] == 'WINNT':
 
 XPIDL_MODULE = 'xulapp'
 
+EXPORTS += ['nsAppRunner.h']
+
 if CONFIG['MOZ_INSTRUMENT_EVENT_LOOP']:
     EXPORTS += ['EventTracer.h']
 
@@ -28,26 +31,20 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
         'nsNativeAppSupportWin.cpp',
     ]
 elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
-    EXPORTS += ['MacQuirks.h']
-    UNIFIED_SOURCES += [
-        'nsCommandLineServiceMac.cpp',
-    ]
     UNIFIED_SOURCES += [
         'MacApplicationDelegate.mm',
         'MacAutoreleasePool.mm',
         'MacLaunchHelper.mm',
+        'nsCommandLineServiceMac.cpp',
         'nsNativeAppSupportCocoa.mm',
+        'updaterfileutils_osx.mm',
     ]
-elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'qt':
-    EXPORTS += ['nsQAppInstance.h']
-    GENERATED_SOURCES += [
-        'moc_nsNativeAppSupportQt.cpp',
+elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'uikit':
+    UNIFIED_SOURCES += [
+        'nsNativeAppSupportDefault.cpp',
+        'UIKitDirProvider.mm',
     ]
-    SOURCES += [
-        'nsNativeAppSupportQt.cpp',
-        'nsQAppInstance.cpp',
-    ]
-elif CONFIG['MOZ_ENABLE_GTK']:
+elif 'gtk' in CONFIG['MOZ_WIDGET_TOOLKIT']:
     UNIFIED_SOURCES += [
         'nsNativeAppSupportUnix.cpp',
     ]
@@ -62,6 +59,7 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gtk3':
     ]
 
 if CONFIG['MOZ_X11']:
+    EXPORTS += ['nsX11ErrorHandler.h']
     UNIFIED_SOURCES += [
         'nsX11ErrorHandler.cpp',
     ]
@@ -77,14 +75,15 @@ UNIFIED_SOURCES += [
     'nsNativeAppSupportBase.cpp',
     'nsSigHandlers.cpp',
     'nsXREDirProvider.cpp',
-    'ProfileReset.cpp',
 ]
 
-# nsAppRunner.cpp cannot be built in unified mode because it pulls in OS X system headers.
+# nsAppRunner.cpp and ProfileReset.cpp cannot be built in unified mode because
+# they pull in OS X system headers.
 # nsEmbedFunctions.cpp cannot be built in unified mode because it pulls in X11 headers.
 SOURCES += [
     'nsAppRunner.cpp',
     'nsEmbedFunctions.cpp',
+    'ProfileReset.cpp',
 ]
 
 if CONFIG['MOZ_GL_DEFAULT_PROVIDER'] == 'GLX':
@@ -102,10 +101,6 @@ if CONFIG['MOZ_UPDATER']:
         UNIFIED_SOURCES += [
             'nsUpdateDriver.cpp',
         ]
-
-MSVC_ENABLE_PGO = True
-
-LIBRARY_NAME = 'xulapp_s'
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
@@ -130,12 +125,8 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
     DEFINES['ANDROID_PACKAGE_NAME'] = '"%s"' % CONFIG['ANDROID_PACKAGE_NAME']
 
 if CONFIG['TARGET_XPCOM_ABI']:
-    DEFINES['TARGET_XPCOM_ABI'] = '"%s"' % CONFIG['TARGET_XPCOM_ABI']
     DEFINES['TARGET_OS_ABI'] = '"%s_%s"' % (CONFIG['OS_TARGET'],
                                             CONFIG['TARGET_XPCOM_ABI'])
-
-if CONFIG['WRAP_SYSTEM_INCLUDES']:
-    DEFINES['WRAP_SYSTEM_INCLUDES'] = True
 
 if CONFIG['OS_ARCH'] == 'Linux' and 'lib64' in CONFIG['libdir']:
     DEFINES['HAVE_USR_LIB64_DIR'] = True
@@ -145,8 +136,8 @@ DEFINES['GRE_MILESTONE'] = CONFIG['GRE_MILESTONE']
 for var in ('APP_VERSION', 'APP_ID'):
     DEFINES[var] = CONFIG['MOZ_%s' % var]
 
-if CONFIG['MOZILLA_OFFICIAL']:
-    DEFINES['MOZILLA_OFFICIAL'] = True
+if CONFIG['MOZ_BUILD_APP'] == 'browser':
+    DEFINES['MOZ_BUILD_APP_IS_BROWSER'] = True
 
 LOCAL_INCLUDES += [
     '../profile',
@@ -158,8 +149,37 @@ LOCAL_INCLUDES += [
     '/xpcom/build',
 ]
 
+if CONFIG['MOZ_SANDBOX'] and CONFIG['OS_ARCH'] == 'WINNT':
+    LOCAL_INCLUDES += [
+        '/security/sandbox/chromium',
+        '/security/sandbox/chromium-shim',
+    ]
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+    LOCAL_INCLUDES += [
+        '/widget',
+        '/widget/cocoa',
+    ]
+
 if CONFIG['MOZ_ENABLE_XREMOTE']:
     LOCAL_INCLUDES += [
         '/widget/xremoteclient',
     ]
 
+CXXFLAGS += CONFIG['TK_CFLAGS']
+CXXFLAGS += CONFIG['MOZ_DBUS_CFLAGS']
+CXXFLAGS += CONFIG['MOZ_DBUS_GLIB_CFLAGS']
+
+if 'gtk' in CONFIG['MOZ_WIDGET_TOOLKIT']:
+    CXXFLAGS += CONFIG['MOZ_PANGO_CFLAGS']
+
+DEFINES['TOPOBJDIR'] = TOPOBJDIR
+FINAL_TARGET_PP_FILES += [
+    'platform.ini'
+]
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wno-error=shadow']
+
+if CONFIG['MOZ_IPDL_TESTS']:
+    DEFINES['MOZ_IPDL_TESTS'] = True

@@ -18,7 +18,7 @@
 #include "prlog.h"
 #include "prmem.h"
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && _MSC_VER < 1900
 #define snprintf _snprintf
 #endif
 
@@ -37,7 +37,7 @@ struct SprintfStateStr {
 
     char *base;
     char *cur;
-    PRUint32 maxlen;
+    PRUint32 maxlen;  /* Must not exceed PR_INT32_MAX. */
 
     int (*func)(void *arg, const char *sp, PRUint32 len);
     void *arg;
@@ -66,7 +66,11 @@ struct NumArg {
 
 #define NAS_DEFAULT_NUM 20  /* default number of NumberedArgument array */
 
-
+/*
+** For numeric types, the signed versions must have even values,
+** and their corresponding unsigned versions must have the subsequent
+** odd value.
+*/
 #define TYPE_INT16	0
 #define TYPE_UINT16	1
 #define TYPE_INTN	2
@@ -376,8 +380,8 @@ static int cvt_s(SprintfState *ss, const char *str, int width, int prec,
 
 /*
 ** BuildArgArray stands for Numbered Argument list Sprintf
-** for example,  
-**	fmp = "%4$i, %2$d, %3s, %1d";
+** for example,
+**	fmt = "%4$i, %2$d, %3s, %1d";
 ** the number must start from 1, and no gap among them
 */
 
@@ -457,7 +461,7 @@ static struct NumArg* BuildArgArray( const char *fmt, va_list ap, int* rv, struc
 	if( c == '%' )	continue;
 
 	cn = 0;
-	while( c && c != '$' ){	    /* should imporve error check later */
+	while( c && c != '$' ){	    /* should improve error check later */
 	    cn = cn*10 + c - '0';
 	    c = *p++;
 	}
@@ -515,6 +519,15 @@ static struct NumArg* BuildArgArray( const char *fmt, va_list ap, int* rv, struc
 	        nas[cn].type = TYPE_INT64;
 	        c = *p++;
 	    }
+	} else if (c == 'z') {
+	    if (sizeof(size_t) == sizeof(PRInt32)) {
+	        nas[ cn ].type = TYPE_INT32;
+	    } else if (sizeof(size_t) == sizeof(PRInt64)) {
+	        nas[ cn ].type = TYPE_INT64;
+	    } else {
+		nas[ cn ].type = TYPE_UNKNOWN;
+	    }
+	    c = *p++;
 	}
 
 	/* format */
@@ -684,7 +697,7 @@ static int dosprintf(SprintfState *ss, const char *fmt, va_list ap)
     char *hexp;
     int rv, i;
     struct NumArg* nas = NULL;
-    struct NumArg* nap;
+    struct NumArg* nap = NULL;
     struct NumArg  nasArray[ NAS_DEFAULT_NUM ];
     char  pattern[20];
     const char* dolPt = NULL;  /* in "%4$.2f", dolPt will point to . */
@@ -732,7 +745,7 @@ static int dosprintf(SprintfState *ss, const char *fmt, va_list ap)
 	if( nas != NULL ){
 	    /* the fmt contains the Numbered Arguments feature */
 	    i = 0;
-	    while( c && c != '$' ){	    /* should imporve error check later */
+	    while( c && c != '$' ){	    /* should improve error check later */
 		i = ( i * 10 ) + ( c - '0' );
 		c = *fmt++;
 	    }
@@ -809,6 +822,13 @@ static int dosprintf(SprintfState *ss, const char *fmt, va_list ap)
 		type = TYPE_INT64;
 		c = *fmt++;
 	    }
+	} else if (c == 'z') {
+	    if (sizeof(size_t) == sizeof(PRInt32)) {
+	    	type = TYPE_INT32;
+	    } else if (sizeof(size_t) == sizeof(PRInt64)) {
+	    	type = TYPE_INT64;
+	    }
+	    c = *fmt++;
 	}
 
 	/* format */
@@ -1040,6 +1060,13 @@ static int FuncStuff(SprintfState *ss, const char *sp, PRUint32 len)
 {
     int rv;
 
+    /*
+    ** We will add len to ss->maxlen at the end of the function. First check
+    ** if ss->maxlen + len would overflow or be greater than PR_INT32_MAX.
+    */
+    if (PR_UINT32_MAX - ss->maxlen < len || ss->maxlen + len > PR_INT32_MAX) {
+	return -1;
+    }
     rv = (*ss->func)(ss->arg, sp, len);
     if (rv < 0) {
 	return rv;
@@ -1085,9 +1112,21 @@ static int GrowStuff(SprintfState *ss, const char *sp, PRUint32 len)
     PRUint32 newlen;
 
     off = ss->cur - ss->base;
+    if (PR_UINT32_MAX - len < off) {
+	/* off + len would be too big. */
+	return -1;
+    }
     if (off + len >= ss->maxlen) {
 	/* Grow the buffer */
-	newlen = ss->maxlen + ((len > 32) ? len : 32);
+	PRUint32 increment = (len > 32) ? len : 32;
+	if (PR_UINT32_MAX - ss->maxlen < increment) {
+	    /* ss->maxlen + increment would overflow. */
+	    return -1;
+	}
+	newlen = ss->maxlen + increment;
+	if (newlen > PR_INT32_MAX) {
+	    return -1;
+	}
 	if (ss->base) {
 	    newbase = (char*) PR_REALLOC(ss->base, newlen);
 	} else {
@@ -1190,8 +1229,8 @@ PR_IMPLEMENT(PRUint32) PR_vsnprintf(char *out, PRUint32 outlen,const char *fmt,
     SprintfState ss;
     PRUint32 n;
 
-    PR_ASSERT((PRInt32)outlen > 0);
-    if ((PRInt32)outlen <= 0) {
+    PR_ASSERT(outlen != 0 && outlen <= PR_INT32_MAX);
+    if (outlen == 0 || outlen > PR_INT32_MAX) {
 	return 0;
     }
 
@@ -1227,7 +1266,10 @@ PR_IMPLEMENT(char *) PR_vsprintf_append(char *last, const char *fmt, va_list ap)
 
     ss.stuff = GrowStuff;
     if (last) {
-	int lastlen = strlen(last);
+	size_t lastlen = strlen(last);
+	if (lastlen > PR_INT32_MAX) {
+	    return 0;
+	}
 	ss.base = last;
 	ss.cur = last + lastlen;
 	ss.maxlen = lastlen;

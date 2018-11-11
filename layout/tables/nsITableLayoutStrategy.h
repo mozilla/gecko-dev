@@ -6,7 +6,7 @@
 
 /*
  * interface for the set of algorithms that determine column and table
- * widths
+ * isizes
  */
 
 #ifndef nsITableLayoutStrategy_h_
@@ -16,28 +16,32 @@
 #include "nsCoord.h"
 
 class nsRenderingContext;
-struct nsHTMLReflowState;
+namespace mozilla {
+struct ReflowInput;
+} // namespace mozilla
 
 class nsITableLayoutStrategy
 {
 public:
+    using ReflowInput = mozilla::ReflowInput;
+
     virtual ~nsITableLayoutStrategy() {}
 
-    /** Implement nsIFrame::GetMinWidth for the table */
-    virtual nscoord GetMinWidth(nsRenderingContext* aRenderingContext) = 0;
+    /** Implement nsIFrame::GetMinISize for the table */
+    virtual nscoord GetMinISize(nsRenderingContext* aRenderingContext) = 0;
 
-    /** Implement nsIFrame::GetPrefWidth for the table */
-    virtual nscoord GetPrefWidth(nsRenderingContext* aRenderingContext,
+    /** Implement nsIFrame::GetPrefISize for the table */
+    virtual nscoord GetPrefISize(nsRenderingContext* aRenderingContext,
                                  bool aComputingSize) = 0;
 
-    /** Implement nsIFrame::MarkIntrinsicWidthsDirty for the table */
-    virtual void MarkIntrinsicWidthsDirty() = 0;
+    /** Implement nsIFrame::MarkIntrinsicISizesDirty for the table */
+    virtual void MarkIntrinsicISizesDirty() = 0;
 
     /**
-     * Compute final column widths based on the intrinsic width data and
-     * the available width.
+     * Compute final column isizes based on the intrinsic isize data and
+     * the available isize.
      */
-    virtual void ComputeColumnWidths(const nsHTMLReflowState& aReflowState) = 0;
+    virtual void ComputeColumnISizes(const ReflowInput& aReflowInput) = 0;
 
     /**
      * Return the type of table layout strategy, without the cost of
@@ -47,7 +51,7 @@ public:
     Type GetType() const { return mType; }
 
 protected:
-    nsITableLayoutStrategy(Type aType) : mType(aType) {}
+    explicit nsITableLayoutStrategy(Type aType) : mType(aType) {}
 private:
     Type mType;
 };

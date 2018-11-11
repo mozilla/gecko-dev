@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -28,21 +28,15 @@ LOCAL_INCLUDES += [
 EXTRA_COMPONENTS += [
     'FormHistoryStartup.js',
     'nsFormAutoComplete.js',
+    'nsFormHistory.js',
     'nsInputListAutoComplete.js',
     'satchel.manifest',
 ]
 
-EXTRA_PP_COMPONENTS += [
-    'nsFormHistory.js',
-]
-
 EXTRA_JS_MODULES += [
-    'AutoCompleteE10S.jsm',
-    'nsFormAutoCompleteResult.jsm',
-]
-
-EXTRA_PP_JS_MODULES += [
+    'AutoCompletePopup.jsm',
     'FormHistory.jsm',
+    'nsFormAutoCompleteResult.jsm',
 ]
 
 FINAL_LIBRARY = 'xul'

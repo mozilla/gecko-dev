@@ -3,13 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef MOZ_LOGGING
-// sorry, this has to be before the pre-compiled header
-#define FORCE_PR_LOG /* Allow logging in the release build */
-#endif
 #include "jsapi.h"
 #include "nsIXPConnect.h"
-#include "nsIJSRuntimeService.h"
 #include "nsCOMPtr.h"
 #include "nsIServiceManager.h"
 #include "nsIComponentManager.h"
@@ -19,24 +14,25 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
 #include "nsContentUtils.h"
-#include "nsCxPusher.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsJSPrincipals.h"
+#include "nsIScriptError.h"
 #include "jswrapper.h"
 
-extern PRLogModuleInfo *MCD;
+extern mozilla::LazyLogModule MCD;
 using mozilla::AutoSafeJSContext;
+using mozilla::dom::AutoJSAPI;
 
 //*****************************************************************************
 
-static mozilla::Maybe<JS::PersistentRooted<JSObject *> > autoconfigSb;
+static JS::PersistentRooted<JSObject *> autoconfigSb;
 
 nsresult CentralizedAdminPrefManagerInit()
 {
     nsresult rv;
 
     // If the sandbox is already created, no need to create it again.
-    if (!autoconfigSb.empty())
+    if (autoconfigSb.initialized())
         return NS_OK;
 
     // Grab XPConnect.
@@ -52,22 +48,22 @@ nsresult CentralizedAdminPrefManagerInit()
 
     // Create a sandbox.
     AutoSafeJSContext cx;
-    nsCOMPtr<nsIXPConnectJSObjectHolder> sandbox;
-    rv = xpc->CreateSandbox(cx, principal, getter_AddRefs(sandbox));
+    JS::Rooted<JSObject*> sandbox(cx);
+    rv = xpc->CreateSandbox(cx, principal, sandbox.address());
     NS_ENSURE_SUCCESS(rv, rv);
 
     // Unwrap, store and root the sandbox.
-    NS_ENSURE_STATE(sandbox->GetJSObject());
-    autoconfigSb.construct(cx, js::UncheckedUnwrap(sandbox->GetJSObject()));
+    NS_ENSURE_STATE(sandbox);
+    autoconfigSb.init(cx, js::UncheckedUnwrap(sandbox));
 
     return NS_OK;
 }
 
 nsresult CentralizedAdminPrefManagerFinish()
 {
-    if (!autoconfigSb.empty()) {
+    if (autoconfigSb.initialized()) {
         AutoSafeJSContext cx;
-        autoconfigSb.destroy();
+        autoconfigSb.reset();
         JS_MaybeGC(cx);
     }
     return NS_OK;
@@ -107,13 +103,34 @@ nsresult EvaluateAdminConfigScript(const char *js_buffer, size_t length,
         return rv;
     }
 
-    AutoSafeJSContext cx;
-    JSAutoCompartment ac(cx, autoconfigSb.ref());
+    AutoJSAPI jsapi;
+    if (!jsapi.Init(autoconfigSb)) {
+        return NS_ERROR_UNEXPECTED;
+    }
+    JSContext* cx = jsapi.cx();
 
     nsAutoCString script(js_buffer, length);
     JS::RootedValue v(cx);
-    rv = xpc->EvalInSandboxObject(NS_ConvertASCIItoUTF16(script), filename, cx, autoconfigSb.ref(),
-                                  /* returnStringOnly = */ false, &v);
+
+    nsString convertedScript;
+    bool isUTF8 = IsUTF8(script);
+    if (isUTF8) {
+        convertedScript = NS_ConvertUTF8toUTF16(script);
+    } else {
+        nsContentUtils::ReportToConsoleNonLocalized(
+            NS_LITERAL_STRING("Your AutoConfig file is ASCII. Please convert it to UTF-8."),
+            nsIScriptError::warningFlag,
+            NS_LITERAL_CSTRING("autoconfig"),
+            nullptr);
+        /* If the length is 0, the conversion failed. Fallback to ASCII */
+        convertedScript = NS_ConvertASCIItoUTF16(script);
+    }
+    JS::Rooted<JS::Value> value(cx, JS::BooleanValue(isUTF8));
+    if (!JS_DefineProperty(cx, autoconfigSb, "gIsUTF8", value, JSPROP_ENUMERATE)) {
+        return NS_ERROR_UNEXPECTED;
+    }
+    rv = xpc->EvalInSandboxObject(convertedScript, filename, cx,
+                                  autoconfigSb, JSVERSION_LATEST, &v);
     NS_ENSURE_SUCCESS(rv, rv);
 
     return NS_OK;

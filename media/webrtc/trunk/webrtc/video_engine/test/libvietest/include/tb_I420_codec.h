@@ -24,33 +24,28 @@ public:
     TbI420Encoder();
     virtual ~TbI420Encoder();
 
-    static int32_t VersionStatic(char* version, int32_t length);
-    virtual int32_t  Version(char* version, int32_t length) const;
+    int32_t InitEncode(const webrtc::VideoCodec* codecSettings,
+                       int32_t numberOfCores,
+                       size_t maxPayloadSize) override;
 
-    virtual int32_t InitEncode(const webrtc::VideoCodec* codecSettings,
-                               int32_t numberOfCores,
-                               uint32_t maxPayloadSize);
-
-    virtual int32_t Encode(
+    int32_t Encode(
         const webrtc::I420VideoFrame& inputImage,
         const webrtc::CodecSpecificInfo* codecSpecificInfo,
-        const std::vector<webrtc::VideoFrameType>* frameTypes);
+        const std::vector<webrtc::VideoFrameType>* frameTypes) override;
 
-    virtual int32_t RegisterEncodeCompleteCallback(
-        webrtc::EncodedImageCallback* callback);
+    int32_t RegisterEncodeCompleteCallback(
+        webrtc::EncodedImageCallback* callback) override;
 
-    virtual int32_t Release();
+    int32_t Release() override;
 
-    virtual int32_t Reset();
+    int32_t SetChannelParameters(uint32_t packetLoss, int64_t rtt) override;
 
-    virtual int32_t SetChannelParameters(uint32_t packetLoss, int rtt);
+    int32_t SetRates(uint32_t newBitRate, uint32_t frameRate) override;
 
-    virtual int32_t SetRates(uint32_t newBitRate, uint32_t frameRate);
+    int32_t SetPeriodicKeyFrames(bool enable) override;
 
-    virtual int32_t SetPeriodicKeyFrames(bool enable);
-
-    virtual int32_t CodecConfigParameters(uint8_t* /*buffer*/,
-                                          int32_t /*size*/);
+    int32_t CodecConfigParameters(uint8_t* /*buffer*/,
+                                  int32_t /*size*/) override;
 
     struct FunctionCalls
     {
@@ -86,19 +81,18 @@ public:
     TbI420Decoder();
     virtual ~TbI420Decoder();
 
-    virtual int32_t InitDecode(const webrtc::VideoCodec* inst,
-                               int32_t numberOfCores);
-    virtual int32_t Decode(
-        const webrtc::EncodedImage& inputImage,
-        bool missingFrames,
-        const webrtc::RTPFragmentationHeader* fragmentation,
-        const webrtc::CodecSpecificInfo* codecSpecificInfo = NULL,
-        int64_t renderTimeMs = -1);
+    int32_t InitDecode(const webrtc::VideoCodec* inst,
+                       int32_t numberOfCores) override;
+    int32_t Decode(const webrtc::EncodedImage& inputImage,
+                   bool missingFrames,
+                   const webrtc::RTPFragmentationHeader* fragmentation,
+                   const webrtc::CodecSpecificInfo* codecSpecificInfo = NULL,
+                   int64_t renderTimeMs = -1) override;
 
-    virtual int32_t
-        RegisterDecodeCompleteCallback(webrtc::DecodedImageCallback* callback);
-    virtual int32_t Release();
-    virtual int32_t Reset();
+    int32_t RegisterDecodeCompleteCallback(
+        webrtc::DecodedImageCallback* callback) override;
+    int32_t Release() override;
+    int32_t Reset() override;
 
     struct FunctionCalls
     {

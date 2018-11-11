@@ -6,6 +6,7 @@
 #include "gfxMatrix.h"
 #include "cairo.h"
 #include "mozilla/gfx/Tools.h"
+#include "mozilla/gfx/Matrix.h" // for Matrix4x4
 
 #define CAIRO_MATRIX(x) reinterpret_cast<cairo_matrix_t*>((x))
 #define CONST_CAIRO_MATRIX(x) reinterpret_cast<const cairo_matrix_t*>((x))
@@ -17,28 +18,27 @@ gfxMatrix::Reset()
     return *this;
 }
 
-const gfxMatrix&
+bool
 gfxMatrix::Invert()
 {
-    cairo_matrix_invert(CAIRO_MATRIX(this));
-    return *this;
+    return cairo_matrix_invert(CAIRO_MATRIX(this)) == CAIRO_STATUS_SUCCESS;
 }
 
-const gfxMatrix&
+gfxMatrix&
 gfxMatrix::Scale(gfxFloat x, gfxFloat y)
 {
     cairo_matrix_scale(CAIRO_MATRIX(this), x, y);
     return *this;
 }
 
-const gfxMatrix&
+gfxMatrix&
 gfxMatrix::Translate(const gfxPoint& pt)
 {
     cairo_matrix_translate(CAIRO_MATRIX(this), pt.x, pt.y);
     return *this;
 }
 
-const gfxMatrix&
+gfxMatrix&
 gfxMatrix::Rotate(gfxFloat radians)
 {
     cairo_matrix_rotate(CAIRO_MATRIX(this), radians);
@@ -46,17 +46,33 @@ gfxMatrix::Rotate(gfxFloat radians)
 }
 
 const gfxMatrix&
-gfxMatrix::Multiply(const gfxMatrix& m)
+gfxMatrix::operator *= (const gfxMatrix& m)
 {
     cairo_matrix_multiply(CAIRO_MATRIX(this), CAIRO_MATRIX(this), CONST_CAIRO_MATRIX(&m));
     return *this;
 }
 
-const gfxMatrix&
+gfxMatrix&
 gfxMatrix::PreMultiply(const gfxMatrix& m)
 {
     cairo_matrix_multiply(CAIRO_MATRIX(this), CONST_CAIRO_MATRIX(&m), CAIRO_MATRIX(this));
     return *this;
+}
+
+/* static */ gfxMatrix
+gfxMatrix::Rotation(gfxFloat aAngle)
+{
+    gfxMatrix newMatrix;
+
+    gfxFloat s = sin(aAngle);
+    gfxFloat c = cos(aAngle);
+
+    newMatrix._11 = c;
+    newMatrix._12 = s;
+    newMatrix._21 = -s;
+    newMatrix._22 = c;
+
+    return newMatrix;
 }
 
 gfxPoint
@@ -132,7 +148,7 @@ static void NudgeToInteger(double *aVal)
     *aVal = f;
 }
 
-void
+gfxMatrix&
 gfxMatrix::NudgeToIntegers(void)
 {
     NudgeToInteger(&_11);
@@ -141,4 +157,33 @@ gfxMatrix::NudgeToIntegers(void)
     NudgeToInteger(&_22);
     NudgeToInteger(&_31);
     NudgeToInteger(&_32);
+    return *this;
+}
+
+mozilla::gfx::Matrix4x4
+gfxMatrix::operator *(const mozilla::gfx::Matrix4x4& aMatrix) const
+{
+  Matrix4x4 resultMatrix;
+
+  resultMatrix._11 = _11 * aMatrix._11 + _12 * aMatrix._21;
+  resultMatrix._12 = _11 * aMatrix._12 + _12 * aMatrix._22;
+  resultMatrix._13 = _11 * aMatrix._13 + _12 * aMatrix._23;
+  resultMatrix._14 = _11 * aMatrix._14 + _12 * aMatrix._24;
+
+  resultMatrix._21 = _21 * aMatrix._11 + _22 * aMatrix._21;
+  resultMatrix._22 = _21 * aMatrix._12 + _22 * aMatrix._22;
+  resultMatrix._23 = _21 * aMatrix._13 + _22 * aMatrix._23;
+  resultMatrix._24 = _21 * aMatrix._14 + _22 * aMatrix._24;
+
+  resultMatrix._31 = aMatrix._31;
+  resultMatrix._32 = aMatrix._32;
+  resultMatrix._33 = aMatrix._33;
+  resultMatrix._34 = aMatrix._34;
+
+  resultMatrix._41 = _31 * aMatrix._11 + _32 * aMatrix._21 + aMatrix._41;
+  resultMatrix._42 = _31 * aMatrix._12 + _32 * aMatrix._22 + aMatrix._42;
+  resultMatrix._43 = _31 * aMatrix._13 + _32 * aMatrix._23 + aMatrix._43;
+  resultMatrix._44 = _31 * aMatrix._14 + _32 * aMatrix._24 + aMatrix._44;
+
+  return resultMatrix;
 }

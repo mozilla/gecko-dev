@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -6,14 +6,17 @@
 
 UNIFIED_SOURCES += [
     'arch_utilities.cc',
-    'bootstrap_compat.cc',
     'file_id.cc',
     'macho_id.cc',
     'macho_reader.cc',
     'macho_utilities.cc',
     'macho_walker.cc',
-    'string_utilities.cc',
 ]
+
+if CONFIG['HOST_OS_ARCH'] != 'Darwin':
+    HOST_CXXFLAGS += [
+        '-I%s/toolkit/crashreporter/google-breakpad/src/third_party/mac_headers/' % TOPSRCDIR,
+    ]
 
 # This is a little weird, but we're building a host and a target lib here.
 # The host lib is used for dump_syms, and the target lib for the
@@ -21,21 +24,29 @@ UNIFIED_SOURCES += [
 if CONFIG['MOZ_CRASHREPORTER']:
     HOST_SOURCES += UNIFIED_SOURCES
     HOST_SOURCES += [
-        'dump_syms.mm',
+        'dump_syms.cc',
     ]
-    HOST_LIBRARY_NAME = 'host_breakpad_mac_common_s'
+    HOST_CXXFLAGS += [
+        '-O2',
+        '-g',
+        '-stdlib=libc++',
+    ]
+    HostLibrary('host_breakpad_mac_common_s')
 
 SOURCES += [
+    'bootstrap_compat.cc',
     'HTTPMultipartUpload.m',
     'MachIPC.mm',
+    'string_utilities.cc',
 ]
 
-LIBRARY_NAME = 'breakpad_mac_common_s'
+Library('breakpad_mac_common_s')
 
-FINAL_LIBRARY = 'xulapp_s'
+# We allow warnings for third-party code that can be updated from upstream.
+ALLOW_COMPILER_WARNINGS = True
 
-LOCAL_INCLUDES += [
-    '../..',
-]
+FINAL_LIBRARY = 'xul'
 
 CMFLAGS += ['-std=c99']
+
+include('/toolkit/crashreporter/crashreporter.mozbuild')

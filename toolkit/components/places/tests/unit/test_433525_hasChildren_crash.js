@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,20 +9,20 @@ function run_test()
   run_next_test();
 }
 
-add_task(function test_execute()
+add_task(function* test_execute()
 {
   try {
     var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
                   getService(Ci.nsINavHistoryService);
     var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
               getService(Ci.nsINavBookmarksService);
-  } catch(ex) {
+  } catch (ex) {
     do_throw("Unable to initialize Places services");
   }
 
   // add a visit
   var testURI = uri("http://test");
-  yield promiseAddVisits(testURI);
+  yield PlacesTestUtils.addVisits(testURI);
 
   // query for the visit
   var options = histsvc.getNewQueryOptions();
@@ -42,11 +42,11 @@ add_task(function test_execute()
                        0 /* first item */, "test query");
 
   // query for that query
-  var options = histsvc.getNewQueryOptions();
-  var query = histsvc.getNewQuery();
+  options = histsvc.getNewQueryOptions();
+  query = histsvc.getNewQuery();
   query.setFolders([bmsvc.toolbarFolder], 1);
-  var result = histsvc.executeQuery(query, options);
-  var root = result.root;
+  result = histsvc.executeQuery(query, options);
+  root = result.root;
   root.containerOpen = true;
   var queryNode = root.getChild(0);
   do_check_eq(queryNode.title, "test query");

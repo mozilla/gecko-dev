@@ -1,3 +1,9 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 #ifndef mozilla_StaticMutex_h
 #define mozilla_StaticMutex_h
 
@@ -20,7 +26,7 @@ namespace mozilla {
  * initialized to 0 in order to initialize mMutex.  It is only safe to use
  * StaticMutex as a global or static variable.
  */
-class StaticMutex
+class MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS StaticMutex
 {
 public:
   // In debug builds, check that mMutex is initialized for us as we expect by

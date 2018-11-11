@@ -7,9 +7,13 @@
 #define nsDataHandler_h___
 
 #include "nsIProtocolHandler.h"
+#include "nsWeakReference.h"
 
 class nsDataHandler : public nsIProtocolHandler
+                    , public nsSupportsWeakReference
 {
+    virtual ~nsDataHandler();
+
 public:
     NS_DECL_ISUPPORTS
 
@@ -18,21 +22,20 @@ public:
 
     // nsDataHandler methods:
     nsDataHandler();
-    virtual ~nsDataHandler();
 
     // Define a Create method to be used with a factory:
-    static nsresult
+    static MOZ_MUST_USE nsresult
     Create(nsISupports* aOuter, const nsIID& aIID, void* *aResult);
 
     // Parse a data: URI and return the individual parts
     // (the given spec will temporarily be modified but will be returned
     //  to the original before returning)
-    static nsresult ParseURI(nsCString& spec,
-                                         nsCString& contentType,
-                                         nsCString& contentCharset,
-                                         bool&    isBase64,
-                                         nsCString& dataBuffer,
-                                         nsCString& hashRef);
+    // contentCharset and dataBuffer can be nullptr if they are not needed.
+    static MOZ_MUST_USE nsresult ParseURI(nsCString& spec,
+                                          nsCString& contentType,
+                                          nsCString* contentCharset,
+                                          bool& isBase64,
+                                          nsCString* dataBuffer);
 };
 
 #endif /* nsDataHandler_h___ */

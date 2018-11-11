@@ -16,12 +16,12 @@ public:
 
   nsApplicationCache();
 
-  virtual ~nsApplicationCache();
-
   void MarkInvalid();
 
 private:
-  nsRefPtr<nsOfflineCacheDevice> mDevice;
+  virtual ~nsApplicationCache();
+
+  RefPtr<nsOfflineCacheDevice> mDevice;
   nsCString mGroup;
   nsCString mClientID;
   bool mValid;

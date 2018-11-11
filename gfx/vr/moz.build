@@ -1,0 +1,71 @@
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+EXPORTS += [
+    'gfxVR.h',
+    'ipc/VRLayerChild.h',
+    'ipc/VRManagerChild.h',
+    'ipc/VRManagerParent.h',
+    'ipc/VRMessageUtils.h',
+    'VRDisplayClient.h',
+    'VRDisplayPresentation.h',
+    'VRManager.h',
+]
+
+LOCAL_INCLUDES += [
+    '/dom/base',
+    '/gfx/layers/d3d11',
+    '/gfx/thebes',
+]
+
+UNIFIED_SOURCES += [
+    'gfxVR.cpp',
+    'gfxVROpenVR.cpp',
+    'gfxVROSVR.cpp',
+    'ipc/VRLayerChild.cpp',
+    'ipc/VRLayerParent.cpp',
+    'ipc/VRManagerChild.cpp',
+    'ipc/VRManagerParent.cpp',
+    'VRDisplayClient.cpp',
+    'VRDisplayHost.cpp',
+    'VRDisplayPresentation.cpp',
+    'VRManager.cpp',
+]
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
+    SOURCES += [
+        'gfxVROculus.cpp',
+    ]
+
+IPDL_SOURCES = [
+    'ipc/PVRLayer.ipdl',
+    'ipc/PVRManager.ipdl',
+]
+
+# For building with the real SDK instead of our local hack
+#SOURCES += [
+#    'OVR_CAPI_Util.cpp',
+#    'OVR_CAPIShim.c',
+#    'OVR_StereoProjection.cpp',
+#]
+#
+#CXXFLAGS += ["-Ic:/proj/ovr/OculusSDK-0.6.0-beta/LibOVR/Include"]
+#CFLAGS += ["-Ic:/proj/ovr/OculusSDK-0.6.0-beta/LibOVR/Include"]
+
+CXXFLAGS += CONFIG['MOZ_CAIRO_CFLAGS']
+CXXFLAGS += CONFIG['TK_CFLAGS']
+CFLAGS += CONFIG['MOZ_CAIRO_CFLAGS']
+CFLAGS += CONFIG['TK_CFLAGS']
+
+include('/ipc/chromium/chromium-config.mozbuild')
+
+FINAL_LIBRARY = 'xul'
+
+# This is intended as a temporary hack to enable VS2015 builds.
+if CONFIG['_MSC_VER']:
+    # ovr_capi_dynamic.h '<unnamed-tag>': Alignment specifier is less than
+    # actual alignment (8), and will be ignored
+    CXXFLAGS += ['-wd4359']

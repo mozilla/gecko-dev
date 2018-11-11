@@ -7,7 +7,6 @@
 
 "use strict";
 
-const Ci = Components.interfaces;
 const SEARCH_APP_DIR = 1;
 
 function run_test() {
@@ -15,9 +14,7 @@ function run_test() {
   removeCacheFile();
   do_load_manifest("data/chrome.manifest");
 
-  let url  = "chrome://testsearchplugin/locale/searchplugins/";
-  Services.prefs.setCharPref("browser.search.jarURIs", url);
-  Services.prefs.setBoolPref("browser.search.loadFromJars", true);
+  configureToLoadJarEngines();
 
   updateAppInfo();
 
@@ -34,7 +31,7 @@ add_test(function test_identifier() {
   let engineTemplateFile = do_get_file("data/engine.xml");
   engineTemplateFile.copyTo(engineFile.parent, "test-search-engine.xml");
 
-  let search = Services.search.init(function initComplete(aResult) {
+  Services.search.init(function initComplete(aResult) {
     do_print("init'd search service");
     do_check_true(Components.isSuccessCode(aResult));
 
@@ -57,4 +54,3 @@ add_test(function test_identifier() {
     run_next_test();
   });
 });
-

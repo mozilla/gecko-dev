@@ -3,13 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 Components.utils.import("resource:///modules/SitePermissions.jsm");
+Components.utils.import("resource://gre/modules/BrowserUtils.jsm");
 
-const nsIQuotaManager = Components.interfaces.nsIQuotaManager;
+const nsIQuotaManagerService = Components.interfaces.nsIQuotaManagerService;
 
 var gPermURI;
+var gPermPrincipal;
 var gUsageRequest;
 
-var gPermissions = SitePermissions.listPermissions();
+// Array of permissionIDs sorted alphabetically by label.
+var gPermissions = SitePermissions.listPermissions().sort((a, b) => {
+  let firstLabel = SitePermissions.getPermissionLabel(a);
+  let secondLabel = SitePermissions.getPermissionLabel(b);
+  return firstLabel.localeCompare(secondLabel);
+});
 gPermissions.push("plugins");
 
 var permissionObserver = {
@@ -17,7 +24,7 @@ var permissionObserver = {
   {
     if (aTopic == "perm-changed") {
       var permission = aSubject.QueryInterface(Components.interfaces.nsIPermission);
-      if (permission.host == gPermURI.host) {
+      if (permission.matchesURI(gPermURI, true)) {
         if (gPermissions.indexOf(permission.type) > -1)
           initRow(permission.type);
         else if (permission.type.startsWith("plugin"))
@@ -27,14 +34,14 @@ var permissionObserver = {
   }
 };
 
-function onLoadPermission()
+function onLoadPermission(uri, principal)
 {
-  var uri = gDocument.documentURIObject;
   var permTab = document.getElementById("permTab");
   if (SitePermissions.isSupportedURI(uri)) {
     gPermURI = uri;
+    gPermPrincipal = principal;
     var hostText = document.getElementById("hostText");
-    hostText.value = gPermURI.host;
+    hostText.value = gPermURI.prePath;
 
     for (var i of gPermissions)
       initRow(i);
@@ -176,7 +183,9 @@ function onRadioClick(aPartId)
 function setRadioState(aPartId, aValue)
 {
   var radio = document.getElementById(aPartId + "#" + aValue);
-  radio.radioGroup.selectedItem = radio;
+  if (radio) {
+    radio.radioGroup.selectedItem = radio;
+  }
 }
 
 function initIndexedDBRow()
@@ -186,10 +195,12 @@ function initIndexedDBRow()
 
   row.appendChild(extras);
 
-  var quotaManager = Components.classes["@mozilla.org/dom/quota/manager;1"]
-                               .getService(nsIQuotaManager);
+  var quotaManagerService =
+    Components.classes["@mozilla.org/dom/quota-manager-service;1"]
+              .getService(nsIQuotaManagerService);
   gUsageRequest =
-    quotaManager.getUsageForURI(gPermURI, onIndexedDBUsageCallback);
+    quotaManagerService.getUsageForPrincipal(gPermPrincipal,
+                                             onIndexedDBUsageCallback);
 
   var status = document.getElementById("indexedDBStatus");
   var button = document.getElementById("indexedDBClear");
@@ -201,20 +212,26 @@ function initIndexedDBRow()
 
 function onIndexedDBClear()
 {
-  Components.classes["@mozilla.org/dom/quota/manager;1"]
-            .getService(nsIQuotaManager)
-            .clearStoragesForURI(gPermURI);
+  Components.classes["@mozilla.org/dom/quota-manager-service;1"]
+            .getService(nsIQuotaManagerService)
+            .clearStoragesForPrincipal(gPermPrincipal);
 
-  SitePermissions.remove(gPermURI, "indexedDB-unlimited");
+  Components.classes["@mozilla.org/serviceworkers/manager;1"]
+            .getService(Components.interfaces.nsIServiceWorkerManager)
+            .removeAndPropagate(gPermURI.host);
+
+  SitePermissions.remove(gPermURI, "indexedDB");
   initIndexedDBRow();
 }
 
-function onIndexedDBUsageCallback(uri, usage, fileUsage)
+function onIndexedDBUsageCallback(request)
 {
+  let uri = request.principal.URI;
   if (!uri.equals(gPermURI)) {
     throw new Error("Callback received for bad URI: " + uri);
   }
 
+  let usage = request.result.usage;
   if (usage) {
     if (!("DownloadUtils" in window)) {
       Components.utils.import("resource://gre/modules/DownloadUtils.jsm");
@@ -229,20 +246,6 @@ function onIndexedDBUsageCallback(uri, usage, fileUsage)
     status.removeAttribute("hidden");
     button.removeAttribute("hidden");
   }
-}
-
-// XXX copied this from browser-plugins.js - is there a way to share?
-function makeNicePluginName(aName) {
-  if (aName == "Shockwave Flash")
-    return "Adobe Flash";
-
-  // Clean up the plugin name by stripping off any trailing version numbers
-  // or "plugin". EG, "Foo Bar Plugin 1.23_02" --> "Foo Bar"
-  // Do this by first stripping the numbers, etc. off the end, and then
-  // removing "Plugin" (and then trimming to get rid of any whitespace).
-  // (Otherwise, something like "Java(TM) Plug-in 1.7.0_07" gets mangled)
-  let newName = aName.replace(/[\s\d\.\-\_\(\)]+$/, "").replace(/\bplug-?in\b/i, "").trim();
-  return newName;
 }
 
 function fillInPluginPermissionTemplate(aPluginName, aPermissionString) {
@@ -279,7 +282,7 @@ function initPluginsRow() {
   let vulnerableLabel = document.getElementById("browserBundle").getString("pluginActivateVulnerable.label");
   let pluginHost = Components.classes["@mozilla.org/plugin/host;1"].getService(Components.interfaces.nsIPluginHost);
 
-  let permissionMap = Map();
+  let permissionMap = new Map();
 
   for (let plugin of pluginHost.getPluginTags()) {
     if (plugin.disabled) {
@@ -288,7 +291,7 @@ function initPluginsRow() {
     for (let mimeType of plugin.getMimeTypes()) {
       let permString = pluginHost.getPermissionStringForType(mimeType);
       if (!permissionMap.has(permString)) {
-        var name = makeNicePluginName(plugin.name);
+        let name = BrowserUtils.makeNicePluginName(plugin.name);
         if (permString.startsWith("plugin-vulnerable:")) {
           name += " \u2014 " + vulnerableLabel;
         }
@@ -297,14 +300,13 @@ function initPluginsRow() {
     }
   }
 
-  let entries = [{name: item[1], permission: item[0]} for (item of permissionMap)];
+  let entries = Array.from(permissionMap, item => ({ name: item[1], permission: item[0] }));
+
   entries.sort(function(a, b) {
-    return a.name < b.name ? -1 : (a.name == b.name ? 0 : 1);
+    return a.name.localeCompare(b.name);
   });
 
-  let permissionEntries = [
-    fillInPluginPermissionTemplate(p.name, p.permission) for (p of entries)
-  ];
+  let permissionEntries = entries.map(p => fillInPluginPermissionTemplate(p.name, p.permission));
 
   let permPluginsRow = document.getElementById("perm-plugins-row");
   clearPluginPermissionTemplate();

@@ -1,3 +1,4 @@
+
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 /* vim: set ts=8 sts=4 et sw=4 tw=99: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -6,13 +7,9 @@
 
 #include "mozilla/Attributes.h"
 
-#ifdef MOZ_LOGGING
-#define FORCE_PR_LOG
-#endif
-
 #include <cstdarg>
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #ifdef ANDROID
 #include <android/log.h>
 #endif
@@ -28,28 +25,29 @@
 #include "nsIFile.h"
 #include "mozJSComponentLoader.h"
 #include "mozJSLoaderUtils.h"
-#include "nsIJSRuntimeService.h"
 #include "nsIXPConnect.h"
 #include "nsIObserverService.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIFileURL.h"
 #include "nsIJARURI.h"
 #include "nsNetUtil.h"
-#include "nsDOMBlobBuilder.h"
 #include "jsprf.h"
 #include "nsJSPrincipals.h"
+#include "nsJSUtils.h"
 #include "xpcprivate.h"
 #include "xpcpublic.h"
 #include "nsContentUtils.h"
-#include "nsCxPusher.h"
+#include "nsXULAppAPI.h"
 #include "WrapperFactory.h"
 
+#include "mozilla/AddonPathService.h"
 #include "mozilla/scache/StartupCache.h"
 #include "mozilla/scache/StartupCacheUtils.h"
 #include "mozilla/MacroForEach.h"
 #include "mozilla/Preferences.h"
-
-#include "js/OldDebugAPI.h"
+#include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/UniquePtrExtensions.h"
+#include "mozilla/Unused.h"
 
 using namespace mozilla;
 using namespace mozilla::scache;
@@ -59,20 +57,8 @@ using namespace JS;
 // This JSClass exists to trick silly code that expects toString()ing the
 // global in a component scope to return something with "BackstagePass" in it
 // to continue working.
-static const JSClass kFakeBackstagePassJSClass =
-{
-    "FakeBackstagePass",
-    0,
-    JS_PropertyStub,
-    JS_DeletePropertyStub,
-    JS_PropertyStub,
-    JS_StrictPropertyStub,
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub
-};
+static const JSClass kFakeBackstagePassJSClass = { "FakeBackstagePass" };
 
-static const char kJSRuntimeServiceContractID[] = "@mozilla.org/js/xpc/RuntimeService;1";
 static const char kXPConnectServiceContractID[] = "@mozilla.org/js/xpc/XPConnect;1";
 static const char kObserverServiceContractID[] = "@mozilla.org/observer-service;1";
 static const char kJSCachePrefix[] = "jsloader";
@@ -86,12 +72,10 @@ static const char kJSCachePrefix[] = "jsloader";
 #define XPC_SERIALIZATION_BUFFER_SIZE   (64 * 1024)
 #define XPC_DESERIALIZATION_BUFFER_SIZE (12 * 8192)
 
-#ifdef PR_LOGGING
-// NSPR_LOG_MODULES=JSComponentLoader:5
-static PRLogModuleInfo *gJSCLLog;
-#endif
+// MOZ_LOG=JSComponentLoader:5
+static LazyLogModule gJSCLLog("JSComponentLoader");
 
-#define LOG(args) PR_LOG(gJSCLLog, PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(gJSCLLog, mozilla::LogLevel::Debug, args)
 
 // Components.utils.import error messages
 #define ERROR_SCOPE_OBJ "%s - Second argument must be an object."
@@ -103,39 +87,39 @@ static PRLogModuleInfo *gJSCLLog;
 #define ERROR_SETTING_SYMBOL "%s - Could not set symbol '%s' on target object."
 
 static bool
-Dump(JSContext *cx, unsigned argc, Value *vp)
+Dump(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
     if (args.length() == 0)
         return true;
 
-    JSString *str = JS::ToString(cx, args[0]);
+    RootedString str(cx, JS::ToString(cx, args[0]));
     if (!str)
         return false;
 
-    size_t length;
-    const jschar *chars = JS_GetStringCharsAndLength(cx, str, &length);
-    if (!chars)
+    JSAutoByteString utf8str;
+    if (!utf8str.encodeUtf8(cx, str))
         return false;
 
-    NS_ConvertUTF16toUTF8 utf8str(reinterpret_cast<const char16_t*>(chars),
-                                  length);
 #ifdef ANDROID
-    __android_log_print(ANDROID_LOG_INFO, "Gecko", "%s", utf8str.get());
+    __android_log_print(ANDROID_LOG_INFO, "Gecko", "%s", utf8str.ptr());
 #endif
 #ifdef XP_WIN
     if (IsDebuggerPresent()) {
-      OutputDebugStringW(reinterpret_cast<const wchar_t*>(chars));
+        nsAutoJSString wstr;
+        if (!wstr.init(cx, str))
+            return false;
+        OutputDebugStringW(wstr.get());
     }
 #endif
-    fputs(utf8str.get(), stdout);
+    fputs(utf8str.ptr(), stdout);
     fflush(stdout);
     return true;
 }
 
 static bool
-Debug(JSContext *cx, unsigned argc, jsval *vp)
+Debug(JSContext* cx, unsigned argc, Value* vp)
 {
 #ifdef DEBUG
     return Dump(cx, argc, vp);
@@ -144,131 +128,35 @@ Debug(JSContext *cx, unsigned argc, jsval *vp)
 #endif
 }
 
-static bool
-File(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-
-    if (args.length() == 0) {
-        XPCThrower::Throw(NS_ERROR_UNEXPECTED, cx);
-        return false;
-    }
-
-    nsCOMPtr<nsISupports> native;
-    nsresult rv = nsDOMMultipartFile::NewFile(getter_AddRefs(native));
-    if (NS_FAILED(rv)) {
-        XPCThrower::Throw(rv, cx);
-        return false;
-    }
-
-    nsCOMPtr<nsIJSNativeInitializer> initializer = do_QueryInterface(native);
-    MOZ_ASSERT(initializer);
-
-    rv = initializer->Initialize(nullptr, cx, nullptr, args);
-    if (NS_FAILED(rv)) {
-        XPCThrower::Throw(rv, cx);
-        return false;
-    }
-
-    nsXPConnect *xpc = nsXPConnect::XPConnect();
-    JSObject *glob = CurrentGlobalOrNull(cx);
-
-    nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-    rv = xpc->WrapNativeToJSVal(cx, glob, native, nullptr,
-                                &NS_GET_IID(nsISupports),
-                                true, args.rval());
-    if (NS_FAILED(rv)) {
-        XPCThrower::Throw(rv, cx);
-        return false;
-    }
-    return true;
-}
-
-static bool
-Blob(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-
-    nsCOMPtr<nsISupports> native;
-    nsresult rv = nsDOMMultipartFile::NewBlob(getter_AddRefs(native));
-    if (NS_FAILED(rv)) {
-        XPCThrower::Throw(rv, cx);
-        return false;
-    }
-
-    nsCOMPtr<nsIJSNativeInitializer> initializer = do_QueryInterface(native);
-    MOZ_ASSERT(initializer);
-
-    rv = initializer->Initialize(nullptr, cx, nullptr, args);
-    if (NS_FAILED(rv)) {
-        XPCThrower::Throw(rv, cx);
-        return false;
-    }
-
-    nsXPConnect *xpc = nsXPConnect::XPConnect();
-    JSObject *glob = CurrentGlobalOrNull(cx);
-
-    nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-    rv = xpc->WrapNativeToJSVal(cx, glob, native, nullptr,
-                                &NS_GET_IID(nsISupports),
-                                true, args.rval());
-    if (NS_FAILED(rv)) {
-        XPCThrower::Throw(rv, cx);
-        return false;
-    }
-    return true;
-}
-
 static const JSFunctionSpec gGlobalFun[] = {
     JS_FS("dump",    Dump,   1,0),
     JS_FS("debug",   Debug,  1,0),
     JS_FS("atob",    Atob,   1,0),
     JS_FS("btoa",    Btoa,   1,0),
-    JS_FS("File",    File,   1,JSFUN_CONSTRUCTOR),
-    JS_FS("Blob",    Blob,   2,JSFUN_CONSTRUCTOR),
     JS_FS_END
 };
 
 class MOZ_STACK_CLASS JSCLContextHelper
 {
 public:
-    JSCLContextHelper(JSContext* aCx);
+    explicit JSCLContextHelper(JSContext* aCx);
     ~JSCLContextHelper();
 
-    void reportErrorAfterPop(char *buf);
-
-    operator JSContext*() const {return mContext;}
+    void reportErrorAfterPop(char* buf);
 
 private:
-
     JSContext* mContext;
-    nsCxPusher mPusher;
     char*      mBuf;
 
     // prevent copying and assignment
-    JSCLContextHelper(const JSCLContextHelper &) MOZ_DELETE;
-    const JSCLContextHelper& operator=(const JSCLContextHelper &) MOZ_DELETE;
-};
-
-
-class JSCLAutoErrorReporterSetter
-{
-public:
-    JSCLAutoErrorReporterSetter(JSContext* cx, JSErrorReporter reporter)
-        {mContext = cx; mOldReporter = JS_SetErrorReporter(cx, reporter);}
-    ~JSCLAutoErrorReporterSetter()
-        {JS_SetErrorReporter(mContext, mOldReporter);}
-private:
-    JSContext* mContext;
-    JSErrorReporter mOldReporter;
-
-    JSCLAutoErrorReporterSetter(const JSCLAutoErrorReporterSetter &) MOZ_DELETE;
-    const JSCLAutoErrorReporterSetter& operator=(const JSCLAutoErrorReporterSetter &) MOZ_DELETE;
+    JSCLContextHelper(const JSCLContextHelper&) = delete;
+    const JSCLContextHelper& operator=(const JSCLContextHelper&) = delete;
 };
 
 static nsresult
-ReportOnCaller(JSContext *callerContext,
-               const char *format, ...) {
+MOZ_FORMAT_PRINTF(2, 3)
+ReportOnCallerUTF8(JSContext* callerContext,
+                   const char* format, ...) {
     if (!callerContext) {
         return NS_ERROR_FAILURE;
     }
@@ -276,51 +164,46 @@ ReportOnCaller(JSContext *callerContext,
     va_list ap;
     va_start(ap, format);
 
-    char *buf = JS_vsmprintf(format, ap);
+    char* buf = JS_vsmprintf(format, ap);
     if (!buf) {
+        va_end(ap);
         return NS_ERROR_OUT_OF_MEMORY;
     }
 
-    JS_ReportError(callerContext, buf);
+    JS_ReportErrorUTF8(callerContext, "%s", buf);
     JS_smprintf_free(buf);
 
+    va_end(ap);
     return NS_OK;
 }
 
 static nsresult
-ReportOnCaller(JSCLContextHelper &helper,
-               const char *format, ...)
+MOZ_FORMAT_PRINTF(2, 3)
+ReportOnCallerUTF8(JSCLContextHelper& helper,
+                   const char* format, ...)
 {
     va_list ap;
     va_start(ap, format);
 
-    char *buf = JS_vsmprintf(format, ap);
+    char* buf = JS_vsmprintf(format, ap);
     if (!buf) {
+        va_end(ap);
         return NS_ERROR_OUT_OF_MEMORY;
     }
 
     helper.reportErrorAfterPop(buf);
-
+    va_end(ap);
     return NS_OK;
 }
 
 mozJSComponentLoader::mozJSComponentLoader()
-    : mRuntime(nullptr),
-      mContext(nullptr),
-      mModules(32),
-      mImports(32),
-      mInProgressImports(32),
-      mThisObjects(32),
+    : mModules(16),
+      mImports(16),
+      mInProgressImports(16),
       mInitialized(false),
       mReuseLoaderGlobal(false)
 {
     MOZ_ASSERT(!sSelf, "mozJSComponentLoader should be a singleton");
-
-#ifdef PR_LOGGING
-    if (!gJSCLLog) {
-        gJSCLLog = PR_NewLogModule("JSComponentLoader");
-    }
-#endif
 
     sSelf = this;
 }
@@ -335,7 +218,7 @@ mozJSComponentLoader::mozJSComponentLoader()
 
 class MOZ_STACK_CLASS ComponentLoaderInfo {
   public:
-    ComponentLoaderInfo(const nsACString& aLocation) : mLocation(aLocation) {}
+    explicit ComponentLoaderInfo(const nsACString& aLocation) : mLocation(aLocation) {}
 
     nsIIOService* IOService() { MOZ_ASSERT(mIOService); return mIOService; }
     nsresult EnsureIOService() {
@@ -355,7 +238,15 @@ class MOZ_STACK_CLASS ComponentLoaderInfo {
     nsIChannel* ScriptChannel() { MOZ_ASSERT(mScriptChannel); return mScriptChannel; }
     nsresult EnsureScriptChannel() {
         BEGIN_ENSURE(ScriptChannel, IOService, URI);
-        return mIOService->NewChannelFromURI(mURI, getter_AddRefs(mScriptChannel));
+        return NS_NewChannel(getter_AddRefs(mScriptChannel),
+                             mURI,
+                             nsContentUtils::GetSystemPrincipal(),
+                             nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                             nsIContentPolicy::TYPE_SCRIPT,
+                             nullptr, // aLoadGroup
+                             nullptr, // aCallbacks
+                             nsIRequest::LOAD_NORMAL,
+                             mIOService);
     }
 
     nsIURI* ResolvedURI() { MOZ_ASSERT(mResolvedURI); return mResolvedURI; }
@@ -364,11 +255,17 @@ class MOZ_STACK_CLASS ComponentLoaderInfo {
         return mScriptChannel->GetURI(getter_AddRefs(mResolvedURI));
     }
 
-    nsAutoCString& Key() { return mKey.ref(); }
+    nsAutoCString& Key() { return *mKey; }
     nsresult EnsureKey() {
         ENSURE_DEPS(ResolvedURI);
-        mKey.construct();
-        return mResolvedURI->GetSpec(mKey.ref());
+        mKey.emplace();
+        return mResolvedURI->GetSpec(*mKey);
+    }
+
+    MOZ_MUST_USE nsresult GetLocation(nsCString& aLocation) {
+        nsresult rv = EnsureURI();
+        NS_ENSURE_SUCCESS(rv, rv);
+        return mURI->GetSpec(aLocation);
     }
 
   private:
@@ -412,25 +309,10 @@ mozJSComponentLoader::ReallyInit()
     // XXXkhuey B2G child processes have some sort of preferences race that
     // results in getting the wrong value.
     // But we don't want that on Firefox Mulet as it break most Firefox JSMs...
-#if defined(MOZ_B2G) && !defined(MOZ_MULET)
+    // Also disable on debug builds to break js components that rely on this.
+#if defined(MOZ_B2G) && !defined(MOZ_MULET) && !defined(DEBUG)
     mReuseLoaderGlobal = true;
 #endif
-
-    /*
-     * Get the JSRuntime from the runtime svc, if possible.
-     * We keep a reference around, because it's a Bad Thing if the runtime
-     * service gets shut down before we're done.  Bad!
-     */
-
-    mRuntimeService = do_GetService(kJSRuntimeServiceContractID, &rv);
-    if (NS_FAILED(rv) ||
-        NS_FAILED(rv = mRuntimeService->GetRuntime(&mRuntime)))
-        return rv;
-
-    // Create our compilation context.
-    mContext = JS_NewContext(mRuntime, 256);
-    if (!mContext)
-        return NS_ERROR_OUT_OF_MEMORY;
 
     nsCOMPtr<nsIScriptSecurityManager> secman =
         do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID);
@@ -453,9 +335,33 @@ mozJSComponentLoader::ReallyInit()
     return NS_OK;
 }
 
-const mozilla::Module*
-mozJSComponentLoader::LoadModule(FileLocation &aFile)
+// For terrible compatibility reasons, we need to consider both the global
+// lexical environment and the global of modules when searching for exported
+// symbols.
+static JSObject*
+ResolveModuleObjectProperty(JSContext* aCx, HandleObject aModObj, const char* name)
 {
+    if (JS_HasExtensibleLexicalEnvironment(aModObj)) {
+        RootedObject lexical(aCx, JS_ExtensibleLexicalEnvironment(aModObj));
+        bool found;
+        if (!JS_HasOwnProperty(aCx, lexical, name, &found)) {
+            return nullptr;
+        }
+        if (found) {
+            return lexical;
+        }
+    }
+    return aModObj;
+}
+
+const mozilla::Module*
+mozJSComponentLoader::LoadModule(FileLocation& aFile)
+{
+    if (!NS_IsMainThread()) {
+        MOZ_ASSERT(false, "Don't use JS components off the main thread");
+        return nullptr;
+    }
+
     nsCOMPtr<nsIFile> file = aFile.GetBaseFile();
 
     nsCString spec;
@@ -474,10 +380,12 @@ mozJSComponentLoader::LoadModule(FileLocation &aFile)
     if (mModules.Get(spec, &mod))
     return mod;
 
-    nsAutoPtr<ModuleEntry> entry(new ModuleEntry(mContext));
+    dom::AutoJSAPI jsapi;
+    jsapi.Init();
+    JSContext* cx = jsapi.cx();
 
-    JSAutoRequest ar(mContext);
-    RootedValue dummy(mContext);
+    nsAutoPtr<ModuleEntry> entry(new ModuleEntry(RootingContext::get(cx)));
+    RootedValue dummy(cx);
     rv = ObjectForLocation(info, file, &entry->obj, &entry->thisObjectKey,
                            &entry->location, false, &dummy);
     if (NS_FAILED(rv)) {
@@ -494,49 +402,25 @@ mozJSComponentLoader::LoadModule(FileLocation &aFile)
     if (NS_FAILED(rv))
         return nullptr;
 
-    JSCLContextHelper cx(mContext);
     JSAutoCompartment ac(cx, entry->obj);
-
-    nsCOMPtr<nsIXPConnectJSObjectHolder> cm_holder;
-    rv = xpc->WrapNative(cx, entry->obj, cm,
-                         NS_GET_IID(nsIComponentManager),
-                         getter_AddRefs(cm_holder));
-
-    if (NS_FAILED(rv)) {
-        return nullptr;
-    }
-
-    JSObject* cm_jsobj = cm_holder->GetJSObject();
-    if (!cm_jsobj) {
-        return nullptr;
-    }
-
-    nsCOMPtr<nsIXPConnectJSObjectHolder> file_holder;
     RootedObject entryObj(cx, entry->obj);
-    rv = xpc->WrapNative(cx, entryObj, file,
-                         NS_GET_IID(nsIFile),
-                         getter_AddRefs(file_holder));
 
-    if (NS_FAILED(rv)) {
-        return nullptr;
-    }
-
-    JSObject* file_jsobj = file_holder->GetJSObject();
-    if (!file_jsobj) {
-        return nullptr;
-    }
-
-    JSCLAutoErrorReporterSetter aers(cx, xpc::SystemErrorReporter);
-
+    RootedObject NSGetFactoryHolder(cx, ResolveModuleObjectProperty(cx, entryObj, "NSGetFactory"));
     RootedValue NSGetFactory_val(cx);
-    if (!JS_GetProperty(cx, entryObj, "NSGetFactory", &NSGetFactory_val) ||
-        NSGetFactory_val.isUndefined()) {
+    if (!NSGetFactoryHolder ||
+        !JS_GetProperty(cx, NSGetFactoryHolder, "NSGetFactory", &NSGetFactory_val) ||
+        NSGetFactory_val.isUndefined())
+    {
         return nullptr;
     }
 
     if (JS_TypeOfValue(cx, NSGetFactory_val) != JSTYPE_FUNCTION) {
-        JS_ReportError(cx, "%s has NSGetFactory property that is not a function",
-                       spec.get());
+        /*
+         * spec's encoding is ASCII unless it's zip file, otherwise it's
+         * random encoding.  Latin1 variant is safe for random encoding.
+         */
+        JS_ReportErrorLatin1(cx, "%s has NSGetFactory property that is not a function",
+                             spec.get());
         return nullptr;
     }
 
@@ -578,10 +462,11 @@ mozJSComponentLoader::FindTargetObject(JSContext* aCx,
 
     RootedObject targetObject(aCx);
     if (mReuseLoaderGlobal) {
-        JSScript* script =
-            js::GetOutermostEnclosingFunctionOfScriptedCaller(aCx);
-        if (script) {
-            targetObject = mThisObjects.Get(script);
+        JSFunction* fun = js::GetOutermostEnclosingFunctionOfScriptedCaller(aCx);
+        if (fun) {
+            JSObject* funParent = js::GetNearestEnclosingWithEnvironmentObjectForFunction(fun);
+            if (JS_GetClass(funParent) == &kFakeBackstagePassJSClass)
+                targetObject = funParent;
         }
     }
 
@@ -597,47 +482,28 @@ mozJSComponentLoader::FindTargetObject(JSContext* aCx,
     return NS_OK;
 }
 
-void
-mozJSComponentLoader::NoteSubScript(HandleScript aScript, HandleObject aThisObject)
+// This requires that the keys be strings and the values be pointers.
+template <class Key, class Data, class UserData>
+static size_t
+SizeOfTableExcludingThis(const nsBaseHashtable<Key, Data, UserData>& aTable,
+                         MallocSizeOf aMallocSizeOf)
 {
-  if (!mInitialized && NS_FAILED(ReallyInit())) {
-      MOZ_CRASH();
-  }
-
-  if (js::GetObjectJSClass(aThisObject) == &kFakeBackstagePassJSClass) {
-    mThisObjects.Put(aScript, aThisObject);
-  }
-}
-
-/* static */ size_t
-mozJSComponentLoader::DataEntrySizeOfExcludingThis(const nsACString& aKey,
-                                                   ModuleEntry* const& aData,
-                                                   MallocSizeOf aMallocSizeOf, void*)
-{
-    return aKey.SizeOfExcludingThisIfUnshared(aMallocSizeOf) +
-        aData->SizeOfIncludingThis(aMallocSizeOf);
-}
-
-/* static */ size_t
-mozJSComponentLoader::ClassEntrySizeOfExcludingThis(const nsACString& aKey,
-                                                    const nsAutoPtr<ModuleEntry>& aData,
-                                                    MallocSizeOf aMallocSizeOf, void*)
-{
-    return aKey.SizeOfExcludingThisIfUnshared(aMallocSizeOf) +
-        aData->SizeOfIncludingThis(aMallocSizeOf);
+    size_t n = aTable.ShallowSizeOfExcludingThis(aMallocSizeOf);
+    for (auto iter = aTable.ConstIter(); !iter.Done(); iter.Next()) {
+        n += iter.Key().SizeOfExcludingThisIfUnshared(aMallocSizeOf);
+        n += iter.Data()->SizeOfIncludingThis(aMallocSizeOf);
+    }
+    return n;
 }
 
 size_t
 mozJSComponentLoader::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf)
 {
-    size_t amount = aMallocSizeOf(this);
-
-    amount += mModules.SizeOfExcludingThis(DataEntrySizeOfExcludingThis, aMallocSizeOf);
-    amount += mImports.SizeOfExcludingThis(ClassEntrySizeOfExcludingThis, aMallocSizeOf);
-    amount += mInProgressImports.SizeOfExcludingThis(DataEntrySizeOfExcludingThis, aMallocSizeOf);
-    amount += mThisObjects.SizeOfExcludingThis(nullptr, aMallocSizeOf);
-
-    return amount;
+    size_t n = aMallocSizeOf(this);
+    n += SizeOfTableExcludingThis(mModules, aMallocSizeOf);
+    n += SizeOfTableExcludingThis(mImports, aMallocSizeOf);
+    n += SizeOfTableExcludingThis(mInProgressImports, aMallocSizeOf);
+    return n;
 }
 
 // Some stack based classes for cleaning up on early return
@@ -645,37 +511,37 @@ mozJSComponentLoader::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf)
 class FileAutoCloser
 {
  public:
-    explicit FileAutoCloser(PRFileDesc *file) : mFile(file) {}
+    explicit FileAutoCloser(PRFileDesc* file) : mFile(file) {}
     ~FileAutoCloser() { PR_Close(mFile); }
  private:
-    PRFileDesc *mFile;
+    PRFileDesc* mFile;
 };
 
 class FileMapAutoCloser
 {
  public:
-    explicit FileMapAutoCloser(PRFileMap *map) : mMap(map) {}
+    explicit FileMapAutoCloser(PRFileMap* map) : mMap(map) {}
     ~FileMapAutoCloser() { PR_CloseFileMap(mMap); }
  private:
-    PRFileMap *mMap;
+    PRFileMap* mMap;
 };
 #else
 class ANSIFileAutoCloser
 {
  public:
-    explicit ANSIFileAutoCloser(FILE *file) : mFile(file) {}
+    explicit ANSIFileAutoCloser(FILE* file) : mFile(file) {}
     ~ANSIFileAutoCloser() { fclose(mFile); }
  private:
-    FILE *mFile;
+    FILE* mFile;
 };
 #endif
 
 JSObject*
-mozJSComponentLoader::PrepareObjectForLocation(JSCLContextHelper& aCx,
-                                               nsIFile *aComponentFile,
-                                               nsIURI *aURI,
+mozJSComponentLoader::PrepareObjectForLocation(JSContext* aCx,
+                                               nsIFile* aComponentFile,
+                                               nsIURI* aURI,
                                                bool aReuseLoaderGlobal,
-                                               bool *aRealFile)
+                                               bool* aRealFile)
 {
     nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
     if (aReuseLoaderGlobal) {
@@ -689,18 +555,26 @@ mozJSComponentLoader::PrepareObjectForLocation(JSCLContextHelper& aCx,
     bool createdNewGlobal = false;
 
     if (!mLoaderGlobal) {
-        nsRefPtr<BackstagePass> backstagePass;
+        RefPtr<BackstagePass> backstagePass;
         rv = NS_NewBackstagePass(getter_AddRefs(backstagePass));
         NS_ENSURE_SUCCESS(rv, nullptr);
 
         CompartmentOptions options;
-        options.setZone(SystemZone)
-               .setVersion(JSVERSION_LATEST);
+
+        options.creationOptions()
+               .setZone(SystemZone)
+               .setAddonId(aReuseLoaderGlobal ? nullptr : MapURIToAddonID(aURI));
+
+        options.behaviors().setVersion(JSVERSION_LATEST);
+
+        if (xpc::SharedMemoryEnabled())
+            options.creationOptions().setSharedMemoryAndAtomicsEnabled(true);
+
         // Defer firing OnNewGlobalObject until after the __URI__ property has
         // been defined so the JS debugger can tell what module the global is
         // for
         rv = xpc->InitClassesWithNewWrappedGlobal(aCx,
-                                                  static_cast<nsIGlobalObject *>(backstagePass),
+                                                  static_cast<nsIGlobalObject*>(backstagePass),
                                                   mSystemPrincipal,
                                                   nsIXPConnect::DONT_FIRE_ONNEWGLOBALHOOK,
                                                   options,
@@ -732,7 +606,7 @@ mozJSComponentLoader::PrepareObjectForLocation(JSCLContextHelper& aCx,
     if (aReuseLoaderGlobal) {
         // If we're reusing the loader global, we don't actually use the
         // global, but rather we use a different object as the 'this' object.
-        obj = JS_NewObject(aCx, &kFakeBackstagePassJSClass, NullPtr(), NullPtr());
+        obj = JS_NewObject(aCx, &kFakeBackstagePassJSClass);
         NS_ENSURE_TRUE(obj, nullptr);
     }
 
@@ -750,17 +624,18 @@ mozJSComponentLoader::PrepareObjectForLocation(JSCLContextHelper& aCx,
     if (testFile) {
         *aRealFile = true;
 
-        nsCOMPtr<nsIXPConnectJSObjectHolder> locationHolder;
-        rv = xpc->WrapNative(aCx, obj, aComponentFile,
-                             NS_GET_IID(nsIFile),
-                             getter_AddRefs(locationHolder));
-        NS_ENSURE_SUCCESS(rv, nullptr);
+        if (XRE_IsParentProcess()) {
+            RootedObject locationObj(aCx);
 
-        RootedObject locationObj(aCx, locationHolder->GetJSObject());
-        NS_ENSURE_TRUE(locationObj, nullptr);
+            rv = xpc->WrapNative(aCx, obj, aComponentFile,
+                                 NS_GET_IID(nsIFile),
+                                 locationObj.address());
+            NS_ENSURE_SUCCESS(rv, nullptr);
+            NS_ENSURE_TRUE(locationObj, nullptr);
 
-        if (!JS_DefineProperty(aCx, obj, "__LOCATION__", locationObj, 0))
-            return nullptr;
+            if (!JS_DefineProperty(aCx, obj, "__LOCATION__", locationObj, 0))
+                return nullptr;
+        }
     }
 
     nsAutoCString nativePath;
@@ -776,27 +651,31 @@ mozJSComponentLoader::PrepareObjectForLocation(JSCLContextHelper& aCx,
         return nullptr;
 
     if (createdNewGlobal) {
-        RootedObject global(aCx, holder->GetJSObject());
-        JS_FireOnNewGlobalObject(aCx, global);
+        // AutoEntryScript required to invoke debugger hook, which is a
+        // Gecko-specific concept at present.
+        dom::AutoEntryScript aes(holder->GetJSObject(),
+                                 "component loader report global");
+        RootedObject global(aes.cx(), holder->GetJSObject());
+        JS_FireOnNewGlobalObject(aes.cx(), global);
     }
 
     return obj;
 }
 
 nsresult
-mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
-                                        nsIFile *aComponentFile,
+mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo& aInfo,
+                                        nsIFile* aComponentFile,
                                         MutableHandleObject aObject,
                                         MutableHandleScript aTableScript,
-                                        char **aLocation,
+                                        char** aLocation,
                                         bool aPropagateExceptions,
                                         MutableHandleValue aException)
 {
-    JSCLContextHelper cx(mContext);
+    MOZ_ASSERT(NS_IsMainThread(), "Must be on main thread.");
 
-    JS_AbortIfWrongThread(JS_GetRuntime(cx));
-
-    JSCLAutoErrorReporterSetter aers(cx, xpc::SystemErrorReporter);
+    dom::AutoJSAPI jsapi;
+    jsapi.Init();
+    JSContext* cx = jsapi.cx();
 
     bool realFile = false;
     nsresult rv = aInfo.EnsureURI();
@@ -804,6 +683,7 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
     RootedObject obj(cx, PrepareObjectForLocation(cx, aComponentFile, aInfo.URI(),
                                                   mReuseLoaderGlobal, &realFile));
     NS_ENSURE_TRUE(obj, NS_ERROR_FAILURE);
+    MOZ_ASSERT(JS_IsGlobalObject(obj) == !mReuseLoaderGlobal);
 
     JSAutoCompartment ac(cx, obj);
 
@@ -840,6 +720,9 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
             // cache. Could mean that the cache was corrupted and got removed,
             // but either way we're going to write this out.
             writeToCache = true;
+            // ReadCachedScript and ReadCachedFunction may have set a pending
+            // exception.
+            JS_ClearPendingException(cx);
         }
     }
 
@@ -847,23 +730,26 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
         // The script wasn't in the cache , so compile it now.
         LOG(("Slow loading %s\n", nativePath.get()));
 
-        // If aPropagateExceptions is true, then our caller wants us to propagate
-        // any exceptions out to our caller. Ensure that the engine doesn't
-        // eagerly report the exception.
-        AutoSaveContextOptions asco(cx);
-        if (aPropagateExceptions)
-            ContextOptionsRef(cx).setDontReportUncaught(true);
-
-        // Note - if mReuseLoaderGlobal is true, then we can't do lazy source,
-        // because we compile things as functions (rather than script), and lazy
-        // source isn't supported in that configuration. That's ok though,
-        // because we only do mReuseLoaderGlobal on b2g, where we invoke
-        // setDiscardSource(true) on the entire global.
+        // Use lazy source if both of these conditions hold:
+        //
+        // (1) mReuseLoaderGlobal is false. If mReuseLoaderGlobal is true, we
+        //     can't do lazy source because we compile things as functions
+        //     (rather than script), and lazy source isn't supported in that
+        //     configuration. That's ok though, because we only do
+        //     mReuseLoaderGlobal on b2g, where we invoke setDiscardSource(true)
+        //     on the entire global.
+        //
+        // (2) We're using the startup cache. Non-lazy source + startup cache
+        //     regresses installer size (due to source code stored in XDR
+        //     encoded modules in omni.ja). Also, XDR decoding is relatively
+        //     fast. Content processes don't use the startup cache, so we want
+        //     them to use non-lazy source code to enable lazy parsing.
+        //     See bug 1303754.
         CompileOptions options(cx);
         options.setNoScriptRval(mReuseLoaderGlobal ? false : true)
                .setVersion(JSVERSION_LATEST)
                .setFileAndLine(nativePath.get(), 1)
-               .setSourceIsLazy(!mReuseLoaderGlobal);
+               .setSourceIsLazy(!mReuseLoaderGlobal && !!cache);
 
         if (realFile) {
 #ifdef HAVE_PR_MEMMAP
@@ -879,7 +765,7 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
                 return NS_ERROR_FAILURE;
             }
 
-            PRFileDesc *fileHandle;
+            PRFileDesc* fileHandle;
             rv = aComponentFile->OpenNSPRFileDesc(PR_RDONLY, 0, &fileHandle);
             if (NS_FAILED(rv)) {
                 return NS_ERROR_FILE_NOT_FOUND;
@@ -893,7 +779,7 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
             // didn't require extending the file.  We know that the file doesn't
             // need to be extended, so skip the extra work by not providing the
             // size.
-            PRFileMap *map = PR_CreateFileMap(fileHandle, 0, PR_PROT_READONLY);
+            PRFileMap* map = PR_CreateFileMap(fileHandle, 0, PR_PROT_READONLY);
             if (!map) {
                 NS_ERROR("Failed to create file map");
                 return NS_ERROR_FAILURE;
@@ -904,19 +790,23 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
 
             uint32_t fileSize32 = fileSize;
 
-            char *buf = static_cast<char*>(PR_MemMap(map, 0, fileSize32));
+            char* buf = static_cast<char*>(PR_MemMap(map, 0, fileSize32));
             if (!buf) {
                 NS_WARNING("Failed to map file");
                 return NS_ERROR_FAILURE;
             }
 
             if (!mReuseLoaderGlobal) {
-                script = Compile(cx, obj, options, buf,
-                                     fileSize32);
+                Compile(cx, options, buf, fileSize32, &script);
             } else {
-                function = CompileFunction(cx, obj, options,
-                                               nullptr, 0, nullptr,
-                                               buf, fileSize32);
+                // Note: exceptions will get handled further down;
+                // don't early return for them here.
+                AutoObjectVector envChain(cx);
+                if (envChain.append(obj)) {
+                    CompileFunction(cx, envChain,
+                                    options, nullptr, 0, nullptr,
+                                    buf, fileSize32, &function);
+                }
             }
 
             PR_MemUnmap(buf, fileSize32);
@@ -928,7 +818,7 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
              * reading in the file
              */
 
-            FILE *fileHandle;
+            FILE* fileHandle;
             rv = aComponentFile->OpenANSIFileDesc("r", &fileHandle);
             if (NS_FAILED(rv)) {
                 return NS_ERROR_FILE_NOT_FOUND;
@@ -944,7 +834,7 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
                 return NS_ERROR_FAILURE;
             }
 
-            char *buf = (char *) malloc(len * sizeof(char));
+            char* buf = (char*) malloc(len * sizeof(char));
             if (!buf) {
                 return NS_ERROR_FAILURE;
             }
@@ -957,12 +847,16 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
             }
 
             if (!mReuseLoaderGlobal) {
-                script = Compile(cx, obj, options, buf,
-                                     fileSize32);
+                script = Compile(cx, options, buf, fileSize32);
             } else {
-                function = CompileFunction(cx, obj, options,
-                                           nullptr, 0, nullptr,
-                                           buf, fileSize32);
+                // Note: exceptions will get handled further down;
+                // don't early return for them here.
+                AutoObjectVector envChain(cx);
+                if (envChain.append(obj)) {
+                    CompileFunction(cx, envChain,
+                                    options, nullptr, 0, nullptr,
+                                    buf, fileSize32, &function);
+                }
             }
 
             free(buf);
@@ -972,7 +866,8 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
             rv = aInfo.EnsureScriptChannel();
             NS_ENSURE_SUCCESS(rv, rv);
             nsCOMPtr<nsIInputStream> scriptStream;
-            rv = aInfo.ScriptChannel()->Open(getter_AddRefs(scriptStream));
+            rv = NS_MaybeOpenChannelUsingOpen2(aInfo.ScriptChannel(),
+                   getter_AddRefs(scriptStream));
             NS_ENSURE_SUCCESS(rv, rv);
 
             uint64_t len64;
@@ -986,36 +881,48 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
             uint32_t len = (uint32_t)len64;
 
             /* malloc an internal buf the size of the file */
-            nsAutoArrayPtr<char> buf(new char[len + 1]);
+            auto buf = MakeUniqueFallible<char[]>(len + 1);
             if (!buf)
                 return NS_ERROR_OUT_OF_MEMORY;
 
             /* read the file in one swoop */
-            rv = scriptStream->Read(buf, len, &bytesRead);
+            rv = scriptStream->Read(buf.get(), len, &bytesRead);
             if (bytesRead != len)
                 return NS_BASE_STREAM_OSERROR;
 
             buf[len] = '\0';
 
             if (!mReuseLoaderGlobal) {
-                script = Compile(cx, obj, options, buf, bytesRead);
+                Compile(cx, options, buf.get(), bytesRead, &script);
             } else {
-                function = CompileFunction(cx, obj, options,
-                                               nullptr, 0, nullptr,
-                                               buf, bytesRead);
+                // Note: exceptions will get handled further down;
+                // don't early return for them here.
+                AutoObjectVector envChain(cx);
+                if (envChain.append(obj)) {
+                    CompileFunction(cx, envChain,
+                                    options, nullptr, 0, nullptr,
+                                    buf.get(), bytesRead, &function);
+                }
             }
         }
         // Propagate the exception, if one exists. Also, don't leave the stale
         // exception on this context.
-        if (!script && !function && aPropagateExceptions) {
-            JS_GetPendingException(cx, aException);
-            JS_ClearPendingException(cx);
+        if (!script && !function && aPropagateExceptions &&
+            jsapi.HasException()) {
+            if (!jsapi.StealException(aException))
+                return NS_ERROR_OUT_OF_MEMORY;
         }
     }
 
     if (!script && !function) {
         return NS_ERROR_FAILURE;
     }
+
+    // We must have a script or a function (but not both!) here.  We have a
+    // script when we're not reusing the loader global, and a function
+    // otherwise.
+    MOZ_ASSERT(!!script != !!function);
+    MOZ_ASSERT(!!script == JS_IsGlobalObject(obj));
 
     if (writeToCache) {
         // We successfully compiled the script, so cache it.
@@ -1048,39 +955,34 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
 
     aTableScript.set(tableScript);
 
-    if (js::GetObjectJSClass(obj) == &kFakeBackstagePassJSClass) {
-        MOZ_ASSERT(mReuseLoaderGlobal);
-        // tableScript stays in the table until shutdown.  It is rooted by
-        // virtue of the fact that aTableScript is a handle to
-        // ModuleEntry::thisObjectKey, which is a PersistentRootedScript.  Since
-        // ModuleEntries are never dynamically unloaded when mReuseLoaderGlobal
-        // is true, this prevents it from being collected and another script
-        // getting the same address.
-        mThisObjects.Put(tableScript, obj);
-    }
-    bool ok = false;
 
-    {
-        AutoSaveContextOptions asco(cx);
-        if (aPropagateExceptions)
-            ContextOptionsRef(cx).setDontReportUncaught(true);
+    {   // Scope for AutoEntryScript
+
+        // We're going to run script via JS_ExecuteScript or
+        // JS_CallFunction, so we need an AutoEntryScript.
+        // This is Gecko-specific and not in any spec.
+        dom::AutoEntryScript aes(CurrentGlobalOrNull(cx),
+                                 "component loader load module");
+        JSContext* aescx = aes.cx();
+        bool ok;
         if (script) {
-            ok = JS_ExecuteScriptVersion(cx, obj, script, JSVERSION_LATEST);
+            ok = JS_ExecuteScript(aescx, script);
         } else {
             RootedValue rval(cx);
-            ok = JS_CallFunction(cx, obj, function, JS::HandleValueArray::empty(), &rval);
+            ok = JS_CallFunction(aescx, obj, function,
+                                 JS::HandleValueArray::empty(), &rval);
         }
-     }
 
-    if (!ok) {
-        if (aPropagateExceptions) {
-            JS_GetPendingException(cx, aException);
-            JS_ClearPendingException(cx);
+        if (!ok) {
+            if (aPropagateExceptions && aes.HasException()) {
+                // Ignore return value because we're returning an error code
+                // anyway.
+                Unused << aes.StealException(aException);
+            }
+            aObject.set(nullptr);
+            aTableScript.set(nullptr);
+            return NS_ERROR_FAILURE;
         }
-        aObject.set(nullptr);
-        aTableScript.set(nullptr);
-        mThisObjects.Remove(tableScript);
-        return NS_ERROR_FAILURE;
     }
 
     /* Freed when we remove from the table. */
@@ -1088,18 +990,10 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
     if (!*aLocation) {
         aObject.set(nullptr);
         aTableScript.set(nullptr);
-        mThisObjects.Remove(tableScript);
         return NS_ERROR_OUT_OF_MEMORY;
     }
 
     return NS_OK;
-}
-
-/* static */ PLDHashOperator
-mozJSComponentLoader::ClearModules(const nsACString& key, ModuleEntry*& entry, void* cx)
-{
-    entry->Clear();
-    return PL_DHASH_REMOVE;
 }
 
 void
@@ -1110,11 +1004,16 @@ mozJSComponentLoader::UnloadModules()
     if (mLoaderGlobal) {
         MOZ_ASSERT(mReuseLoaderGlobal, "How did this happen?");
 
-        JSAutoRequest ar(mContext);
-        RootedObject global(mContext, mLoaderGlobal->GetJSObject());
+        dom::AutoJSAPI jsapi;
+        jsapi.Init();
+        JSContext* cx = jsapi.cx();
+        RootedObject global(cx, mLoaderGlobal->GetJSObject());
         if (global) {
-            JSAutoCompartment ac(mContext, global);
-            JS_SetAllNonReservedSlotsToUndefined(mContext, global);
+            JSAutoCompartment ac(cx, global);
+            if (JS_HasExtensibleLexicalEnvironment(global)) {
+                JS_SetAllNonReservedSlotsToUndefined(cx, JS_ExtensibleLexicalEnvironment(global));
+            }
+            JS_SetAllNonReservedSlotsToUndefined(cx, global);
         } else {
             NS_WARNING("Going to leak!");
         }
@@ -1124,20 +1023,17 @@ mozJSComponentLoader::UnloadModules()
 
     mInProgressImports.Clear();
     mImports.Clear();
-    mThisObjects.Clear();
 
-    mModules.Enumerate(ClearModules, nullptr);
-
-    JS_DestroyContextNoGC(mContext);
-    mContext = nullptr;
-
-    mRuntimeService = nullptr;
+    for (auto iter = mModules.Iter(); !iter.Done(); iter.Next()) {
+        iter.Data()->Clear();
+        iter.Remove();
+    }
 }
 
 NS_IMETHODIMP
 mozJSComponentLoader::Import(const nsACString& registryLocation,
                              HandleValue targetValArg,
-                             JSContext *cx,
+                             JSContext* cx,
                              uint8_t optionalArgc,
                              MutableHandleValue retval)
 {
@@ -1163,8 +1059,8 @@ mozJSComponentLoader::Import(const nsACString& registryLocation,
         } else if (!targetVal.isNull()) {
             // If targetVal isNull(), we actually want to leave targetObject null.
             // Not doing so breaks |make package|.
-            return ReportOnCaller(cx, ERROR_SCOPE_OBJ,
-                                  PromiseFlatCString(registryLocation).get());
+            return ReportOnCallerUTF8(cx, ERROR_SCOPE_OBJ,
+                                      PromiseFlatCString(registryLocation).get());
         }
     } else {
         nsresult rv = FindTargetObject(cx, &targetObject);
@@ -1173,7 +1069,7 @@ mozJSComponentLoader::Import(const nsACString& registryLocation,
 
     Maybe<JSAutoCompartment> ac;
     if (targetObject) {
-        ac.construct(cx, targetObject);
+        ac.emplace(cx, targetObject);
     }
 
     RootedObject global(cx);
@@ -1190,15 +1086,13 @@ mozJSComponentLoader::Import(const nsACString& registryLocation,
     return rv;
 }
 
-/* [noscript] JSObjectPtr importInto(in AUTF8String registryLocation,
-                                     in JSObjectPtr targetObj); */
 NS_IMETHODIMP
-mozJSComponentLoader::ImportInto(const nsACString &aLocation,
-                                 JSObject *aTargetObj,
-                                 nsAXPCNativeCallContext *cc,
-                                 JSObject **_retval)
+mozJSComponentLoader::ImportInto(const nsACString& aLocation,
+                                 JSObject* aTargetObj,
+                                 nsAXPCNativeCallContext* cc,
+                                 JSObject** _retval)
 {
-    JSContext *callercx;
+    JSContext* callercx;
     nsresult rv = cc->GetJSContext(&callercx);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1210,10 +1104,9 @@ mozJSComponentLoader::ImportInto(const nsACString &aLocation,
     return NS_OK;
 }
 
-/* boolean isModuleLoaded (in AUTF8String registryLocation); */
 NS_IMETHODIMP
 mozJSComponentLoader::IsModuleLoaded(const nsACString& aLocation,
-                                     bool *retval)
+                                     bool* retval)
 {
     MOZ_ASSERT(nsContentUtils::IsCallerChrome());
 
@@ -1231,10 +1124,26 @@ mozJSComponentLoader::IsModuleLoaded(const nsACString& aLocation,
     return NS_OK;
 }
 
+static JSObject*
+ResolveModuleObjectPropertyById(JSContext* aCx, HandleObject aModObj, HandleId id)
+{
+    if (JS_HasExtensibleLexicalEnvironment(aModObj)) {
+        RootedObject lexical(aCx, JS_ExtensibleLexicalEnvironment(aModObj));
+        bool found;
+        if (!JS_HasOwnPropertyById(aCx, lexical, id, &found)) {
+            return nullptr;
+        }
+        if (found) {
+            return lexical;
+        }
+    }
+    return aModObj;
+}
+
 nsresult
-mozJSComponentLoader::ImportInto(const nsACString &aLocation,
+mozJSComponentLoader::ImportInto(const nsACString& aLocation,
                                  HandleObject targetObj,
-                                 JSContext *callercx,
+                                 JSContext* callercx,
                                  MutableHandleObject vp)
 {
     vp.set(nullptr);
@@ -1280,7 +1189,7 @@ mozJSComponentLoader::ImportInto(const nsACString &aLocation,
     ModuleEntry* mod;
     nsAutoPtr<ModuleEntry> newEntry;
     if (!mImports.Get(info.Key(), &mod) && !mInProgressImports.Get(info.Key(), &mod)) {
-        newEntry = new ModuleEntry(callercx);
+        newEntry = new ModuleEntry(RootingContext::get(callercx));
         if (!newEntry)
             return NS_ERROR_OUT_OF_MEMORY;
         mInProgressImports.Put(info.Key(), newEntry);
@@ -1321,78 +1230,115 @@ mozJSComponentLoader::ImportInto(const nsACString &aLocation,
     vp.set(mod->obj);
 
     if (targetObj) {
-        JSCLContextHelper cxhelper(mContext);
-        JSAutoCompartment ac(mContext, mod->obj);
+        // cxhelper must be created before jsapi, so that jsapi is detroyed and
+        // pops any context it has pushed before we report to the caller context.
+        JSCLContextHelper cxhelper(callercx);
 
-        RootedValue symbols(mContext);
-        RootedObject modObj(mContext, mod->obj);
-        if (!JS_GetProperty(mContext, modObj,
+        // Even though we are calling JS_SetPropertyById on targetObj, we want
+        // to ensure that we never run script here, so we use an AutoJSAPI and
+        // not an AutoEntryScript.
+        dom::AutoJSAPI jsapi;
+        jsapi.Init();
+        JSContext* cx = jsapi.cx();
+        JSAutoCompartment ac(cx, mod->obj);
+
+        RootedValue symbols(cx);
+        RootedObject exportedSymbolsHolder(cx, ResolveModuleObjectProperty(cx, mod->obj,
+                                                                           "EXPORTED_SYMBOLS"));
+        if (!exportedSymbolsHolder ||
+            !JS_GetProperty(cx, exportedSymbolsHolder,
                             "EXPORTED_SYMBOLS", &symbols)) {
-            return ReportOnCaller(cxhelper, ERROR_NOT_PRESENT,
-                                  PromiseFlatCString(aLocation).get());
+            nsCString location;
+            rv = info.GetLocation(location);
+            NS_ENSURE_SUCCESS(rv, rv);
+            return ReportOnCallerUTF8(cxhelper, ERROR_NOT_PRESENT,
+                                      location.get());
         }
 
-        if (!JS_IsArrayObject(mContext, symbols)) {
-            return ReportOnCaller(cxhelper, ERROR_NOT_AN_ARRAY,
-                                  PromiseFlatCString(aLocation).get());
+        bool isArray;
+        if (!JS_IsArrayObject(cx, symbols, &isArray)) {
+            return NS_ERROR_FAILURE;
+        }
+        if (!isArray) {
+            nsCString location;
+            rv = info.GetLocation(location);
+            NS_ENSURE_SUCCESS(rv, rv);
+            return ReportOnCallerUTF8(cxhelper, ERROR_NOT_AN_ARRAY,
+                                      location.get());
         }
 
-        RootedObject symbolsObj(mContext, &symbols.toObject());
+        RootedObject symbolsObj(cx, &symbols.toObject());
 
         // Iterate over symbols array, installing symbols on targetObj:
 
         uint32_t symbolCount = 0;
-        if (!JS_GetArrayLength(mContext, symbolsObj, &symbolCount)) {
-            return ReportOnCaller(cxhelper, ERROR_GETTING_ARRAY_LENGTH,
-                                  PromiseFlatCString(aLocation).get());
+        if (!JS_GetArrayLength(cx, symbolsObj, &symbolCount)) {
+            nsCString location;
+            rv = info.GetLocation(location);
+            NS_ENSURE_SUCCESS(rv, rv);
+            return ReportOnCallerUTF8(cxhelper, ERROR_GETTING_ARRAY_LENGTH,
+                                      location.get());
         }
 
 #ifdef DEBUG
         nsAutoCString logBuffer;
 #endif
 
-        RootedValue value(mContext);
-        RootedId symbolId(mContext);
+        RootedValue value(cx);
+        RootedId symbolId(cx);
+        RootedObject symbolHolder(cx);
         for (uint32_t i = 0; i < symbolCount; ++i) {
-            if (!JS_GetElement(mContext, symbolsObj, i, &value) ||
+            if (!JS_GetElement(cx, symbolsObj, i, &value) ||
                 !value.isString() ||
-                !JS_ValueToId(mContext, value, &symbolId)) {
-                return ReportOnCaller(cxhelper, ERROR_ARRAY_ELEMENT,
-                                      PromiseFlatCString(aLocation).get(), i);
+                !JS_ValueToId(cx, value, &symbolId)) {
+                nsCString location;
+                rv = info.GetLocation(location);
+                NS_ENSURE_SUCCESS(rv, rv);
+                return ReportOnCallerUTF8(cxhelper, ERROR_ARRAY_ELEMENT,
+                                          location.get(), i);
             }
 
-            RootedObject modObj(mContext, mod->obj);
-            if (!JS_GetPropertyById(mContext, modObj, symbolId, &value)) {
-                JSAutoByteString bytes(mContext, JSID_TO_STRING(symbolId));
-                if (!bytes)
+            symbolHolder = ResolveModuleObjectPropertyById(cx, mod->obj, symbolId);
+            if (!symbolHolder ||
+                !JS_GetPropertyById(cx, symbolHolder, symbolId, &value)) {
+                JSAutoByteString bytes;
+                RootedString symbolStr(cx, JSID_TO_STRING(symbolId));
+                if (!bytes.encodeUtf8(cx, symbolStr))
                     return NS_ERROR_FAILURE;
-                return ReportOnCaller(cxhelper, ERROR_GETTING_SYMBOL,
-                                      PromiseFlatCString(aLocation).get(),
-                                      bytes.ptr());
+                nsCString location;
+                rv = info.GetLocation(location);
+                NS_ENSURE_SUCCESS(rv, rv);
+                return ReportOnCallerUTF8(cxhelper, ERROR_GETTING_SYMBOL,
+                                          location.get(), bytes.ptr());
             }
 
-            JSAutoCompartment target_ac(mContext, targetObj);
+            JSAutoCompartment target_ac(cx, targetObj);
 
-            if (!JS_WrapValue(mContext, &value) ||
-                !JS_SetPropertyById(mContext, targetObj, symbolId, value)) {
-                JSAutoByteString bytes(mContext, JSID_TO_STRING(symbolId));
-                if (!bytes)
+            if (!JS_WrapValue(cx, &value) ||
+                !JS_SetPropertyById(cx, targetObj, symbolId, value)) {
+                JSAutoByteString bytes;
+                RootedString symbolStr(cx, JSID_TO_STRING(symbolId));
+                if (!bytes.encodeUtf8(cx, symbolStr))
                     return NS_ERROR_FAILURE;
-                return ReportOnCaller(cxhelper, ERROR_SETTING_SYMBOL,
-                                      PromiseFlatCString(aLocation).get(),
-                                      bytes.ptr());
+                nsCString location;
+                rv = info.GetLocation(location);
+                NS_ENSURE_SUCCESS(rv, rv);
+                return ReportOnCallerUTF8(cxhelper, ERROR_SETTING_SYMBOL,
+                                          location.get(), bytes.ptr());
             }
 #ifdef DEBUG
             if (i == 0) {
                 logBuffer.AssignLiteral("Installing symbols [ ");
             }
-            JSAutoByteString bytes(mContext, JSID_TO_STRING(symbolId));
+            JSAutoByteString bytes(cx, JSID_TO_STRING(symbolId));
             if (!!bytes)
                 logBuffer.Append(bytes.ptr());
             logBuffer.Append(' ');
             if (i == symbolCount - 1) {
-                LOG(("%s] from %s\n", logBuffer.get(),
-                     PromiseFlatCString(aLocation).get()));
+                nsCString location;
+                rv = info.GetLocation(location);
+                NS_ENSURE_SUCCESS(rv, rv);
+                LOG(("%s] from %s\n", logBuffer.get(), location.get()));
             }
 #endif
         }
@@ -1431,8 +1377,8 @@ mozJSComponentLoader::Unload(const nsACString & aLocation)
 }
 
 NS_IMETHODIMP
-mozJSComponentLoader::Observe(nsISupports *subject, const char *topic,
-                              const char16_t *data)
+mozJSComponentLoader::Observe(nsISupports* subject, const char* topic,
+                              const char16_t* data)
 {
     if (!strcmp(topic, "xpcom-shutdown-loaders")) {
         UnloadModules();
@@ -1473,26 +1419,18 @@ JSCLContextHelper::JSCLContextHelper(JSContext* aCx)
     : mContext(aCx)
     , mBuf(nullptr)
 {
-    mPusher.Push(mContext);
-    JS_BeginRequest(mContext);
 }
 
 JSCLContextHelper::~JSCLContextHelper()
 {
-    JS_EndRequest(mContext);
-    mPusher.Pop();
-    JSContext *restoredCx = nsContentUtils::GetCurrentJSContext();
-    if (restoredCx && mBuf) {
-        JS_ReportError(restoredCx, mBuf);
-    }
-
     if (mBuf) {
+        JS_ReportErrorUTF8(mContext, "%s", mBuf);
         JS_smprintf_free(mBuf);
     }
 }
 
 void
-JSCLContextHelper::reportErrorAfterPop(char *buf)
+JSCLContextHelper::reportErrorAfterPop(char* buf)
 {
     MOZ_ASSERT(!mBuf, "Already called reportErrorAfterPop");
     mBuf = buf;

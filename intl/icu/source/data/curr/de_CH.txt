@@ -1,17 +1,25 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/de_CH.xml
-// *
-// ***************************************************************************
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 de_CH{
     Currencies{
-        CHF{
-            "CHF",
-            "Schweizer Franken",
+        BYN{
+            "BYN",
+            "Weissrussischer Rubel",
+        }
+        BYR{
+            "BYR",
+            "Weissrussischer Rubel (2000–2016)",
         }
     }
-    Version{"2.0.92.87"}
+    CurrencyPlurals{
+        BYN{
+            one{"Weissrussischer Rubel"}
+            other{"Weissrussische Rubel"}
+        }
+        BYR{
+            one{"Weissrussischer Rubel (2000–2016)"}
+            other{"Weissrussische Rubel (2000–2016)"}
+        }
+    }
+    Version{"2.1.29.33"}
 }

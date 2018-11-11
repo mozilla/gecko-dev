@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -204,3 +204,82 @@ catch(e)
   actual = dumpError(e);
 }
 reportCompare(expect, actual, 'indexedArray: findIndex finds first string element');
+
+// Bug 1058394 - Array#find and Array#findIndex no longer skip holes
+var sparseArray = [,,1];
+var sparseArrayWithInheritedDataProperty = Object.setPrototypeOf([,,1], {
+  __proto__: [].__proto__,
+  0 : 0
+});
+var sparseArrayWithInheritedAccessorProperty = Object.setPrototypeOf([,,1], {
+  __proto__: [].__proto__,
+  get 0(){
+    throw "get 0";
+  }
+});
+
+try
+{
+  expect = undefined;
+  actual = sparseArray.find(() => true);
+}
+catch(e)
+{
+  actual = dumpError(e);
+}
+reportCompare(expect, actual, "Don't skip holes in Array#find.");
+
+try
+{
+  expect = 0;
+  actual = sparseArray.findIndex(() => true);
+}
+catch(e)
+{
+  actual = dumpError(e);
+}
+reportCompare(expect, actual, "Don't skip holes in Array#findIndex.");
+
+try
+{
+  expect = 0;
+  actual = sparseArrayWithInheritedDataProperty.find(v => v === 0);
+}
+catch(e)
+{
+  actual = dumpError(e);
+}
+reportCompare(expect, actual, "Array#find can find inherited data property.");
+
+try
+{
+  expect = 0;
+  actual = sparseArrayWithInheritedDataProperty.findIndex(v => v === 0);
+}
+catch(e)
+{
+  actual = dumpError(e);
+}
+reportCompare(expect, actual, "Array#findIndex can find inherited data property.");
+
+try
+{
+  expect = "get 0";
+  actual = sparseArrayWithInheritedAccessorProperty.find(() => true);
+}
+catch(e)
+{
+  actual = e;
+}
+reportCompare(expect, actual, "Array#find can find inherited accessor property.");
+
+try
+{
+  expect = "get 0";
+  actual = sparseArrayWithInheritedAccessorProperty.findIndex(() => true);
+}
+catch(e)
+{
+  actual = e;
+}
+reportCompare(expect, actual, "Array#findIndex can find inherited accessor property.");

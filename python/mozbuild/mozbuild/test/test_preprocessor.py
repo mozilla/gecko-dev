@@ -155,12 +155,12 @@ class TestPreprocessor(unittest.TestCase):
     def test_conditional_not_emptyval(self):
         self.do_include_compare([
             '#define EMPTYVAL',
-            '#if !EMPTYVAL',
+            '#ifndef EMPTYVAL',
             'FAIL',
             '#else',
             'PASS',
             '#endif',
-            '#if EMPTYVAL',
+            '#ifdef EMPTYVAL',
             'PASS',
             '#else',
             'FAIL',
@@ -440,12 +440,6 @@ class TestPreprocessor(unittest.TestCase):
             '#endif',
         ])
 
-    def test_lineEndings(self):
-        with MockedOpen({'f': 'first\n#literal second\n'}):
-            self.pp.setLineEndings('cr')
-            self.pp.do_include('f')
-            self.assertEqual(self.pp.out.getvalue(), "first\rsecond\r")
-
     def test_filterDefine(self):
         self.do_include_pass([
             '#filter substitution',
@@ -462,6 +456,15 @@ class TestPreprocessor(unittest.TestCase):
             '#else',
             'FAIL',
             '#endif',
+        ])
+
+    def test_default_defines(self):
+        self.pp.handleCommandLine(["-DFOO"])
+        self.do_include_pass([
+            '#if FOO == 1',
+            'PASS',
+            '#else',
+            'FAIL',
         ])
 
     def test_number_value_equals_defines(self):
@@ -562,17 +565,67 @@ class TestPreprocessor(unittest.TestCase):
             self.pp.do_include('f')
             self.assertEqual(self.pp.out.getvalue(), 'foobarbaz\nbarfoobaz\n')
 
+    def test_include_line(self):
+        files = {
+            'test.js': '\n'.join([
+                '#define foo foobarbaz',
+                '#include @inc@',
+                '@bar@',
+                '',
+            ]),
+            'bar.js': '\n'.join([
+                '#define bar barfoobaz',
+                '@foo@',
+                '',
+            ]),
+            'foo.js': '\n'.join([
+                'bazfoobar',
+                '#include bar.js',
+                'bazbarfoo',
+                '',
+            ]),
+            'baz.js': 'baz\n',
+            'f.js': '\n'.join([
+                '#include foo.js',
+                '#filter substitution',
+                '#define inc bar.js',
+                '#include test.js',
+                '#include baz.js',
+                'fin',
+                '',
+            ]),
+        }
+
+        with MockedOpen(files):
+            self.pp.do_include('f.js')
+            self.assertEqual(self.pp.out.getvalue(),
+                             ('//@line 1 "CWD/foo.js"\n'
+                              'bazfoobar\n'
+                              '//@line 2 "CWD/bar.js"\n'
+                              '@foo@\n'
+                              '//@line 3 "CWD/foo.js"\n'
+                              'bazbarfoo\n'
+                              '//@line 2 "CWD/bar.js"\n'
+                              'foobarbaz\n'
+                              '//@line 3 "CWD/test.js"\n'
+                              'barfoobaz\n'
+                              '//@line 1 "CWD/baz.js"\n'
+                              'baz\n'
+                              '//@line 6 "CWD/f.js"\n'
+                              'fin\n').replace('CWD/',
+                                               os.getcwd() + os.path.sep))
+
     def test_include_missing_file(self):
         with MockedOpen({'f': '#include foo\n'}):
             with self.assertRaises(Preprocessor.Error) as e:
                 self.pp.do_include('f')
-                self.assertEqual(e.key, 'FILE_NOT_FOUND')
+            self.assertEqual(e.exception.key, 'FILE_NOT_FOUND')
 
     def test_include_undefined_variable(self):
         with MockedOpen({'f': '#filter substitution\n#include @foo@\n'}):
             with self.assertRaises(Preprocessor.Error) as e:
                 self.pp.do_include('f')
-                self.assertEqual(e.key, 'UNDEFINED_VAR')
+            self.assertEqual(e.exception.key, 'UNDEFINED_VAR')
 
     def test_include_literal_at(self):
         files = {

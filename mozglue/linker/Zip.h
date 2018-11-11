@@ -9,8 +9,145 @@
 #include <stdint.h>
 #include <vector>
 #include <zlib.h>
+#include <pthread.h>
 #include "Utils.h"
+#include "mozilla/Assertions.h"
+#include "mozilla/RefCounted.h"
 #include "mozilla/RefPtr.h"
+
+/**
+ * Helper class wrapping z_stream to avoid malloc() calls during
+ * inflate. Do not use for deflate.
+ * inflateInit allocates two buffers:
+ * - one for its internal state, which is "approximately 10K bytes" according
+ *   to inflate.h from zlib.
+ * - one for the compression window, which depends on the window size passed
+ *   to inflateInit2, but is never greater than 32K (1 << MAX_WBITS).
+ * Those buffers are created at instantiation time instead of when calling
+ * inflateInit2. When inflateInit2 is called, it will call zxx_stream::Alloc
+ * to get both these buffers. zxx_stream::Alloc will choose one of the
+ * pre-allocated buffers depending on the requested size.
+ */
+class zxx_stream: public z_stream
+{
+public:
+  /* Forward declaration */
+  class StaticAllocator;
+
+  explicit zxx_stream(StaticAllocator *allocator_=nullptr)
+  : allocator(allocator_)
+  {
+    memset(this, 0, sizeof(z_stream));
+    zalloc = Alloc;
+    zfree = Free;
+    opaque = this;
+  }
+
+private:
+  static void *Alloc(void *data, uInt items, uInt size)
+  {
+    zxx_stream *zStream = reinterpret_cast<zxx_stream *>(data);
+    if (zStream->allocator) {
+      return zStream->allocator->Alloc(items, size);
+    }
+    size_t buf_size = items * size;
+    return ::operator new(buf_size);
+  }
+
+  static void Free(void *data, void *ptr)
+  {
+    zxx_stream *zStream = reinterpret_cast<zxx_stream *>(data);
+    if (zStream->allocator) {
+      zStream->allocator->Free(ptr);
+    } else {
+      ::operator delete(ptr);
+    }
+  }
+
+  /**
+   * Helper class for each buffer in StaticAllocator.
+   */
+  template <size_t Size>
+  class ZStreamBuf
+  {
+  public:
+    ZStreamBuf() : inUse(false) { }
+
+    bool get(char*& out)
+    {
+      if (!inUse) {
+        inUse = true;
+        out = buf;
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    void Release()
+    {
+      memset(buf, 0, Size);
+      inUse = false;
+    }
+
+    bool Equals(const void *other) { return other == buf; }
+
+    static const size_t size = Size;
+
+  private:
+    char buf[Size];
+    bool inUse;
+  };
+
+public:
+  /**
+   * Special allocator that uses static buffers to allocate from.
+   */
+  class StaticAllocator
+  {
+  public:
+    void *Alloc(uInt items, uInt size)
+    {
+      if (items == 1 && size <= stateBuf1.size) {
+        char* res = nullptr;
+        if (stateBuf1.get(res) || stateBuf2.get(res)) {
+          return res;
+        }
+        MOZ_CRASH("ZStreamBuf already in use");
+      } else if (items * size == windowBuf1.size) {
+        char* res = nullptr;
+        if (windowBuf1.get(res) || windowBuf2.get(res)) {
+          return res;
+        }
+        MOZ_CRASH("ZStreamBuf already in use");
+      } else {
+        MOZ_CRASH("No ZStreamBuf for allocation");
+      }
+    }
+
+    void Free(void *ptr)
+    {
+      if (stateBuf1.Equals(ptr)) {
+        stateBuf1.Release();
+      } else if (stateBuf2.Equals(ptr)) {
+        stateBuf2.Release();
+      }else if (windowBuf1.Equals(ptr)) {
+        windowBuf1.Release();
+      } else if (windowBuf2.Equals(ptr)) {
+        windowBuf2.Release();
+      } else {
+        MOZ_CRASH("Pointer doesn't match a ZStreamBuf");
+      }
+    }
+
+    // 0x3000 is an arbitrary size above 10K.
+    ZStreamBuf<0x3000> stateBuf1, stateBuf2;
+    ZStreamBuf<1 << MAX_WBITS> windowBuf1, windowBuf2;
+  };
+
+private:
+  StaticAllocator *allocator;
+};
 
 /**
  * Forward declaration
@@ -34,17 +171,17 @@ public:
    * Create a Zip instance for the given file name. Returns nullptr in case
    * of failure.
    */
-  static mozilla::TemporaryRef<Zip> Create(const char *filename);
+  static already_AddRefed<Zip> Create(const char *filename);
 
   /**
    * Create a Zip instance using the given buffer.
    */
-  static mozilla::TemporaryRef<Zip> Create(void *buffer, size_t size) {
+  static already_AddRefed<Zip> Create(void *buffer, size_t size) {
     return Create(nullptr, buffer, size);
   }
 
 private:
-  static mozilla::TemporaryRef<Zip> Create(const char *filename,
+  static already_AddRefed<Zip> Create(const char *filename,
                                            void *buffer, size_t size);
 
   /**
@@ -76,6 +213,7 @@ public:
      * Constructor
      */
     Stream(): compressedBuf(nullptr), compressedSize(0), uncompressedSize(0)
+            , CRC32(0)
             , type(STORE) { }
 
     /**
@@ -84,17 +222,17 @@ public:
     const void *GetBuffer() { return compressedBuf; }
     size_t GetSize() { return compressedSize; }
     size_t GetUncompressedSize() { return uncompressedSize; }
+    size_t GetCRC32() { return CRC32; }
     Type GetType() { return type; }
 
     /**
-     * Returns a z_stream for use with inflate functions using the given
+     * Returns a zxx_stream for use with inflate functions using the given
      * buffer as inflate output. The caller is expected to allocate enough
      * memory for the Stream uncompressed size.
      */
-    z_stream GetZStream(void *buf)
+    zxx_stream GetZStream(void *buf)
     {
-      z_stream zStream;
-      memset(&zStream, 0, sizeof(zStream));
+      zxx_stream zStream;
       zStream.avail_in = compressedSize;
       zStream.next_in = reinterpret_cast<Bytef *>(
                         const_cast<void *>(compressedBuf));
@@ -108,6 +246,7 @@ public:
     const void *compressedBuf;
     size_t compressedSize;
     size_t uncompressedSize;
+    size_t CRC32;
     Type type;
   };
 
@@ -150,7 +289,7 @@ private:
      */
     bool Equals(const char *str) const
     {
-      return strncmp(str, buf, length) == 0;
+      return (strncmp(str, buf, length) == 0 && str[length] == '\0');
     }
 
   private:
@@ -214,7 +353,7 @@ private:
       return reinterpret_cast<const char *>(this) + sizeof(*this)
              + filenameSize + extraFieldSize;
     }
-    
+
     le_uint16 minVersion;
     le_uint16 generalFlag;
     le_uint16 compression;
@@ -321,6 +460,8 @@ private:
 
   /* Pointer to the Directory entries */
   mutable const DirectoryEntry *entries;
+
+  mutable pthread_mutex_t mutex;
 };
 
 /**
@@ -335,7 +476,7 @@ public:
    * Get a Zip instance for the given path. If there is an existing one
    * already, return that one, otherwise create a new one.
    */
-  static mozilla::TemporaryRef<Zip> GetZip(const char *path);
+  static already_AddRefed<Zip> GetZip(const char *path);
 
 protected:
   friend class Zip;

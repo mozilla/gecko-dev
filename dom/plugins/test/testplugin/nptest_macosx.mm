@@ -50,12 +50,6 @@ pluginSupportsWindowlessMode()
   return true;
 }
 
-bool
-pluginSupportsAsyncBitmapDrawing()
-{
-  return false;
-}
-
 NPError
 pluginInstanceInit(InstanceData* instanceData)
 {
@@ -100,7 +94,7 @@ pluginDoSetWindow(InstanceData* instanceData, NPWindow* newWindow)
 {
   // Ugh. Due to a terrible Gecko bug, we have to ignore position changes
   // when the clip rect doesn't change; the position can be wrong
-  // when set by a path other than nsObjectFrame::FixUpPluginWindow.
+  // when set by a path other than nsPluginFrame::FixUpPluginWindow.
   int32_t oldX = instanceData->window.x;
   int32_t oldY = instanceData->window.y;
   bool clipChanged =
@@ -244,6 +238,7 @@ pluginHandleEvent(InstanceData* instanceData, void* event)
     case NPCocoaEventMouseDown:
     case NPCocoaEventMouseUp:
     case NPCocoaEventMouseMoved:
+    case NPCocoaEventMouseDragged:
       instanceData->lastMouseX = (int32_t)cocoaEvent->data.mouse.pluginX;
       instanceData->lastMouseY = (int32_t)cocoaEvent->data.mouse.pluginY;
       if (cocoaEvent->type == NPCocoaEventMouseUp) {
@@ -280,7 +275,7 @@ int32_t pluginGetEdge(InstanceData* instanceData, RectEdge edge)
   case EDGE_BOTTOM:
     return w->y + w->height;
   }
-  return NPTEST_INT32_ERROR;
+  MOZ_CRASH("Unexpected RectEdge?!");
 }
 
 int32_t pluginGetClipRegionRectCount(InstanceData* instanceData)
@@ -309,7 +304,7 @@ int32_t pluginGetClipRegionRectEdge(InstanceData* instanceData,
   case EDGE_BOTTOM:
     return w->clipRect.bottom + COCOA_TITLEBAR_HEIGHT;
   }
-  return NPTEST_INT32_ERROR;
+  MOZ_CRASH("Unexpected RectEdge?!");
 }
 
 void pluginDoInternalConsistencyCheck(InstanceData* instanceData, string& error)

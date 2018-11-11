@@ -28,18 +28,25 @@ namespace mozilla {
 namespace places {
 
 struct VisitData;
+class ConcurrentStatementsHolder;
 
 #define NS_HISTORYSERVICE_CID \
   {0x0937a705, 0x91a6, 0x417a, {0x82, 0x92, 0xb2, 0x2e, 0xb1, 0x0d, 0xa8, 0x6c}}
 
-// Max size of History::mRecentlyVisitedURIs
-#define RECENTLY_VISITED_URI_SIZE 8
+// Initial size of mRecentlyVisitedURIs.
+#define RECENTLY_VISITED_URIS_SIZE 64
+// Microseconds after which a visit can be expired from mRecentlyVisitedURIs.
+// When an URI is reloaded we only take into account the first visit to it, and
+// ignore any subsequent visits, if they happen before this time has elapsed.
+// A commonly found case is to reload a page every 5 minutes, so we pick a time
+// larger than that.
+#define RECENTLY_VISITED_URIS_MAX_AGE 6 * 60 * PR_USEC_PER_SEC
 
-class History : public IHistory
-              , public nsIDownloadHistory
-              , public mozIAsyncHistory
-              , public nsIObserver
-              , public nsIMemoryReporter
+class History final : public IHistory
+                    , public nsIDownloadHistory
+                    , public mozIAsyncHistory
+                    , public nsIObserver
+                    , public nsIMemoryReporter
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -54,7 +61,7 @@ public:
   /**
    * Obtains the statement to use to check if a URI is visited or not.
    */
-  mozIStorageAsyncStatement* GetIsVisitedStatement();
+  nsresult GetIsVisitedStatement(mozIStorageCompletionCallback* aCallback);
 
   /**
    * Adds an entry in moz_places with the data in aVisitData.
@@ -62,7 +69,7 @@ public:
    * @param aVisitData
    *        The visit data to use to populate a new row in moz_places.
    */
-  nsresult InsertPlace(const VisitData& aVisitData);
+  nsresult InsertPlace(VisitData& aVisitData);
 
   /**
    * Updates an entry in moz_places with the data in aVisitData.
@@ -144,21 +151,9 @@ private:
    * GetDBConn(), so never use it directly, or, if you really need, always
    * invoke GetDBConn() before.
    */
-  nsRefPtr<mozilla::places::Database> mDB;
+  RefPtr<mozilla::places::Database> mDB;
 
-  /**
-   * A read-only database connection used for checking if a URI is visited.
-   *
-   * @note this should only be accessed by GetIsVisistedStatement and Shutdown.
-   */
-  nsCOMPtr<mozIStorageConnection> mReadOnlyDBConn;
-
-  /**
-   * An asynchronous statement to query if a URI is visited or not.
-   *
-   * @note this should only be accessed by GetIsVisistedStatement and Shutdown.
-   */
-  nsCOMPtr<mozIStorageAsyncStatement> mIsVisitedStatement;
+  RefPtr<ConcurrentStatementsHolder> mConcurrentStatementsHolder;
 
   /**
    * Remove any memory references to tasks and do not take on any more.
@@ -181,7 +176,7 @@ private:
   class KeyClass : public nsURIHashKey
   {
   public:
-    KeyClass(const nsIURI* aURI)
+    explicit KeyClass(const nsIURI* aURI)
     : nsURIHashKey(aURI)
     {
     }
@@ -190,28 +185,36 @@ private:
     {
       NS_NOTREACHED("Do not call me!");
     }
+    size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+    {
+      return array.ShallowSizeOfExcludingThis(aMallocSizeOf);
+    }
     ObserverArray array;
   };
-
-  /**
-   * Helper function for nsTHashtable::SizeOfExcludingThis call in
-   * SizeOfIncludingThis().
-   */
-  static size_t SizeOfEntryExcludingThis(KeyClass* aEntry,
-                                         mozilla::MallocSizeOf aMallocSizeOf,
-                                         void*);
 
   nsTHashtable<KeyClass> mObservers;
 
   /**
-   * mRecentlyVisitedURIs remembers URIs which are recently added to the DB,
-   * to avoid saving these locations repeatedly in a short period.
+   * mRecentlyVisitedURIs remembers URIs which have been recently added to
+   * history, to avoid saving these locations repeatedly in a short period.
    */
-  typedef nsAutoTArray<nsCOMPtr<nsIURI>, RECENTLY_VISITED_URI_SIZE>
-          RecentlyVisitedArray;
-  RecentlyVisitedArray mRecentlyVisitedURIs;
-  RecentlyVisitedArray::index_type mRecentlyVisitedURIsNextIndex;
-
+  class RecentURIKey : public nsURIHashKey
+  {
+  public:
+    explicit RecentURIKey(const nsIURI* aURI) : nsURIHashKey(aURI)
+    {
+    }
+    RecentURIKey(const RecentURIKey& aOther) : nsURIHashKey(aOther)
+    {
+      NS_NOTREACHED("Do not call me!");
+    }
+    MOZ_INIT_OUTSIDE_CTOR PRTime time;
+  };
+  nsTHashtable<RecentURIKey> mRecentlyVisitedURIs;
+  /**
+   * Whether aURI has been visited "recently".
+   * See RECENTLY_VISITED_URIS_MAX_AGE.
+   */
   bool IsRecentlyVisitedURI(nsIURI* aURI);
 };
 

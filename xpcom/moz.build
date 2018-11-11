@@ -1,11 +1,14 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-PARALLEL_DIRS += [
-    'idl-parser',
+with Files('**'):
+    BUG_COMPONENT = ('Core', 'XPCOM')
+
+DIRS += [
+    'idl-parser/xpidl',
 ]
 
 DIRS += [
@@ -26,22 +29,22 @@ DIRS += [
 if CONFIG['OS_ARCH'] == 'WINNT' and CONFIG['MOZ_DEBUG']:
     DIRS += ['windbgdlg']
 
-TEST_TOOL_DIRS += [
+TEST_DIRS += [
     'tests',
-    'sample',
-    'typelib/xpt/tests',
+    'rust/nsstring/gtest',
 ]
 
 #  Can't build internal xptcall tests that use symbols which are not exported.
-#TEST_TOOL_DIRS += [
+#TEST_DIRS += [
 #    'reflect/xptinfo/tests',
 #    'reflect/xptcall/tests,
 #]
 
-if CONFIG['DEHYDRA_PATH']:
-    DIRS += ['analysis']
-
 CONFIGURE_DEFINE_FILES += [
     'xpcom-config.h',
     'xpcom-private.h',
+]
+
+EXPORTS += [
+    '!xpcom-config.h',
 ]

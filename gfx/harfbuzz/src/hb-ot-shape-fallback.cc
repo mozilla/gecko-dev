@@ -35,42 +35,42 @@ recategorize_combining_class (hb_codepoint_t u,
     return klass;
 
   /* Thai / Lao need some per-character work. */
-  if ((u & ~0xFF) == 0x0E00)
+  if ((u & ~0xFF) == 0x0E00u)
   {
     if (unlikely (klass == 0))
     {
       switch (u)
       {
-        case 0x0E31:
-        case 0x0E34:
-        case 0x0E35:
-        case 0x0E36:
-        case 0x0E37:
-        case 0x0E47:
-        case 0x0E4C:
-        case 0x0E4D:
-        case 0x0E4E:
+        case 0x0E31u:
+        case 0x0E34u:
+        case 0x0E35u:
+        case 0x0E36u:
+        case 0x0E37u:
+        case 0x0E47u:
+        case 0x0E4Cu:
+        case 0x0E4Du:
+        case 0x0E4Eu:
 	  klass = HB_UNICODE_COMBINING_CLASS_ABOVE_RIGHT;
 	  break;
 
-        case 0x0EB1:
-        case 0x0EB4:
-        case 0x0EB5:
-        case 0x0EB6:
-        case 0x0EB7:
-        case 0x0EBB:
-        case 0x0ECC:
-        case 0x0ECD:
+        case 0x0EB1u:
+        case 0x0EB4u:
+        case 0x0EB5u:
+        case 0x0EB6u:
+        case 0x0EB7u:
+        case 0x0EBBu:
+        case 0x0ECCu:
+        case 0x0ECDu:
 	  klass = HB_UNICODE_COMBINING_CLASS_ABOVE;
 	  break;
 
-        case 0x0EBC:
+        case 0x0EBCu:
 	  klass = HB_UNICODE_COMBINING_CLASS_BELOW;
 	  break;
       }
     } else {
       /* Thai virama is below-right */
-      if (u == 0x0E3A)
+      if (u == 0x0E3Au)
 	klass = HB_UNICODE_COMBINING_CLASS_BELOW_RIGHT;
     }
   }
@@ -167,11 +167,12 @@ _hb_ot_shape_fallback_position_recategorize_marks (const hb_ot_shape_plan_t *pla
 						   hb_buffer_t  *buffer)
 {
   unsigned int count = buffer->len;
+  hb_glyph_info_t *info = buffer->info;
   for (unsigned int i = 0; i < count; i++)
-    if (_hb_glyph_info_get_general_category (&buffer->info[i]) == HB_UNICODE_GENERAL_CATEGORY_NON_SPACING_MARK) {
-      unsigned int combining_class = _hb_glyph_info_get_modified_combining_class (&buffer->info[i]);
-      combining_class = recategorize_combining_class (buffer->info[i].codepoint, combining_class);
-      _hb_glyph_info_set_modified_combining_class (&buffer->info[i], combining_class);
+    if (_hb_glyph_info_get_general_category (&info[i]) == HB_UNICODE_GENERAL_CATEGORY_NON_SPACING_MARK) {
+      unsigned int combining_class = _hb_glyph_info_get_modified_combining_class (&info[i]);
+      combining_class = recategorize_combining_class (info[i].codepoint, combining_class);
+      _hb_glyph_info_set_modified_combining_class (&info[i], combining_class);
     }
 }
 
@@ -181,8 +182,9 @@ zero_mark_advances (hb_buffer_t *buffer,
 		    unsigned int start,
 		    unsigned int end)
 {
+  hb_glyph_info_t *info = buffer->info;
   for (unsigned int i = start; i < end; i++)
-    if (_hb_glyph_info_get_general_category (&buffer->info[i]) == HB_UNICODE_GENERAL_CATEGORY_NON_SPACING_MARK)
+    if (_hb_glyph_info_get_general_category (&info[i]) == HB_UNICODE_GENERAL_CATEGORY_NON_SPACING_MARK)
     {
       buffer->pos[i].x_advance = 0;
       buffer->pos[i].y_advance = 0;
@@ -222,7 +224,7 @@ position_mark (const hb_ot_shape_plan_t *plan,
 	pos.x_offset += base_extents.x_bearing + base_extents.width - mark_extents.width / 2 - mark_extents.x_bearing;
         break;
       }
-      /* Fall through */
+      HB_FALLTHROUGH;
 
     default:
     case HB_UNICODE_COMBINING_CLASS_ATTACHED_BELOW:
@@ -257,6 +259,7 @@ position_mark (const hb_ot_shape_plan_t *plan,
     case HB_UNICODE_COMBINING_CLASS_BELOW_RIGHT:
       /* Add gap, fall-through. */
       base_extents.height -= y_gap;
+      HB_FALLTHROUGH;
 
     case HB_UNICODE_COMBINING_CLASS_ATTACHED_BELOW_LEFT:
     case HB_UNICODE_COMBINING_CLASS_ATTACHED_BELOW:
@@ -277,6 +280,7 @@ position_mark (const hb_ot_shape_plan_t *plan,
       /* Add gap, fall-through. */
       base_extents.y_bearing += y_gap;
       base_extents.height -= y_gap;
+      HB_FALLTHROUGH;
 
     case HB_UNICODE_COMBINING_CLASS_ATTACHED_ABOVE:
     case HB_UNICODE_COMBINING_CLASS_ATTACHED_ABOVE_RIGHT:
@@ -327,12 +331,13 @@ position_around_base (const hb_ot_shape_plan_t *plan,
   unsigned int last_lig_component = (unsigned int) -1;
   unsigned int last_combining_class = 255;
   hb_glyph_extents_t cluster_extents = base_extents; /* Initialization is just to shut gcc up. */
+  hb_glyph_info_t *info = buffer->info;
   for (unsigned int i = base + 1; i < end; i++)
-    if (_hb_glyph_info_get_modified_combining_class (&buffer->info[i]))
+    if (_hb_glyph_info_get_modified_combining_class (&info[i]))
     {
       if (num_lig_components > 1) {
-	unsigned int this_lig_id = _hb_glyph_info_get_lig_id (&buffer->info[i]);
-	unsigned int this_lig_component = _hb_glyph_info_get_lig_comp (&buffer->info[i]) - 1;
+	unsigned int this_lig_id = _hb_glyph_info_get_lig_id (&info[i]);
+	unsigned int this_lig_component = _hb_glyph_info_get_lig_comp (&info[i]) - 1;
 	/* Conditions for attaching to the last component. */
 	if (!lig_id || lig_id != this_lig_id || this_lig_component >= num_lig_components)
 	  this_lig_component = num_lig_components - 1;
@@ -355,7 +360,7 @@ position_around_base (const hb_ot_shape_plan_t *plan,
 	}
       }
 
-      unsigned int this_combining_class = _hb_glyph_info_get_modified_combining_class (&buffer->info[i]);
+      unsigned int this_combining_class = _hb_glyph_info_get_modified_combining_class (&info[i]);
       if (last_combining_class != this_combining_class)
       {
 	last_combining_class = this_combining_class;
@@ -391,13 +396,14 @@ position_cluster (const hb_ot_shape_plan_t *plan,
     return;
 
   /* Find the base glyph */
+  hb_glyph_info_t *info = buffer->info;
   for (unsigned int i = start; i < end; i++)
-    if (!HB_UNICODE_GENERAL_CATEGORY_IS_MARK (_hb_glyph_info_get_general_category (&buffer->info[i])))
+    if (!HB_UNICODE_GENERAL_CATEGORY_IS_MARK (_hb_glyph_info_get_general_category (&info[i])))
     {
       /* Find mark glyphs */
       unsigned int j;
       for (j = i + 1; j < end; j++)
-	if (!HB_UNICODE_GENERAL_CATEGORY_IS_MARK (_hb_glyph_info_get_general_category (&buffer->info[j])))
+	if (!HB_UNICODE_GENERAL_CATEGORY_IS_MARK (_hb_glyph_info_get_general_category (&info[j])))
 	  break;
 
       position_around_base (plan, font, buffer, i, j);
@@ -411,14 +417,15 @@ _hb_ot_shape_fallback_position (const hb_ot_shape_plan_t *plan,
 				hb_font_t *font,
 				hb_buffer_t  *buffer)
 {
+  _hb_buffer_assert_gsubgpos_vars (buffer);
+
   unsigned int start = 0;
-  unsigned int last_cluster = buffer->info[0].cluster;
   unsigned int count = buffer->len;
+  hb_glyph_info_t *info = buffer->info;
   for (unsigned int i = 1; i < count; i++)
-    if (buffer->info[i].cluster != last_cluster) {
+    if (likely (!HB_UNICODE_GENERAL_CATEGORY_IS_MARK (_hb_glyph_info_get_general_category (&info[i])))) {
       position_cluster (plan, font, buffer, start, i);
       start = i;
-      last_cluster = buffer->info[i].cluster;
     }
   position_cluster (plan, font, buffer, start, count);
 }
@@ -432,18 +439,18 @@ _hb_ot_shape_fallback_kern (const hb_ot_shape_plan_t *plan,
 {
   if (!plan->has_kern) return;
 
-  unsigned int count = buffer->len;
-
   OT::hb_apply_context_t c (1, font, buffer);
   c.set_lookup_mask (plan->kern_mask);
   c.set_lookup_props (OT::LookupFlag::IgnoreMarks);
+  OT::hb_apply_context_t::skipping_iterator_t &skippy_iter = c.iter_input;
+  skippy_iter.init (&c);
 
+  unsigned int count = buffer->len;
   hb_glyph_info_t *info = buffer->info;
   hb_glyph_position_t *pos = buffer->pos;
-
   for (unsigned int idx = 0; idx < count;)
   {
-    OT::hb_apply_context_t::skipping_forward_iterator_t skippy_iter (&c, idx, 1);
+    skippy_iter.reset (idx, 1);
     if (!skippy_iter.next ())
     {
       idx++;
@@ -476,4 +483,71 @@ _hb_ot_shape_fallback_kern (const hb_ot_shape_plan_t *plan,
 
     idx = skippy_iter.idx;
   }
+}
+
+
+/* Adjusts width of various spaces. */
+void
+_hb_ot_shape_fallback_spaces (const hb_ot_shape_plan_t *plan,
+			      hb_font_t *font,
+			      hb_buffer_t  *buffer)
+{
+  if (!HB_DIRECTION_IS_HORIZONTAL (buffer->props.direction))
+    return;
+
+  hb_glyph_info_t *info = buffer->info;
+  hb_glyph_position_t *pos = buffer->pos;
+  unsigned int count = buffer->len;
+  for (unsigned int i = 0; i < count; i++)
+    if (_hb_glyph_info_is_unicode_space (&info[i]) && !_hb_glyph_info_ligated (&info[i]))
+    {
+      hb_unicode_funcs_t::space_t space_type = _hb_glyph_info_get_unicode_space_fallback_type (&info[i]);
+      hb_codepoint_t glyph;
+      typedef hb_unicode_funcs_t t;
+      switch (space_type)
+      {
+	case t::NOT_SPACE: /* Shouldn't happen. */
+	case t::SPACE:
+	  break;
+
+	case t::SPACE_EM:
+	case t::SPACE_EM_2:
+	case t::SPACE_EM_3:
+	case t::SPACE_EM_4:
+	case t::SPACE_EM_5:
+	case t::SPACE_EM_6:
+	case t::SPACE_EM_16:
+	  pos[i].x_advance = (font->x_scale + ((int) space_type)/2) / (int) space_type;
+	  break;
+
+	case t::SPACE_4_EM_18:
+	  pos[i].x_advance = font->x_scale * 4 / 18;
+	  break;
+
+	case t::SPACE_FIGURE:
+	  for (char u = '0'; u <= '9'; u++)
+	    if (font->get_nominal_glyph (u, &glyph))
+	    {
+	      pos[i].x_advance = font->get_glyph_h_advance (glyph);
+	      break;
+	    }
+	  break;
+
+	case t::SPACE_PUNCTUATION:
+	  if (font->get_nominal_glyph ('.', &glyph))
+	    pos[i].x_advance = font->get_glyph_h_advance (glyph);
+	  else if (font->get_nominal_glyph (',', &glyph))
+	    pos[i].x_advance = font->get_glyph_h_advance (glyph);
+	  break;
+
+	case t::SPACE_NARROW:
+	  /* Half-space?
+	   * Unicode doc http://www.unicode.org/charts/PDF/U2000.pdf says ~1/4 or 1/5 of EM.
+	   * However, in my testing, many fonts have their regular space being about that
+	   * size.  To me, a percentage of the space width makes more sense.  Half is as
+	   * good as any. */
+	  pos[i].x_advance /= 2;
+	  break;
+      }
+    }
 }

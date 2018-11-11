@@ -4,10 +4,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsScreenManagerGtk.h"
+
+#include "mozilla/RefPtr.h"
 #include "nsScreenGtk.h"
 #include "nsIComponentManager.h"
 #include "nsRect.h"
-#include "nsAutoPtr.h"
+#include "nsGtkUtils.h"
 
 #define SCREEN_MANAGER_LIBRARY_LOAD_FAILED ((PRLibrary*)1)
 
@@ -20,6 +22,12 @@ typedef XineramaScreenInfo* (*_XnrmQueryScreens_fn)(Display *dpy, int *number);
 
 #include <gtk/gtk.h>
 
+void
+monitors_changed(GdkScreen* aScreen, gpointer aClosure)
+{
+  nsScreenManagerGtk *manager = static_cast<nsScreenManagerGtk*>(aClosure);
+  manager->Init();
+}
 
 static GdkFilterReturn
 root_window_event_filter(GdkXEvent *aGdkXEvent, GdkEvent *aGdkEvent,
@@ -31,9 +39,6 @@ root_window_event_filter(GdkXEvent *aGdkXEvent, GdkEvent *aGdkEvent,
 
   // See comments in nsScreenGtk::Init below.
   switch (xevent->type) {
-    case ConfigureNotify:
-      manager->Init();
-      break;
     case PropertyNotify:
       {
         XPropertyEvent *propertyEvent = &xevent->xproperty;
@@ -53,6 +58,7 @@ root_window_event_filter(GdkXEvent *aGdkXEvent, GdkEvent *aGdkEvent,
 nsScreenManagerGtk :: nsScreenManagerGtk ( )
   : mXineramalib(nullptr)
   , mRootWindow(nullptr)
+  , mNetWorkareaAtom(0)
 {
   // nothing else to do. I guess we could cache a bunch of information
   // here, but we want to ask the device at runtime in case anything
@@ -62,6 +68,10 @@ nsScreenManagerGtk :: nsScreenManagerGtk ( )
 
 nsScreenManagerGtk :: ~nsScreenManagerGtk()
 {
+  g_signal_handlers_disconnect_by_func(gdk_screen_get_default(),
+                                       FuncToGpointer(monitors_changed),
+                                       this);
+
   if (mRootWindow) {
     gdk_window_remove_filter(mRootWindow, root_window_event_filter, this);
     g_object_unref(mRootWindow);
@@ -90,18 +100,25 @@ nsScreenManagerGtk :: EnsureInit()
     return NS_OK;
 
   mRootWindow = gdk_get_default_root_window();
+  if (!mRootWindow) {
+    // Sometimes we don't initial X (e.g., xpcshell)
+    return NS_OK;
+  }
+
   g_object_ref(mRootWindow);
 
-  // GDK_STRUCTURE_MASK ==> StructureNotifyMask, for ConfigureNotify
   // GDK_PROPERTY_CHANGE_MASK ==> PropertyChangeMask, for PropertyNotify
   gdk_window_set_events(mRootWindow,
                         GdkEventMask(gdk_window_get_events(mRootWindow) |
-                                     GDK_STRUCTURE_MASK |
                                      GDK_PROPERTY_CHANGE_MASK));
-  gdk_window_add_filter(mRootWindow, root_window_event_filter, this);
+
+  g_signal_connect(gdk_screen_get_default(), "monitors-changed",
+                   G_CALLBACK(monitors_changed), this);
 #ifdef MOZ_X11
-  mNetWorkareaAtom =
-    XInternAtom(GDK_WINDOW_XDISPLAY(mRootWindow), "_NET_WORKAREA", False);
+  gdk_window_add_filter(mRootWindow, root_window_event_filter, this);
+  if (GDK_IS_X11_DISPLAY(gdk_display_get_default()))
+      mNetWorkareaAtom =
+        XInternAtom(GDK_WINDOW_XDISPLAY(mRootWindow), "_NET_WORKAREA", False);
 #endif
 
   return Init();
@@ -114,7 +131,9 @@ nsScreenManagerGtk :: Init()
   XineramaScreenInfo *screenInfo = nullptr;
   int numScreens;
 
-  if (!mXineramalib) {
+  bool useXinerama = GDK_IS_X11_DISPLAY(gdk_display_get_default());
+
+  if (useXinerama && !mXineramalib) {
     mXineramalib = PR_LoadLibrary("libXinerama.so.1");
     if (!mXineramalib) {
       mXineramalib = SCREEN_MANAGER_LIBRARY_LOAD_FAILED;
@@ -126,7 +145,7 @@ nsScreenManagerGtk :: Init()
 
     _XnrmQueryScreens_fn _XnrmQueryScreens = (_XnrmQueryScreens_fn)
         PR_FindFunctionSymbol(mXineramalib, "XineramaQueryScreens");
-        
+
     // get the number of screens via xinerama
     Display *display = GDK_DISPLAY_XDISPLAY(gdk_display_get_default());
     if (_XnrmIsActive && _XnrmQueryScreens && _XnrmIsActive(display)) {
@@ -139,7 +158,7 @@ nsScreenManagerGtk :: Init()
   if (!screenInfo || numScreens == 1) {
     numScreens = 1;
 #endif
-    nsRefPtr<nsScreenGtk> screen;
+    RefPtr<nsScreenGtk> screen;
 
     if (mCachedScreenArray.Count() > 0) {
       screen = static_cast<nsScreenGtk*>(mCachedScreenArray[0]);
@@ -161,7 +180,7 @@ nsScreenManagerGtk :: Init()
     printf("Xinerama superpowers activated for %d screens!\n", numScreens);
 #endif
     for (int i = 0; i < numScreens; ++i) {
-      nsRefPtr<nsScreenGtk> screen;
+      RefPtr<nsScreenGtk> screen;
       if (mCachedScreenArray.Count() > i) {
         screen = static_cast<nsScreenGtk*>(mCachedScreenArray[i]);
       } else {
@@ -188,19 +207,43 @@ nsScreenManagerGtk :: Init()
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsScreenManagerGtk :: ScreenForId ( uint32_t aId, nsIScreen **outScreen )
+{
+  *outScreen = nullptr;
+
+  nsresult rv;
+  rv = EnsureInit();
+  if (NS_FAILED(rv)) {
+    NS_ERROR("nsScreenManagerGtk::EnsureInit() failed from ScreenForId");
+    return rv;
+  }
+
+  for (int32_t i = 0, i_end = mCachedScreenArray.Count(); i < i_end; ++i) {
+    uint32_t id;
+    rv = mCachedScreenArray[i]->GetId(&id);
+    if (NS_SUCCEEDED(rv) && id == aId) {
+      NS_IF_ADDREF(*outScreen = mCachedScreenArray[i]);
+      return NS_OK;
+    }
+  }
+
+  return NS_ERROR_FAILURE;
+}
+
 
 //
-// ScreenForRect 
+// ScreenForRect
 //
 // Returns the screen that contains the rectangle. If the rect overlaps
 // multiple screens, it picks the screen with the greatest area of intersection.
 //
-// The coordinates are in pixels (not app units) and in screen coordinates.
+// The coordinates are in desktop pixels.
 //
 NS_IMETHODIMP
-nsScreenManagerGtk :: ScreenForRect ( int32_t aX, int32_t aY,
-                                      int32_t aWidth, int32_t aHeight,
-                                      nsIScreen **aOutScreen )
+nsScreenManagerGtk::ScreenForRect(int32_t aX, int32_t aY,
+                                  int32_t aWidth, int32_t aHeight,
+                                  nsIScreen **aOutScreen)
 {
   nsresult rv;
   rv = EnsureInit();
@@ -208,6 +251,7 @@ nsScreenManagerGtk :: ScreenForRect ( int32_t aX, int32_t aY,
     NS_ERROR("nsScreenManagerGtk::EnsureInit() failed from ScreenForRect");
     return rv;
   }
+
   // which screen ( index from zero ) should we return?
   uint32_t which = 0;
   // Optimize for the common case.  If the number of screens is only
@@ -235,7 +279,7 @@ nsScreenManagerGtk :: ScreenForRect ( int32_t aX, int32_t aY,
   *aOutScreen = mCachedScreenArray.SafeObjectAt(which);
   NS_IF_ADDREF(*aOutScreen);
   return NS_OK;
-    
+
 } // ScreenForRect
 
 
@@ -245,8 +289,8 @@ nsScreenManagerGtk :: ScreenForRect ( int32_t aX, int32_t aY,
 // The screen with the menubar/taskbar. This shouldn't be needed very
 // often.
 //
-NS_IMETHODIMP 
-nsScreenManagerGtk :: GetPrimaryScreen(nsIScreen * *aPrimaryScreen) 
+NS_IMETHODIMP
+nsScreenManagerGtk :: GetPrimaryScreen(nsIScreen * *aPrimaryScreen)
 {
   nsresult rv;
   rv =  EnsureInit();
@@ -257,7 +301,7 @@ nsScreenManagerGtk :: GetPrimaryScreen(nsIScreen * *aPrimaryScreen)
   *aPrimaryScreen = mCachedScreenArray.SafeObjectAt(0);
   NS_IF_ADDREF(*aPrimaryScreen);
   return NS_OK;
-  
+
 } // GetPrimaryScreen
 
 
@@ -277,13 +321,13 @@ nsScreenManagerGtk :: GetNumberOfScreens(uint32_t *aNumberOfScreens)
   }
   *aNumberOfScreens = mCachedScreenArray.Count();
   return NS_OK;
-  
+
 } // GetNumberOfScreens
 
 NS_IMETHODIMP
 nsScreenManagerGtk::GetSystemDefaultScale(float *aDefaultScale)
 {
-  *aDefaultScale = 1.0f;
+  *aDefaultScale = nsScreenGtk::GetDPIScale();
   return NS_OK;
 }
 

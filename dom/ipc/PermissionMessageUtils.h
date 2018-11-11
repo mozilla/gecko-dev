@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,17 +13,28 @@
 
 namespace IPC {
 
-class Principal {
+class Principal
+{
   friend struct ParamTraits<Principal>;
 
 public:
-  Principal() : mPrincipal(nullptr) {}
-  Principal(nsIPrincipal* aPrincipal) : mPrincipal(aPrincipal) {}
+  Principal()
+    : mPrincipal(nullptr)
+  {}
+
+  explicit Principal(nsIPrincipal* aPrincipal)
+    : mPrincipal(aPrincipal)
+  {}
+
   operator nsIPrincipal*() const { return mPrincipal.get(); }
 
+  Principal& operator=(const Principal& aOther)
+  {
+    mPrincipal = aOther.mPrincipal;
+    return *this;
+  }
+
 private:
-  // Unimplemented
-  Principal& operator=(Principal&);
   nsCOMPtr<nsIPrincipal> mPrincipal;
 };
 
@@ -31,7 +43,7 @@ struct ParamTraits<Principal>
 {
   typedef Principal paramType;
   static void Write(Message* aMsg, const paramType& aParam);
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult);
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult);
 };
 
 } // namespace IPC

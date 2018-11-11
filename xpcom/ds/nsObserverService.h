@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -18,7 +19,7 @@
 
 class nsIMemoryReporter;
 
-class nsObserverService MOZ_FINAL
+class nsObserverService final
   : public nsIObserverService
   , public nsIMemoryReporter
 {
@@ -33,8 +34,8 @@ public:
 
   void Shutdown();
 
-  static nsresult
-  Create(nsISupports* outer, const nsIID& aIID, void* *aInstancePtr);
+  static MOZ_MUST_USE nsresult Create(nsISupports* aOuter, const nsIID& aIID,
+                                      void** aInstancePtr);
 
   // Unmark any strongly held observers implemented in JS so the cycle
   // collector will not traverse them.
@@ -45,8 +46,6 @@ private:
   void RegisterReporter();
 
   static const size_t kSuspectReferentCount = 100;
-  static PLDHashOperator CountReferents(nsObserverList* aObserverList,
-                                        void* aClosure);
   bool mShuttingDown;
   nsTHashtable<nsObserverList> mObserverTopicTable;
 };

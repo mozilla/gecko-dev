@@ -7,6 +7,8 @@
 // HttpLog.h should generally be included first
 #include "HttpLog.h"
 
+#include "mozilla/Sprintf.h"
+
 #include "nsHttp.h"
 #include "nsHttpDigestAuth.h"
 #include "nsIHttpAuthenticableChannel.h"
@@ -15,9 +17,9 @@
 #include "nsString.h"
 #include "nsEscape.h"
 #include "nsNetCID.h"
-#include "prprf.h"
 #include "nsCRT.h"
 #include "nsICryptoHash.h"
+#include "nsComponentManagerUtils.h"
 
 namespace mozilla {
 namespace net {
@@ -119,7 +121,10 @@ nsHttpDigestAuth::GetMethodAndPath(nsIHttpAuthenticableChannel *authChannel,
           // instead of regenerating it here.
           //
           nsAutoCString buf;
-          path = NS_EscapeURL(path, esc_OnlyNonASCII, buf);
+          rv = NS_EscapeURL(path, esc_OnlyNonASCII, buf, mozilla::fallible);
+          if (NS_SUCCEEDED(rv)) {
+            path = buf;
+          }
         }
       }
     }
@@ -155,6 +160,22 @@ nsHttpDigestAuth::ChallengeReceived(nsIHttpAuthenticableChannel *authChannel,
   // clear any existing nonce_count since we have a new challenge.
   NS_IF_RELEASE(*sessionState);
   return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsHttpDigestAuth::GenerateCredentialsAsync(nsIHttpAuthenticableChannel *authChannel,
+                                           nsIHttpAuthenticatorCallback* aCallback,
+                                           const char *challenge,
+                                           bool isProxyAuth,
+                                           const char16_t *domain,
+                                           const char16_t *username,
+                                           const char16_t *password,
+                                           nsISupports *sessionState,
+                                           nsISupports *continuationState,
+                                           nsICancelable **aCancellable)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
@@ -262,7 +283,7 @@ nsHttpDigestAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
     if (v) {
       uint32_t nc;
       v->GetData(&nc);
-      PR_snprintf(nonce_count, sizeof(nonce_count), "%08x", ++nc);
+      SprintfLiteral(nonce_count, "%08x", ++nc);
       v->SetData(nc);
     }
   }
@@ -271,7 +292,7 @@ nsHttpDigestAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
             do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID));
     if (v) {
       v->SetData(1);
-      NS_ADDREF(*sessionState = v);
+      v.forget(sessionState);
     }
   }
   LOG(("   nonce_count=%s\n", nonce_count));
@@ -545,8 +566,8 @@ nsHttpDigestAuth::ParseChallenge(const char * challenge,
   if (strlen(challenge) > 16000000) {
     return NS_ERROR_INVALID_ARG;
   }
-  
-  const char *p = challenge + 7; // first 7 characters are "Digest "
+
+  const char *p = challenge + 6; // first 6 characters are "Digest"
 
   *stale = false;
   *algorithm = ALGO_MD5; // default is MD5
@@ -695,7 +716,7 @@ nsHttpDigestAuth::AppendQuotedString(const nsACString & value,
   return NS_OK;
 }
 
-} // namespace mozilla::net
+} // namespace net
 } // namespace mozilla
 
 // vim: ts=2 sw=2

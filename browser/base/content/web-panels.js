@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,17 +17,17 @@ var panelProgressListener = {
                                  aCurSelfProgress, aMaxSelfProgress,
                                  aCurTotalProgress, aMaxTotalProgress) {
     },
-    
+
     onStateChange : function(aWebProgress, aRequest, aStateFlags, aStatus)
     {
         if (!aRequest)
           return;
 
-        //ignore local/resource:/chrome: files
+        // ignore local/resource:/chrome: files
         if (aStatus == NS_NET_STATUS_READ_FROM || aStatus == NS_NET_STATUS_WROTE_TO)
            return;
 
-        if (aStateFlags & Ci.nsIWebProgressListener.STATE_START && 
+        if (aStateFlags & Ci.nsIWebProgressListener.STATE_START &&
             aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK) {
             window.parent.document.getElementById('sidebar-throbber').setAttribute("loading", "true");
         }
@@ -45,7 +45,7 @@ var panelProgressListener = {
     onStatusChange : function(aWebProgress, aRequest, aStatus, aMessage) {
     },
 
-    onSecurityChange : function(aWebProgress, aRequest, aState) { 
+    onSecurityChange : function(aWebProgress, aRequest, aState) {
     },
 
     QueryInterface : function(aIID)
@@ -74,6 +74,7 @@ function load()
     var panelBrowser = getPanelBrowser();
     panelBrowser.webProgress.addProgressListener(panelProgressListener,
                                                  Ci.nsIWebProgress.NOTIFY_ALL);
+    panelBrowser.messageManager.loadFrameScript("chrome://browser/content/content.js", true);
     var cachedurl = panelBrowser.getAttribute("cachedurl")
     if (cachedurl) {
         panelBrowser.webNavigation

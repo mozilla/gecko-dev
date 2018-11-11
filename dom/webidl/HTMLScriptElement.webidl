@@ -20,7 +20,7 @@ interface HTMLScriptElement : HTMLElement {
   [SetterThrows]
   attribute boolean defer;
   [SetterThrows]
-  attribute DOMString crossOrigin;
+  attribute DOMString? crossOrigin;
   [SetterThrows]
   attribute DOMString text;
 };
@@ -33,3 +33,8 @@ partial interface HTMLScriptElement {
   attribute DOMString htmlFor;
 };
 
+// https://w3c.github.io/webappsec/specs/subresourceintegrity/#htmlscriptelement-1
+partial interface HTMLScriptElement {
+  [SetterThrows]
+  attribute DOMString integrity;
+};

@@ -6,7 +6,7 @@
 
 // Bug 968447 - The Bookmarks Toolbar Items doesn't appear as a
 // normal menu panel button in new windows.
-add_task(function() {
+add_task(function*() {
   const buttonId = "bookmarks-toolbar-placeholder";
   yield startCustomizing();
   CustomizableUI.addWidgetToArea("personal-bookmarks", CustomizableUI.AREA_PANEL);
@@ -43,7 +43,7 @@ add_task(function() {
      "Button in new window should have 'wrap' attribute");
 
   newWin.PanelUI.panel.removeEventListener("popuphidden", hideTrace);
-  //XXXgijs on Linux, we're sometimes seeing the panel being hidden early
+  // XXXgijs on Linux, we're sometimes seeing the panel being hidden early
   // in the newly created window, probably because something else steals focus.
   if (newWin.PanelUI.panel.state != "closed") {
     info("Panel is still open in new window, waiting for it to close");
@@ -58,7 +58,7 @@ add_task(function() {
   yield promiseWindowClosed(newWin);
 });
 
-add_task(function asyncCleanUp() {
+add_task(function* asyncCleanUp() {
   yield endCustomizing();
   CustomizableUI.reset();
 });

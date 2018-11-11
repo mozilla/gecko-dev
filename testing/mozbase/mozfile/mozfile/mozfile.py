@@ -6,6 +6,8 @@
 
 # We don't import all modules at the top for performance reasons. See Bug 1008943
 
+from __future__ import absolute_import
+
 from contextlib import contextmanager
 import errno
 import os
@@ -18,13 +20,15 @@ __all__ = ['extract_tarball',
            'extract',
            'is_url',
            'load',
+           'move',
            'remove',
            'rmtree',
            'tree',
            'NamedTemporaryFile',
            'TemporaryDirectory']
 
-### utilities for extracting archives
+# utilities for extracting archives
+
 
 def extract_tarball(src, dest):
     """extract a .tar file"""
@@ -50,7 +54,7 @@ def extract_zip(src, dest):
     else:
         try:
             bundle = zipfile.ZipFile(src)
-        except Exception, e:
+        except Exception:
             print "src: %s" % src
             raise
 
@@ -69,7 +73,9 @@ def extract_zip(src, dest):
             _dest.write(bundle.read(name))
             _dest.close()
         mode = bundle.getinfo(name).external_attr >> 16 & 0x1FF
-        os.chmod(filename, mode)
+        # Only update permissions if attributes are set. Otherwise fallback to the defaults.
+        if mode:
+            os.chmod(filename, mode)
     bundle.close()
     return namelist
 
@@ -117,7 +123,7 @@ def extract(src, dest=None):
     return top_level_files
 
 
-### utilities for removal of files and directories
+# utilities for removal of files and directories
 
 def rmtree(dir):
     """Deprecated wrapper method to remove a directory tree.
@@ -132,48 +138,64 @@ def rmtree(dir):
     return remove(dir)
 
 
+def _call_windows_retry(func, args=(), retry_max=5, retry_delay=0.5):
+    """
+    It's possible to see spurious errors on Windows due to various things
+    keeping a handle to the directory open (explorer, virus scanners, etc)
+    So we try a few times if it fails with a known error.
+    retry_delay is multiplied by the number of failed attempts to increase
+    the likelihood of success in subsequent attempts.
+    """
+    retry_count = 0
+    while True:
+        try:
+            func(*args)
+        except OSError as e:
+            # Error codes are defined in:
+            # http://docs.python.org/2/library/errno.html#module-errno
+            if e.errno not in (errno.EACCES, errno.ENOTEMPTY):
+                raise
+
+            if retry_count == retry_max:
+                raise
+
+            retry_count += 1
+
+            print '%s() failed for "%s". Reason: %s (%s). Retrying...' % \
+                (func.__name__, args, e.strerror, e.errno)
+            time.sleep(retry_count * retry_delay)
+        else:
+            # If no exception has been thrown it should be done
+            break
+
+
 def remove(path):
-    """Removes the specified file, link, or directory tree
+    """Removes the specified file, link, or directory tree.
 
     This is a replacement for shutil.rmtree that works better under
-    windows.
+    windows. It does the following things:
+
+     - check path access for the current user before trying to remove
+     - retry operations on some known errors due to various things keeping
+       a handle on file paths - like explorer, virus scanners, etc. The
+       known errors are errno.EACCES and errno.ENOTEMPTY, and it will
+       retry up to 5 five times with a delay of (failed_attempts * 0.5) seconds
+       between each attempt.
+
+    Note that no error will be raised if the given path does not exists.
 
     :param path: path to be removed
     """
 
     import shutil
 
-    def _call_with_windows_retry(func, args=(), retry_max=5, retry_delay=0.5):
-        """
-        It's possible to see spurious errors on Windows due to various things
-        keeping a handle to the directory open (explorer, virus scanners, etc)
-        So we try a few times if it fails with a known error.
-        """
-        retry_count = 0
-        while True:
-            try:
-                func(*args)
-            except OSError, e:
-                # The file or directory to be removed doesn't exist anymore
-                if e.errno == errno.ENOENT:
-                    break
-
-                # Error codes are defined in:
-                # http://docs.python.org/2/library/errno.html#module-errno
-                if e.errno not in [errno.EACCES, errno.ENOTEMPTY]:
-                    raise
-
-                if retry_count == retry_max:
-                    raise
-
-                retry_count += 1
-
-                print '%s() failed for "%s". Reason: %s (%s). Retrying...' % \
-                        (func.__name__, args, e.strerror, e.errno)
-                time.sleep(retry_delay)
-            else:
-                # If no exception has been thrown it should be done
-                break
+    def _call_with_windows_retry(*args, **kwargs):
+        try:
+            _call_windows_retry(*args, **kwargs)
+        except OSError as e:
+            # The file or directory to be removed doesn't exist anymore
+            if e.errno != errno.ENOENT:
+                raise
 
     def _update_permissions(path):
         """Sets specified pemissions depending on filetype"""
@@ -213,6 +235,18 @@ def remove(path):
         _call_with_windows_retry(shutil.rmtree, (path,))
 
 
+def move(src, dst):
+    """
+    Move a file or directory path.
+
+    This is a replacement for shutil.move that works better under windows,
+    retrying operations on some known errors due to various things keeping
+    a handle on file paths.
+    """
+    import shutil
+    _call_windows_retry(shutil.move, (src, dst))
+
+
 def depth(directory):
     """returns the integer depth of a directory or path relative to '/' """
 
@@ -228,17 +262,18 @@ def depth(directory):
 
 # ASCII delimeters
 ascii_delimeters = {
-    'vertical_line' : '|',
-    'item_marker'   : '+',
-    'last_child'    : '\\'
-    }
+    'vertical_line': '|',
+    'item_marker': '+',
+    'last_child': '\\'
+}
 
 # unicode delimiters
 unicode_delimeters = {
-    'vertical_line' : '│',
-    'item_marker'   : '├',
-    'last_child'    : '└'
-    }
+    'vertical_line': '│',
+    'item_marker': '├',
+    'last_child': '└'
+}
+
 
 def tree(directory,
          item_marker=unicode_delimeters['item_marker'],
@@ -265,9 +300,6 @@ def tree(directory,
         for resource in (dirnames, filenames):
             resource[:] = sorted(resource, key=sort_key)
 
-        files_end =  item_marker
-        dirpath_marker = item_marker
-
         if level > len(indent):
             indent.append(vertical_line)
         indent = indent[:level]
@@ -289,21 +321,21 @@ def tree(directory,
 
         # append the directory and piece of tree structure
         # if the top-level entry directory, print as passed
-        retval.append('%s%s%s'% (''.join(indent[:-1]),
-                                 dirpath_mark,
-                                 basename if retval else directory))
+        retval.append('%s%s%s' % (''.join(indent[:-1]),
+                                  dirpath_mark,
+                                  basename if retval else directory))
         # add the files
         if filenames:
             last_file = filenames[-1]
             retval.extend([('%s%s%s' % (''.join(indent),
                                         files_end if filename == last_file else item_marker,
                                         filename))
-                                        for index, filename in enumerate(filenames)])
+                           for index, filename in enumerate(filenames)])
 
     return '\n'.join(retval)
 
 
-### utilities for temporary resources
+# utilities for temporary resources
 
 class NamedTemporaryFile(object):
     """
@@ -323,6 +355,7 @@ class NamedTemporaryFile(object):
 
     see https://bugzilla.mozilla.org/show_bug.cgi?id=821362
     """
+
     def __init__(self, mode='w+b', bufsize=-1, suffix='', prefix='tmp',
                  dir=None, delete=True):
 
@@ -380,7 +413,7 @@ def TemporaryDirectory():
         shutil.rmtree(tempdir)
 
 
-### utilities dealing with URLs
+# utilities dealing with URLs
 
 def is_url(thing):
     """
@@ -394,6 +427,7 @@ def is_url(thing):
         return len(parsed.scheme) >= 2
     else:
         return len(parsed[0]) >= 2
+
 
 def load(resource):
     """
@@ -413,4 +447,3 @@ def load(resource):
         return file(resource)
 
     return urllib2.urlopen(resource)
-

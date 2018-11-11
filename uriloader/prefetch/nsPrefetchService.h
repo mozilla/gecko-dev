@@ -18,19 +18,19 @@
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "mozilla/Attributes.h"
+#include <deque>
 
 class nsPrefetchService;
-class nsPrefetchListener;
 class nsPrefetchNode;
 
 //-----------------------------------------------------------------------------
 // nsPrefetchService
 //-----------------------------------------------------------------------------
 
-class nsPrefetchService MOZ_FINAL : public nsIPrefetchService
-                                  , public nsIWebProgressListener
-                                  , public nsIObserver
-                                  , public nsSupportsWeakReference
+class nsPrefetchService final : public nsIPrefetchService
+                              , public nsIWebProgressListener
+                              , public nsIObserver
+                              , public nsSupportsWeakReference
 {
 public:
     NS_DECL_ISUPPORTS
@@ -41,13 +41,11 @@ public:
     nsPrefetchService();
 
     nsresult Init();
-    void     ProcessNextURI();
-
-    nsPrefetchNode *GetCurrentNode() { return mCurrentNode.get(); }
-    nsPrefetchNode *GetQueueHead() { return mQueueHead; }
+    void     ProcessNextURI(nsPrefetchNode *aFinished);
 
     void NotifyLoadRequested(nsPrefetchNode *node);
     void NotifyLoadCompleted(nsPrefetchNode *node);
+    void DispatchEvent(nsPrefetchNode *node, bool aSuccess);
 
 private:
     ~nsPrefetchService();
@@ -61,30 +59,34 @@ private:
     void     RemoveProgressListener();
     nsresult EnqueueURI(nsIURI *aURI, nsIURI *aReferrerURI,
                         nsIDOMNode *aSource, nsPrefetchNode **node);
-    nsresult EnqueueNode(nsPrefetchNode *node);
-    nsresult DequeueNode(nsPrefetchNode **node);
     void     EmptyQueue();
 
     void     StartPrefetching();
     void     StopPrefetching();
 
-    nsPrefetchNode                   *mQueueHead;
-    nsPrefetchNode                   *mQueueTail;
-    nsRefPtr<nsPrefetchNode>          mCurrentNode;
-    int32_t                           mStopCount;
+    std::deque<RefPtr<nsPrefetchNode>> mQueue;
+    nsTArray<RefPtr<nsPrefetchNode>>   mCurrentNodes;
+    int32_t                            mMaxParallelism;
+    int32_t                            mStopCount;
     // true if pending document loads have ever reached zero.
-    int32_t                           mHaveProcessed;
-    bool                              mDisabled;
+    int32_t                            mHaveProcessed;
+    bool                               mDisabled;
+
+    // In usual case prefetch does not start until all normal loads are done.
+    // Aggressive mode ignores normal loads and just start prefetch ASAP.
+    // It's mainly for testing purpose and discoraged for normal use;
+    // see https://bugzilla.mozilla.org/show_bug.cgi?id=1281415 for details.
+    bool                               mAggressive;
 };
 
 //-----------------------------------------------------------------------------
 // nsPrefetchNode
 //-----------------------------------------------------------------------------
 
-class nsPrefetchNode MOZ_FINAL : public nsIStreamListener
-                               , public nsIInterfaceRequestor
-                               , public nsIChannelEventSink
-                               , public nsIRedirectResultListener
+class nsPrefetchNode final : public nsIStreamListener
+                           , public nsIInterfaceRequestor
+                           , public nsIChannelEventSink
+                           , public nsIRedirectResultListener
 {
 public:
     NS_DECL_ISUPPORTS
@@ -99,21 +101,21 @@ public:
                    nsIURI *aReferrerURI,
                    nsIDOMNode *aSource);
 
-    ~nsPrefetchNode() {}
-
     nsresult OpenChannel();
     nsresult CancelChannel(nsresult error);
 
-    nsPrefetchNode             *mNext;
-    nsCOMPtr<nsIURI>            mURI;
-    nsCOMPtr<nsIURI>            mReferrerURI;
-    nsCOMPtr<nsIWeakReference>  mSource;
+    nsCOMPtr<nsIURI>                      mURI;
+    nsCOMPtr<nsIURI>                      mReferrerURI;
+    nsTArray<nsCOMPtr<nsIWeakReference>>  mSources;
 
 private:
-    nsRefPtr<nsPrefetchService> mService;
+    ~nsPrefetchNode() {}
+
+    RefPtr<nsPrefetchService>   mService;
     nsCOMPtr<nsIChannel>        mChannel;
     nsCOMPtr<nsIChannel>        mRedirectChannel;
     int64_t                     mBytesRead;
+    bool                        mShouldFireLoadEvent;
 };
 
 #endif // !nsPrefetchService_h__

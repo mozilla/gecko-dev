@@ -28,7 +28,15 @@
 #ifndef BASE_ATOMICOPS_H_
 #define BASE_ATOMICOPS_H_
 
-#include "base/basictypes.h"
+#include <stdint.h>
+
+// Small C++ header which defines implementation specific macros used to
+// identify the STL implementation.
+// - libc++: captures __config for _LIBCPP_VERSION
+// - libstdc++: captures bits/c++config.h for __GLIBCXX__
+#include <cstddef>
+
+#include "base/base_export.h"
 #include "build/build_config.h"
 
 #if defined(OS_WIN) && defined(ARCH_CPU_64_BITS)
@@ -43,7 +51,7 @@
 namespace base {
 namespace subtle {
 
-typedef int32 Atomic32;
+typedef int32_t Atomic32;
 #ifdef ARCH_CPU_64_BITS
 // We need to be able to go between Atomic64 and AtomicWord implicitly.  This
 // means Atomic64 and AtomicWord should be the same type on 64-bit.
@@ -133,26 +141,15 @@ Atomic64 Acquire_Load(volatile const Atomic64* ptr);
 Atomic64 Release_Load(volatile const Atomic64* ptr);
 #endif  // ARCH_CPU_64_BITS
 
-}  // namespace base::subtle
+}  // namespace subtle
 }  // namespace base
 
-// Include our platform specific implementation.
-#if defined(THREAD_SANITIZER)
-#include "base/atomicops_internals_tsan.h"
-#elif defined(OS_WIN) && defined(COMPILER_MSVC) && defined(ARCH_CPU_X86_FAMILY)
-#include "base/atomicops_internals_x86_msvc.h"
-#elif defined(OS_MACOSX)
-#include "base/atomicops_internals_mac.h"
-#elif defined(OS_NACL)
-#include "base/atomicops_internals_gcc.h"
-#elif defined(COMPILER_GCC) && defined(ARCH_CPU_ARM_FAMILY)
-#include "base/atomicops_internals_arm_gcc.h"
-#elif defined(COMPILER_GCC) && defined(ARCH_CPU_X86_FAMILY)
-#include "base/atomicops_internals_x86_gcc.h"
-#elif defined(COMPILER_GCC) && defined(ARCH_CPU_MIPS_FAMILY)
-#include "base/atomicops_internals_mips_gcc.h"
+#if defined(OS_WIN)
+// TODO(jfb): The MSVC header includes windows.h, which other files end up
+//            relying on. Fix this as part of crbug.com/559247.
+#  include "base/atomicops_internals_x86_msvc.h"
 #else
-#error "Atomic operations are not supported on your platform"
+#  include "base/atomicops_internals_portable.h"
 #endif
 
 // On some platforms we need additional declarations to make

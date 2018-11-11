@@ -2,6 +2,7 @@
 // suspends future notifications correctly.
 
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "URL", function() {
   return "http://localhost:" + httpserv.identity.primaryPort;
@@ -30,8 +31,8 @@ var listener = {
     // works correctly
     request.suspend();
     request.suspend();
-    do_timeout(RESUME_DELAY, function() request.resume());
-    do_timeout(RESUME_DELAY + 1000, function() request.resume());
+    do_timeout(RESUME_DELAY, function() { request.resume(); });
+    do_timeout(RESUME_DELAY + 1000, function() { request.resume(); });
   },
 
   onDataAvailable: function(request, context, stream, offset, count) {
@@ -54,9 +55,8 @@ var listener = {
 };
 
 function makeChan(url) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
-  var chan = ios.newChannel(url, null, null).QueryInterface(Ci.nsIHttpChannel);
-  return chan;
+  return NetUtil.newChannel({uri: url, loadUsingSystemPrincipal: true})
+                .QueryInterface(Ci.nsIHttpChannel);
 }
 
 var httpserv = null;
@@ -68,7 +68,7 @@ function run_test() {
 
   var chan = makeChan(URL + "/woo");
   chan.QueryInterface(Ci.nsIRequest);
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
 
   do_test_pending();
 }

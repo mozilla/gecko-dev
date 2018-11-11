@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,21 +14,19 @@ XPIDL_SOURCES += [
 XPIDL_MODULE = 'places'
 
 if CONFIG['MOZ_PLACES']:
-    MSVC_ENABLE_PGO = True
-
     XPIDL_SOURCES += [
         'mozIAsyncFavicons.idl',
         'mozIAsyncHistory.idl',
         'mozIAsyncLivemarks.idl',
         'mozIColorAnalyzer.idl',
         'mozIPlacesAutoComplete.idl',
+        'mozIPlacesPendingOperation.idl',
         'nsIAnnotationService.idl',
         'nsIBrowserHistory.idl',
         'nsIFaviconService.idl',
         'nsINavBookmarksService.idl',
         'nsITaggingService.idl',
         'nsPIPlacesDatabase.idl',
-        'nsPIPlacesHistoryListenersNotifier.idl',
     ]
 
     EXPORTS.mozilla.places = [
@@ -37,20 +35,20 @@ if CONFIG['MOZ_PLACES']:
     ]
 
     UNIFIED_SOURCES += [
-        'AsyncFaviconHelpers.cpp',
         'Database.cpp',
+        'FaviconHelpers.cpp',
         'Helpers.cpp',
         'History.cpp',
         'nsAnnoProtocolHandler.cpp',
         'nsAnnotationService.cpp',
         'nsFaviconService.cpp',
-        'nsMaybeWeakPtr.cpp',
         'nsNavBookmarks.cpp',
         'nsNavHistory.cpp',
         'nsNavHistoryQuery.cpp',
         'nsNavHistoryResult.cpp',
         'nsPlacesModule.cpp',
         'PlaceInfo.cpp',
+        'Shutdown.cpp',
         'SQLFunctions.cpp',
         'VisitInfo.cpp',
     ]
@@ -59,19 +57,21 @@ if CONFIG['MOZ_PLACES']:
         '../build',
     ]
 
-    EXTRA_JS_MODULES = [
+    EXTRA_JS_MODULES += [
         'BookmarkHTMLUtils.jsm',
         'BookmarkJSONUtils.jsm',
+        'Bookmarks.jsm',
         'ClusterLib.js',
         'ColorAnalyzer_worker.js',
         'ColorConversion.js',
+        'ExtensionSearchHandler.jsm',
+        'History.jsm',
         'PlacesBackups.jsm',
         'PlacesDBUtils.jsm',
+        'PlacesRemoteTabsAutocompleteProvider.jsm',
+        'PlacesSearchAutocompleteProvider.jsm',
+        'PlacesSyncUtils.jsm',
         'PlacesTransactions.jsm',
-        'PriorityUrlProvider.jsm'
-    ]
-
-    EXTRA_PP_JS_MODULES += [
         'PlacesUtils.jsm',
     ]
 
@@ -80,16 +80,18 @@ if CONFIG['MOZ_PLACES']:
         'nsLivemarkService.js',
         'nsPlacesExpiration.js',
         'nsTaggingService.js',
+        'PageIconProtocolHandler.js',
         'PlacesCategoriesStarter.js',
         'toolkitplaces.manifest',
+        'UnifiedComplete.js',
     ]
-    if CONFIG['MOZ_XUL']:
-        EXTRA_COMPONENTS += [
-            'nsPlacesAutoComplete.js',
-            'nsPlacesAutoComplete.manifest',
-            'UnifiedComplete.js',
-            'UnifiedComplete.manifest',
-        ]
+
     FINAL_LIBRARY = 'xul'
 
 include('/ipc/chromium/chromium-config.mozbuild')
+
+with Files('**'):
+    BUG_COMPONENT = ('Toolkit', 'Places')
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wno-error=shadow']

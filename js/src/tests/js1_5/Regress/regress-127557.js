@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -35,8 +35,7 @@ if (typeof clone == 'function')
                    "    function h() { return h_peer(); }\n" +
                    "    function h_peer() { return (x + cnCOMMA + y); }\n" +
                    "    return h;\n" +
-                   "})",
-                   {compileAndGo: false});
+                   "})");
   var g = clone(f);
   g.prototype = new Object;
   var h = g(5,6);

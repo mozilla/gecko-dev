@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,6 +22,7 @@ const kCAPTIVEPORTALDETECTOR_CID        = Components.ID('{d9cd00ba-aa4d-47b1-879
 const kOpenCaptivePortalLoginEvent = 'captive-portal-login';
 const kAbortCaptivePortalLoginEvent = 'captive-portal-login-abort';
 const kCaptivePortalLoginSuccessEvent = 'captive-portal-login-success';
+const kCaptivePortalCheckComplete = 'captive-portal-check-complete';
 
 const kCaptivePortalSystemMessage = 'captive-portal';
 
@@ -89,6 +90,8 @@ function LoginObserver(captivePortalDetector) {
                               .getService(Ci.nsIHttpActivityDistributor);
   let urlFetcher = null;
 
+  let waitForNetworkActivity = Services.appinfo.widgetToolkit == "gonk";
+
   let pageCheckingDone = function pageCheckingDone() {
     if (state === LOGIN_OBSERVER_STATE_VERIFYING) {
       urlFetcher = null;
@@ -121,7 +124,7 @@ function LoginObserver(captivePortalDetector) {
 
   // Public interface of LoginObserver
   let observer = {
-    QueryInterface: XPCOMUtils.generateQI([Ci.nsIHttpActivityOberver,
+    QueryInterface: XPCOMUtils.generateQI([Ci.nsIHttpActivityObserver,
                                            Ci.nsITimerCallback]),
 
     attach: function attach() {
@@ -171,16 +174,20 @@ function LoginObserver(captivePortalDetector) {
      * Check if login activity is finished according to HTTP burst.
      */
     notify : function notify() {
-      switch(state) {
+      switch (state) {
         case LOGIN_OBSERVER_STATE_BURST:
           // Wait while network stays idle for a short period
           state = LOGIN_OBSERVER_STATE_VERIFY_NEEDED;
           // Fall though to start polling timer
         case LOGIN_OBSERVER_STATE_IDLE:
-          timer.initWithCallback(this,
-                                 captivePortalDetector._pollingTime,
-                                 timer.TYPE_ONE_SHOT);
-          break;
+          if (waitForNetworkActivity) {
+            timer.initWithCallback(this,
+                                   captivePortalDetector._pollingTime,
+                                   timer.TYPE_ONE_SHOT);
+            break;
+          }
+          // if we don't need to wait for network activity, just fall through
+          // to perform a captive portal check.
         case LOGIN_OBSERVER_STATE_VERIFY_NEEDED:
           // Polling the canonical website since network stays idle for a while
           state = LOGIN_OBSERVER_STATE_VERIFYING;
@@ -206,7 +213,7 @@ function CaptivePortalDetector() {
       Services.prefs.getCharPref('captivedetect.canonicalURL');
     this._canonicalSiteExpectedContent =
       Services.prefs.getCharPref('captivedetect.canonicalContent');
-  } catch(e) {
+  } catch (e) {
     debug('canonicalURL or canonicalContent not set.')
   }
 
@@ -228,7 +235,7 @@ function CaptivePortalDetector() {
   this._requestQueue = []; // Maintain a progress table, store callbacks and the ongoing XHR
   this._interfaceNames = {}; // Maintain names of the requested network interfaces
 
-  debug('CaptiveProtalDetector initiated, waitng for network connection established');
+  debug('CaptiveProtalDetector initiated, waiting for network connection established');
 }
 
 CaptivePortalDetector.prototype = {
@@ -247,7 +254,7 @@ CaptivePortalDetector.prototype = {
 
     // Prevent multiple requests on a single network interface
     if (this._interfaceNames[aInterfaceName]) {
-      throw Components.Exception('Do not allow multiple request on one interface: ' + aInterface);
+      throw Components.Exception('Do not allow multiple request on one interface: ' + aInterfaceName);
     }
 
     let request = {interfaceName: aInterfaceName};
@@ -270,7 +277,6 @@ CaptivePortalDetector.prototype = {
         || this._runningRequest.interfaceName !== aInterfaceName) {
       debug('invalid finishPreparation for ' + aInterfaceName);
       throw Components.Exception('only first request is allowed to invoke |finishPreparation|');
-      return;
     }
 
     this._startDetection();
@@ -347,7 +353,7 @@ CaptivePortalDetector.prototype = {
       debug('retry-Detection: ' + this._runningRequest.retryCount + '/' + this._maxRetryCount);
       this._startDetection();
     } else {
-      this.executeCallback(true);
+      this.executeCallback(false);
     }
   },
 
@@ -383,7 +389,11 @@ CaptivePortalDetector.prototype = {
 
   validateContent: function validateContent(content) {
     debug('received content: ' + content);
-    return (content === this._canonicalSiteExpectedContent);
+    let valid = content === this._canonicalSiteExpectedContent;
+    // We need a way to indicate that a check has been performed, and if we are
+    // still in a captive portal.
+    this._sendEvent(kCaptivePortalCheckComplete, !valid);
+    return valid;
   },
 
   _allocateRequestId: function _allocateRequestId() {
@@ -454,7 +464,7 @@ CaptivePortalDetector.prototype = {
   },
 };
 
-let debug;
+var debug;
 if (DEBUG) {
   debug = function (s) {
     dump('-*- CaptivePortalDetector component: ' + s + '\n');

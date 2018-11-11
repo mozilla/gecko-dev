@@ -1,7 +1,37 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 DIRS += ['tlsserver']
+
+if not CONFIG['MOZ_NO_SMART_CARDS']:
+    DIRS += ['pkcs11testmodule']
+
+TEST_DIRS += [
+    'bad_certs',
+    'ocsp_certs',
+    'test_baseline_requirements',
+    'test_cert_eku',
+    'test_cert_embedded_null',
+    'test_cert_keyUsage',
+    'test_cert_sha1',
+    'test_cert_signatures',
+    'test_cert_trust',
+    'test_cert_version',
+    'test_certDB_import',
+    'test_content_signing',
+    'test_ev_certs',
+    'test_getchain',
+    'test_intermediate_basic_usage_constraints',
+    'test_keysize',
+    'test_keysize_ev',
+    'test_name_constraints',
+    'test_ocsp_fetch_method',
+    'test_ocsp_url',
+    'test_onecrl',
+    'test_pinning_dynamic',
+    'test_startcom_wosign',
+    'test_validity',
+]

@@ -10,7 +10,6 @@
 #include "nsTitleBarFrame.h"
 
 class nsIBaseWindow;
-class nsMenuPopupFrame;
 
 class nsResizerFrame : public nsTitleBarFrame 
 {
@@ -25,14 +24,13 @@ public:
 
   friend nsIFrame* NS_NewResizerFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);  
 
-  nsResizerFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+  explicit nsResizerFrame(nsStyleContext* aContext);
 
   virtual nsresult HandleEvent(nsPresContext* aPresContext,
                                mozilla::WidgetGUIEvent* aEvent,
-                               nsEventStatus* aEventStatus) MOZ_OVERRIDE;
+                               nsEventStatus* aEventStatus) override;
 
-  virtual void MouseClicked(nsPresContext* aPresContext,
-                            mozilla::WidgetMouseEvent* aEvent) MOZ_OVERRIDE;
+  virtual void MouseClicked(mozilla::WidgetMouseEvent* aEvent) override;
 
 protected:
   nsIContent* GetContentToResize(nsIPresShell* aPresShell, nsIBaseWindow** aWindow);
@@ -66,8 +64,8 @@ protected:
   static void RestoreOriginalSize(nsIContent* aContent);
 
 protected:
-	nsIntRect mMouseDownRect;
-	nsIntPoint mMouseDownPoint;
+  LayoutDeviceIntRect mMouseDownRect;
+  LayoutDeviceIntPoint mMouseDownPoint;
 }; // class nsResizerFrame
 
 #endif /* nsResizerFrame_h___ */

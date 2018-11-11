@@ -3,6 +3,7 @@
 import unittest
 from manifestparser import parse
 
+
 class ExpressionParserTest(unittest.TestCase):
     """Test the conditional expression parser."""
 
@@ -64,7 +65,6 @@ class ExpressionParserTest(unittest.TestCase):
         self.assertTrue(parse("true && (true || false)"))
         self.assertTrue(parse("(true && false) || (true && (true || false))"))
 
-
     def test_comments(self):
         # comments in expressions work accidentally, via an implementation
         # detail - the '#' character doesn't match any of the regular
@@ -90,6 +90,63 @@ class ExpressionParserTest(unittest.TestCase):
         self.assertTrue(parse("true || !true)"))
         self.assertFalse(parse("!true && true"))
         self.assertFalse(parse("true && !true"))
+
+    def test_lesser_than(self):
+        """
+        Test the < operator.
+        """
+        self.assertTrue(parse("1 < 2"))
+        self.assertFalse(parse("3 < 2"))
+        self.assertTrue(parse("false || (1 < 2)"))
+        self.assertTrue(parse("1 < 2 && true"))
+        self.assertTrue(parse("true && 1 < 2"))
+        self.assertTrue(parse("!(5 < 1)"))
+        self.assertTrue(parse("'abc' < 'def'"))
+        self.assertFalse(parse("1 < 1"))
+        self.assertFalse(parse("'abc' < 'abc'"))
+
+    def test_greater_than(self):
+        """
+        Test the > operator.
+        """
+        self.assertTrue(parse("2 > 1"))
+        self.assertFalse(parse("2 > 3"))
+        self.assertTrue(parse("false || (2 > 1)"))
+        self.assertTrue(parse("2 > 1 && true"))
+        self.assertTrue(parse("true && 2 > 1"))
+        self.assertTrue(parse("!(1 > 5)"))
+        self.assertTrue(parse("'def' > 'abc'"))
+        self.assertFalse(parse("1 > 1"))
+        self.assertFalse(parse("'abc' > 'abc'"))
+
+    def test_lesser_or_equals_than(self):
+        """
+        Test the <= operator.
+        """
+        self.assertTrue(parse("1 <= 2"))
+        self.assertFalse(parse("3 <= 2"))
+        self.assertTrue(parse("false || (1 <= 2)"))
+        self.assertTrue(parse("1 < 2 && true"))
+        self.assertTrue(parse("true && 1 <= 2"))
+        self.assertTrue(parse("!(5 <= 1)"))
+        self.assertTrue(parse("'abc' <= 'def'"))
+        self.assertTrue(parse("1 <= 1"))
+        self.assertTrue(parse("'abc' <= 'abc'"))
+
+    def test_greater_or_equals_than(self):
+        """
+        Test the > operator.
+        """
+        self.assertTrue(parse("2 >= 1"))
+        self.assertFalse(parse("2 >= 3"))
+        self.assertTrue(parse("false || (2 >= 1)"))
+        self.assertTrue(parse("2 >= 1 && true"))
+        self.assertTrue(parse("true && 2 >= 1"))
+        self.assertTrue(parse("!(1 >= 5)"))
+        self.assertTrue(parse("'def' >= 'abc'"))
+        self.assertTrue(parse("1 >= 1"))
+        self.assertTrue(parse("'abc' >= 'abc'"))
+
 
 if __name__ == '__main__':
     unittest.main()

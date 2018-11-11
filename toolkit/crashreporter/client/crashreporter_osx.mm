@@ -22,7 +22,7 @@ using namespace CrashReporter;
 
 static NSAutoreleasePool* gMainPool;
 static CrashReporterUI* gUI = 0;
-static string gDumpFile;
+static StringTable gFiles;
 static StringTable gQueryParameters;
 static string gURLParameter;
 static string gSendURL;
@@ -103,11 +103,11 @@ static bool RestartApplication()
                       objectForInfoDictionaryKey:@"CFBundleName"]];
 }
 
--(void)showCrashUI:(const string&)dumpfile
+-(void)showCrashUI:(const StringTable&)files
    queryParameters:(const StringTable&)queryParameters
            sendURL:(const string&)sendURL
 {
-  gDumpFile = dumpfile;
+  gFiles = files;
   gQueryParameters = queryParameters;
   gSendURL = sendURL;
 
@@ -279,7 +279,7 @@ static bool RestartApplication()
    modalDelegate:nil didEndSelector:nil contextInfo:nil];
 }
 
-- (IBAction)viewReportOkClicked:(id)sender;
+- (IBAction)viewReportOkClicked:(id)sender
 {
   [mViewReportWindow orderOut:nil];
   [NSApp endSheet:mViewReportWindow];
@@ -570,10 +570,22 @@ static bool RestartApplication()
        i++) {
     NSString* key = NSSTR(i->first);
     NSString* value = NSSTR(i->second);
-    [parameters setObject: value forKey: key];
+    if (key && value) {
+      [parameters setObject: value forKey: key];
+    } else {
+      ostringstream message;
+      message << "Warning: skipping annotation '" << i->first
+              << "' due to malformed UTF-8 encoding";
+      LogMessage(message.str());
+    }
   }
 
-  [mPost addFileAtPath: NSSTR(gDumpFile) name: @"upload_file_minidump"];
+  for (StringTable::const_iterator i = gFiles.begin();
+       i != gFiles.end();
+       i++) {
+    [mPost addFileAtPath: NSSTR(i->second) name: NSSTR(i->first)];
+  }
+
   [mPost setParameters: parameters];
   [parameters release];
 
@@ -773,14 +785,14 @@ void UIShowDefaultUI()
   [NSApp run];
 }
 
-bool UIShowCrashUI(const string& dumpfile,
+bool UIShowCrashUI(const StringTable& files,
                    const StringTable& queryParameters,
                    const string& sendURL,
                    const vector<string>& restartArgs)
 {
   gRestartArgs = restartArgs;
 
-  [gUI showCrashUI: dumpfile
+  [gUI showCrashUI: files
        queryParameters: queryParameters
        sendURL: sendURL];
   [NSApp run];
@@ -802,9 +814,14 @@ void UIError_impl(const string& message)
 
 bool UIGetIniPath(string& path)
 {
-  path = gArgv[0];
-  path.append(".ini");
-
+  NSString* tmpPath = [NSString stringWithUTF8String:gArgv[0]];
+  NSString* iniName = [tmpPath lastPathComponent];
+  iniName = [iniName stringByAppendingPathExtension:@"ini"];
+  tmpPath = [tmpPath stringByDeletingLastPathComponent];
+  tmpPath = [tmpPath stringByDeletingLastPathComponent];
+  tmpPath = [tmpPath stringByAppendingPathComponent:@"Resources"];
+  tmpPath = [tmpPath stringByAppendingPathComponent:iniName];
+  path = [tmpPath UTF8String];
   return true;
 }
 
@@ -887,9 +904,19 @@ std::ifstream* UIOpenRead(const string& filename)
   return new std::ifstream(filename.c_str(), std::ios::in);
 }
 
-std::ofstream* UIOpenWrite(const string& filename, bool append) // append=false
+std::ofstream* UIOpenWrite(const string& filename,
+                           bool append, // append=false
+                           bool binary) // binary=false
 {
-  return new std::ofstream(filename.c_str(),
-                           append ? std::ios::out | std::ios::app
-                                  : std::ios::out);
+  std::ios_base::openmode mode = std::ios::out;
+
+  if (append) {
+    mode = mode | std::ios::app;
+  }
+
+  if (binary) {
+    mode = mode | std::ios::binary;
+  }
+
+  return new std::ofstream(filename.c_str(), mode);
 }

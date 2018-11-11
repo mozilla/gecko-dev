@@ -10,8 +10,6 @@
  * and create derivative works of this document.
  */
 
-interface Blob;
-interface nsIInputStreamCallback;
 interface nsISupports;
 interface Variant;
 
@@ -28,7 +26,7 @@ interface HTMLCanvasElement : HTMLElement {
   DOMString toDataURL(optional DOMString type = "",
                       optional any encoderOptions);
   [Throws]
-  void toBlob(FileCallback _callback,
+  void toBlob(BlobCallback _callback,
               optional DOMString type = "",
               optional any encoderOptions);
 };
@@ -41,9 +39,17 @@ partial interface HTMLCanvasElement {
   File mozGetAsFile(DOMString name, optional DOMString? type = null);
   [ChromeOnly, Throws]
   nsISupports? MozGetIPCContext(DOMString contextId);
-  [ChromeOnly]
-  void mozFetchAsStream(nsIInputStreamCallback callback, optional DOMString? type = null);
            attribute PrintCallback? mozPrintCallback;
+
+  [Throws, UnsafeInPrerendering, Pref="canvas.capturestream.enabled"]
+  CanvasCaptureMediaStream captureStream(optional double frameRate);
+};
+
+// For OffscreenCanvas
+// Reference: https://wiki.whatwg.org/wiki/OffscreenCanvas
+partial interface HTMLCanvasElement {
+  [Pref="gfx.offscreencanvas.enabled", Throws]
+  OffscreenCanvas transferControlToOffscreen();
 };
 
 [ChromeOnly]
@@ -58,4 +64,4 @@ interface MozCanvasPrintState
 
 callback PrintCallback = void(MozCanvasPrintState ctx);
 
-callback FileCallback = void(Blob file);
+callback BlobCallback = void(Blob blob);

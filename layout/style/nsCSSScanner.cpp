@@ -165,7 +165,7 @@ static inline bool
 StartsIdent(int32_t aFirstChar, int32_t aSecondChar)
 {
   return IsIdentStart(aFirstChar) ||
-    (aFirstChar == '-' && IsIdentStart(aSecondChar));
+    (aFirstChar == '-' && (aSecondChar == '-' || IsIdentStart(aSecondChar)));
 }
 
 /**
@@ -552,7 +552,8 @@ nsCSSScanner::SkipComment()
   for (;;) {
     int32_t ch = Peek();
     if (ch < 0) {
-      mReporter->ReportUnexpectedEOF("PECommentEOF");
+      if (mReporter)
+        mReporter->ReportUnexpectedEOF("PECommentEOF");
       SetEOFCharacters(eEOFCharacters_Asterisk | eEOFCharacters_Slash);
       return;
     }
@@ -560,7 +561,8 @@ nsCSSScanner::SkipComment()
       Advance();
       ch = Peek();
       if (ch < 0) {
-        mReporter->ReportUnexpectedEOF("PECommentEOF");
+        if (mReporter)
+          mReporter->ReportUnexpectedEOF("PECommentEOF");
         SetEOFCharacters(eEOFCharacters_Slash);
         return;
       }
@@ -916,9 +918,12 @@ nsCSSScanner::ScanNumber(nsCSSToken& aToken)
   // Do all the math in double precision so it's truncated only once.
   double value = sign * (intPart + fracPart);
   if (gotE) {
-    // Explicitly cast expSign*exponent to double to avoid issues with
-    // overloaded pow() on Windows.
-    value *= pow(10.0, double(expSign * exponent));
+    // Avoid multiplication of 0 by Infinity.
+    if (value != 0.0) {
+      // Explicitly cast expSign*exponent to double to avoid issues with
+      // overloaded pow() on Windows.
+      value *= pow(10.0, double(expSign * exponent));
+    }
   } else if (!gotDot) {
     // Clamp values outside of integer range.
     if (sign > 0) {
@@ -944,6 +949,7 @@ nsCSSScanner::ScanNumber(nsCSSToken& aToken)
       aToken.mIntegerValid = false;
     }
   }
+  MOZ_ASSERT(!IsNaN(value), "The value should not be NaN");
   aToken.mNumber = value;
   aToken.mType = type;
   return true;
@@ -985,7 +991,8 @@ nsCSSScanner::ScanString(nsCSSToken& aToken)
 
     mSeenBadToken = true;
     aToken.mType = eCSSToken_Bad_String;
-    mReporter->ReportUnexpected("SEUnterminatedString", aToken);
+    if (mReporter)
+      mReporter->ReportUnexpected("SEUnterminatedString", aToken);
     break;
   }
   return true;
@@ -1149,25 +1156,21 @@ nsCSSScanner::AppendImpliedEOFCharacters(EOFCharacters aEOFCharacters,
  * Exposed for use by nsCSSParser::ParseMozDocumentRule, which applies
  * the special lexical rules for URL tokens in a nonstandard context.
  */
-bool
+void
 nsCSSScanner::NextURL(nsCSSToken& aToken)
 {
   SkipWhitespace();
 
-  int32_t ch = Peek();
-  if (ch < 0) {
-    return false;
-  }
-
   // aToken.mIdent may be "url" at this point; clear that out
   aToken.mIdent.Truncate();
 
+  int32_t ch = Peek();
   // Do we have a string?
   if (ch == '"' || ch == '\'') {
     ScanString(aToken);
     if (MOZ_UNLIKELY(aToken.mType == eCSSToken_Bad_String)) {
       aToken.mType = eCSSToken_Bad_URL;
-      return true;
+      return;
     }
     MOZ_ASSERT(aToken.mType == eCSSToken_String, "unexpected token type");
 
@@ -1180,6 +1183,7 @@ nsCSSScanner::NextURL(nsCSSToken& aToken)
   // Consume trailing whitespace and then look for a close parenthesis.
   SkipWhitespace();
   ch = Peek();
+  // ch can be less than zero indicating EOF
   if (MOZ_LIKELY(ch < 0 || ch == ')')) {
     Advance();
     aToken.mType = eCSSToken_URL;
@@ -1190,21 +1194,20 @@ nsCSSScanner::NextURL(nsCSSToken& aToken)
     mSeenBadToken = true;
     aToken.mType = eCSSToken_Bad_URL;
   }
-  return true;
 }
 
 /**
  * Primary scanner entry point.  Consume one token and fill in
  * |aToken| accordingly.  Will skip over any number of comments first,
- * and will also skip over rather than return whitespace tokens if
- * |aSkipWS| is true.
+ * and will also skip over rather than return whitespace and comment
+ * tokens, depending on the value of |aSkip|.
  *
  * Returns true if it successfully consumed a token, false if EOF has
  * been reached.  Will always advance the current read position by at
  * least one character unless called when already at EOF.
  */
 bool
-nsCSSScanner::Next(nsCSSToken& aToken, bool aSkipWS)
+nsCSSScanner::Next(nsCSSToken& aToken, nsCSSScannerExclude aSkip)
 {
   int32_t ch;
 
@@ -1222,15 +1225,18 @@ nsCSSScanner::Next(nsCSSToken& aToken, bool aSkipWS)
     ch = Peek();
     if (IsWhitespace(ch)) {
       SkipWhitespace();
-      if (!aSkipWS) {
+      if (aSkip != eCSSScannerExclude_WhitespaceAndComments) {
         aToken.mType = eCSSToken_Whitespace;
         return true;
       }
       continue; // start again at the beginning
     }
     if (ch == '/' && !IsSVGMode() && Peek(1) == '*') {
-      // FIXME: Editor wants comments to be preserved (bug 60290).
       SkipComment();
+      if (aSkip == eCSSScannerExclude_None) {
+        aToken.mType = eCSSToken_Comment;
+        return true;
+      }
       continue; // start again at the beginning
     }
     break;
@@ -1360,6 +1366,10 @@ nsCSSGridTemplateAreaScanner::Next(nsCSSGridTemplateAreaToken& aTokenResult)
     aTokenResult.isTrash = false;
   } else if (ch == '.') {
     // Null cell token
+    // Skip any other '.'
+    while (mOffset < mCount && mBuffer[mOffset] == '.') {
+      mOffset++;
+    }
     aTokenResult.mName.Truncate();
     aTokenResult.isTrash = false;
   } else {

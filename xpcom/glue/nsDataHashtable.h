@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,6 +9,7 @@
 
 #include "nsHashKeys.h"
 #include "nsBaseHashtable.h"
+#include "mozilla/Maybe.h"
 
 /**
  * templated hashtable class maps keys to simple datatypes.
@@ -17,17 +19,39 @@
  * @param DataType the simple datatype being wrapped
  * @see nsInterfaceHashtable, nsClassHashtable
  */
-template<class KeyClass,class DataType>
-class nsDataHashtable :
-  public nsBaseHashtable<KeyClass,DataType,DataType>
+template<class KeyClass, class DataType>
+class nsDataHashtable
+  : public nsBaseHashtable<KeyClass, DataType, DataType>
 {
+private:
+  typedef nsBaseHashtable<KeyClass, DataType, DataType> BaseClass;
+
 public:
-  nsDataHashtable()
+  using typename BaseClass::KeyType;
+  using typename BaseClass::EntryType;
+
+  nsDataHashtable() {}
+  explicit nsDataHashtable(uint32_t aInitLength)
+    : BaseClass(aInitLength)
   {
   }
-  explicit nsDataHashtable(uint32_t aInitSize)
-    : nsBaseHashtable<KeyClass,DataType,DataType>(aInitSize)
+
+  /**
+   * Retrieve the value for a key and remove the corresponding entry at
+   * the same time.
+   *
+   * @param aKey the key to retrieve and remove
+   * @return the found value, or Nothing if no entry was found with the
+   *   given key.
+   */
+  mozilla::Maybe<DataType> GetAndRemove(KeyType aKey)
   {
+    mozilla::Maybe<DataType> value;
+    if (EntryType* ent = this->GetEntry(aKey)) {
+      value.emplace(mozilla::Move(ent->mData));
+      this->RemoveEntry(ent);
+    }
+    return value;
   }
 };
 

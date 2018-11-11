@@ -5,10 +5,11 @@
 #include "nsISupports.idl"
 
 interface nsIArray;
-interface nsISupportsArray;
+interface nsIArrayExtensions;
 interface nsIDOMCharacterData;
 interface nsIDOMElement;
 interface nsIDOMDocument;
+interface nsIDOMCSSRule;
 interface nsIDOMCSSStyleRule;
 interface nsIDOMNode;
 interface nsIDOMNodeList;
@@ -16,16 +17,43 @@ interface nsIDOMFontFaceList;
 interface nsIDOMRange;
 interface nsIDOMCSSStyleSheet;
 
-[scriptable, uuid(948792a7-b786-4a2c-910d-f55b0773c2ca)]
+[scriptable, uuid(362e98c3-82c2-4ad8-8dcb-00e8e4eab497)]
 interface inIDOMUtils : nsISupports
 {
   // CSS utilities
   void getAllStyleSheets (in nsIDOMDocument aDoc,
                           [optional] out unsigned long aLength,
                           [array, size_is (aLength), retval] out nsISupports aSheets);
-  nsISupportsArray getCSSStyleRules(in nsIDOMElement aElement, [optional] in DOMString aPseudo);
-  unsigned long getRuleLine(in nsIDOMCSSStyleRule aRule);
-  unsigned long getRuleColumn(in nsIDOMCSSStyleRule aRule);
+  nsIArrayExtensions getCSSStyleRules(in nsIDOMElement aElement, [optional] in DOMString aPseudo);
+
+  /**
+   * Get the line number of a rule.
+   *
+   * @param nsIDOMCSSRule aRule The rule.
+   * @return The rule's line number.  Line numbers are 1-based.
+   */
+  unsigned long getRuleLine(in nsIDOMCSSRule aRule);
+
+  /**
+   * Get the column number of a rule.
+   *
+   * @param nsIDOMCSSRule aRule The rule.
+   * @return The rule's column number.  Column numbers are 1-based.
+   */
+  unsigned long getRuleColumn(in nsIDOMCSSRule aRule);
+
+  /**
+   * Like getRuleLine, but if the rule is in a <style> element,
+   * returns a line number relative to the start of the element.
+   *
+   * @param nsIDOMCSSRule aRule the rule to examine
+   * @return the line number of the rule, possibly relative to the
+   *         <style> element
+   */
+  unsigned long getRelativeRuleLine(in nsIDOMCSSRule aRule);
+
+  [implicit_jscontext]
+  jsval getCSSLexer(in DOMString aText);
 
   // Utilities for working with selectors.  We don't have a JS OM representation
   // of a single selector or a selector list yet, but given a rule we can index
@@ -43,7 +71,8 @@ interface inIDOMUtils : nsISupports
   // idea what the right scope is.
   bool selectorMatchesElement(in nsIDOMElement aElement,
                               in nsIDOMCSSStyleRule aRule,
-                              in unsigned long aSelectorIndex);
+                              in unsigned long aSelectorIndex,
+                              [optional] in DOMString aPseudo);
 
   // Utilities for working with CSS properties
   //
@@ -68,6 +97,52 @@ interface inIDOMUtils : nsISupports
   jsval colorNameToRGB(in DOMString aColorName);
   AString rgbToColorName(in octet aR, in octet aG, in octet aB);
 
+  // Convert a given CSS color string to rgba. Returns null on failure or an
+  // InspectorRGBATuple on success.
+  //
+  // NOTE: Converting a color to RGBA may be lossy when converting from some
+  // formats e.g. CMYK.
+  [implicit_jscontext]
+  jsval colorToRGBA(in DOMString aColorString);
+
+  // Check whether a given color is a valid CSS color.
+  bool isValidCSSColor(in AString aColorString);
+
+  // Utilities for obtaining information about a CSS property.
+
+  // Check whether a CSS property and value are a valid combination. If the
+  // property is pref-disabled it will still be processed.
+  // aPropertyName: A property name e.g. "color"
+  // aPropertyValue: A property value e.g. "red" or "red !important"
+  bool cssPropertyIsValid(in AString aPropertyName, in AString aPropertyValue);
+
+  // Get a list of the longhands corresponding to the given CSS property.  If
+  // the property is a longhand already, just returns the property itself.
+  // Throws on unsupported property names.
+  void getSubpropertiesForCSSProperty(in AString aProperty,
+                                      [optional] out unsigned long aLength,
+                                      [array, size_is(aLength), retval] out wstring aValues);
+  // Check whether a given CSS property is a shorthand.  Throws on unsupported
+  // property names.
+  bool cssPropertyIsShorthand(in AString aProperty);
+
+  // Check whether values of the given type are valid values for the property.
+  // For shorthands, checks whether there's a corresponding longhand property
+  // that accepts values of this type.  Throws on unsupported properties or
+  // unknown types.
+  const unsigned long TYPE_LENGTH = 0;
+  const unsigned long TYPE_PERCENTAGE = 1;
+  const unsigned long TYPE_COLOR = 2;
+  const unsigned long TYPE_URL = 3;
+  const unsigned long TYPE_ANGLE = 4;
+  const unsigned long TYPE_FREQUENCY = 5;
+  const unsigned long TYPE_TIME = 6;
+  const unsigned long TYPE_GRADIENT = 7;
+  const unsigned long TYPE_TIMING_FUNCTION = 8;
+  const unsigned long TYPE_IMAGE_RECT = 9;
+  const unsigned long TYPE_NUMBER = 10;
+  bool cssPropertySupportsType(in AString aProperty, in unsigned long type);
+
   // DOM Node utilities
   boolean isIgnorableWhitespace(in nsIDOMCharacterData aDataNode);
   // Returns the "parent" of a node.  The parent of a document node is the
@@ -83,12 +158,33 @@ interface inIDOMUtils : nsISupports
 
   // content state utilities
   unsigned long long getContentState(in nsIDOMElement aElement);
-  void setContentState(in nsIDOMElement aElement, in unsigned long long aState);
+  /**
+   * Setting and removing content state on an element. Both these functions
+   * calling EventStateManager::SetContentState internally, the difference is
+   * that for the remove case we simply pass in nullptr for the element.
+   * Use them accordingly.
+   *
+   * @return Returns true if the state was set successfully. See more details
+   * in EventStateManager.h SetContentState.
+   */
+  bool setContentState(in nsIDOMElement aElement, in unsigned long long aState);
+  bool removeContentState(in nsIDOMElement aElement, in unsigned long long aState);
 
   nsIDOMFontFaceList getUsedFontFaces(in nsIDOMRange aRange);
 
+  /**
+   * Get the names of all the supported pseudo-elements.
+   * Pseudo-elements which are only accepted in UA style sheets are
+   * not included.
+   *
+   * @param {unsigned long} aCount the number of items returned
+   * @param {wstring[]} aNames the names
+   */
+  void getCSSPseudoElementNames([optional] out unsigned long aCount,
+                                [retval, array, size_is(aCount)] out wstring aNames);
+
   // pseudo-class style locking methods. aPseudoClass must be a valid pseudo-class
-  // selector string, e.g. ":hover". ":-moz-any-link" and non-event-state
+  // selector string, e.g. ":hover". ":any-link" and non-event-state
   // pseudo-classes are ignored.
   void addPseudoClassLock(in nsIDOMElement aElement, in DOMString aPseudoClass);
   void removePseudoClassLock(in nsIDOMElement aElement, in DOMString aPseudoClass);

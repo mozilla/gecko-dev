@@ -9,7 +9,9 @@
 #include "nsHttpNTLMAuth.h"
 #include "nsIAuthModule.h"
 #include "nsCOMPtr.h"
+#include "nsServiceManagerUtils.h"
 #include "plbase64.h"
+#include "plstr.h"
 #include "prnetdb.h"
 
 //-----------------------------------------------------------------------------
@@ -19,11 +21,16 @@
 #include "nsIHttpAuthenticableChannel.h"
 #include "nsIURI.h"
 #ifdef XP_WIN
+#include "nsIChannel.h"
 #include "nsIX509Cert.h"
 #include "nsISSLStatus.h"
 #include "nsISSLStatusProvider.h"
 #endif
 #include "mozilla/Attributes.h"
+#include "mozilla/Base64.h"
+#include "mozilla/CheckedInt.h"
+#include "nsNetUtil.h"
+#include "nsIChannel.h"
 
 namespace mozilla {
 namespace net {
@@ -32,6 +39,7 @@ static const char kAllowProxies[] = "network.automatic-ntlm-auth.allow-proxies";
 static const char kAllowNonFqdn[] = "network.automatic-ntlm-auth.allow-non-fqdn";
 static const char kTrustedURIs[]  = "network.automatic-ntlm-auth.trusted-uris";
 static const char kForceGeneric[] = "network.auth.force-generic-ntlm";
+static const char kSSOinPBmode[] = "network.auth.private-browsing-sso";
 
 // XXX MatchesBaseURI and TestPref are duplicated in nsHttpNegotiateAuth.cpp,
 // but since that file lives in a separate library we cannot directly share it.
@@ -103,7 +111,7 @@ IsNonFqdn(nsIURI *uri)
         return false;
 
     // return true if host does not contain a dot and is not an ip address
-    return !host.IsEmpty() && host.FindChar('.') == kNotFound &&
+    return !host.IsEmpty() && !host.Contains('.') &&
            PR_StringToNetAddr(host.BeginReading(), &addr) != PR_SUCCESS;
 }
 
@@ -157,7 +165,7 @@ TestPref(nsIURI *uri, const char *pref)
         start = end + 1;
     }
 
-    nsMemory::Free(hostList);
+    free(hostList);
     return false;
 }
 
@@ -183,15 +191,39 @@ CanUseDefaultCredentials(nsIHttpAuthenticableChannel *channel,
                          bool isProxyAuth)
 {
     nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-    if (!prefs)
+    if (!prefs) {
         return false;
+    }
 
+    // Proxy should go all the time, it's not considered a privacy leak
+    // to send default credentials to a proxy.
     if (isProxyAuth) {
         bool val;
         if (NS_FAILED(prefs->GetBoolPref(kAllowProxies, &val)))
             val = false;
         LOG(("Default credentials allowed for proxy: %d\n", val));
         return val;
+    }
+
+    // Prevent using default credentials for authentication when we are in the
+    // private browsing mode (but not in "never remember history" mode) and when
+    // not explicitely allowed.  Otherwise, it would cause a privacy data leak.
+    nsCOMPtr<nsIChannel> bareChannel = do_QueryInterface(channel);
+    MOZ_ASSERT(bareChannel);
+
+    if (NS_UsePrivateBrowsing(bareChannel)) {
+        bool ssoInPb;
+        if (NS_SUCCEEDED(prefs->GetBoolPref(kSSOinPBmode, &ssoInPb)) &&
+            ssoInPb) {
+            return true;
+        }
+
+        bool dontRememberHistory;
+        if (NS_SUCCEEDED(prefs->GetBoolPref("browser.privatebrowsing.autostart",
+                                            &dontRememberHistory)) &&
+            !dontRememberHistory) {
+            return false;
+        }
     }
 
     nsCOMPtr<nsIURI> uri;
@@ -212,8 +244,9 @@ CanUseDefaultCredentials(nsIHttpAuthenticableChannel *channel,
 
 // Dummy class for session state object.  This class doesn't hold any data.
 // Instead we use its existence as a flag.  See ChallengeReceived.
-class nsNTLMSessionState MOZ_FINAL : public nsISupports
+class nsNTLMSessionState final : public nsISupports
 {
+    ~nsNTLMSessionState() {}
 public:
     NS_DECL_ISUPPORTS
 };
@@ -273,10 +306,8 @@ nsHttpNTLMAuth::ChallengeReceived(nsIHttpAuthenticableChannel *channel,
                 *identityInvalid = true;
             }
 #endif // XP_WIN
-#ifdef PR_LOGGING
             if (!module)
                 LOG(("Native sys-ntlm auth module not found.\n"));
-#endif
         }
 
 #ifdef XP_WIN
@@ -318,6 +349,21 @@ nsHttpNTLMAuth::ChallengeReceived(nsIHttpAuthenticableChannel *channel,
         module.swap(*continuationState);
     }
     return NS_OK;
+}
+
+NS_IMETHODIMP
+nsHttpNTLMAuth::GenerateCredentialsAsync(nsIHttpAuthenticableChannel *authChannel,
+                                         nsIHttpAuthenticatorCallback* aCallback,
+                                         const char *challenge,
+                                         bool isProxyAuth,
+                                         const char16_t *domain,
+                                         const char16_t *username,
+                                         const char16_t *password,
+                                         nsISupports *sessionState,
+                                         nsISupports *continuationState,
+                                         nsICancelable **aCancellable)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
@@ -444,35 +490,34 @@ nsHttpNTLMAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
           len--;
 
         // decode into the input secbuffer
-        inBufLen = (len * 3)/4;      // sufficient size (see plbase64.h)
-        inBuf = nsMemory::Alloc(inBufLen);
-        if (!inBuf)
-            return NS_ERROR_OUT_OF_MEMORY;
-
-        if (PL_Base64Decode(challenge, len, (char *) inBuf) == nullptr) {
-            nsMemory::Free(inBuf);
-            return NS_ERROR_UNEXPECTED; // improper base64 encoding
+        rv = Base64Decode(challenge, len, (char**)&inBuf, &inBufLen);
+        if (NS_FAILED(rv)) {
+            return rv;
         }
     }
 
     rv = module->GetNextToken(inBuf, inBufLen, &outBuf, &outBufLen);
     if (NS_SUCCEEDED(rv)) {
         // base64 encode data in output buffer and prepend "NTLM "
-        int credsLen = 5 + ((outBufLen + 2)/3)*4;
-        *creds = (char *) nsMemory::Alloc(credsLen + 1);
-        if (!*creds)
-            rv = NS_ERROR_OUT_OF_MEMORY;
-        else {
-            memcpy(*creds, "NTLM ", 5);
-            PL_Base64Encode((char *) outBuf, outBufLen, *creds + 5);
-            (*creds)[credsLen] = '\0'; // null terminate
+        CheckedUint32 credsLen = ((CheckedUint32(outBufLen) + 2) / 3) * 4;
+        credsLen += 5; // "NTLM "
+        credsLen += 1; // null terminate
+
+        if (!credsLen.isValid()) {
+          rv = NS_ERROR_FAILURE;
+        } else {
+          *creds = (char *) moz_xmalloc(credsLen.value());
+          memcpy(*creds, "NTLM ", 5);
+          PL_Base64Encode((char *) outBuf, outBufLen, *creds + 5);
+          (*creds)[credsLen.value() - 1] = '\0'; // null terminate
         }
+
         // OK, we are done with |outBuf|
-        nsMemory::Free(outBuf);
+        free(outBuf);
     }
 
     if (inBuf)
-        nsMemory::Free(inBuf);
+        free(inBuf);
 
     return rv;
 }
@@ -484,5 +529,5 @@ nsHttpNTLMAuth::GetAuthFlags(uint32_t *flags)
     return NS_OK;
 }
 
-} // namespace mozilla::net
+} // namespace net
 } // namespace mozilla

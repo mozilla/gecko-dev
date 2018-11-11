@@ -19,6 +19,7 @@
 #include "nsISupportsPrimitives.h"
 #include "nsIWindowWatcher.h"
 #include "nsPIDOMWindow.h"
+#include "nsGlobalWindow.h"
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsIBaseWindow.h"
@@ -30,6 +31,8 @@
 #include "nsIPromptService.h"
 #include "nsNetCID.h"
 #include "nsNetUtil.h"
+#include "mozilla/Services.h"
+#include "nsIFile.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
 #include "nsIDOMLocation.h"
@@ -49,11 +52,11 @@
 
 using namespace mozilla;
 
-static HWND hwndForDOMWindow( nsISupports * );
+static HWND hwndForDOMWindow( mozIDOMWindowProxy * );
 
 static
 nsresult
-GetMostRecentWindow(const char16_t* aType, nsIDOMWindow** aWindow) {
+GetMostRecentWindow(const char16_t* aType, mozIDOMWindowProxy** aWindow) {
     nsresult rv;
     nsCOMPtr<nsIWindowMediator> med( do_GetService( NS_WINDOWMEDIATOR_CONTRACTID, &rv ) );
     if ( NS_FAILED( rv ) )
@@ -67,7 +70,7 @@ GetMostRecentWindow(const char16_t* aType, nsIDOMWindow** aWindow) {
 
 static
 void
-activateWindow( nsIDOMWindow *win ) {
+activateWindow( mozIDOMWindowProxy *win ) {
     // Try to get native window handle.
     HWND hwnd = hwndForDOMWindow( win );
     if ( hwnd ) {
@@ -79,7 +82,8 @@ activateWindow( nsIDOMWindow *win ) {
         ::SetForegroundWindow( hwnd );
     } else {
         // Use internal method.
-        win->Focus();
+        nsCOMPtr<nsPIDOMWindowOuter> piWin = nsPIDOMWindowOuter::From(win);
+        piWin->Focus();
     }
 }
 
@@ -90,8 +94,8 @@ activateWindow( nsIDOMWindow *win ) {
 #endif
 
 // Simple Win32 mutex wrapper.
-struct Mutex {
-    Mutex( const char16_t *name )
+struct Win32Mutex {
+    Win32Mutex( const char16_t *name )
         : mName( name ),
           mHandle( 0 ),
           mState( -1 ) {
@@ -100,7 +104,7 @@ struct Mutex {
         printf( "CreateMutex error = 0x%08X\n", (int)GetLastError() );
 #endif
     }
-    ~Mutex() {
+    ~Win32Mutex() {
         if ( mHandle ) {
             // Make sure we release it if we own it.
             Unlock();
@@ -251,12 +255,12 @@ private:
  *    WWW_OpenURL topic and the params as specified in the default value of the
  *    ddeexec registry key (e.g. "%1",,0,0,,,, where '%1' is the url to open)
  *    for the verb (e.g. open).
- * 2. If the application is not running it is launched with the -requestPending
- *    and the -url argument.
- * 2.1  If the application does not need to restart and the -requestPending
+ * 2. If the application is not running it is launched with the --requestPending
+ *    and the --url argument.
+ * 2.1  If the application does not need to restart and the --requestPending
  *      argument is present the accompanying url will not be used. Instead the
  *      application will wait for the DDE message to open the url.
- * 2.2  If the application needs to restart the -requestPending argument is
+ * 2.2  If the application needs to restart the --requestPending argument is
  *      removed from the arguments used to restart the application and the url
  *      will be handled normally.
  *
@@ -278,11 +282,12 @@ public:
     // The "old" Start method (renamed).
     NS_IMETHOD StartDDE();
     // Utility function to handle a Win32-specific command line
-    // option: "-console", which dynamically creates a Windows
+    // option: "--console", which dynamically creates a Windows
     // console.
     void CheckConsole();
 
 private:
+    ~nsNativeAppSupportWin() {}
     static void HandleCommandLine(const char* aCmdLineString, nsIFile* aWorkingDir, uint32_t aState);
     static HDDEDATA CALLBACK HandleDDENotification( UINT     uType,
                                                     UINT     uFmt,
@@ -331,10 +336,45 @@ NS_IMPL_ADDREF_INHERITED(nsNativeAppSupportWin, nsNativeAppSupportBase)
 NS_IMPL_RELEASE_INHERITED(nsNativeAppSupportWin, nsNativeAppSupportBase)
 
 void
+UseParentConsole()
+{
+    // Try to attach console to the parent process.
+    // It will succeed when the parent process is a command line,
+    // so that stdio will be displayed in it.
+    if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+        // Change std handles to refer to new console handles.
+        // Before doing so, ensure that stdout/stderr haven't been
+        // redirected to a valid file.
+        // The return value for _fileno(<a std handle>) for GUI apps was changed over.
+        // Until VC7, it was -1. Starting from VC8, it was changed to -2.
+        // http://msdn.microsoft.com/en-us/library/zs6wbdhx%28v=vs.80%29.aspx
+        // Starting from VC11, the return value was cahnged to 0 for stdin,
+        // 1 for stdout, 2 for stdout. Accroding to Microsoft, this is a bug
+        // which will be fixed in VC14.
+        // https://connect.microsoft.com/VisualStudio/feedback/details/785119/
+        // Although the document does not make it explicit, it looks like
+        // the return value from _get_osfhandle(_fileno(<a std handle>)) also
+        // changed to -2 and VC11 and 12 do not have a bug about _get_osfhandle().
+        // We support VC10 or later, so it's sufficient to compare the return
+        // value with -2.
+        if (_fileno(stdout) == -2 ||
+            _get_osfhandle(fileno(stdout)) == -2)
+            freopen("CONOUT$", "w", stdout);
+        // Merge stderr into CONOUT$ since there isn't any `CONERR$`.
+        // http://msdn.microsoft.com/en-us/library/windows/desktop/ms683231%28v=vs.85%29.aspx
+        if (_fileno(stderr) == -2 ||
+            _get_osfhandle(fileno(stderr)) == -2)
+            freopen("CONOUT$", "w", stderr);
+        if (_fileno(stdin) == -2 || _get_osfhandle(fileno(stdin)) == -2)
+            freopen("CONIN$", "r", stdin);
+    }
+}
+
+void
 nsNativeAppSupportWin::CheckConsole() {
     for ( int i = 1; i < gArgc; i++ ) {
-        if ( strcmp( "-console", gArgv[i] ) == 0
-             ||
+        if ( strcmp( "-console", gArgv[i] ) == 0 ||
+             strcmp( "--console", gArgv[i] ) == 0 ||
              strcmp( "/console", gArgv[i] ) == 0 ) {
             // Users wants to make sure we have a console.
             // Try to allocate one.
@@ -395,24 +435,7 @@ nsNativeAppSupportWin::CheckConsole() {
         } else if ( strcmp( "-attach-console", gArgv[i] ) == 0
                     ||
                     strcmp( "/attach-console", gArgv[i] ) == 0 ) {
-            // Try to attach console to the parent process.
-            // It will succeed when the parent process is a command line,
-            // so that stdio will be displayed in it.
-            if (AttachConsole(ATTACH_PARENT_PROCESS)) {
-                // Change std handles to refer to new console handles.
-                // Before doing so, ensure that stdout/stderr haven't been
-                // redirected to a valid file
-                if (_fileno(stdout) == -1 ||
-                    _get_osfhandle(fileno(stdout)) == -1)
-                    freopen("CONOUT$", "w", stdout);
-                // Merge stderr into CONOUT$ since there isn't any `CONERR$`.
-                // http://msdn.microsoft.com/en-us/library/windows/desktop/ms683231%28v=vs.85%29.aspx
-                if (_fileno(stderr) == -1 ||
-                    _get_osfhandle(fileno(stderr)) == -1)
-                    freopen("CONOUT$", "w", stderr);
-                if (_fileno(stdin) == -1 || _get_osfhandle(fileno(stdin)) == -1)
-                    freopen("CONIN$", "r", stdin);
-            }
+            UseParentConsole();
         }
     }
 
@@ -483,7 +506,7 @@ struct MessageWindow {
             ::_snwprintf(classNameBuffer,
                          128,   // size of classNameBuffer in PRUnichars
                          L"%s%s",
-                         NS_ConvertUTF8toUTF16(gAppData->name).get(),
+                         static_cast<const wchar_t*>(NS_ConvertUTF8toUTF16(gAppData->remotingName).get()),
                          L"MessageWindow" );
             mClassName = classNameBuffer;
         }
@@ -602,7 +625,7 @@ struct MessageWindow {
             (void)nsNativeAppSupportWin::HandleCommandLine((char*)cds->lpData, workingDir, nsICommandLine::STATE_REMOTE_AUTO);
 
             // Get current window and return its window handle.
-            nsCOMPtr<nsIDOMWindow> win;
+            nsCOMPtr<mozIDOMWindowProxy> win;
             GetMostRecentWindow( 0, getter_AddRefs( win ) );
             return win ? (LRESULT)hwndForDOMWindow( win ) : 0;
         }
@@ -646,9 +669,9 @@ nsNativeAppSupportWin::Start( bool *aResult ) {
     ::_snwprintf(reinterpret_cast<wchar_t*>(mMutexName),
                  sizeof mMutexName / sizeof(char16_t), L"%s%s%s",
                  MOZ_MUTEX_NAMESPACE,
-                 NS_ConvertUTF8toUTF16(gAppData->name).get(),
+                 static_cast<const wchar_t*>(NS_ConvertUTF8toUTF16(gAppData->name).get()),
                  MOZ_STARTUP_MUTEX_NAME );
-    Mutex startupLock = Mutex( mMutexName );
+    Win32Mutex startupLock = Win32Mutex( mMutexName );
 
     NS_ENSURE_TRUE( startupLock.Lock( MOZ_DDE_START_TIMEOUT ), NS_ERROR_FAILURE );
 
@@ -738,7 +761,7 @@ nsNativeAppSupportWin::Stop( bool *aResult ) {
     nsresult rv = NS_OK;
     *aResult = true;
 
-    Mutex ddeLock( mMutexName );
+    Win32Mutex ddeLock( mMutexName );
 
     if ( ddeLock.Lock( MOZ_DDE_STOP_TIMEOUT ) ) {
         if ( mConversations == 0 ) {
@@ -778,7 +801,7 @@ nsNativeAppSupportWin::Quit() {
     // to wait to hold the lock, in which case they will not find the
     // window as we will destroy ours under our lock.
     // When the mutex goes off the stack, it is unlocked via destructor.
-    Mutex mutexLock(mMutexName);
+    Win32Mutex mutexLock(mMutexName);
     NS_ENSURE_TRUE(mutexLock.Lock(MOZ_DDE_START_TIMEOUT), NS_ERROR_FAILURE);
 
     // If we've got a message window to receive IPC or new window requests,
@@ -983,27 +1006,22 @@ nsNativeAppSupportWin::HandleDDENotification( UINT uType,       // transaction t
                     // something goes wrong.
                     do {
                         // Get most recently used Nav window.
-                        nsCOMPtr<nsIDOMWindow> navWin;
+                        nsCOMPtr<mozIDOMWindowProxy> navWin;
                         GetMostRecentWindow( NS_LITERAL_STRING( "navigator:browser" ).get(),
                                              getter_AddRefs( navWin ) );
-                        if ( !navWin ) {
+                        nsCOMPtr<nsPIDOMWindowOuter> piNavWin = do_QueryInterface(navWin);
+                        if ( !piNavWin ) {
                             // There is not a window open
                             break;
                         }
+
                         // Get content window.
-                        nsCOMPtr<nsIDOMWindow> content;
-                        navWin->GetContent( getter_AddRefs( content ) );
-                        if ( !content ) {
-                            break;
-                        }
-                        // Convert that to internal interface.
-                        nsCOMPtr<nsPIDOMWindow> internalContent( do_QueryInterface( content ) );
+                        nsCOMPtr<nsPIDOMWindowOuter> internalContent = nsGlobalWindow::Cast(piNavWin)->GetContent();
                         if ( !internalContent ) {
                             break;
                         }
                         // Get location.
-                        nsCOMPtr<nsIDOMLocation> location;
-                        internalContent->GetLocation( getter_AddRefs( location ) );
+                        nsCOMPtr<nsIDOMLocation> location = internalContent->GetLocation();
                         if ( !location ) {
                             break;
                         }
@@ -1241,8 +1259,8 @@ HDDEDATA nsNativeAppSupportWin::CreateDDEData( LPBYTE value, DWORD len ) {
 }
 
 void nsNativeAppSupportWin::ActivateLastWindow() {
-    nsCOMPtr<nsIDOMWindow> navWin;
-    GetMostRecentWindow( MOZ_UTF16("navigator:browser"), getter_AddRefs( navWin ) );
+    nsCOMPtr<mozIDOMWindowProxy> navWin;
+    GetMostRecentWindow( u"navigator:browser", getter_AddRefs( navWin ) );
     if ( navWin ) {
         // Activate that window.
         activateWindow( navWin );
@@ -1425,7 +1443,7 @@ nsNativeAppSupportWin::OpenWindow( const char*urlstr, const char *args ) {
     sarg->SetData(nsDependentCString(args));
 
   if (wwatch && sarg) {
-    nsCOMPtr<nsIDOMWindow> newWindow;
+    nsCOMPtr<mozIDOMWindowProxy> newWindow;
     rv = wwatch->OpenWindow(0, urlstr, "_blank", "chrome,dialog=no,all",
                    sarg, getter_AddRefs(newWindow));
 #if MOZ_DEBUG_DDE
@@ -1436,11 +1454,11 @@ nsNativeAppSupportWin::OpenWindow( const char*urlstr, const char *args ) {
   return rv;
 }
 
-HWND hwndForDOMWindow( nsISupports *window ) {
-    nsCOMPtr<nsPIDOMWindow> pidomwindow( do_QueryInterface(window) );
-    if ( !pidomwindow ) {
+HWND hwndForDOMWindow(mozIDOMWindowProxy *window ) {
+    if ( !window ) {
         return 0;
     }
+    nsCOMPtr<nsPIDOMWindowOuter > pidomwindow = nsPIDOMWindowOuter::From(window);
 
     nsCOMPtr<nsIBaseWindow> ppBaseWindow =
         do_QueryInterface( pidomwindow->GetDocShell() );
@@ -1465,7 +1483,7 @@ nsNativeAppSupportWin::OpenBrowserWindow()
     // If at all possible, hand the request off to the most recent
     // browser window.
 
-    nsCOMPtr<nsIDOMWindow> navWin;
+    nsCOMPtr<mozIDOMWindowProxy> navWin;
     GetMostRecentWindow( NS_LITERAL_STRING( "navigator:browser" ).get(), getter_AddRefs( navWin ) );
 
     // This isn't really a loop.  We just use "break" statements to fall
@@ -1484,7 +1502,7 @@ nsNativeAppSupportWin::OpenBrowserWindow()
           if ( navItem ) {
             nsCOMPtr<nsIDocShellTreeItem> rootItem;
             navItem->GetRootTreeItem( getter_AddRefs( rootItem ) );
-            nsCOMPtr<nsIDOMWindow> rootWin =
+            nsCOMPtr<nsPIDOMWindowOuter> rootWin =
               rootItem ? rootItem->GetWindow() : nullptr;
             nsCOMPtr<nsIDOMChromeWindow> chromeWin(do_QueryInterface(rootWin));
             if ( chromeWin )
@@ -1495,7 +1513,7 @@ nsNativeAppSupportWin::OpenBrowserWindow()
           nsCOMPtr<nsIURI> uri;
           NS_NewURI( getter_AddRefs( uri ), NS_LITERAL_CSTRING("about:blank"), 0, 0 );
           if ( uri ) {
-            nsCOMPtr<nsIDOMWindow> container;
+            nsCOMPtr<mozIDOMWindowProxy> container;
             rv = bwin->OpenURI( uri, 0,
                                 nsIBrowserDOMWindow::OPEN_DEFAULTWINDOW,
                                 nsIBrowserDOMWindow::OPEN_EXTERNAL,

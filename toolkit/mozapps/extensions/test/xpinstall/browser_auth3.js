@@ -2,6 +2,14 @@
 // Test whether an install fails when authentication is required and it is
 // canceled
 // This verifies bug 312473
+
+//
+// Whitelisting this test.
+// As part of bug 1077403, the leaking uncaught rejection should be fixed.
+//
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: this.docShell is null");
+
+
 function test() {
   Harness.authenticationCallback = get_auth_info;
   Harness.downloadFailedCallback = download_failed;
@@ -13,7 +21,7 @@ function test() {
   pm.add(makeURI("http://example.com/"), "install", pm.ALLOW_ACTION);
 
   var triggers = encodeURIComponent(JSON.stringify({
-    "Unsigned XPI": TESTROOT + "authRedirect.sjs?" + TESTROOT + "unsigned.xpi"
+    "Unsigned XPI": TESTROOT + "authRedirect.sjs?" + TESTROOT + "amosigned.xpi"
   }));
   gBrowser.selectedTab = gBrowser.addTab();
   gBrowser.loadURI(TESTROOT + "installtrigger.html?" + triggers);
@@ -38,7 +46,7 @@ function finish_test(count) {
                           .getService(Components.interfaces.nsIHttpAuthManager);
   authMgr.clearAll();
 
-  Services.perms.remove("example.com", "install");
+  Services.perms.remove(makeURI("http://example.com"), "install");
 
   gBrowser.removeCurrentTab();
   Harness.finish();

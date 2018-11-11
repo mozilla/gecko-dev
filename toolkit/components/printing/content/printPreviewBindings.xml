@@ -23,7 +23,7 @@
 
     <content>
       <xul:button label="&print.label;" accesskey="&print.accesskey;"
-        oncommand="PrintUtils.print();" icon="print"/>
+        oncommand="this.parentNode.print();" icon="print"/>
 
       <xul:button label="&pageSetup.label;" accesskey="&pageSetup.accesskey;"
         oncommand="this.parentNode.doPageSetup();"/>
@@ -31,9 +31,9 @@
       <xul:vbox align="center" pack="center">
         <xul:label value="&page.label;" accesskey="&page.accesskey;" control="pageNumber"/>
       </xul:vbox>
-      <xul:toolbarbutton class="home-arrow tabbable"
+      <xul:toolbarbutton anonid="navigateHome" class="navigate-button tabbable"
         oncommand="parentNode.navigate(0, 0, 'home');" tooltiptext="&homearrow.tooltip;"/>
-      <xul:toolbarbutton class="previous-arrow tabbable"
+      <xul:toolbarbutton anonid="navigatePrevious" class="navigate-button tabbable"
         oncommand="parentNode.navigate(-1, 0, 0);" tooltiptext="&previousarrow.tooltip;"/>
       <xul:hbox align="center" pack="center">
         <xul:textbox id="pageNumber" size="3" value="1" min="1" type="number"
@@ -41,9 +41,9 @@
         <xul:label value="&of.label;"/>
         <xul:label value="1"/>
       </xul:hbox>
-      <xul:toolbarbutton class="next-arrow tabbable"
+      <xul:toolbarbutton anonid="navigateNext" class="navigate-button tabbable"
         oncommand="parentNode.navigate(1, 0, 0);" tooltiptext="&nextarrow.tooltip;"/>
-      <xul:toolbarbutton class="end-arrow tabbable"
+      <xul:toolbarbutton anonid="navigateEnd" class="navigate-button tabbable"
         oncommand="parentNode.navigate(0, 0, 'end');" tooltiptext="&endarrow.tooltip;"/>
 
       <xul:toolbarseparator class="toolbarseparator-primary"/>
@@ -88,12 +88,19 @@
       </xul:hbox>
 
       <xul:toolbarseparator class="toolbarseparator-primary"/>
+      <xul:checkbox label="&simplifyPage.label;" checked="false" disabled="true"
+        accesskey="&simplifyPage.accesskey;"
+        tooltiptext-disabled="&simplifyPage.disabled.tooltip;"
+        tooltiptext-enabled="&simplifyPage.enabled.tooltip;"
+        oncommand="this.parentNode.simplify();"/>
+
+      <xul:toolbarseparator class="toolbarseparator-primary"/>
       <xul:button label="&close.label;" accesskey="&close.accesskey;"
         oncommand="PrintUtils.exitPrintPreview();" icon="close"/>
       <xul:data value="&customPrompt.title;"/>
     </content>
 
-    <implementation>
+    <implementation implements="nsIMessageListener">
       <field name="mPrintButton">
         document.getAnonymousNodes(this)[0]
       </field>
@@ -118,23 +125,55 @@
       <field name="mLandscapeButton">
         this.mOrientButtonsBox.childNodes[1]
       </field>
+      <field name="mSimplifyPageCheckbox">
+        document.getAnonymousNodes(this)[14]
+      </field>
+      <field name="mSimplifyPageToolbarSeparator">
+        document.getAnonymousNodes(this)[15]
+      </field>
       <field name="mCustomTitle">
-        document.getAnonymousNodes(this)[15].firstChild
+        document.getAnonymousNodes(this)[17].firstChild
       </field>
       <field name="mPrintPreviewObs">
       </field>
       <field name="mWebProgress">
       </field>
-     
-      <constructor>
-      <![CDATA[
-        var print = PrintUtils.getPrintPreview();
-        this.mTotalPages.value = print.printPreviewNumPages;
-        this.mPageTextBox.max = print.printPreviewNumPages;
+      <field name="mPPBrowser">
+        null
+      </field>
+      <field name="mMessageManager">
+        null
+      </field>
 
-        this.updateToolbar();
-      ]]>
-      </constructor>
+      <method name="initialize">
+        <parameter name="aPPBrowser"/>
+        <body>
+        <![CDATA[
+          let {Services} = Components.utils.import("resource://gre/modules/Services.jsm", {});
+          if (!Services.prefs.getBoolPref("print.use_simplify_page")) {
+            this.mSimplifyPageCheckbox.hidden = true;
+            this.mSimplifyPageToolbarSeparator.hidden = true;
+          }
+          this.mPPBrowser = aPPBrowser;
+          this.mMessageManager = aPPBrowser.messageManager;
+          this.mMessageManager.addMessageListener("Printing:Preview:UpdatePageCount", this);
+          this.updateToolbar();
+
+          let $ = id => document.getAnonymousElementByAttribute(this, "anonid", id);
+          let ltr = document.documentElement.matches(":root:-moz-locale-dir(ltr)");
+          // Windows 7 doesn't support ⏮ and ⏭ by default, and fallback doesn't
+          // always work (bug 1343330).
+          let {AppConstants} = Components.utils.import("resource://gre/modules/AppConstants.jsm", {});
+          let useCompatCharacters = AppConstants.isPlatformAndVersionAtMost("win", "6.1");
+          let leftEnd = useCompatCharacters ? "⏪" : "⏮";
+          let rightEnd = useCompatCharacters ? "⏩" : "⏭";
+          $("navigateHome").label = ltr ? leftEnd : rightEnd;
+          $("navigatePrevious").label = ltr ? "◂" : "▸";
+          $("navigateNext").label = ltr ? "▸" : "◂";
+          $("navigateEnd").label = ltr ? rightEnd : leftEnd;
+        ]]>
+        </body>
+      </method>
 
       <method name="doPageSetup">
         <body>
@@ -156,38 +195,46 @@
         <parameter name="aPageNum"/>
         <parameter name="aHomeOrEnd"/>
         <body>
-        <![CDATA[          
-          var print = PrintUtils.getPrintPreview();
+        <![CDATA[
+          const nsIWebBrowserPrint = Components.interfaces.nsIWebBrowserPrint;
+          let navType, pageNum;
 
           // we use only one of aHomeOrEnd, aDirection, or aPageNum
-          if (aHomeOrEnd)
-          {
-            var homeOrEnd;
-            if (aHomeOrEnd == "home")
-            {
-              homeOrEnd = print.PRINTPREVIEW_HOME;
-              this.mPageTextBox.value = 1;  
+          if (aHomeOrEnd) {
+            // We're going to either the very first page ("home"), or the
+            // very last page ("end").
+            if (aHomeOrEnd == "home") {
+              navType = nsIWebBrowserPrint.PRINTPREVIEW_HOME;
+              this.mPageTextBox.value = 1;
+            } else {
+              navType = nsIWebBrowserPrint.PRINTPREVIEW_END;
+              this.mPageTextBox.value = this.mPageTextBox.max;
             }
-            else
-            {
-              homeOrEnd = print.PRINTPREVIEW_END;
-              this.mPageTextBox.value = print.printPreviewNumPages;
-            }
-            
-            print.printPreviewNavigate(homeOrEnd, 0);
-          }
-          else if (aDirection)
-          {
+            pageNum = 0;
+          } else if (aDirection) {
+            // aDirection is either +1 or -1, and allows us to increment
+            // or decrement our currently viewed page.
             this.mPageTextBox.valueNumber += aDirection;
-            print.printPreviewNavigate(
-              print.PRINTPREVIEW_GOTO_PAGENUM,
-              this.mPageTextBox.valueNumber);
+            navType = nsIWebBrowserPrint.PRINTPREVIEW_GOTO_PAGENUM;
+            pageNum = this.mPageTextBox.value;  // TODO: back to valueNumber?
+          } else {
+            // We're going to a specific page (aPageNum)
+            navType = nsIWebBrowserPrint.PRINTPREVIEW_GOTO_PAGENUM;
+            pageNum = aPageNum;
           }
-          else 
-          {
-            print.printPreviewNavigate(
-              print.PRINTPREVIEW_GOTO_PAGENUM, aPageNum);
-          }
+
+          this.mMessageManager.sendAsyncMessage("Printing:Preview:Navigate", {
+            navType: navType,
+            pageNum: pageNum,
+          });
+        ]]>
+        </body>
+      </method>
+
+      <method name="print">
+        <body>
+        <![CDATA[
+          PrintUtils.printWindow(this.mPPBrowser.outerWindowID, this.mPPBrowser);
         ]]>
         </body>
       </method>
@@ -203,7 +250,7 @@
           var result = {value:value};
           var confirmed = promptService.prompt(window, renameTitle, promptStr, result, null, {value:value});
           if (!confirmed || (!result.value) || (result.value == "") || result.value == value) {
-            return(-1);
+            return -1;
           }
           return result.value;
         ]]>
@@ -287,10 +334,38 @@
         </body>
       </method>
 
+      <method name="simplify">
+        <body>
+        <![CDATA[
+          PrintUtils.setSimplifiedMode(this.mSimplifyPageCheckbox.checked);
+          PrintUtils.printPreview();
+        ]]>
+        </body>
+      </method>
+
+      <method name="enableSimplifyPage">
+        <body>
+        <![CDATA[
+          this.mSimplifyPageCheckbox.disabled = false;
+          this.mSimplifyPageCheckbox.setAttribute("tooltiptext",
+               this.mSimplifyPageCheckbox.getAttribute("tooltiptext-enabled"));
+        ]]>
+        </body>
+      </method>
+
+      <method name="disableSimplifyPage">
+        <body>
+        <![CDATA[
+          this.mSimplifyPageCheckbox.disabled = true;
+          this.mSimplifyPageCheckbox.setAttribute("tooltiptext",
+               this.mSimplifyPageCheckbox.getAttribute("tooltiptext-disabled"));
+        ]]>
+        </body>
+      </method>
+
       <method name="updateToolbar">
         <body>
         <![CDATA[
-          var print = PrintUtils.getPrintPreview();
           var settings = PrintUtils.getPrintSettings();
 
           var isPortrait = settings.orientation == Components.interfaces.nsIPrintSettings.kPortraitOrientation;
@@ -304,9 +379,9 @@
             this.setScaleCombobox(settings.scaling);
           }
 
-          this.mTotalPages.value = print.printPreviewNumPages;
-          this.mPageTextBox.max = print.printPreviewNumPages;
           this.mPageTextBox.value = 1;
+
+          this.mMessageManager.sendAsyncMessage("Printing:Preview:UpdatePageCount");
         ]]>
         </body>
       </method>
@@ -319,6 +394,20 @@
                                 .getService(Components.interfaces.nsIPrintSettingsService);
           PSSVC.savePrintSettingsToPrefs(settings, true, flags);
         ]]></body>
+      </method>
+
+      <!-- nsIMessageListener -->
+      <method name="receiveMessage">
+        <parameter name="message"/>
+        <body>
+        <![CDATA[
+          if (message.name == "Printing:Preview:UpdatePageCount") {
+            let numPages = message.data.numPages;
+            this.mTotalPages.value = numPages;
+            this.mPageTextBox.max = numPages;
+          }
+        ]]>
+        </body>
       </method>
     </implementation>
   </binding>

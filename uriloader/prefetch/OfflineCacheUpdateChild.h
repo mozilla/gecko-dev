@@ -18,6 +18,8 @@
 #include "nsString.h"
 #include "nsWeakReference.h"
 
+class nsPIDOMWindowInner;
+
 namespace mozilla {
 namespace docshell {
 
@@ -30,23 +32,24 @@ public:
 
     virtual bool
     RecvNotifyStateEvent(const uint32_t& stateEvent,
-                         const uint64_t& byteProgress) MOZ_OVERRIDE;
+                         const uint64_t& byteProgress) override;
 
     virtual bool
     RecvAssociateDocuments(
             const nsCString& cacheGroupId,
-            const nsCString& cacheClientId) MOZ_OVERRIDE;
+            const nsCString& cacheClientId) override;
 
     virtual bool
     RecvFinish(const bool& succeeded,
-               const bool& isUpgrade) MOZ_OVERRIDE;
+               const bool& isUpgrade) override;
 
-    OfflineCacheUpdateChild(nsIDOMWindow* aWindow);
-    ~OfflineCacheUpdateChild();
+    explicit OfflineCacheUpdateChild(nsPIDOMWindowInner* aWindow);
 
     void SetDocument(nsIDOMDocument *aDocument);
 
 private:
+    ~OfflineCacheUpdateChild();
+
     nsresult AssociateDocument(nsIDOMDocument *aDocument,
                                nsIApplicationCache *aApplicationCache);
     void GatherObservers(nsCOMArray<nsIOfflineCacheUpdateObserver> &aObservers);
@@ -67,11 +70,9 @@ private:
     nsCString mUpdateDomain;
     nsCOMPtr<nsIURI> mManifestURI;
     nsCOMPtr<nsIURI> mDocumentURI;
+    nsCOMPtr<nsIPrincipal> mLoadingPrincipal;
 
     nsCOMPtr<nsIObserverService> mObserverService;
-
-    uint32_t mAppID;
-    bool mInBrowser;
 
     /* Clients watching this update for changes */
     nsCOMArray<nsIWeakReference> mWeakObservers;
@@ -82,12 +83,12 @@ private:
 
     /* Keep reference to the window that owns this update to call the
        parent offline cache update construcor */
-    nsCOMPtr<nsIDOMWindow> mWindow;
+    nsCOMPtr<nsPIDOMWindowInner> mWindow;
 
     uint64_t mByteProgress;
 };
 
-}
-}
+} // namespace docshell
+} // namespace mozilla
 
 #endif

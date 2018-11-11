@@ -4,12 +4,14 @@
 
 from __future__ import print_function, unicode_literals
 
+import hashlib
 import os
 import re
 import subprocess
 import sys
+import urllib2
 
-from distutils.version import StrictVersion
+from distutils.version import LooseVersion
 
 
 NO_MERCURIAL = '''
@@ -71,23 +73,120 @@ We recommend the following tools for installing Python:
     official installers -- http://www.python.org/
 '''
 
+BROWSER_ARTIFACT_MODE_MOZCONFIG = '''
+Paste the lines between the chevrons (>>> and <<<) into your mozconfig file:
+
+<<<
+# Automatically download and use compiled C++ components:
+ac_add_options --enable-artifact-builds
+>>>
+'''
 
 # Upgrade Mercurial older than this.
-MODERN_MERCURIAL_VERSION = StrictVersion('2.5')
+# This should match OLDEST_NON_LEGACY_VERSION from
+# the hg setup wizard in version-control-tools.
+MODERN_MERCURIAL_VERSION = LooseVersion('3.7.3')
 
 # Upgrade Python older than this.
-MODERN_PYTHON_VERSION = StrictVersion('2.7.3')
+MODERN_PYTHON_VERSION = LooseVersion('2.7.3')
 
 
 class BaseBootstrapper(object):
     """Base class for system bootstrappers."""
 
-    def __init__(self):
+    def __init__(self, no_interactive=False):
         self.package_manager_updated = False
+        self.no_interactive = no_interactive
 
     def install_system_packages(self):
-        raise NotImplemented('%s must implement install_system_packages()' %
+        '''
+        Install packages shared by all applications. These are usually
+        packages required by the development (like mercurial) or the
+        build system (like autoconf).
+        '''
+        raise NotImplementedError('%s must implement install_system_packages()' %
+                                  __name__)
+
+    def install_browser_packages(self):
+        '''
+        Install packages required to build Firefox for Desktop (application
+        'browser').
+        '''
+        raise NotImplementedError('Cannot bootstrap Firefox for Desktop: '
+                                  '%s does not yet implement install_browser_packages()' %
+                                  __name__)
+
+    def suggest_browser_mozconfig(self):
+        '''
+        Print a message to the console detailing what the user's mozconfig
+        should contain.
+
+        Firefox for Desktop can in simple cases determine its build environment
+        entirely from configure.
+        '''
+        pass
+
+    def install_browser_artifact_mode_packages(self):
+        '''
+        Install packages required to build Firefox for Desktop (application
+        'browser') in Artifact Mode.
+        '''
+        raise NotImplementedError(
+            'Cannot bootstrap Firefox for Desktop Artifact Mode: '
+            '%s does not yet implement install_browser_artifact_mode_packages()' %
             __name__)
+
+    def suggest_browser_artifact_mode_mozconfig(self):
+        '''
+        Print a message to the console detailing what the user's mozconfig
+        should contain.
+
+        Firefox for Desktop Artifact Mode needs to enable artifact builds and
+        a path where the build artifacts will be written to.
+        '''
+        print(BROWSER_ARTIFACT_MODE_MOZCONFIG)
+
+    def install_mobile_android_packages(self):
+        '''
+        Install packages required to build Firefox for Android (application
+        'mobile/android', also known as Fennec).
+        '''
+        raise NotImplementedError('Cannot bootstrap Firefox for Android: '
+                                  '%s does not yet implement install_mobile_android_packages()'
+                                  % __name__)
+
+    def suggest_mobile_android_mozconfig(self):
+        '''
+        Print a message to the console detailing what the user's mozconfig
+        should contain.
+
+        Firefox for Android needs an application and an ABI set, and it needs
+        paths to the Android SDK and NDK.
+        '''
+        raise NotImplementedError('%s does not yet implement suggest_mobile_android_mozconfig()' %
+                                  __name__)
+
+    def install_mobile_android_artifact_mode_packages(self):
+        '''
+        Install packages required to build Firefox for Android (application
+        'mobile/android', also known as Fennec) in Artifact Mode.
+        '''
+        raise NotImplementedError(
+            'Cannot bootstrap Firefox for Android Artifact Mode: '
+            '%s does not yet implement install_mobile_android_artifact_mode_packages()'
+            % __name__)
+
+    def suggest_mobile_android_artifact_mode_mozconfig(self):
+        '''
+        Print a message to the console detailing what the user's mozconfig
+        should contain.
+
+        Firefox for Android Artifact Mode needs an application and an ABI set,
+        and it needs paths to the Android SDK.
+        '''
+        raise NotImplementedError(
+            '%s does not yet implement suggest_mobile_android_artifact_mode_mozconfig()'
+            % __name__)
 
     def which(self, name):
         """Python implementation of which.
@@ -112,32 +211,54 @@ class BaseBootstrapper(object):
 
         subprocess.check_call(command, stdin=sys.stdin)
 
-    def yum_install(self, *packages):
-        command = ['yum', 'install']
+    def dnf_install(self, *packages):
+        if self.which('dnf'):
+            command = ['dnf', 'install']
+        else:
+            command = ['yum', 'install']
+
+        if self.no_interactive:
+            command.append('-y')
         command.extend(packages)
 
         self.run_as_root(command)
 
-    def yum_groupinstall(self, *packages):
-        command = ['yum', 'groupinstall']
+    def dnf_groupinstall(self, *packages):
+        if self.which('dnf'):
+            command = ['dnf', 'groupinstall']
+        else:
+            command = ['yum', 'groupinstall']
+
+        if self.no_interactive:
+            command.append('-y')
         command.extend(packages)
 
         self.run_as_root(command)
 
-    def yum_update(self, *packages):
-        command = ['yum', 'update']
+    def dnf_update(self, *packages):
+        if self.which('dnf'):
+            command = ['dnf', 'update']
+        else:
+            command = ['yum', 'update']
+
+        if self.no_interactive:
+            command.append('-y')
         command.extend(packages)
 
         self.run_as_root(command)
 
     def apt_install(self, *packages):
         command = ['apt-get', 'install']
+        if self.no_interactive:
+            command.append('-y')
         command.extend(packages)
 
         self.run_as_root(command)
 
     def apt_update(self):
         command = ['apt-get', 'update']
+        if self.no_interactive:
+            command.append('-y')
 
         self.run_as_root(command)
 
@@ -208,7 +329,8 @@ class BaseBootstrapper(object):
         making it suitable for use in scripts.
         """
         env = os.environ.copy()
-        env['HGPLAIN'] = '1'
+        env[b'HGPLAIN'] = b'1'
+
         return env
 
     def is_mercurial_modern(self):
@@ -224,30 +346,46 @@ class BaseBootstrapper(object):
             print('ERROR: Unable to identify Mercurial version.')
             return True, False, None
 
-        our = StrictVersion(match.group(1))
+        our = LooseVersion(match.group(1))
 
         return True, our >= MODERN_MERCURIAL_VERSION, our
 
     def ensure_mercurial_modern(self):
         installed, modern, version = self.is_mercurial_modern()
 
-        if not installed or modern:
+        if modern:
             print('Your version of Mercurial (%s) is sufficiently modern.' %
-                version)
-            return
+                  version)
+            return installed, modern
 
         self._ensure_package_manager_updated()
-        self.upgrade_mercurial(version)
+
+        if installed:
+            print('Your version of Mercurial (%s) is not modern enough.' %
+                  version)
+            print('(Older versions of Mercurial have known security vulnerabilities. '
+                  'Unless you are running a patched Mercurial version, you may be '
+                  'vulnerable.')
+        else:
+            print('You do not have Mercurial installed')
+
+        if self.upgrade_mercurial(version) is False:
+            return installed, modern
 
         installed, modern, after = self.is_mercurial_modern()
 
         if installed and not modern:
             print(MERCURIAL_UPGRADE_FAILED % (MODERN_MERCURIAL_VERSION, after))
 
+        return installed, modern
+
     def upgrade_mercurial(self, current):
         """Upgrade Mercurial.
 
         Child classes should reimplement this.
+
+        Return False to not perform a version check after the upgrade is
+        performed.
         """
         print(MERCURIAL_UNABLE_UPGRADE % (current, MODERN_MERCURIAL_VERSION))
 
@@ -262,13 +400,13 @@ class BaseBootstrapper(object):
         assert python
 
         info = self.check_output([python, '--version'],
-            stderr=subprocess.STDOUT)
+                                 stderr=subprocess.STDOUT)
         match = re.search('Python ([a-z0-9\.]+)', info)
         if not match:
             print('ERROR Unable to identify Python version.')
             return False, None
 
-        our = StrictVersion(match.group(1))
+        our = LooseVersion(match.group(1))
 
         return our >= MODERN_PYTHON_VERSION, our
 
@@ -280,7 +418,7 @@ class BaseBootstrapper(object):
             return
 
         print('Your version of Python (%s) is too old. Will try to upgrade.' %
-            version)
+              version)
 
         self._ensure_package_manager_updated()
         self.upgrade_python(version)
@@ -297,3 +435,18 @@ class BaseBootstrapper(object):
         Child classes should reimplement this.
         """
         print(PYTHON_UNABLE_UPGRADE % (current, MODERN_PYTHON_VERSION))
+
+    def http_download_and_save(self, url, dest, sha256hexhash):
+        f = urllib2.urlopen(url)
+        h = hashlib.sha256()
+        with open(dest, 'wb') as out:
+            while True:
+                data = f.read(4096)
+                if data:
+                    out.write(data)
+                    h.update(data)
+                else:
+                    break
+        if h.hexdigest() != sha256hexhash:
+            os.remove(dest)
+            raise ValueError('Hash of downloaded file does not match expected hash')

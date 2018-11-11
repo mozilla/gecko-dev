@@ -1,4 +1,5 @@
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 /*
  * This xpcshell test checks whether we detect infinite HTTP redirect loops.
@@ -22,9 +23,7 @@ var emptyLoopPath = "/empty/";
 var emptyLoopURI = "http://localhost:" + PORT + emptyLoopPath;
 
 function make_channel(url, callback, ctx) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].
-            getService(Ci.nsIIOService);
-  return ios.newChannel(url, "", null);
+  return NetUtil.newChannel({uri: url, loadUsingSystemPrincipal: true});
 }
 
 function fullLoopHandler(metadata, response)
@@ -57,8 +56,7 @@ function testFullLoop(request, buffer)
   do_check_eq(request.status, Components.results.NS_ERROR_REDIRECT_LOOP);
 
   var chan = make_channel(relativeLoopURI);
-  chan.asyncOpen(new ChannelListener(testRelativeLoop, null, CL_EXPECT_FAILURE),
-                 null);
+  chan.asyncOpen2(new ChannelListener(testRelativeLoop, null, CL_EXPECT_FAILURE));
 }
 
 function testRelativeLoop(request, buffer)
@@ -66,8 +64,7 @@ function testRelativeLoop(request, buffer)
   do_check_eq(request.status, Components.results.NS_ERROR_REDIRECT_LOOP);
 
   var chan = make_channel(emptyLoopURI);
-  chan.asyncOpen(new ChannelListener(testEmptyLoop, null, CL_EXPECT_FAILURE),
-                 null);
+  chan.asyncOpen2(new ChannelListener(testEmptyLoop, null, CL_EXPECT_FAILURE));
 }
 
 function testEmptyLoop(request, buffer)
@@ -84,7 +81,6 @@ function run_test()
   httpServer.registerPathHandler(emptyLoopPath, emptyLoopHandler);
 
   var chan = make_channel(fullLoopURI);
-  chan.asyncOpen(new ChannelListener(testFullLoop, null, CL_EXPECT_FAILURE),
-                 null);
+  chan.asyncOpen2(new ChannelListener(testFullLoop, null, CL_EXPECT_FAILURE));
   do_test_pending();
 }

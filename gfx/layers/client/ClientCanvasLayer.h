@@ -6,20 +6,23 @@
 #ifndef GFX_CLIENTCANVASLAYER_H
 #define GFX_CLIENTCANVASLAYER_H
 
-#include "mozilla/layers/CanvasClient.h"  // for CanvasClient, etc
+#include "CanvasClient.h"               // for CanvasClient, etc
 #include "ClientLayerManager.h"         // for ClientLayerManager, etc
 #include "CopyableCanvasLayer.h"        // for CopyableCanvasLayer
 #include "Layers.h"                     // for CanvasLayer, etc
-#include "mozilla/Attributes.h"         // for MOZ_OVERRIDE
+#include "mozilla/Attributes.h"         // for override
 #include "mozilla/RefPtr.h"             // for RefPtr
 #include "mozilla/layers/LayersMessages.h"  // for CanvasLayerAttributes, etc
 #include "mozilla/mozalloc.h"           // for operator delete
-#include "nsAutoPtr.h"                  // for nsRefPtr
 #include "nsDebug.h"                    // for NS_ASSERTION
 #include "nsISupportsImpl.h"            // for MOZ_COUNT_CTOR, etc
 #include "nsRegion.h"                   // for nsIntRegion
 
 namespace mozilla {
+namespace gl {
+class SurfaceFactory;
+} // namespace gl
+
 namespace layers {
 
 class CompositableClient;
@@ -30,77 +33,84 @@ class ClientCanvasLayer : public CopyableCanvasLayer,
 {
   typedef CanvasClient::CanvasClientType CanvasClientType;
 public:
-  ClientCanvasLayer(ClientLayerManager* aLayerManager) :
-    CopyableCanvasLayer(aLayerManager,
-                        static_cast<ClientLayer*>(MOZ_THIS_IN_INITIALIZER_LIST()))
-    , mTextureSurface(nullptr)
-    , mFactory(nullptr)
+  explicit ClientCanvasLayer(ClientLayerManager* aLayerManager) :
+    CopyableCanvasLayer(aLayerManager, static_cast<ClientLayer*>(this))
   {
     MOZ_COUNT_CTOR(ClientCanvasLayer);
   }
+
+protected:
   virtual ~ClientCanvasLayer();
 
-  virtual void SetVisibleRegion(const nsIntRegion& aRegion)
+public:
+  virtual void SetVisibleRegion(const LayerIntRegion& aRegion) override
   {
     NS_ASSERTION(ClientManager()->InConstruction(),
                  "Can only set properties in construction phase");
     CanvasLayer::SetVisibleRegion(aRegion);
   }
 
-  virtual void Initialize(const Data& aData);
+  virtual void Initialize(const Data& aData) override;
 
-  virtual void RenderLayer();
+  virtual void RenderLayer() override;
 
-  virtual void ClearCachedResources()
+  virtual void ClearCachedResources() override
   {
     if (mCanvasClient) {
       mCanvasClient->Clear();
     }
   }
 
-  virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs)
+  virtual void HandleMemoryPressure() override
   {
-    aAttrs = CanvasLayerAttributes(mFilter, mBounds);
+    if (mCanvasClient) {
+      mCanvasClient->HandleMemoryPressure();
+    }
   }
 
-  virtual Layer* AsLayer() { return this; }
-  virtual ShadowableLayer* AsShadowableLayer() { return this; }
+  virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs) override
+  {
+    aAttrs = CanvasLayerAttributes(mSamplingFilter, mBounds);
+  }
 
-  virtual void Disconnect()
+  virtual Layer* AsLayer()  override { return this; }
+  virtual ShadowableLayer* AsShadowableLayer()  override { return this; }
+
+  virtual void Disconnect() override
   {
     mCanvasClient = nullptr;
     ClientLayer::Disconnect();
   }
 
-  virtual CompositableClient* GetCompositableClient() MOZ_OVERRIDE
+  virtual CompositableClient* GetCompositableClient() override
   {
     return mCanvasClient;
   }
+
+  const TextureFlags& Flags() const { return mFlags; }
+
 protected:
+
+  bool UpdateTarget(gfx::DrawTarget* aDestTarget = nullptr);
+
   ClientLayerManager* ClientManager()
   {
     return static_cast<ClientLayerManager*>(mManager);
   }
 
-  CanvasClientType GetCanvasClientType()
-  {
-    if (mGLContext) {
-      return CanvasClient::CanvasClientGLContext;
-    }
-    return CanvasClient::CanvasClientSurface;
-  }
+  CanvasClientType GetCanvasClientType();
 
   RefPtr<CanvasClient> mCanvasClient;
 
-  gfx::SharedSurface* mTextureSurface;
-  gfx::SurfaceFactory* mFactory;
+  UniquePtr<gl::SurfaceFactory> mFactory;
 
-  friend class DeprecatedCanvasClient2D;
+  TextureFlags mFlags;
+
   friend class CanvasClient2D;
-  friend class DeprecatedCanvasClientSurfaceStream;
-  friend class CanvasClientSurfaceStream;
+  friend class CanvasClientSharedSurface;
 };
-}
-}
+
+} // namespace layers
+} // namespace mozilla
 
 #endif

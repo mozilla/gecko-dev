@@ -3,8 +3,8 @@
  *
  */
 
-const Ci = Components.interfaces;
-const Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cc = Components.classes;
 
 // There are 3 types of valid icon URIs:
 // 1. moz-icon:[valid URL]
@@ -113,7 +113,7 @@ function run_test() {
   exception = false; // reset exception value
 
   iconURI = uri.QueryInterface(Ci.nsIMozIconURI);
-  let fileURL = null;
+  fileURL = null;
   try {
     fileURL = iconURI.iconURL.QueryInterface(Ci.nsIFileURL);
   } catch (e) {

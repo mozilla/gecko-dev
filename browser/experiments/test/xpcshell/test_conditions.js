@@ -5,17 +5,11 @@
 
 
 Cu.import("resource:///modules/experiments/Experiments.jsm");
+Cu.import("resource://gre/modules/TelemetryController.jsm", this);
 
-const FILE_MANIFEST            = "experiments.manifest";
 const SEC_IN_ONE_DAY = 24 * 60 * 60;
-const MS_IN_ONE_DAY  = SEC_IN_ONE_DAY * 1000;
 
-let gProfileDir = null;
-let gHttpServer = null;
-let gHttpRoot   = null;
-let gReporter   = null;
-let gPolicy     = null;
-
+var gPolicy     = null;
 
 function ManifestEntry(data) {
   this.id = EXPERIMENT1_ID;
@@ -50,26 +44,20 @@ function run_test() {
 
 add_task(function* test_setup() {
   createAppInfo();
-  gProfileDir = do_get_profile();
+  do_get_profile();
+  startAddonManagerOnly();
+  yield TelemetryController.testSetup();
   gPolicy = new Experiments.Policy();
-
-  gReporter = yield getReporter("json_payload_simple");
-  yield gReporter.collectMeasurements();
-  let payload = yield gReporter.getJSONPayload(false);
-  do_register_cleanup(() => gReporter._shutdown());
 
   patchPolicy(gPolicy, {
     updatechannel: () => "nightly",
     locale: () => "en-US",
-    healthReportPayload: () => Promise.resolve(payload),
     random: () => 0.5,
   });
 
   Services.prefs.setBoolPref(PREF_EXPERIMENTS_ENABLED, true);
   Services.prefs.setIntPref(PREF_LOGGING_LEVEL, 0);
   Services.prefs.setBoolPref(PREF_LOGGING_DUMP, true);
-
-  let experiments = new Experiments.Experiments();
 });
 
 function arraysEqual(a, b) {
@@ -88,19 +76,40 @@ function arraysEqual(a, b) {
 
 // This function exists solely to be .toSource()d
 const sanityFilter = function filter(c) {
-  if (c.telemetryPayload === undefined) {
-    throw Error("No .telemetryPayload");
+  if (c.telemetryEnvironment === undefined) {
+    throw Error("No .telemetryEnvironment");
   }
-  if (c.telemetryPayload.simpleMeasurements === undefined) {
-    throw Error("No .simpleMeasurements");
-  }
-  if (c.healthReportPayload === undefined) {
-    throw Error("No .healthReportPayload");
-  }
-  if (c.healthReportPayload.geckoAppInfo == undefined) {
-    throw Error("No .geckoAppInfo");
+  if (c.telemetryEnvironment.build == undefined) {
+    throw Error("No .telemetryEnvironment.build");
   }
   return true;
+}
+
+// Utility function to generate build ID for previous/next date.
+function addDate(buildId, diff) {
+  let m = /^([0-9]{4})([0-9]{2})([0-9]{2})(.*)$/.exec(buildId);
+  if (!m) {
+    throw Error("Unsupported build ID: " + buildId);
+  }
+  let year = Number.parseInt(m[1], 10);
+  let month = Number.parseInt(m[2], 10);
+  let date = Number.parseInt(m[3], 10);
+  let remainingParts = m[4];
+
+  let d = new Date();
+  d.setUTCFullYear(year, month - 1, date);
+  d.setTime(d.getTime() + diff * 24 * 60 * 60 * 1000);
+
+  let yearStr = String(d.getUTCFullYear());
+  let monthStr = ("0" + String(d.getUTCMonth() + 1)).slice(-2);
+  let dateStr = ("0" + String(d.getUTCDate())).slice(-2);
+  return yearStr + monthStr + dateStr + remainingParts;
+}
+function prevDate(buildId) {
+  return addDate(buildId, -1);
+}
+function nextDate(buildId) {
+  return addDate(buildId, 1);
 }
 
 add_task(function* test_simpleFields() {
@@ -148,13 +157,13 @@ add_task(function* test_simpleFields() {
     [false, ["buildIDs"], {buildIDs: ["not-a-build-id", gAppInfo.platformBuildID + "-invalid"]}],
     [true,  null,         {buildIDs: ["not-a-build-id", gAppInfo.platformBuildID]}],
 
-    [true,  null,           {minBuildID: "2014060501"}],
-    [true,  null,           {minBuildID: "2014060601"}],
-    [false, ["minBuildID"], {minBuildID: "2014060701"}],
+    [true,  null,           {minBuildID: prevDate(gAppInfo.platformBuildID)}],
+    [true,  null,           {minBuildID: gAppInfo.platformBuildID}],
+    [false, ["minBuildID"], {minBuildID: nextDate(gAppInfo.platformBuildID)}],
 
-    [false, ["maxBuildID"], {maxBuildID: "2014010101"}],
-    [true,  null,           {maxBuildID: "2014060601"}],
-    [true,  null,           {maxBuildID: "2014060901"}],
+    [false, ["maxBuildID"], {maxBuildID: prevDate(gAppInfo.platformBuildID)}],
+    [true,  null,           {maxBuildID: gAppInfo.platformBuildID}],
+    [true,  null,           {maxBuildID: nextDate(gAppInfo.platformBuildID)}],
 
     // sample
 
@@ -230,7 +239,7 @@ add_task(function* test_times() {
       {startTime: nowSec -  5 * SEC_IN_ONE_DAY,
          endTime: nowSec + 10 * SEC_IN_ONE_DAY}],
     [true,  null, now,
-      {startTime: nowSec ,
+      {startTime: nowSec,
          endTime: nowSec + 10 * SEC_IN_ONE_DAY}],
     [false,  "startTime", now,
       {startTime: nowSec +  5 * SEC_IN_ONE_DAY,
@@ -309,4 +318,8 @@ add_task(function* test_times() {
       Assert.equal(reason, entry[1], "Experiment rejection reason should match for test " + i);
     }
   }
+});
+
+add_task(function* test_shutdown() {
+  yield TelemetryController.testShutdown();
 });

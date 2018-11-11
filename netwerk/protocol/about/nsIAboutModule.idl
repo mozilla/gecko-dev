@@ -7,25 +7,29 @@
 
 interface nsIURI;
 interface nsIChannel;
+interface nsILoadInfo;
 
-[scriptable, uuid(9575693c-60d9-4332-b6b8-6c29289339cb)]
+[scriptable, uuid(c0c19db9-1b5a-4ac5-b656-ed6f8149fa48)]
 interface nsIAboutModule : nsISupports 
 {
+
     /**
      * Constructs a new channel for the about protocol module. 
      *
      * @param aURI the uri of the new channel
+     * @param aLoadInfo the loadinfo of the new channel
      */
-    nsIChannel newChannel(in nsIURI aURI);
+    nsIChannel newChannel(in nsIURI aURI,
+                          in nsILoadInfo aLoadInfo);
 
     /**
-     * A flag that indicates whether a URI is safe for untrusted
-     * content.  If it is, web pages and so forth will be allowed to
-     * link to this about: URI, and the about: protocol handler will
-     * enforce that the principal of channels created for it be based
-     * on their originalURI or URI (depending on the channel flags),
-     * by setting their "owner" to null.
-     * Otherwise, only chrome will be able to link to it.
+     * A flag that indicates whether a URI should be run with content
+     * privileges. If it is, the about: protocol handler will enforce that
+     * the principal of channels created for it be based on their
+     * originalURI or URI (depending on the channel flags), by setting
+     * their "owner" to null.
+     * If content needs to be able to link to this URI, specify
+     * URI_CONTENT_LINKABLE as well.
      */
     const unsigned long URI_SAFE_FOR_UNTRUSTED_CONTENT = (1 << 0);
 
@@ -40,6 +44,32 @@ interface nsIAboutModule : nsISupports
      * in about:about, especially if it's not useful without a query string.
      */
     const unsigned long HIDE_FROM_ABOUTABOUT = (1 << 2);
+
+    /**
+     * A flag that indicates whether this about: URI wants Indexed DB enabled.
+     */
+    const unsigned long ENABLE_INDEXED_DB = (1 << 3);
+
+    /**
+     * A flag that indicates that this URI can be loaded in a child process
+     */
+    const unsigned long URI_CAN_LOAD_IN_CHILD = (1 << 4);
+
+    /**
+     * A flag that indicates that this URI must be loaded in a child process
+     */
+    const unsigned long URI_MUST_LOAD_IN_CHILD = (1 << 5);
+
+    /**
+     * Obsolete. This flag no longer has any effect and will be removed in future.
+     */
+    const unsigned long MAKE_UNLINKABLE = (1 << 6);
+
+    /**
+     * A flag that indicates that this URI should be linkable from content.
+     * Ignored unless URI_SAFE_FOR_UNTRUSTED_CONTENT is also specified.
+     */
+    const unsigned long MAKE_LINKABLE = (1 << 7);
 
     /**
      * A method to get the flags that apply to a given about: URI.  The URI

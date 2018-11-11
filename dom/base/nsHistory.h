@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sw=2 et tw=79: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,6 +8,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/dom/HistoryBinding.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIDOMHistory.h"
@@ -18,10 +19,10 @@
 class nsIDocShell;
 class nsISHistory;
 class nsIWeakReference;
-class nsPIDOMWindow;
+class nsPIDOMWindowInner;
 
 // Script "History" object
-class nsHistory MOZ_FINAL : public nsIDOMHistory, // Empty, needed for extension
+class nsHistory final : public nsIDOMHistory, // Empty, needed for extension
                                                   // backwards compat
                             public nsWrapperCache
 {
@@ -30,13 +31,15 @@ public:
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsHistory)
 
 public:
-  nsHistory(nsPIDOMWindow* aInnerWindow);
-  virtual ~nsHistory();
+  explicit nsHistory(nsPIDOMWindowInner* aInnerWindow);
 
-  nsPIDOMWindow* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  nsPIDOMWindowInner* GetParentObject() const;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   uint32_t GetLength(mozilla::ErrorResult& aRv) const;
+  mozilla::dom::ScrollRestoration GetScrollRestoration(mozilla::ErrorResult& aRv);
+  void SetScrollRestoration(mozilla::dom::ScrollRestoration aMode,
+                            mozilla::ErrorResult& aRv);
   void GetState(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
                 mozilla::ErrorResult& aRv) const;
   void Go(int32_t aDelta, mozilla::ErrorResult& aRv);
@@ -50,6 +53,8 @@ public:
                     mozilla::ErrorResult& aRv);
 
 protected:
+  virtual ~nsHistory();
+
   nsIDocShell* GetDocShell() const;
 
   void PushOrReplaceState(JSContext* aCx, JS::Handle<JS::Value> aData,

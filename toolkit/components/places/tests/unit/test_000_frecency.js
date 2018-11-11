@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,7 +22,7 @@ try {
               getService(Ci.nsINavBookmarksService);
   var prefs = Cc["@mozilla.org/preferences-service;1"].
               getService(Ci.nsIPrefBranch);
-} catch(ex) {
+} catch (ex) {
   do_throw("Could not get services\n");
 }
 
@@ -43,6 +43,7 @@ var bonusPrefs = {
   downloadVisitBonus: Ci.nsINavHistoryService.TRANSITION_DOWNLOAD,
   permRedirectVisitBonus: Ci.nsINavHistoryService.TRANSITION_REDIRECT_PERMANENT,
   tempRedirectVisitBonus: Ci.nsINavHistoryService.TRANSITION_REDIRECT_TEMPORARY,
+  reloadVisitBonus: Ci.nsINavHistoryService.TRANSITION_RELOAD,
 };
 
 // create test data
@@ -52,16 +53,16 @@ var matchCount = 0;
 var now = Date.now();
 var prefPrefix = "places.frecency.";
 
-function task_initializeBucket(bucket) {
+function* task_initializeBucket(bucket) {
   let [cutoffName, weightName] = bucket;
   // get pref values
-  var weight = 0, cutoff = 0, bonus = 0;
+  var weight = 0, cutoff = 0;
   try {
     weight = prefs.getIntPref(prefPrefix + weightName);
-  } catch(ex) {}
+  } catch (ex) {}
   try {
     cutoff = prefs.getIntPref(prefPrefix + cutoffName);
-  } catch(ex) {}
+  } catch (ex) {}
 
   if (cutoff < 1)
     return;
@@ -69,7 +70,7 @@ function task_initializeBucket(bucket) {
   // generate a date within the cutoff period
   var dateInPeriod = (now - ((cutoff - 1) * 86400 * 1000)) * 1000;
 
-  for (let [bonusName, visitType] in Iterator(bonusPrefs)) {
+  for (let [bonusName, visitType] of Object.entries(bonusPrefs)) {
     var frecency = -1;
     var calculatedURI = null;
     var matchTitle = "";
@@ -77,8 +78,8 @@ function task_initializeBucket(bucket) {
     // unvisited (only for first cutoff date bucket)
     if (bonusName == "unvisitedBookmarkBonus" || bonusName == "unvisitedTypedBonus") {
       if (cutoffName == "firstBucketCutoff") {
-        var points = Math.ceil(bonusValue / parseFloat(100.0) * weight);
-        var visitCount = 1; //bonusName == "unvisitedBookmarkBonus" ? 1 : 0;
+        let points = Math.ceil(bonusValue / parseFloat(100.0) * weight);
+        var visitCount = 1; // bonusName == "unvisitedBookmarkBonus" ? 1 : 0;
         frecency = Math.ceil(visitCount * points);
         calculatedURI = uri("http://" + searchTerm + ".com/" +
           bonusName + ":" + bonusValue + "/cutoff:" + cutoff +
@@ -89,7 +90,7 @@ function task_initializeBucket(bucket) {
         }
         else {
           matchTitle = searchTerm + "UnvisitedTyped";
-          yield promiseAddVisits({
+          yield PlacesTestUtils.addVisits({
             uri: calculatedURI,
             title: matchTitle,
             transition: visitType,
@@ -105,11 +106,12 @@ function task_initializeBucket(bucket) {
       if (visitType == Ci.nsINavHistoryService.TRANSITION_BOOKMARK)
         bonusValue = bonusValue * 2;
 
-      var points = Math.ceil(1 * ((bonusValue / parseFloat(100.000000)).toFixed(6) * weight) / 1);
+      let points = Math.ceil(1 * ((bonusValue / parseFloat(100.000000)).toFixed(6) * weight) / 1);
       if (!points) {
         if (visitType == Ci.nsINavHistoryService.TRANSITION_EMBED ||
             visitType == Ci.nsINavHistoryService.TRANSITION_FRAMED_LINK ||
             visitType == Ci.nsINavHistoryService.TRANSITION_DOWNLOAD ||
+            visitType == Ci.nsINavHistoryService.TRANSITION_RELOAD ||
             bonusName == "defaultVisitBonus")
           frecency = 0;
         else
@@ -126,7 +128,7 @@ function task_initializeBucket(bucket) {
       }
       else
         matchTitle = calculatedURI.spec.substr(calculatedURI.spec.lastIndexOf("/")+1);
-      yield promiseAddVisits({
+      yield PlacesTestUtils.addVisits({
         uri: calculatedURI,
         transition: visitType,
         visitDate: dateInPeriod
@@ -135,7 +137,7 @@ function task_initializeBucket(bucket) {
 
     if (calculatedURI && frecency) {
       results.push([calculatedURI, frecency, matchTitle]);
-      yield promiseAddVisits({
+      yield PlacesTestUtils.addVisits({
         uri: calculatedURI,
         title: matchTitle,
         transition: visitType,
@@ -197,33 +199,31 @@ AutoCompleteInput.prototype = {
   }
 }
 
-function run_test()
+add_task(function* test_frecency()
 {
-  run_next_test();
-}
-
-add_task(function test_frecency()
-{
-  for (let [, bucket] in Iterator(bucketPrefs)) {
+  // Disable autoFill for this test.
+  Services.prefs.setBoolPref("browser.urlbar.autoFill", false);
+  do_register_cleanup(() => Services.prefs.clearUserPref("browser.urlbar.autoFill"));
+  for (let bucket of bucketPrefs) {
     yield task_initializeBucket(bucket);
   }
 
   // sort results by frecency
-  results.sort(function(a,b) b[1] - a[1]);
+  results.sort((a, b) => b[1] - a[1]);
   // Make sure there's enough results returned
   prefs.setIntPref("browser.urlbar.maxRichResults", results.length);
 
   // DEBUG
-  //results.every(function(el) { dump("result: " + el[1] + ": " + el[0].spec + " (" + el[2] + ")\n"); return true; })
+  // results.every(function(el) { dump("result: " + el[1] + ": " + el[0].spec + " (" + el[2] + ")\n"); return true; })
 
-  yield promiseAsyncUpdates();
+  yield PlacesTestUtils.promiseAsyncUpdates();
 
   var controller = Components.classes["@mozilla.org/autocomplete/controller;1"].
                    getService(Components.interfaces.nsIAutoCompleteController);
 
   // Make an AutoCompleteInput that uses our searches
   // and confirms results on search complete
-  var input = new AutoCompleteInput(["history"]);
+  var input = new AutoCompleteInput(["unifiedcomplete"]);
 
   controller.input = input;
 
@@ -258,7 +258,7 @@ add_task(function test_frecency()
         // frecency just in the wrong "order" (order of same frecency is
         // undefined), so check if frecency matches. This is okay because we
         // can still ensure the correct number of expected frecencies.
-        let getFrecency = function(aURL) aURL.match(/frecency:(-?\d+)$/)[1];
+        let getFrecency = aURL => aURL.match(/frecency:(-?\d+)$/)[1];
         print("### checking for same frecency between '" + searchURL +
               "' and '" + expectURL + "'");
         do_check_eq(getFrecency(searchURL), getFrecency(expectURL));

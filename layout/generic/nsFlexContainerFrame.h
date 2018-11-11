@@ -5,23 +5,43 @@
  * version 2.0 (the "License"). You can obtain a copy of the License at
  * http://mozilla.org/MPL/2.0/. */
 
-/* rendering object for CSS "display: flex" */
+/* rendering object for CSS "display: flex" and "display: -webkit-box" */
 
 #ifndef nsFlexContainerFrame_h___
 #define nsFlexContainerFrame_h___
 
 #include "nsContainerFrame.h"
+#include "mozilla/UniquePtr.h"
 
 namespace mozilla {
 template <class T> class LinkedList;
-}
+class LogicalPoint;
+} // namespace mozilla
 
 nsContainerFrame* NS_NewFlexContainerFrame(nsIPresShell* aPresShell,
                                            nsStyleContext* aContext);
 
-typedef nsContainerFrame nsFlexContainerFrameSuper;
 
-class nsFlexContainerFrame : public nsFlexContainerFrameSuper {
+/**
+ * This is the rendering object used for laying out elements with
+ * "display: flex" or "display: inline-flex".
+ *
+ * We also use this class for elements with "display: -webkit-box" or
+ * "display: -webkit-inline-box" (but not "-moz-box" / "-moz-inline-box" --
+ * those are rendered with old-school XUL frame classes).
+ *
+ * Note: we represent the -webkit-box family of properties (-webkit-box-orient,
+ * -webkit-box-flex, etc.) as aliases for their -moz equivalents.  And for
+ * -webkit-{inline-}box containers, nsFlexContainerFrame will honor those
+ * "legacy" properties for alignment/flexibility/etc. *instead of* honoring the
+ * modern flexbox & alignment properties.  For brevity, many comments in
+ * nsFlexContainerFrame.cpp simply refer to these properties using their
+ * "-webkit" versions, since we're mostly expecting to encounter them in that
+ * form. (Technically, the "-moz" versions of these properties *can* influence
+ * layout here as well (since that's what the -webkit versions are aliased to)
+ * -- but only inside of a "display:-webkit-{inline-}box" container.)
+ */
+class nsFlexContainerFrame : public nsContainerFrame {
 public:
   NS_DECL_FRAMEARENA_HELPERS
   NS_DECL_QUERYFRAME_TARGET(nsFlexContainerFrame)
@@ -35,34 +55,86 @@ public:
   class FlexItem;
   class FlexLine;
   class FlexboxAxisTracker;
-  class StrutInfo;
+  struct StrutInfo;
 
   // nsIFrame overrides
+  void Init(nsIContent*       aContent,
+            nsContainerFrame* aParent,
+            nsIFrame*         aPrevInFlow) override;
+
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
   virtual void Reflow(nsPresContext*           aPresContext,
-                      nsHTMLReflowMetrics&     aDesiredSize,
-                      const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+                      ReflowOutput&     aDesiredSize,
+                      const ReflowInput& aReflowInput,
+                      nsReflowStatus&          aStatus) override;
 
   virtual nscoord
-    GetMinWidth(nsRenderingContext* aRenderingContext) MOZ_OVERRIDE;
+    GetMinISize(nsRenderingContext* aRenderingContext) override;
   virtual nscoord
-    GetPrefWidth(nsRenderingContext* aRenderingContext) MOZ_OVERRIDE;
+    GetPrefISize(nsRenderingContext* aRenderingContext) override;
 
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
+
+  nscoord GetLogicalBaseline(mozilla::WritingMode aWM) const override;
+
+  bool GetVerticalAlignBaseline(mozilla::WritingMode aWM,
+                                nscoord* aBaseline) const override
+  {
+    return GetNaturalBaselineBOffset(aWM, BaselineSharingGroup::eFirst, aBaseline);
+  }
+
+  bool GetNaturalBaselineBOffset(mozilla::WritingMode aWM,
+                                 BaselineSharingGroup aBaselineGroup,
+                                 nscoord*             aBaseline) const override
+  {
+    if (HasAnyStateBits(NS_STATE_FLEX_SYNTHESIZE_BASELINE)) {
+      return false;
+    }
+    *aBaseline = aBaselineGroup == BaselineSharingGroup::eFirst ?
+                   mBaselineFromLastReflow : mLastBaselineFromLastReflow;
+    return true;
+  }
+
+  // nsContainerFrame overrides
+  uint16_t CSSAlignmentForAbsPosChild(
+            const ReflowInput& aChildRI,
+            mozilla::LogicalAxis aLogicalAxis) const override;
+
   // Flexbox-specific public methods
   bool IsHorizontal();
 
+  /**
+    * Helper function to calculate packing space and initial offset of alignment
+    * subjects in MainAxisPositionTracker() and CrossAxisPositionTracker() for
+    * space-between, space-around, and space-evenly.
+    *
+    * @param aNumThingsToPack             Number of alignment subjects.
+    * @param aAlignVal                    Value for align-self or justify-self.
+    * @param aFirstSubjectOffset          Outparam for first subject offset.
+    * @param aNumPackingSpacesRemaining   Outparam for number of equal-sized
+    *                                     packing spaces to apply between each
+    *                                     alignment subject.
+    * @param aPackingSpaceRemaining       Outparam for total amount of packing
+    *                                     space to be divided up.
+    */
+  static void CalculatePackingSpace(uint32_t aNumThingsToPack,
+                                    uint8_t aAlignVal,
+                                    nscoord* aFirstSubjectOffset,
+                                    uint32_t* aNumPackingSpacesRemaining,
+                                    nscoord* aPackingSpaceRemaining);
+
 protected:
   // Protected constructor & destructor
-  nsFlexContainerFrame(nsStyleContext* aContext) :
-    nsFlexContainerFrameSuper(aContext)
+  explicit nsFlexContainerFrame(nsStyleContext* aContext)
+    : nsContainerFrame(aContext)
+    , mBaselineFromLastReflow(NS_INTRINSIC_WIDTH_UNKNOWN)
+    , mLastBaselineFromLastReflow(NS_INTRINSIC_WIDTH_UNKNOWN)
   {}
   virtual ~nsFlexContainerFrame();
 
@@ -81,11 +153,11 @@ protected:
    * everything before that point.)
    */
   void DoFlexLayout(nsPresContext*           aPresContext,
-                    nsHTMLReflowMetrics&     aDesiredSize,
-                    const nsHTMLReflowState& aReflowState,
+                    ReflowOutput&     aDesiredSize,
+                    const ReflowInput& aReflowInput,
                     nsReflowStatus&          aStatus,
                     nscoord aContentBoxMainSize,
-                    nscoord aAvailableHeightForContent,
+                    nscoord aAvailableBSizeForContent,
                     nsTArray<StrutInfo>& aStruts,
                     const FlexboxAxisTracker& aAxisTracker);
 
@@ -106,47 +178,150 @@ protected:
   void SanityCheckAnonymousFlexItems() const;
 #endif // DEBUG
 
-  // Returns a new FlexItem for the given child frame, allocated on the heap.
-  // Caller is responsible for managing the FlexItem's lifetime.
-  FlexItem* GenerateFlexItemForChild(nsPresContext* aPresContext,
+  /*
+   * Returns a new FlexItem for the given child frame, allocated on the heap.
+   * Guaranteed to return non-null. Caller is responsible for managing the
+   * FlexItem's lifetime.
+   *
+   * Before returning, this method also processes the FlexItem to resolve its
+   * flex basis (including e.g. auto-height) as well as to resolve
+   * "min-height:auto", via ResolveAutoFlexBasisAndMinSize(). (Basically, the
+   * returned FlexItem will be ready to participate in the "Resolve the
+   * Flexible Lengths" step of the Flex Layout Algorithm.)
+   */
+  mozilla::UniquePtr<FlexItem> GenerateFlexItemForChild(nsPresContext* aPresContext,
                                      nsIFrame* aChildFrame,
-                                     const nsHTMLReflowState& aParentReflowState,
+                                     const ReflowInput& aParentReflowInput,
                                      const FlexboxAxisTracker& aAxisTracker);
 
-  void ResolveFlexItemMaxContentSizing(nsPresContext* aPresContext,
+  /**
+   * This method performs a "measuring" reflow to get the content height of
+   * aFlexItem.Frame() (treating it as if it had auto-height), & returns the
+   * resulting height.
+   * (Helper for ResolveAutoFlexBasisAndMinSize().)
+   */
+  nscoord MeasureFlexItemContentHeight(nsPresContext* aPresContext,
                                        FlexItem& aFlexItem,
-                                       const nsHTMLReflowState& aParentReflowState,
-                                       const FlexboxAxisTracker& aAxisTracker);
+                                       bool aForceVerticalResizeForMeasuringReflow,
+                                       const ReflowInput& aParentReflowInput);
 
-  // Creates FlexItems for all of our child frames, arranged in a list of
-  // FlexLines.  These are returned by reference in |aLines|. Our actual
-  // return value has to be |nsresult|, in case we have to reflow a child
-  // to establish its flex base size and that reflow fails.
+  /**
+   * This method resolves an "auto" flex-basis and/or min-main-size value
+   * on aFlexItem, if needed.
+   * (Helper for GenerateFlexItemForChild().)
+   */
+  void ResolveAutoFlexBasisAndMinSize(nsPresContext* aPresContext,
+                                      FlexItem& aFlexItem,
+                                      const ReflowInput& aItemReflowInput,
+                                      const FlexboxAxisTracker& aAxisTracker);
+
+  /**
+   * This method:
+   *  - Creates FlexItems for all of our child frames (except placeholders).
+   *  - Groups those FlexItems into FlexLines.
+   *  - Returns those FlexLines in the outparam |aLines|.
+   *
+   * For any child frames which are placeholders, this method will instead just
+   * append that child to the outparam |aPlaceholders| for separate handling.
+   * (Absolutely positioned children of a flex container are *not* flex items.)
+   */
   void GenerateFlexLines(nsPresContext* aPresContext,
-                         const nsHTMLReflowState& aReflowState,
+                         const ReflowInput& aReflowInput,
                          nscoord aContentBoxMainSize,
-                         nscoord aAvailableHeightForContent,
+                         nscoord aAvailableBSizeForContent,
                          const nsTArray<StrutInfo>& aStruts,
                          const FlexboxAxisTracker& aAxisTracker,
+                         nsTArray<nsIFrame*>& aPlaceholders,
                          mozilla::LinkedList<FlexLine>& aLines);
 
-  nscoord GetMainSizeFromReflowState(const nsHTMLReflowState& aReflowState,
+  nscoord GetMainSizeFromReflowInput(const ReflowInput& aReflowInput,
                                      const FlexboxAxisTracker& aAxisTracker);
 
-  nscoord ComputeCrossSize(const nsHTMLReflowState& aReflowState,
+  nscoord ComputeCrossSize(const ReflowInput& aReflowInput,
                            const FlexboxAxisTracker& aAxisTracker,
                            nscoord aSumLineCrossSizes,
-                           nscoord aAvailableHeightForContent,
+                           nscoord aAvailableBSizeForContent,
                            bool* aIsDefinite,
                            nsReflowStatus& aStatus);
 
   void SizeItemInCrossAxis(nsPresContext* aPresContext,
                            const FlexboxAxisTracker& aAxisTracker,
-                           nsHTMLReflowState& aChildReflowState,
+                           ReflowInput& aChildReflowInput,
                            FlexItem& aItem);
+
+  /**
+   * Moves the given flex item's frame to the given LogicalPosition (modulo any
+   * relative positioning).
+   *
+   * This can be used in cases where we've already done a "measuring reflow"
+   * for the flex item at the correct size, and hence can skip its final reflow
+   * (but still need to move it to the right final position).
+   *
+   * @param aReflowInput    The flex container's reflow state.
+   * @param aItem           The flex item whose frame should be moved.
+   * @param aFramePos       The position where the flex item's frame should
+   *                        be placed. (pre-relative positioning)
+   * @param aContainerSize  The flex container's size (required by some methods
+   *                        that we call, to interpret aFramePos correctly).
+   */
+  void MoveFlexItemToFinalPosition(const ReflowInput& aReflowInput,
+                                   const FlexItem& aItem,
+                                   mozilla::LogicalPoint& aFramePos,
+                                   const nsSize& aContainerSize);
+  /**
+   * Helper-function to reflow a child frame, at its final position determined
+   * by flex layout.
+   *
+   * @param aPresContext    The presentation context being used in reflow.
+   * @param aAxisTracker    A FlexboxAxisTracker with the flex container's axes.
+   * @param aReflowInput    The flex container's reflow state.
+   * @param aItem           The flex item to be reflowed.
+   * @param aFramePos       The position where the flex item's frame should
+   *                        be placed. (pre-relative positioning)
+   * @param aContainerSize  The flex container's size (required by some methods
+   *                        that we call, to interpret aFramePos correctly).
+   */
+  void ReflowFlexItem(nsPresContext* aPresContext,
+                      const FlexboxAxisTracker& aAxisTracker,
+                      const ReflowInput& aReflowInput,
+                      const FlexItem& aItem,
+                      mozilla::LogicalPoint& aFramePos,
+                      const nsSize& aContainerSize);
+
+  /**
+   * Helper-function to perform a "dummy reflow" on all our nsPlaceholderFrame
+   * children, at the container's content-box origin.
+   *
+   * This doesn't actually represent the static position of the placeholders'
+   * out-of-flow (OOF) frames -- we can't compute that until we've reflowed the
+   * OOF, because (depending on the CSS Align properties) the static position
+   * may be influenced by the OOF's size.  So for now, we just co-opt the
+   * placeholder to store the flex container's logical content-box origin, and
+   * we defer to nsAbsoluteContainingBlock to determine the OOF's actual static
+   * position (using this origin, the OOF's size, and the CSS Align
+   * properties).
+   *
+   * @param aPresContext       The presentation context being used in reflow.
+   * @param aReflowInput       The flex container's reflow input.
+   * @param aPlaceholders      An array of all the flex container's
+   *                           nsPlaceholderFrame children.
+   * @param aContentBoxOrigin  The flex container's logical content-box
+   *                           origin (in its own coordinate space).
+   * @param aContainerSize     The flex container's size (required by some
+   *                           reflow methods to interpret positions correctly).
+   */
+  void ReflowPlaceholders(nsPresContext* aPresContext,
+                          const ReflowInput& aReflowInput,
+                          nsTArray<nsIFrame*>& aPlaceholders,
+                          const mozilla::LogicalPoint& aContentBoxOrigin,
+                          const nsSize& aContainerSize);
 
   bool mChildrenHaveBeenReordered; // Have we ever had to reorder our kids
                                    // to satisfy their 'order' values?
+
+  nscoord mBaselineFromLastReflow;
+  // Note: the last baseline is a distance from our border-box end edge.
+  nscoord mLastBaselineFromLastReflow;
 };
 
 #endif /* nsFlexContainerFrame_h___ */

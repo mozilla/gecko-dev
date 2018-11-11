@@ -20,6 +20,7 @@
 #include "nsITimer.h"
 
 class nsIThread;
+class nsIPrincipal;
 
 // The SDK shipping with VC11 has renamed IAsyncOperation to
 // IDataObjectAsyncCapability.  We try to detect this, and rename this in our
@@ -101,7 +102,7 @@ protected:
 		STDMETHODIMP_(ULONG) Release       ();
 
     // support for clipboard
-    void AddDataFlavor(const char* aDataFlavor, LPFORMATETC aFE);
+    virtual void AddDataFlavor(const char* aDataFlavor, LPFORMATETC aFE);
     void SetTransferable(nsITransferable * aTransferable);
 
 		// Return the registered OLE class ID of this object's CfDataObj.
@@ -237,7 +238,7 @@ protected:
     class CStream : public IStream, public nsIStreamListener
     {
       nsCOMPtr<nsIChannel> mChannel;
-      nsTArray<uint8_t> mChannelData;
+      FallibleTArray<uint8_t> mChannelData;
       bool mChannelRead;
       nsresult mChannelResult;
       uint32_t mStreamRead;
@@ -248,7 +249,9 @@ protected:
 
     public:
       CStream();
-      nsresult Init(nsIURI *pSourceURI);
+      nsresult Init(nsIURI *pSourceURI,
+                    uint32_t aContentPolicyType,
+                    nsIPrincipal* aRequestingPrincipal);
 
       NS_DECL_ISUPPORTS
       NS_DECL_NSIREQUESTOBSERVER
@@ -291,4 +294,3 @@ protected:
 
 
 #endif  // _NSDATAOBJ_H_
-

@@ -1,3 +1,5 @@
+Cu.import("resource://gre/modules/NetUtil.jsm");
+
 function check_request_header(chan, name, value) {
   var chanValue;
   try {
@@ -9,10 +11,11 @@ function check_request_header(chan, name, value) {
 }
 
 function run_test() {
-  var ios = Components.classes["@mozilla.org/network/io-service;1"]
-                      .getService(Components.interfaces.nsIIOService);
-  var chan = ios.newChannel("http://www.mozilla.org/", null, null)
-                .QueryInterface(Components.interfaces.nsIHttpChannel);
+
+  var chan = NetUtil.newChannel ({
+    uri: "http://www.mozilla.org/",
+    loadUsingSystemPrincipal: true
+  }).QueryInterface(Components.interfaces.nsIHttpChannel);
 
   check_request_header(chan, "host", "www.mozilla.org");
   check_request_header(chan, "Host", "www.mozilla.org");

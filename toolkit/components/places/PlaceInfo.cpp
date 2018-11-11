@@ -110,16 +110,14 @@ PlaceInfo::GetVisits(JSContext* aContext,
   nsCOMPtr<nsIXPConnect> xpc = mozilla::services::GetXPConnect();
 
   for (VisitsArray::size_type idx = 0; idx < mVisits.Length(); idx++) {
-    nsCOMPtr<nsIXPConnectJSObjectHolder> wrapper;
+    JS::RootedObject jsobj(aContext);
     nsresult rv = xpc->WrapNative(aContext, global, mVisits[idx],
                                   NS_GET_IID(mozIVisitInfo),
-                                  getter_AddRefs(wrapper));
+                                  jsobj.address());
     NS_ENSURE_SUCCESS(rv, rv);
-
-    JS::Rooted<JSObject*> jsobj(aContext, wrapper->GetJSObject());
     NS_ENSURE_STATE(jsobj);
 
-    bool rc = JS_SetElement(aContext, visits, idx, jsobj);
+    bool rc = JS_DefineElement(aContext, visits, idx, jsobj, JSPROP_ENUMERATE);
     NS_ENSURE_TRUE(rc, NS_ERROR_UNEXPECTED);
   }
 

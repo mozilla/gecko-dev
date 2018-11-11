@@ -1,11 +1,10 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-PARALLEL_DIRS += ['builtin']
-TEST_DIRS += ['test']
+DIRS += ['builtin']
 
 EXPORTS += [
     'nsBindingManager.h',
@@ -37,18 +36,18 @@ UNIFIED_SOURCES += [
     'XBLChildrenElement.cpp',
 ]
 
-FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
-
 LOCAL_INCLUDES += [
-    '/content/base/src',
-    '/content/html/document/src',
-    '/content/xml/document/src',
-    '/content/xul/content/src',
-    '/content/xul/document/src',
     '/dom/base',
+    '/dom/html',
+    '/dom/xml',
+    '/dom/xul',
     '/layout/style',
 ]
 
-FINAL_LIBRARY = 'gklayout'
+FINAL_LIBRARY = 'xul'
+
+MOCHITEST_MANIFESTS += ['test/mochitest.ini']
+MOCHITEST_CHROME_MANIFESTS += ['test/chrome.ini']
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wno-error=shadow']

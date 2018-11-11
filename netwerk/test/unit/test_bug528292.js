@@ -1,4 +1,5 @@
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 const sentCookieVal     = "foo=bar";
 const responseBody      = "response body";
@@ -36,6 +37,12 @@ function postRedirectHandler(metadata, response)
   response.bodyOutputStream.write(responseBody, responseBody.length);
 }
 
+function inChildProcess() {
+  return Cc["@mozilla.org/xre/app-info;1"]
+  .getService(Ci.nsIXULRuntime)
+  .processType != Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT;
+}
+
 function run_test()
 {
   // Start the HTTP server.
@@ -44,9 +51,11 @@ function run_test()
   httpServer.registerPathHandler(postRedirectPath, postRedirectHandler);
   httpServer.start(-1);
 
-  // Disable third-party cookies in general.
-  Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch).
-    setIntPref("network.cookie.cookieBehavior", 1);
+  if (!inChildProcess()) {
+    // Disable third-party cookies in general.
+    Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch).
+      setIntPref("network.cookie.cookieBehavior", 1);
+  }
 
   var ioService = Cc["@mozilla.org/network/io-service;1"].
                   getService(Ci.nsIIOService);
@@ -55,9 +64,11 @@ function run_test()
   // the channel both to set a cookie (since nsICookieService::setCookieString
   // requires such a channel in order to successfully set a cookie) and then
   // to load the pre-redirect URI.
-  var chan = ioService.newChannel(preRedirectURL, "", null).
-             QueryInterface(Ci.nsIHttpChannel).
-             QueryInterface(Ci.nsIHttpChannelInternal);
+  var chan = NetUtil.newChannel({
+    uri: preRedirectURL,
+    loadUsingSystemPrincipal: true
+  }).QueryInterface(Ci.nsIHttpChannel)
+    .QueryInterface(Ci.nsIHttpChannelInternal);
   chan.forceAllowThirdPartyCookie = true;
 
   // Set a cookie on one of the URIs.  It doesn't matter which one, since
@@ -68,7 +79,7 @@ function run_test()
     setCookieString(postRedirectURI, null, sentCookieVal, chan);
 
   // Load the pre-redirect URI.
-  chan.asyncOpen(new ChannelListener(finish_test, null), null);
+  chan.asyncOpen2(new ChannelListener(finish_test, null));
   do_test_pending();
 }
 

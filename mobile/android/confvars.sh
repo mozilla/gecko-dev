@@ -5,72 +5,56 @@
 MOZ_APP_BASENAME=Fennec
 MOZ_APP_VENDOR=Mozilla
 
-MOZ_APP_VERSION=33.0a1
+MOZ_APP_VERSION=$FIREFOX_VERSION
+MOZ_APP_VERSION_DISPLAY=$FIREFOX_VERSION_DISPLAY
 MOZ_APP_UA_NAME=Firefox
 
 MOZ_BRANDING_DIRECTORY=mobile/android/branding/unofficial
 MOZ_OFFICIAL_BRANDING_DIRECTORY=mobile/android/branding/official
 # MOZ_APP_DISPLAYNAME is set by branding/configure.sh
 
-MOZ_SAFE_BROWSING=1
+# We support Android SDK version 15 and up by default.
+# See the --enable-android-min-sdk and --enable-android-max-sdk arguments in configure.in.
+MOZ_ANDROID_MIN_SDK_VERSION=15
 
-MOZ_DISABLE_CRYPTOLEGACY=1
+# There are several entry points into the Firefox application.  These are the names of some of the classes that are
+# listed in the Android manifest.  They are specified in here to avoid hard-coding them in source code files.
+MOZ_ANDROID_APPLICATION_CLASS=org.mozilla.gecko.GeckoApplication
+MOZ_ANDROID_BROWSER_INTENT_CLASS=org.mozilla.gecko.BrowserApp
+MOZ_ANDROID_SEARCH_INTENT_CLASS=org.mozilla.search.SearchActivity
 
-# Enable getUserMedia
-MOZ_MEDIA_NAVIGATOR=1
+MOZ_NO_SMART_CARDS=1
 
-# Enable NFC permission
-MOZ_ANDROID_BEAM=1
-
-if test "$LIBXUL_SDK"; then
-MOZ_XULRUNNER=1
-else
 MOZ_XULRUNNER=
-fi
 
 MOZ_CAPTURE=1
 MOZ_RAW=1
-MOZ_PLACES=
-MOZ_SOCIAL=
-MOZ_ANDROID_HISTORY=1
-MOZ_DISABLE_EXPORT_JS=1
 
-# Needed for building our components as part of libxul
-MOZ_APP_COMPONENT_INCLUDE=nsBrowserComponents.h
+MOZ_RUST_MP4PARSE=1
 
 # use custom widget for html:select
 MOZ_USE_NATIVE_POPUP_WINDOWS=1
 
 MOZ_APP_ID={aa3c5121-dab2-40e2-81ca-7ea25febc110}
 
-MOZ_ANDROID_OMTC=1
-MOZ_EXTENSION_MANAGER=1
 MOZ_APP_STATIC_INI=1
 
-# Enable on-demand decompression
-MOZ_ENABLE_SZIP=1
+# Enable second screen using native Android libraries.
+MOZ_NATIVE_DEVICES=1
 
-MOZ_FOLD_LIBS=1
-
-# Enable navigator.mozPay
-MOZ_PAY=1
-
-# Enable UI for healthreporter
-MOZ_SERVICES_HEALTHREPORT=1
-
-# Enable FirefoxAccounts
-MOZ_SERVICES_FXACCOUNTS=1
-
-# Wifi-AP/cell tower data reporting is enabled on non-release builds.
-if test ! "$RELEASE_BUILD"; then
-MOZ_DATA_REPORTING=1
+# Enable install tracking SDK if we have Google Play support; MOZ_NATIVE_DEVICES
+# is a proxy flag for that support.
+if test "$RELEASE_OR_BETA"; then
+if test "$MOZ_NATIVE_DEVICES"; then
+  MOZ_INSTALL_TRACKING=1
+fi
 fi
 
-# Enable runtime locale switching.
-MOZ_LOCALE_SWITCHER=1
+# Mark as WebGL conformant
+MOZ_WEBGL_CONFORMANT=1
 
-# Enable second screen and casting support for external devices.
-MOZ_DEVICES=1
+# Use the low-memory GC tuning.
+export JS_GC_SMALL_CHUNK_SIZE=1
 
-# Enable second screen using native Android libraries
-MOZ_NATIVE_DEVICES=
+# Enable checking that add-ons are signed by the trusted root
+MOZ_ADDON_SIGNING=1

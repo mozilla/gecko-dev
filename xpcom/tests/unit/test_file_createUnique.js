@@ -1,11 +1,11 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cr = Components.results;
 
 function run_test()
 {
@@ -19,7 +19,7 @@ function run_test()
   tempFile.append("test.txt");
 
   try {
-    tempFile.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0600);
+    tempFile.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0o600);
     do_throw("Creating an item in a folder with a very long name should throw");
   }
   catch (e if (e instanceof Ci.nsIException &&

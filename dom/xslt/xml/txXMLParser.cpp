@@ -11,11 +11,14 @@
 #include "nsIDOMDocument.h"
 #include "nsSyncLoadService.h"
 #include "nsNetUtil.h"
+#include "nsIURI.h"
 #include "nsIPrincipal.h"
 
 nsresult
-txParseDocumentFromURI(const nsAString& aHref, const txXPathNode& aLoader,
-                       nsAString& aErrMsg, txXPathNode** aResult)
+txParseDocumentFromURI(const nsAString& aHref,
+                       const txXPathNode& aLoader,
+                       nsAString& aErrMsg,
+                       txXPathNode** aResult)
 {
     NS_ENSURE_ARG_POINTER(aResult);
     *aResult = nullptr;
@@ -35,8 +38,12 @@ txParseDocumentFromURI(const nsAString& aHref, const txXPathNode& aLoader,
     nsIDOMDocument* theDocument = nullptr;
     nsAutoSyncOperation sync(loaderDocument);
     rv = nsSyncLoadService::LoadDocument(documentURI,
+                                         nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST,
                                          loaderDocument->NodePrincipal(),
-                                         loadGroup, true, &theDocument);
+                                         nsILoadInfo::SEC_REQUIRE_CORS_DATA_INHERITS,
+                                         loadGroup, true,
+                                         loaderDocument->GetReferrerPolicy(),
+                                         &theDocument);
 
     if (NS_FAILED(rv)) {
         aErrMsg.AppendLiteral("Document load of ");

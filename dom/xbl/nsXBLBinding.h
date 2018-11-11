@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,7 +9,6 @@
 
 #include "nsXBLService.h"
 #include "nsCOMPtr.h"
-#include "nsAutoPtr.h"
 #include "nsINodeList.h"
 #include "nsIStyleRuleProcessor.h"
 #include "nsClassHashtable.h"
@@ -21,7 +21,6 @@ class nsXBLPrototypeBinding;
 class nsIContent;
 class nsIAtom;
 class nsIDocument;
-class nsIScriptContext;
 
 namespace mozilla {
 namespace dom {
@@ -37,12 +36,11 @@ class nsAnonymousContentList;
 // *********************************************************************/
 // The XBLBinding class
 
-class nsXBLBinding MOZ_FINAL
+class nsXBLBinding final
 {
 public:
-  nsXBLBinding(nsXBLPrototypeBinding* aProtoBinding);
+  explicit nsXBLBinding(nsXBLPrototypeBinding* aProtoBinding);
   nsXBLBinding(mozilla::dom::ShadowRoot* aShadowRoot, nsXBLPrototypeBinding* aProtoBinding);
-  ~nsXBLBinding();
 
   /**
    * XBLBindings are refcounted.  They are held onto in 3 ways:
@@ -77,7 +75,7 @@ public:
    * otherwise we don't have untainted data with which to do a proper lookup.
    */
   bool LookupMember(JSContext* aCx, JS::Handle<jsid> aId,
-                    JS::MutableHandle<JSPropertyDescriptor> aDesc);
+                    JS::MutableHandle<JS::PropertyDescriptor> aDesc);
 
   /*
    * Determines whether the binding has a field with the given name.
@@ -86,12 +84,14 @@ public:
 
 protected:
 
+  ~nsXBLBinding();
+
   /*
    * Internal version. Requires that aCx is in appropriate xbl scope.
    */
   bool LookupMemberInternal(JSContext* aCx, nsString& aName,
                             JS::Handle<jsid> aNameAsId,
-                            JS::MutableHandle<JSPropertyDescriptor> aDesc,
+                            JS::MutableHandle<JS::PropertyDescriptor> aDesc,
                             JS::Handle<JSObject*> aXBLScope);
 
 public:
@@ -130,7 +130,7 @@ public:
   void WalkRules(nsIStyleRuleProcessor::EnumFunc aFunc, void* aData);
 
   static nsresult DoInitJSClass(JSContext *cx, JS::Handle<JSObject*> obj,
-                                const nsAFlatCString& aClassName,
+                                const nsAFlatString& aClassName,
                                 nsXBLPrototypeBinding* aProtoBinding,
                                 JS::MutableHandle<JSObject*> aClassObject,
                                 bool* aNew);
@@ -156,15 +156,18 @@ public:
   // by this binding.
   nsAnonymousContentList* GetAnonymousNodeList();
 
+ nsIURI* GetSourceDocURI();
+
 // MEMBER VARIABLES
 protected:
 
   bool mMarkedForDeath;
   bool mUsingContentXBLScope;
+  bool mIsShadowRootBinding;
 
   nsXBLPrototypeBinding* mPrototypeBinding; // Weak, but we're holding a ref to the docinfo
   nsCOMPtr<nsIContent> mContent; // Strong. Our anonymous content stays around with us.
-  nsRefPtr<nsXBLBinding> mNextBinding; // Strong. The derived binding owns the base class bindings.
+  RefPtr<nsXBLBinding> mNextBinding; // Strong. The derived binding owns the base class bindings.
 
   nsIContent* mBoundElement; // [WEAK] We have a reference, but we don't own it.
 
@@ -174,9 +177,9 @@ protected:
   // attribute. These points must be up-to-date with respect to their parent's
   // children, even if their parent has another binding attached to it,
   // preventing us from rendering their contents directly.
-  nsRefPtr<mozilla::dom::XBLChildrenElement> mDefaultInsertionPoint;
-  nsTArray<nsRefPtr<mozilla::dom::XBLChildrenElement> > mInsertionPoints;
-  nsRefPtr<nsAnonymousContentList> mAnonymousContentList;
+  RefPtr<mozilla::dom::XBLChildrenElement> mDefaultInsertionPoint;
+  nsTArray<RefPtr<mozilla::dom::XBLChildrenElement> > mInsertionPoints;
+  RefPtr<nsAnonymousContentList> mAnonymousContentList;
 
   mozilla::dom::XBLChildrenElement* FindInsertionPointForInternal(nsIContent* aChild);
 };

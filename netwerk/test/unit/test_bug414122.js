@@ -10,7 +10,7 @@ function run_test()
   var fis = Cc["@mozilla.org/network/file-input-stream;1"]
               .createInstance(Ci.nsIFileInputStream);
   fis.init(do_get_file("effective_tld_names.dat"),
-           PR_RDONLY, 0444, Ci.nsIFileInputStream.CLOSE_ON_EOF);
+           PR_RDONLY, 0o444, Ci.nsIFileInputStream.CLOSE_ON_EOF);
 
   var lis = Cc["@mozilla.org/intl/converter-input-stream;1"]
               .createInstance(Ci.nsIConverterInputStream);
@@ -33,11 +33,9 @@ function run_test()
 
     if ("*." == firstTwo)
     {
-      let (rest = line.substring(2))
-      {
-        checkPublicSuffix("foo.SUPER-SPECIAL-AWESOME-PREFIX." + rest,
-                          "SUPER-SPECIAL-AWESOME-PREFIX." + rest);
-      }
+      let rest = line.substring(2);
+      checkPublicSuffix("foo.SUPER-SPECIAL-AWESOME-PREFIX." + rest,
+                        "SUPER-SPECIAL-AWESOME-PREFIX." + rest);
     }
     else if ("!" == line.charAt(0))
     {

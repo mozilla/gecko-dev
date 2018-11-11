@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 // Copyright (c) 2008 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -15,9 +17,6 @@
 #include "base/platform_thread.h"
 
 namespace {
-
-// We send a byte across a pipe to wakeup the event loop.
-const char kWorkScheduled = '\0';
 
 // Return a timeout suitable for the glib loop, -1 to block forever,
 // 0 to return right away, or a timeout in milliseconds from now.
@@ -127,7 +126,8 @@ namespace base {
 MessagePumpForUI::MessagePumpForUI()
     : state_(NULL),
       context_(g_main_context_default()),
-      wakeup_gpollfd_(new GPollFD) {
+      wakeup_gpollfd_(new GPollFD),
+      pipe_full_(false) {
   // Create our wakeup pipe, which is used to flag when work was scheduled.
   int fds[2];
   CHECK(pipe(fds) == 0);
@@ -233,10 +233,12 @@ bool MessagePumpForUI::HandleCheck() {
   if (!state_)  // state_ may be null during tests.
     return false;
 
-  // We should only ever have a single message on the wakeup pipe, since we
-  // are only signaled when the queue went from empty to non-empty.  The glib
-  // poll will tell us whether there was data, so this read shouldn't block.
+  // We should only ever have a single message on the wakeup pipe since we only
+  // write to the pipe when pipe_full_ is false. The glib poll will tell us
+  // whether there was data, so this read shouldn't block.
   if (wakeup_gpollfd_->revents & G_IO_IN) {
+    pipe_full_ = false;
+
     char msg;
     if (HANDLE_EINTR(read(wakeup_pipe_read_, &msg, 1)) != 1 || msg != '!') {
       NOTREACHED() << "Error reading from the wakeup pipe.";
@@ -300,6 +302,11 @@ void MessagePumpForUI::Quit() {
 }
 
 void MessagePumpForUI::ScheduleWork() {
+  bool was_full = pipe_full_.exchange(true);
+  if (was_full) {
+    return;
+  }
+
   // This can be called on any thread, so we don't want to touch any state
   // variables as we would then need locks all over.  This ensures that if
   // we are sleeping in a poll that we will wake up.

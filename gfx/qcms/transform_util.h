@@ -25,6 +25,7 @@
 #define _QCMS_TRANSFORM_UTIL_H
 
 #include <stdlib.h>
+#include <math.h>
 
 #define CLU(table,x,y,z) table[(x*len + y*x_len + z*xy_len)*3]
 
@@ -89,5 +90,15 @@ void build_output_lut(struct curveType *trc,
 struct matrix matrix_invert(struct matrix mat);
 qcms_bool compute_precache(struct curveType *trc, uint8_t *output);
 
+// Tested by GTest
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
+uint16_fract_t lut_inverse_interp16(uint16_t Value, uint16_t LutTable[], int length);
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif

@@ -1,4 +1,4 @@
-/* -*- Mode: js2; js2-basic-offset: 2; indent-tabs-mode: nil; -*- */
+/* -*- js-indent-level: 2; indent-tabs-mode: nil -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -80,6 +80,8 @@ IdentityProviderService.prototype = {
     if (typeof aErrBack === 'function') {
       aErrBack(err);
     }
+
+    return undefined;
   },
 
   shutdown: function RP_shutdown() {
@@ -100,7 +102,7 @@ IdentityProviderService.prototype = {
   },
 
   get certDuration() {
-    switch(this.securityLevel) {
+    switch (this.securityLevel) {
       default:
         return 3600;
     }

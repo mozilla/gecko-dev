@@ -13,19 +13,18 @@
 #include "nsIAtom.h"
 #include "nsTArray.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/StaticPtr.h"
 
 #define NS_XPCOM_INIT_CURRENT_PROCESS_DIR       "MozBinD"   // Can be used to set NS_XPCOM_CURRENT_PROCESS_DIR
                                                             // CANNOT be used to GET a location
 #define NS_DIRECTORY_SERVICE_CID  {0xf00152d0,0xb40b,0x11d3,{0x8c, 0x9c, 0x00, 0x00, 0x64, 0x65, 0x73, 0x74}}
 
-class nsDirectoryService MOZ_FINAL
+class nsDirectoryService final
   : public nsIDirectoryService
   , public nsIProperties
   , public nsIDirectoryServiceProvider2
 {
 public:
-
-  // nsISupports interface
   NS_DECL_THREADSAFE_ISUPPORTS
 
   NS_DECL_NSIPROPERTIES
@@ -37,7 +36,6 @@ public:
   NS_DECL_NSIDIRECTORYSERVICEPROVIDER2
 
   nsDirectoryService();
-  ~nsDirectoryService();
 
   static void RealInit();
   void RegisterCategoryProviders();
@@ -45,9 +43,11 @@ public:
   static nsresult
   Create(nsISupports* aOuter, REFNSIID aIID, void** aResult);
 
-  static nsDirectoryService* gService;
+  static mozilla::StaticRefPtr<nsDirectoryService> gService;
 
 private:
+  ~nsDirectoryService();
+
   nsresult GetCurrentProcessDirectory(nsIFile** aFile);
 
   nsInterfaceHashtable<nsCStringHashKey, nsIFile> mHashtable;

@@ -18,7 +18,12 @@ namespace gfx {
  */
 template <class T, class Sub>
 struct BasePoint4D {
-  T x, y, z, w;
+  union {
+    struct {
+      T x, y, z, w;
+    };
+    T components[4];
+  };
 
   // Constructors
   BasePoint4D() : x(0), y(0), z(0), w(0) {}
@@ -116,9 +121,11 @@ struct BasePoint4D {
   void Normalize() {
     *this /= Length();
   }
+
+  bool HasPositiveWCoord() { return w > 0; }
 };
 
-}
-}
+} // namespace gfx
+} // namespace mozilla
 
 #endif /* MOZILLA_BASEPOINT4D_H_ */

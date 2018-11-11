@@ -9,32 +9,9 @@
 
 #include "mozilla/MemoryReporting.h"
 
-#include "NamespaceImports.h"
+#include <cmath>
 
-#ifndef M_PI
-# define M_PI            3.14159265358979323846
-#endif
-#ifndef M_E
-# define M_E             2.7182818284590452354
-#endif
-#ifndef M_LOG2E
-# define M_LOG2E         1.4426950408889634074
-#endif
-#ifndef M_LOG10E
-# define M_LOG10E        0.43429448190325182765
-#endif
-#ifndef M_LN2
-# define M_LN2           0.69314718055994530942
-#endif
-#ifndef M_LN10
-# define M_LN10          2.30258509299404568402
-#endif
-#ifndef M_SQRT2
-# define M_SQRT2         1.41421356237309504880
-#endif
-#ifndef M_SQRT1_2
-# define M_SQRT1_2       0.70710678118654752440
-#endif
+#include "NamespaceImports.h"
 
 namespace js {
 
@@ -72,7 +49,7 @@ class MathCache
      */
     double lookup(UnaryFunType f, double x, MathFuncId id) {
         unsigned index = hash(x, id);
-        Entry &e = table[index];
+        Entry& e = table[index];
         if (e.in == x && e.id == id)
             return e.out;
         e.in = x;
@@ -80,202 +57,287 @@ class MathCache
         return e.out = f(x);
     }
 
+    bool isCached(double x, MathFuncId id, double *r, unsigned *index) {
+        *index = hash(x, id);
+        Entry& e = table[*index];
+        if (e.in == x && e.id == id) {
+            *r = e.out;
+            return true;
+        }
+        return false;
+    }
+
+    void store(MathFuncId id, double x, double v, unsigned index) {
+        Entry &e = table[index];
+        if (e.in == x && e.id == id)
+            return;
+        e.in = x;
+        e.id = id;
+        e.out = v;
+    }
+
     size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf);
 };
-
-} /* namespace js */
 
 /*
  * JS math functions.
  */
 
-extern JSObject *
-js_InitMathClass(JSContext *cx, js::HandleObject obj);
+extern JSObject*
+InitMathClass(JSContext* cx, HandleObject obj);
+
+extern uint64_t
+GenerateRandomSeed();
+
+// Fill |seed[0]| and |seed[1]| with random bits, suitable for
+// seeding a XorShift128+ random number generator.
+extern void
+GenerateXorShift128PlusSeed(mozilla::Array<uint64_t, 2>& seed);
+
+extern uint64_t
+random_next(uint64_t* rngState, int bits);
 
 extern double
-math_random_no_outparam(JSContext *cx);
+math_random_impl(JSContext* cx);
 
 extern bool
-js_math_random(JSContext *cx, unsigned argc, js::Value *vp);
+math_random(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern bool
-js_math_abs(JSContext *cx, unsigned argc, js::Value *vp);
+math_abs_handle(JSContext* cx, js::HandleValue v, js::MutableHandleValue r);
 
 extern bool
-js_math_max(JSContext *cx, unsigned argc, js::Value *vp);
-
-extern bool
-js_math_min(JSContext *cx, unsigned argc, js::Value *vp);
-
-extern bool
-js_math_sqrt(JSContext *cx, unsigned argc, js::Value *vp);
-
-extern bool
-js_math_pow(JSContext *cx, unsigned argc, js::Value *vp);
-
-namespace js {
-
-extern bool
-math_imul(JSContext *cx, unsigned argc, js::Value *vp);
-
-extern bool
-RoundFloat32(JSContext *cx, HandleValue v, float *out);
-
-extern bool
-RoundFloat32(JSContext *cx, HandleValue arg, MutableHandleValue res);
-
-extern bool
-math_fround(JSContext *cx, unsigned argc, js::Value *vp);
-
-extern bool
-math_log(JSContext *cx, unsigned argc, js::Value *vp);
+math_abs(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern double
-math_log_impl(MathCache *cache, double x);
+math_max_impl(double x, double y);
+
+extern bool
+math_max(JSContext* cx, unsigned argc, js::Value* vp);
+
+extern double
+math_min_impl(double x, double y);
+
+extern bool
+math_min(JSContext* cx, unsigned argc, js::Value* vp);
+
+extern bool
+math_sqrt(JSContext* cx, unsigned argc, js::Value* vp);
+
+extern bool
+math_pow_handle(JSContext* cx, js::HandleValue base, js::HandleValue power,
+                js::MutableHandleValue result);
+
+extern bool
+math_pow(JSContext* cx, unsigned argc, js::Value* vp);
+
+extern bool
+minmax_impl(JSContext* cx, bool max, js::HandleValue a, js::HandleValue b,
+            js::MutableHandleValue res);
+
+extern void
+math_sincos_uncached(double x, double *sin, double *cos);
+
+extern void
+math_sincos_impl(MathCache* mathCache, double x, double *sin, double *cos);
+
+extern bool
+math_sqrt_handle(JSContext* cx, js::HandleValue number, js::MutableHandleValue result);
+
+extern bool
+math_imul_handle(JSContext* cx, HandleValue lhs, HandleValue rhs, MutableHandleValue res);
+
+extern bool
+math_imul(JSContext* cx, unsigned argc, js::Value* vp);
+
+extern bool
+RoundFloat32(JSContext* cx, HandleValue v, float* out);
+
+extern bool
+RoundFloat32(JSContext* cx, HandleValue arg, MutableHandleValue res);
+
+extern bool
+math_fround(JSContext* cx, unsigned argc, js::Value* vp);
+
+extern bool
+math_log(JSContext* cx, unsigned argc, js::Value* vp);
+
+extern double
+math_log_impl(MathCache* cache, double x);
 
 extern double
 math_log_uncached(double x);
 
 extern bool
-math_sin(JSContext *cx, unsigned argc, js::Value *vp);
+math_log_handle(JSContext* cx, HandleValue val, MutableHandleValue res);
+
+extern bool
+math_sin(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern double
-math_sin_impl(MathCache *cache, double x);
+math_sin_impl(MathCache* cache, double x);
 
 extern double
 math_sin_uncached(double x);
 
 extern bool
-math_cos(JSContext *cx, unsigned argc, js::Value *vp);
+math_sin_handle(JSContext* cx, HandleValue val, MutableHandleValue res);
+
+extern bool
+math_cos(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern double
-math_cos_impl(MathCache *cache, double x);
+math_cos_impl(MathCache* cache, double x);
 
 extern double
 math_cos_uncached(double x);
 
 extern bool
-math_exp(JSContext *cx, unsigned argc, js::Value *vp);
+math_exp(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern double
-math_exp_impl(MathCache *cache, double x);
+math_exp_impl(MathCache* cache, double x);
 
 extern double
 math_exp_uncached(double x);
 
 extern bool
-math_tan(JSContext *cx, unsigned argc, js::Value *vp);
+math_tan(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern double
-math_tan_impl(MathCache *cache, double x);
+math_tan_impl(MathCache* cache, double x);
 
 extern double
 math_tan_uncached(double x);
 
 extern bool
-math_log10(JSContext *cx, unsigned argc, js::Value *vp);
+math_log10(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern bool
-math_log2(JSContext *cx, unsigned argc, js::Value *vp);
+math_log2(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern bool
-math_log1p(JSContext *cx, unsigned argc, js::Value *vp);
+math_log1p(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern bool
-math_expm1(JSContext *cx, unsigned argc, js::Value *vp);
+math_expm1(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern bool
-math_cosh(JSContext *cx, unsigned argc, js::Value *vp);
+math_cosh(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern bool
-math_sinh(JSContext *cx, unsigned argc, js::Value *vp);
+math_sinh(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern bool
-math_tanh(JSContext *cx, unsigned argc, js::Value *vp);
+math_tanh(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern bool
-math_acosh(JSContext *cx, unsigned argc, js::Value *vp);
+math_acosh(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern bool
-math_asinh(JSContext *cx, unsigned argc, js::Value *vp);
+math_asinh(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern bool
-math_atanh(JSContext *cx, unsigned argc, js::Value *vp);
+math_atanh(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern double
 ecmaHypot(double x, double y);
 
-extern bool
-math_hypot(JSContext *cx, unsigned argc, Value *vp);
+extern double
+hypot3(double x, double y, double z);
+
+extern double
+hypot4(double x, double y, double z, double w);
 
 extern bool
-math_trunc(JSContext *cx, unsigned argc, Value *vp);
+math_hypot(JSContext* cx, unsigned argc, Value* vp);
 
 extern bool
-math_sign(JSContext *cx, unsigned argc, Value *vp);
+math_hypot_handle(JSContext* cx, HandleValueArray args, MutableHandleValue res);
 
 extern bool
-math_cbrt(JSContext *cx, unsigned argc, Value *vp);
+math_trunc(JSContext* cx, unsigned argc, Value* vp);
 
 extern bool
-math_asin(JSContext *cx, unsigned argc, Value *vp);
+math_sign(JSContext* cx, unsigned argc, Value* vp);
 
 extern bool
-math_acos(JSContext *cx, unsigned argc, Value *vp);
+math_cbrt(JSContext* cx, unsigned argc, Value* vp);
 
 extern bool
-math_atan(JSContext *cx, unsigned argc, Value *vp);
+math_asin(JSContext* cx, unsigned argc, Value* vp);
 
 extern bool
-math_atan2(JSContext *cx, unsigned argc, Value *vp);
+math_acos(JSContext* cx, unsigned argc, Value* vp);
+
+extern bool
+math_atan(JSContext* cx, unsigned argc, Value* vp);
+
+extern bool
+math_atan2_handle(JSContext* cx, HandleValue y, HandleValue x, MutableHandleValue res);
+
+extern bool
+math_atan2(JSContext* cx, unsigned argc, Value* vp);
 
 extern double
 ecmaAtan2(double x, double y);
 
 extern double
-math_atan_impl(MathCache *cache, double x);
+math_atan_impl(MathCache* cache, double x);
 
 extern double
 math_atan_uncached(double x);
 
 extern bool
-math_atan(JSContext *cx, unsigned argc, js::Value *vp);
+math_atan(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern double
-math_asin_impl(MathCache *cache, double x);
+math_asin_impl(MathCache* cache, double x);
 
 extern double
 math_asin_uncached(double x);
 
 extern bool
-math_asin(JSContext *cx, unsigned argc, js::Value *vp);
+math_asin(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern double
-math_acos_impl(MathCache *cache, double x);
+math_acos_impl(MathCache* cache, double x);
 
 extern double
 math_acos_uncached(double x);
 
 extern bool
-math_acos(JSContext *cx, unsigned argc, js::Value *vp);
+math_acos(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern bool
-math_ceil(JSContext *cx, unsigned argc, Value *vp);
+math_ceil_handle(JSContext* cx, HandleValue value, MutableHandleValue res);
+
+extern bool
+math_ceil(JSContext* cx, unsigned argc, Value* vp);
 
 extern double
 math_ceil_impl(double x);
 
 extern bool
-math_clz32(JSContext *cx, unsigned argc, Value *vp);
+math_clz32(JSContext* cx, unsigned argc, Value* vp);
 
 extern bool
-math_floor(JSContext *cx, unsigned argc, Value *vp);
+math_floor_handle(JSContext* cx, HandleValue v, MutableHandleValue r);
+
+extern bool
+math_floor(JSContext* cx, unsigned argc, Value* vp);
 
 extern double
 math_floor_impl(double x);
 
+template<typename T>
+extern T GetBiggestNumberLessThan(T x);
+
 extern bool
-math_round(JSContext *cx, unsigned argc, Value *vp);
+math_round_handle(JSContext* cx, HandleValue arg, MutableHandleValue res);
+
+extern bool
+math_round(JSContext* cx, unsigned argc, Value* vp);
 
 extern double
 math_round_impl(double x);
@@ -290,82 +352,82 @@ extern double
 ecmaPow(double x, double y);
 
 extern bool
-math_imul(JSContext *cx, unsigned argc, Value *vp);
+math_imul(JSContext* cx, unsigned argc, Value* vp);
 
 extern double
-math_log10_impl(MathCache *cache, double x);
+math_log10_impl(MathCache* cache, double x);
 
 extern double
 math_log10_uncached(double x);
 
 extern double
-math_log2_impl(MathCache *cache, double x);
+math_log2_impl(MathCache* cache, double x);
 
 extern double
 math_log2_uncached(double x);
 
 extern double
-math_log1p_impl(MathCache *cache, double x);
+math_log1p_impl(MathCache* cache, double x);
 
 extern double
 math_log1p_uncached(double x);
 
 extern double
-math_expm1_impl(MathCache *cache, double x);
+math_expm1_impl(MathCache* cache, double x);
 
 extern double
 math_expm1_uncached(double x);
 
 extern double
-math_cosh_impl(MathCache *cache, double x);
+math_cosh_impl(MathCache* cache, double x);
 
 extern double
 math_cosh_uncached(double x);
 
 extern double
-math_sinh_impl(MathCache *cache, double x);
+math_sinh_impl(MathCache* cache, double x);
 
 extern double
 math_sinh_uncached(double x);
 
 extern double
-math_tanh_impl(MathCache *cache, double x);
+math_tanh_impl(MathCache* cache, double x);
 
 extern double
 math_tanh_uncached(double x);
 
 extern double
-math_acosh_impl(MathCache *cache, double x);
+math_acosh_impl(MathCache* cache, double x);
 
 extern double
 math_acosh_uncached(double x);
 
 extern double
-math_asinh_impl(MathCache *cache, double x);
+math_asinh_impl(MathCache* cache, double x);
 
 extern double
 math_asinh_uncached(double x);
 
 extern double
-math_atanh_impl(MathCache *cache, double x);
+math_atanh_impl(MathCache* cache, double x);
 
 extern double
 math_atanh_uncached(double x);
 
 extern double
-math_trunc_impl(MathCache *cache, double x);
+math_trunc_impl(MathCache* cache, double x);
 
 extern double
 math_trunc_uncached(double x);
 
 extern double
-math_sign_impl(MathCache *cache, double x);
+math_sign_impl(MathCache* cache, double x);
 
 extern double
 math_sign_uncached(double x);
 
 extern double
-math_cbrt_impl(MathCache *cache, double x);
+math_cbrt_impl(MathCache* cache, double x);
 
 extern double
 math_cbrt_uncached(double x);

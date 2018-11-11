@@ -1,38 +1,31 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/ContentEvents.h"
 #include "mozilla/dom/TimeEvent.h"
-#include "mozilla/BasicEvents.h"
 #include "nsIDocShell.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsPresContext.h"
+#include "nsGlobalWindow.h"
 
 namespace mozilla {
 namespace dom {
 
 TimeEvent::TimeEvent(EventTarget* aOwner,
                      nsPresContext* aPresContext,
-                     WidgetEvent* aEvent)
+                     InternalSMILTimeEvent* aEvent)
   : Event(aOwner, aPresContext,
-          aEvent ? aEvent : new InternalUIEvent(false, 0))
-  , mDetail(0)
+          aEvent ? aEvent : new InternalSMILTimeEvent(false, eVoidEvent))
+  , mDetail(mEvent->AsSMILTimeEvent()->mDetail)
 {
-  SetIsDOMBinding();
   if (aEvent) {
     mEventIsInternal = false;
   } else {
     mEventIsInternal = true;
-    mEvent->eventStructType = NS_SMIL_TIME_EVENT;
   }
-
-  if (mEvent->eventStructType == NS_SMIL_TIME_EVENT) {
-    mDetail = mEvent->AsUIEvent()->detail;
-  }
-
-  mEvent->mFlags.mBubbles = false;
-  mEvent->mFlags.mCancelable = false;
 
   if (mPresContext) {
     nsCOMPtr<nsIDocShell> docShell = mPresContext->GetDocShell();
@@ -53,33 +46,21 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(TimeEvent)
 NS_INTERFACE_MAP_END_INHERITING(Event)
 
 NS_IMETHODIMP
-TimeEvent::GetView(nsIDOMWindow** aView)
-{
-  *aView = mView;
-  NS_IF_ADDREF(*aView);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 TimeEvent::GetDetail(int32_t* aDetail)
 {
   *aDetail = mDetail;
   return NS_OK;
 }
 
-NS_IMETHODIMP
-TimeEvent::InitTimeEvent(const nsAString& aTypeArg,
-                         nsIDOMWindow* aViewArg,
-                         int32_t aDetailArg)
+void
+TimeEvent::InitTimeEvent(const nsAString& aType, nsGlobalWindow* aView,
+                         int32_t aDetail)
 {
-  nsresult rv = Event::InitEvent(aTypeArg, false /*doesn't bubble*/,
-                                           false /*can't cancel*/);
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE_VOID(!mEvent->mFlags.mIsBeingDispatched);
 
-  mDetail = aDetailArg;
-  mView = aViewArg;
-
-  return NS_OK;
+  Event::InitEvent(aType, false /*doesn't bubble*/, false /*can't cancel*/);
+  mDetail = aDetail;
+  mView = aView ? aView->GetOuterWindow() : nullptr;
 }
 
 } // namespace dom
@@ -88,14 +69,11 @@ TimeEvent::InitTimeEvent(const nsAString& aTypeArg,
 using namespace mozilla;
 using namespace mozilla::dom;
 
-nsresult
-NS_NewDOMTimeEvent(nsIDOMEvent** aInstancePtrResult,
-                   EventTarget* aOwner,
+already_AddRefed<TimeEvent>
+NS_NewDOMTimeEvent(EventTarget* aOwner,
                    nsPresContext* aPresContext,
-                   WidgetEvent* aEvent)
+                   InternalSMILTimeEvent* aEvent)
 {
-  TimeEvent* it = new TimeEvent(aOwner, aPresContext, aEvent);
-  NS_ADDREF(it);
-  *aInstancePtrResult = static_cast<Event*>(it);
-  return NS_OK;
+  RefPtr<TimeEvent> it = new TimeEvent(aOwner, aPresContext, aEvent);
+  return it.forget();
 }

@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,6 +7,7 @@
 #include "mozilla/dom/MouseScrollEvent.h"
 #include "mozilla/MouseEvents.h"
 #include "prtime.h"
+#include "nsIDOMMouseScrollEvent.h"
 
 namespace mozilla {
 namespace dom {
@@ -14,33 +16,33 @@ MouseScrollEvent::MouseScrollEvent(EventTarget* aOwner,
                                    nsPresContext* aPresContext,
                                    WidgetMouseScrollEvent* aEvent)
   : MouseEvent(aOwner, aPresContext,
-               aEvent ? aEvent : new WidgetMouseScrollEvent(false, 0, nullptr))
+               aEvent ? aEvent :
+                        new WidgetMouseScrollEvent(false, eVoidEvent, nullptr))
 {
   if (aEvent) {
     mEventIsInternal = false;
   } else {
     mEventIsInternal = true;
-    mEvent->time = PR_Now();
-    mEvent->refPoint.x = mEvent->refPoint.y = 0;
+    mEvent->mTime = PR_Now();
+    mEvent->mRefPoint = LayoutDeviceIntPoint(0, 0);
     static_cast<WidgetMouseEventBase*>(mEvent)->inputSource =
       nsIDOMMouseEvent::MOZ_SOURCE_UNKNOWN;
   }
 
-  mDetail = mEvent->AsMouseScrollEvent()->delta;
+  mDetail = mEvent->AsMouseScrollEvent()->mDelta;
 }
 
 NS_IMPL_ADDREF_INHERITED(MouseScrollEvent, MouseEvent)
 NS_IMPL_RELEASE_INHERITED(MouseScrollEvent, MouseEvent)
 
 NS_INTERFACE_MAP_BEGIN(MouseScrollEvent)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMMouseScrollEvent)
 NS_INTERFACE_MAP_END_INHERITING(MouseEvent)
 
-NS_IMETHODIMP
+void
 MouseScrollEvent::InitMouseScrollEvent(const nsAString& aType,
                                        bool aCanBubble,
                                        bool aCancelable,
-                                       nsIDOMWindow* aView,
+                                       nsGlobalWindow* aView,
                                        int32_t aDetail,
                                        int32_t aScreenX,
                                        int32_t aScreenY,
@@ -51,34 +53,25 @@ MouseScrollEvent::InitMouseScrollEvent(const nsAString& aType,
                                        bool aShiftKey,
                                        bool aMetaKey,
                                        uint16_t aButton,
-                                       nsIDOMEventTarget* aRelatedTarget,
+                                       EventTarget* aRelatedTarget,
                                        int32_t aAxis)
 {
-  nsresult rv =
-    MouseEvent::InitMouseEvent(aType, aCanBubble, aCancelable, aView, aDetail,
-                               aScreenX, aScreenY, aClientX, aClientY,
-                               aCtrlKey, aAltKey, aShiftKey, aMetaKey, aButton,
-                               aRelatedTarget);
-  NS_ENSURE_SUCCESS(rv, rv);
-  mEvent->AsMouseScrollEvent()->isHorizontal = (aAxis == HORIZONTAL_AXIS);
-  return NS_OK;
-}
+  NS_ENSURE_TRUE_VOID(!mEvent->mFlags.mIsBeingDispatched);
 
-
-NS_IMETHODIMP
-MouseScrollEvent::GetAxis(int32_t* aResult)
-{
-  NS_ENSURE_ARG_POINTER(aResult);
-  *aResult = Axis();
-  return NS_OK;
+  MouseEvent::InitMouseEvent(aType, aCanBubble, aCancelable, aView, aDetail,
+                             aScreenX, aScreenY, aClientX, aClientY,
+                             aCtrlKey, aAltKey, aShiftKey, aMetaKey, aButton,
+                             aRelatedTarget);
+  mEvent->AsMouseScrollEvent()->mIsHorizontal =
+    (aAxis == nsIDOMMouseScrollEvent::HORIZONTAL_AXIS);
 }
 
 int32_t
 MouseScrollEvent::Axis()
 {
-  return mEvent->AsMouseScrollEvent()->isHorizontal ?
-           static_cast<int32_t>(HORIZONTAL_AXIS) :
-           static_cast<int32_t>(VERTICAL_AXIS);
+  return mEvent->AsMouseScrollEvent()->mIsHorizontal ?
+          static_cast<int32_t>(nsIDOMMouseScrollEvent::HORIZONTAL_AXIS) :
+          static_cast<int32_t>(nsIDOMMouseScrollEvent::VERTICAL_AXIS);
 }
 
 } // namespace dom
@@ -87,14 +80,12 @@ MouseScrollEvent::Axis()
 using namespace mozilla;
 using namespace dom;
 
-nsresult
-NS_NewDOMMouseScrollEvent(nsIDOMEvent** aInstancePtrResult,
-                          EventTarget* aOwner,
+already_AddRefed<MouseScrollEvent>
+NS_NewDOMMouseScrollEvent(EventTarget* aOwner,
                           nsPresContext* aPresContext,
                           WidgetMouseScrollEvent* aEvent)
 {
-  MouseScrollEvent* it = new MouseScrollEvent(aOwner, aPresContext, aEvent);
-  NS_ADDREF(it);
-  *aInstancePtrResult = static_cast<Event*>(it);
-  return NS_OK;
+  RefPtr<MouseScrollEvent> it =
+    new MouseScrollEvent(aOwner, aPresContext, aEvent);
+  return it.forget();
 }

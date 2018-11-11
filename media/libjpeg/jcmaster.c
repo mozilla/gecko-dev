@@ -5,12 +5,13 @@
  * Copyright (C) 1991-1997, Thomas G. Lane.
  * Modified 2003-2010 by Guido Vollbeding.
  * libjpeg-turbo Modifications:
- * Copyright (C) 2010, D. R. Commander.
- * For conditions of distribution and use, see the accompanying README file.
+ * Copyright (C) 2010, 2016, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
  *
  * This file contains master control logic for the JPEG compressor.
  * These routines are concerned with parameter validation, initial setup,
- * and inter-pass control (determining the number of passes and the work 
+ * and inter-pass control (determining the number of passes and the work
  * to be done in each pass).
  */
 
@@ -18,28 +19,39 @@
 #include "jinclude.h"
 #include "jpeglib.h"
 #include "jpegcomp.h"
+#include "jconfigint.h"
 
 
 /* Private state */
 
 typedef enum {
-	main_pass,		/* input data, also do first output step */
-	huff_opt_pass,		/* Huffman code optimization pass */
-	output_pass		/* data output pass */
+        main_pass,              /* input data, also do first output step */
+        huff_opt_pass,          /* Huffman code optimization pass */
+        output_pass             /* data output pass */
 } c_pass_type;
 
 typedef struct {
-  struct jpeg_comp_master pub;	/* public fields */
+  struct jpeg_comp_master pub;  /* public fields */
 
-  c_pass_type pass_type;	/* the type of the current pass */
+  c_pass_type pass_type;        /* the type of the current pass */
 
-  int pass_number;		/* # of passes completed */
-  int total_passes;		/* total # of passes needed */
+  int pass_number;              /* # of passes completed */
+  int total_passes;             /* total # of passes needed */
 
-  int scan_number;		/* current index in scan_info[] */
+  int scan_number;              /* current index in scan_info[] */
+
+  /*
+   * This is here so we can add libjpeg-turbo version/build information to the
+   * global string table without introducing a new global symbol.  Adding this
+   * information to the global string table allows one to examine a binary
+   * object and determine which version of libjpeg-turbo it was built from or
+   * linked against.
+   */
+  const char *jpeg_version;
+
 } my_comp_master;
 
-typedef my_comp_master * my_master_ptr;
+typedef my_comp_master *my_master_ptr;
 
 
 /*
@@ -105,7 +117,7 @@ initial_setup (j_compress_ptr cinfo, boolean transcode_only)
   /* Check that number of components won't exceed internal array sizes */
   if (cinfo->num_components > MAX_COMPONENTS)
     ERREXIT2(cinfo, JERR_COMPONENT_COUNT, cinfo->num_components,
-	     MAX_COMPONENTS);
+             MAX_COMPONENTS);
 
   /* Compute maximum sampling factors; check factor validity */
   cinfo->max_h_samp_factor = 1;
@@ -113,12 +125,12 @@ initial_setup (j_compress_ptr cinfo, boolean transcode_only)
   for (ci = 0, compptr = cinfo->comp_info; ci < cinfo->num_components;
        ci++, compptr++) {
     if (compptr->h_samp_factor<=0 || compptr->h_samp_factor>MAX_SAMP_FACTOR ||
-	compptr->v_samp_factor<=0 || compptr->v_samp_factor>MAX_SAMP_FACTOR)
+        compptr->v_samp_factor<=0 || compptr->v_samp_factor>MAX_SAMP_FACTOR)
       ERREXIT(cinfo, JERR_BAD_SAMPLING);
     cinfo->max_h_samp_factor = MAX(cinfo->max_h_samp_factor,
-				   compptr->h_samp_factor);
+                                   compptr->h_samp_factor);
     cinfo->max_v_samp_factor = MAX(cinfo->max_v_samp_factor,
-				   compptr->v_samp_factor);
+                                   compptr->v_samp_factor);
   }
 
   /* Compute dimensions of components */
@@ -135,17 +147,17 @@ initial_setup (j_compress_ptr cinfo, boolean transcode_only)
     /* Size in DCT blocks */
     compptr->width_in_blocks = (JDIMENSION)
       jdiv_round_up((long) cinfo->_jpeg_width * (long) compptr->h_samp_factor,
-		    (long) (cinfo->max_h_samp_factor * DCTSIZE));
+                    (long) (cinfo->max_h_samp_factor * DCTSIZE));
     compptr->height_in_blocks = (JDIMENSION)
       jdiv_round_up((long) cinfo->_jpeg_height * (long) compptr->v_samp_factor,
-		    (long) (cinfo->max_v_samp_factor * DCTSIZE));
+                    (long) (cinfo->max_v_samp_factor * DCTSIZE));
     /* Size in samples */
     compptr->downsampled_width = (JDIMENSION)
       jdiv_round_up((long) cinfo->_jpeg_width * (long) compptr->h_samp_factor,
-		    (long) cinfo->max_h_samp_factor);
+                    (long) cinfo->max_h_samp_factor);
     compptr->downsampled_height = (JDIMENSION)
       jdiv_round_up((long) cinfo->_jpeg_height * (long) compptr->v_samp_factor,
-		    (long) cinfo->max_v_samp_factor);
+                    (long) cinfo->max_v_samp_factor);
     /* Mark component needed (this flag isn't actually used for compression) */
     compptr->component_needed = TRUE;
   }
@@ -155,7 +167,7 @@ initial_setup (j_compress_ptr cinfo, boolean transcode_only)
    */
   cinfo->total_iMCU_rows = (JDIMENSION)
     jdiv_round_up((long) cinfo->_jpeg_height,
-		  (long) (cinfo->max_v_samp_factor*DCTSIZE));
+                  (long) (cinfo->max_v_samp_factor*DCTSIZE));
 }
 
 
@@ -167,12 +179,12 @@ validate_script (j_compress_ptr cinfo)
  * determine whether it uses progressive JPEG, and set cinfo->progressive_mode.
  */
 {
-  const jpeg_scan_info * scanptr;
+  const jpeg_scan_info *scanptr;
   int scanno, ncomps, ci, coefi, thisi;
   int Ss, Se, Ah, Al;
   boolean component_sent[MAX_COMPONENTS];
 #ifdef C_PROGRESSIVE_SUPPORTED
-  int * last_bitpos_ptr;
+  int *last_bitpos_ptr;
   int last_bitpos[MAX_COMPONENTS][DCTSIZE2];
   /* -1 until that coefficient has been seen; then last Al for it */
 #endif
@@ -188,15 +200,15 @@ validate_script (j_compress_ptr cinfo)
 #ifdef C_PROGRESSIVE_SUPPORTED
     cinfo->progressive_mode = TRUE;
     last_bitpos_ptr = & last_bitpos[0][0];
-    for (ci = 0; ci < cinfo->num_components; ci++) 
+    for (ci = 0; ci < cinfo->num_components; ci++)
       for (coefi = 0; coefi < DCTSIZE2; coefi++)
-	*last_bitpos_ptr++ = -1;
+        *last_bitpos_ptr++ = -1;
 #else
     ERREXIT(cinfo, JERR_NOT_COMPILED);
 #endif
   } else {
     cinfo->progressive_mode = FALSE;
-    for (ci = 0; ci < cinfo->num_components; ci++) 
+    for (ci = 0; ci < cinfo->num_components; ci++)
       component_sent[ci] = FALSE;
   }
 
@@ -208,10 +220,10 @@ validate_script (j_compress_ptr cinfo)
     for (ci = 0; ci < ncomps; ci++) {
       thisi = scanptr->component_index[ci];
       if (thisi < 0 || thisi >= cinfo->num_components)
-	ERREXIT1(cinfo, JERR_BAD_SCAN_SCRIPT, scanno);
+        ERREXIT1(cinfo, JERR_BAD_SCAN_SCRIPT, scanno);
       /* Components must appear in SOF order within each scan */
       if (ci > 0 && thisi <= scanptr->component_index[ci-1])
-	ERREXIT1(cinfo, JERR_BAD_SCAN_SCRIPT, scanno);
+        ERREXIT1(cinfo, JERR_BAD_SCAN_SCRIPT, scanno);
     }
     /* Validate progression parameters */
     Ss = scanptr->Ss;
@@ -233,43 +245,43 @@ validate_script (j_compress_ptr cinfo)
 #define MAX_AH_AL 13
 #endif
       if (Ss < 0 || Ss >= DCTSIZE2 || Se < Ss || Se >= DCTSIZE2 ||
-	  Ah < 0 || Ah > MAX_AH_AL || Al < 0 || Al > MAX_AH_AL)
-	ERREXIT1(cinfo, JERR_BAD_PROG_SCRIPT, scanno);
+          Ah < 0 || Ah > MAX_AH_AL || Al < 0 || Al > MAX_AH_AL)
+        ERREXIT1(cinfo, JERR_BAD_PROG_SCRIPT, scanno);
       if (Ss == 0) {
-	if (Se != 0)		/* DC and AC together not OK */
-	  ERREXIT1(cinfo, JERR_BAD_PROG_SCRIPT, scanno);
+        if (Se != 0)            /* DC and AC together not OK */
+          ERREXIT1(cinfo, JERR_BAD_PROG_SCRIPT, scanno);
       } else {
-	if (ncomps != 1)	/* AC scans must be for only one component */
-	  ERREXIT1(cinfo, JERR_BAD_PROG_SCRIPT, scanno);
+        if (ncomps != 1)        /* AC scans must be for only one component */
+          ERREXIT1(cinfo, JERR_BAD_PROG_SCRIPT, scanno);
       }
       for (ci = 0; ci < ncomps; ci++) {
-	last_bitpos_ptr = & last_bitpos[scanptr->component_index[ci]][0];
-	if (Ss != 0 && last_bitpos_ptr[0] < 0) /* AC without prior DC scan */
-	  ERREXIT1(cinfo, JERR_BAD_PROG_SCRIPT, scanno);
-	for (coefi = Ss; coefi <= Se; coefi++) {
-	  if (last_bitpos_ptr[coefi] < 0) {
-	    /* first scan of this coefficient */
-	    if (Ah != 0)
-	      ERREXIT1(cinfo, JERR_BAD_PROG_SCRIPT, scanno);
-	  } else {
-	    /* not first scan */
-	    if (Ah != last_bitpos_ptr[coefi] || Al != Ah-1)
-	      ERREXIT1(cinfo, JERR_BAD_PROG_SCRIPT, scanno);
-	  }
-	  last_bitpos_ptr[coefi] = Al;
-	}
+        last_bitpos_ptr = & last_bitpos[scanptr->component_index[ci]][0];
+        if (Ss != 0 && last_bitpos_ptr[0] < 0) /* AC without prior DC scan */
+          ERREXIT1(cinfo, JERR_BAD_PROG_SCRIPT, scanno);
+        for (coefi = Ss; coefi <= Se; coefi++) {
+          if (last_bitpos_ptr[coefi] < 0) {
+            /* first scan of this coefficient */
+            if (Ah != 0)
+              ERREXIT1(cinfo, JERR_BAD_PROG_SCRIPT, scanno);
+          } else {
+            /* not first scan */
+            if (Ah != last_bitpos_ptr[coefi] || Al != Ah-1)
+              ERREXIT1(cinfo, JERR_BAD_PROG_SCRIPT, scanno);
+          }
+          last_bitpos_ptr[coefi] = Al;
+        }
       }
 #endif
     } else {
       /* For sequential JPEG, all progression parameters must be these: */
       if (Ss != 0 || Se != DCTSIZE2-1 || Ah != 0 || Al != 0)
-	ERREXIT1(cinfo, JERR_BAD_PROG_SCRIPT, scanno);
+        ERREXIT1(cinfo, JERR_BAD_PROG_SCRIPT, scanno);
       /* Make sure components are not sent twice */
       for (ci = 0; ci < ncomps; ci++) {
-	thisi = scanptr->component_index[ci];
-	if (component_sent[thisi])
-	  ERREXIT1(cinfo, JERR_BAD_SCAN_SCRIPT, scanno);
-	component_sent[thisi] = TRUE;
+        thisi = scanptr->component_index[ci];
+        if (component_sent[thisi])
+          ERREXIT1(cinfo, JERR_BAD_SCAN_SCRIPT, scanno);
+        component_sent[thisi] = TRUE;
       }
     }
   }
@@ -284,13 +296,13 @@ validate_script (j_compress_ptr cinfo)
      */
     for (ci = 0; ci < cinfo->num_components; ci++) {
       if (last_bitpos[ci][0] < 0)
-	ERREXIT(cinfo, JERR_MISSING_DATA);
+        ERREXIT(cinfo, JERR_MISSING_DATA);
     }
 #endif
   } else {
     for (ci = 0; ci < cinfo->num_components; ci++) {
       if (! component_sent[ci])
-	ERREXIT(cinfo, JERR_MISSING_DATA);
+        ERREXIT(cinfo, JERR_MISSING_DATA);
     }
   }
 }
@@ -308,12 +320,12 @@ select_scan_parameters (j_compress_ptr cinfo)
   if (cinfo->scan_info != NULL) {
     /* Prepare for current scan --- the script is already validated */
     my_master_ptr master = (my_master_ptr) cinfo->master;
-    const jpeg_scan_info * scanptr = cinfo->scan_info + master->scan_number;
+    const jpeg_scan_info *scanptr = cinfo->scan_info + master->scan_number;
 
     cinfo->comps_in_scan = scanptr->comps_in_scan;
     for (ci = 0; ci < scanptr->comps_in_scan; ci++) {
       cinfo->cur_comp_info[ci] =
-	&cinfo->comp_info[scanptr->component_index[ci]];
+        &cinfo->comp_info[scanptr->component_index[ci]];
     }
     cinfo->Ss = scanptr->Ss;
     cinfo->Se = scanptr->Se;
@@ -326,7 +338,7 @@ select_scan_parameters (j_compress_ptr cinfo)
     /* Prepare for single sequential-JPEG scan containing all components */
     if (cinfo->num_components > MAX_COMPS_IN_SCAN)
       ERREXIT2(cinfo, JERR_COMPONENT_COUNT, cinfo->num_components,
-	       MAX_COMPS_IN_SCAN);
+               MAX_COMPS_IN_SCAN);
     cinfo->comps_in_scan = cinfo->num_components;
     for (ci = 0; ci < cinfo->num_components; ci++) {
       cinfo->cur_comp_info[ci] = &cinfo->comp_info[ci];
@@ -346,16 +358,16 @@ per_scan_setup (j_compress_ptr cinfo)
 {
   int ci, mcublks, tmp;
   jpeg_component_info *compptr;
-  
+
   if (cinfo->comps_in_scan == 1) {
-    
+
     /* Noninterleaved (single-component) scan */
     compptr = cinfo->cur_comp_info[0];
-    
+
     /* Overall image size in MCUs */
     cinfo->MCUs_per_row = compptr->width_in_blocks;
     cinfo->MCU_rows_in_scan = compptr->height_in_blocks;
-    
+
     /* For noninterleaved scan, always one block per MCU */
     compptr->MCU_width = 1;
     compptr->MCU_height = 1;
@@ -368,28 +380,28 @@ per_scan_setup (j_compress_ptr cinfo)
     tmp = (int) (compptr->height_in_blocks % compptr->v_samp_factor);
     if (tmp == 0) tmp = compptr->v_samp_factor;
     compptr->last_row_height = tmp;
-    
+
     /* Prepare array describing MCU composition */
     cinfo->blocks_in_MCU = 1;
     cinfo->MCU_membership[0] = 0;
-    
+
   } else {
-    
+
     /* Interleaved (multi-component) scan */
     if (cinfo->comps_in_scan <= 0 || cinfo->comps_in_scan > MAX_COMPS_IN_SCAN)
       ERREXIT2(cinfo, JERR_COMPONENT_COUNT, cinfo->comps_in_scan,
-	       MAX_COMPS_IN_SCAN);
-    
+               MAX_COMPS_IN_SCAN);
+
     /* Overall image size in MCUs */
     cinfo->MCUs_per_row = (JDIMENSION)
       jdiv_round_up((long) cinfo->_jpeg_width,
-		    (long) (cinfo->max_h_samp_factor*DCTSIZE));
+                    (long) (cinfo->max_h_samp_factor*DCTSIZE));
     cinfo->MCU_rows_in_scan = (JDIMENSION)
       jdiv_round_up((long) cinfo->_jpeg_height,
-		    (long) (cinfo->max_v_samp_factor*DCTSIZE));
-    
+                    (long) (cinfo->max_v_samp_factor*DCTSIZE));
+
     cinfo->blocks_in_MCU = 0;
-    
+
     for (ci = 0; ci < cinfo->comps_in_scan; ci++) {
       compptr = cinfo->cur_comp_info[ci];
       /* Sampling factors give # of blocks of component in each MCU */
@@ -407,12 +419,12 @@ per_scan_setup (j_compress_ptr cinfo)
       /* Prepare array describing MCU composition */
       mcublks = compptr->MCU_blocks;
       if (cinfo->blocks_in_MCU + mcublks > C_MAX_BLOCKS_IN_MCU)
-	ERREXIT(cinfo, JERR_BAD_MCU_SIZE);
+        ERREXIT(cinfo, JERR_BAD_MCU_SIZE);
       while (mcublks-- > 0) {
-	cinfo->MCU_membership[cinfo->blocks_in_MCU++] = ci;
+        cinfo->MCU_membership[cinfo->blocks_in_MCU++] = ci;
       }
     }
-    
+
   }
 
   /* Convert restart specified in rows to actual MCU count. */
@@ -452,8 +464,8 @@ prepare_for_pass (j_compress_ptr cinfo)
     (*cinfo->fdct->start_pass) (cinfo);
     (*cinfo->entropy->start_pass) (cinfo, cinfo->optimize_coding);
     (*cinfo->coef->start_pass) (cinfo,
-				(master->total_passes > 1 ?
-				 JBUF_SAVE_AND_PASS : JBUF_PASS_THRU));
+                                (master->total_passes > 1 ?
+                                 JBUF_SAVE_AND_PASS : JBUF_PASS_THRU));
     (*cinfo->main->start_pass) (cinfo, JBUF_PASS_THRU);
     if (cinfo->optimize_coding) {
       /* No immediate data output; postpone writing frame/scan headers */
@@ -581,7 +593,7 @@ jinit_c_master_control (j_compress_ptr cinfo, boolean transcode_only)
 
   master = (my_master_ptr)
       (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-				  SIZEOF(my_comp_master));
+                                  sizeof(my_comp_master));
   cinfo->master = (struct jpeg_comp_master *) master;
   master->pub.prepare_for_pass = prepare_for_pass;
   master->pub.pass_startup = pass_startup;
@@ -602,7 +614,7 @@ jinit_c_master_control (j_compress_ptr cinfo, boolean transcode_only)
     cinfo->num_scans = 1;
   }
 
-  if (cinfo->progressive_mode && !cinfo->arith_code)	/*  TEMPORARY HACK ??? */
+  if (cinfo->progressive_mode && !cinfo->arith_code)  /*  TEMPORARY HACK ??? */
     cinfo->optimize_coding = TRUE; /* assume default tables no good for progressive mode */
 
   /* Initialize my private state */
@@ -622,4 +634,6 @@ jinit_c_master_control (j_compress_ptr cinfo, boolean transcode_only)
     master->total_passes = cinfo->num_scans * 2;
   else
     master->total_passes = cinfo->num_scans;
+
+  master->jpeg_version = PACKAGE_NAME " version " VERSION " (build " BUILD ")";
 }

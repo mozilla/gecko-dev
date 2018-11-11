@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -31,7 +31,6 @@ SOURCES += [
     'user_environment.c',
     'user_mbuf.c',
     'user_recv_thread.c',
-    'user_sctp_timer_iterate.c',
     'user_socket.c',
 ]
 
@@ -40,15 +39,18 @@ if CONFIG['OS_TARGET'] == 'Android':
         'ifaddrs_android.cpp',
     ]
 
-LIBRARY_NAME = 'nksctp_s'
+Library('nksctp_s')
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
-FINAL_LIBRARY = 'necko'
+# We allow warnings for third-party code that can be updated from upstream.
+ALLOW_COMPILER_WARNINGS = True
+
+FINAL_LIBRARY = 'xul'
 
 LOCAL_INCLUDES += [
-    '../../base/src',
-    '/content/base/src',
+    '/dom/base',
+    '/netwerk/base',
 ]
 
 for var in ('SCTP_SIMPLE_ALLOCATOR',
@@ -90,3 +92,6 @@ if CONFIG['OS_TARGET'] == 'DragonFly':
     DEFINES['__DragonFly__'] = False
 
 NO_PGO = True # Don't PGO
+
+if CONFIG['GNU_CC']:
+    CFLAGS += ['-std=gnu99']

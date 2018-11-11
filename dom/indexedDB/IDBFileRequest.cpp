@@ -1,0 +1,157 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "IDBFileRequest.h"
+
+#include "IDBFileHandle.h"
+#include "js/RootingAPI.h"
+#include "jsapi.h"
+#include "mozilla/Assertions.h"
+#include "mozilla/dom/IDBFileRequestBinding.h"
+#include "mozilla/dom/ProgressEvent.h"
+#include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/EventDispatcher.h"
+#include "nsCOMPtr.h"
+#include "nsDebug.h"
+#include "nsError.h"
+#include "nsLiteralString.h"
+
+namespace mozilla {
+namespace dom {
+
+using namespace mozilla::dom::indexedDB;
+
+IDBFileRequest::IDBFileRequest(nsPIDOMWindowInner* aWindow,
+                               IDBFileHandle* aFileHandle,
+                               bool aWrapAsDOMRequest)
+  : DOMRequest(aWindow)
+  , FileRequestBase(DEBUGONLY(aFileHandle->OwningThread()))
+  , mFileHandle(aFileHandle)
+  , mWrapAsDOMRequest(aWrapAsDOMRequest)
+{
+  AssertIsOnOwningThread();
+}
+
+IDBFileRequest::~IDBFileRequest()
+{
+  AssertIsOnOwningThread();
+}
+
+// static
+already_AddRefed<IDBFileRequest>
+IDBFileRequest::Create(nsPIDOMWindowInner* aOwner, IDBFileHandle* aFileHandle,
+                       bool aWrapAsDOMRequest)
+{
+  MOZ_ASSERT(aFileHandle);
+  aFileHandle->AssertIsOnOwningThread();
+
+  RefPtr<IDBFileRequest> request =
+    new IDBFileRequest(aOwner, aFileHandle, aWrapAsDOMRequest);
+
+  return request.forget();
+}
+
+NS_IMPL_ADDREF_INHERITED(IDBFileRequest, DOMRequest)
+NS_IMPL_RELEASE_INHERITED(IDBFileRequest, DOMRequest)
+
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(IDBFileRequest)
+NS_INTERFACE_MAP_END_INHERITING(DOMRequest)
+
+NS_IMPL_CYCLE_COLLECTION_INHERITED(IDBFileRequest, DOMRequest,
+                                   mFileHandle)
+
+nsresult
+IDBFileRequest::PreHandleEvent(EventChainPreVisitor& aVisitor)
+{
+  AssertIsOnOwningThread();
+
+  aVisitor.mCanHandle = true;
+  aVisitor.mParentTarget = mFileHandle;
+  return NS_OK;
+}
+
+// virtual
+JSObject*
+IDBFileRequest::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
+{
+  AssertIsOnOwningThread();
+
+  if (mWrapAsDOMRequest) {
+    return DOMRequest::WrapObject(aCx, aGivenProto);
+  }
+  return IDBFileRequestBinding::Wrap(aCx, this, aGivenProto);
+}
+
+mozilla::dom::FileHandleBase*
+IDBFileRequest::FileHandle() const
+{
+  AssertIsOnOwningThread();
+
+  return mFileHandle;
+}
+
+void
+IDBFileRequest::OnProgress(uint64_t aProgress, uint64_t aProgressMax)
+{
+  AssertIsOnOwningThread();
+
+  FireProgressEvent(aProgress, aProgressMax);
+}
+
+void
+IDBFileRequest::SetResultCallback(ResultCallback* aCallback)
+{
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(aCallback);
+
+  AutoJSAPI autoJS;
+  if (NS_WARN_IF(!autoJS.Init(GetOwner()))) {
+    FireError(NS_ERROR_DOM_FILEHANDLE_UNKNOWN_ERR);
+    return;
+  }
+
+  JSContext* cx = autoJS.cx();
+
+  JS::Rooted<JS::Value> result(cx);
+  nsresult rv = aCallback->GetResult(cx, &result);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    FireError(rv);
+  } else {
+    FireSuccess(result);
+  }
+}
+
+void
+IDBFileRequest::SetError(nsresult aError)
+{
+  AssertIsOnOwningThread();
+
+  FireError(aError);
+}
+
+void
+IDBFileRequest::FireProgressEvent(uint64_t aLoaded, uint64_t aTotal)
+{
+  AssertIsOnOwningThread();
+
+  if (NS_FAILED(CheckInnerWindowCorrectness())) {
+    return;
+  }
+
+  ProgressEventInit init;
+  init.mBubbles = false;
+  init.mCancelable = false;
+  init.mLengthComputable = false;
+  init.mLoaded = aLoaded;
+  init.mTotal = aTotal;
+
+  RefPtr<ProgressEvent> event =
+    ProgressEvent::Constructor(this, NS_LITERAL_STRING("progress"), init);
+  DispatchTrustedEvent(event);
+}
+
+} // namespace dom
+} // namespace mozilla

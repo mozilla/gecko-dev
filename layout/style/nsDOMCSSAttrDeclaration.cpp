@@ -69,73 +69,80 @@ NS_IMPL_CYCLE_COLLECTING_ADDREF(nsDOMCSSAttributeDeclaration)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsDOMCSSAttributeDeclaration)
 
 nsresult
-nsDOMCSSAttributeDeclaration::SetCSSDeclaration(css::Declaration* aDecl)
+nsDOMCSSAttributeDeclaration::SetCSSDeclaration(DeclarationBlock* aDecl)
 {
   NS_ASSERTION(mElement, "Must have Element to set the declaration!");
-  css::StyleRule* oldRule =
-    mIsSMILOverride ? mElement->GetSMILOverrideStyleRule() :
-    mElement->GetInlineStyleRule();
-  NS_ASSERTION(oldRule, "Element must have rule");
-
-  nsRefPtr<css::StyleRule> newRule =
-    oldRule->DeclarationChanged(aDecl, false);
-  if (!newRule) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  return
-    mIsSMILOverride ? mElement->SetSMILOverrideStyleRule(newRule, true) :
-    mElement->SetInlineStyleRule(newRule, nullptr, true);
+  return mIsSMILOverride
+    ? mElement->SetSMILOverrideStyleDeclaration(aDecl, true)
+    : mElement->SetInlineStyleDeclaration(aDecl, nullptr, true);
 }
 
 nsIDocument*
 nsDOMCSSAttributeDeclaration::DocToUpdate()
 {
-  // XXXbz this is a bit of a hack, especially doing it before the
-  // BeginUpdate(), but this is a good chokepoint where we know we
-  // plan to modify the CSSDeclaration, so need to notify
-  // AttributeWillChange if this is inline style.
-  if (!mIsSMILOverride) {
-    nsNodeUtils::AttributeWillChange(mElement, kNameSpaceID_None,
-                                     nsGkAtoms::style,
-                                     nsIDOMMutationEvent::MODIFICATION);
-  }
- 
-  // We need OwnerDoc() rather than GetCurrentDoc() because it might
+  // We need OwnerDoc() rather than GetUncomposedDoc() because it might
   // be the BeginUpdate call that inserts mElement into the document.
   return mElement->OwnerDoc();
 }
 
-css::Declaration*
-nsDOMCSSAttributeDeclaration::GetCSSDeclaration(bool aAllocate)
+DeclarationBlock*
+nsDOMCSSAttributeDeclaration::GetCSSDeclaration(Operation aOperation)
 {
   if (!mElement)
     return nullptr;
 
-  css::StyleRule* cssRule;
-  if (mIsSMILOverride)
-    cssRule = mElement->GetSMILOverrideStyleRule();
-  else
-    cssRule = mElement->GetInlineStyleRule();
-
-  if (cssRule) {
-    return cssRule->GetDeclaration();
+  DeclarationBlock* declaration;
+  if (mIsSMILOverride) {
+    declaration = mElement->GetSMILOverrideStyleDeclaration();
+  } else {
+    declaration = mElement->GetInlineStyleDeclaration();
   }
-  if (!aAllocate) {
+
+  // Notify observers that our style="" attribute is going to change
+  // unless:
+  //   * this is a declaration that holds SMIL animation values (which
+  //     aren't reflected in the DOM style="" attribute), or
+  //   * we're getting the declaration for reading, or
+  //   * we're getting it for property removal but we don't currently have
+  //     a declaration.
+
+  // XXXbz this is a bit of a hack, especially doing it before the
+  // BeginUpdate(), but this is a good chokepoint where we know we
+  // plan to modify the CSSDeclaration, so need to notify
+  // AttributeWillChange if this is inline style.
+  if (!mIsSMILOverride &&
+      ((aOperation == eOperation_Modify) ||
+       (aOperation == eOperation_RemoveProperty && declaration))) {
+    nsNodeUtils::AttributeWillChange(mElement, kNameSpaceID_None,
+                                     nsGkAtoms::style,
+                                     nsIDOMMutationEvent::MODIFICATION,
+                                     nullptr);
+  }
+
+  if (declaration) {
+    return declaration;
+  }
+
+  if (aOperation != eOperation_Modify) {
     return nullptr;
   }
 
   // cannot fail
-  css::Declaration *decl = new css::Declaration();
-  decl->InitializeEmpty();
-  nsRefPtr<css::StyleRule> newRule = new css::StyleRule(nullptr, decl);
+  RefPtr<DeclarationBlock> decl;
+  if (mElement->IsStyledByServo()) {
+    decl = new ServoDeclarationBlock();
+  } else {
+    decl = new css::Declaration();
+    decl->AsGecko()->InitializeEmpty();
+  }
 
   // this *can* fail (inside SetAttrAndNotify, at least).
   nsresult rv;
-  if (mIsSMILOverride)
-    rv = mElement->SetSMILOverrideStyleRule(newRule, false);
-  else
-    rv = mElement->SetInlineStyleRule(newRule, nullptr, false);
+  if (mIsSMILOverride) {
+    rv = mElement->SetSMILOverrideStyleDeclaration(decl, false);
+  } else {
+    rv = mElement->SetInlineStyleDeclaration(decl, nullptr, false);
+  }
 
   if (NS_FAILED(rv)) {
     return nullptr; // the decl will be destroyed along with the style rule
@@ -172,20 +179,25 @@ nsDOMCSSAttributeDeclaration::GetParentObject()
 }
 
 NS_IMETHODIMP
-nsDOMCSSAttributeDeclaration::SetPropertyValue(const nsCSSProperty aPropID,
+nsDOMCSSAttributeDeclaration::SetPropertyValue(const nsCSSPropertyID aPropID,
                                                const nsAString& aValue)
 {
   // Scripted modifications to style.opacity or style.transform
   // could immediately force us into the animated state if heuristics suggest
   // this is scripted animation.
+  // FIXME: This is missing the margin shorthand and the logical versions of
+  // the margin properties, see bug 1266287.
   if (aPropID == eCSSProperty_opacity || aPropID == eCSSProperty_transform ||
       aPropID == eCSSProperty_left || aPropID == eCSSProperty_top ||
       aPropID == eCSSProperty_right || aPropID == eCSSProperty_bottom ||
       aPropID == eCSSProperty_margin_left || aPropID == eCSSProperty_margin_top ||
-      aPropID == eCSSProperty_margin_right || aPropID == eCSSProperty_margin_bottom) {
+      aPropID == eCSSProperty_margin_right || aPropID == eCSSProperty_margin_bottom ||
+      aPropID == eCSSProperty_background_position_x ||
+      aPropID == eCSSProperty_background_position_y ||
+      aPropID == eCSSProperty_background_position) {
     nsIFrame* frame = mElement->GetPrimaryFrame();
     if (frame) {
-      ActiveLayerTracker::NotifyInlineStyleRuleModified(frame, aPropID);
+      ActiveLayerTracker::NotifyInlineStyleRuleModified(frame, aPropID, aValue, this);
     }
   }
   return nsDOMCSSDeclaration::SetPropertyValue(aPropID, aValue);

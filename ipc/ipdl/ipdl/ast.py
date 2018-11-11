@@ -4,6 +4,13 @@
 
 import sys
 
+NOT_NESTED = 1
+INSIDE_SYNC_NESTED = 2
+INSIDE_CPOW_NESTED = 3
+
+NORMAL_PRIORITY = 1
+HIGH_PRIORITY = 2
+
 class Visitor:
     def defaultVisit(self, node):
         raise Exception, "INTERNAL ERROR: no visitor for node type `%s'"% (
@@ -214,8 +221,6 @@ class INTR(PrettyPrinted):
     pretty = 'intr'
 class SYNC(PrettyPrinted):
     pretty = 'sync'
-class RPC(PrettyPrinted):
-    pretty = 'rpc'
 
 class INOUT(PrettyPrinted):
     pretty = 'inout'
@@ -234,6 +239,7 @@ class Protocol(NamespacedNode):
     def __init__(self, loc):
         NamespacedNode.__init__(self, loc)
         self.sendSemantics = ASYNC
+        self.nested = NOT_NESTED
         self.spawnsStmts = [ ]
         self.bridgesStmts = [ ]
         self.opensStmts = [ ]
@@ -293,10 +299,13 @@ class MessageDecl(Node):
         Node.__init__(self, loc)
         self.name = None
         self.sendSemantics = ASYNC
+        self.nested = NOT_NESTED
+        self.prio = NORMAL_PRIORITY
         self.direction = None
         self.inParams = [ ]
         self.outParams = [ ]
         self.compress = ''
+        self.verify = ''
 
     def addInParams(self, inParamsList):
         self.inParams += inParamsList
@@ -304,8 +313,14 @@ class MessageDecl(Node):
     def addOutParams(self, outParamsList):
         self.outParams += outParamsList
 
-    def hasReply(self):
-        return self.sendSemantics is SYNC or self.sendSemantics is INTR
+    def addModifiers(self, modifiers):
+        for modifier in modifiers:
+            if modifier.startswith('compress'):
+                self.compress = modifier
+            elif modifier == 'verify':
+                self.verify = modifier
+            elif modifier != '':
+                raise Exception, "Unexpected message modifier `%s'"% modifier
 
 class Transition(Node):
     def __init__(self, loc, trigger, msg, toStates):

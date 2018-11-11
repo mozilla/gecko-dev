@@ -21,4 +21,54 @@ interface nsIUrlClassifierUtils : nsISupports
    * @returns String containing the canonicalized URI.
    */
   ACString getKeyForURI(in nsIURI uri);
+
+  /**
+   * Get the provider by table name.
+   *
+   * @param tableName The table name that we want to lookup
+   *
+   * @returns the provider name that the given table belongs.
+   */
+  ACString getProvider(in ACString tableName);
+
+  /**
+   * Get the protocol version for the given provider.
+   *
+   * @param provider String the provider name. e.g. "google"
+   *
+   * @returns String to indicate the protocol version. e.g. "2.2"
+   */
+  ACString getProtocolVersion(in ACString provider);
+
+  /**
+   * Convert threat type to list name.
+   *
+   * @param Integer to indicate threat type.
+   *
+   * @returns The list names separated by ','. For example,
+   *          'goog-phish-proto,test-phish-proto'.
+   */
+  ACString convertThreatTypeToListNames(in uint32_t threatType);
+
+  /**
+   * Convert list name to threat type.
+   *
+   * @param The list name.
+   *
+   * @returns The threat type in integer.
+   */
+  uint32_t convertListNameToThreatType(in ACString listName);
+
+  /**
+   * Make update request for given lists and their states.
+   *
+   * @param aListNames An array of list name represented in string.
+   * @param aState An array of states (encoded in base64 format) for each list.
+   * @param aCount The array length of aList and aState.
+   *
+   * @returns A base64url encoded string.
+   */
+  ACString makeUpdateRequestV4([array, size_is(aCount)] in string aListNames,
+                               [array, size_is(aCount)] in string aStatesBase64,
+                               in uint32_t aCount);
 };

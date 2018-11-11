@@ -12,20 +12,31 @@ interface DataTransfer {
            attribute DOMString dropEffect;
            attribute DOMString effectAllowed;
 
-  //readonly attribute DataTransferItemList items;
+  readonly attribute DataTransferItemList items;
 
   [Throws]
   void setDragImage(Element image, long x, long y);
 
-  readonly attribute DOMStringList types;
-  [Throws]
+  // ReturnValueNeedsContainsHack on .types because lots of extension
+  // code was expecting .contains() back when it was a DOMStringList.
+  [Pure, Cached, Frozen, NeedsSubjectPrincipal, ReturnValueNeedsContainsHack]
+  readonly attribute sequence<DOMString> types;
+  [Throws, NeedsSubjectPrincipal]
   DOMString getData(DOMString format);
-  [Throws]
+  [Throws, NeedsSubjectPrincipal]
   void setData(DOMString format, DOMString data);
-  [Throws]
+  [Throws, NeedsSubjectPrincipal]
   void clearData(optional DOMString format);
-  [Throws]
+  [Throws, NeedsSubjectPrincipal]
   readonly attribute FileList? files;
+};
+
+partial interface DataTransfer {
+  [Throws, Pref="dom.input.dirpicker", NeedsSubjectPrincipal]
+  Promise<sequence<(File or Directory)>> getFilesAndDirectories();
+
+  [Throws, Pref="dom.input.dirpicker", NeedsSubjectPrincipal]
+  Promise<sequence<File>>                getFiles(optional boolean recursiveFlag = false);
 };
 
 // Mozilla specific stuff
@@ -82,7 +93,7 @@ partial interface DataTransfer {
    * @throws NS_ERROR_DOM_INDEX_SIZE_ERR if index is greater or equal than itemCount
    * @throws NO_MODIFICATION_ALLOWED_ERR if the item cannot be modified
    */
-  [Throws]
+  [Throws, NeedsSubjectPrincipal]
   void mozClearDataAt(DOMString format, unsigned long index);
 
   /*
@@ -106,7 +117,7 @@ partial interface DataTransfer {
    * @throws NS_ERROR_DOM_INDEX_SIZE_ERR if index is greater than itemCount
    * @throws NO_MODIFICATION_ALLOWED_ERR if the item cannot be modified
    */
-  [Throws]
+  [Throws, NeedsSubjectPrincipal]
   void mozSetDataAt(DOMString format, any data, unsigned long index);
 
   /**
@@ -118,7 +129,7 @@ partial interface DataTransfer {
    * @returns the data of the given format, or null if it doesn't exist.
    * @throws NS_ERROR_DOM_INDEX_SIZE_ERR if index is greater or equal than itemCount
    */
-  [Throws]
+  [Throws, NeedsSubjectPrincipal]
   any mozGetDataAt(DOMString format, unsigned long index);
 
   /**

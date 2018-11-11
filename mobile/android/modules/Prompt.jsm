@@ -1,11 +1,11 @@
-/* -*- Mode: js; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict"
 
-let Cc = Components.classes;
-let Ci = Components.interfaces;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/Messaging.jsm");
@@ -18,7 +18,16 @@ function log(msg) {
 
 function Prompt(aOptions) {
   this.window = "window" in aOptions ? aOptions.window : null;
+
   this.msg = { async: true };
+
+  if (this.window) {
+    let window = Services.wm.getMostRecentWindow("navigator:browser");
+    var tab = window.BrowserApp.getTabForWindow(this.window);
+    if (tab) {
+      this.msg.tabId = tab.id;
+    }
+  }
 
   if (aOptions.priority === 1)
     this.msg.type = "Prompt:ShowTop"
@@ -34,10 +43,11 @@ function Prompt(aOptions) {
   if ("buttons" in aOptions && aOptions.buttons != null)
     this.msg.buttons = aOptions.buttons;
 
+  if ("doubleTapButton" in aOptions && aOptions.doubleTapButton != null)
+    this.msg.doubleTapButton = aOptions.doubleTapButton;
+
   if ("hint" in aOptions && aOptions.hint != null)
     this.msg.hint = aOptions.hint;
-
-  let idService = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator);
 }
 
 Prompt.prototype = {
@@ -113,7 +123,9 @@ Prompt.prototype = {
     return this._addInput({
       type: aOptions.type || "date",
       value: aOptions.value,
-      id: aOptions.id
+      id: aOptions.id,
+      max: aOptions.max,
+      min: aOptions.min
     });
   },
 
@@ -164,7 +176,7 @@ Prompt.prototype = {
   },
 
   _innerShow: function() {
-    sendMessageToJava(this.msg, (data) => {
+    Messaging.sendRequestForResult(this.msg).then((data) => {
       if (this.callback)
         this.callback(data);
     });
@@ -178,9 +190,6 @@ Prompt.prototype = {
       let obj = { id: item.id };
 
       obj.label = item.label;
-
-      if (item.icon)
-        obj.icon = item.icon;
 
       if (item.disabled)
         obj.disabled = true;

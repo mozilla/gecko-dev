@@ -68,7 +68,7 @@ nsBrowserStatusFilter::RemoveProgressListener(nsIWebProgressListener *aListener)
 }
 
 NS_IMETHODIMP
-nsBrowserStatusFilter::GetDOMWindow(nsIDOMWindow **aResult)
+nsBrowserStatusFilter::GetDOMWindow(mozIDOMWindowProxy **aResult)
 {
     NS_NOTREACHED("nsBrowserStatusFilter::GetDOMWindow");
     return NS_ERROR_NOT_IMPLEMENTED;
@@ -355,8 +355,9 @@ nsBrowserStatusFilter::StartDelayTimer()
     if (!mTimer)
         return NS_ERROR_FAILURE;
 
-    return mTimer->InitWithFuncCallback(TimeoutHandler, this, 160, 
-                                        nsITimer::TYPE_ONE_SHOT);
+    return mTimer->InitWithNamedFuncCallback(
+        TimeoutHandler, this, 160, nsITimer::TYPE_ONE_SHOT,
+        "nsBrowserStatusFilter::TimeoutHandler");
 }
 
 void

@@ -63,7 +63,7 @@ private:
   nsAutoPtr<nsDownloadScannerWatchdog> mWatchdog;
 
   static unsigned int __stdcall ScannerThreadFunction(void *p);
-  class Scan : public nsRunnable
+  class Scan : public mozilla::Runnable
   {
   public:
     Scan(nsDownloadScanner *scanner, nsDownload *download);
@@ -87,7 +87,7 @@ private:
     nsDownloadScanner *mDLScanner;
     PRTime mStartTime;
     HANDLE mThread;
-    nsRefPtr<nsDownload> mDownload;
+    RefPtr<nsDownload> mDownload;
     // Guards mStatus
     CRITICAL_SECTION mStateSync;
     AVScanState mStatus;

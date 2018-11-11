@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,26 +7,27 @@
 EXTRA_JS_MODULES += [
     'Accounts.jsm',
     'AndroidLog.jsm',
-    'ContactService.jsm',
     'dbg-browser-actors.js',
-    'FireflyApp.jsm',
+    'DelayedInit.jsm',
+    'DownloadNotifications.jsm',
+    'FxAccountsWebChannel.jsm',
     'HelperApps.jsm',
     'Home.jsm',
     'HomeProvider.jsm',
+    'JavaAddonManager.jsm',
     'JNI.jsm',
     'LightweightThemeConsumer.jsm',
+    'MediaPlayerApp.jsm',
     'Messaging.jsm',
+    'NetErrorHelper.jsm',
     'Notifications.jsm',
-    'OrderedBroadcast.jsm',
+    'PageActions.jsm',
     'Prompt.jsm',
+    'RuntimePermissions.jsm',
     'Sanitizer.jsm',
     'SharedPreferences.jsm',
-    'SimpleServiceDiscovery.jsm',
+    'Snackbars.jsm',
     'SSLExceptions.jsm',
-    'WebappManagerWorker.js',
-]
-
-EXTRA_PP_JS_MODULES += [
-    'RokuApp.jsm',
-    'WebappManager.jsm',
+    'TabMirror.jsm',
+    'WebsiteMetadata.jsm'
 ]

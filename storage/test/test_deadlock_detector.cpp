@@ -31,7 +31,7 @@ using namespace mozilla;
 class TestMutex : public mozilla::storage::SQLiteMutex
 {
 public:
-    TestMutex(const char* aName)
+    explicit TestMutex(const char* aName)
     : mozilla::storage::SQLiteMutex(aName)
     , mInner(sqlite3_mutex_alloc(SQLITE_MUTEX_FAST))
     {
@@ -94,7 +94,7 @@ public:
     nsCString mStdout;
     nsCString mStderr;
 
-    Subprocess(const char* aTestName) {
+    explicit Subprocess(const char* aTestName) {
         // set up stdio redirection
         PRFileDesc* readStdin;  PRFileDesc* writeStdin;
         PRFileDesc* readStdout; PRFileDesc* writeStdout;
@@ -160,7 +160,6 @@ public:
         int32_t nfds;
         bool stdoutOpen = true, stderrOpen = true;
         char buf[4096];
-        int32_t len;
 
         PRIntervalTime now = PR_IntervalNow();
         PRIntervalTime deadline = now + PR_MillisecondsToInterval(aWaitMs);
@@ -194,15 +193,13 @@ public:
                     continue;
 
                 bool isStdout = mStdoutfd == pollfds[i].fd;
-                
+                int32_t len = 0;
+
                 if (PR_POLL_READ & pollfds[i].out_flags) {
                     len = PR_Read(pollfds[i].fd, buf, sizeof(buf) - 1);
                     NS_ASSERTION(0 <= len, PR_ErrorToName(PR_GetError()));
                 }
-                else if (PR_POLL_HUP & pollfds[i].out_flags) {
-                    len = 0;
-                }
-                else {
+                else if (!(PR_POLL_HUP & pollfds[i].out_flags)) {
                     NS_ERROR(PR_ErrorToName(PR_GetError()));
                 }
 

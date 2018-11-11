@@ -103,8 +103,7 @@ this.Sandbox.prototype = {
     docShell.allowWindowControl = false;
 
     // Disable stylesheet loading since the document is not visible.
-    let markupDocViewer = docShell.contentViewer
-                                  .QueryInterface(Ci.nsIMarkupDocumentViewer);
+    let markupDocViewer = docShell.contentViewer;
     markupDocViewer.authorStyleDisabled = true;
 
     // Set instance properties.
@@ -125,7 +124,7 @@ this.Sandbox.prototype = {
       );
 
       aCallback(self);
-    };
+    }
 
     this._frame.addEventListener("DOMWindowCreated",
                                  _makeSandboxContentLoaded,

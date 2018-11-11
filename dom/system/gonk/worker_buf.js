@@ -16,7 +16,7 @@
  * every time a parcel is sent.
  */
 
-let Buf = {
+var Buf = {
   INT32_MAX: 2147483647,
   UINT8_SIZE: 1,
   UINT16_SIZE: 2,
@@ -265,6 +265,19 @@ let Buf = {
   readInt32: function() {
     return this.readUint8()       | this.readUint8() <<  8 |
            this.readUint8() << 16 | this.readUint8() << 24;
+  },
+
+  readInt64: function() {
+    // Avoid using bitwise operators as the operands of all bitwise operators
+    // are converted to signed 32-bit integers.
+    return this.readUint8()                   +
+           this.readUint8() * Math.pow(2, 8)  +
+           this.readUint8() * Math.pow(2, 16) +
+           this.readUint8() * Math.pow(2, 24) +
+           this.readUint8() * Math.pow(2, 32) +
+           this.readUint8() * Math.pow(2, 40) +
+           this.readUint8() * Math.pow(2, 48) +
+           this.readUint8() * Math.pow(2, 56);
   },
 
   readInt32List: function() {

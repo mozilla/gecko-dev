@@ -133,9 +133,19 @@ def gen_manifest(template_root_dir, target_cfg, jid,
     # booleans in the .json file, not strings.
     manifest.set("em:unpack", "true" if target_cfg.get("unpack") else "false")
 
+    if target_cfg.get('hasEmbeddedWebExtension', False):
+        elem = dom.createElement("em:hasEmbeddedWebExtension");
+        elem.appendChild(dom.createTextNode("true"))
+        dom.documentElement.getElementsByTagName("Description")[0].appendChild(elem)
+
     for translator in target_cfg.get("translators", [ ]):
         elem = dom.createElement("em:translator");
         elem.appendChild(dom.createTextNode(translator))
+        dom.documentElement.getElementsByTagName("Description")[0].appendChild(elem)
+
+    for developer in target_cfg.get("developers", [ ]):
+        elem = dom.createElement("em:developer");
+        elem.appendChild(dom.createTextNode(developer))
         dom.documentElement.getElementsByTagName("Description")[0].appendChild(elem)
 
     for contributor in target_cfg.get("contributors", [ ]):
@@ -150,7 +160,7 @@ def gen_manifest(template_root_dir, target_cfg, jid,
 
     if target_cfg.get("preferences"):
         manifest.set("em:optionsType", "2")
-        
+
         # workaround until bug 971249 is fixed
         # https://bugzilla.mozilla.org/show_bug.cgi?id=971249
         manifest.set("em:optionsURL", "data:text/xml,<placeholder/>")

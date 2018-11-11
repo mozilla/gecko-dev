@@ -46,7 +46,7 @@ struct FeatureRecord {
   uint16_t offset;
 };
 
-bool ParseLangSysTable(const ots::OpenTypeFile *file,
+bool ParseLangSysTable(const ots::Font *font,
                        ots::Buffer *subtable, const uint32_t tag,
                        const uint16_t num_features) {
   uint16_t offset_lookup_order = 0;
@@ -55,33 +55,33 @@ bool ParseLangSysTable(const ots::OpenTypeFile *file,
   if (!subtable->ReadU16(&offset_lookup_order) ||
       !subtable->ReadU16(&req_feature_index) ||
       !subtable->ReadU16(&feature_count)) {
-    return OTS_FAILURE_MSG("Failed to read langsys header for table %4s", (char *)&tag);
+    return OTS_FAILURE_MSG("Failed to read langsys header for tag %c%c%c%c", OTS_UNTAG(tag));
   }
   // |offset_lookup_order| is reserved and should be NULL.
   if (offset_lookup_order != 0) {
-    return OTS_FAILURE_MSG("Bad lookup offset order %d in table %4s", offset_lookup_order, (char *)&tag);
+    return OTS_FAILURE_MSG("Bad lookup offset order %d for langsys tag %c%c%c%c", offset_lookup_order, OTS_UNTAG(tag));
   }
   if (req_feature_index != kNoRequiredFeatureIndexDefined &&
       req_feature_index >= num_features) {
-    return OTS_FAILURE_MSG("Bad required features index %d in table %4s", req_feature_index, (char *)&tag);
+    return OTS_FAILURE_MSG("Bad required features index %d for langsys tag %c%c%c%c", req_feature_index, OTS_UNTAG(tag));
   }
   if (feature_count > num_features) {
-    return OTS_FAILURE_MSG("Bad feature count %d in table %4s", feature_count, (char *)&tag);
+    return OTS_FAILURE_MSG("Bad feature count %d for langsys tag %c%c%c%c", feature_count, OTS_UNTAG(tag));
   }
 
   for (unsigned i = 0; i < feature_count; ++i) {
     uint16_t feature_index = 0;
     if (!subtable->ReadU16(&feature_index)) {
-      return OTS_FAILURE_MSG("Failed to read feature index %d in table %4s", i, (char *)&tag);
+      return OTS_FAILURE_MSG("Failed to read feature index %d for langsys tag %c%c%c%c", i, OTS_UNTAG(tag));
     }
     if (feature_index >= num_features) {
-      return OTS_FAILURE_MSG("Bad feature index %d for feature %d in table %4s", feature_index, i, (char *)&tag);
+      return OTS_FAILURE_MSG("Bad feature index %d for feature %d for langsys tag %c%c%c%c", feature_index, i, OTS_UNTAG(tag));
     }
   }
   return true;
 }
 
-bool ParseScriptTable(const ots::OpenTypeFile *file,
+bool ParseScriptTable(const ots::Font *font,
                       const uint8_t *data, const size_t length,
                       const uint32_t tag, const uint16_t num_features) {
   ots::Buffer subtable(data, length);
@@ -90,20 +90,25 @@ bool ParseScriptTable(const ots::OpenTypeFile *file,
   uint16_t lang_sys_count = 0;
   if (!subtable.ReadU16(&offset_default_lang_sys) ||
       !subtable.ReadU16(&lang_sys_count)) {
-    return OTS_FAILURE_MSG("Failed to read script header for table %4s", (char *)&tag);
+    return OTS_FAILURE_MSG("Failed to read script header for script tag %c%c%c%c", OTS_UNTAG(tag));
   }
 
   // The spec requires a script table for 'DFLT' tag must contain non-NULL
   // |offset_default_lang_sys| and |lang_sys_count| == 0
-  if (tag == kScriptTableTagDflt &&
-      (offset_default_lang_sys == 0 || lang_sys_count != 0)) {
-    return OTS_FAILURE_MSG("DFLT table doesn't satisfy the spec. in table %4s", (char *)&tag);
+  // https://www.microsoft.com/typography/otspec/chapter2.htm
+  if (tag == kScriptTableTagDflt) {
+    if (offset_default_lang_sys == 0) {
+      return OTS_FAILURE_MSG("DFLT script doesn't satisfy the spec. DefaultLangSys is NULL");
+    }
+    if (lang_sys_count != 0) {
+      return OTS_FAILURE_MSG("DFLT script doesn't satisfy the spec. LangSysCount is not zero: %d", lang_sys_count);
+    }
   }
 
   const unsigned lang_sys_record_end =
       6 * static_cast<unsigned>(lang_sys_count) + 4;
   if (lang_sys_record_end > std::numeric_limits<uint16_t>::max()) {
-    return OTS_FAILURE_MSG("Bad end of langsys record %d in table %4s", lang_sys_record_end, (char *)&tag);
+    return OTS_FAILURE_MSG("Bad end of langsys record %d for script tag %c%c%c%c", lang_sys_record_end, OTS_UNTAG(tag));
   }
 
   std::vector<LangSysRecord> lang_sys_records;
@@ -112,11 +117,11 @@ bool ParseScriptTable(const ots::OpenTypeFile *file,
   for (unsigned i = 0; i < lang_sys_count; ++i) {
     if (!subtable.ReadU32(&lang_sys_records[i].tag) ||
         !subtable.ReadU16(&lang_sys_records[i].offset)) {
-      return OTS_FAILURE_MSG("Failed to read langsys record header %d for table %4s", i, (char *)&tag);
+      return OTS_FAILURE_MSG("Failed to read langsys record header %d for script tag %c%c%c%c", i, OTS_UNTAG(tag));
     }
     // The record array must store the records alphabetically by tag
     if (last_tag != 0 && last_tag > lang_sys_records[i].tag) {
-      return OTS_FAILURE_MSG("Bad last tag %d for langsys record %d in table %4s", last_tag, i, (char *)&tag);
+      return OTS_FAILURE_MSG("Bad last tag %d for langsys record %d for script tag %c%c%c%c", last_tag, i, OTS_UNTAG(tag));
     }
     if (lang_sys_records[i].offset < lang_sys_record_end ||
         lang_sys_records[i].offset >= length) {
@@ -129,15 +134,15 @@ bool ParseScriptTable(const ots::OpenTypeFile *file,
   // Check lang sys tables
   for (unsigned i = 0; i < lang_sys_count; ++i) {
     subtable.set_offset(lang_sys_records[i].offset);
-    if (!ParseLangSysTable(file, &subtable, lang_sys_records[i].tag, num_features)) {
-      return OTS_FAILURE_MSG("Failed to parse langsys table %d (%4s) in table %4s", i, (char *)&lang_sys_records[i].tag, (char *)&tag);
+    if (!ParseLangSysTable(font, &subtable, lang_sys_records[i].tag, num_features)) {
+      return OTS_FAILURE_MSG("Failed to parse langsys table %d (%c%c%c%c) for script tag %c%c%c%c", i, OTS_UNTAG(lang_sys_records[i].tag), OTS_UNTAG(tag));
     }
   }
 
   return true;
 }
 
-bool ParseFeatureTable(const ots::OpenTypeFile *file,
+bool ParseFeatureTable(const ots::Font *font,
                        const uint8_t *data, const size_t length,
                        const uint16_t num_lookups) {
   ots::Buffer subtable(data, length);
@@ -158,7 +163,7 @@ bool ParseFeatureTable(const ots::OpenTypeFile *file,
   if (offset_feature_params != 0 &&
       (offset_feature_params < feature_table_end ||
        offset_feature_params >= length)) {
-    return OTS_FAILURE_MSG("Badd feature parames offset %d", offset_feature_params);
+    return OTS_FAILURE_MSG("Bad feature params offset %d", offset_feature_params);
   }
 
   for (unsigned i = 0; i < lookup_count; ++i) {
@@ -174,7 +179,7 @@ bool ParseFeatureTable(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool ParseLookupTable(ots::OpenTypeFile *file, const uint8_t *data,
+bool ParseLookupTable(ots::Font *font, const uint8_t *data,
                       const size_t length,
                       const ots::LookupSubtableParser* parser) {
   ots::Buffer subtable(data, length);
@@ -194,17 +199,22 @@ bool ParseLookupTable(ots::OpenTypeFile *file, const uint8_t *data,
 
   // Check lookup flags.
   if ((lookup_flag & kGdefRequiredFlags) &&
-      (!file->gdef || !file->gdef->has_glyph_class_def)) {
-    return OTS_FAILURE_MSG("Bad lookup flags %d", lookup_flag);
+      (!font->gdef || !font->gdef->has_glyph_class_def)) {
+    return OTS_FAILURE_MSG("Lookup flags require GDEF table, "
+                           "but none was found: %d", lookup_flag);
   }
   if ((lookup_flag & kMarkAttachmentTypeMask) &&
-      (!file->gdef || !file->gdef->has_mark_attachment_class_def)) {
-    return OTS_FAILURE_MSG("lookup flag asks for mark attachment that is bad %d", lookup_flag);
+      (!font->gdef || !font->gdef->has_mark_attachment_class_def)) {
+    return OTS_FAILURE_MSG("Lookup flags ask for mark attachment, "
+                           "but there is no GDEF table or it has no "
+                           "mark attachment classes: %d", lookup_flag);
   }
   bool use_mark_filtering_set = false;
   if (lookup_flag & kUseMarkFilteringSetBit) {
-    if (!file->gdef || !file->gdef->has_mark_glyph_sets_def) {
-      return OTS_FAILURE_MSG("lookup flag asks for mark filtering that is bad %d", lookup_flag);
+    if (!font->gdef || !font->gdef->has_mark_glyph_sets_def) {
+      return OTS_FAILURE_MSG("Lookup flags ask for mark filtering, "
+                             "but there is no GDEF table or it has no "
+                             "mark filtering sets: %d", lookup_flag);
     }
     use_mark_filtering_set = true;
   }
@@ -238,15 +248,15 @@ bool ParseLookupTable(ots::OpenTypeFile *file, const uint8_t *data,
     if (!subtable.ReadU16(&mark_filtering_set)) {
       return OTS_FAILURE_MSG("Failed to read mark filtering set");
     }
-    if (file->gdef->num_mark_glyph_sets == 0 ||
-        mark_filtering_set >= file->gdef->num_mark_glyph_sets) {
+    if (font->gdef->num_mark_glyph_sets == 0 ||
+        mark_filtering_set >= font->gdef->num_mark_glyph_sets) {
       return OTS_FAILURE_MSG("Bad mark filtering set %d", mark_filtering_set);
     }
   }
 
   // Parse lookup subtables for this lookup type.
   for (unsigned i = 0; i < subtable_count; ++i) {
-    if (!parser->Parse(file, data + subtables[i], length - subtables[i],
+    if (!parser->Parse(font, data + subtables[i], length - subtables[i],
                        lookup_type)) {
       return OTS_FAILURE_MSG("Failed to parse subtable %d", i);
     }
@@ -254,7 +264,7 @@ bool ParseLookupTable(ots::OpenTypeFile *file, const uint8_t *data,
   return true;
 }
 
-bool ParseClassDefFormat1(const ots::OpenTypeFile *file,
+bool ParseClassDefFormat1(const ots::Font *font,
                           const uint8_t *data, size_t length,
                           const uint16_t num_glyphs,
                           const uint16_t num_classes) {
@@ -270,7 +280,6 @@ bool ParseClassDefFormat1(const ots::OpenTypeFile *file,
     return OTS_FAILURE_MSG("Failed to read starting glyph of class definition");
   }
   if (start_glyph > num_glyphs) {
-    OTS_WARNING("bad start glyph ID: %u", start_glyph);
     return OTS_FAILURE_MSG("Bad starting glyph %d in class definition", start_glyph);
   }
 
@@ -287,7 +296,6 @@ bool ParseClassDefFormat1(const ots::OpenTypeFile *file,
       return OTS_FAILURE_MSG("Failed to read class value for glyph %d in class definition", i);
     }
     if (class_value > num_classes) {
-      OTS_WARNING("bad class value: %u", class_value);
       return OTS_FAILURE_MSG("Bad class value %d for glyph %d in class definition", class_value, i);
     }
   }
@@ -295,7 +303,7 @@ bool ParseClassDefFormat1(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool ParseClassDefFormat2(const ots::OpenTypeFile *file,
+bool ParseClassDefFormat2(const ots::Font *font,
                           const uint8_t *data, size_t length,
                           const uint16_t num_glyphs,
                           const uint16_t num_classes) {
@@ -336,7 +344,7 @@ bool ParseClassDefFormat2(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool ParseCoverageFormat1(const ots::OpenTypeFile *file,
+bool ParseCoverageFormat1(const ots::Font *font,
                           const uint8_t *data, size_t length,
                           const uint16_t num_glyphs,
                           const uint16_t expected_num_glyphs) {
@@ -371,7 +379,7 @@ bool ParseCoverageFormat1(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool ParseCoverageFormat2(const ots::OpenTypeFile *file,
+bool ParseCoverageFormat2(const ots::Font *font,
                           const uint8_t *data, size_t length,
                           const uint16_t num_glyphs,
                           const uint16_t expected_num_glyphs) {
@@ -425,7 +433,7 @@ bool ParseCoverageFormat2(const ots::OpenTypeFile *file,
 
 // Parsers for Contextual subtables in GSUB/GPOS tables.
 
-bool ParseLookupRecord(const ots::OpenTypeFile *file,
+bool ParseLookupRecord(const ots::Font *font,
                        ots::Buffer *subtable, const uint16_t num_glyphs,
                        const uint16_t num_lookups) {
   uint16_t sequence_index = 0;
@@ -443,7 +451,7 @@ bool ParseLookupRecord(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool ParseRuleSubtable(const ots::OpenTypeFile *file,
+bool ParseRuleSubtable(const ots::Font *font,
                        const uint8_t *data, const size_t length,
                        const uint16_t num_glyphs,
                        const uint16_t num_lookups) {
@@ -470,14 +478,14 @@ bool ParseRuleSubtable(const ots::OpenTypeFile *file,
   }
 
   for (unsigned i = 0; i < lookup_count; ++i) {
-    if (!ParseLookupRecord(file, &subtable, num_glyphs, num_lookups)) {
+    if (!ParseLookupRecord(font, &subtable, num_glyphs, num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse lookup record %d", i);
     }
   }
   return true;
 }
 
-bool ParseRuleSetTable(const ots::OpenTypeFile *file,
+bool ParseRuleSetTable(const ots::Font *font,
                        const uint8_t *data, const size_t length,
                        const uint16_t num_glyphs,
                        const uint16_t num_lookups) {
@@ -500,7 +508,7 @@ bool ParseRuleSetTable(const ots::OpenTypeFile *file,
     if (offset_rule < rule_end || offset_rule >= length) {
       return OTS_FAILURE_MSG("Bad rule offset %d in set %d", offset_rule, i);
     }
-    if (!ParseRuleSubtable(file, data + offset_rule, length - offset_rule,
+    if (!ParseRuleSubtable(font, data + offset_rule, length - offset_rule,
                            num_glyphs, num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse rule set %d", i);
     }
@@ -509,7 +517,7 @@ bool ParseRuleSetTable(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool ParseContextFormat1(const ots::OpenTypeFile *file,
+bool ParseContextFormat1(const ots::Font *font,
                          const uint8_t *data, const size_t length,
                          const uint16_t num_glyphs,
                          const uint16_t num_lookups) {
@@ -532,7 +540,7 @@ bool ParseContextFormat1(const ots::OpenTypeFile *file,
   if (offset_coverage < rule_set_end || offset_coverage >= length) {
     return OTS_FAILURE_MSG("Bad coverage offset %d in context format 1", offset_coverage);
   }
-  if (!ots::ParseCoverageTable(file, data + offset_coverage,
+  if (!ots::ParseCoverageTable(font, data + offset_coverage,
                                length - offset_coverage, num_glyphs)) {
     return OTS_FAILURE_MSG("Failed to parse coverage table in context format 1");
   }
@@ -545,7 +553,7 @@ bool ParseContextFormat1(const ots::OpenTypeFile *file,
     if (offset_rule < rule_set_end || offset_rule >= length) {
       return OTS_FAILURE_MSG("Bad rule offset %d in rule %d in context format 1", offset_rule, i);
     }
-    if (!ParseRuleSetTable(file, data + offset_rule, length - offset_rule,
+    if (!ParseRuleSetTable(font, data + offset_rule, length - offset_rule,
                            num_glyphs, num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse rule set %d in context format 1", i);
     }
@@ -554,7 +562,7 @@ bool ParseContextFormat1(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool ParseClassRuleTable(const ots::OpenTypeFile *file,
+bool ParseClassRuleTable(const ots::Font *font,
                          const uint8_t *data, const size_t length,
                          const uint16_t num_glyphs,
                          const uint16_t num_lookups) {
@@ -579,14 +587,14 @@ bool ParseClassRuleTable(const ots::OpenTypeFile *file,
   }
 
   for (unsigned i = 0; i < lookup_count; ++i) {
-    if (!ParseLookupRecord(file, &subtable, num_glyphs, num_lookups)) {
+    if (!ParseLookupRecord(font, &subtable, num_glyphs, num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse lookup record %d in class rule table", i);
     }
   }
   return true;
 }
 
-bool ParseClassSetTable(const ots::OpenTypeFile *file,
+bool ParseClassSetTable(const ots::Font *font,
                         const uint8_t *data, const size_t length,
                         const uint16_t num_glyphs,
                         const uint16_t num_lookups) {
@@ -609,7 +617,7 @@ bool ParseClassSetTable(const ots::OpenTypeFile *file,
     if (offset_class_rule < class_rule_end || offset_class_rule >= length) {
       return OTS_FAILURE_MSG("Bad class rule offset %d in class %d", offset_class_rule, i);
     }
-    if (!ParseClassRuleTable(file, data + offset_class_rule,
+    if (!ParseClassRuleTable(font, data + offset_class_rule,
                              length - offset_class_rule, num_glyphs,
                              num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse class rule table %d", i);
@@ -619,7 +627,7 @@ bool ParseClassSetTable(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool ParseContextFormat2(const ots::OpenTypeFile *file,
+bool ParseContextFormat2(const ots::Font *font,
                          const uint8_t *data, const size_t length,
                          const uint16_t num_glyphs,
                          const uint16_t num_lookups) {
@@ -643,7 +651,7 @@ bool ParseContextFormat2(const ots::OpenTypeFile *file,
   if (offset_coverage < class_set_end || offset_coverage >= length) {
     return OTS_FAILURE_MSG("Bad coverage offset %d in context format 2", offset_coverage);
   }
-  if (!ots::ParseCoverageTable(file, data + offset_coverage,
+  if (!ots::ParseCoverageTable(font, data + offset_coverage,
                                length - offset_coverage, num_glyphs)) {
     return OTS_FAILURE_MSG("Failed to parse coverage table in context format 2");
   }
@@ -651,7 +659,7 @@ bool ParseContextFormat2(const ots::OpenTypeFile *file,
   if (offset_class_def < class_set_end || offset_class_def >= length) {
     return OTS_FAILURE_MSG("bad class definition offset %d in context format 2", offset_class_def);
   }
-  if (!ots::ParseClassDefTable(file, data + offset_class_def,
+  if (!ots::ParseClassDefTable(font, data + offset_class_def,
                                length - offset_class_def,
                                num_glyphs, kMaxClassDefValue)) {
     return OTS_FAILURE_MSG("Failed to parse class definition table in context format 2");
@@ -666,7 +674,7 @@ bool ParseContextFormat2(const ots::OpenTypeFile *file,
       if (offset_class_rule < class_set_end || offset_class_rule >= length) {
         return OTS_FAILURE_MSG("Bad class rule offset %d for rule %d in context format 2", offset_class_rule, i);
       }
-      if (!ParseClassSetTable(file, data + offset_class_rule,
+      if (!ParseClassSetTable(font, data + offset_class_rule,
                               length - offset_class_rule, num_glyphs,
                               num_lookups)) {
         return OTS_FAILURE_MSG("Failed to parse class set %d in context format 2", i);
@@ -677,7 +685,7 @@ bool ParseContextFormat2(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool ParseContextFormat3(const ots::OpenTypeFile *file,
+bool ParseContextFormat3(const ots::Font *font,
                          const uint8_t *data, const size_t length,
                          const uint16_t num_glyphs,
                          const uint16_t num_lookups) {
@@ -708,14 +716,14 @@ bool ParseContextFormat3(const ots::OpenTypeFile *file,
     if (offset_coverage < lookup_record_end || offset_coverage >= length) {
       return OTS_FAILURE_MSG("Bad coverage offset %d for glyph %d in context format 3", offset_coverage, i);
     }
-    if (!ots::ParseCoverageTable(file, data + offset_coverage,
+    if (!ots::ParseCoverageTable(font, data + offset_coverage,
                                  length - offset_coverage, num_glyphs)) {
       return OTS_FAILURE_MSG("Failed to parse coverage table for glyph %d in context format 3", i);
     }
   }
 
   for (unsigned i = 0; i < lookup_count; ++i) {
-    if (!ParseLookupRecord(file, &subtable, num_glyphs, num_lookups)) {
+    if (!ParseLookupRecord(font, &subtable, num_glyphs, num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse lookup record %d in context format 3", i);
     }
   }
@@ -725,7 +733,7 @@ bool ParseContextFormat3(const ots::OpenTypeFile *file,
 
 // Parsers for Chaning Contextual subtables in GSUB/GPOS tables.
 
-bool ParseChainRuleSubtable(const ots::OpenTypeFile *file,
+bool ParseChainRuleSubtable(const ots::Font *font,
                             const uint8_t *data, const size_t length,
                             const uint16_t num_glyphs,
                             const uint16_t num_lookups) {
@@ -787,7 +795,7 @@ bool ParseChainRuleSubtable(const ots::OpenTypeFile *file,
     return OTS_FAILURE_MSG("Failed to read lookup count in chain rule subtable");
   }
   for (unsigned i = 0; i < lookup_count; ++i) {
-    if (!ParseLookupRecord(file, &subtable, num_glyphs, num_lookups)) {
+    if (!ParseLookupRecord(font, &subtable, num_glyphs, num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse lookup record %d in chain rule subtable", i);
     }
   }
@@ -795,7 +803,7 @@ bool ParseChainRuleSubtable(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool ParseChainRuleSetTable(const ots::OpenTypeFile *file,
+bool ParseChainRuleSetTable(const ots::Font *font,
                             const uint8_t *data, const size_t length,
                             const uint16_t num_glyphs,
                             const uint16_t num_lookups) {
@@ -818,7 +826,7 @@ bool ParseChainRuleSetTable(const ots::OpenTypeFile *file,
     if (offset_chain_rule < chain_rule_end || offset_chain_rule >= length) {
       return OTS_FAILURE_MSG("Bad chain rule offset %d for chain rule %d in chain rule set", offset_chain_rule, i);
     }
-    if (!ParseChainRuleSubtable(file, data + offset_chain_rule,
+    if (!ParseChainRuleSubtable(font, data + offset_chain_rule,
                                 length - offset_chain_rule,
                                 num_glyphs, num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse chain rule %d in chain rule set", i);
@@ -828,7 +836,7 @@ bool ParseChainRuleSetTable(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool ParseChainContextFormat1(const ots::OpenTypeFile *file,
+bool ParseChainContextFormat1(const ots::Font *font,
                               const uint8_t *data, const size_t length,
                               const uint16_t num_glyphs,
                               const uint16_t num_lookups) {
@@ -851,7 +859,7 @@ bool ParseChainContextFormat1(const ots::OpenTypeFile *file,
   if (offset_coverage < chain_rule_set_end || offset_coverage >= length) {
     return OTS_FAILURE_MSG("Bad coverage offset %d in chain context format 1", chain_rule_set_end);
   }
-  if (!ots::ParseCoverageTable(file, data + offset_coverage,
+  if (!ots::ParseCoverageTable(font, data + offset_coverage,
                                length - offset_coverage, num_glyphs)) {
     return OTS_FAILURE_MSG("Failed to parse coverage table for chain context format 1");
   }
@@ -865,7 +873,7 @@ bool ParseChainContextFormat1(const ots::OpenTypeFile *file,
         offset_chain_rule_set >= length) {
       return OTS_FAILURE_MSG("Bad chain rule set offset %d for chain rule set %d in chain context format 1", offset_chain_rule_set, i);
     }
-    if (!ParseChainRuleSetTable(file, data + offset_chain_rule_set,
+    if (!ParseChainRuleSetTable(font, data + offset_chain_rule_set,
                                    length - offset_chain_rule_set,
                                    num_glyphs, num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse chain rule set %d in chain context format 1", i);
@@ -875,7 +883,7 @@ bool ParseChainContextFormat1(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool ParseChainClassRuleSubtable(const ots::OpenTypeFile *file,
+bool ParseChainClassRuleSubtable(const ots::Font *font,
                                  const uint8_t *data, const size_t length,
                                  const uint16_t num_glyphs,
                                  const uint16_t num_lookups) {
@@ -922,7 +930,7 @@ bool ParseChainClassRuleSubtable(const ots::OpenTypeFile *file,
     return OTS_FAILURE_MSG("Failed to read lookup count in chain class rule subtable");
   }
   for (unsigned i = 0; i < lookup_count; ++i) {
-    if (!ParseLookupRecord(file, &subtable, num_glyphs, num_lookups)) {
+    if (!ParseLookupRecord(font, &subtable, num_glyphs, num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse lookup record %d in chain class rule subtable", i);
     }
   }
@@ -930,7 +938,7 @@ bool ParseChainClassRuleSubtable(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool ParseChainClassSetTable(const ots::OpenTypeFile *file,
+bool ParseChainClassSetTable(const ots::Font *font,
                              const uint8_t *data, const size_t length,
                              const uint16_t num_glyphs,
                              const uint16_t num_lookups) {
@@ -954,7 +962,7 @@ bool ParseChainClassSetTable(const ots::OpenTypeFile *file,
         offset_chain_class_rule >= length) {
       return OTS_FAILURE_MSG("Bad chain class rule offset %d for chain class %d in chain class set", offset_chain_class_rule, i);
     }
-    if (!ParseChainClassRuleSubtable(file, data + offset_chain_class_rule,
+    if (!ParseChainClassRuleSubtable(font, data + offset_chain_class_rule,
                                      length - offset_chain_class_rule,
                                      num_glyphs, num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse chain class rule %d in chain class set", i);
@@ -964,7 +972,7 @@ bool ParseChainClassSetTable(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool ParseChainContextFormat2(const ots::OpenTypeFile *file,
+bool ParseChainContextFormat2(const ots::Font *font,
                               const uint8_t *data, const size_t length,
                               const uint16_t num_glyphs,
                               const uint16_t num_lookups) {
@@ -993,7 +1001,7 @@ bool ParseChainContextFormat2(const ots::OpenTypeFile *file,
   if (offset_coverage < chain_class_set_end || offset_coverage >= length) {
     return OTS_FAILURE_MSG("Bad coverage offset %d in chain context format 2", offset_coverage);
   }
-  if (!ots::ParseCoverageTable(file, data + offset_coverage,
+  if (!ots::ParseCoverageTable(font, data + offset_coverage,
                                length - offset_coverage, num_glyphs)) {
     return OTS_FAILURE_MSG("Failed to parse coverage table in chain context format 2");
   }
@@ -1004,7 +1012,7 @@ bool ParseChainContextFormat2(const ots::OpenTypeFile *file,
         offset_backtrack_class_def >= length) {
       return OTS_FAILURE_MSG("Bad backtrack class offset %d in chain context format 2", offset_backtrack_class_def);
     }
-    if (!ots::ParseClassDefTable(file, data + offset_backtrack_class_def,
+    if (!ots::ParseClassDefTable(font, data + offset_backtrack_class_def,
                                  length - offset_backtrack_class_def,
                                  num_glyphs, kMaxClassDefValue)) {
       return OTS_FAILURE_MSG("Failed to parse backtrack class defn table in chain context format 2");
@@ -1015,7 +1023,7 @@ bool ParseChainContextFormat2(const ots::OpenTypeFile *file,
       offset_input_class_def >= length) {
     return OTS_FAILURE_MSG("Bad input class defn offset %d in chain context format 2", offset_input_class_def);
   }
-  if (!ots::ParseClassDefTable(file, data + offset_input_class_def,
+  if (!ots::ParseClassDefTable(font, data + offset_input_class_def,
                                length - offset_input_class_def,
                                num_glyphs, kMaxClassDefValue)) {
     return OTS_FAILURE_MSG("Failed to parse input class defn in chain context format 2");
@@ -1026,7 +1034,7 @@ bool ParseChainContextFormat2(const ots::OpenTypeFile *file,
         offset_lookahead_class_def >= length) {
       return OTS_FAILURE_MSG("Bad lookahead class defn offset %d in chain context format 2", offset_lookahead_class_def);
     }
-    if (!ots::ParseClassDefTable(file, data + offset_lookahead_class_def,
+    if (!ots::ParseClassDefTable(font, data + offset_lookahead_class_def,
                                  length - offset_lookahead_class_def,
                                  num_glyphs, kMaxClassDefValue)) {
       return OTS_FAILURE_MSG("Failed to parse lookahead class defn in chain context format 2");
@@ -1044,7 +1052,7 @@ bool ParseChainContextFormat2(const ots::OpenTypeFile *file,
           offset_chain_class_set >= length) {
         return OTS_FAILURE_MSG("Bad chain set class offset %d for chain set %d in chain context format 2", offset_chain_class_set, i);
       }
-      if (!ParseChainClassSetTable(file, data + offset_chain_class_set,
+      if (!ParseChainClassSetTable(font, data + offset_chain_class_set,
                                    length - offset_chain_class_set,
                                    num_glyphs, num_lookups)) {
         return OTS_FAILURE_MSG("Failed to parse chain class set table %d in chain context format 2", i);
@@ -1055,7 +1063,7 @@ bool ParseChainContextFormat2(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool ParseChainContextFormat3(const ots::OpenTypeFile *file,
+bool ParseChainContextFormat3(const ots::Font *font,
                               const uint8_t *data, const size_t length,
                               const uint16_t num_glyphs,
                               const uint16_t num_lookups) {
@@ -1129,7 +1137,7 @@ bool ParseChainContextFormat3(const ots::OpenTypeFile *file,
     return OTS_FAILURE_MSG("Failed to read lookup count in chain context format 3");
   }
   for (unsigned i = 0; i < lookup_count; ++i) {
-    if (!ParseLookupRecord(file, &subtable, num_glyphs, num_lookups)) {
+    if (!ParseLookupRecord(font, &subtable, num_glyphs, num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse lookup %d in chain context format 3", i);
     }
   }
@@ -1147,7 +1155,7 @@ bool ParseChainContextFormat3(const ots::OpenTypeFile *file,
         offsets_backtrack[i] >= length) {
       return OTS_FAILURE_MSG("Bad backtrack offset of %d for backtrack %d in chain context format 3", offsets_backtrack[i], i);
     }
-    if (!ots::ParseCoverageTable(file, data + offsets_backtrack[i],
+    if (!ots::ParseCoverageTable(font, data + offsets_backtrack[i],
                                  length - offsets_backtrack[i], num_glyphs)) {
       return OTS_FAILURE_MSG("Failed to parse backtrack coverage %d in chain context format 3", i);
     }
@@ -1156,7 +1164,7 @@ bool ParseChainContextFormat3(const ots::OpenTypeFile *file,
     if (offsets_input[i] < lookup_record_end || offsets_input[i] >= length) {
       return OTS_FAILURE_MSG("Bad input offset %d for input %d in chain context format 3", offsets_input[i], i);
     }
-    if (!ots::ParseCoverageTable(file, data + offsets_input[i],
+    if (!ots::ParseCoverageTable(font, data + offsets_input[i],
                                  length - offsets_input[i], num_glyphs)) {
       return OTS_FAILURE_MSG("Failed to parse input coverage table %d in chain context format 3", i);
     }
@@ -1166,7 +1174,7 @@ bool ParseChainContextFormat3(const ots::OpenTypeFile *file,
         offsets_lookahead[i] >= length) {
       return OTS_FAILURE_MSG("Bad lookadhead offset %d for lookahead %d in chain context format 3", offsets_lookahead[i], i);
     }
-    if (!ots::ParseCoverageTable(file, data + offsets_lookahead[i],
+    if (!ots::ParseCoverageTable(font, data + offsets_lookahead[i],
                                  length - offsets_lookahead[i], num_glyphs)) {
       return OTS_FAILURE_MSG("Failed to parse lookahead coverage table %d in chain context format 3", i);
     }
@@ -1179,12 +1187,12 @@ bool ParseChainContextFormat3(const ots::OpenTypeFile *file,
 
 namespace ots {
 
-bool LookupSubtableParser::Parse(const OpenTypeFile *file, const uint8_t *data,
+bool LookupSubtableParser::Parse(const Font *font, const uint8_t *data,
                                  const size_t length,
                                  const uint16_t lookup_type) const {
   for (unsigned i = 0; i < num_types; ++i) {
     if (parsers[i].type == lookup_type && parsers[i].parse) {
-      if (!parsers[i].parse(file, data, length)) {
+      if (!parsers[i].parse(font, data, length)) {
         return OTS_FAILURE_MSG("Failed to parse lookup subtable %d", i);
       }
       return true;
@@ -1195,7 +1203,7 @@ bool LookupSubtableParser::Parse(const OpenTypeFile *file, const uint8_t *data,
 
 // Parsing ScriptListTable requires number of features so we need to
 // parse FeatureListTable before calling this function.
-bool ParseScriptListTable(const ots::OpenTypeFile *file,
+bool ParseScriptListTable(const ots::Font *font,
                           const uint8_t *data, const size_t length,
                           const uint16_t num_features) {
   Buffer subtable(data, length);
@@ -1228,7 +1236,7 @@ bool ParseScriptListTable(const ots::OpenTypeFile *file,
     }
     last_tag = record.tag;
     if (record.offset < script_record_end || record.offset >= length) {
-      return OTS_FAILURE_MSG("Bad record offset %d for script %4s entry %d in script list table", record.offset, (char *)&record.tag, i);
+      return OTS_FAILURE_MSG("Bad record offset %d for script %c%c%c%c entry %d in script list table", record.offset, OTS_UNTAG(record.tag), i);
     }
     script_list.push_back(record);
   }
@@ -1238,7 +1246,7 @@ bool ParseScriptListTable(const ots::OpenTypeFile *file,
 
   // Check script records.
   for (unsigned i = 0; i < script_count; ++i) {
-    if (!ParseScriptTable(file, data + script_list[i].offset,
+    if (!ParseScriptTable(font, data + script_list[i].offset,
                           length - script_list[i].offset,
                           script_list[i].tag, num_features)) {
       return OTS_FAILURE_MSG("Failed to parse script table %d", i);
@@ -1250,7 +1258,7 @@ bool ParseScriptListTable(const ots::OpenTypeFile *file,
 
 // Parsing FeatureListTable requires number of lookups so we need to parse
 // LookupListTable before calling this function.
-bool ParseFeatureListTable(const ots::OpenTypeFile *file,
+bool ParseFeatureListTable(const ots::Font *font,
                            const uint8_t *data, const size_t length,
                            const uint16_t num_lookups,
                            uint16_t* num_features) {
@@ -1284,12 +1292,12 @@ bool ParseFeatureListTable(const ots::OpenTypeFile *file,
     last_tag = feature_records[i].tag;
     if (feature_records[i].offset < feature_record_end ||
         feature_records[i].offset >= length) {
-      return OTS_FAILURE_MSG("Bad feature offset %d for feature %d %4s", feature_records[i].offset, i, (char *)&feature_records[i].tag);
+      return OTS_FAILURE_MSG("Bad feature offset %d for feature %d %c%c%c%c", feature_records[i].offset, i, OTS_UNTAG(feature_records[i].tag));
     }
   }
 
   for (unsigned i = 0; i < feature_count; ++i) {
-    if (!ParseFeatureTable(file, data + feature_records[i].offset,
+    if (!ParseFeatureTable(font, data + feature_records[i].offset,
                            length - feature_records[i].offset, num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse feature table %d", i);
     }
@@ -1301,7 +1309,7 @@ bool ParseFeatureListTable(const ots::OpenTypeFile *file,
 // For parsing GPOS/GSUB tables, this function should be called at first to
 // obtain the number of lookups because parsing FeatureTableList requires
 // the number.
-bool ParseLookupListTable(OpenTypeFile *file, const uint8_t *data,
+bool ParseLookupListTable(Font *font, const uint8_t *data,
                           const size_t length,
                           const LookupSubtableParser* parser,
                           uint16_t *num_lookups) {
@@ -1333,7 +1341,7 @@ bool ParseLookupListTable(OpenTypeFile *file, const uint8_t *data,
   }
 
   for (unsigned i = 0; i < *num_lookups; ++i) {
-    if (!ParseLookupTable(file, data + lookups[i], length - lookups[i],
+    if (!ParseLookupTable(font, data + lookups[i], length - lookups[i],
                           parser)) {
       return OTS_FAILURE_MSG("Failed to parse lookup %d", i);
     }
@@ -1342,7 +1350,7 @@ bool ParseLookupListTable(OpenTypeFile *file, const uint8_t *data,
   return true;
 }
 
-bool ParseClassDefTable(const ots::OpenTypeFile *file,
+bool ParseClassDefTable(const ots::Font *font,
                         const uint8_t *data, size_t length,
                         const uint16_t num_glyphs,
                         const uint16_t num_classes) {
@@ -1353,15 +1361,15 @@ bool ParseClassDefTable(const ots::OpenTypeFile *file,
     return OTS_FAILURE_MSG("Failed to read class defn format");
   }
   if (format == 1) {
-    return ParseClassDefFormat1(file, data, length, num_glyphs, num_classes);
+    return ParseClassDefFormat1(font, data, length, num_glyphs, num_classes);
   } else if (format == 2) {
-    return ParseClassDefFormat2(file, data, length, num_glyphs, num_classes);
+    return ParseClassDefFormat2(font, data, length, num_glyphs, num_classes);
   }
 
   return OTS_FAILURE_MSG("Bad class defn format %d", format);
 }
 
-bool ParseCoverageTable(const ots::OpenTypeFile *file,
+bool ParseCoverageTable(const ots::Font *font,
                         const uint8_t *data, size_t length,
                         const uint16_t num_glyphs,
                         const uint16_t expected_num_glyphs) {
@@ -1372,15 +1380,15 @@ bool ParseCoverageTable(const ots::OpenTypeFile *file,
     return OTS_FAILURE_MSG("Failed to read coverage table format");
   }
   if (format == 1) {
-    return ParseCoverageFormat1(file, data, length, num_glyphs, expected_num_glyphs);
+    return ParseCoverageFormat1(font, data, length, num_glyphs, expected_num_glyphs);
   } else if (format == 2) {
-    return ParseCoverageFormat2(file, data, length, num_glyphs, expected_num_glyphs);
+    return ParseCoverageFormat2(font, data, length, num_glyphs, expected_num_glyphs);
   }
 
   return OTS_FAILURE_MSG("Bad coverage table format %d", format);
 }
 
-bool ParseDeviceTable(const ots::OpenTypeFile *file,
+bool ParseDeviceTable(const ots::Font *font,
                       const uint8_t *data, size_t length) {
   Buffer subtable(data, length);
 
@@ -1410,7 +1418,7 @@ bool ParseDeviceTable(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool ParseContextSubtable(const ots::OpenTypeFile *file,
+bool ParseContextSubtable(const ots::Font *font,
                           const uint8_t *data, const size_t length,
                           const uint16_t num_glyphs,
                           const uint16_t num_lookups) {
@@ -1422,15 +1430,15 @@ bool ParseContextSubtable(const ots::OpenTypeFile *file,
   }
 
   if (format == 1) {
-    if (!ParseContextFormat1(file, data, length, num_glyphs, num_lookups)) {
+    if (!ParseContextFormat1(font, data, length, num_glyphs, num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse context format 1 subtable");
     }
   } else if (format == 2) {
-    if (!ParseContextFormat2(file, data, length, num_glyphs, num_lookups)) {
+    if (!ParseContextFormat2(font, data, length, num_glyphs, num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse context format 2 subtable");
     }
   } else if (format == 3) {
-    if (!ParseContextFormat3(file, data, length, num_glyphs, num_lookups)) {
+    if (!ParseContextFormat3(font, data, length, num_glyphs, num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse context format 3 subtable");
     }
   } else {
@@ -1440,7 +1448,7 @@ bool ParseContextSubtable(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool ParseChainingContextSubtable(const ots::OpenTypeFile *file,
+bool ParseChainingContextSubtable(const ots::Font *font,
                                   const uint8_t *data, const size_t length,
                                   const uint16_t num_glyphs,
                                   const uint16_t num_lookups) {
@@ -1452,15 +1460,15 @@ bool ParseChainingContextSubtable(const ots::OpenTypeFile *file,
   }
 
   if (format == 1) {
-    if (!ParseChainContextFormat1(file, data, length, num_glyphs, num_lookups)) {
+    if (!ParseChainContextFormat1(font, data, length, num_glyphs, num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse chaining context format 1 subtable");
     }
   } else if (format == 2) {
-    if (!ParseChainContextFormat2(file, data, length, num_glyphs, num_lookups)) {
+    if (!ParseChainContextFormat2(font, data, length, num_glyphs, num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse chaining context format 2 subtable");
     }
   } else if (format == 3) {
-    if (!ParseChainContextFormat3(file, data, length, num_glyphs, num_lookups)) {
+    if (!ParseChainContextFormat3(font, data, length, num_glyphs, num_lookups)) {
       return OTS_FAILURE_MSG("Failed to parse chaining context format 3 subtable");
     }
   } else {
@@ -1470,7 +1478,7 @@ bool ParseChainingContextSubtable(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool ParseExtensionSubtable(const OpenTypeFile *file,
+bool ParseExtensionSubtable(const Font *font,
                             const uint8_t *data, const size_t length,
                             const LookupSubtableParser* parser) {
   Buffer subtable(data, length);
@@ -1500,7 +1508,7 @@ bool ParseExtensionSubtable(const OpenTypeFile *file,
   }
 
   // Parse the extension subtable of |lookup_type|.
-  if (!parser->Parse(file, data + offset_extension, length - offset_extension,
+  if (!parser->Parse(font, data + offset_extension, length - offset_extension,
                      lookup_type)) {
     return OTS_FAILURE_MSG("Failed to parse lookup from extension lookup");
   }

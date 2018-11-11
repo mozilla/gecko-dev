@@ -1,4 +1,4 @@
-/* -*- Mode: Javasript; indent-tab-mode: nil; js-indent-level: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /*
  * This testcase performs 3 requests against the offline cache.  They
  * are
@@ -140,6 +140,7 @@ function do_app_cache(manifestURL, pageURL, pinned) {
   let update =
     update_service.scheduleUpdate(manifestURL,
                                   pageURL,
+                                  Services.scriptSecurityManager.getSystemPrincipal(),
                                   null); /* no window */
 
   return update;

@@ -12,5 +12,22 @@
  * this document.
  */
 
-interface WorkerLocation { };
-WorkerLocation implements URLUtilsReadOnly;
+[Exposed=Worker]
+interface WorkerLocation {
+  // Bug 824857: no support for stringifier attributes yet.
+  //  stringifier attribute USVString href;
+
+  // Bug 824857 should remove this.
+  stringifier;
+
+  readonly attribute USVString href;
+
+  readonly attribute USVString origin;
+  readonly attribute USVString protocol;
+  readonly attribute USVString host;
+  readonly attribute USVString hostname;
+  readonly attribute USVString port;
+  readonly attribute USVString pathname;
+  readonly attribute USVString search;
+  readonly attribute USVString hash;
+};

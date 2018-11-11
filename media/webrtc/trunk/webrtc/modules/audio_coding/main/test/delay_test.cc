@@ -15,6 +15,7 @@
 
 #include "gflags/gflags.h"
 #include "testing/gtest/include/gtest/gtest.h"
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/common.h"
 #include "webrtc/common_types.h"
 #include "webrtc/engine_configurations.h"
@@ -25,7 +26,6 @@
 #include "webrtc/modules/audio_coding/main/test/PCMFile.h"
 #include "webrtc/modules/audio_coding/main/test/utility.h"
 #include "webrtc/system_wrappers/interface/event_wrapper.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/test/testsupport/fileutils.h"
 
 DEFINE_string(codec, "isac", "Codec Name");
@@ -35,7 +35,6 @@ DEFINE_string(input_file, "", "Input file, PCM16 32 kHz, optional.");
 DEFINE_int32(delay, 0, "Delay in millisecond.");
 DEFINE_int32(init_delay, 0, "Initial delay in millisecond.");
 DEFINE_bool(dtx, false, "Enable DTX at the sender side.");
-DEFINE_bool(acm2, false, "Run the test with ACM2.");
 DEFINE_bool(packet_loss, false, "Apply packet loss, c.f. Channel{.cc, .h}.");
 DEFINE_bool(fec, false, "Use Forward Error Correction (FEC).");
 
@@ -64,9 +63,9 @@ struct TestSettings {
 
 class DelayTest {
  public:
-  explicit DelayTest(const Config& config)
-      : acm_a_(config.Get<AudioCodingModuleFactory>().Create(0)),
-        acm_b_(config.Get<AudioCodingModuleFactory>().Create(1)),
+  DelayTest()
+      : acm_a_(AudioCodingModule::Create(0)),
+        acm_b_(AudioCodingModule::Create(1)),
         channel_a2b_(new Channel),
         test_cntr_(0),
         encoding_sample_rate_hz_(8000) {}
@@ -162,8 +161,8 @@ class DelayTest {
   void ConfigAcm(const AcmSettings& config) {
     ASSERT_EQ(0, acm_a_->SetVAD(config.dtx, config.dtx, VADAggr)) <<
         "Failed to set VAD.\n";
-    ASSERT_EQ(0, acm_a_->SetFECStatus(config.fec)) <<
-        "Failed to set FEC.\n";
+    ASSERT_EQ(0, acm_a_->SetREDStatus(config.fec)) <<
+        "Failed to set RED.\n";
   }
 
   void ConfigChannel(bool packet_loss) {
@@ -197,8 +196,8 @@ class DelayTest {
 
       // Print delay information every 16 frame
       if ((num_frames & 0x3F) == 0x3F) {
-        ACMNetworkStatistics statistics;
-        acm_b_->NetworkStatistics(&statistics);
+        NetworkStatistics statistics;
+        acm_b_->GetNetworkStatistics(&statistics);
         fprintf(stdout, "delay: min=%3d  max=%3d  mean=%3d  median=%3d"
                 " ts-based average = %6.3f, "
                 "curr buff-lev = %4u opt buff-lev = %4u \n",
@@ -210,8 +209,7 @@ class DelayTest {
       }
 
       in_file_a_.Read10MsData(audio_frame);
-      ASSERT_EQ(0, acm_a_->Add10MsData(audio_frame));
-      ASSERT_LE(0, acm_a_->Process());
+      ASSERT_GE(acm_a_->Add10MsData(audio_frame), 0);
       ASSERT_EQ(0, acm_b_->PlayoutData10Ms(out_freq_hz_b, &audio_frame));
       out_file_b_.Write10MsData(
           audio_frame.data_,
@@ -230,8 +228,8 @@ class DelayTest {
     out_file_b_.Close();
   }
 
-  scoped_ptr<AudioCodingModule> acm_a_;
-  scoped_ptr<AudioCodingModule> acm_b_;
+  rtc::scoped_ptr<AudioCodingModule> acm_a_;
+  rtc::scoped_ptr<AudioCodingModule> acm_b_;
 
   Channel* channel_a2b_;
 
@@ -245,7 +243,6 @@ class DelayTest {
 
 int main(int argc, char* argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
-  webrtc::Config config;
   webrtc::TestSettings test_setting;
   strcpy(test_setting.codec.name, FLAGS_codec.c_str());
 
@@ -266,13 +263,7 @@ int main(int argc, char* argv[]) {
   test_setting.acm.fec = FLAGS_fec;
   test_setting.packet_loss = FLAGS_packet_loss;
 
-  if (FLAGS_acm2) {
-    webrtc::UseNewAcm(&config);
-  } else {
-    webrtc::UseLegacyAcm(&config);
-  }
-
-  webrtc::DelayTest delay_test(config);
+  webrtc::DelayTest delay_test;
   delay_test.Initialize();
   delay_test.Perform(&test_setting, 1, 240, "delay_test");
   return 0;

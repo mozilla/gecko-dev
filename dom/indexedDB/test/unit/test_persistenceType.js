@@ -51,7 +51,7 @@ function testSteps()
   request.onsuccess = grabEventAndContinueHandler;
   event = yield undefined;
 
-  is(event.target.result, null, "Got no data");
+  is(event.target.result, undefined, "Got no data");
 
   request = objectStore.add(data.value, data.key);
   request.onsuccess = grabEventAndContinueHandler;
@@ -64,7 +64,7 @@ function testSteps()
   request.onerror = errorHandler;
   request.onupgradeneeded = grabEventAndContinueHandler;
   request.onsuccess = grabEventAndContinueHandler;
-  let event = yield undefined;
+  event = yield undefined;
 
   is(event.type, "success", "Got correct event type");
 

@@ -1,8 +1,11 @@
 // Regression test for bug 407303 - A failed channel should not be checked
 // for an unsafe content type.
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 // XXX: NS_ERROR_UNKNOWN_HOST is not in Components.results
 const NS_ERROR_UNKNOWN_HOST = 0x804B001E;
@@ -29,11 +32,11 @@ var listener = {
 };
 
 function run_test() {
-  var ios = Cc["@mozilla.org/network/io-service;1"].
-            getService(Ci.nsIIOService);
-
-  var channel = ios.newChannel("jar:http://test.invalid/test.jar!/index.html",
-                               null, null);
-  channel.asyncOpen(listener, null);
+  Services.prefs.setBoolPref("network.jar.block-remote-files", false);
+  var channel = NetUtil.newChannel({
+    uri: "jar:http://test.invalid/test.jar!/index.html",
+    loadUsingSystemPrincipal: true}
+  );
+  channel.asyncOpen2(listener);
   do_test_pending();
 }

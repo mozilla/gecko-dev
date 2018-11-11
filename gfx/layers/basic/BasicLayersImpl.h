@@ -10,9 +10,8 @@
 #include "BasicLayers.h"                // for BasicLayerManager
 #include "ReadbackLayer.h"              // for ReadbackLayer
 #include "gfxContext.h"                 // for gfxContext, etc
-#include "mozilla/Attributes.h"         // for MOZ_DELETE, MOZ_STACK_CLASS
+#include "mozilla/Attributes.h"         // for MOZ_STACK_CLASS
 #include "mozilla/Maybe.h"              // for Maybe
-#include "nsAutoPtr.h"                  // for nsRefPtr
 #include "nsDebug.h"                    // for NS_ASSERTION
 #include "nsISupportsImpl.h"            // for gfxContext::Release, etc
 #include "nsRegion.h"                   // for nsIntRegion
@@ -20,47 +19,49 @@
 namespace mozilla {
 namespace gfx {
 class DrawTarget;
-}
+} // namespace gfx
 
 namespace layers {
 
 class AutoMoz2DMaskData;
-class BasicContainerLayer;
 class Layer;
 
 class AutoSetOperator {
+  typedef mozilla::gfx::CompositionOp CompositionOp;
 public:
-  AutoSetOperator(gfxContext* aContext, gfxContext::GraphicsOperator aOperator) {
-    if (aOperator != gfxContext::OPERATOR_OVER) {
-      aContext->SetOperator(aOperator);
+  AutoSetOperator(gfxContext* aContext, CompositionOp aOperator) {
+    if (aOperator != CompositionOp::OP_OVER) {
+      aContext->SetOp(aOperator);
       mContext = aContext;
     }
   }
   ~AutoSetOperator() {
     if (mContext) {
-      mContext->SetOperator(gfxContext::OPERATOR_OVER);
+      mContext->SetOp(CompositionOp::OP_OVER);
     }
   }
 private:
-  nsRefPtr<gfxContext> mContext;
+  RefPtr<gfxContext> mContext;
 };
 
 class BasicReadbackLayer : public ReadbackLayer,
                            public BasicImplData
 {
 public:
-  BasicReadbackLayer(BasicLayerManager* aLayerManager) :
-    ReadbackLayer(aLayerManager,
-                  static_cast<BasicImplData*>(MOZ_THIS_IN_INITIALIZER_LIST()))
+  explicit BasicReadbackLayer(BasicLayerManager* aLayerManager) :
+    ReadbackLayer(aLayerManager, static_cast<BasicImplData*>(this))
   {
     MOZ_COUNT_CTOR(BasicReadbackLayer);
   }
+
+protected:
   virtual ~BasicReadbackLayer()
   {
     MOZ_COUNT_DTOR(BasicReadbackLayer);
   }
 
-  virtual void SetVisibleRegion(const nsIntRegion& aRegion)
+public:
+  virtual void SetVisibleRegion(const LayerIntRegion& aRegion)
   {
     NS_ASSERTION(BasicManager()->InConstruction(),
                  "Can only set properties in construction phase");
@@ -86,6 +87,8 @@ GetMaskData(Layer* aMaskLayer,
             const gfx::Point& aDeviceOffset,
             AutoMoz2DMaskData* aMaskData);
 
+already_AddRefed<gfx::SourceSurface> GetMaskForLayer(Layer* aLayer, gfx::Matrix* aMaskTransform);
+
 // Paint the current source to a context using a mask, if present
 void
 PaintWithMask(gfxContext* aContext, float aOpacity, Layer* aMaskLayer);
@@ -102,7 +105,7 @@ void
 FillRectWithMask(gfx::DrawTarget* aDT,
                  const gfx::Rect& aRect,
                  gfx::SourceSurface* aSurface,
-                 gfx::Filter aFilter,
+                 gfx::SamplingFilter aSamplingFilter,
                  const gfx::DrawOptions& aOptions,
                  gfx::ExtendMode aExtendMode,
                  gfx::SourceSurface* aMaskSource = nullptr,
@@ -113,7 +116,7 @@ FillRectWithMask(gfx::DrawTarget* aDT,
                  const gfx::Point& aDeviceOffset,
                  const gfx::Rect& aRect,
                  gfx::SourceSurface* aSurface,
-                 gfx::Filter aFilter,
+                 gfx::SamplingFilter aSamplingFilter,
                  const gfx::DrawOptions& aOptions,
                  Layer* aMaskLayer);
 void
@@ -142,7 +145,7 @@ ToData(Layer* aLayer);
 gfx::CompositionOp
 GetEffectiveOperator(Layer* aLayer);
 
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 #endif

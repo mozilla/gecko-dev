@@ -15,17 +15,10 @@
 #include "nsLayoutUtils.h"
 #include "RestyleTracker.h"
 
-using namespace mozilla::css;
-
 namespace mozilla {
 
-void DestroyStickyScrollContainer(void* aPropertyValue)
-{
-  delete static_cast<StickyScrollContainer*>(aPropertyValue);
-}
-
-NS_DECLARE_FRAME_PROPERTY(StickyScrollContainerProperty,
-                          DestroyStickyScrollContainer)
+NS_DECLARE_FRAME_PROPERTY_DELETABLE(StickyScrollContainerProperty,
+                                    StickyScrollContainer)
 
 StickyScrollContainer::StickyScrollContainer(nsIScrollableFrame* aScrollFrame)
   : mScrollFrame(aScrollFrame)
@@ -54,8 +47,7 @@ StickyScrollContainer::GetStickyScrollContainerForFrame(nsIFrame* aFrame)
   }
   FrameProperties props = static_cast<nsIFrame*>(do_QueryFrame(scrollFrame))->
     Properties();
-  StickyScrollContainer* s = static_cast<StickyScrollContainer*>
-    (props.Get(StickyScrollContainerProperty()));
+  StickyScrollContainer* s = props.Get(StickyScrollContainerProperty());
   if (!s) {
     s = new StickyScrollContainer(scrollFrame);
     props.Set(StickyScrollContainerProperty(), s);
@@ -79,8 +71,7 @@ StickyScrollContainer::NotifyReparentedFrameAcrossScrollFrameBoundary(nsIFrame* 
   }
   FrameProperties props = static_cast<nsIFrame*>(do_QueryFrame(oldScrollFrame))->
     Properties();
-  StickyScrollContainer* oldSSC = static_cast<StickyScrollContainer*>
-    (props.Get(StickyScrollContainerProperty()));
+  StickyScrollContainer* oldSSC = props.Get(StickyScrollContainerProperty());
   if (!oldSSC) {
     // aOldParent had no sticky descendants, so aFrame doesn't have any sticky
     // descendants, and we're done here.
@@ -105,8 +96,7 @@ StickyScrollContainer*
 StickyScrollContainer::GetStickyScrollContainerForScrollFrame(nsIFrame* aFrame)
 {
   FrameProperties props = aFrame->Properties();
-  return static_cast<StickyScrollContainer*>
-    (props.Get(StickyScrollContainerProperty()));
+  return props.Get(StickyScrollContainerProperty());
 }
 
 static nscoord
@@ -152,8 +142,7 @@ StickyScrollContainer::ComputeStickyOffsets(nsIFrame* aFrame)
 
   // Store the offset
   FrameProperties props = aFrame->Properties();
-  nsMargin* offsets = static_cast<nsMargin*>
-    (props.Get(nsIFrame::ComputedOffsetProperty()));
+  nsMargin* offsets = props.Get(nsIFrame::ComputedOffsetProperty());
   if (offsets) {
     *offsets = computedOffsets;
   } else {
@@ -172,8 +161,8 @@ StickyScrollContainer::ComputeStickyLimits(nsIFrame* aFrame, nsRect* aStick,
   aStick->SetRect(nscoord_MIN/2, nscoord_MIN/2, nscoord_MAX, nscoord_MAX);
   aContain->SetRect(nscoord_MIN/2, nscoord_MIN/2, nscoord_MAX, nscoord_MAX);
 
-  const nsMargin* computedOffsets = static_cast<nsMargin*>(
-    aFrame->Properties().Get(nsIFrame::ComputedOffsetProperty()));
+  const nsMargin* computedOffsets = 
+    aFrame->Properties().Get(nsIFrame::ComputedOffsetProperty());
   if (!computedOffsets) {
     // We haven't reflowed the scroll frame yet, so offsets haven't been
     // computed. Bail.
@@ -281,9 +270,9 @@ void
 StickyScrollContainer::GetScrollRanges(nsIFrame* aFrame, nsRect* aOuter,
                                        nsRect* aInner) const
 {
-  // We need to use the first in flow; ComputeStickyLimits requires
-  // this, at the very least because its call to
-  // nsLayoutUtils::GetAllInFlowRectsUnion requires it.
+  // We need to use the first in flow; continuation frames should not move
+  // relative to each other and should get identical scroll ranges.
+  // Also, ComputeStickyLimits requires this.
   nsIFrame *firstCont =
     nsLayoutUtils::FirstContinuationOrIBSplitSibling(aFrame);
 
@@ -294,7 +283,7 @@ StickyScrollContainer::GetScrollRanges(nsIFrame* aFrame, nsRect* aOuter,
   aOuter->SetRect(nscoord_MIN/2, nscoord_MIN/2, nscoord_MAX, nscoord_MAX);
   aInner->SetRect(nscoord_MIN/2, nscoord_MIN/2, nscoord_MAX, nscoord_MAX);
 
-  const nsPoint normalPosition = aFrame->GetNormalPosition();
+  const nsPoint normalPosition = firstCont->GetNormalPosition();
 
   // Bottom and top
   if (stick.YMost() != nscoord_MAX/2) {
@@ -317,6 +306,17 @@ StickyScrollContainer::GetScrollRanges(nsIFrame* aFrame, nsRect* aOuter,
     aInner->SetRightEdge(normalPosition.x - stick.x);
     aOuter->SetRightEdge(contain.XMost() - stick.x);
   }
+
+  // Make sure |inner| does not extend outside of |outer|. (The consumers of
+  // the Layers API, to which this information is propagated, expect this
+  // invariant to hold.) The calculated value of |inner| can sometimes extend
+  // outside of |outer|, for example due to margin collapsing, since
+  // GetNormalPosition() returns the actual position after margin collapsing,
+  // while |contain| is calculated based on the frame's GetUsedMargin() which
+  // is pre-collapsing.
+  // Note that this doesn't necessarily solve all problems stemming from
+  // comparing pre- and post-collapsing margins (TODO: find a proper solution).
+  *aInner = aInner->Intersect(*aOuter);
 }
 
 void

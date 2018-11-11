@@ -28,22 +28,25 @@
  *   The nsIInterfaceRequestor of the parent window; may be null
  */
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cr = Components.results;
+var Cu = Components.utils;
+
+Cu.import("resource://gre/modules/SharedPromptUtils.jsm");
+
 
 var dialog = {
-  //////////////////////////////////////////////////////////////////////////////
-  //// Member Variables
+  // Member Variables
 
   _handlerInfo: null,
   _URI: null,
   _itemChoose: null,
   _okButton: null,
   _windowCtxt: null,
-  
-  //////////////////////////////////////////////////////////////////////////////
-  //// Methods
+  _buttonDisabled: true,
+
+  // Methods
 
  /**
   * This function initializes the content of the dialog.
@@ -57,8 +60,6 @@ var dialog = {
       this._windowCtxt.QueryInterface(Ci.nsIInterfaceRequestor);
     this._itemChoose  = document.getElementById("item-choose");
     this._okButton    = document.documentElement.getButton("accept");
-
-    this.updateOKButton();
 
     var description = {
       image: document.getElementById("description-image"),
@@ -85,6 +86,18 @@ var dialog = {
 
     // UI is ready, lets populate our list
     this.populateList();
+
+    this._delayHelper = new EnableDelayHelper({
+      disableDialog: () => {
+        this._buttonDisabled = true;
+        this.updateOKButton();
+      },
+      enableDialog: () => {
+        this._buttonDisabled = false;
+        this.updateOKButton();
+      },
+      focusTarget: window
+    });
   },
 
  /**
@@ -122,8 +135,8 @@ var dialog = {
         }
         elm.setAttribute("description", uri.prePath);
       }
-      else if (app instanceof Ci.nsIDBusHandlerApp){
-	  elm.setAttribute("description", app.method);  
+      else if (app instanceof Ci.nsIDBusHandlerApp) {
+	  elm.setAttribute("description", app.method);
       }
       else
         throw "unknown handler type";
@@ -138,15 +151,15 @@ var dialog = {
       elm.setAttribute("type", "handler");
       elm.id = "os-default-handler";
       elm.setAttribute("name", this._handlerInfo.defaultDescription);
-    
+
       items.insertBefore(elm, items.firstChild);
-      if (this._handlerInfo.preferredAction == 
-          Ci.nsIHandlerInfo.useSystemDefault) 
+      if (this._handlerInfo.preferredAction ==
+          Ci.nsIHandlerInfo.useSystemDefault)
           this.selectedItem = elm;
     }
     items.ensureSelectedElementIsVisible();
   },
-  
+
  /**
   * Brings up a filepicker and allows a user to choose an application.
   */
@@ -222,7 +235,8 @@ var dialog = {
   */
   updateOKButton: function updateOKButton()
   {
-    this._okButton.disabled = this._itemChoose.selected;
+    this._okButton.disabled = this._itemChoose.selected ||
+                              this._buttonDisabled;
   },
 
  /**
@@ -247,8 +261,7 @@ var dialog = {
       document.documentElement.acceptDialog();
   },
 
-  /////////////////////////////////////////////////////////////////////////////
-  //// Getters / Setters
+  // Getters / Setters
 
  /**
   * Returns/sets the selected element in the richlistbox
@@ -261,5 +274,5 @@ var dialog = {
   {
     return document.getElementById("items").selectedItem = aItem;
   }
-  
+
 };

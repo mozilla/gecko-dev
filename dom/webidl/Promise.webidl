@@ -12,36 +12,66 @@
 // function"; for now, we just use "object".
 callback PromiseInit = void (object resolve, object reject);
 
+callback PromiseJobCallback = void();
+
 [TreatNonCallableAsNull]
 callback AnyCallback = any (any value);
 
-// REMOVE THE RELEVANT ENTRY FROM test_interfaces.html WHEN THIS IS IMPLEMENTED IN JS.
-[Constructor(PromiseInit init)]
-interface Promise {
-  // TODO bug 875289 - static Promise fulfill(any value);
-
-  // Disable the static methods when the interface object is supposed to be
-  // disabled, just in case some code decides to walk over to .constructor from
-  // the proto of a promise object or someone screws up and manages to create a
-  // Promise object in this scope without having resolved the interface object
-  // first.
+// When using SpiderMonkey promises, we don't want to define all this stuff;
+// just define a tiny interface to make codegen of Promise arguments and return
+// values work.
+#ifndef SPIDERMONKEY_PROMISE
+[Constructor(PromiseInit init),
+ Exposed=(Window,Worker,WorkerDebugger,System)]
+// Need to escape "Promise" so it's treated as an identifier.
+interface _Promise {
+  // Have to use "any" (or "object", but "any" is simpler) as the type to
+  // support the subclassing behavior, since nothing actually requires the
+  // return value of PromiseSubclass.resolve/reject to be a Promise object.
   [NewObject, Throws]
-  static Promise resolve(optional any value);
+  static any resolve(optional any value);
   [NewObject, Throws]
-  static Promise reject(optional any value);
+  static any reject(optional any value);
 
   // The [TreatNonCallableAsNull] annotation is required since then() should do
   // nothing instead of throwing errors when non-callable arguments are passed.
-  [NewObject]
-  Promise then([TreatNonCallableAsNull] optional AnyCallback? fulfillCallback = null,
-               [TreatNonCallableAsNull] optional AnyCallback? rejectCallback = null);
-
-  [NewObject]
-  Promise catch([TreatNonCallableAsNull] optional AnyCallback? rejectCallback = null);
+  // Have to use "any" (or "object", but "any" is simpler) as the type to
+  // support the subclassing behavior, since nothing actually requires the
+  // return value of PromiseSubclass.then/catch to be a Promise object.
+  [NewObject, Throws]
+  any then([TreatNonCallableAsNull] optional AnyCallback? fulfillCallback = null,
+           [TreatNonCallableAsNull] optional AnyCallback? rejectCallback = null);
 
   [NewObject, Throws]
-  static Promise all(sequence<any> iterable);
+  any catch([TreatNonCallableAsNull] optional AnyCallback? rejectCallback = null);
 
+  // Have to use "any" (or "object", but "any" is simpler) as the type to
+  // support the subclassing behavior, since nothing actually requires the
+  // return value of PromiseSubclass.all to be a Promise object.  As a result,
+  // we also have to do our argument conversion manually, because we want to
+  // convert its exceptions into rejections.
   [NewObject, Throws]
-  static Promise race(sequence<any> iterable);
+  static any all(optional any iterable);
+
+  // Have to use "any" (or "object", but "any" is simpler) as the type to
+  // support the subclassing behavior, since nothing actually requires the
+  // return value of PromiseSubclass.race to be a Promise object.  As a result,
+  // we also have to do our argument conversion manually, because we want to
+  // convert its exceptions into rejections.
+  [NewObject, Throws]
+  static any race(optional any iterable);
 };
+#else // SPIDERMONKEY_PROMISE
+[NoInterfaceObject,
+ Exposed=(Window,Worker,WorkerDebugger,System)]
+// Need to escape "Promise" so it's treated as an identifier.
+interface _Promise {
+};
+
+// Hack to allow us to have JS owning and properly tracing/CCing/etc a
+// PromiseNativeHandler.
+[NoInterfaceObject,
+ Exposed=(Window,Worker,System)]
+interface PromiseNativeHandler {
+};
+#endif // SPIDERMONKEY_PROMISE

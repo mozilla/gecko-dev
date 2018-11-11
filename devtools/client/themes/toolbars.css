@@ -1,0 +1,216 @@
+/* vim:set ts=2 sw=2 sts=2 et: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* CSS Variables specific to the devtools toolbar that aren't defined by the themes */
+.theme-light {
+  --toolbar-tab-hover: rgba(170, 170, 170, .2);
+  --toolbar-tab-hover-active: rgba(170, 170, 170, .4);
+  --searchbox-background-color: #ffee99;
+  --searchbox-border-color: #ffbf00;
+  --searcbox-no-match-background-color: #ffe5e5;
+  --searcbox-no-match-border-color: #e52e2e;
+  --magnifying-glass-image: url(chrome://devtools/skin/images/search.svg);
+  --filter-image: url(chrome://devtools/skin/images/filter.svg);
+  --tool-options-image: url(chrome://devtools/skin/images/tool-options.svg);
+  --icon-filter: none;
+  --checked-icon-filter: url(chrome://devtools/skin/images/filters.svg#checked-icon-state);
+  --toolbar-button-border-color: rgba(170, 170, 170, .5);
+}
+
+.theme-dark {
+  --toolbar-tab-hover: hsla(206, 37%, 4%, .2);
+  --toolbar-tab-hover-active: hsla(206, 37%, 4%, .4);
+  --searchbox-background-color: #4d4222;
+  --searchbox-border-color: #d99f2b;
+  --searcbox-no-match-background-color: #402325;
+  --searcbox-no-match-border-color: #cc3d3d;
+  --magnifying-glass-image: url(chrome://devtools/skin/images/search.svg);
+  --filter-image: url(chrome://devtools/skin/images/filter.svg);
+  --tool-options-image: url(chrome://devtools/skin/images/tool-options.svg);
+  --icon-filter: invert(1);
+  --checked-icon-filter: url(chrome://devtools/skin/images/filters.svg#dark-theme-checked-icon-state);
+  --toolbar-button-border-color: rgba(0, 0, 0, .4);
+}
+
+.theme-firebug {
+  --magnifying-glass-image: url(chrome://devtools/skin/images/search.svg);
+  --tool-options-image: url(chrome://devtools/skin/images/firebug/tool-options.svg);
+  --icon-filter: none;
+  --checked-icon-filter: none;
+  --toolbar-button-border-color: rgba(170, 170, 170, .5);
+}
+
+
+/* Toolbars */
+.devtools-toolbar,
+.devtools-sidebar-tabs tabs {
+  -moz-appearance: none;
+  padding: 0;
+  border-width: 0;
+  border-bottom-width: 1px;
+  border-style: solid;
+  height: 24px;
+  line-height: 24px;
+  box-sizing: border-box;
+}
+
+.devtools-toolbar {
+  padding: 0 3px;
+}
+
+.devtools-toolbar checkbox {
+  margin: 0 2px;
+  padding: 0;
+  line-height: -moz-block-height;
+}
+
+.devtools-toolbar checkbox .checkbox-check {
+  margin: 0;
+  padding: 0;
+  vertical-align: bottom;
+}
+
+.devtools-toolbar checkbox .checkbox-label-box {
+  border: none !important; /* overrides .checkbox-label-box from checkbox.css */
+}
+
+.devtools-toolbar checkbox .checkbox-label-box .checkbox-label {
+  margin: 0 6px !important; /* overrides .checkbox-label from checkbox.css */
+  padding: 0;
+}
+
+.devtools-separator {
+  margin: 0 2px;
+  width: 2px;
+  background-image: linear-gradient(transparent 15%, var(--theme-splitter-color) 15%, var(--theme-splitter-color) 85%, transparent 85%);
+  background-size: 1px 100%;
+  background-repeat: no-repeat;
+  background-position: 0, 1px, 2px;
+}
+
+/* In-tools sidebar */
+.devtools-sidebar-tabs {
+  -moz-appearance: none;
+  margin: 0;
+  height: 100%;
+}
+
+.devtools-sidebar-tabs > tabpanels {
+  -moz-appearance: none;
+  background: transparent;
+  padding: 0;
+  border: 0;
+}
+
+.theme-light .devtools-sidebar-tabs > tabpanels {
+  background: var(--theme-sidebar-background);
+  color: var(--theme-body-color);
+}
+
+.devtools-sidebar-tabs tabs {
+  position: static;
+  font: inherit;
+  margin-bottom: 0;
+  overflow: hidden;
+}
+
+.devtools-sidebar-alltabs {
+  -moz-appearance: none;
+  height: 24px;
+  line-height: 24px;
+  padding: 0 4px;
+  margin: 0;
+  border-width: 0 0 1px 0;
+  border-inline-start-width: 1px;
+  border-style: solid;
+}
+
+.devtools-sidebar-alltabs .toolbarbutton-icon {
+  display: none;
+}
+
+.devtools-sidebar-tabs tabs > .tabs-right,
+.devtools-sidebar-tabs tabs > .tabs-left {
+  display: none;
+}
+
+.devtools-sidebar-tabs tabs > tab {
+  -moz-appearance: none;
+  /* We want to match the height of a toolbar with a toolbarbutton
+   * First, we need to replicated the padding of toolbar (4px),
+   * then we need to take the border of the buttons into account (1px).
+   */
+  padding: 0 3px;
+  margin: 0;
+  min-width: 78px;
+  text-align: center;
+  background-color: transparent;
+  color: inherit;
+  -moz-box-flex: 1;
+  border-width: 0;
+  border-inline-start-width: 1px;
+  border-style: solid;
+  border-radius: 0;
+  position: static;
+  text-shadow: none;
+}
+
+.devtools-sidebar-tabs tabs > tab {
+  border-image: linear-gradient(transparent 15%, var(--theme-splitter-color) 15%, var(--theme-splitter-color) 85%, transparent 85%) 1 1;
+}
+
+.devtools-sidebar-tabs tabs > tab[selected],
+.devtools-sidebar-tabs tabs > tab[selected] + tab {
+  border-image: linear-gradient(var(--theme-splitter-color), var(--theme-splitter-color)) 1 1;
+}
+
+.devtools-sidebar-tabs tabs > tab:first-child {
+  border-inline-start-width: 0;
+}
+
+.devtools-sidebar-tabs tabs > tab:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.devtools-sidebar-tabs tabs > tab:hover:active {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.devtools-sidebar-tabs tabs > tab[selected],
+.devtools-sidebar-tabs tabs > tab[selected]:hover:active {
+  color: var(--theme-selection-color);
+  background: var(--theme-selection-background);
+}
+
+/* Invert the colors of certain light theme images for displaying
+ * inside of the dark theme.
+ */
+.devtools-tab[icon-invertable] > image,
+.devtools-toolbarbutton > image,
+.devtools-button::before,
+.scrollbutton-up > .toolbarbutton-icon,
+.scrollbutton-down > .toolbarbutton-icon,
+#black-boxed-message-button .button-icon,
+#requests-menu-perf-notice-button .button-icon,
+#canvas-debugging-empty-notice-button .button-icon,
+#toggle-breakpoints[checked] > image,
+.event-tooltip-debugger-icon {
+  filter: var(--icon-filter);
+}
+
+.hidden-labels-box:not(.visible) > label,
+.hidden-labels-box.visible ~ .hidden-labels-box > label:last-child {
+  display: none;
+}
+
+.devtools-invisible-splitter {
+  border-color: transparent;
+  background-color: transparent;
+}
+
+.devtools-horizontal-splitter,
+.devtools-side-splitter {
+  background-color: var(--theme-splitter-color);
+}

@@ -4,7 +4,9 @@
 
 "use strict";
 
-let Ci = Components.interfaces, Cc = Components.classes, Cu = Components.utils;
+/*globals gChromeWin */
+
+var Ci = Components.interfaces, Cc = Components.classes, Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm")
 Cu.import("resource://gre/modules/AddonManager.jsm");
@@ -12,16 +14,19 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const AMO_ICON = "chrome://browser/skin/images/amo-logo.png";
 
-let gStringBundle = Services.strings.createBundle("chrome://browser/locale/aboutAddons.properties");
+var gStringBundle = Services.strings.createBundle("chrome://browser/locale/aboutAddons.properties");
 
-XPCOMUtils.defineLazyGetter(window, "gChromeWin", function()
-  window.QueryInterface(Ci.nsIInterfaceRequestor)
-    .getInterface(Ci.nsIWebNavigation)
-    .QueryInterface(Ci.nsIDocShellTreeItem)
-    .rootTreeItem
-    .QueryInterface(Ci.nsIInterfaceRequestor)
-    .getInterface(Ci.nsIDOMWindow)
-    .QueryInterface(Ci.nsIDOMChromeWindow));
+XPCOMUtils.defineLazyGetter(window, "gChromeWin", function() {
+  return window.QueryInterface(Ci.nsIInterfaceRequestor)
+           .getInterface(Ci.nsIWebNavigation)
+           .QueryInterface(Ci.nsIDocShellTreeItem)
+           .rootTreeItem
+           .QueryInterface(Ci.nsIInterfaceRequestor)
+           .getInterface(Ci.nsIDOMWindow)
+           .QueryInterface(Ci.nsIDOMChromeWindow);
+});
+XPCOMUtils.defineLazyModuleGetter(window, "Preferences",
+                                  "resource://gre/modules/Preferences.jsm");
 
 var ContextMenus = {
   target: null,
@@ -58,6 +63,14 @@ var ContextMenus = {
       document.getElementById("contextmenu-uninstall").removeAttribute("hidden");
     }
 
+    // Hide the enable/disable context menu items if the add-on was disabled by
+    // Firefox (e.g. unsigned or blocklisted add-on).
+    if (addon.appDisabled) {
+      document.getElementById("contextmenu-enable").setAttribute("hidden", "true");
+      document.getElementById("contextmenu-disable").setAttribute("hidden", "true");
+      return;
+    }
+
     let enabled = this.target.getAttribute("isDisabled") != "true";
     if (enabled) {
       document.getElementById("contextmenu-enable").setAttribute("hidden", "true");
@@ -72,12 +85,12 @@ var ContextMenus = {
     Addons.setEnabled(true, this.target.addon);
     this.target = null;
   },
-  
+
   disable: function (event) {
     Addons.setEnabled(false, this.target.addon);
     this.target = null;
   },
-  
+
   uninstall: function (event) {
     Addons.uninstall(this.target.addon);
     this.target = null;
@@ -92,8 +105,6 @@ function init() {
   Addons.init();
   showList();
   ContextMenus.init();
-
-  document.getElementById("header-button").addEventListener("click", openLink, false);
 }
 
 
@@ -102,14 +113,9 @@ function uninit() {
   AddonManager.removeAddonListener(Addons);
 }
 
-function openLink(aEvent) {
-  try {
-    let formatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"].getService(Ci.nsIURLFormatter);
-
-    let url = formatter.formatURLPref(aEvent.currentTarget.getAttribute("pref"));
-    let BrowserApp = gChromeWin.BrowserApp;
-    BrowserApp.addTab(url, { selected: true, parentId: BrowserApp.selectedTab.id });
-  } catch (ex) {}
+function openLink(url) {
+  let BrowserApp = gChromeWin.BrowserApp;
+  BrowserApp.addTab(url, { selected: true, parentId: BrowserApp.selectedTab.id });
 }
 
 function onPopState(aEvent) {
@@ -132,6 +138,7 @@ function showList() {
   details.style.display = "none";
   let list = document.querySelector("#addons-list");
   list.style.display = "block";
+  document.documentElement.removeAttribute("details");
 }
 
 var Addons = {
@@ -185,8 +192,14 @@ var Addons = {
     let outer = document.createElement("div");
     outer.className = "addon-item list-item";
     outer.setAttribute("role", "button");
-    outer.setAttribute("pref", "extensions.getAddons.browseAddons");
-    outer.addEventListener("click", openLink, true);
+    outer.addEventListener("click", function(event) {
+      try {
+        let formatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"].getService(Ci.nsIURLFormatter);
+        openLink(formatter.formatURLPref("extensions.getAddons.browseAddons"));
+      } catch (e) {
+        Cu.reportError(e);
+      }
+    }, true);
 
     let img = document.createElement("img");
     img.className = "icon";
@@ -212,6 +225,16 @@ var Addons = {
     let updateable = (aAddon.permissions & AddonManager.PERM_CAN_UPGRADE) > 0;
     let uninstallable = (aAddon.permissions & AddonManager.PERM_CAN_UNINSTALL) > 0;
 
+    // TODO(matt): Add support for OPTIONS_TYPE_INLINE_BROWSER once bug 1302504 lands.
+    let optionsURL;
+    switch (aAddon.optionsType) {
+      case AddonManager.OPTIONS_TYPE_INLINE:
+        optionsURL = aAddon.optionsURL || "";
+        break;
+      default:
+        optionsURL = "";
+    }
+
     let blocked = "";
     switch(aAddon.blocklistState) {
       case Ci.nsIBlocklistService.STATE_BLOCKED:
@@ -227,11 +250,12 @@ var Addons = {
 
     let item = this._createItem(aAddon);
     item.setAttribute("isDisabled", !aAddon.isActive);
+    item.setAttribute("isUnsigned", aAddon.signedState <= AddonManager.SIGNEDSTATE_MISSING);
     item.setAttribute("opType", opType);
     item.setAttribute("updateable", updateable);
     if (blocked)
       item.setAttribute("blockedStatus", blocked);
-    item.setAttribute("optionsURL", aAddon.optionsURL || "");
+    item.setAttribute("optionsURL", optionsURL);
     item.addon = aAddon;
 
     return item;
@@ -239,13 +263,13 @@ var Addons = {
 
   _getElementForAddon: function(aKey) {
     let list = document.getElementById("addons-list");
-    let element = list.querySelector("div[addonID=" + aKey.quote() + "]");
+    let element = list.querySelector("div[addonID=\"" + CSS.escape(aKey) + "\"]");
     return element;
   },
 
   init: function init() {
     let self = this;
-    AddonManager.getAddonsByTypes(["extension", "theme", "locale"], function(aAddons) {
+    AddonManager.getAllAddons(function(aAddons) {
       // Clear all content before filling the addons
       let list = document.getElementById("addons-list");
       list.innerHTML = "";
@@ -254,6 +278,10 @@ var Addons = {
         return a.name.localeCompare(b.name);
       });
       for (let i=0; i<aAddons.length; i++) {
+        // Don't create item for system add-ons.
+        if (aAddons[i].isSystem)
+          continue;
+
         let item = self._createItemForAddon(aAddons[i]);
         list.appendChild(item);
       }
@@ -267,6 +295,10 @@ var Addons = {
     document.getElementById("cancel-btn").addEventListener("click", Addons.cancelUninstall.bind(this), false);
     document.getElementById("disable-btn").addEventListener("click", Addons.disable.bind(this), false);
     document.getElementById("enable-btn").addEventListener("click", Addons.enable.bind(this), false);
+
+    document.getElementById("unsigned-learn-more").addEventListener("click", function() {
+      openLink(Services.urlFormatter.formatURLPref("app.support.baseURL") + "unsigned-addons");
+    }, false);
   },
 
   _getOpTypeForOperations: function _getOpTypeForOperations(aOperations) {
@@ -298,6 +330,7 @@ var Addons = {
 
     let detailItem = document.querySelector("#addons-details > .addon-item");
     detailItem.setAttribute("isDisabled", aListItem.getAttribute("isDisabled"));
+    detailItem.setAttribute("isUnsigned", aListItem.getAttribute("isUnsigned"));
     detailItem.setAttribute("opType", aListItem.getAttribute("opType"));
     detailItem.setAttribute("optionsURL", aListItem.getAttribute("optionsURL"));
     let addon = detailItem.addon = aListItem.addon;
@@ -312,16 +345,18 @@ var Addons = {
       gStringBundle.formatStringFromName("addonStatus.uninstalled", [addon.name], 1);
 
     let enableBtn = document.getElementById("enable-btn");
-    if (addon.appDisabled)
+    if (addon.appDisabled) {
       enableBtn.setAttribute("disabled", "true");
-    else
+    } else {
       enableBtn.removeAttribute("disabled");
+    }
 
     let uninstallBtn = document.getElementById("uninstall-btn");
-    if (addon.scope == AddonManager.SCOPE_APPLICATION)
+    if (addon.scope == AddonManager.SCOPE_APPLICATION) {
       uninstallBtn.setAttribute("disabled", "true");
-    else
+    } else {
       uninstallBtn.removeAttribute("disabled");
+    }
 
     let box = document.querySelector("#addons-details > .addon-item .options-box");
     box.innerHTML = "";
@@ -330,40 +365,44 @@ var Addons = {
     try {
       let optionsURL = aListItem.getAttribute("optionsURL");
       let xhr = new XMLHttpRequest();
-      xhr.open("GET", optionsURL, false);
-      xhr.send();
-      if (xhr.responseXML) {
-        // Only allow <setting> for now
-        let settings = xhr.responseXML.querySelectorAll(":root > setting");
-        if (settings.length > 0) {
-          for (let i = 0; i < settings.length; i++) {
-            var setting = settings[i];
-            var desc = stripTextNodes(setting).trim();
-            if (!setting.hasAttribute("desc"))
-              setting.setAttribute("desc", desc);
-            box.appendChild(setting);
+      xhr.open("GET", optionsURL, true);
+      xhr.onload = function(e) {
+        if (xhr.responseXML) {
+          // Only allow <setting> for now
+          let settings = xhr.responseXML.querySelectorAll(":root > setting");
+          if (settings.length > 0) {
+            for (let i = 0; i < settings.length; i++) {
+              var setting = settings[i];
+              var desc = stripTextNodes(setting).trim();
+              if (!setting.hasAttribute("desc")) {
+                setting.setAttribute("desc", desc);
+              }
+              box.appendChild(setting);
+            }
+            // Send an event so add-ons can prepopulate any non-preference based
+            // settings
+            let event = document.createEvent("Events");
+            event.initEvent("AddonOptionsLoad", true, false);
+            window.dispatchEvent(event);
+          } else {
+            // Reset the options URL to hide the options header if there are no
+            // valid settings to show.
+            detailItem.setAttribute("optionsURL", "");
           }
-          // Send an event so add-ons can prepopulate any non-preference based
-          // settings
-          let event = document.createEvent("Events");
-          event.initEvent("AddonOptionsLoad", true, false);
-          window.dispatchEvent(event);
-  
+
           // Also send a notification to match the behavior of desktop Firefox
           let id = aListItem.getAttribute("addonID");
           Services.obs.notifyObservers(document, AddonManager.OPTIONS_NOTIFICATION_DISPLAYED, id);
-        } else {
-          // No options, so hide the header and reset the list item
-          detailItem.setAttribute("optionsURL", "");
-          aListItem.setAttribute("optionsURL", "");
         }
       }
+      xhr.send(null);
     } catch (e) { }
 
     let list = document.querySelector("#addons-list");
     list.style.display = "none";
     let details = document.querySelector("#addons-details");
     details.style.display = "block";
+    document.documentElement.setAttribute("details", "true");
   },
 
   setEnabled: function setEnabled(aValue, aAddon) {
@@ -441,15 +480,13 @@ var Addons = {
   },
 
   uninstall: function uninstall(aAddon) {
-    let list = document.getElementById("addons-list");
-
     if (!aAddon) {
-        return;
+      return;
     }
 
     let listItem = this._getElementForAddon(aAddon.id);
-
     aAddon.uninstall();
+
     if (aAddon.pendingOperations & AddonManager.PENDING_UNINSTALL) {
       this.showRestart();
 
@@ -461,9 +498,6 @@ var Addons = {
 
       detailItem.setAttribute("opType", opType);
       listItem.setAttribute("opType", opType);
-    } else {
-      list.removeChild(listItem);
-      history.back();
     }
   },
 
@@ -522,6 +556,40 @@ var Addons = {
 
     if (needsRestart)
       element.setAttribute("opType", "needs-restart");
+  },
+
+  onInstalled: function(aAddon) {
+    let list = document.getElementById("addons-list");
+    let element = this._getElementForAddon(aAddon.id);
+    if (!element) {
+      element = this._createItemForAddon(aAddon);
+
+      // Themes aren't considered active on install, so set existing as disabled, and new one enabled.
+      if (aAddon.type == "theme") {
+        let item = list.firstElementChild;
+        while (item) {
+          if (item.addon && (item.addon.type == "theme")) {
+            item.setAttribute("isDisabled", true);
+          }
+          item = item.nextSibling;
+        }
+        element.setAttribute("isDisabled", false);
+      }
+
+      list.insertBefore(element, list.firstElementChild);
+    }
+  },
+
+  onUninstalled: function(aAddon) {
+    let list = document.getElementById("addons-list");
+    let element = this._getElementForAddon(aAddon.id);
+    list.removeChild(element);
+
+    // Go back if we're in the detail view of the add-on that was uninstalled.
+    let detailItem = document.querySelector("#addons-details > .addon-item");
+    if (detailItem.addon.id == aAddon.id) {
+      history.back();
+    }
   },
 
   onInstallFailed: function(aInstall) {

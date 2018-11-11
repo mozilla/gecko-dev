@@ -8,10 +8,11 @@
 
 #include "2D.h"
 #include <vector>
-#include "skia/SkCanvas.h"
-#include "skia/SkBitmap.h"
+#include "skia/include/core/SkCanvas.h"
+#include "skia/include/core/SkImage.h"
 
 namespace mozilla {
+
 namespace gfx {
 
 class DrawTargetSkia;
@@ -27,18 +28,18 @@ public:
   virtual IntSize GetSize() const;
   virtual SurfaceFormat GetFormat() const;
 
-  SkBitmap& GetBitmap() { return mBitmap; }
+  sk_sp<SkImage>& GetImage() { return mImage; }
 
   bool InitFromData(unsigned char* aData,
                     const IntSize &aSize,
                     int32_t aStride,
                     SurfaceFormat aFormat);
 
-  bool InitFromCanvas(SkCanvas* aCanvas,
-                      SurfaceFormat aFormat,
-                      DrawTargetSkia* aOwner);
+  bool InitFromImage(sk_sp<SkImage> aImage,
+                     SurfaceFormat aFormat = SurfaceFormat::UNKNOWN,
+                     DrawTargetSkia* aOwner = nullptr);
 
-  virtual unsigned char *GetData();
+  virtual uint8_t* GetData();
 
   virtual int32_t Stride() { return mStride; }
 
@@ -46,17 +47,15 @@ private:
   friend class DrawTargetSkia;
 
   void DrawTargetWillChange();
-  void MaybeUnlock();
 
-  SkBitmap mBitmap;
+  sk_sp<SkImage> mImage;
   SurfaceFormat mFormat;
   IntSize mSize;
   int32_t mStride;
   RefPtr<DrawTargetSkia> mDrawTarget;
-  bool mLocked;
 };
 
-}
-}
+} // namespace gfx
+} // namespace mozilla
 
 #endif /* MOZILLA_GFX_SOURCESURFACESKIA_H_ */

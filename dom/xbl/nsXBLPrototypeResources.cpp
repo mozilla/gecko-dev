@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,7 +18,11 @@
 #include "nsCSSRuleProcessor.h"
 #include "nsStyleSet.h"
 #include "mozilla/dom/URL.h"
+#include "mozilla/DebugOnly.h"
+#include "mozilla/StyleSheet.h"
+#include "mozilla/StyleSheetInlines.h"
 
+using namespace mozilla;
 using mozilla::dom::IsChromeURI;
 
 nsXBLPrototypeResources::nsXBLPrototypeResources(nsXBLPrototypeBinding* aBinding)
@@ -75,23 +80,24 @@ nsXBLPrototypeResources::FlushSkinSheets()
 
   // We have scoped stylesheets.  Reload any chrome stylesheets we
   // encounter.  (If they aren't skin sheets, it doesn't matter, since
-  // they'll still be in the chrome cache.
-  mRuleProcessor = nullptr;
+  // they'll still be in the chrome cache.  Skip inline sheets, which
+  // skin sheets can't be, and which in any case don't have a usable
+  // URL to reload.)
 
-  sheet_array_type oldSheets(mStyleSheetList);
-  mStyleSheetList.Clear();
+  nsTArray<RefPtr<StyleSheet>> oldSheets;
+
+  oldSheets.SwapElements(mStyleSheetList);
 
   mozilla::css::Loader* cssLoader = doc->CSSLoader();
 
-  for (sheet_array_type::size_type i = 0, count = oldSheets.Length();
-       i < count; ++i) {
-    nsCSSStyleSheet* oldSheet = oldSheets[i];
+  for (size_t i = 0, count = oldSheets.Length(); i < count; ++i) {
+    StyleSheet* oldSheet = oldSheets[i];
 
     nsIURI* uri = oldSheet->GetSheetURI();
 
-    nsRefPtr<nsCSSStyleSheet> newSheet;
-    if (IsChromeURI(uri)) {
-      if (NS_FAILED(cssLoader->LoadSheetSync(uri, getter_AddRefs(newSheet))))
+    RefPtr<StyleSheet> newSheet;
+    if (!oldSheet->IsInline() && IsChromeURI(uri)) {
+      if (NS_FAILED(cssLoader->LoadSheetSync(uri, &newSheet)))
         continue;
     }
     else {
@@ -100,9 +106,8 @@ nsXBLPrototypeResources::FlushSkinSheets()
 
     mStyleSheetList.AppendElement(newSheet);
   }
-  mRuleProcessor = new nsCSSRuleProcessor(mStyleSheetList,
-                                          nsStyleSet::eDocSheet,
-                                          nullptr);
+
+  GatherRuleProcessor();
 
   return NS_OK;
 }
@@ -116,14 +121,84 @@ nsXBLPrototypeResources::Write(nsIObjectOutputStream* aStream)
 }
 
 void
-nsXBLPrototypeResources::Traverse(nsCycleCollectionTraversalCallback &cb) const
+nsXBLPrototypeResources::Traverse(nsCycleCollectionTraversalCallback &cb)
 {
   NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "proto mResources mLoader");
   cb.NoteXPCOMChild(mLoader);
+
+  CycleCollectionNoteChild(cb, mRuleProcessor.get(), "mRuleProcessor");
+  ImplCycleCollectionTraverse(cb, mStyleSheetList, "mStyleSheetList");
+}
+
+void
+nsXBLPrototypeResources::Unlink()
+{
+  mStyleSheetList.Clear();
+  mRuleProcessor = nullptr;
 }
 
 void
 nsXBLPrototypeResources::ClearLoader()
 {
   mLoader = nullptr;
+}
+
+void
+nsXBLPrototypeResources::GatherRuleProcessor()
+{
+  nsTArray<RefPtr<CSSStyleSheet>> sheets(mStyleSheetList.Length());
+  for (StyleSheet* sheet : mStyleSheetList) {
+    MOZ_ASSERT(sheet->IsGecko(),
+               "GatherRuleProcessor must only be called for "
+               "nsXBLPrototypeResources objects with Gecko-flavored style "
+               "backends");
+    sheets.AppendElement(sheet->AsGecko());
+  }
+  mRuleProcessor = new nsCSSRuleProcessor(Move(sheets),
+                                          SheetType::Doc,
+                                          nullptr,
+                                          mRuleProcessor);
+}
+
+void
+nsXBLPrototypeResources::AppendStyleSheet(StyleSheet* aSheet)
+{
+  mStyleSheetList.AppendElement(aSheet);
+}
+
+void
+nsXBLPrototypeResources::RemoveStyleSheet(StyleSheet* aSheet)
+{
+  mStyleSheetList.RemoveElement(aSheet);
+}
+
+void
+nsXBLPrototypeResources::InsertStyleSheetAt(size_t aIndex, StyleSheet* aSheet)
+{
+  mStyleSheetList.InsertElementAt(aIndex, aSheet);
+}
+
+StyleSheet*
+nsXBLPrototypeResources::StyleSheetAt(size_t aIndex) const
+{
+  return mStyleSheetList[aIndex];
+}
+
+size_t
+nsXBLPrototypeResources::SheetCount() const
+{
+  return mStyleSheetList.Length();
+}
+
+bool
+nsXBLPrototypeResources::HasStyleSheets() const
+{
+  return !mStyleSheetList.IsEmpty();
+}
+
+void
+nsXBLPrototypeResources::AppendStyleSheetsTo(
+                                      nsTArray<StyleSheet*>& aResult) const
+{
+  aResult.AppendElements(mStyleSheetList);
 }

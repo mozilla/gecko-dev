@@ -4,8 +4,8 @@
 
 from mozpack.copier import (
     FileCopier,
-    FilePurger,
     FileRegistry,
+    FileRegistrySubtree,
     Jarrer,
 )
 from mozpack.files import (
@@ -13,7 +13,7 @@ from mozpack.files import (
     ExistingFile,
 )
 from mozpack.mozjar import JarReader
-import mozpack.path
+import mozpack.path as mozpath
 import unittest
 import mozunit
 import os
@@ -26,7 +26,7 @@ from mozpack.test.test_files import (
 )
 
 
-class TestFileRegistry(MatchTestTemplate, unittest.TestCase):
+class BaseTestFileRegistry(MatchTestTemplate):
     def add(self, path):
         self.registry.add(path, GeneratedFile(path))
 
@@ -38,8 +38,8 @@ class TestFileRegistry(MatchTestTemplate, unittest.TestCase):
             self.assertFalse(self.registry.contains(pattern))
         self.assertEqual(self.registry.match(pattern), result)
 
-    def test_file_registry(self):
-        self.registry = FileRegistry()
+    def do_test_file_registry(self, registry):
+        self.registry = registry
         self.registry.add('foo', GeneratedFile('foo'))
         bar = GeneratedFile('bar')
         self.registry.add('bar', bar)
@@ -91,8 +91,8 @@ class TestFileRegistry(MatchTestTemplate, unittest.TestCase):
         self.add('foo/.foo')
         self.assertTrue(self.registry.contains('foo/.foo'))
 
-    def test_registry_paths(self):
-        self.registry = FileRegistry()
+    def do_test_registry_paths(self, registry):
+        self.registry = registry
 
         # Can't add a file if it requires a directory in place of a
         # file we also require.
@@ -118,6 +118,23 @@ class TestFileRegistry(MatchTestTemplate, unittest.TestCase):
         # Drop the count of things that require bar/ to 0.
         self.registry.remove('bar/zot')
         self.registry.add('bar/zot', GeneratedFile('barzot'))
+
+class TestFileRegistry(BaseTestFileRegistry, unittest.TestCase):
+    def test_partial_paths(self):
+        cases = {
+            'foo/bar/baz/zot': ['foo/bar/baz', 'foo/bar', 'foo'],
+            'foo/bar': ['foo'],
+            'bar': [],
+        }
+        reg = FileRegistry()
+        for path, parts in cases.iteritems():
+            self.assertEqual(reg._partial_paths(path), parts)
+
+    def test_file_registry(self):
+        self.do_test_file_registry(FileRegistry())
+
+    def test_registry_paths(self):
+        self.do_test_registry_paths(FileRegistry())
 
     def test_required_directories(self):
         self.registry = FileRegistry()
@@ -147,12 +164,32 @@ class TestFileRegistry(MatchTestTemplate, unittest.TestCase):
         self.assertEqual(self.registry.required_directories(), {'x', 'x/y'})
 
 
+class TestFileRegistrySubtree(BaseTestFileRegistry, unittest.TestCase):
+    def test_file_registry_subtree_base(self):
+        registry = FileRegistry()
+        self.assertEqual(registry, FileRegistrySubtree('', registry))
+        self.assertNotEqual(registry, FileRegistrySubtree('base', registry))
+
+    def create_registry(self):
+        registry = FileRegistry()
+        registry.add('foo/bar', GeneratedFile('foo/bar'))
+        registry.add('baz/qux', GeneratedFile('baz/qux'))
+        return FileRegistrySubtree('base/root', registry)
+
+    def test_file_registry_subtree(self):
+        self.do_test_file_registry(self.create_registry())
+
+    def test_registry_paths_subtree(self):
+        registry = FileRegistry()
+        self.do_test_registry_paths(self.create_registry())
+
+
 class TestFileCopier(TestWithTmpDir):
     def all_dirs(self, base):
         all_dirs = set()
         for root, dirs, files in os.walk(base):
             if not dirs:
-                all_dirs.add(mozpack.path.relpath(root, base))
+                all_dirs.add(mozpath.relpath(root, base))
         return all_dirs
 
     def all_files(self, base):
@@ -160,7 +197,7 @@ class TestFileCopier(TestWithTmpDir):
         for root, dirs, files in os.walk(base):
             for f in files:
                 all_files.add(
-                    mozpack.path.join(mozpack.path.relpath(root, base), f))
+                    mozpath.join(mozpath.relpath(root, base), f))
         return all_files
 
     def test_file_copier(self):
@@ -300,8 +337,8 @@ class TestFileCopier(TestWithTmpDir):
         # Make file and directory unwritable. Reminder: making a directory
         # unwritable prevents modifications (including deletes) from the list
         # of files in that directory.
-        os.chmod(p, 0400)
-        os.chmod(self.tmpdir, 0400)
+        os.chmod(p, 0o400)
+        os.chmod(self.tmpdir, 0o400)
 
         copier = FileCopier()
         copier.add('dummy', GeneratedFile('content'))
@@ -383,37 +420,49 @@ class TestFileCopier(TestWithTmpDir):
         # existing when it does not.
         self.assertIn(self.tmppath('dest/foo/bar'), result.existing_files)
 
+    def test_remove_unaccounted_file_registry(self):
+        """Test FileCopier.copy(remove_unaccounted=FileRegistry())"""
 
-class TestFilePurger(TestWithTmpDir):
-    def test_file_purger(self):
-        existing = os.path.join(self.tmpdir, 'existing')
-        extra = os.path.join(self.tmpdir, 'extra')
-        empty_dir = os.path.join(self.tmpdir, 'dir')
+        dest = self.tmppath('dest')
 
-        with open(existing, 'a'):
-            pass
+        copier = FileCopier()
+        copier.add('foo/bar/baz', GeneratedFile('foobarbaz'))
+        copier.add('foo/bar/qux', GeneratedFile('foobarqux'))
+        copier.add('foo/hoge/fuga', GeneratedFile('foohogefuga'))
+        copier.add('foo/toto/tata', GeneratedFile('footototata'))
 
-        with open(extra, 'a'):
-            pass
+        os.makedirs(os.path.join(dest, 'bar'))
+        with open(os.path.join(dest, 'bar', 'bar'), 'w') as fh:
+            fh.write('barbar');
+        os.makedirs(os.path.join(dest, 'foo', 'toto'))
+        with open(os.path.join(dest, 'foo', 'toto', 'toto'), 'w') as fh:
+            fh.write('foototototo');
 
-        os.mkdir(empty_dir)
-        with open(os.path.join(empty_dir, 'foo'), 'a'):
-            pass
+        result = copier.copy(dest, remove_unaccounted=False)
 
-        self.assertTrue(os.path.exists(existing))
-        self.assertTrue(os.path.exists(extra))
+        self.assertEqual(self.all_files(dest),
+                         set(copier.paths()) | { 'foo/toto/toto', 'bar/bar'})
+        self.assertEqual(self.all_dirs(dest),
+                         {'foo/bar', 'foo/hoge', 'foo/toto', 'bar'})
 
-        purger = FilePurger()
-        purger.add('existing')
-        result = purger.purge(self.tmpdir)
-        self.assertEqual(result.removed_files, set(self.tmppath(p) for p in
-            ('extra', 'dir/foo')))
-        self.assertEqual(result.removed_files_count, 2)
-        self.assertEqual(result.removed_directories_count, 1)
+        copier2 = FileCopier()
+        copier2.add('foo/hoge/fuga', GeneratedFile('foohogefuga'))
 
-        self.assertTrue(os.path.exists(existing))
-        self.assertFalse(os.path.exists(extra))
-        self.assertFalse(os.path.exists(empty_dir))
+        # We expect only files copied from the first copier to be removed,
+        # not the extra file that was there beforehand.
+        result = copier2.copy(dest, remove_unaccounted=copier)
+
+        self.assertEqual(self.all_files(dest),
+                         set(copier2.paths()) | { 'foo/toto/toto', 'bar/bar'})
+        self.assertEqual(self.all_dirs(dest),
+                         {'foo/hoge', 'foo/toto', 'bar'})
+        self.assertEqual(result.updated_files,
+                         {self.tmppath('dest/foo/hoge/fuga')})
+        self.assertEqual(result.existing_files, set())
+        self.assertEqual(result.removed_files, {self.tmppath(p) for p in
+            ('dest/foo/bar/baz', 'dest/foo/bar/qux', 'dest/foo/toto/tata')})
+        self.assertEqual(result.removed_directories,
+                         {self.tmppath('dest/foo/bar')})
 
 
 class TestJarrer(unittest.TestCase):
@@ -459,6 +508,22 @@ class TestJarrer(unittest.TestCase):
         self.assertEqual([f.filename for f in jar], preloaded +
                          [p for p in copier.paths() if not p in preloaded])
         self.assertEqual(jar.last_preloaded, preloaded[-1])
+
+
+    def test_jarrer_compress(self):
+        copier = Jarrer()
+        copier.add('foo/bar', GeneratedFile('ffffff'))
+        copier.add('foo/qux', GeneratedFile('ffffff'), compress=False)
+
+        dest = MockDest()
+        copier.copy(dest)
+        self.check_jar(dest, copier)
+
+        dest.seek(0)
+        jar = JarReader(fileobj=dest)
+        self.assertTrue(jar['foo/bar'].compressed)
+        self.assertFalse(jar['foo/qux'].compressed)
+
 
 if __name__ == '__main__':
     mozunit.main()

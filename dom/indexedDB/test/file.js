@@ -3,16 +3,24 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-const DEFAULT_QUOTA = 50 * 1024 * 1024;
-
 var bufferCache = [];
 var utils = SpecialPowers.getDOMWindowUtils(window);
 
-if (!SpecialPowers.isMainProcess()) {
-  window.runTest = function() {
-    todo(false, "Test disabled in child processes, for now");
-    finishTest();
+function getBuffer(size)
+{
+  let buffer = new ArrayBuffer(size);
+  is(buffer.byteLength, size, "Correct byte length");
+  return buffer;
+}
+
+function getRandomBuffer(size)
+{
+  let buffer = getBuffer(size);
+  let view = new Uint8Array(buffer);
+  for (let i = 0; i < size; i++) {
+    view[i] = parseInt(Math.random() * 255)
   }
+  return buffer;
 }
 
 function getView(size)
@@ -37,8 +45,8 @@ function compareBuffers(buffer1, buffer2)
   if (buffer1.byteLength != buffer2.byteLength) {
     return false;
   }
-  let view1 = new Uint8Array(buffer1);
-  let view2 = new Uint8Array(buffer2);
+  let view1 = buffer1 instanceof Uint8Array ? buffer1 : new Uint8Array(buffer1);
+  let view2 = buffer2 instanceof Uint8Array ? buffer2 : new Uint8Array(buffer2);
   for (let i = 0; i < buffer1.byteLength; i++) {
     if (view1[i] != view2[i]) {
       return false;
@@ -49,12 +57,12 @@ function compareBuffers(buffer1, buffer2)
 
 function getBlob(type, view)
 {
-  return SpecialPowers.unwrap(utils.getBlob([view], {type: type}));
+  return new Blob([view], {type: type});
 }
 
 function getFile(name, type, view)
 {
-  return SpecialPowers.unwrap(utils.getFile(name, [view], {type: type}));
+  return new File([view], name, {type: type});
 }
 
 function getRandomBlob(size)
@@ -77,21 +85,35 @@ function getNullFile(name, size)
   return getFile(name, "binary/null", getView(size));
 }
 
+// This needs to be async to make it available on workers too.
+function getWasmBinary(text)
+{
+  let binary = getWasmBinarySync(text);
+  SimpleTest.executeSoon(function() {
+    testGenerator.send(binary);
+  });
+}
+
+function getWasmModule(binary)
+{
+  let module = new WebAssembly.Module(binary);
+  return module;
+}
+
 function verifyBuffers(buffer1, buffer2)
 {
-  ok(compareBuffers(buffer1, buffer2), "Correct blob data");
+  ok(compareBuffers(buffer1, buffer2), "Correct buffer data");
 }
 
 function verifyBlob(blob1, blob2, fileId, blobReadHandler)
 {
   is(blob1 instanceof Components.interfaces.nsIDOMBlob, true,
      "Instance of nsIDOMBlob");
-  is(blob1 instanceof Components.interfaces.nsIDOMFile,
-     blob2 instanceof Components.interfaces.nsIDOMFile,
-     "Instance of nsIDOMFile");
+  is(blob1 instanceof File, blob2 instanceof File,
+     "Instance of DOM File");
   is(blob1.size, blob2.size, "Correct size");
   is(blob1.type, blob2.type, "Correct type");
-  if (blob2 instanceof Components.interfaces.nsIDOMFile) {
+  if (blob2 instanceof File) {
     is(blob1.name, blob2.name, "Correct name");
   }
   is(utils.getFileId(blob1), fileId, "Correct file id");
@@ -165,34 +187,58 @@ function verifyBlobArray(blobs1, blobs2, expectedFileIds)
              expectedFileIds[verifiedCount], blobReadHandler);
 }
 
-function grabFileUsageAndContinueHandler(usage, fileUsage)
+function verifyMutableFile(mutableFile1, file2)
 {
-  testGenerator.send(fileUsage);
+  ok(mutableFile1 instanceof IDBMutableFile, "Instance of IDBMutableFile");
+  is(mutableFile1.name, file2.name, "Correct name");
+  is(mutableFile1.type, file2.type, "Correct type");
+  continueToNextStep();
 }
 
-function getUsage(usageHandler)
+function verifyView(view1, view2)
 {
-  let comp = SpecialPowers.wrap(Components);
-  let quotaManager = comp.classes["@mozilla.org/dom/quota/manager;1"]
-                         .getService(comp.interfaces.nsIQuotaManager);
+  is(view1.byteLength, view2.byteLength, "Correct byteLength");
+  verifyBuffers(view1, view2);
+  continueToNextStep();
+}
 
-  // We need to pass a JS callback to getUsageForURI. However, that callback
-  // takes an XPCOM URI object, which will cause us to throw when we wrap it
-  // for the content compartment. So we need to define the function in a
-  // privileged scope, which we do using a sandbox.
-  var sysPrin = SpecialPowers.Services.scriptSecurityManager.getSystemPrincipal();
-  var sb = new SpecialPowers.Cu.Sandbox(sysPrin);
-  sb.usageHandler = usageHandler;
-  var cb = SpecialPowers.Cu.evalInSandbox((function(uri, usage, fileUsage) {
-                                           usageHandler(usage, fileUsage); }).toSource(), sb);
+function verifyWasmModule(module1, module2)
+{
+  let getGlobalForObject = SpecialPowers.Cu.getGlobalForObject;
+  let testingFunctions = SpecialPowers.Cu.getJSTestingFunctions();
+  let wasmExtractCode = SpecialPowers.unwrap(testingFunctions.wasmExtractCode);
+  let exp1 = wasmExtractCode(module1);
+  let exp2 = wasmExtractCode(module2);
+  let code1 = exp1.code;
+  let code2 = exp2.code;
+  ok(code1 instanceof getGlobalForObject(code1).Uint8Array, "Instance of Uint8Array");
+  ok(code2 instanceof getGlobalForObject(code1).Uint8Array, "Instance of Uint8Array");
+  ok(code1.length == code2.length, "Correct length");
+  verifyBuffers(code1, code2);
+  continueToNextStep();
+}
 
-  let uri = SpecialPowers.wrap(window).document.documentURIObject;
-  quotaManager.getUsageForURI(uri, cb);
+function grabFileUsageAndContinueHandler(request)
+{
+  testGenerator.send(request.result.fileUsage);
+}
+
+function getCurrentUsage(usageHandler)
+{
+  let qms = SpecialPowers.Services.qms;
+  let principal = SpecialPowers.wrap(document).nodePrincipal;
+  let cb = SpecialPowers.wrapCallback(usageHandler);
+  qms.getUsageForPrincipal(principal, cb);
 }
 
 function getFileId(file)
 {
   return utils.getFileId(file);
+}
+
+function getFilePath(file)
+{
+  return utils.getFilePath(file);
 }
 
 function hasFileInfo(name, id)
@@ -212,4 +258,9 @@ function getFileDBRefCount(name, id)
   let count = {};
   utils.getFileReferences(name, id, null, {}, count);
   return count.value;
+}
+
+function flushPendingFileDeletions()
+{
+  utils.flushPendingFileDeletions();
 }

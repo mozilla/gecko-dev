@@ -8,13 +8,14 @@
 const URI_EXTENSION_UPDATE_DIALOG = "chrome://mozapps/content/extensions/update.xul";
 
 const PREF_GETADDONS_BYIDS            = "extensions.getAddons.get.url";
+const PREF_MIN_APP_COMPAT             = "extensions.minCompatibleAppVersion";
 const PREF_MIN_PLATFORM_COMPAT        = "extensions.minCompatiblePlatformVersion";
 
 Services.prefs.setBoolPref(PREF_STRICT_COMPAT, true);
 // avoid the 'leaked window property' check
-let scope = {};
-Components.utils.import("resource://gre/modules/TelemetryPing.jsm", scope);
-let TelemetryPing = scope.TelemetryPing;
+var scope = {};
+Components.utils.import("resource://gre/modules/TelemetrySession.jsm", scope);
+var TelemetrySession = scope.TelemetrySession;
 
 /**
  * Test add-ons:
@@ -43,6 +44,9 @@ function end_test() {
   AddonManager.getAllInstalls(function(aInstalls) {
     for (let install of aInstalls)
       install.cancel();
+
+    Services.prefs.clearUserPref(PREF_MIN_APP_COMPAT);
+    Services.prefs.clearUserPref(PREF_MIN_PLATFORM_COMPAT);
 
     finish();
   });
@@ -91,16 +95,16 @@ function install_test_addons(aCallback) {
 }
 
 function uninstall_test_addons(aCallback) {
-  AddonManager.getAddonsByIDs(["addon1@tests.mozilla.org",
-                               "addon2@tests.mozilla.org",
-                               "addon3@tests.mozilla.org",
-                               "addon4@tests.mozilla.org",
-                               "addon5@tests.mozilla.org",
-                               "addon6@tests.mozilla.org",
-                               "addon7@tests.mozilla.org",
-                               "addon8@tests.mozilla.org",
-                               "addon9@tests.mozilla.org",
-                               "addon10@tests.mozilla.org"],
+  AddonManager.getAddonsByIDs(["bug557956-1@tests.mozilla.org",
+                               "bug557956-2@tests.mozilla.org",
+                               "bug557956-3@tests.mozilla.org",
+                               "bug557956-4@tests.mozilla.org",
+                               "bug557956-5@tests.mozilla.org",
+                               "bug557956-6@tests.mozilla.org",
+                               "bug557956-7@tests.mozilla.org",
+                               "bug557956-8@tests.mozilla.org",
+                               "bug557956-9@tests.mozilla.org",
+                               "bug557956-10@tests.mozilla.org"],
                                function(aAddons) {
     for (let addon of aAddons) {
       if (addon)
@@ -176,7 +180,7 @@ function get_list_names(aList) {
 }
 
 function check_telemetry({disabled, metaenabled, metadisabled, upgraded, failed, declined}) {
-  let ping = TelemetryPing.getPayload();
+  let ping = TelemetrySession.getPayload();
   // info(JSON.stringify(ping));
   let am = ping.simpleMeasurements.addonManager;
   if (disabled !== undefined)
@@ -193,25 +197,34 @@ function check_telemetry({disabled, metaenabled, metadisabled, upgraded, failed,
     is(am.appUpdate_upgradeDeclined, declined, declined + " upgrades declined");
 }
 
+add_test(function test_setup() {
+  let oldCanRecord = Services.telemetry.canRecordExtended;
+  Services.telemetry.canRecordExtended = true;
+  registerCleanupFunction(function () {
+    Services.telemetry.canRecordExtended = oldCanRecord;
+  });
+  run_next_test();
+});
+
 // Tests that the right add-ons show up in the mismatch dialog and updates can
 // be installed
 add_test(function basic_mismatch() {
   install_test_addons(function() {
     // These add-ons become disabled
     var disabledAddonIds = [
-      "addon3@tests.mozilla.org",
-      "addon6@tests.mozilla.org",
-      "addon7@tests.mozilla.org",
-      "addon8@tests.mozilla.org",
-      "addon9@tests.mozilla.org"
+      "bug557956-3@tests.mozilla.org",
+      "bug557956-6@tests.mozilla.org",
+      "bug557956-7@tests.mozilla.org",
+      "bug557956-8@tests.mozilla.org",
+      "bug557956-9@tests.mozilla.org"
     ];
 
-    AddonManager.getAddonsByIDs(["addon5@tests.mozilla.org",
-                                 "addon6@tests.mozilla.org"],
+    AddonManager.getAddonsByIDs(["bug557956-5@tests.mozilla.org",
+                                 "bug557956-6@tests.mozilla.org"],
                                  function([a5, a6]) {
       // Check starting (pre-update) conditions
-      ok(!a5.isCompatible, "addon5 should not be compatible");
-      ok(!a6.isCompatible, "addon6 should not be compatible");
+      ok(!a5.isCompatible, "bug557956-5 should not be compatible");
+      ok(!a6.isCompatible, "bug557956-6 should not be compatible");
 
       open_compatibility_window(disabledAddonIds, function(aWindow) {
         var doc = aWindow.document;
@@ -225,8 +238,8 @@ add_test(function basic_mismatch() {
           is(items[3], "Addon9 1.0", "Should have seen addon9 still incompatible");
 
           // If it wasn't disabled by this run, we don't try to enable it
-          ok(!a5.isCompatible, "addon5 should not be compatible");
-          ok(a6.isCompatible, "addon6 should be compatible");
+          ok(!a5.isCompatible, "bug557956-5 should not be compatible");
+          ok(a6.isCompatible, "bug557956-6 should be compatible");
 
           var button = doc.documentElement.getButton("next");
           EventUtils.synthesizeMouse(button, 2, 2, { }, aWindow);
@@ -268,12 +281,12 @@ add_test(function basic_mismatch() {
               EventUtils.synthesizeMouse(button, 2, 2, { }, aWindow);
 
               wait_for_window_close(aWindow, function() {
-                AddonManager.getAddonsByIDs(["addon8@tests.mozilla.org",
-                                             "addon9@tests.mozilla.org"],
+                AddonManager.getAddonsByIDs(["bug557956-8@tests.mozilla.org",
+                                             "bug557956-9@tests.mozilla.org"],
                                              function([a8, a9]) {
-                  is(a8.version, "2.0", "addon8 should have updated");
-                  is(a9.version, "2.0", "addon9 should have updated");
-  
+                  is(a8.version, "2.0", "bug557956-8 should have updated");
+                  is(a9.version, "2.0", "bug557956-9 should have updated");
+
                   check_telemetry({disabled: 5, metaenabled: 1, metadisabled: 0,
                                    upgraded: 2, failed: 0, declined: 1});
 
@@ -294,11 +307,11 @@ add_test(function failure_page() {
   install_test_addons(function() {
     // These add-ons become disabled
     var disabledAddonIds = [
-      "addon3@tests.mozilla.org",
-      "addon6@tests.mozilla.org",
-      "addon7@tests.mozilla.org",
-      "addon8@tests.mozilla.org",
-      "addon9@tests.mozilla.org"
+      "bug557956-3@tests.mozilla.org",
+      "bug557956-6@tests.mozilla.org",
+      "bug557956-7@tests.mozilla.org",
+      "bug557956-8@tests.mozilla.org",
+      "bug557956-9@tests.mozilla.org"
     ];
 
     Services.prefs.setBoolPref("xpinstall.enabled", false);
@@ -314,11 +327,11 @@ add_test(function failure_page() {
         is(items[3], "Addon9 1.0", "Should have seen addon9 still incompatible");
 
         // Check that compatibility updates were applied.
-        AddonManager.getAddonsByIDs(["addon5@tests.mozilla.org",
-                                     "addon6@tests.mozilla.org"],
+        AddonManager.getAddonsByIDs(["bug557956-5@tests.mozilla.org",
+                                     "bug557956-6@tests.mozilla.org"],
                                      function([a5, a6]) {
-          ok(!a5.isCompatible, "addon5 should not be compatible");
-          ok(a6.isCompatible, "addon6 should be compatible");
+          ok(!a5.isCompatible, "bug557956-5 should not be compatible");
+          ok(a6.isCompatible, "bug557956-6 should be compatible");
 
           var button = doc.documentElement.getButton("next");
           EventUtils.synthesizeMouse(button, 2, 2, { }, aWindow);
@@ -376,16 +389,16 @@ add_test(function failure_page() {
 // Tests that no add-ons show up in the mismatch dialog when they are all disabled
 add_test(function all_disabled() {
   install_test_addons(function() {
-    AddonManager.getAddonsByIDs(["addon1@tests.mozilla.org",
-                                 "addon2@tests.mozilla.org",
-                                 "addon3@tests.mozilla.org",
-                                 "addon4@tests.mozilla.org",
-                                 "addon5@tests.mozilla.org",
-                                 "addon6@tests.mozilla.org",
-                                 "addon7@tests.mozilla.org",
-                                 "addon8@tests.mozilla.org",
-                                 "addon9@tests.mozilla.org",
-                                 "addon10@tests.mozilla.org"],
+    AddonManager.getAddonsByIDs(["bug557956-1@tests.mozilla.org",
+                                 "bug557956-2@tests.mozilla.org",
+                                 "bug557956-3@tests.mozilla.org",
+                                 "bug557956-4@tests.mozilla.org",
+                                 "bug557956-5@tests.mozilla.org",
+                                 "bug557956-6@tests.mozilla.org",
+                                 "bug557956-7@tests.mozilla.org",
+                                 "bug557956-8@tests.mozilla.org",
+                                 "bug557956-9@tests.mozilla.org",
+                                 "bug557956-10@tests.mozilla.org"],
                                  function(aAddons) {
       for (let addon of aAddons)
         addon.userDisabled = true;
@@ -403,19 +416,19 @@ add_test(function all_disabled() {
 // Tests that the right UI shows for when no updates are available
 add_test(function no_updates() {
   install_test_addons(function() {
-    AddonManager.getAddonsByIDs(["addon7@tests.mozilla.org",
-                                 "addon8@tests.mozilla.org",
-                                 "addon9@tests.mozilla.org",
-                                 "addon10@tests.mozilla.org"],
+    AddonManager.getAddonsByIDs(["bug557956-7@tests.mozilla.org",
+                                 "bug557956-8@tests.mozilla.org",
+                                 "bug557956-9@tests.mozilla.org",
+                                 "bug557956-10@tests.mozilla.org"],
                                  function(aAddons) {
       for (let addon of aAddons)
         addon.uninstall();
 
       // These add-ons were disabled by the upgrade
       var inactiveAddonIds = [
-        "addon3@tests.mozilla.org",
-        "addon5@tests.mozilla.org",
-        "addon6@tests.mozilla.org"
+        "bug557956-3@tests.mozilla.org",
+        "bug557956-5@tests.mozilla.org",
+        "bug557956-6@tests.mozilla.org"
       ];
 
       open_compatibility_window(inactiveAddonIds, function(aWindow) {
@@ -449,6 +462,7 @@ add_test(function no_updates() {
 // compatibility.
 add_test(function overrides_retrieved() {
   Services.prefs.setBoolPref(PREF_STRICT_COMPAT, false);
+  Services.prefs.setCharPref(PREF_MIN_APP_COMPAT, "0");
   Services.prefs.setCharPref(PREF_MIN_PLATFORM_COMPAT, "0");
   is(AddonManager.strictCompatibility, false, "Strict compatibility should be disabled");
 
@@ -457,20 +471,20 @@ add_test(function overrides_retrieved() {
 
   install_test_addons(function() {
 
-    AddonManager.getAddonsByIDs(["addon1@tests.mozilla.org",
-                                 "addon2@tests.mozilla.org",
-                                 "addon3@tests.mozilla.org",
-                                 "addon4@tests.mozilla.org",
-                                 "addon5@tests.mozilla.org",
-                                 "addon6@tests.mozilla.org",
-                                 "addon7@tests.mozilla.org",
-                                 "addon8@tests.mozilla.org",
-                                 "addon9@tests.mozilla.org",
-                                 "addon10@tests.mozilla.org"],
+    AddonManager.getAddonsByIDs(["bug557956-1@tests.mozilla.org",
+                                 "bug557956-2@tests.mozilla.org",
+                                 "bug557956-3@tests.mozilla.org",
+                                 "bug557956-4@tests.mozilla.org",
+                                 "bug557956-5@tests.mozilla.org",
+                                 "bug557956-6@tests.mozilla.org",
+                                 "bug557956-7@tests.mozilla.org",
+                                 "bug557956-8@tests.mozilla.org",
+                                 "bug557956-9@tests.mozilla.org",
+                                 "bug557956-10@tests.mozilla.org"],
                                  function(aAddons) {
 
       for (let addon of aAddons) {
-        if (addon.id == "addon10@tests.mozilla.org")
+        if (addon.id == "bug557956-10@tests.mozilla.org")
           is(addon.isCompatible, true, "Addon10 should be compatible before compat overrides are refreshed");
         else
           addon.uninstall();

@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,43 +9,84 @@ BROWSER_CHROME_MANIFESTS += ['tests/browser/browser.ini']
 MOCHITEST_MANIFESTS += ['tests/mochitest/mochitest.ini']
 MOCHITEST_CHROME_MANIFESTS += ['tests/chrome/chrome.ini']
 
+TESTING_JS_MODULES += [
+    'tests/MockDocument.jsm',
+    'tests/PromiseTestUtils.jsm',
+    'tests/xpcshell/TestIntegration.jsm',
+]
+
 SPHINX_TREES['toolkit_modules'] = 'docs'
 
 EXTRA_JS_MODULES += [
-    'AsyncShutdown.jsm',
+    'addons/MatchPattern.jsm',
+    'addons/WebNavigation.jsm',
+    'addons/WebNavigationContent.js',
+    'addons/WebNavigationFrames.jsm',
+    'addons/WebRequest.jsm',
+    'addons/WebRequestCommon.jsm',
+    'addons/WebRequestContent.js',
+    'addons/WebRequestUpload.jsm',
+    'AsyncPrefs.jsm',
+    'Battery.jsm',
     'BinarySearch.jsm',
     'BrowserUtils.jsm',
+    'CanonicalJSON.jsm',
+    'CertUtils.jsm',
     'CharsetMenu.jsm',
+    'ClientID.jsm',
+    'Color.jsm',
+    'Console.jsm',
+    'DateTimePickerHelper.jsm',
     'debug.js',
     'DeferredTask.jsm',
     'Deprecated.jsm',
-    'Dict.jsm',
-    'DirectoryLinksProvider.jsm',
     'FileUtils.jsm',
     'Finder.jsm',
+    'FinderHighlighter.jsm',
+    'FinderIterator.jsm',
+    'FormLikeFactory.jsm',
     'Geometry.jsm',
+    'GMPInstallManager.jsm',
+    'GMPUtils.jsm',
     'Http.jsm',
     'InlineSpellChecker.jsm',
+    'InlineSpellCheckerContent.jsm',
+    'Integration.jsm',
+    'JSONFile.jsm',
     'LoadContextInfo.jsm',
+    'Locale.jsm',
     'Log.jsm',
+    'Memory.jsm',
     'NewTabUtils.jsm',
+    'NLP.jsm',
+    'ObjectUtils.jsm',
     'PageMenu.jsm',
+    'PageMetadata.jsm',
     'PermissionsUtils.jsm',
     'PopupNotifications.jsm',
     'Preferences.jsm',
     'PrivateBrowsingUtils.jsm',
+    'ProfileAge.jsm',
     'Promise-backend.js',
     'Promise.jsm',
+    'PromiseMessage.jsm',
+    'PromiseUtils.jsm',
     'PropertyListUtils.jsm',
-    'RemoteAddonsChild.jsm',
-    'RemoteAddonsParent.jsm',
     'RemoteController.jsm',
     'RemoteFinder.jsm',
+    'RemotePageManager.jsm',
     'RemoteSecurityUI.jsm',
-    'RemoteWebNavigation.jsm',
     'RemoteWebProgress.jsm',
+    'ResetProfile.jsm',
+    'ResponsivenessMonitor.jsm',
+    'secondscreen/PresentationApp.jsm',
+    'secondscreen/RokuApp.jsm',
+    'secondscreen/SimpleServiceDiscovery.jsm',
     'SelectContentHelper.jsm',
     'SelectParentHelper.jsm',
+    'ServiceRequest.jsm',
+    'Services.jsm',
+    'SessionRecorder.jsm',
     'sessionstore/FormData.jsm',
     'sessionstore/ScrollPosition.jsm',
     'sessionstore/XPathGenerator.jsm',
@@ -54,25 +95,39 @@ EXTRA_JS_MODULES += [
     'SpatialNavigation.jsm',
     'Sqlite.jsm',
     'Task.jsm',
-    'TelemetryTimestamps.jsm',
     'Timer.jsm',
+    'Troubleshoot.jsm',
+    'UpdateUtils.jsm',
+    'WebChannel.jsm',
+    'WindowDraggingUtils.jsm',
     'ZipUtils.jsm',
 ]
+EXTRA_JS_MODULES.third_party.jsesc += ['third_party/jsesc/jsesc.js']
+EXTRA_JS_MODULES.sessionstore += ['sessionstore/Utils.jsm']
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] in ('windows', 'cocoa'):
+    DEFINES['CAN_DRAW_IN_TITLEBAR'] = 1
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] in ('windows', 'gtk2', 'gtk3'):
+    DEFINES['MENUBAR_CAN_AUTOHIDE'] = 1
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] in ('windows', 'gtk2', 'gtk3', 'cocoa'):
+    DEFINES['HAVE_SHELL_SERVICE'] = 1
 
 EXTRA_PP_JS_MODULES += [
-    'CertUtils.jsm',
-    'ResetProfile.jsm',
-    'Services.jsm',
-    'Troubleshoot.jsm',
-    'UpdateChannel.jsm',
-    'WindowDraggingUtils.jsm',
-    'WindowsPrefSync.jsm',
+    'AppConstants.jsm',
 ]
 
 if 'Android' != CONFIG['OS_TARGET']:
-    EXTRA_PP_JS_MODULES += [
+    EXTRA_JS_MODULES += [
         'LightweightThemeConsumer.jsm',
     ]
+
+    DIRS += [
+        'subprocess',
+    ]
+else:
+    DEFINES['ANDROID'] = True
 
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
@@ -80,8 +135,23 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
         'WindowsRegistry.jsm',
     ]
 
-DEFINES['MOZ_APP_NAME'] = CONFIG['MOZ_APP_NAME']
-DEFINES['MOZ_BUILD_APP'] = CONFIG['MOZ_BUILD_APP']
+for var in ('ANDROID_PACKAGE_NAME',
+            'MOZ_APP_NAME',
+            'MOZ_APP_VERSION',
+            'MOZ_APP_VERSION_DISPLAY',
+            'MOZ_MACBUNDLE_NAME',
+            'MOZ_WIDGET_TOOLKIT',
+            'DLL_PREFIX',
+            'DLL_SUFFIX',
+            'DEBUG_JS_MODULES'):
+            DEFINES[var] = CONFIG[var]
 
-if CONFIG['MOZ_TOOLKIT_SEARCH']:
-    DEFINES['MOZ_TOOLKIT_SEARCH'] = True
+for var in ('MOZ_TOOLKIT_SEARCH',
+            'MOZ_SYSTEM_NSS',
+            'MOZ_UPDATER',
+            'MOZ_SWITCHBOARD',
+            'MOZ_SERVICES_CLOUDSYNC'):
+    if CONFIG[var]:
+        DEFINES[var] = True
+
+DEFINES['TOPOBJDIR'] = TOPOBJDIR

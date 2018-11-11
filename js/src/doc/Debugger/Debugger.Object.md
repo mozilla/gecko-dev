@@ -153,26 +153,146 @@ from its prototype:
     environment enclosing the function when it was created. If the referent
     is a function proxy or not debuggee code, this is `undefined`.
 
+`errorMessageName`
+:  If the referent is an error created with an engine internal message template
+   this is a string which is the name of the template; `undefined` otherwise.
+
+`errorLineNumber`
+:  If the referent is an Error object, this is the line number at which the
+   referent was created; `undefined`  otherwise.
+
+`errorColumnNumber`
+:  If the referent is an Error object, this is the column number at which the
+   referent was created; `undefined`  otherwise.
+
+`isBoundFunction`
+:   If the referent is a debuggee function, returns `true` if the referent is a
+    bound function; `false` otherwise. If the referent is not a debuggee
+    function, or not a function at all, returns `undefined` instead.
+
+`isArrowFunction`
+:   If the referent is a debuggee function, returns `true` if the referent is an
+    arrow function; `false` otherwise. If the referent is not a debuggee
+    function, or not a function at all, returns `undefined` instead.
+
+`isPromise`
+:   `true` if the referent is a Promise; `false` otherwise.
+
+`boundTargetFunction`
+:   If the referent is a bound debuggee function, this is its target function—
+    the function that was bound to a particular `this` object. If the referent
+    is either not a bound function, not a debuggee function, or not a function
+    at all, this is `undefined`.
+
+`boundThis`
+:   If the referent is a bound debuggee function, this is the `this` value it
+    was bound to. If the referent is either not a bound function, not a debuggee
+    function, or not a function at all, this is `undefined`.
+
+`boundArguments`
+:   If the referent is a bound debuggee function, this is an array (in the
+    Debugger object's compartment) that contains the debuggee values of the
+    `arguments` object it was bound to. If the referent is either not a bound
+    function, not a debuggee function, or not a function at all, this is
+    `undefined`.
+
+`isProxy`
+:   If the referent is a (scripted) proxy, either revoked or not, return `true`.
+    If the referent is not a (scripted) proxy, return `false`.
+
+`proxyTarget`
+:   If the referent is a non-revoked (scripted) proxy, return a `Debugger.Object`
+    instance referring to the ECMAScript `[[ProxyTarget]]` of the referent.
+    If the referent is a revoked (scripted) proxy, return `null`.
+    If the referent is not a (scripted) proxy, return `undefined`.
+
 `proxyHandler`
-:   If the referent is a proxy whose handler object was allocated by
-    debuggee code, this is its handler object—the object whose methods are
-    invoked to implement accesses of the proxy's properties. If the referent
-    is not a proxy whose handler object was allocated by debuggee code, this
-    is `null`.
+:   If the referent is a non-revoked (scripted) proxy, return a `Debugger.Object`
+    instance referring to the ECMAScript `[[ProxyHandler]]` of the referent.
+    If the referent is a revoked (scripted) proxy, return `null`.
+    If the referent is not a (scripted) proxy, return `undefined`.
 
-`proxyCallTrap`
-:   If the referent is a function proxy whose handler object was allocated
-    by debuggee code, this is its call trap function—the function called
-    when the function proxy is called. If the referent is not a function
-    proxy whose handler object was allocated by debuggee code, this is
-    `null`.
+`promiseState`
+:   If the referent is a [`Promise`][promise], return a string indicating
+    whether the [`Promise`][promise] is pending, or has been fulfilled or
+    rejected. This string takes one of the following values:
 
-`proxyConstructTrap`
-:   If the referent is a function proxy whose handler object was allocated
-    by debuggee code, its construction trap function—the function called
-    when the function proxy is called via a `new` expression. If the
-    referent is not a function proxy whose handler object was allocated by
-    debuggee code, this is `null`.
+    * `"pending"`, if the [`Promise`][promise] is pending.
+
+    * `"fulfilled"`, if the [`Promise`][promise] has been fulfilled.
+
+    * `"rejected"`, if the [`Promise`][promise] has been rejected.
+
+    If the referent is not a [`Promise`][promise], throw a `TypeError`.
+
+`promiseValue`
+:   Return a debuggee value representing the value the [`Promise`][promise] has
+    been fulfilled with.
+
+    If the referent is not a [`Promise`][promise], or the [`Promise`][promise]
+    has not been fulfilled, throw a `TypeError`.
+
+`promiseReason`
+:   Return a debuggee value representing the value the [`Promise`][promise] has
+    been rejected with.
+
+    If the referent is not a [`Promise`][promise], or the [`Promise`][promise]
+    has not been rejected, throw a `TypeError`.
+
+`promiseAllocationSite`
+:   If the referent is a [`Promise`][promise], this is the
+    [JavaScript execution stack][saved-frame] captured at the time of the
+    promise's allocation. This can return null if the promise was not
+    created from script. If the referent is not a [`Promise`][promise], throw
+    a `TypeError` exception.
+
+`promiseResolutionSite`
+:   If the referent is a [`Promise`][promise], this is the
+    [JavaScript execution stack][saved-frame] captured at the time of the
+    promise's resolution. This can return null if the promise was not
+    resolved by calling its `resolve` or `reject` resolving functions from
+    script. If the referent is not a [`Promise`][promise], throw a `TypeError`
+    exception.
+
+`promiseID`
+:   If the referent is a [`Promise`][promise], this is a process-unique
+    identifier for the [`Promise`][promise]. With e10s, the same id can
+    potentially be assigned to multiple [`Promise`][promise] instances, if
+    those instances were created in different processes. If the referent is
+    not a [`Promise`][promise], throw a `TypeError` exception.
+
+`promiseDependentPromises`
+:   If the referent is a [`Promise`][promise], this is an `Array` of
+    `Debugger.Objects` referring to the promises directly depending on the
+    referent [`Promise`][promise]. These are:
+
+   1) Return values of `then()` calls on the promise.
+   2) Return values of `Promise.all()` if the referent [`Promise`][promise]
+      was passed in as one of the arguments.
+   3) Return values of `Promise.race()` if the referent [`Promise`][promise]
+      was passed in as one of the arguments.
+
+   Once a [`Promise`][promise] is settled, it will generally notify its
+   dependent promises and forget about them, so this is most useful on
+   *pending* promises.
+
+   Note that the `Array` only contains the promises that directly depend on
+   the referent [`Promise`][promise]. It does not contain promises that depend
+   on promises that depend on the referent [`Promise`][promise].
+
+   If the referent is not a [`Promise`][promise], throw a `TypeError`
+   exception.
+
+`promiseLifetime`
+:   If the referent is a [`Promise`][promise], this is the number of
+    milliseconds elapsed since the [`Promise`][promise] was created. If the
+    referent is not a [`Promise`][promise], throw a `TypeError` exception.
+
+`promiseTimeToResolution`
+:   If the referent is a [`Promise`][promise], this is the number of
+    milliseconds elapsed between when the [`Promise`][promise] was created and
+    when it was resolved. If the referent hasn't been resolved or is not a
+    [`Promise`][promise], throw a `TypeError` exception.
 
 `global`
 :   A `Debugger.Object` instance referring to the global object in whose
@@ -181,34 +301,11 @@ from its prototype:
     wrapper's global, not the wrapped object's global. The result refers to
     the global directly, not via a wrapper.
 
-`hostAnnotations`
-:   A JavaScript object providing further metadata about the referent, or
-    `null` if none is available. The metadata object is in the same
-    compartment as this `Debugger.Object` instance. The same metadata
-    object is returned each time for a given `Debugger.Object` instance.
-
-    A typical JavaScript embedding provides "host objects" to expose
-    application-specific functionality to scripts. The `hostAnnotations`
-    accessor consults the embedding for additional information about the
-    referent that might be of interest to the debugger. The returned
-    object's properties' meanings are up to the embedding. For example, a
-    web browser might provide host annotations for global objects to
-    distinguish top-level windows, iframes, and internal JavaScript scopes.
-
-    By convention, host annotation objects have a string-valued `"type"`
-    property that, taken together with the object's class, indicate what
-    sort of thing the referent is. The host annotation object's other
-    properties provide further details, as appropriate for the type. For
-    example, in Firefox, a metadata object for a JavaScript Module's global
-    object might look like this:
-
-    ```language-js
-    { "type":"jsm", "uri":"resource:://gre/modules/XPCOMUtils.jsm" }
-    ```
-
-    Firefox provides [DebuggerHostAnnotationsForFirefox annotations] for its
-    host objects.
-
+<code id="allocationsite">allocationSite</code>
+:   If [object allocation site tracking][tracking-allocs] was enabled when this
+    `Debugger.Object`'s referent was allocated, return the
+    [JavaScript execution stack][saved-frame] captured at the time of the
+    allocation. Otherwise, return `null`.
 
 
 ## Function Properties of the Debugger.Object prototype
@@ -247,6 +344,12 @@ code), the call throws a [`Debugger.DebuggeeWouldRun`][wouldrun] exception.
 `getOwnPropertyNames()`
 :   Return an array of strings naming all the referent's own properties, as
     if <code>Object.getOwnPropertyNames(<i>referent</i>)</code> had been
+    called in the debuggee, and the result copied in the scope of the
+    debugger's global object.
+
+`getOwnPropertySymbols()`
+:   Return an array of strings naming all the referent's own symbols, as
+    if <code>Object.getOwnPropertySymbols(<i>referent</i>)</code> had been
     called in the debuggee, and the result copied in the scope of the
     debugger's global object.
 
@@ -361,7 +464,7 @@ code), the call throws a [`Debugger.DebuggeeWouldRun`][wouldrun] exception.
     value, or `{ asConstructor: true }` to invoke the referent as a
     constructor, in which case SpiderMonkey provides an appropriate `this`
     value itself. Each <i>argument</i> must be a debuggee value. All extant
-    handler methods, breakpoints, watchpoints, and so on remain active
+    handler methods, breakpoints, and so on remain active
     during the call. If the referent is not callable, throw a `TypeError`.
     This function follows the [invocation function conventions][inv fr].
 
@@ -374,30 +477,30 @@ code), the call throws a [`Debugger.DebuggeeWouldRun`][wouldrun] exception.
     an appropriate `this` value itself. <i>Arguments</i> must either be an
     array (in the debugger) of debuggee values, or `null` or `undefined`,
     which are treated as an empty array. All extant handler methods,
-    breakpoints, watchpoints, and so on remain active during the call. If
+    breakpoints, and so on remain active during the call. If
     the referent is not callable, throw a `TypeError`. This function
     follows the [invocation function conventions][inv fr].
 
-<code>evalInGlobal(<i>code</i>, [<i>options</i>])</code>
+<code>executeInGlobal(<i>code</i>, [<i>options</i>])</code>
 :   If the referent is a global object, evaluate <i>code</i> in that global
     environment, and return a [completion value][cv] describing how it completed.
     <i>Code</i> is a string. All extant handler methods, breakpoints,
-    watchpoints, and so on remain active during the call. This function
+    and so on remain active during the call. This function
     follows the [invocation function conventions][inv fr].
     If the referent is not a global object, throw a `TypeError` exception.
 
     <i>Code</i> is interpreted as strict mode code when it contains a Use
     Strict Directive.
 
-    If <i>code</i> is not strict mode code, then variable declarations in
-    <i>code</i> affect the referent global object. (In the terms used by the
-    ECMAScript specification, the `VariableEnvironment` of the execution
-    context for the eval code is the referent.)
+    This evaluation is semantically equivalent to executing statements at the
+    global level, not an indirect eval. Regardless of <i>code</i> being strict
+    mode code, variable declarations in <i>code</i> affect the referent global
+    object.
 
     The <i>options</i> argument is as for [`Debugger.Frame.prototype.eval`][fr eval].
 
-<code>evalInGlobalWithBindings(<i>code</i>, <i>bindings</i>, [<i>options</i>])</code>
-:   Like `evalInGlobal`, but evaluate <i>code</i> using the referent as the
+<code>executeInGlobalWithBindings(<i>code</i>, <i>bindings</i>, [<i>options</i>])</code>
+:   Like `executeInGlobal`, but evaluate <i>code</i> using the referent as the
     variable object, but with a lexical environment extended with bindings
     from the object <i>bindings</i>. For each own enumerable property of
     <i>bindings</i> named <i>name</i> whose value is <i>value</i>, include a
@@ -412,112 +515,20 @@ code), the call throws a [`Debugger.DebuggeeWouldRun`][wouldrun] exception.
     debuggee values, and do so without mutating any existing debuggee
     environment.
 
-    Note that, like `evalInGlobal`, if the code passed to
-    `evalInGlobalWithBindings` is not strict mode code, then any
-    declarations it contains affect the referent global object, even as
-    <i>code</i> is evaluated in an environment extended according to
-    <i>bindings</i>. (In the terms used by the ECMAScript specification, the
-    `VariableEnvironment` of the execution context for non-strict eval code
-    is the referent, and the <i>bindings</i> appear in a new declarative
-    environment, which is the eval code's `LexicalEnvironment`.)
+    Note that, like `executeInGlobal`, any declarations it contains affect the
+    referent global object, even as <i>code</i> is evaluated in an environment
+    extended according to <i>bindings</i>. (In the terms used by the ECMAScript
+    specification, the `VariableEnvironment` of the execution context for
+    <i>code</i> is the referent, and the <i>bindings</i> appear in a new
+    declarative environment, which is the eval code's `LexicalEnvironment`.)
 
     The <i>options</i> argument is as for [`Debugger.Frame.prototype.eval`][fr eval].
 
 `asEnvironment()`
 :   If the referent is a global object, return the [`Debugger.Environment`][environment]
-    instance representing the referent as a variable environment for
-    evaluating code. If the referent is not a global object, throw a
-    `TypeError`.
-
-<code>setObjectWatchpoint(<i>handler</i>)</code> <i>(future plan)</i>
-:   Set a watchpoint on all the referent's own properties, reporting events
-    by calling <i>handler</i>'s methods. Any previous watchpoint handler on
-    this `Debugger.Object` instance is replaced. If <i>handler</i> is null,
-    the referent is no longer watched. <i>Handler</i> may have the following
-    methods, called under the given circumstances:
-
-    <code>add(<i>frame</i>, <i>name</i>, <i>descriptor</i>)</code>
-    :   A property named <i>name</i> has been added to the referent.
-        <i>Descriptor</i> is a property descriptor of the sort accepted by
-        `Debugger.Object.prototype.defineProperty`, giving the newly added
-        property's attributes.
-
-    <code>delete(<i>frame</i>, <i>name</i>)</code>
-    :   The property named <i>name</i> is about to be deleted from the referent.
-
-    <code>change(<i>frame</i>, <i>name</i>, <i>oldDescriptor</i>, <i>newDescriptor</i>)</code>
-    :   The existing property named <i>name</i> on the referent is being changed
-        from those given by <i>oldDescriptor</i> to those given by
-        <i>newDescriptor</i>. This handler method is only called when attributes
-        of the property other than its value are being changed; if only the
-        value is changing, SpiderMonkey calls the handler's `set` method.
-
-    <code>set(<i>frame</i>, <i>oldValue</i>, <i>newValue</i>)</code>
-    :   The data property named <i>name</i> of the referent is about to have its
-        value changed from <i>oldValue</i> to <i>newValue</i>.
-
-        SpiderMonkey only calls this method on assignments to data properties
-        that will succeed; assignments to un-writable data properties fail
-        without notifying the debugger.
-
-    <code>extensionsPrevented(<i>frame</i>)</code>
-    :   The referent has been made non-extensible, as if by a call to
-        `Object.preventExtensions`.
-
-    For all watchpoint handler methods:
-
-    * Handler calls receive the handler object itself as the `this` value.
-
-    * The <i>frame</i> argument is the current stack frame, whose code is
-      about to perform the operation on the object being reported.
-
-    * If the method returns `undefined`, then SpiderMonkey makes the announced
-      change to the object, and continues execution normally. If the method
-      returns an object:
-
-    * If the object has a `superseded` property whose value is a true value,
-      then SpiderMonkey does not make the announced change.
-
-    * If the object has a `resume` property, its value is taken as a
-      [resumption value][rv], indicating how
-      execution should proceed. (However, `return` resumption values are not
-      supported.)
-
-    * If a given method is absent from <i>handler</i>, then events of that
-      sort are ignored. The watchpoint consults <i>handler</i>'s properties
-      each time an event occurs, so adding methods to or removing methods from
-      <i>handler</i> after setting the watchpoint enables or disables
-      reporting of the corresponding events.
-
-    * Values passed to <i>handler</i>'s methods are debuggee values.
-      Descriptors passed to <i>handler</i>'s methods are ordinary objects in
-      the debugger's compartment, except for `value`, `get`, and `set`
-      properties in descriptors, which are debuggee values; they are the sort
-      of value expected by `Debugger.Object.prototype.defineProperty`.
-
-    * Watchpoint handler calls are cross-compartment, intra-thread calls: the
-      call takes place in the same thread that changed the property, and in
-      <i>handler</i>'s method's compartment (typically the same as the
-      debugger's compartment).
-
-    The new watchpoint belongs to the [`Debugger`][debugger-object] instance to which this
-    `Debugger.Object` instance belongs; disabling the [`Debugger`][debugger-object] instance
-    disables this watchpoint.
-
-`clearObjectWatchpoint()` <i>(future plan)</i>
-:   Remove any object watchpoint set on the referent.
-
-<code>setPropertyWatchpoint(<i>name</i>, <i>handler</i>)</code> <i>(future plan)</i>
-:   Set a watchpoint on the referent's property named <i>name</i>, reporting
-    events by calling <i>handler</i>'s methods. Any previous watchpoint
-    handler on this property for this `Debugger.Object` instance is
-    replaced. If <i>handler</i> is null, the property is no longer watched.
-    <i>Handler</i> is as described for
-    `Debugger.Object.prototype.setObjectWatchpoint`, except that it does not
-    receive `extensionsPrevented` events.
-
-<code>clearPropertyWatchpoint(<i>name</i>)</code> <i>(future plan)</i>
-:   Remove any watchpoint set on the referent's property named <i>name</i>.
+    instance representing the referent's global lexical scope. The global
+    lexical scope's enclosing scope is the global object. If the referent is
+    not a global object, throw a `TypeError`.
 
 `unwrap()`
 :   If the referent is a wrapper that this `Debugger.Object`'s compartment
@@ -542,3 +553,7 @@ code), the call throws a [`Debugger.DebuggeeWouldRun`][wouldrun] exception.
     Debugger API: adapted portions of the code can use `Debugger.Object`
     instances, but use this method to pass direct object references to code
     that has not yet been updated.
+
+<code>forceLexicalInitializationByName(<i>binding</i>)</code>
+:  If <i>binding</i> is in an uninitialized state initialize it to undefined
+   and return true, otherwise do nothing and return false.

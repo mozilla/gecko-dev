@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,16 +11,16 @@ function run_test() {
   run_next_test();
 }
 
-add_task(function test_addBookmarksAndCheckGuids() {
+add_task(function* test_addBookmarksAndCheckGuids() {
   let folder = bmsvc.createFolder(bmsvc.placesRoot, "test folder", bmsvc.DEFAULT_INDEX);
-  let b1 = bmsvc.insertBookmark(folder, uri("http://test1.com/"),
-                                bmsvc.DEFAULT_INDEX, "1 title");
-  let b2 = bmsvc.insertBookmark(folder, uri("http://test2.com/"),
-                                bmsvc.DEFAULT_INDEX, "2 title");
-  let b3 = bmsvc.insertBookmark(folder, uri("http://test3.com/"),
-                                bmsvc.DEFAULT_INDEX, "3 title");
-  let s1 = bmsvc.insertSeparator(folder, bmsvc.DEFAULT_INDEX);
-  let f1 = bmsvc.createFolder(folder, "test folder 2", bmsvc.DEFAULT_INDEX);
+  bmsvc.insertBookmark(folder, uri("http://test1.com/"),
+                       bmsvc.DEFAULT_INDEX, "1 title");
+  bmsvc.insertBookmark(folder, uri("http://test2.com/"),
+                       bmsvc.DEFAULT_INDEX, "2 title");
+  bmsvc.insertBookmark(folder, uri("http://test3.com/"),
+                       bmsvc.DEFAULT_INDEX, "3 title");
+  bmsvc.insertSeparator(folder, bmsvc.DEFAULT_INDEX);
+  bmsvc.createFolder(folder, "test folder 2", bmsvc.DEFAULT_INDEX);
 
   let root = PlacesUtils.getFolderContents(folder).root;
   do_check_eq(root.childCount, 5);
@@ -56,10 +56,10 @@ add_task(function test_addBookmarksAndCheckGuids() {
 
   root.containerOpen = false;
 
-  remove_all_bookmarks();
+  yield PlacesUtils.bookmarks.eraseEverything();
 });
 
-add_task(function test_updateBookmarksAndCheckGuids() {
+add_task(function* test_updateBookmarksAndCheckGuids() {
   let folder = bmsvc.createFolder(bmsvc.placesRoot, "test folder", bmsvc.DEFAULT_INDEX);
   let b1 = bmsvc.insertBookmark(folder, uri("http://test1.com/"),
                                 bmsvc.DEFAULT_INDEX, "1 title");
@@ -85,14 +85,13 @@ add_task(function test_updateBookmarksAndCheckGuids() {
 
   root.containerOpen = false;
 
-  remove_all_bookmarks();
+  yield PlacesUtils.bookmarks.eraseEverything();
 });
 
-add_task(function test_addVisitAndCheckGuid() {
+add_task(function* test_addVisitAndCheckGuid() {
   // add a visit and test page guid and non-existing bookmark guids.
-  let now = Date.now() * 1000;
   let sourceURI = uri("http://test4.com/");
-  yield promiseAddVisits({ uri: sourceURI });
+  yield PlacesTestUtils.addVisits({ uri: sourceURI });
   do_check_eq(bmsvc.getBookmarkedURIFor(sourceURI), null);
 
   let options = histsvc.getNewQueryOptions();
@@ -106,17 +105,17 @@ add_task(function test_addVisitAndCheckGuid() {
   do_check_eq(root.getChild(0).bookmarkGuid, "");
   root.containerOpen = false;
 
-  yield promiseClearHistory();
+  yield PlacesTestUtils.clearHistory();
 });
 
-add_task(function test_addItemsWithInvalidGUIDsFails() {
+add_task(function* test_addItemsWithInvalidGUIDsFails() {
   const INVALID_GUID = "XYZ";
   try {
     bmsvc.createFolder(bmsvc.placesRoot, "XYZ folder",
                        bmsvc.DEFAULT_INDEX, INVALID_GUID);
     do_throw("Adding a folder with an invalid guid should fail");
   }
-  catch(ex) { }
+  catch (ex) { }
 
   let folder = bmsvc.createFolder(bmsvc.placesRoot, "test folder",
                                   bmsvc.DEFAULT_INDEX);
@@ -125,18 +124,18 @@ add_task(function test_addItemsWithInvalidGUIDsFails() {
                          "title", INVALID_GUID);
     do_throw("Adding a bookmark with an invalid guid should fail");
   }
-  catch(ex) { }
+  catch (ex) { }
 
   try {
     bmsvc.insertSeparator(folder, bmsvc.DEFAULT_INDEX, INVALID_GUID);
     do_throw("Adding a separator with an invalid guid should fail");
   }
-  catch(ex) { }
+  catch (ex) { }
 
-  remove_all_bookmarks();
+  yield PlacesUtils.bookmarks.eraseEverything();
 });
 
-add_task(function test_addItemsWithGUIDs() {
+add_task(function* test_addItemsWithGUIDs() {
   const FOLDER_GUID     = "FOLDER--GUID";
   const BOOKMARK_GUID   = "BM------GUID";
   const SEPARATOR_GUID  = "SEP-----GUID";
@@ -154,18 +153,18 @@ add_task(function test_addItemsWithGUIDs() {
   do_check_eq(root.getChild(1).bookmarkGuid, SEPARATOR_GUID);
 
   root.containerOpen = false;
-  remove_all_bookmarks();
+  yield PlacesUtils.bookmarks.eraseEverything();
 });
 
-add_task(function test_emptyGUIDIgnored() {
+add_task(function* test_emptyGUIDIgnored() {
   let folder = bmsvc.createFolder(bmsvc.placesRoot, "test folder",
                                   bmsvc.DEFAULT_INDEX, "");
   do_check_valid_places_guid(PlacesUtils.getFolderContents(folder)
                                         .root.bookmarkGuid);
-  remove_all_bookmarks();
+  yield PlacesUtils.bookmarks.eraseEverything();
 });
 
-add_task(function test_usingSameGUIDFails() {
+add_task(function* test_usingSameGUIDFails() {
   const GUID = "XYZXYZXYZXYZ";
   bmsvc.createFolder(bmsvc.placesRoot, "test folder",
                      bmsvc.DEFAULT_INDEX, GUID);
@@ -174,7 +173,7 @@ add_task(function test_usingSameGUIDFails() {
                        bmsvc.DEFAULT_INDEX, GUID);
     do_throw("Using the same guid twice should fail");
   }
-  catch(ex) { }
+  catch (ex) { }
 
-  remove_all_bookmarks();
+  yield PlacesUtils.bookmarks.eraseEverything();
 });

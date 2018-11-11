@@ -475,6 +475,7 @@ static PRStatus _MW_PollInternal(PRWaitGroup *group)
             PR_Lock(group->ml);
             if (_prmw_running != group->state)
             {
+                PR_DELETE(poll_list);
                 PR_SetError(PR_INVALID_STATE_ERROR, 0);
                 goto aborted;
             }
@@ -658,7 +659,7 @@ static void NT_TimeProc(void *arg)
         if (closesocket(bottom->secret->md.osfd) == SOCKET_ERROR)
         {
             fprintf(stderr, "closesocket failed: %d\n", WSAGetLastError());
-            PR_ASSERT(!"What shall I do?");
+            PR_NOT_REACHED("What shall I do?");
         }
     }
     return;

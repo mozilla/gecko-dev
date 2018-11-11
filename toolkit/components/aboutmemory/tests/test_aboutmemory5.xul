@@ -35,6 +35,7 @@
 
   let prefs = [
     ["dom.ipc.processCount", 3],            // Allow up to 3 child processes
+    ["memory.report_concurrency", 2],       // Cover more child handling cases
     ["memory.system_memory_reporter", true] // Test SystemMemoryReporter
   ];
 
@@ -85,7 +86,8 @@
 
     let dumper = Cc["@mozilla.org/memory-info-dumper;1"].
                     getService(Ci.nsIMemoryInfoDumper);
-    dumper.dumpMemoryReportsToNamedFile(filePath, loadAndCheck, null);
+    dumper.dumpMemoryReportsToNamedFile(filePath, loadAndCheck, null,
+                                        /* anonymize = */ false);
 
     function loadAndCheck() {
       // Load the file.
@@ -125,7 +127,10 @@
 
           // Note: Match "vsize" but not "vsize-max-contiguous".
           let vsizes = actual.match(/vsize[^-]/g);
-          let endOfBrowsers  = actual.match(/End of Browser/g);
+          let endOfBrowsers = actual.match(/End of Browser/g);
+          if (endOfBrowsers == null) {
+            endOfBrowsers = actual.match(/End of Web Content/g);
+          }
           let m2 = (vsizes.length == 4 && endOfBrowsers.length == 3);
           ok(m2, "three child processes present in loaded data");
           good = good && !!m2;

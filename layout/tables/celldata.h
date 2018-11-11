@@ -8,6 +8,7 @@
 #include "nsISupports.h"
 #include "nsCoord.h"
 #include "mozilla/gfx/Types.h"
+#include "mozilla/WritingModes.h"
 #include <stdint.h>
 
 class nsTableCellFrame;
@@ -79,19 +80,6 @@ public:
     */
   bool IsColSpan() const;
 
-  /** is the entry spanned by a zero colspan
-    * zero colspans span all cells starting from the originating cell towards
-    * the end of the colgroup or a cell originating in the same row
-    * or a rowspanned entry
-    * @return    is true if the entry is spanned by a zero colspan
-    */
-  bool IsZeroColSpan() const;
-
-  /** mark the current entry as spanned by a zero colspan
-    * @param aIsZero    if true mark the entry as covered by a zero colspan
-    */
-  void SetZeroColSpan(bool aIsZero);
-
   /** get the distance from the current entry to the corresponding origin of the colspan
     * @return    containing the distance in the row to the originating cell
     */
@@ -125,7 +113,7 @@ private:
   /** constructor.
     * @param aOrigCell  the table cell frame which will be stored in mOrigCell.
     */
-  CellData(nsTableCellFrame* aOrigCell);  // implemented in nsCellMap.cpp
+  explicit CellData(nsTableCellFrame* aOrigCell);  // implemented in nsCellMap.cpp
 
   /** destructor */
   ~CellData(); // implemented in nsCellMap.cpp
@@ -165,21 +153,21 @@ typedef uint16_t BCPixelSize;
 // the actual value is computed when needed.
 #define MAX_BORDER_WIDTH nscoord((1u << (sizeof(BCPixelSize) * 8)) - 1)
 
-static inline nscoord
-BC_BORDER_TOP_HALF_COORD(int32_t p2t, uint16_t px)    { return (px - px / 2) * p2t; }
-static inline nscoord
-BC_BORDER_RIGHT_HALF_COORD(int32_t p2t, uint16_t px)  { return (     px / 2) * p2t; }
-static inline nscoord
-BC_BORDER_BOTTOM_HALF_COORD(int32_t p2t, uint16_t px) { return (     px / 2) * p2t; }
-static inline nscoord
-BC_BORDER_LEFT_HALF_COORD(int32_t p2t, uint16_t px)   { return (px - px / 2) * p2t; }
+// The half of border on inline/block-axis start side
+static inline BCPixelSize
+BC_BORDER_START_HALF(BCPixelSize px) { return px - px / 2; }
+// The half of border on inline/block-axis end side
+static inline BCPixelSize
+BC_BORDER_END_HALF(BCPixelSize px) { return px / 2; }
 
-#define BC_BORDER_TOP_HALF(px)    ((px) - (px) / 2)
-#define BC_BORDER_RIGHT_HALF(px)  ((px) / 2)
-#define BC_BORDER_BOTTOM_HALF(px) ((px) / 2)
-#define BC_BORDER_LEFT_HALF(px)   ((px) - (px) / 2)
+static inline nscoord
+BC_BORDER_START_HALF_COORD(int32_t p2t, BCPixelSize px)
+  { return BC_BORDER_START_HALF(px) * p2t; }
+static inline nscoord
+BC_BORDER_END_HALF_COORD(int32_t p2t, BCPixelSize px)
+  { return BC_BORDER_END_HALF(px) * p2t; }
 
-// BCData stores the top and left border info and the corner connecting the two.
+// BCData stores the bstart and istart border info and the corner connecting the two.
 class BCData
 {
 public:
@@ -187,49 +175,49 @@ public:
 
   ~BCData();
 
-  nscoord GetLeftEdge(BCBorderOwner& aOwner,
-                      bool&        aStart) const;
+  nscoord GetIStartEdge(BCBorderOwner& aOwner,
+                        bool&          aStart) const;
 
-  void SetLeftEdge(BCBorderOwner aOwner,
-                   nscoord       aSize,
-                   bool          aStart);
+  void SetIStartEdge(BCBorderOwner aOwner,
+                     nscoord       aSize,
+                     bool          aStart);
 
-  nscoord GetTopEdge(BCBorderOwner& aOwner,
-                     bool&        aStart) const;
+  nscoord GetBStartEdge(BCBorderOwner& aOwner,
+                        bool&          aStart) const;
 
-  void SetTopEdge(BCBorderOwner aOwner,
-                  nscoord       aSize,
-                  bool          aStart);
+  void SetBStartEdge(BCBorderOwner aOwner,
+                     nscoord       aSize,
+                     bool          aStart);
 
-  BCPixelSize GetCorner(mozilla::css::Side&       aCornerOwner,
-                        bool&  aBevel) const;
+  BCPixelSize GetCorner(mozilla::LogicalSide& aCornerOwner,
+                        bool&                 aBevel) const;
 
-  void SetCorner(BCPixelSize aSubSize,
-                 mozilla::css::Side aOwner,
-                 bool    aBevel);
+  void SetCorner(BCPixelSize          aSubSize,
+                 mozilla::LogicalSide aOwner,
+                 bool                 aBevel);
 
-  bool IsLeftStart() const;
+  bool IsIStartStart() const;
 
-  void SetLeftStart(bool aValue);
+  void SetIStartStart(bool aValue);
 
-  bool IsTopStart() const;
+  bool IsBStartStart() const;
 
-  void SetTopStart(bool aValue);
+  void SetBStartStart(bool aValue);
 
 
 protected:
-  BCPixelSize mLeftSize;      // size in pixels of left border
-  BCPixelSize mTopSize;       // size in pixels of top border
+  BCPixelSize mIStartSize;    // size in pixels of iStart border
+  BCPixelSize mBStartSize;    // size in pixels of bStart border
   BCPixelSize mCornerSubSize; // size of the largest border not in the
                               //   dominant plane (for example, if corner is
-                              //   owned by the segment to its top or bottom,
+                              //   owned by the segment to its bStart or bEnd,
                               //   then the size is the max of the border
-                              //   sizes of the segments to its left or right.
-  unsigned mLeftOwner:     4; // owner of left border
-  unsigned mTopOwner:      4; // owner of top border
-  unsigned mLeftStart:     1; // set if this is the start of a vertical border segment
-  unsigned mTopStart:      1; // set if this is the start of a horizontal border segment
-  unsigned mCornerSide:    2; // mozilla::css::Side of the owner of the upper left corner relative to the corner
+                              //   sizes of the segments to its iStart or iEnd.
+  unsigned mIStartOwner:   4; // owner of iStart border
+  unsigned mBStartOwner:   4; // owner of bStart border
+  unsigned mIStartStart:   1; // set if this is the start of a block-dir border segment
+  unsigned mBStartStart:   1; // set if this is the start of an inline-dir border segment
+  unsigned mCornerSide:    2; // LogicalSide of the owner of the bStart-iStart corner relative to the corner
   unsigned mCornerBevel:   1; // is the corner beveled (only two segments, perpendicular, not dashed or dotted).
 };
 
@@ -240,7 +228,7 @@ protected:
 class BCCellData : public CellData
 {
 public:
-  BCCellData(nsTableCellFrame* aOrigCell);
+  explicit BCCellData(nsTableCellFrame* aOrigCell);
   ~BCCellData();
 
   BCData mData;
@@ -249,7 +237,9 @@ public:
 
 // The layout of a celldata is as follows.  The top 10 bits are the colspan
 // offset (which is enough to represent our allowed values 1-1000 for colspan).
-// Then there are three bits of flags.  Then 16 bits of rowspan offset (which
+// Then there are two bits of flags.
+// XXXmats Then one unused bit that we should decide how to use in bug 862624.
+// Then 16 bits of rowspan offset (which
 // lets us represent numbers up to 65535.  Then another 3 bits of flags.
 
 // num bits to shift right to get right aligned col span
@@ -266,8 +256,7 @@ public:
 #define SPAN             0x00000001 // there a row or col span
 #define ROW_SPAN         0x00000002 // there is a row span
 #define ROW_SPAN_0       0x00000004 // the row span is 0
-#define COL_SPAN         (1 << (COL_SPAN_SHIFT - 3)) // there is a col span
-#define COL_SPAN_0       (1 << (COL_SPAN_SHIFT - 2)) // the col span is 0
+#define COL_SPAN         (1 << (COL_SPAN_SHIFT - 2)) // there is a col span
 #define OVERLAP          (1 << (COL_SPAN_SHIFT - 1)) // there is a row span and
                                                      // col span but not by
                                                      // same cell
@@ -347,25 +336,6 @@ inline bool CellData::IsColSpan() const
          (COL_SPAN == (COL_SPAN & mBits));
 }
 
-inline bool CellData::IsZeroColSpan() const
-{
-  return (SPAN       == (SPAN & mBits))     &&
-         (COL_SPAN   == (COL_SPAN & mBits)) &&
-         (COL_SPAN_0 == (COL_SPAN_0 & mBits));
-}
-
-inline void CellData::SetZeroColSpan(bool aIsZeroSpan)
-{
-  if (SPAN == (SPAN & mBits)) {
-    if (aIsZeroSpan) {
-      mBits |= COL_SPAN_0;
-    }
-    else {
-      mBits &= ~COL_SPAN_0;
-    }
-  }
-}
-
 inline uint32_t CellData::GetColSpanOffset() const
 {
   if ((SPAN == (SPAN & mBits)) && ((COL_SPAN == (COL_SPAN & mBits)))) {
@@ -402,10 +372,10 @@ inline void CellData::SetOverlap(bool aOverlap)
 
 inline BCData::BCData()
 {
-  mLeftOwner = mTopOwner = eCellOwner;
-  mLeftStart = mTopStart = 1;
-  mLeftSize = mCornerSubSize = mTopSize = 0;
-  mCornerSide = NS_SIDE_TOP;
+  mIStartOwner = mBStartOwner = eCellOwner;
+  mIStartStart = mBStartStart = 1;
+  mIStartSize = mCornerSubSize = mBStartSize = 0;
+  mCornerSide = mozilla::eLogicalSideBStart;
   mCornerBevel = false;
 }
 
@@ -413,77 +383,77 @@ inline BCData::~BCData()
 {
 }
 
-inline nscoord BCData::GetLeftEdge(BCBorderOwner& aOwner,
-                                   bool&        aStart) const
+inline nscoord BCData::GetIStartEdge(BCBorderOwner& aOwner,
+                                     bool&          aStart) const
 {
-  aOwner = (BCBorderOwner)mLeftOwner;
-  aStart = (bool)mLeftStart;
+  aOwner = (BCBorderOwner)mIStartOwner;
+  aStart = (bool)mIStartStart;
 
-  return (nscoord)mLeftSize;
+  return (nscoord)mIStartSize;
 }
 
-inline void BCData::SetLeftEdge(BCBorderOwner  aOwner,
-                                nscoord        aSize,
-                                bool           aStart)
+inline void BCData::SetIStartEdge(BCBorderOwner  aOwner,
+                                  nscoord        aSize,
+                                  bool           aStart)
 {
-  mLeftOwner = aOwner;
-  mLeftSize  = (aSize > MAX_BORDER_WIDTH) ? MAX_BORDER_WIDTH : aSize;
-  mLeftStart = aStart;
+  mIStartOwner = aOwner;
+  mIStartSize  = (aSize > MAX_BORDER_WIDTH) ? MAX_BORDER_WIDTH : aSize;
+  mIStartStart = aStart;
 }
 
-inline nscoord BCData::GetTopEdge(BCBorderOwner& aOwner,
-                                  bool&        aStart) const
+inline nscoord BCData::GetBStartEdge(BCBorderOwner& aOwner,
+                                     bool&          aStart) const
 {
-  aOwner = (BCBorderOwner)mTopOwner;
-  aStart = (bool)mTopStart;
+  aOwner = (BCBorderOwner)mBStartOwner;
+  aStart = (bool)mBStartStart;
 
-  return (nscoord)mTopSize;
+  return (nscoord)mBStartSize;
 }
 
-inline void BCData::SetTopEdge(BCBorderOwner  aOwner,
-                               nscoord        aSize,
-                               bool           aStart)
+inline void BCData::SetBStartEdge(BCBorderOwner  aOwner,
+                                  nscoord        aSize,
+                                  bool           aStart)
 {
-  mTopOwner = aOwner;
-  mTopSize  = (aSize > MAX_BORDER_WIDTH) ? MAX_BORDER_WIDTH : aSize;
-  mTopStart = aStart;
+  mBStartOwner = aOwner;
+  mBStartSize  = (aSize > MAX_BORDER_WIDTH) ? MAX_BORDER_WIDTH : aSize;
+  mBStartStart = aStart;
 }
 
-inline BCPixelSize BCData::GetCorner(mozilla::css::Side& aOwnerSide,
-                                     bool&       aBevel) const
+inline BCPixelSize BCData::GetCorner(mozilla::LogicalSide& aOwnerSide,
+                                     bool&                 aBevel) const
 {
-  aOwnerSide = mozilla::css::Side(mCornerSide);
+  aOwnerSide = mozilla::LogicalSide(mCornerSide);
   aBevel     = (bool)mCornerBevel;
   return mCornerSubSize;
 }
 
-inline void BCData::SetCorner(BCPixelSize aSubSize,
-                              mozilla::css::Side aOwnerSide,
-                              bool    aBevel)
+inline void BCData::SetCorner(BCPixelSize          aSubSize,
+                              mozilla::LogicalSide aOwnerSide,
+                              bool                 aBevel)
 {
   mCornerSubSize = aSubSize;
   mCornerSide    = aOwnerSide;
   mCornerBevel   = aBevel;
 }
 
-inline bool BCData::IsLeftStart() const
+inline bool BCData::IsIStartStart() const
 {
-  return (bool)mLeftStart;
+  return (bool)mIStartStart;
 }
 
-inline void BCData::SetLeftStart(bool aValue)
+inline void BCData::SetIStartStart(bool aValue)
 {
-  mLeftStart = aValue;
+  mIStartStart = aValue;
 }
 
-inline bool BCData::IsTopStart() const
+inline bool BCData::IsBStartStart() const
 {
-  return (bool)mTopStart;
+  return (bool)mBStartStart;
 }
 
-inline void BCData::SetTopStart(bool aValue)
+inline void BCData::SetBStartStart(bool aValue)
 {
-  mTopStart = aValue;
+  mBStartStart = aValue;
 }
 
 #endif

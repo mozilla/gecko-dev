@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  * vim: sw=2 ts=2 et lcs=trail\:.,tab\:>~ :
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,8 +24,7 @@ var gLocaleCollation;
 // A connection to our in-memory UTF-16-encoded database.
 var gUtf16Conn;
 
-///////////////////////////////////////////////////////////////////////////////
-//// Helper Functions
+// Helper Functions
 
 /**
  * Since we create a UTF-16 database we have to clean it up, in addition to
@@ -140,24 +139,25 @@ function localeCompare(aCollation)
   var strength;
 
   switch (aCollation) {
-  case "locale":
-    strength = Ci.nsICollation.kCollationCaseInSensitive;
-    break;
-  case "locale_case_sensitive":
-    strength = Ci.nsICollation.kCollationAccentInsenstive;
-    break;
-  case "locale_accent_sensitive":
-    strength = Ci.nsICollation.kCollationCaseInsensitiveAscii;
-    break;
-  case "locale_case_accent_sensitive":
-    strength = Ci.nsICollation.kCollationCaseSensitive;
-    break;
-  default:
-    do_throw("Error in test: unknown collation '" + aCollation + "'");
-    break;
+    case "locale":
+      strength = Ci.nsICollation.kCollationCaseInSensitive;
+      break;
+    case "locale_case_sensitive":
+      strength = Ci.nsICollation.kCollationAccentInsenstive;
+      break;
+    case "locale_accent_sensitive":
+      strength = Ci.nsICollation.kCollationCaseInsensitiveAscii;
+      break;
+    case "locale_case_accent_sensitive":
+      strength = Ci.nsICollation.kCollationCaseSensitive;
+      break;
+    default:
+      do_throw("Error in test: unknown collation '" + aCollation + "'");
+      break;
   }
-  return function (aStr1, aStr2)
-         gLocaleCollation.compareString(strength, aStr1, aStr2);
+  return function (aStr1, aStr2) {
+    return gLocaleCollation.compareString(strength, aStr1, aStr2);
+  };
 }
 
 /**
@@ -179,8 +179,9 @@ function readTestData()
 
   let line = {};
   let lines = [];
-  while (istream.readLine(line))
-    lines.push(line.value); 
+  while (istream.readLine(line)) {
+    lines.push(line.value);
+  }
   istream.close();
 
   return lines;
@@ -249,48 +250,47 @@ function setup()
   gLocaleCollation = collFact.CreateCollation(localeSvc.getApplicationLocale());
 }
 
-///////////////////////////////////////////////////////////////////////////////
-//// Test Runs
+// Test Runs
 
-let gTests = [
+var gTests = [
   {
     desc: "Case and accent sensitive UTF-8",
-    run:   function () runUtf8Test("locale_case_accent_sensitive")
+    run:   () => runUtf8Test("locale_case_accent_sensitive")
   },
 
   {
     desc: "Case sensitive, accent insensitive UTF-8",
-    run:   function () runUtf8Test("locale_case_sensitive")
+    run:   () => runUtf8Test("locale_case_sensitive")
   },
 
   {
     desc: "Case insensitive, accent sensitive UTF-8",
-    run:   function () runUtf8Test("locale_accent_sensitive")
+    run:   () => runUtf8Test("locale_accent_sensitive")
   },
 
   {
     desc: "Case and accent insensitive UTF-8",
-    run:   function () runUtf8Test("locale")
+    run:   () => runUtf8Test("locale")
   },
 
   {
     desc: "Case and accent sensitive UTF-16",
-    run:   function () runUtf16Test("locale_case_accent_sensitive")
+    run:   () => runUtf16Test("locale_case_accent_sensitive")
   },
 
   {
     desc: "Case sensitive, accent insensitive UTF-16",
-    run:   function () runUtf16Test("locale_case_sensitive")
+    run:   () => runUtf16Test("locale_case_sensitive")
   },
 
   {
     desc: "Case insensitive, accent sensitive UTF-16",
-    run:   function () runUtf16Test("locale_accent_sensitive")
+    run:   () => runUtf16Test("locale_accent_sensitive")
   },
 
   {
     desc: "Case and accent insensitive UTF-16",
-    run:   function () runUtf16Test("locale")
+    run:   () => runUtf16Test("locale")
   },
 ];
 

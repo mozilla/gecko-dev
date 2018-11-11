@@ -17,11 +17,16 @@ static const int AUDIO_BUFFER_SIZE = 1600;
 static const int NUM_CHANNELS      = 2;
 static const int GRAPH_RATE        = 16000;
 
-NS_IMPL_ISUPPORTS(Fake_DOMMediaStream, nsIDOMMediaStream)
+NS_IMPL_ISUPPORTS0(Fake_DOMMediaStream)
 
 // Fake_MediaStream
 double Fake_MediaStream::StreamTimeToSeconds(mozilla::StreamTime aTime) {
   return static_cast<double>(aTime)/GRAPH_RATE;
+}
+
+mozilla::TrackTicks Fake_MediaStream::TimeToTicksRoundUp(mozilla::TrackRate aRate,
+                                                         mozilla::StreamTime aTime) {
+  return (aTime * aRate) / GRAPH_RATE;
 }
 
 mozilla::StreamTime
@@ -58,12 +63,22 @@ void Fake_SourceMediaStream::Periodic() {
   if (mPullEnabled && !mStop) {
     // 100 ms matches timer interval and AUDIO_BUFFER_SIZE @ 16000 Hz
     mDesiredTime += 100;
-    for (std::set<Fake_MediaStreamListener *>::iterator it =
+    for (std::set<RefPtr<Fake_MediaStreamListener>>::iterator it =
              mListeners.begin(); it != mListeners.end(); ++it) {
       (*it)->NotifyPull(nullptr, TicksToTimeRoundDown(1000 /* ms per s */,
                                                       mDesiredTime));
     }
   }
+}
+
+// Fake_MediaStreamTrack
+void Fake_MediaStreamTrack::AddListener(Fake_MediaStreamTrackListener *aListener)
+{
+  mOwningStream->GetInputStream()->AddTrackListener(aListener, mTrackID);
+}
+void Fake_MediaStreamTrack::RemoveListener(Fake_MediaStreamTrackListener *aListener)
+{
+  mOwningStream->GetInputStream()->RemoveTrackListener(aListener, mTrackID);
 }
 
 // Fake_MediaStreamBase
@@ -96,7 +111,7 @@ void Fake_AudioStreamSource::Periodic() {
     return;
   }
   //Generate Signed 16 Bit Audio samples
-  nsRefPtr<mozilla::SharedBuffer> samples =
+  RefPtr<mozilla::SharedBuffer> samples =
     mozilla::SharedBuffer::Create(AUDIO_BUFFER_SIZE * NUM_CHANNELS * sizeof(int16_t));
   int16_t* data = reinterpret_cast<int16_t *>(samples->Data());
   for(int i=0; i<(1600*2); i++) {
@@ -106,18 +121,28 @@ void Fake_AudioStreamSource::Periodic() {
   }
 
   mozilla::AudioSegment segment;
-  nsAutoTArray<const int16_t *,1> channels;
+  AutoTArray<const int16_t *,1> channels;
   channels.AppendElement(data);
-  segment.AppendFrames(samples.forget(), channels, AUDIO_BUFFER_SIZE);
+  segment.AppendFrames(samples.forget(),
+                       channels,
+                       AUDIO_BUFFER_SIZE,
+                       PRINCIPAL_HANDLE_NONE);
 
-  for(std::set<Fake_MediaStreamListener *>::iterator it = mListeners.begin();
+  for(std::set<RefPtr<Fake_MediaStreamListener>>::iterator it = mListeners.begin();
        it != mListeners.end(); ++it) {
     (*it)->NotifyQueuedTrackChanges(nullptr, // Graph
                                     0, // TrackID
-                                    GRAPH_RATE, // Rate (hz)
                                     0, // Offset TODO(ekr@rtfm.com) fix
-                                    0, // ???
-                                    segment);
+                                    static_cast<mozilla::TrackEventCommand>(0), // ???
+                                    segment,
+                                    nullptr, // Input stream
+                                    -1);     // Input track id
+  }
+  for(std::vector<BoundTrackListener>::iterator it = mTrackListeners.begin();
+       it != mTrackListeners.end(); ++it) {
+    it->mListener->NotifyQueuedChanges(nullptr, // Graph
+                                       0, // Offset TODO(ekr@rtfm.com) fix
+                                       segment);
   }
 }
 
@@ -147,7 +172,7 @@ Fake_VideoStreamSource::Notify(nsITimer* aTimer)
 #if 0
   mozilla::layers::BufferRecycleBin bin;
 
-  nsRefPtr<mozilla::layers::PlanarYCbCrImage> image = new
+  RefPtr<mozilla::layers::PlanarYCbCrImage> image = new
     mozilla::layers::PlanarYCbCrImage(&bin);
 
   const uint8_t lumaBpp = 8;
@@ -159,19 +184,20 @@ Fake_VideoStreamSource::Notify(nsITimer* aTimer)
 
   mozilla::layers::PlanarYCbCrData data;
   data.mYChannel = frame;
-  data.mYSize = gfxIntSize(WIDTH, HEIGHT);
+  data.mYSize = mozilla::gfx::IntSize(WIDTH, HEIGHT);
   data.mYStride = WIDTH * lumaBpp / 8.0;
   data.mCbCrStride = WIDTH * chromaBpp / 8.0;
   data.mCbChannel = frame + HEIGHT * data.mYStride;
   data.mCrChannel = data.mCbChannel + HEIGHT * data.mCbCrStride / 2;
-  data.mCbCrSize = gfxIntSize(WIDTH / 2, HEIGHT / 2);
+  data.mCbCrSize = mozilla::gfx::IntSize(WIDTH / 2, HEIGHT / 2);
   data.mPicX = 0;
   data.mPicY = 0;
-  data.mPicSize = gfxIntSize(WIDTH, HEIGHT);
+  data.mPicSize = mozilla::gfx::IntSize(WIDTH, HEIGHT);
   data.mStereoMode = mozilla::layers::StereoMode::MONO;
 
   mozilla::VideoSegment segment;
-  segment.AppendFrame(image.forget(), USECS_PER_S / FPS, gfxIntSize(WIDTH, HEIGHT));
+  segment.AppendFrame(image.forget(), USECS_PER_S / FPS,
+                      mozilla::gfx::IntSize(WIDTH, HEIGHT));
 
   // TODO(ekr@rtfm.com): are we leaking?
 #endif

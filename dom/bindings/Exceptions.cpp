@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,12 +7,15 @@
 #include "mozilla/dom/Exceptions.h"
 
 #include "js/GCAPI.h"
-#include "js/OldDebugAPI.h"
+#include "js/TypeDecls.h"
 #include "jsapi.h"
 #include "jsprf.h"
-#include "mozilla/CycleCollectedJSRuntime.h"
+#include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/DOMException.h"
+#include "mozilla/dom/ScriptSettings.h"
+#include "nsIProgrammingLanguage.h"
+#include "nsPIDOMWindow.h"
 #include "nsServiceManagerUtils.h"
 #include "nsThreadUtils.h"
 #include "XPCWrapper.h"
@@ -21,36 +25,73 @@
 namespace mozilla {
 namespace dom {
 
-bool
+// Throw the given exception value if it's safe.  If it's not safe, then
+// synthesize and throw a new exception value for NS_ERROR_UNEXPECTED.  The
+// incoming value must be in the compartment of aCx.  This function guarantees
+// that an exception is pending on aCx when it returns.
+static void
+ThrowExceptionValueIfSafe(JSContext* aCx, JS::Handle<JS::Value> exnVal,
+                          nsIException* aOriginalException)
+{
+  MOZ_ASSERT(aOriginalException);
+
+  if (!exnVal.isObject()) {
+    JS_SetPendingException(aCx, exnVal);
+    return;
+  }
+
+  JS::Rooted<JSObject*> exnObj(aCx, &exnVal.toObject());
+  MOZ_ASSERT(js::IsObjectInContextCompartment(exnObj, aCx),
+             "exnObj needs to be in the right compartment for the "
+             "CheckedUnwrap thing to make sense");
+
+  if (js::CheckedUnwrap(exnObj)) {
+    // This is an object we're allowed to work with, so just go ahead and throw
+    // it.
+    JS_SetPendingException(aCx, exnVal);
+    return;
+  }
+
+  // We could probably Throw(aCx, NS_ERROR_UNEXPECTED) here, and it would do the
+  // right thing due to there not being an existing exception on the runtime at
+  // this point, but it's clearer to explicitly do the thing we want done.  This
+  // is also why we don't just call ThrowExceptionObject on the Exception we
+  // create: it would do the right thing, but that fact is not obvious.
+  RefPtr<Exception> syntheticException =
+    CreateException(aCx, NS_ERROR_UNEXPECTED);
+  JS::Rooted<JS::Value> syntheticVal(aCx);
+  if (!GetOrCreateDOMReflector(aCx, syntheticException, &syntheticVal)) {
+    return;
+  }
+  MOZ_ASSERT(syntheticVal.isObject() &&
+             !js::IsWrapper(&syntheticVal.toObject()),
+             "Must have a reflector here, not a wrapper");
+  JS_SetPendingException(aCx, syntheticVal);
+}
+
+void
 ThrowExceptionObject(JSContext* aCx, nsIException* aException)
 {
   // See if we really have an Exception.
   nsCOMPtr<Exception> exception = do_QueryInterface(aException);
   if (exception) {
-    return ThrowExceptionObject(aCx, exception);
+    ThrowExceptionObject(aCx, exception);
+    return;
   }
 
   // We only have an nsIException (probably an XPCWrappedJS).  Fall back on old
   // wrapping.
   MOZ_ASSERT(NS_IsMainThread());
 
-  JS::Rooted<JSObject*> glob(aCx, JS::CurrentGlobalOrNull(aCx));
-  if (!glob) {
-    // XXXbz Can this really be null here?
-    return false;
-  }
-
   JS::Rooted<JS::Value> val(aCx);
   if (!WrapObject(aCx, aException, &NS_GET_IID(nsIException), &val)) {
-    return false;
+    return;
   }
 
-  JS_SetPendingException(aCx, val);
-
-  return true;
+  ThrowExceptionValueIfSafe(aCx, val, aException);
 }
 
-bool
+void
 ThrowExceptionObject(JSContext* aCx, Exception* aException)
 {
   JS::Rooted<JS::Value> thrown(aCx);
@@ -62,69 +103,88 @@ ThrowExceptionObject(JSContext* aCx, Exception* aException)
   // thread.
   if (NS_IsMainThread() && !nsContentUtils::IsCallerChrome() &&
       aException->StealJSVal(thrown.address())) {
-    if (!JS_WrapValue(aCx, &thrown)) {
-      return false;
+    // Now check for the case when thrown is a number which matches
+    // aException->GetResult().  This would indicate that what actually got
+    // thrown was an nsresult value.  In that situation, we should go back
+    // through dom::Throw with that nsresult value, because it will make sure to
+    // create the right sort of Exception or DOMException, with the right
+    // global.
+    if (thrown.isNumber()) {
+      nsresult exceptionResult;
+      if (NS_SUCCEEDED(aException->GetResult(&exceptionResult)) &&
+          double(exceptionResult) == thrown.toNumber()) {
+        Throw(aCx, exceptionResult);
+        return;
+      }
     }
-    JS_SetPendingException(aCx, thrown);
-    return true;
+    if (!JS_WrapValue(aCx, &thrown)) {
+      return;
+    }
+    ThrowExceptionValueIfSafe(aCx, thrown, aException);
+    return;
   }
 
-  JS::Rooted<JSObject*> glob(aCx, JS::CurrentGlobalOrNull(aCx));
-  if (!glob) {
-    // XXXbz Can this actually be null here?
-    return false;
+  if (!GetOrCreateDOMReflector(aCx, aException, &thrown)) {
+    return;
   }
 
-  if (!WrapNewBindingObject(aCx, aException, &thrown)) {
-    return false;
-  }
-
-  JS_SetPendingException(aCx, thrown);
-  return true;
+  ThrowExceptionValueIfSafe(aCx, thrown, aException);
 }
 
 bool
-Throw(JSContext* aCx, nsresult aRv, const char* aMessage)
+Throw(JSContext* aCx, nsresult aRv, const nsACString& aMessage)
 {
+  if (aRv == NS_ERROR_UNCATCHABLE_EXCEPTION) {
+    // Nuke any existing exception on aCx, to make sure we're uncatchable.
+    JS_ClearPendingException(aCx);
+    return false;
+  }
+
   if (JS_IsExceptionPending(aCx)) {
     // Don't clobber the existing exception.
     return false;
   }
 
-  CycleCollectedJSRuntime* runtime = CycleCollectedJSRuntime::Get();
-  nsCOMPtr<nsIException> existingException = runtime->GetPendingException();
-  if (existingException) {
+  CycleCollectedJSContext* context = CycleCollectedJSContext::Get();
+  nsCOMPtr<nsIException> existingException = context->GetPendingException();
+  // Make sure to clear the pending exception now.  Either we're going to reuse
+  // it (and we already grabbed it), or we plan to throw something else and this
+  // pending exception is no longer relevant.
+  context->SetPendingException(nullptr);
+
+  // Ignore the pending exception if we have a non-default message passed in.
+  if (aMessage.IsEmpty() && existingException) {
     nsresult nr;
-    if (NS_SUCCEEDED(existingException->GetResult(&nr)) && 
+    if (NS_SUCCEEDED(existingException->GetResult(&nr)) &&
         aRv == nr) {
       // Reuse the existing exception.
-
-      // Clear pending exception
-      runtime->SetPendingException(nullptr);
-
-      if (!ThrowExceptionObject(aCx, existingException)) {
-        // If we weren't able to throw an exception we're
-        // most likely out of memory
-        JS_ReportOutOfMemory(aCx);
-      }
+      ThrowExceptionObject(aCx, existingException);
       return false;
     }
   }
 
-  nsRefPtr<Exception> finalException = CreateException(aCx, aRv, aMessage);
-
+  RefPtr<Exception> finalException = CreateException(aCx, aRv, aMessage);
   MOZ_ASSERT(finalException);
-  if (!ThrowExceptionObject(aCx, finalException)) {
-    // If we weren't able to throw an exception we're
-    // most likely out of memory
-    JS_ReportOutOfMemory(aCx);
-  }
 
+  ThrowExceptionObject(aCx, finalException);
   return false;
 }
 
+void
+ThrowAndReport(nsPIDOMWindowInner* aWindow, nsresult aRv)
+{
+  MOZ_ASSERT(aRv != NS_ERROR_UNCATCHABLE_EXCEPTION,
+             "Doesn't make sense to report uncatchable exceptions!");
+  AutoJSAPI jsapi;
+  if (NS_WARN_IF(!jsapi.Init(aWindow))) {
+    return;
+  }
+
+  Throw(jsapi.cx(), aRv);
+}
+
 already_AddRefed<Exception>
-CreateException(JSContext* aCx, nsresult aRv, const char* aMessage)
+CreateException(JSContext* aCx, nsresult aRv, const nsACString& aMessage)
 {
   // Do we use DOM exceptions for this error code?
   switch (NS_ERROR_GET_MODULE(aRv)) {
@@ -133,192 +193,123 @@ CreateException(JSContext* aCx, nsresult aRv, const char* aMessage)
   case NS_ERROR_MODULE_DOM_XPATH:
   case NS_ERROR_MODULE_DOM_INDEXEDDB:
   case NS_ERROR_MODULE_DOM_FILEHANDLE:
-    return DOMException::Create(aRv);
+  case NS_ERROR_MODULE_DOM_ANIM:
+  case NS_ERROR_MODULE_DOM_PUSH:
+  case NS_ERROR_MODULE_DOM_MEDIA:
+    if (aMessage.IsEmpty()) {
+      return DOMException::Create(aRv);
+    }
+    return DOMException::Create(aRv, aMessage);
   default:
     break;
   }
 
   // If not, use the default.
-  // aMessage can be null, so we can't use nsDependentCString on it.
-  nsRefPtr<Exception> exception =
-    new Exception(nsCString(aMessage), aRv,
-                  EmptyCString(), nullptr, nullptr);
+  RefPtr<Exception> exception =
+    new Exception(aMessage, aRv, EmptyCString(), nullptr, nullptr);
   return exception.forget();
 }
 
 already_AddRefed<nsIStackFrame>
-GetCurrentJSStack()
+GetCurrentJSStack(int32_t aMaxDepth)
 {
   // is there a current context available?
-  JSContext* cx = nullptr;
+  JSContext* cx = nsContentUtils::GetCurrentJSContextForThread();
 
-  if (NS_IsMainThread()) {
-    MOZ_ASSERT(nsContentUtils::XPConnect());
-    cx = nsContentUtils::GetCurrentJSContext();
-  } else {
-    cx = workers::GetCurrentThreadJSContext();
-  }
-
-  if (!cx) {
+  if (!cx || !js::GetContextCompartment(cx)) {
     return nullptr;
   }
 
-  nsCOMPtr<nsIStackFrame> stack = exceptions::CreateStack(cx);
-  if (!stack) {
-    return nullptr;
+  static const unsigned MAX_FRAMES = 100;
+  if (aMaxDepth < 0) {
+    aMaxDepth = MAX_FRAMES;
   }
 
-  // peel off native frames...
-  uint32_t language;
-  nsCOMPtr<nsIStackFrame> caller;
-  while (stack &&
-         NS_SUCCEEDED(stack->GetLanguage(&language)) &&
-         language != nsIProgrammingLanguage::JAVASCRIPT &&
-         NS_SUCCEEDED(stack->GetCaller(getter_AddRefs(caller))) &&
-         caller) {
-    stack = caller;
-  }
-  return stack.forget();
+  JS::StackCapture captureMode = aMaxDepth == 0
+    ? JS::StackCapture(JS::AllFrames())
+    : JS::StackCapture(JS::MaxFrames(aMaxDepth));
+
+  return dom::exceptions::CreateStack(cx, mozilla::Move(captureMode));
 }
 
 namespace exceptions {
-
-class StackDescriptionOwner {
-public:
-  StackDescriptionOwner(JS::StackDescription* aDescription)
-    : mDescription(aDescription)
-  {
-    mozilla::HoldJSObjects(this);
-  }
-
-  ~StackDescriptionOwner()
-  {
-    // Make sure to set mDescription to null before calling DropJSObjects, since
-    // in debug builds DropJSObjects try to trace us and we don't want to trace
-    // a dead StackDescription.
-    if (mDescription) {
-      JS::FreeStackDescription(nullptr, mDescription);
-      mDescription = nullptr;
-    }
-    mozilla::DropJSObjects(this);
-  }
-
-  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(StackDescriptionOwner)
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(StackDescriptionOwner)
-
-  JS::FrameDescription& FrameAt(size_t aIndex)
-  {
-    MOZ_ASSERT(aIndex < mDescription->nframes);
-    return mDescription->frames[aIndex];
-  }
-
-  unsigned NumFrames()
-  {
-    return mDescription->nframes;
-  }
-
-private:
-  JS::StackDescription* mDescription;
-};
-
-NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(StackDescriptionOwner, AddRef)
-NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(StackDescriptionOwner, Release)
-
-NS_IMPL_CYCLE_COLLECTION_CLASS(StackDescriptionOwner)
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(StackDescriptionOwner)
-  if (tmp->mDescription) {
-    JS::FreeStackDescription(nullptr, tmp->mDescription);
-    tmp->mDescription = nullptr;
-  }
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(StackDescriptionOwner)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
-NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(StackDescriptionOwner)
-  JS::StackDescription* desc = tmp->mDescription;
-  if (tmp->mDescription) {
-    for (size_t i = 0; i < desc->nframes; ++i) {
-      NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mDescription->frames[i].markedLocation1());
-      NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mDescription->frames[i].markedLocation2());
-    }
-  }
-NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 class JSStackFrame : public nsIStackFrame
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(JSStackFrame)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(JSStackFrame)
   NS_DECL_NSISTACKFRAME
 
-  // A null aStackDescription or an aIndex that's out of range for the
-  // number of frames aStackDescription has will mean that the
-  // JSStackFrame will never look at the stack description.  Instead,
-  // it is expected to be initialized by the caller as needed.
-  JSStackFrame(StackDescriptionOwner* aStackDescription, size_t aIndex);
-  virtual ~JSStackFrame();
+  // aStack must not be null.
+  explicit JSStackFrame(JS::Handle<JSObject*> aStack);
 
-  static already_AddRefed<nsIStackFrame>
-  CreateStack(JSContext* aCx, int32_t aMaxDepth = -1);
-  static already_AddRefed<nsIStackFrame>
-  CreateStackFrameLocation(uint32_t aLanguage,
-                           const char* aFilename,
-                           const char* aFunctionName,
-                           int32_t aLineNumber,
-                           nsIStackFrame* aCaller);
+protected:
+  int32_t GetLineno(JSContext* aCx);
+
+  int32_t GetColNo(JSContext* aCx);
 
 private:
-  bool IsJSFrame() const {
-    return mLanguage == nsIProgrammingLanguage::JAVASCRIPT;
-  }
+  virtual ~JSStackFrame();
 
-  int32_t GetLineno();
+  JS::Heap<JSObject*> mStack;
+  nsString mFormattedStack;
 
-  nsRefPtr<StackDescriptionOwner> mStackDescription;
   nsCOMPtr<nsIStackFrame> mCaller;
-
-  // Cached values
+  nsCOMPtr<nsIStackFrame> mAsyncCaller;
   nsString mFilename;
   nsString mFunname;
+  nsString mAsyncCause;
   int32_t mLineno;
-  uint32_t mLanguage;
-
-  size_t mIndex;
+  int32_t mColNo;
 
   bool mFilenameInitialized;
   bool mFunnameInitialized;
   bool mLinenoInitialized;
+  bool mColNoInitialized;
+  bool mAsyncCauseInitialized;
+  bool mAsyncCallerInitialized;
   bool mCallerInitialized;
+  bool mFormattedStackInitialized;
 };
 
-JSStackFrame::JSStackFrame(StackDescriptionOwner* aStackDescription,
-                           size_t aIndex)
-  : mLineno(0)
+JSStackFrame::JSStackFrame(JS::Handle<JSObject*> aStack)
+  : mStack(aStack)
+  , mLineno(0)
+  , mColNo(0)
+  , mFilenameInitialized(false)
+  , mFunnameInitialized(false)
+  , mLinenoInitialized(false)
+  , mColNoInitialized(false)
+  , mAsyncCauseInitialized(false)
+  , mAsyncCallerInitialized(false)
+  , mCallerInitialized(false)
+  , mFormattedStackInitialized(false)
 {
-  if (aStackDescription && aIndex < aStackDescription->NumFrames()) {
-    mStackDescription = aStackDescription;
-    mIndex = aIndex;
-    mFilenameInitialized = false;
-    mFunnameInitialized = false;
-    mLinenoInitialized = false;
-    mCallerInitialized = false;
-    mLanguage = nsIProgrammingLanguage::JAVASCRIPT;
-  } else {
-    MOZ_ASSERT(!mStackDescription);
-    mIndex = 0;
-    mFilenameInitialized = true;
-    mFunnameInitialized = true;
-    mLinenoInitialized = true;
-    mCallerInitialized = true;
-    mLanguage = nsIProgrammingLanguage::UNKNOWN;
-  }
+  MOZ_ASSERT(mStack);
+
+  mozilla::HoldJSObjects(this);
 }
 
 JSStackFrame::~JSStackFrame()
 {
+  mozilla::DropJSObjects(this);
 }
 
-NS_IMPL_CYCLE_COLLECTION(JSStackFrame, mStackDescription, mCaller)
+NS_IMPL_CYCLE_COLLECTION_CLASS(JSStackFrame)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(JSStackFrame)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mCaller)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mAsyncCaller)
+  tmp->mStack = nullptr;
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(JSStackFrame)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCaller)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mAsyncCaller)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(JSStackFrame)
+  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mStack)
+NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(JSStackFrame)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(JSStackFrame)
@@ -328,118 +319,351 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(JSStackFrame)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-/* readonly attribute uint32_t language; */
 NS_IMETHODIMP JSStackFrame::GetLanguage(uint32_t* aLanguage)
 {
-  *aLanguage = mLanguage;
+  *aLanguage = nsIProgrammingLanguage::JAVASCRIPT;
   return NS_OK;
 }
 
-/* readonly attribute string languageName; */
 NS_IMETHODIMP JSStackFrame::GetLanguageName(nsACString& aLanguageName)
 {
-  static const char js[] = "JavaScript";
-  static const char cpp[] = "C++";
-
-  if (IsJSFrame()) {
-    aLanguageName.AssignASCII(js);
-  } else {
-    aLanguageName.AssignASCII(cpp);
-  }
-
+  aLanguageName.AssignLiteral("JavaScript");
   return NS_OK;
 }
 
-/* readonly attribute AString filename; */
-NS_IMETHODIMP JSStackFrame::GetFilename(nsAString& aFilename)
+// Helper method to get the value of a stack property, if it's not already
+// cached.  This will make sure we skip the cache if the access is happening
+// over Xrays.
+//
+// @argument aStack the stack we're working with; must be non-null.
+// @argument aPropGetter the getter function to call.
+// @argument aIsCached whether we've cached this property's value before.
+//
+// @argument [out] aCanCache whether the value can get cached.
+// @argument [out] aUseCachedValue if true, just use the cached value.
+// @argument [out] aValue the value we got from the stack.
+template<typename ReturnType, typename GetterOutParamType>
+static void
+GetValueIfNotCached(JSContext* aCx, const JS::Heap<JSObject*>& aStack,
+                    JS::SavedFrameResult (*aPropGetter)(JSContext*,
+                                                        JS::Handle<JSObject*>,
+                                                        GetterOutParamType,
+                                                        JS::SavedFrameSelfHosted),
+                    bool aIsCached, bool* aCanCache, bool* aUseCachedValue,
+                    ReturnType aValue)
 {
-  if (!mFilenameInitialized) {
-    JS::FrameDescription& desc = mStackDescription->FrameAt(mIndex);
-    if (const char *filename = desc.filename()) {
-      CopyUTF8toUTF16(filename, mFilename);
-    }
+  MOZ_ASSERT(aStack);
+
+  JS::Rooted<JSObject*> stack(aCx, aStack);
+  // Allow caching if aCx and stack are same-compartment.  Otherwise take the
+  // slow path.
+  *aCanCache = js::GetContextCompartment(aCx) == js::GetObjectCompartment(stack);
+  if (*aCanCache && aIsCached) {
+    *aUseCachedValue = true;
+    return;
+  }
+
+  *aUseCachedValue = false;
+
+  aPropGetter(aCx, stack, aValue, JS::SavedFrameSelfHosted::Exclude);
+}
+
+NS_IMETHODIMP JSStackFrame::GetFilename(JSContext* aCx, nsAString& aFilename)
+{
+  if (!mStack) {
+    aFilename.Truncate();
+    return NS_OK;
+  }
+
+  JS::Rooted<JSString*> filename(aCx);
+  bool canCache = false, useCachedValue = false;
+  GetValueIfNotCached(aCx, mStack, JS::GetSavedFrameSource,
+                      mFilenameInitialized,
+                      &canCache, &useCachedValue, &filename);
+  if (useCachedValue) {
+    aFilename = mFilename;
+    return NS_OK;
+  }
+
+  nsAutoJSString str;
+  if (!str.init(aCx, filename)) {
+    JS_ClearPendingException(aCx);
+    aFilename.Truncate();
+    return NS_OK;
+  }
+  aFilename = str;
+
+  if (canCache) {
+    mFilename = str;
     mFilenameInitialized = true;
   }
 
-  // The filename must be set to null if empty.
-  if (mFilename.IsEmpty()) {
-    aFilename.SetIsVoid(true);
-  } else {
-    aFilename.Assign(mFilename);
-  }
-
   return NS_OK;
 }
 
-/* readonly attribute AString name; */
-NS_IMETHODIMP JSStackFrame::GetName(nsAString& aFunction)
+NS_IMETHODIMP JSStackFrame::GetName(JSContext* aCx, nsAString& aFunction)
 {
-  if (!mFunnameInitialized) {
-    JS::FrameDescription& desc = mStackDescription->FrameAt(mIndex);
-    if (JSFlatString *name = desc.funDisplayName()) {
-      mFunname.Assign(JS_GetFlatStringChars(name),
-                      // XXXbz Can't JS_GetStringLength on JSFlatString!
-                      JS_GetStringLength(JS_FORGET_STRING_FLATNESS(name)));
-    }
-    mFunnameInitialized = true;
+  if (!mStack) {
+    aFunction.Truncate();
+    return NS_OK;
   }
 
-  // The function name must be set to null if empty.
-  if (mFunname.IsEmpty()) {
-    aFunction.SetIsVoid(true);
+  JS::Rooted<JSString*> name(aCx);
+  bool canCache = false, useCachedValue = false;
+  GetValueIfNotCached(aCx, mStack, JS::GetSavedFrameFunctionDisplayName,
+                      mFunnameInitialized, &canCache, &useCachedValue,
+                      &name);
+
+  if (useCachedValue) {
+    aFunction = mFunname;
+    return NS_OK;
+  }
+
+  if (name) {
+    nsAutoJSString str;
+    if (!str.init(aCx, name)) {
+      JS_ClearPendingException(aCx);
+      aFunction.Truncate();
+      return NS_OK;
+    }
+    aFunction = str;
   } else {
-    aFunction.Assign(mFunname);
+    aFunction.SetIsVoid(true);
+  }
+
+  if (canCache) {
+    mFunname = aFunction;
+    mFunnameInitialized = true;
   }
 
   return NS_OK;
 }
 
 int32_t
-JSStackFrame::GetLineno()
+JSStackFrame::GetLineno(JSContext* aCx)
 {
-  if (!mLinenoInitialized) {
-    JS::FrameDescription& desc = mStackDescription->FrameAt(mIndex);
-    mLineno = desc.lineno();
+  if (!mStack) {
+    return 0;
+  }
+
+  uint32_t line;
+  bool canCache = false, useCachedValue = false;
+  GetValueIfNotCached(aCx, mStack, JS::GetSavedFrameLine, mLinenoInitialized,
+                      &canCache, &useCachedValue, &line);
+
+  if (useCachedValue) {
+    return mLineno;
+  }
+
+  if (canCache) {
+    mLineno = line;
     mLinenoInitialized = true;
   }
 
-  return mLineno;
+  return line;
 }
 
-/* readonly attribute int32_t lineNumber; */
-NS_IMETHODIMP JSStackFrame::GetLineNumber(int32_t* aLineNumber)
+NS_IMETHODIMP JSStackFrame::GetLineNumber(JSContext* aCx, int32_t* aLineNumber)
 {
-  *aLineNumber = GetLineno();
+  *aLineNumber = GetLineno(aCx);
   return NS_OK;
 }
 
-/* readonly attribute AUTF8String sourceLine; */
+int32_t
+JSStackFrame::GetColNo(JSContext* aCx)
+{
+  if (!mStack) {
+    return 0;
+  }
+
+  uint32_t col;
+  bool canCache = false, useCachedValue = false;
+  GetValueIfNotCached(aCx, mStack, JS::GetSavedFrameColumn, mColNoInitialized,
+                      &canCache, &useCachedValue, &col);
+
+  if (useCachedValue) {
+    return mColNo;
+  }
+
+  if (canCache) {
+    mColNo = col;
+    mColNoInitialized = true;
+  }
+
+  return col;
+}
+
+NS_IMETHODIMP JSStackFrame::GetColumnNumber(JSContext* aCx,
+                                            int32_t* aColumnNumber)
+{
+  *aColumnNumber = GetColNo(aCx);
+  return NS_OK;
+}
+
 NS_IMETHODIMP JSStackFrame::GetSourceLine(nsACString& aSourceLine)
 {
   aSourceLine.Truncate();
   return NS_OK;
 }
 
-/* readonly attribute nsIStackFrame caller; */
-NS_IMETHODIMP JSStackFrame::GetCaller(nsIStackFrame** aCaller)
+NS_IMETHODIMP JSStackFrame::GetAsyncCause(JSContext* aCx,
+                                          nsAString& aAsyncCause)
 {
-  if (!mCallerInitialized) {
-    mCaller = new JSStackFrame(mStackDescription, mIndex+1);
-    mCallerInitialized = true;
+  if (!mStack) {
+    aAsyncCause.Truncate();
+    return NS_OK;
   }
-  NS_IF_ADDREF(*aCaller = mCaller);
+
+  JS::Rooted<JSString*> asyncCause(aCx);
+  bool canCache = false, useCachedValue = false;
+  GetValueIfNotCached(aCx, mStack, JS::GetSavedFrameAsyncCause,
+                      mAsyncCauseInitialized, &canCache, &useCachedValue,
+                      &asyncCause);
+
+  if (useCachedValue) {
+    aAsyncCause = mAsyncCause;
+    return NS_OK;
+  }
+
+  if (asyncCause) {
+    nsAutoJSString str;
+    if (!str.init(aCx, asyncCause)) {
+      JS_ClearPendingException(aCx);
+      aAsyncCause.Truncate();
+      return NS_OK;
+    }
+    aAsyncCause = str;
+  } else {
+    aAsyncCause.SetIsVoid(true);
+  }
+
+  if (canCache) {
+    mAsyncCause = aAsyncCause;
+    mAsyncCauseInitialized = true;
+  }
+
   return NS_OK;
 }
 
-/* AUTF8String toString (); */
-NS_IMETHODIMP JSStackFrame::ToString(nsACString& _retval)
+NS_IMETHODIMP JSStackFrame::GetAsyncCaller(JSContext* aCx,
+                                           nsIStackFrame** aAsyncCaller)
+{
+  if (!mStack) {
+    *aAsyncCaller = nullptr;
+    return NS_OK;
+  }
+
+  JS::Rooted<JSObject*> asyncCallerObj(aCx);
+  bool canCache = false, useCachedValue = false;
+  GetValueIfNotCached(aCx, mStack, JS::GetSavedFrameAsyncParent,
+                      mAsyncCallerInitialized, &canCache, &useCachedValue,
+                      &asyncCallerObj);
+
+  if (useCachedValue) {
+    NS_IF_ADDREF(*aAsyncCaller = mAsyncCaller);
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIStackFrame> asyncCaller =
+    asyncCallerObj ? new JSStackFrame(asyncCallerObj) : nullptr;
+  asyncCaller.forget(aAsyncCaller);
+
+  if (canCache) {
+    mAsyncCaller = *aAsyncCaller;
+    mAsyncCallerInitialized = true;
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP JSStackFrame::GetCaller(JSContext* aCx, nsIStackFrame** aCaller)
+{
+  if (!mStack) {
+    *aCaller = nullptr;
+    return NS_OK;
+  }
+
+  JS::Rooted<JSObject*> callerObj(aCx);
+  bool canCache = false, useCachedValue = false;
+  GetValueIfNotCached(aCx, mStack, JS::GetSavedFrameParent, mCallerInitialized,
+                      &canCache, &useCachedValue, &callerObj);
+
+  if (useCachedValue) {
+    NS_IF_ADDREF(*aCaller = mCaller);
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIStackFrame> caller =
+    callerObj ? new JSStackFrame(callerObj) : nullptr;
+  caller.forget(aCaller);
+
+  if (canCache) {
+    mCaller = *aCaller;
+    mCallerInitialized = true;
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP JSStackFrame::GetFormattedStack(JSContext* aCx, nsAString& aStack)
+{
+  if (!mStack) {
+    aStack.Truncate();
+    return NS_OK;
+  }
+
+  // Sadly we can't use GetValueIfNotCached here, because our getter
+  // returns bool, not JS::SavedFrameResult.  Maybe it's possible to
+  // make the templates more complicated to deal, but in the meantime
+  // let's just inline GetValueIfNotCached here.
+
+  // Allow caching if aCx and stack are same-compartment.  Otherwise take the
+  // slow path.
+  bool canCache =
+    js::GetContextCompartment(aCx) == js::GetObjectCompartment(mStack);
+  if (canCache && mFormattedStackInitialized) {
+    aStack = mFormattedStack;
+    return NS_OK;
+  }
+
+  JS::Rooted<JSObject*> stack(aCx, mStack);
+
+  JS::Rooted<JSString*> formattedStack(aCx);
+  if (!JS::BuildStackString(aCx, stack, &formattedStack)) {
+    JS_ClearPendingException(aCx);
+    aStack.Truncate();
+    return NS_OK;
+  }
+
+  nsAutoJSString str;
+  if (!str.init(aCx, formattedStack)) {
+    JS_ClearPendingException(aCx);
+    aStack.Truncate();
+    return NS_OK;
+  }
+
+  aStack = str;
+
+  if (canCache) {
+    mFormattedStack = str;
+    mFormattedStackInitialized = true;
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP JSStackFrame::GetNativeSavedFrame(JS::MutableHandle<JS::Value> aSavedFrame)
+{
+  aSavedFrame.setObjectOrNull(mStack);
+  return NS_OK;
+}
+
+NS_IMETHODIMP JSStackFrame::ToString(JSContext* aCx, nsACString& _retval)
 {
   _retval.Truncate();
 
-  const char* frametype = IsJSFrame() ? "JS" : "native";
-
   nsString filename;
-  nsresult rv = GetFilename(filename);
+  nsresult rv = GetFilename(aCx, filename);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (filename.IsEmpty()) {
@@ -447,74 +671,37 @@ NS_IMETHODIMP JSStackFrame::ToString(nsACString& _retval)
   }
 
   nsString funname;
-  rv = GetName(funname);
+  rv = GetName(aCx, funname);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (funname.IsEmpty()) {
     funname.AssignLiteral("<TOP_LEVEL>");
   }
-  static const char format[] = "%s frame :: %s :: %s :: line %d";
-  _retval.AppendPrintf(format, frametype,
+
+  int32_t lineno = GetLineno(aCx);
+
+  static const char format[] = "JS frame :: %s :: %s :: line %d";
+  _retval.AppendPrintf(format,
                        NS_ConvertUTF16toUTF8(filename).get(),
                        NS_ConvertUTF16toUTF8(funname).get(),
-                       GetLineno());
+                       lineno);
   return NS_OK;
 }
 
-/* static */ already_AddRefed<nsIStackFrame>
-JSStackFrame::CreateStack(JSContext* aCx, int32_t aMaxDepth)
+already_AddRefed<nsIStackFrame>
+CreateStack(JSContext* aCx, JS::StackCapture&& aCaptureMode)
 {
-  static const unsigned MAX_FRAMES = 100;
-  if (aMaxDepth < 0) {
-    aMaxDepth = MAX_FRAMES;
-  }
-
-  JS::StackDescription* desc = JS::DescribeStack(aCx, aMaxDepth);
-  if (!desc) {
+  JS::Rooted<JSObject*> stack(aCx);
+  if (!JS::CaptureCurrentStack(aCx, &stack, mozilla::Move(aCaptureMode))) {
     return nullptr;
   }
 
-  nsRefPtr<StackDescriptionOwner> descOwner = new StackDescriptionOwner(desc);
+  if (!stack) {
+    return nullptr;
+  }
 
-  nsRefPtr<JSStackFrame> first = new JSStackFrame(descOwner, 0);
-  return first.forget();
-}
-
-/* static */ already_AddRefed<nsIStackFrame>
-JSStackFrame::CreateStackFrameLocation(uint32_t aLanguage,
-                                       const char* aFilename,
-                                       const char* aFunctionName,
-                                       int32_t aLineNumber,
-                                       nsIStackFrame* aCaller)
-{
-  nsRefPtr<JSStackFrame> self = new JSStackFrame(nullptr, 0);
-
-  self->mLanguage = aLanguage;
-  self->mLineno = aLineNumber;
-  CopyUTF8toUTF16(aFilename, self->mFilename);
-  CopyUTF8toUTF16(aFunctionName, self->mFunname);
-
-  self->mCaller = aCaller;
-
-  return self.forget();
-}
-
-already_AddRefed<nsIStackFrame>
-CreateStack(JSContext* aCx, int32_t aMaxDepth)
-{
-  return JSStackFrame::CreateStack(aCx, aMaxDepth);
-}
-
-already_AddRefed<nsIStackFrame>
-CreateStackFrameLocation(uint32_t aLanguage,
-                         const char* aFilename,
-                         const char* aFunctionName,
-                         int32_t aLineNumber,
-                         nsIStackFrame* aCaller)
-{
-  return JSStackFrame::CreateStackFrameLocation(aLanguage, aFilename,
-                                                aFunctionName, aLineNumber,
-                                                aCaller);
+  nsCOMPtr<nsIStackFrame> frame = new JSStackFrame(stack);
+  return frame.forget();
 }
 
 } // namespace exceptions

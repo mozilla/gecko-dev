@@ -11,7 +11,7 @@ const NS_APP_PLUGINS_DIR_LIST = "APluginsDL";
 
 const gPluginHost = Cc["@mozilla.org/plugin/host;1"].getService(Ci.nsIPluginHost);
 const gXPCOMABI = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime).XPCOMABI;
-let gProfileDir = null;
+var gProfileDir = null;
 
 function getAddonRoot(profileDir, id) {
   let dir = profileDir.clone();
@@ -30,6 +30,7 @@ function getTestaddonFilename() {
 }
 
 function run_test() {
+  allow_all_plugins();
   loadAddonManager();
   gProfileDir = do_get_profile();
   do_register_cleanup(() => shutdownManager());

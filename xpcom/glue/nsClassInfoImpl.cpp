@@ -1,9 +1,10 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsIClassInfoImpl.h"
-#include "nsIProgrammingLanguage.h"
 
 NS_IMETHODIMP_(MozExternalRefCountType)
 GenericClassInfo::AddRef()
@@ -20,53 +21,47 @@ GenericClassInfo::Release()
 NS_IMPL_QUERY_INTERFACE(GenericClassInfo, nsIClassInfo)
 
 NS_IMETHODIMP
-GenericClassInfo::GetInterfaces(uint32_t* countp, nsIID*** array)
+GenericClassInfo::GetInterfaces(uint32_t* aCount, nsIID*** aArray)
 {
-  return mData->getinterfaces(countp, array);
+  return mData->getinterfaces(aCount, aArray);
 }
 
 NS_IMETHODIMP
-GenericClassInfo::GetHelperForLanguage(uint32_t language, nsISupports** helper)
+GenericClassInfo::GetScriptableHelper(nsIXPCScriptable** aHelper)
 {
-  if (mData->getlanguagehelper)
-    return mData->getlanguagehelper(language, helper);
+  if (mData->getscriptablehelper) {
+    return mData->getscriptablehelper(aHelper);
+  }
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-GenericClassInfo::GetContractID(char** contractid)
+GenericClassInfo::GetContractID(char** aContractID)
 {
   NS_ERROR("GetContractID not implemented");
-  *contractid = nullptr;
+  *aContractID = nullptr;
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-GenericClassInfo::GetClassDescription(char** description)
+GenericClassInfo::GetClassDescription(char** aDescription)
 {
-  *description = nullptr;
+  *aDescription = nullptr;
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-GenericClassInfo::GetClassID(nsCID** classid)
+GenericClassInfo::GetClassID(nsCID** aClassID)
 {
   NS_ERROR("GetClassID not implemented");
-  *classid = nullptr;
+  *aClassID = nullptr;
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-GenericClassInfo::GetImplementationLanguage(uint32_t* language)
+GenericClassInfo::GetFlags(uint32_t* aFlags)
 {
-  *language = nsIProgrammingLanguage::CPLUSPLUS;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-GenericClassInfo::GetFlags(uint32_t* flags)
-{
-  *flags = mData->flags;
+  *aFlags = mData->flags;
   return NS_OK;
 }
 

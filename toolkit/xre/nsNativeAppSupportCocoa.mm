@@ -9,13 +9,14 @@
 #import <Cocoa/Cocoa.h>
 
 #include "nsCOMPtr.h"
+#include "nsCocoaFeatures.h"
 #include "nsNativeAppSupportBase.h"
 
 #include "nsIAppShellService.h"
 #include "nsIAppStartup.h"
 #include "nsIBaseWindow.h"
 #include "nsICommandLineRunner.h"
-#include "nsIDOMWindow.h"
+#include "mozIDOMWindow.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsIDocShellTreeOwner.h"
 #include "nsIInterfaceRequestorUtils.h"
@@ -29,7 +30,7 @@
 #include "nsObjCExceptions.h"
 
 nsresult
-GetNativeWindowPointerFromDOMWindow(nsIDOMWindow *a_window, NSWindow **a_nativeWindow)
+GetNativeWindowPointerFromDOMWindow(mozIDOMWindowProxy *a_window, NSWindow **a_nativeWindow)
 {
   *a_nativeWindow = nil;
   if (!a_window)
@@ -76,22 +77,19 @@ nsNativeAppSupportCocoa::Enable()
   return NS_OK;
 }
 
-#define MAC_OS_X_VERSION_10_6_HEX 0x00001060
-
 NS_IMETHODIMP nsNativeAppSupportCocoa::Start(bool *_retval)
 {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
+  int major, minor, bugfix;
+  nsCocoaFeatures::GetSystemVersion(major, minor, bugfix);
 
-  SInt32 response = 0;
-  OSErr err = ::Gestalt (gestaltSystemVersion, &response);
-  response &= 0xFFFF; // The system version is in the low order word
+  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
   // Check that the OS version is supported, if not return false,
   // which will make the browser quit.  In principle we could display an
   // alert here.  But the alert's message and buttons would require custom
   // localization.  So (for now at least) we just log an English message
   // to the console before quitting.
-  if ((err != noErr) || response < MAC_OS_X_VERSION_10_6_HEX) {
+  if (major < 10 || minor < 6) {
     NSLog(@"Minimum OS version requirement not met!");
     return NS_OK;
   }
@@ -146,16 +144,16 @@ nsNativeAppSupportCocoa::ReOpen()
       if (![cocoaWindow isMiniaturized]) {
         haveNonMiniaturized = true;
         break;  //have un-minimized windows, nothing to do
-      } 
+      }
       windowList->HasMoreElements(&more);
     } // end while
-        
+
     if (!haveNonMiniaturized) {
       // Deminiaturize the most recenty used window
-      nsCOMPtr<nsIDOMWindow> mru;
+      nsCOMPtr<mozIDOMWindowProxy> mru;
       wm->GetMostRecentWindow(nullptr, getter_AddRefs(mru));
-            
-      if (mru) {        
+
+      if (mru) {
         NSWindow *cocoaMru = nil;
         GetNativeWindowPointerFromDOMWindow(mru, &cocoaMru);
         if (cocoaMru) {
@@ -163,12 +161,11 @@ nsNativeAppSupportCocoa::ReOpen()
           done = true;
         }
       }
-      
     } // end if have non miniaturized
-    
+
     if (!haveOpenWindows && !done) {
       char* argv[] = { nullptr };
-    
+
       // use an empty command line to make the right kind(s) of window open
       nsCOMPtr<nsICommandLineRunner> cmdLine
         (do_CreateInstance("@mozilla.org/toolkit/command-line;1"));

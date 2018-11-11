@@ -81,7 +81,7 @@ function AddonLogger(aName) {
 AddonLogger.prototype = {
   name: null,
 
-  error: function AddonLogger_error(aStr, aException) {
+  error: function(aStr, aException) {
     let message = formatLogMessage("error", this.name, aStr, aException);
 
     let stack = getStackDetails(aException);
@@ -95,6 +95,18 @@ AddonLogger.prototype = {
     // Always dump errors, in case the Console Service isn't listening yet
     dump("*** " + message + "\n");
 
+    function formatTimestamp(date) {
+      // Format timestamp as: "%Y-%m-%d %H:%M:%S"
+      let year = String(date.getFullYear());
+      let month = String(date.getMonth() + 1).padStart(2, "0");
+      let day = String(date.getDate()).padStart(2, "0");
+      let hours = String(date.getHours()).padStart(2, "0");
+      let minutes = String(date.getMinutes()).padStart(2, "0");
+      let seconds = String(date.getSeconds()).padStart(2, "0");
+
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+
     try {
       var tstamp = new Date();
       var logfile = FileUtils.getFile(KEY_PROFILEDIR, [FILE_EXTENSIONS_LOG]);
@@ -104,7 +116,7 @@ AddonLogger.prototype = {
       var writer = Cc["@mozilla.org/intl/converter-output-stream;1"].
                    createInstance(Ci.nsIConverterOutputStream);
       writer.init(stream, "UTF-8", 0, 0x0000);
-      writer.writeString(tstamp.toLocaleFormat("%Y-%m-%d %H:%M:%S ") +
+      writer.writeString(formatTimestamp(tstamp) + " " +
                          message + " at " + stack.sourceName + ":" +
                          stack.lineNumber + "\n");
       writer.close();
@@ -112,7 +124,7 @@ AddonLogger.prototype = {
     catch (e) { }
   },
 
-  warn: function AddonLogger_warn(aStr, aException) {
+  warn: function(aStr, aException) {
     let message = formatLogMessage("warn", this.name, aStr, aException);
 
     let stack = getStackDetails(aException);
@@ -127,7 +139,7 @@ AddonLogger.prototype = {
       dump("*** " + message + "\n");
   },
 
-  log: function AddonLogger_log(aStr, aException) {
+  log: function(aStr, aException) {
     if (gDebugLogEnabled) {
       let message = formatLogMessage("log", this.name, aStr, aException);
       dump("*** " + message + "\n");
@@ -137,14 +149,14 @@ AddonLogger.prototype = {
 };
 
 this.LogManager = {
-  getLogger: function LogManager_getLogger(aName, aTarget) {
+  getLogger: function(aName, aTarget) {
     let logger = new AddonLogger(aName);
 
     if (aTarget) {
       ["error", "warn", "log"].forEach(function(name) {
         let fname = name.toUpperCase();
         delete aTarget[fname];
-        aTarget[fname] = function LogManager_targetName(aStr, aException) {
+        aTarget[fname] = function(aStr, aException) {
           logger[name](aStr, aException);
         };
       });
@@ -155,13 +167,13 @@ this.LogManager = {
 };
 
 var PrefObserver = {
-  init: function PrefObserver_init() {
+  init: function() {
     Services.prefs.addObserver(PREF_LOGGING_ENABLED, this, false);
     Services.obs.addObserver(this, "xpcom-shutdown", false);
     this.observe(null, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID, PREF_LOGGING_ENABLED);
   },
 
-  observe: function PrefObserver_observe(aSubject, aTopic, aData) {
+  observe: function(aSubject, aTopic, aData) {
     if (aTopic == "xpcom-shutdown") {
       Services.prefs.removeObserver(PREF_LOGGING_ENABLED, this);
       Services.obs.removeObserver(this, "xpcom-shutdown");

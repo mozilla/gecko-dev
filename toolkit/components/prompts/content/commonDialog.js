@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const Ci = Components.interfaces;
-const Cr = Components.results;
-const Cc = Components.classes;
-const Cu = Components.utils;
+var Ci = Components.interfaces;
+var Cr = Components.results;
+var Cc = Components.classes;
+var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/CommonDialog.jsm");
 
-let propBag, args, Dialog;
+var propBag, args, Dialog;
 
 function commonDialogOnLoad() {
     propBag = window.arguments[0].QueryInterface(Ci.nsIWritablePropertyBag2)
@@ -47,27 +47,16 @@ function commonDialogOnLoad() {
 
     // limit the dialog to the screen width
     document.getElementById("filler").maxWidth = screen.availWidth;
-    Services.obs.addObserver(softkbObserver, "softkb-change", false);
 
     Dialog = new CommonDialog(args, ui);
     Dialog.onLoad(dialog);
+    // resize the window to the content
+    window.sizeToContent();
     window.getAttention();
 }
 
 function commonDialogOnUnload() {
-    Services.obs.removeObserver(softkbObserver, "softkb-change");
     // Convert args back into property bag
     for (let propName in args)
         propBag.setProperty(propName, args[propName]);
-}
-
-function softkbObserver(subject, topic, data) {
-    let rect = JSON.parse(data);
-    if (rect) {
-        let height = rect.bottom - rect.top;
-        let width  = rect.right - rect.left;
-        let top    = (rect.top + (height - window.innerHeight) / 2);
-        let left   = (rect.left + (width - window.innerWidth) / 2);
-        window.moveTo(left, top);
-    }
 }

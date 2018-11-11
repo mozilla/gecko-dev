@@ -13,35 +13,46 @@ class MacIOSurface;
 namespace mozilla {
 namespace layers {
 
-class MacIOSurfaceTextureClientOGL : public TextureClient
+class MacIOSurfaceTextureData : public TextureData
 {
 public:
-  MacIOSurfaceTextureClientOGL(TextureFlags aFlags);
+  static MacIOSurfaceTextureData* Create(MacIOSurface* aSurface,
+                                         gfx::BackendType aBackend);
 
-  virtual ~MacIOSurfaceTextureClientOGL();
+  static MacIOSurfaceTextureData*
+  Create(const gfx::IntSize& aSize, gfx::SurfaceFormat aFormat,
+         gfx::BackendType aBackend);
 
-  void InitWith(MacIOSurface* aSurface);
+  ~MacIOSurfaceTextureData();
 
-  virtual bool Lock(OpenMode aMode) MOZ_OVERRIDE;
+  virtual void FillInfo(TextureData::Info& aInfo) const override;
 
-  virtual void Unlock() MOZ_OVERRIDE;
+  virtual bool Lock(OpenMode) override;
 
-  virtual bool IsLocked() const MOZ_OVERRIDE;
+  virtual void Unlock() override;
 
-  virtual bool IsAllocated() const MOZ_OVERRIDE { return !!mSurface; }
+  virtual already_AddRefed<gfx::DrawTarget> BorrowDrawTarget() override;
 
-  virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor) MOZ_OVERRIDE;
+  virtual bool Serialize(SurfaceDescriptor& aOutDescriptor) override;
 
-  virtual gfx::IntSize GetSize() const;
+  virtual void Deallocate(LayersIPCChannel*) override;
 
-  virtual bool HasInternalBuffer() const MOZ_OVERRIDE { return false; }
+  virtual void Forget(LayersIPCChannel*) override;
+
+  virtual bool UpdateFromSurface(gfx::SourceSurface* aSurface) override;
+
+  // For debugging purposes only.
+  already_AddRefed<gfx::DataSourceSurface> GetAsSurface();
 
 protected:
+  MacIOSurfaceTextureData(MacIOSurface* aSurface,
+                          gfx::BackendType aBackend);
+
   RefPtr<MacIOSurface> mSurface;
-  bool mIsLocked;
+  gfx::BackendType mBackend;
 };
 
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 #endif // MOZILLA_GFX_MACIOSURFACETEXTURECLIENTOGL_H

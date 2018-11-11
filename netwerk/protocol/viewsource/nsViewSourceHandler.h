@@ -7,9 +7,15 @@
 #define nsViewSourceHandler_h___
 
 #include "nsIProtocolHandler.h"
+#include "nsNetUtil.h"
 #include "mozilla/Attributes.h"
 
-class nsViewSourceHandler MOZ_FINAL : public nsIProtocolHandler
+class nsILoadInfo;
+
+namespace mozilla {
+namespace net {
+
+class nsViewSourceHandler final : public nsIProtocolHandler
 {
 public:
     NS_DECL_ISUPPORTS
@@ -17,18 +23,23 @@ public:
 
     nsViewSourceHandler();
 
-    ~nsViewSourceHandler();
-
     // Creates a new nsViewSourceChannel to view the source of an about:srcdoc
     // URI with contents specified by srcdoc.
-    nsresult NewSrcdocChannel(nsIURI* uri, const nsAString &srcdoc,
-                              nsIURI* baseURI, nsIChannel** result);
+    nsresult NewSrcdocChannel(nsIURI *aURI,
+                              nsIURI *aBaseURI,
+                              const nsAString &aSrcdoc,
+                              nsILoadInfo *aLoadInfo,
+                              nsIChannel** outChannel);
 
     static nsViewSourceHandler* GetInstance();
 
 private:
-    static nsViewSourceHandler* gInstance;
+    ~nsViewSourceHandler();
 
+    static nsViewSourceHandler* gInstance;
 };
+
+} // namespace net
+} // namespace mozilla
 
 #endif /* !defined( nsViewSourceHandler_h___ ) */

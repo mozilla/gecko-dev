@@ -2,16 +2,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-__all__ = ['Profile',
-           'FirefoxProfile',
-           'MetroFirefoxProfile',
-           'ThunderbirdProfile']
-
-import json
 import os
 import time
 import tempfile
-import types
 import uuid
 
 from addons import AddonManager
@@ -21,12 +14,34 @@ from prefs import Preferences
 from shutil import copytree
 from webapps import WebappCollection
 
+__all__ = ['Profile',
+           'FirefoxProfile',
+           'MetroFirefoxProfile',
+           'ThunderbirdProfile']
+
 
 class Profile(object):
     """Handles all operations regarding profile.
 
     Creating new profiles, installing add-ons, setting preferences and
     handling cleanup.
+
+    The files associated with the profile will be removed automatically after
+    the object is garbage collected: ::
+
+      profile = Profile()
+      print profile.profile  # this is the path to the created profile
+      del profile
+      # the profile path has been removed from disk
+
+    :meth:`cleanup` is called under the hood to remove the profile files. You
+    can ensure this method is called (even in the case of exception) by using
+    the profile as a context manager: ::
+
+      with Profile() as profile:
+          # do things with the profile
+          pass
+      # profile.cleanup() has been called here
     """
 
     def __init__(self, profile=None, addons=None, addon_manifests=None, apps=None,
@@ -105,10 +120,16 @@ class Profile(object):
         self.webapps = WebappCollection(profile=self.profile, apps=self._apps)
         self.webapps.update_manifests()
 
-    def __del__(self):
-      self.cleanup()
+    def __enter__(self):
+        return self
 
-    ### cleanup
+    def __exit__(self, type, value, traceback):
+        self.cleanup()
+
+    def __del__(self):
+        self.cleanup()
+
+    # cleanup
 
     def cleanup(self):
         """Cleanup operations for the profile."""
@@ -153,28 +174,20 @@ class Profile(object):
         - kwargs: arguments to the profile constructor
         """
         if not path_to:
-            tempdir = tempfile.mkdtemp() # need an unused temp dir name
-            mozfile.remove(tempdir) # copytree requires that dest does not exist
+            tempdir = tempfile.mkdtemp()  # need an unused temp dir name
+            mozfile.remove(tempdir)  # copytree requires that dest does not exist
             path_to = tempdir
         copytree(path_from, path_to)
 
-        def cleanup_clone(fn):
-            """Deletes a cloned profile when restore is True"""
-            def wrapped(self):
-                fn(self)
-                if self.restore and os.path.exists(self.profile):
-                    mozfile.remove(self.profile)
-            return wrapped
-
         c = cls(path_to, **kwargs)
-        c.__del__ = c.cleanup = types.MethodType(cleanup_clone(cls.cleanup), c)
+        c.create_new = True  # deletes a cloned profile when restore is True
         return c
 
     def exists(self):
         """returns whether the profile exists or not"""
         return os.path.exists(self.profile)
 
-    ### methods for preferences
+    # methods for preferences
 
     def set_preferences(self, preferences, filename='user.js'):
         """Adds preferences dict to profile preferences"""
@@ -199,6 +212,25 @@ class Profile(object):
 
         f.close()
 
+    def set_persistent_preferences(self, preferences):
+        """
+        Adds preferences dict to profile preferences and save them during a
+        profile reset
+        """
+
+        # this is a dict sometimes, convert
+        if isinstance(preferences, dict):
+            preferences = preferences.items()
+
+        # add new prefs to preserve them during reset
+        for new_pref in preferences:
+            # if dupe remove item from original list
+            self._preferences = [
+                pref for pref in self._preferences if not new_pref[0] == pref[0]]
+            self._preferences.append(new_pref)
+
+        self.set_preferences(preferences, filename='user.js')
+
     def pop_preferences(self, filename):
         """
         pop the last set of preferences added
@@ -208,6 +240,7 @@ class Profile(object):
         path = os.path.join(self.profile, filename)
         with file(path) as f:
             lines = f.read().splitlines()
+
         def last_index(_list, value):
             """
             returns the last index of an item;
@@ -222,20 +255,21 @@ class Profile(object):
         # ensure both markers are found
         if s is None:
             assert e is None, '%s found without %s' % (self.delimeters[1], self.delimeters[0])
-            return False # no preferences found
+            return False  # no preferences found
         elif e is None:
             assert s is None, '%s found without %s' % (self.delimeters[0], self.delimeters[1])
 
         # ensure the markers are in the proper order
-        assert e > s, '%s found at %s, while %s found at %s' % (self.delimeters[1], e, self.delimeters[0], s)
+        assert e > s, '%s found at %s, while %s found at %s' % (self.delimeters[1], e,
+                                                                self.delimeters[0], s)
 
         # write the prefs
-        cleaned_prefs = '\n'.join(lines[:s] + lines[e+1:])
+        cleaned_prefs = '\n'.join(lines[:s] + lines[e + 1:])
         with file(path, 'w') as f:
             f.write(cleaned_prefs)
         return True
 
-    ### methods for introspection
+    # methods for introspection
 
     def summary(self, return_parts=False):
         """
@@ -244,7 +278,7 @@ class Profile(object):
         of tuples instead of the assembled string
         """
 
-        parts = [('Path', self.profile)] # profile path
+        parts = [('Path', self.profile)]  # profile path
 
         # directory tree
         parts.append(('Files', '\n%s' % mozfile.tree(self.profile)))
@@ -259,8 +293,11 @@ class Profile(object):
                 # but could be expanded to include others
                 section_prefs = ['network.proxy.autoconfig_url']
                 line_length = 80
-                line_length_buffer = 10 # buffer for 80 character display: length = 80 - len(key) - len(': ') - line_length_buffer
+                # buffer for 80 character display:
+                # length = 80 - len(key) - len(': ') - line_length_buffer
+                line_length_buffer = 10
                 line_length_buffer += len(': ')
+
                 def format_value(key, value):
                     if key not in section_prefs:
                         return value
@@ -273,9 +310,9 @@ class Profile(object):
                 if prefs:
                     prefs = dict(prefs)
                     parts.append((prefs_file,
-                    '\n%s' %('\n'.join(['%s: %s' % (key, format_value(key, prefs[key]))
-                                        for key in sorted(prefs.keys())
-                                        ]))))
+                                  '\n%s' % ('\n'.join(
+                                      ['%s: %s' % (key, format_value(key, prefs[key]))
+                                       for key in sorted(prefs.keys())]))))
 
                     # Currently hardcorded to 'network.proxy.autoconfig_url'
                     # but could be generalized, possibly with a generalized (simple)
@@ -289,11 +326,12 @@ class Profile(object):
                         origins_end = '];'
                         if origins_string in lines[0]:
                             start = lines[0].find(origins_string)
-                            end = lines[0].find(origins_end, start);
+                            end = lines[0].find(origins_end, start)
                             splitline = [lines[0][:start],
-                                         lines[0][start:start+len(origins_string)-1],
+                                         lines[0][start:start + len(origins_string) - 1],
                                          ]
-                            splitline.extend(lines[0][start+len(origins_string):end].replace(',', ',\n').splitlines())
+                            splitline.extend(lines[0][start + len(origins_string):end].replace(
+                                ',', ',\n').splitlines())
                             splitline.append(lines[0][end:])
                             lines[0:1] = [i.strip() for i in splitline]
                         parts.append(('Network Proxy Autoconfig, %s' % (prefs_file),
@@ -312,95 +350,103 @@ class Profile(object):
 class FirefoxProfile(Profile):
     """Specialized Profile subclass for Firefox"""
 
-    preferences = {# Don't automatically update the application
-                   'app.update.enabled' : False,
-                   # Don't restore the last open set of tabs if the browser has crashed
-                   'browser.sessionstore.resume_from_crash': False,
-                   # Don't check for the default web browser during startup
-                   'browser.shell.checkDefaultBrowser' : False,
-                   # Don't warn on exit when multiple tabs are open
-                   'browser.tabs.warnOnClose' : False,
-                   # Don't warn when exiting the browser
-                   'browser.warnOnQuit': False,
-                   # Don't send Firefox health reports to the production server
-                   'datareporting.healthreport.documentServerURI' : 'http://%(server)s/healthreport/',
-                   # Only install add-ons from the profile and the application scope
-                   # Also ensure that those are not getting disabled.
-                   # see: https://developer.mozilla.org/en/Installing_extensions
-                   'extensions.enabledScopes' : 5,
-                   'extensions.autoDisableScopes' : 10,
-                   # Don't send the list of installed addons to AMO
-                   'extensions.getAddons.cache.enabled' : False,
-                   # Don't install distribution add-ons from the app folder
-                   'extensions.installDistroAddons' : False,
-                   # Dont' run the add-on compatibility check during start-up
-                   'extensions.showMismatchUI' : False,
-                   # Don't automatically update add-ons
-                   'extensions.update.enabled'    : False,
-                   # Don't open a dialog to show available add-on updates
-                   'extensions.update.notifyUser' : False,
-                   # Enable test mode to run multiple tests in parallel
-                   'focusmanager.testmode' : True,
-                   # Enable test mode to not raise an OS level dialog for location sharing
-                   'geo.provider.testing' : True,
-                   # Suppress delay for main action in popup notifications
-                   'security.notification_enable_delay' : 0,
-                   # Suppress automatic safe mode after crashes
-                   'toolkit.startup.max_resumed_crashes' : -1,
-                   # Don't report telemetry information
-                   'toolkit.telemetry.enabled' : False,
-                   }
+    preferences = {  # Don't automatically update the application
+        'app.update.enabled': False,
+        # Don't restore the last open set of tabs if the browser has crashed
+        'browser.sessionstore.resume_from_crash': False,
+        # Don't check for the default web browser during startup
+        'browser.shell.checkDefaultBrowser': False,
+        # Don't warn on exit when multiple tabs are open
+        'browser.tabs.warnOnClose': False,
+        # Don't warn when exiting the browser
+        'browser.warnOnQuit': False,
+        # Don't send Firefox health reports to the production server
+        'datareporting.healthreport.documentServerURI': 'http://%(server)s/healthreport/',
+        # Only install add-ons from the profile and the application scope
+        # Also ensure that those are not getting disabled.
+        # see: https://developer.mozilla.org/en/Installing_extensions
+        'extensions.enabledScopes': 5,
+        'extensions.autoDisableScopes': 10,
+        # Don't send the list of installed addons to AMO
+        'extensions.getAddons.cache.enabled': False,
+        # Don't install distribution add-ons from the app folder
+        'extensions.installDistroAddons': False,
+        # Dont' run the add-on compatibility check during start-up
+        'extensions.showMismatchUI': False,
+        # Don't automatically update add-ons
+        'extensions.update.enabled': False,
+        # Don't open a dialog to show available add-on updates
+        'extensions.update.notifyUser': False,
+        # Enable test mode to run multiple tests in parallel
+        'focusmanager.testmode': True,
+        # Enable test mode to not raise an OS level dialog for location sharing
+        'geo.provider.testing': True,
+        # Suppress delay for main action in popup notifications
+        'security.notification_enable_delay': 0,
+        # Suppress automatic safe mode after crashes
+        'toolkit.startup.max_resumed_crashes': -1,
+        # Don't report telemetry information
+        'toolkit.telemetry.enabled': False,
+        # Don't send Telemetry reports to the production server. This is
+        # needed as Telemetry sends pings also if FHR upload is enabled.
+        'toolkit.telemetry.server': 'http://%(server)s/telemetry-dummy/',
+    }
+
 
 class MetroFirefoxProfile(Profile):
     """Specialized Profile subclass for Firefox Metro"""
 
-    preferences = {# Don't automatically update the application for desktop and metro build
-                   'app.update.enabled' : False,
-                   'app.update.metro.enabled' : False,
-                   # Dismiss first run content overlay
-                   'browser.firstrun-content.dismissed' : True,
-                   # Don't restore the last open set of tabs if the browser has crashed
-                   'browser.sessionstore.resume_from_crash': False,
-                   # Don't check for the default web browser during startup
-                   'browser.shell.checkDefaultBrowser' : False,
-                   # Don't send Firefox health reports to the production server
-                   'datareporting.healthreport.documentServerURI' : 'http://%(server)s/healthreport/',
-                   # Enable extensions
-                   'extensions.defaultProviders.enabled' : True,
-                   # Only install add-ons from the profile and the application scope
-                   # Also ensure that those are not getting disabled.
-                   # see: https://developer.mozilla.org/en/Installing_extensions
-                   'extensions.enabledScopes' : 5,
-                   'extensions.autoDisableScopes' : 10,
-                   # Don't send the list of installed addons to AMO
-                   'extensions.getAddons.cache.enabled' : False,
-                   # Don't install distribution add-ons from the app folder
-                   'extensions.installDistroAddons' : False,
-                   # Dont' run the add-on compatibility check during start-up
-                   'extensions.showMismatchUI' : False,
-                   # Disable strict compatibility checks to allow add-ons enabled by default
-                   'extensions.strictCompatibility' : False,
-                   # Don't automatically update add-ons
-                   'extensions.update.enabled'    : False,
-                   # Don't open a dialog to show available add-on updates
-                   'extensions.update.notifyUser' : False,
-                   # Enable test mode to run multiple tests in parallel
-                   'focusmanager.testmode' : True,
-                   # Suppress delay for main action in popup notifications
-                   'security.notification_enable_delay' : 0,
-                   # Suppress automatic safe mode after crashes
-                   'toolkit.startup.max_resumed_crashes' : -1,
-                   # Don't report telemetry information
-                   'toolkit.telemetry.enabled' : False,
-                   }
+    preferences = {  # Don't automatically update the application for desktop and metro build
+        'app.update.enabled': False,
+        'app.update.metro.enabled': False,
+        # Dismiss first run content overlay
+        'browser.firstrun-content.dismissed': True,
+        # Don't restore the last open set of tabs if the browser has crashed
+        'browser.sessionstore.resume_from_crash': False,
+        # Don't check for the default web browser during startup
+        'browser.shell.checkDefaultBrowser': False,
+        # Don't send Firefox health reports to the production server
+        'datareporting.healthreport.documentServerURI': 'http://%(server)s/healthreport/',
+        # Enable extensions
+        'extensions.defaultProviders.enabled': True,
+        # Only install add-ons from the profile and the application scope
+        # Also ensure that those are not getting disabled.
+        # see: https://developer.mozilla.org/en/Installing_extensions
+        'extensions.enabledScopes': 5,
+        'extensions.autoDisableScopes': 10,
+        # Don't send the list of installed addons to AMO
+        'extensions.getAddons.cache.enabled': False,
+        # Don't install distribution add-ons from the app folder
+        'extensions.installDistroAddons': False,
+        # Dont' run the add-on compatibility check during start-up
+        'extensions.showMismatchUI': False,
+        # Disable strict compatibility checks to allow add-ons enabled by default
+        'extensions.strictCompatibility': False,
+        # Don't automatically update add-ons
+        'extensions.update.enabled': False,
+        # Don't open a dialog to show available add-on updates
+        'extensions.update.notifyUser': False,
+        # Enable test mode to run multiple tests in parallel
+        'focusmanager.testmode': True,
+        # Suppress delay for main action in popup notifications
+        'security.notification_enable_delay': 0,
+        # Suppress automatic safe mode after crashes
+        'toolkit.startup.max_resumed_crashes': -1,
+        # Don't report telemetry information
+        'toolkit.telemetry.enabled': False,
+        # Don't send Telemetry reports to the production server. This is
+        # needed as Telemetry sends pings also if FHR upload is enabled.
+        'toolkit.telemetry.server': 'http://%(server)s/telemetry-dummy/',
+    }
+
 
 class ThunderbirdProfile(Profile):
     """Specialized Profile subclass for Thunderbird"""
 
-    preferences = {'extensions.update.enabled'    : False,
-                   'extensions.update.notifyUser' : False,
-                   'browser.shell.checkDefaultBrowser' : False,
-                   'browser.tabs.warnOnClose' : False,
+    preferences = {'extensions.update.enabled': False,
+                   'extensions.update.notifyUser': False,
+                   'browser.shell.checkDefaultBrowser': False,
+                   'browser.tabs.warnOnClose': False,
                    'browser.warnOnQuit': False,
                    'browser.sessionstore.resume_from_crash': False,
                    # prevents the 'new e-mail address' wizard on new profile

@@ -1,6 +1,5 @@
-// |jit-test| error: TypeError
 function f() {
     "use strict";
 }
-g = wrap(f);
+g = new Proxy(f, {});
 Object.defineProperty(g, "arguments", {set: function(){}});

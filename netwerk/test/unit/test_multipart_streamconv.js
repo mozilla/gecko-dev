@@ -1,4 +1,5 @@
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 var httpserver = null;
 
@@ -7,18 +8,10 @@ XPCOMUtils.defineLazyGetter(this, "uri", function() {
 });
 
 function make_channel(url) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].
-            getService(Ci.nsIIOService);
-  return ios.newChannel(url, "", null);
+  return NetUtil.newChannel({uri: url, loadUsingSystemPrincipal: true});
 }
 
 var multipartBody = "--boundary\r\n\r\nSome text\r\n--boundary\r\n\r\n<?xml version='1.0'?><root/>\r\n--boundary--";
-
-function make_channel(url) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].
-            getService(Ci.nsIIOService);
-  return ios.newChannel(url, "", null);
-}
 
 function contentHandler(metadata, response)
 {
@@ -46,6 +39,7 @@ function responseHandler(request, buffer)
 
 var multipartListener = {
   _buffer: "",
+  _index: 0,
 
   QueryInterface: function(iid) {
     if (iid.equals(Components.interfaces.nsIStreamListener) ||
@@ -69,6 +63,9 @@ var multipartListener = {
   },
 
   onStopRequest: function(request, context, status) {
+    this._index++;
+    // Second part should be last part
+    do_check_eq(request.QueryInterface(Ci.nsIMultiPartChannel).isLastPart, this._index == 2);
     try {
       responseHandler(request, this._buffer);
     } catch (ex) {
@@ -91,6 +88,6 @@ function run_test()
 					 null);
 
   var chan = make_channel(uri);
-  chan.asyncOpen(conv, null);
+  chan.asyncOpen2(conv);
   do_test_pending();
 }

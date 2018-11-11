@@ -7,9 +7,10 @@
 #include <nsThreadUtils.h>
 #include "mozilla/ModuleUtils.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/ToJSValue.h"
+#include "nsAutoPtr.h"
 #include "nsXULAppAPI.h"
-#include "nsCxPusher.h"
 
 #define NS_NETWORKWORKER_CID \
   { 0x6df093e1, 0x8127, 0x4fa7, {0x90, 0x13, 0xa3, 0xaa, 0xa7, 0x79, 0xbb, 0xdd} }
@@ -29,34 +30,16 @@ StaticRefPtr<NetworkWorker> gNetworkWorker;
 static nsAutoPtr<NetworkUtils> gNetworkUtils;
 
 // Runnable used dispatch command result on the main thread.
-class NetworkResultDispatcher : public nsRunnable
+class NetworkResultDispatcher : public Runnable
 {
 public:
   NetworkResultDispatcher(const NetworkResultOptions& aResult)
+    : mResult(aResult)
   {
     MOZ_ASSERT(!NS_IsMainThread());
-
-#define COPY_FIELD(prop) mResult.prop = aResult.prop;
-    COPY_FIELD(mId)
-    COPY_FIELD(mRet)
-    COPY_FIELD(mBroadcast)
-    COPY_FIELD(mTopic)
-    COPY_FIELD(mReason)
-    COPY_FIELD(mResultCode)
-    COPY_FIELD(mResultReason)
-    COPY_FIELD(mError)
-    COPY_FIELD(mRxBytes)
-    COPY_FIELD(mTxBytes)
-    COPY_FIELD(mDate)
-    COPY_FIELD(mEnable)
-    COPY_FIELD(mResult)
-    COPY_FIELD(mSuccess)
-    COPY_FIELD(mCurExternalIfname)
-    COPY_FIELD(mCurInternalIfname)
-#undef COPY_FIELD
   }
 
-  NS_IMETHOD Run()
+  NS_IMETHOD Run() override
   {
     MOZ_ASSERT(NS_IsMainThread());
 
@@ -70,7 +53,7 @@ private:
 };
 
 // Runnable used dispatch netd command on the worker thread.
-class NetworkCommandDispatcher : public nsRunnable
+class NetworkCommandDispatcher : public Runnable
 {
 public:
   NetworkCommandDispatcher(const NetworkParams& aParams)
@@ -79,7 +62,7 @@ public:
     MOZ_ASSERT(NS_IsMainThread());
   }
 
-  NS_IMETHOD Run()
+  NS_IMETHOD Run() override
   {
     MOZ_ASSERT(!NS_IsMainThread());
 
@@ -93,7 +76,7 @@ private:
 };
 
 // Runnable used dispatch netd result on the worker thread.
-class NetdEventRunnable : public nsRunnable
+class NetdEventRunnable : public Runnable
 {
 public:
   NetdEventRunnable(NetdCommand* aCommand)
@@ -102,7 +85,7 @@ public:
     MOZ_ASSERT(!NS_IsMainThread());
   }
 
-  NS_IMETHOD Run()
+  NS_IMETHOD Run() override
   {
     MOZ_ASSERT(!NS_IsMainThread());
 
@@ -152,7 +135,7 @@ NetworkWorker::~NetworkWorker()
 already_AddRefed<NetworkWorker>
 NetworkWorker::FactoryCreate()
 {
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+  if (!XRE_IsParentProcess()) {
     return nullptr;
   }
 
@@ -166,7 +149,7 @@ NetworkWorker::FactoryCreate()
     ClearOnShutdown(&gNetworkUtils);
   }
 
-  nsRefPtr<NetworkWorker> worker = gNetworkWorker.get();
+  RefPtr<NetworkWorker> worker = gNetworkWorker.get();
   return worker.forget();
 }
 

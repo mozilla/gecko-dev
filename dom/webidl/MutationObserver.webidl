@@ -7,6 +7,7 @@
  * http://dom.spec.whatwg.org
  */
 
+[ProbablyShortLivingObject]
 interface MutationRecord {
   [Constant]
   readonly attribute DOMString type;
@@ -28,6 +29,12 @@ interface MutationRecord {
   readonly attribute DOMString? attributeNamespace;
   [Constant]
   readonly attribute DOMString? oldValue;
+  [Constant,Cached,ChromeOnly]
+  readonly attribute sequence<Animation> addedAnimations;
+  [Constant,Cached,ChromeOnly]
+  readonly attribute sequence<Animation> changedAnimations;
+  [Constant,Cached,ChromeOnly]
+  readonly attribute sequence<Animation> removedAnimations;
 };
 
 [Constructor(MutationCallback mutationCallback)]
@@ -37,21 +44,27 @@ interface MutationObserver {
   void disconnect();
   sequence<MutationRecord> takeRecords();
 
-  [ChromeOnly]
+  [ChromeOnly, Throws]
   sequence<MutationObservingInfo?> getObservingInfo();
   [ChromeOnly]
   readonly attribute MutationCallback mutationCallback;
+  [ChromeOnly]
+  attribute boolean mergeAttributeRecords;
 };
 
 callback MutationCallback = void (sequence<MutationRecord> mutations, MutationObserver observer);
 
 dictionary MutationObserverInit {
   boolean childList = false;
-  boolean attributes = false;
-  boolean characterData = false;
+  boolean attributes;
+  boolean characterData;
   boolean subtree = false;
-  boolean attributeOldValue = false;
-  boolean characterDataOldValue = false;
+  boolean attributeOldValue;
+  boolean characterDataOldValue;
+  [ChromeOnly]
+  boolean nativeAnonymousChildList = false;
+  [ChromeOnly]
+  boolean animations = false;
   sequence<DOMString> attributeFilter;
 };
 

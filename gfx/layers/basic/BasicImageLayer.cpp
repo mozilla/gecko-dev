@@ -10,11 +10,10 @@
 #include "basic/BasicImplData.h"        // for BasicImplData
 #include "basic/BasicLayers.h"          // for BasicLayerManager
 #include "mozilla/mozalloc.h"           // for operator new
-#include "nsAutoPtr.h"                  // for nsRefPtr, getter_AddRefs, etc
 #include "nsCOMPtr.h"                   // for already_AddRefed
 #include "nsDebug.h"                    // for NS_ASSERTION
 #include "nsISupportsImpl.h"            // for gfxPattern::Release, etc
-#include "nsRect.h"                     // for nsIntRect
+#include "nsRect.h"                     // for mozilla::gfx::IntRect
 #include "nsRegion.h"                   // for nsIntRegion
 #include "mozilla/gfx/Point.h"          // for IntSize
 
@@ -25,19 +24,20 @@ namespace layers {
 
 class BasicImageLayer : public ImageLayer, public BasicImplData {
 public:
-  BasicImageLayer(BasicLayerManager* aLayerManager) :
-    ImageLayer(aLayerManager,
-               static_cast<BasicImplData*>(MOZ_THIS_IN_INITIALIZER_LIST())),
+  explicit BasicImageLayer(BasicLayerManager* aLayerManager) :
+    ImageLayer(aLayerManager, static_cast<BasicImplData*>(this)),
     mSize(-1, -1)
   {
     MOZ_COUNT_CTOR(BasicImageLayer);
   }
+protected:
   virtual ~BasicImageLayer()
   {
     MOZ_COUNT_DTOR(BasicImageLayer);
   }
 
-  virtual void SetVisibleRegion(const nsIntRegion& aRegion)
+public:
+  virtual void SetVisibleRegion(const LayerIntRegion& aRegion) override
   {
     NS_ASSERTION(BasicManager()->InConstruction(),
                  "Can only set properties in construction phase");
@@ -46,21 +46,15 @@ public:
 
   virtual void Paint(DrawTarget* aDT,
                      const gfx::Point& aDeviceOffset,
-                     Layer* aMaskLayer) MOZ_OVERRIDE;
+                     Layer* aMaskLayer) override;
 
-  virtual TemporaryRef<SourceSurface> GetAsSourceSurface() MOZ_OVERRIDE;
+  virtual already_AddRefed<SourceSurface> GetAsSourceSurface() override;
 
 protected:
   BasicLayerManager* BasicManager()
   {
     return static_cast<BasicLayerManager*>(mManager);
   }
-
-  // only paints the image if aContext is non-null
-  void
-  GetAndPaintCurrentImage(DrawTarget* aTarget,
-                          float aOpacity,
-                          SourceSurface* aMaskSurface);
 
   gfx::IntSize mSize;
 };
@@ -74,79 +68,52 @@ BasicImageLayer::Paint(DrawTarget* aDT,
     return;
   }
 
+  RefPtr<ImageFactory> originalIF = mContainer->GetImageFactory();
   mContainer->SetImageFactory(mManager->IsCompositingCheap() ? nullptr : BasicManager()->GetImageFactory());
 
-  RefPtr<gfx::SourceSurface> surface;
-  AutoLockImage autoLock(mContainer, &surface);
+  AutoLockImage autoLock(mContainer);
   Image *image = autoLock.GetImage();
-  gfx::IntSize size = mSize = autoLock.GetSize();
-
+  if (!image) {
+    mContainer->SetImageFactory(originalIF);
+    return;
+  }
+  RefPtr<gfx::SourceSurface> surface = image->GetAsSourceSurface();
   if (!surface || !surface->IsValid()) {
+    mContainer->SetImageFactory(originalIF);
     return;
   }
 
-  FillRectWithMask(aDT, aDeviceOffset, Rect(0, 0, size.width, size.height), 
-                   surface, ToFilter(mFilter),
+  gfx::IntSize size = mSize = surface->GetSize();
+  FillRectWithMask(aDT, aDeviceOffset, Rect(0, 0, size.width, size.height),
+                   surface, mSamplingFilter,
                    DrawOptions(GetEffectiveOpacity(), GetEffectiveOperator(this)),
                    aMaskLayer);
 
-  GetContainer()->NotifyPaintedImage(image);
+  mContainer->SetImageFactory(originalIF);
 }
 
-void
-BasicImageLayer::GetAndPaintCurrentImage(DrawTarget* aTarget,
-                                         float aOpacity,
-                                         SourceSurface* aMaskSurface)
-{
-  if (!mContainer) {
-    return;
-  }
-
-  mContainer->SetImageFactory(mManager->IsCompositingCheap() ?
-                              nullptr :
-                              BasicManager()->GetImageFactory());
-  IntSize size;
-  Image* image = nullptr;
-  RefPtr<SourceSurface> surf =
-    mContainer->LockCurrentAsSourceSurface(&size, &image);
-
-  if (!surf) {
-    return;
-  }
-
-  if (aTarget) {
-    // The visible region can extend outside the image, so just draw
-    // within the image bounds.
-    SurfacePattern pat(surf, ExtendMode::CLAMP, Matrix(), ToFilter(mFilter));
-    CompositionOp op = GetEffectiveOperator(this);
-    DrawOptions opts(aOpacity, op);
-
-    aTarget->MaskSurface(pat, aMaskSurface, Point(0, 0), opts);
-
-    GetContainer()->NotifyPaintedImage(image);
-  }
-
-  mContainer->UnlockCurrentImage();
-}
-
-TemporaryRef<SourceSurface>
+already_AddRefed<SourceSurface>
 BasicImageLayer::GetAsSourceSurface()
 {
   if (!mContainer) {
     return nullptr;
   }
 
-  gfx::IntSize dontCare;
-  return mContainer->GetCurrentAsSourceSurface(&dontCare);
+  AutoLockImage lockImage(mContainer);
+  Image* image = lockImage.GetImage();
+  if (!image) {
+    return nullptr;
+  }
+  return image->GetAsSourceSurface();
 }
 
 already_AddRefed<ImageLayer>
 BasicLayerManager::CreateImageLayer()
 {
   NS_ASSERTION(InConstruction(), "Only allowed in construction phase");
-  nsRefPtr<ImageLayer> layer = new BasicImageLayer(this);
+  RefPtr<ImageLayer> layer = new BasicImageLayer(this);
   return layer.forget();
 }
 
-}
-}
+} // namespace layers
+} // namespace mozilla

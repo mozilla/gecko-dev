@@ -13,11 +13,13 @@ class nsISupports;
 class nsCycleCollectionNoteRootCallback
 {
 public:
-  NS_IMETHOD_(void) NoteXPCOMRoot(nsISupports *root) = 0;
-  NS_IMETHOD_(void) NoteJSRoot(void *root) = 0;
-  NS_IMETHOD_(void) NoteNativeRoot(void *root, nsCycleCollectionParticipant *participant) = 0;
+  NS_IMETHOD_(void) NoteXPCOMRoot(nsISupports* aRoot) = 0;
+  NS_IMETHOD_(void) NoteJSRoot(JSObject* aRoot) = 0;
+  NS_IMETHOD_(void) NoteNativeRoot(void* aRoot,
+                                   nsCycleCollectionParticipant* aParticipant) = 0;
 
-  NS_IMETHOD_(void) NoteWeakMapping(void *map, void *key, void *kdelegate, void *val) = 0;
+  NS_IMETHOD_(void) NoteWeakMapping(JSObject* aMap, JS::GCCellPtr aKey,
+                                    JSObject* aKeyDelegate, JS::GCCellPtr aVal) = 0;
 
   bool WantAllTraces() const { return mWantAllTraces; }
 protected:

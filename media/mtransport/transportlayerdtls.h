@@ -10,11 +10,12 @@
 #define transportlayerdtls_h__
 
 #include <queue>
+#include <set>
 
 #include "sigslot.h"
 
 #include "mozilla/RefPtr.h"
-#include "mozilla/Scoped.h"
+#include "mozilla/UniquePtr.h"
 #include "nsCOMPtr.h"
 #include "nsIEventTarget.h"
 #include "nsITimer.h"
@@ -30,25 +31,27 @@ struct Packet;
 
 class TransportLayerNSPRAdapter {
  public:
-  TransportLayerNSPRAdapter(TransportLayer *output) :
+  explicit TransportLayerNSPRAdapter(TransportLayer *output) :
   output_(output),
-  input_() {}
+  input_(),
+  enabled_(true) {}
 
   void PacketReceived(const void *data, int32_t len);
-  int32_t Read(void *data, int32_t len);
+  int32_t Recv(void *buf, int32_t buflen);
   int32_t Write(const void *buf, int32_t length);
+  void SetEnabled(bool enabled) { enabled_ = enabled; }
 
  private:
   DISALLOW_COPY_ASSIGN(TransportLayerNSPRAdapter);
 
   TransportLayer *output_;
   std::queue<Packet *> input_;
+  bool enabled_;
 };
 
-class TransportLayerDtls : public TransportLayer {
+class TransportLayerDtls final : public TransportLayer {
  public:
   TransportLayerDtls() :
-      TransportLayer(DGRAM),
       role_(CLIENT),
       verification_mode_(VERIFY_UNSET),
       ssl_fd_(nullptr),
@@ -68,23 +71,25 @@ class TransportLayerDtls : public TransportLayer {
   void SetIdentity(const RefPtr<DtlsIdentity>& identity) {
     identity_ = identity;
   }
+  nsresult SetAlpn(const std::set<std::string>& allowedAlpn,
+                   const std::string& alpnDefault);
+  const std::string& GetNegotiatedAlpn() const { return alpn_; }
+
   nsresult SetVerificationAllowAll();
   nsresult SetVerificationDigest(const std::string digest_algorithm,
                                  const unsigned char *digest_value,
                                  size_t digest_len);
 
+  nsresult GetCipherSuite(uint16_t* cipherSuite) const;
+
   nsresult SetSrtpCiphers(std::vector<uint16_t> ciphers);
-  nsresult GetSrtpCipher(uint16_t *cipher);
+  nsresult GetSrtpCipher(uint16_t *cipher) const;
 
   nsresult ExportKeyingMaterial(const std::string& label,
                                 bool use_context,
                                 const std::string& context,
                                 unsigned char *out,
                                 unsigned int outlen);
-
-  const CERTCertificate *GetPeerCert() const {
-    return peer_cert_;
-  }
 
   // Transport layer overrides.
   virtual nsresult InitInternal();
@@ -95,6 +100,9 @@ class TransportLayerDtls : public TransportLayer {
   void StateChange(TransportLayer *layer, State state);
   void PacketReceived(TransportLayer* layer, const unsigned char *data,
                       size_t len);
+
+  // For testing use only.  Returns the fd.
+  PRFileDesc* internal_fd() { CheckThread(); return ssl_fd_.get(); }
 
   TRANSPORT_LAYER_ID("dtls")
 
@@ -120,12 +128,17 @@ class TransportLayerDtls : public TransportLayer {
     unsigned char value_[kMaxDigestLength];
 
    private:
+    ~VerificationDigest() {}
     DISALLOW_COPY_ASSIGN(VerificationDigest);
   };
 
 
   bool Setup();
+  bool SetupCipherSuites(UniquePRFileDesc& ssl_fd) const;
+  bool SetupAlpn(UniquePRFileDesc& ssl_fd) const;
   void Handshake();
+
+  bool CheckAlpn();
 
   static SECStatus GetClientAuthDataHook(void *arg, PRFileDesc *fd,
                                          CERTDistNames *caNames,
@@ -142,9 +155,16 @@ class TransportLayerDtls : public TransportLayer {
   static void TimerCallback(nsITimer *timer, void *arg);
 
   SECStatus CheckDigest(const RefPtr<VerificationDigest>& digest,
-                        CERTCertificate *cert);
+                        UniqueCERTCertificate& cert) const;
 
   RefPtr<DtlsIdentity> identity_;
+  // What ALPN identifiers are permitted.
+  std::set<std::string> alpn_allowed_;
+  // What ALPN identifier is used if ALPN is not supported.
+  // The empty string indicates that ALPN is required.
+  std::string alpn_default_;
+  // What ALPN string was negotiated.
+  std::string alpn_;
   std::vector<uint16_t> srtp_ciphers_;
 
   Role role_;
@@ -153,10 +173,9 @@ class TransportLayerDtls : public TransportLayer {
 
   // Must delete nspr_io_adapter after ssl_fd_ b/c ssl_fd_ causes an alert
   // (ssl_fd_ contains an un-owning pointer to nspr_io_adapter_)
-  ScopedDeletePtr<TransportLayerNSPRAdapter> nspr_io_adapter_;
-  ScopedPRFileDesc ssl_fd_;
+  UniquePtr<TransportLayerNSPRAdapter> nspr_io_adapter_;
+  UniquePRFileDesc ssl_fd_;
 
-  ScopedCERTCertificate peer_cert_;
   nsCOMPtr<nsITimer> timer_;
   bool auth_hook_called_;
   bool cert_ok_;

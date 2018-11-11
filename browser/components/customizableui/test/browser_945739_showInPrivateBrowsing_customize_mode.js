@@ -9,7 +9,7 @@ const kWidgetId = "test-private-browsing-customize-mode-widget";
 // Add a widget via the API with showInPrivateBrowsing set to false
 // and ensure it does not appear in the list of unused widgets in private
 // windows.
-add_task(function testPrivateBrowsingCustomizeModeWidget() {
+add_task(function* testPrivateBrowsingCustomizeModeWidget() {
   CustomizableUI.createWidget({
     id: kWidgetId,
     showInPrivateBrowsing: false
@@ -27,9 +27,9 @@ add_task(function testPrivateBrowsingCustomizeModeWidget() {
      "Widget should not appear as unused in private window");
   yield promiseWindowClosed(privateWindow);
 
-  CustomizableUI.destroyWidget(kWidgetId); 
+  CustomizableUI.destroyWidget(kWidgetId);
 });
 
-add_task(function asyncCleanup() {
+add_task(function* asyncCleanup() {
   yield resetCustomization();
 });

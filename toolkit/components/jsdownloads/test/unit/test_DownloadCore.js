@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
@@ -12,16 +12,14 @@
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadError",
                                   "resource://gre/modules/DownloadCore.jsm");
 
-////////////////////////////////////////////////////////////////////////////////
-//// Execution of common tests
+// Execution of common tests
 
-let gUseLegacySaver = false;
+var gUseLegacySaver = false;
 
-let scriptFile = do_get_file("common_test_Download.js");
+var scriptFile = do_get_file("common_test_Download.js");
 Services.scriptloader.loadSubScript(NetUtil.newURI(scriptFile).spec);
 
-////////////////////////////////////////////////////////////////////////////////
-//// Tests
+// Tests
 
 /**
  * Tests the DownloadError object.
@@ -87,9 +85,3 @@ add_task(function test_DownloadError()
   do_check_true(error.becauseBlocked);
   do_check_true(error.becauseBlockedByParentalControls);
 });
-
-////////////////////////////////////////////////////////////////////////////////
-//// Termination
-
-let tailFile = do_get_file("tail.js");
-Services.scriptloader.loadSubScript(NetUtil.newURI(tailFile).spec);

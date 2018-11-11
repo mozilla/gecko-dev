@@ -12,6 +12,7 @@
 #include "mozilla/Preferences.h"
 #include "mozJSComponentLoader.h"
 #include "nsZipArchive.h"
+#include "xpc_make_class.h"
 
 #define JSCTYPES_CONTRACTID \
   "@mozilla.org/jsctypes;1"
@@ -24,13 +25,13 @@ namespace mozilla {
 namespace ctypes {
 
 static char*
-UnicodeToNative(JSContext *cx, const jschar *source, size_t slen)
+UnicodeToNative(JSContext *cx, const char16_t *source, size_t slen)
 {
   nsAutoCString native;
   nsDependentString unicode(reinterpret_cast<const char16_t*>(source), slen);
   nsresult rv = NS_CopyUnicodeToNative(unicode, native);
   if (NS_FAILED(rv)) {
-    JS_ReportError(cx, "could not convert string to native charset");
+    JS_ReportErrorASCII(cx, "could not convert string to native charset");
     return nullptr;
   }
 
@@ -107,9 +108,7 @@ InitAndSealCTypesClass(JSContext* cx, JS::Handle<JSObject*> global)
       !SealObjectAndPrototype(cx, global, "Error"))
     return false;
 
-  // Finally, seal the global object, for good measure. (But not recursively;
-  // this breaks things.)
-  return JS_FreezeObject(cx, global);
+  return true;
 }
 
 NS_IMETHODIMP
@@ -128,8 +127,8 @@ Module::Call(nsIXPConnectWrappedNative* wrapper,
   return NS_OK;
 }
 
-}
-}
+} // namespace ctypes
+} // namespace mozilla
 
 NS_DEFINE_NAMED_CID(JSCTYPES_CID);
 

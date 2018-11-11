@@ -1,4 +1,4 @@
-// -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+// -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
 
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,7 +10,6 @@ const nsIPrefLocalizedString = Components.interfaces.nsIPrefLocalizedString;
 const nsISupportsString = Components.interfaces.nsISupportsString;
 const nsIPrefBranch = Components.interfaces.nsIPrefBranch;
 const nsIClipboardHelper = Components.interfaces.nsIClipboardHelper;
-const nsIAtomService = Components.interfaces.nsIAtomService;
 
 const nsSupportsString_CONTRACTID = "@mozilla.org/supports-string;1";
 const nsPrompt_CONTRACTID = "@mozilla.org/embedcomp/prompt-service;1";
@@ -20,7 +19,6 @@ const nsAtomService_CONTRACTID = "@mozilla.org/atom-service;1";
 
 const gPrefBranch = Services.prefs;
 const gClipboardHelper = Components.classes[nsClipboardHelper_CONTRACTID].getService(nsIClipboardHelper);
-const gAtomService = Components.classes[nsAtomService_CONTRACTID].getService(nsIAtomService);
 
 var gLockProps = ["default", "user", "locked"];
 // we get these from a string bundle
@@ -45,11 +43,11 @@ var view = {
   getCellText : function(index, col) {
     if (!(index in gPrefView))
       return "";
-    
+
     var value = gPrefView[index][col.id];
 
     switch (col.id) {
-      case "lockCol":           
+      case "lockCol":
         return gLockStrs[value];
       case "typeCol":
         return gTypeStrs[value];
@@ -95,7 +93,7 @@ var view = {
         pref = gPrefView[index];
 
       var old = document.getElementById(gSortedColumn);
-      old.setAttribute("sortDirection", "");
+      old.removeAttribute("sortDirection");
       gPrefArray.sort(gSortFunction = gSortFunctions[col.id]);
       if (gPrefView != gPrefArray)
         gPrefView.sort(gSortFunction);
@@ -112,14 +110,14 @@ var view = {
   },
   selectionChanged : function() {},
   cycleCell: function(row, col) {},
-  isEditable: function(row, col) {return false; },
-  isSelectable: function(row, col) {return false; },
+  isEditable: function(row, col) { return false; },
+  isSelectable: function(row, col) { return false; },
   setCellValue: function(row, col, value) {},
   setCellText: function(row, col, value) {},
   performAction: function(action) {},
   performActionOnRow: function(action, row) {},
   performActionOnCell: function(action, row, col) {},
-  isSeparator: function(index) {return false; }
+  isSeparator: function(index) { return false; }
 };
 
 // find the index in gPrefView of a pref object
@@ -361,7 +359,7 @@ function ShowPrefs()
   }
   gSortFunction = gSortFunctions[gSortedColumn];
   gPrefArray.sort(gSortFunction);
-  
+
   gPrefBranch.addObserver("", gPrefListener, false);
 
   var configTree = document.getElementById("configTree");
@@ -441,7 +439,7 @@ function prefColSortFunction(x, y)
 {
   if (x.prefCol > y.prefCol)
     return gSortDirection;
-  if (x.prefCol < y.prefCol) 
+  if (x.prefCol < y.prefCol)
     return -gSortDirection;
   return 0;
 }
@@ -455,7 +453,7 @@ function lockColSortFunction(x, y)
 
 function typeColSortFunction(x, y)
 {
-  if (x.typeCol != y.typeCol) 
+  if (x.typeCol != y.typeCol)
     return gSortDirection * (y.typeCol - x.typeCol);
   return prefColSortFunction(x, y);
 }
@@ -464,16 +462,16 @@ function valueColSortFunction(x, y)
 {
   if (x.valueCol > y.valueCol)
     return gSortDirection;
-  if (x.valueCol < y.valueCol) 
+  if (x.valueCol < y.valueCol)
     return -gSortDirection;
   return prefColSortFunction(x, y);
 }
 
 const gSortFunctions =
 {
-  prefCol: prefColSortFunction, 
-  lockCol: lockColSortFunction, 
-  typeCol: typeColSortFunction, 
+  prefCol: prefColSortFunction,
+  lockCol: lockColSortFunction,
+  typeCol: typeColSortFunction,
   valueCol: valueColSortFunction
 };
 
@@ -535,17 +533,17 @@ function updateContextMenu()
 function copyPref()
 {
   var pref = gPrefView[view.selection.currentIndex];
-  gClipboardHelper.copyString(pref.prefCol + ';' + pref.valueCol, document);
+  gClipboardHelper.copyString(pref.prefCol + ';' + pref.valueCol);
 }
 
 function copyName()
 {
-  gClipboardHelper.copyString(gPrefView[view.selection.currentIndex].prefCol, document);
+  gClipboardHelper.copyString(gPrefView[view.selection.currentIndex].prefCol);
 }
 
 function copyValue()
 {
-  gClipboardHelper.copyString(gPrefView[view.selection.currentIndex].valueCol, document);
+  gClipboardHelper.copyString(gPrefView[view.selection.currentIndex].valueCol);
 }
 
 function ModifySelected()

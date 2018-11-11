@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 // Copyright (c) 2006-2008 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -7,7 +9,7 @@
 
 #include "base/message_pump.h"
 #include "base/time.h"
-#include "nsAutoPtr.h"
+#include "mozilla/UniquePtr.h"
 
 // Declare structs we need from libevent.h rather than including it
 struct event_base;
@@ -62,7 +64,6 @@ class MessagePumpLibevent : public MessagePump {
   };
 
   MessagePumpLibevent();
-  virtual ~MessagePumpLibevent();
 
   enum Mode {
     WATCH_READ = 1 << 0,
@@ -134,10 +135,14 @@ class MessagePumpLibevent : public MessagePump {
 
 
   // MessagePump methods:
-  virtual void Run(Delegate* delegate);
-  virtual void Quit();
-  virtual void ScheduleWork();
-  virtual void ScheduleDelayedWork(const TimeTicks& delayed_work_time);
+  virtual void Run(Delegate* delegate) override;
+  virtual void Quit() override;
+  virtual void ScheduleWork() override;
+  virtual void ScheduleDelayedWork(const TimeTicks& delayed_work_time) override;
+
+ protected:
+
+  virtual ~MessagePumpLibevent();
 
  private:
 
@@ -189,7 +194,7 @@ public:
     mBufferSize(aBufferSize),
     mTerminator(aTerminator)
   {
-    mReceiveBuffer = new char[mBufferSize];
+    mReceiveBuffer = mozilla::MakeUnique<char[]>(mBufferSize);
   }
 
   ~LineWatcher() {}
@@ -201,11 +206,11 @@ protected:
    */
   virtual void OnError() {}
   virtual void OnLineRead(int aFd, nsDependentCSubstring& aMessage) = 0;
-  virtual void OnFileCanWriteWithoutBlocking(int /* aFd */) {}
+  virtual void OnFileCanWriteWithoutBlocking(int /* aFd */) override {}
 private:
-  virtual void OnFileCanReadWithoutBlocking(int aFd) MOZ_FINAL;
+  virtual void OnFileCanReadWithoutBlocking(int aFd) final override;
 
-  nsAutoPtr<char> mReceiveBuffer;
+  mozilla::UniquePtr<char[]> mReceiveBuffer;
   int mReceivedIndex;
   int mBufferSize;
   char mTerminator;

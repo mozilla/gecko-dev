@@ -6,11 +6,9 @@
 #define __nsFontFace_h__
 
 #include "nsIDOMFontFace.h"
-#include "nsAutoPtr.h"
 
 class gfxFontEntry;
 class gfxFontGroup;
-class nsCSSFontFaceRule;
 
 class nsFontFace : public nsIDOMFontFace
 {
@@ -21,7 +19,6 @@ public:
   nsFontFace(gfxFontEntry*      aFontEntry,
              gfxFontGroup*      aFontGroup,
              uint8_t            aMatchInfo);
-  virtual ~nsFontFace();
 
   gfxFontEntry* GetFontEntry() const { return mFontEntry.get(); }
 
@@ -30,8 +27,10 @@ public:
   }
 
 protected:
-  nsRefPtr<gfxFontEntry> mFontEntry;
-  nsRefPtr<gfxFontGroup> mFontGroup;
+  virtual ~nsFontFace();
+
+  RefPtr<gfxFontEntry> mFontEntry;
+  RefPtr<gfxFontGroup> mFontGroup;
   uint8_t mMatchType;
 };
 

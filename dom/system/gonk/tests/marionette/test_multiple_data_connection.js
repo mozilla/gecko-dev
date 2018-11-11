@@ -24,7 +24,10 @@ function setEmulatorAPN() {
                  "types":["ims"] },
                { "carrier":"T-Mobile US",
                  "apn":"epc5.tmobile.com",
-                 "types":["dun"] }]];
+                 "types":["dun"] },
+               { "carrier":"T-Mobile US",
+                 "apn":"epc6.tmobile.com",
+                 "types":["fota"] }]];
 
   return setSettings(SETTINGS_KEY_DATA_APN_SETTINGS, apn);
 }
@@ -44,10 +47,9 @@ function testSetupConcurrentDataCalls() {
   log("= testSetupConcurrentDataCalls =");
 
   let promise = Promise.resolve();
-  let types = Object.keys(mobileTypeMapping);
   // Skip default mobile type.
   for (let i = 1; i < MAX_DATA_CONTEXTS; i++) {
-    let type = types[i];
+    let type = networkTypes[i];
     promise = promise.then(() => setupDataCallAndWait(type));
   }
   return promise;
@@ -57,10 +59,9 @@ function testDeactivateConcurrentDataCalls() {
   log("= testDeactivateConcurrentDataCalls =");
 
   let promise = Promise.resolve();
-  let types = Object.keys(mobileTypeMapping);
   // Skip default mobile type.
   for (let i = 1; i < MAX_DATA_CONTEXTS; i++) {
-    let type = types[i];
+    let type = networkTypes[i];
     promise = promise.then(() => deactivateDataCallAndWait(type));
   }
   return promise;

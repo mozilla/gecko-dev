@@ -2,8 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
+
 import os
+import sys
+import argparse
 
 from mozbuild.base import (
     MachCommandBase,
@@ -16,93 +19,63 @@ from mach.decorators import (
     Command,
 )
 
-MARIONETTE_DISABLED_B2G = '''
-The %s command requires a Marionette-enabled build.
+def is_firefox_or_android(cls):
+    """Must have Firefox build or Android build."""
+    return conditions.is_firefox(cls) or conditions.is_android(cls)
 
-Please create an engineering build, which has Marionette enabled.  You can do
-this by ommitting the VARIANT variable when building, or using:
+def setup_marionette_argument_parser():
+    from marionette_harness.runtests import MarionetteArguments
+    from mozlog.structured import commandline
+    parser = MarionetteArguments()
+    commandline.add_logging_group(parser)
+    return parser
 
-VARIANT=eng ./build.sh
-'''
+def run_marionette(tests, binary=None, topsrcdir=None, **kwargs):
+    from mozlog.structured import commandline
 
-def run_marionette(tests, b2g_path=None, emulator=None, testtype=None,
-    address=None, bin=None, topsrcdir=None):
-    from marionette.runtests import (
+    from marionette_harness.runtests import (
         MarionetteTestRunner,
-        BaseMarionetteOptions,
-        startTestRunner
+        MarionetteHarness
     )
 
-    parser = BaseMarionetteOptions()
-    options, args = parser.parse_args()
+    parser = setup_marionette_argument_parser()
 
     if not tests:
         tests = [os.path.join(topsrcdir,
-                    'testing/marionette/client/marionette/tests/unit-tests.ini')]
+                 'testing/marionette/harness/marionette_harness/tests/unit-tests.ini')]
 
-    options.type = testtype
-    if b2g_path:
-        options.homedir = b2g_path
-        if emulator:
-            options.emulator = emulator
-    else:
-        options.bin = bin
-        path, exe = os.path.split(options.bin)
+    args = argparse.Namespace(tests=tests)
 
-    options.address = address
+    args.binary = binary
 
-    parser.verify_usage(options, tests)
+    for k, v in kwargs.iteritems():
+        setattr(args, k, v)
 
-    runner = startTestRunner(MarionetteTestRunner, options, tests)
-    if runner.failed > 0:
+    parser.verify_usage(args)
+
+    args.logger = commandline.setup_logging("Marionette Unit Tests",
+                                            args,
+                                            {"mach": sys.stdout})
+    failed = MarionetteHarness(MarionetteTestRunner, args=vars(args)).run()
+    if failed > 0:
         return 1
-
-    return 0
-
-@CommandProvider
-class B2GCommands(MachCommandBase):
-    def __init__(self, context):
-        MachCommandBase.__init__(self, context)
-
-        for attr in ('b2g_home', 'device_name'):
-            setattr(self, attr, getattr(context, attr, None))
-    @Command('marionette-webapi', category='testing',
-        description='Run a Marionette webapi test',
-        conditions=[conditions.is_b2g])
-    @CommandArgument('--type', dest='testtype',
-        help='Test type, usually one of: browser, b2g, b2g-qemu.',
-        default='b2g')
-    @CommandArgument('tests', nargs='*', metavar='TESTS',
-        help='Path to test(s) to run.')
-    def run_marionette_webapi(self, tests, testtype=None):
-        emulator = None
-        if self.device_name:
-            if self.device_name.startswith('emulator'):
-                emulator = 'arm'
-                if 'x86' in self.device_name:
-                    emulator = 'x86'
-
-        if self.substs.get('ENABLE_MARIONETTE') != '1':
-            print(MARIONETTE_DISABLED_B2G % 'marionette-webapi')
-            return 1
-
-        return run_marionette(tests, b2g_path=self.b2g_home, emulator=emulator,
-            testtype=testtype, topsrcdir=self.topsrcdir, address=None)
-
+    else:
+        return 0
 
 @CommandProvider
 class MachCommands(MachCommandBase):
     @Command('marionette-test', category='testing',
-        description='Run a Marionette test.',
-        conditions=[conditions.is_firefox])
-    @CommandArgument('--address',
-        help='host:port of running Gecko instance to connect to.')
-    @CommandArgument('--type', dest='testtype',
-        help='Test type, usually one of: browser, b2g, b2g-qemu.',
-        default='browser')
-    @CommandArgument('tests', nargs='*', metavar='TESTS',
-        help='Path to test(s) to run.')
-    def run_marionette_test(self, tests, address=None, testtype=None):
-        bin = self.get_binary_path('app')
-        return run_marionette(tests, bin=bin, testtype=testtype,
-            topsrcdir=self.topsrcdir, address=address)
+        description='Run a Marionette test (Check UI or the internal JavaScript using marionette).',
+        conditions=[is_firefox_or_android],
+        parser=setup_marionette_argument_parser,
+    )
+    def run_marionette_test(self, tests, **kwargs):
+        if 'test_objects' in kwargs:
+            tests = []
+            for obj in kwargs['test_objects']:
+                tests.append(obj['file_relpath'])
+            del kwargs['test_objects']
+
+        if not kwargs.get('binary') and conditions.is_firefox(self):
+            kwargs['binary'] = self.get_binary_path('app')
+        return run_marionette(tests, topsrcdir=self.topsrcdir, **kwargs)

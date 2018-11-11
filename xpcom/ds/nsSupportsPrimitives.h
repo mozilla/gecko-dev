@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,292 +13,292 @@
 #include "nsCOMPtr.h"
 #include "nsString.h"
 
-class nsSupportsIDImpl MOZ_FINAL : public nsISupportsID
+class nsSupportsID final : public nsISupportsID
 {
 public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISUPPORTSPRIMITIVE
-    NS_DECL_NSISUPPORTSID
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISUPPORTSPRIMITIVE
+  NS_DECL_NSISUPPORTSID
 
-    nsSupportsIDImpl();
+  nsSupportsID();
 
 private:
-    ~nsSupportsIDImpl() { }
+  ~nsSupportsID() {}
 
-    nsID *mData;
+  nsID* mData;
 };
 
 /***************************************************************************/
 
-class nsSupportsCStringImpl MOZ_FINAL : public nsISupportsCString
+class nsSupportsCString final : public nsISupportsCString
 {
 public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISUPPORTSPRIMITIVE
-    NS_DECL_NSISUPPORTSCSTRING
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISUPPORTSPRIMITIVE
+  NS_DECL_NSISUPPORTSCSTRING
 
-    nsSupportsCStringImpl() {}
+  nsSupportsCString() {}
 
 private:
-    ~nsSupportsCStringImpl() {}
-    
-    nsCString mData;
+  ~nsSupportsCString() {}
+
+  nsCString mData;
 };
 
 /***************************************************************************/
 
-class nsSupportsStringImpl MOZ_FINAL : public nsISupportsString
+class nsSupportsString final : public nsISupportsString
 {
 public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISUPPORTSPRIMITIVE
-    NS_DECL_NSISUPPORTSSTRING
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISUPPORTSPRIMITIVE
+  NS_DECL_NSISUPPORTSSTRING
 
-    nsSupportsStringImpl() {}
+  nsSupportsString() {}
 
 private:
-    ~nsSupportsStringImpl() {}
-    
-    nsString mData;
+  ~nsSupportsString() {}
+
+  nsString mData;
 };
 
 /***************************************************************************/
 
-class nsSupportsPRBoolImpl MOZ_FINAL : public nsISupportsPRBool
+class nsSupportsPRBool final : public nsISupportsPRBool
 {
 public:
-    NS_DECL_THREADSAFE_ISUPPORTS
-    NS_DECL_NSISUPPORTSPRIMITIVE
-    NS_DECL_NSISUPPORTSPRBOOL
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSISUPPORTSPRIMITIVE
+  NS_DECL_NSISUPPORTSPRBOOL
 
-    nsSupportsPRBoolImpl();
+  nsSupportsPRBool();
 
 private:
-    ~nsSupportsPRBoolImpl() {}
+  ~nsSupportsPRBool() {}
 
-    bool mData;
+  bool mData;
 };
 
 /***************************************************************************/
 
-class nsSupportsPRUint8Impl MOZ_FINAL : public nsISupportsPRUint8
+class nsSupportsPRUint8 final : public nsISupportsPRUint8
 {
 public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISUPPORTSPRIMITIVE
-    NS_DECL_NSISUPPORTSPRUINT8
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISUPPORTSPRIMITIVE
+  NS_DECL_NSISUPPORTSPRUINT8
 
-    nsSupportsPRUint8Impl();
+  nsSupportsPRUint8();
 
 private:
-    ~nsSupportsPRUint8Impl() {}
+  ~nsSupportsPRUint8() {}
 
-    uint8_t mData;
+  uint8_t mData;
 };
 
 /***************************************************************************/
 
-class nsSupportsPRUint16Impl MOZ_FINAL : public nsISupportsPRUint16
+class nsSupportsPRUint16 final : public nsISupportsPRUint16
 {
 public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISUPPORTSPRIMITIVE
-    NS_DECL_NSISUPPORTSPRUINT16
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISUPPORTSPRIMITIVE
+  NS_DECL_NSISUPPORTSPRUINT16
 
-    nsSupportsPRUint16Impl();
+  nsSupportsPRUint16();
 
 private:
-    ~nsSupportsPRUint16Impl() {}
+  ~nsSupportsPRUint16() {}
 
-    uint16_t mData;
+  uint16_t mData;
 };
 
 /***************************************************************************/
 
-class nsSupportsPRUint32Impl MOZ_FINAL : public nsISupportsPRUint32
+class nsSupportsPRUint32 final : public nsISupportsPRUint32
 {
 public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISUPPORTSPRIMITIVE
-    NS_DECL_NSISUPPORTSPRUINT32
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISUPPORTSPRIMITIVE
+  NS_DECL_NSISUPPORTSPRUINT32
 
-    nsSupportsPRUint32Impl();
+  nsSupportsPRUint32();
 
 private:
-    ~nsSupportsPRUint32Impl() {}
+  ~nsSupportsPRUint32() {}
 
-    uint32_t mData;
+  uint32_t mData;
 };
 
 /***************************************************************************/
 
-class nsSupportsPRUint64Impl MOZ_FINAL : public nsISupportsPRUint64
+class nsSupportsPRUint64 final : public nsISupportsPRUint64
 {
 public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISUPPORTSPRIMITIVE
-    NS_DECL_NSISUPPORTSPRUINT64
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISUPPORTSPRIMITIVE
+  NS_DECL_NSISUPPORTSPRUINT64
 
-    nsSupportsPRUint64Impl();
+  nsSupportsPRUint64();
 
 private:
-    ~nsSupportsPRUint64Impl() {}
+  ~nsSupportsPRUint64() {}
 
-    uint64_t mData;
+  uint64_t mData;
 };
 
 /***************************************************************************/
 
-class nsSupportsPRTimeImpl MOZ_FINAL : public nsISupportsPRTime
+class nsSupportsPRTime final : public nsISupportsPRTime
 {
 public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISUPPORTSPRIMITIVE
-    NS_DECL_NSISUPPORTSPRTIME
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISUPPORTSPRIMITIVE
+  NS_DECL_NSISUPPORTSPRTIME
 
-    nsSupportsPRTimeImpl();
+  nsSupportsPRTime();
 
 private:
-    ~nsSupportsPRTimeImpl() {}
+  ~nsSupportsPRTime() {}
 
-    PRTime mData;
+  PRTime mData;
 };
 
 /***************************************************************************/
 
-class nsSupportsCharImpl MOZ_FINAL : public nsISupportsChar
+class nsSupportsChar final : public nsISupportsChar
 {
 public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISUPPORTSPRIMITIVE
-    NS_DECL_NSISUPPORTSCHAR
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISUPPORTSPRIMITIVE
+  NS_DECL_NSISUPPORTSCHAR
 
-    nsSupportsCharImpl();
+  nsSupportsChar();
 
 private:
-    ~nsSupportsCharImpl() {}
+  ~nsSupportsChar() {}
 
-    char mData;
+  char mData;
 };
 
 /***************************************************************************/
 
-class nsSupportsPRInt16Impl MOZ_FINAL : public nsISupportsPRInt16
+class nsSupportsPRInt16 final : public nsISupportsPRInt16
 {
 public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISUPPORTSPRIMITIVE
-    NS_DECL_NSISUPPORTSPRINT16
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISUPPORTSPRIMITIVE
+  NS_DECL_NSISUPPORTSPRINT16
 
-    nsSupportsPRInt16Impl();
+  nsSupportsPRInt16();
 
 private:
-    ~nsSupportsPRInt16Impl() {}
+  ~nsSupportsPRInt16() {}
 
-    int16_t mData;
+  int16_t mData;
 };
 
 /***************************************************************************/
 
-class nsSupportsPRInt32Impl MOZ_FINAL : public nsISupportsPRInt32
+class nsSupportsPRInt32 final : public nsISupportsPRInt32
 {
 public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISUPPORTSPRIMITIVE
-    NS_DECL_NSISUPPORTSPRINT32
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISUPPORTSPRIMITIVE
+  NS_DECL_NSISUPPORTSPRINT32
 
-    nsSupportsPRInt32Impl();
+  nsSupportsPRInt32();
 
 private:
-    ~nsSupportsPRInt32Impl() {}
+  ~nsSupportsPRInt32() {}
 
-    int32_t mData;
+  int32_t mData;
 };
 
 /***************************************************************************/
 
-class nsSupportsPRInt64Impl MOZ_FINAL : public nsISupportsPRInt64
+class nsSupportsPRInt64 final : public nsISupportsPRInt64
 {
 public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISUPPORTSPRIMITIVE
-    NS_DECL_NSISUPPORTSPRINT64
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISUPPORTSPRIMITIVE
+  NS_DECL_NSISUPPORTSPRINT64
 
-    nsSupportsPRInt64Impl();
+  nsSupportsPRInt64();
 
 private:
-    ~nsSupportsPRInt64Impl() {}
+  ~nsSupportsPRInt64() {}
 
-    int64_t mData;
+  int64_t mData;
 };
 
 /***************************************************************************/
 
-class nsSupportsFloatImpl MOZ_FINAL : public nsISupportsFloat
+class nsSupportsFloat final : public nsISupportsFloat
 {
 public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISUPPORTSPRIMITIVE
-    NS_DECL_NSISUPPORTSFLOAT
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISUPPORTSPRIMITIVE
+  NS_DECL_NSISUPPORTSFLOAT
 
-    nsSupportsFloatImpl();
+  nsSupportsFloat();
 
 private:
-    ~nsSupportsFloatImpl() {}
+  ~nsSupportsFloat() {}
 
-    float mData;
+  float mData;
 };
 
 /***************************************************************************/
 
-class nsSupportsDoubleImpl MOZ_FINAL : public nsISupportsDouble
+class nsSupportsDouble final : public nsISupportsDouble
 {
 public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISUPPORTSPRIMITIVE
-    NS_DECL_NSISUPPORTSDOUBLE
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISUPPORTSPRIMITIVE
+  NS_DECL_NSISUPPORTSDOUBLE
 
-    nsSupportsDoubleImpl();
+  nsSupportsDouble();
 
 private:
-    ~nsSupportsDoubleImpl() {}
+  ~nsSupportsDouble() {}
 
-    double mData;
+  double mData;
 };
 
 /***************************************************************************/
 
-class nsSupportsVoidImpl MOZ_FINAL : public nsISupportsVoid
+class nsSupportsVoid final : public nsISupportsVoid
 {
 public:
-    NS_DECL_THREADSAFE_ISUPPORTS
-    NS_DECL_NSISUPPORTSPRIMITIVE
-    NS_DECL_NSISUPPORTSVOID
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSISUPPORTSPRIMITIVE
+  NS_DECL_NSISUPPORTSVOID
 
-    nsSupportsVoidImpl();
+  nsSupportsVoid();
 
 private:
-    ~nsSupportsVoidImpl() {}
+  ~nsSupportsVoid() {}
 
-    void* mData;
+  void* mData;
 };
 
 /***************************************************************************/
 
-class nsSupportsInterfacePointerImpl MOZ_FINAL : public nsISupportsInterfacePointer
+class nsSupportsInterfacePointer final : public nsISupportsInterfacePointer
 {
 public:
-    NS_DECL_THREADSAFE_ISUPPORTS
-    NS_DECL_NSISUPPORTSPRIMITIVE
-    NS_DECL_NSISUPPORTSINTERFACEPOINTER
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSISUPPORTSPRIMITIVE
+  NS_DECL_NSISUPPORTSINTERFACEPOINTER
 
-    nsSupportsInterfacePointerImpl();
+  nsSupportsInterfacePointer();
 
 private:
-    ~nsSupportsInterfacePointerImpl();
+  ~nsSupportsInterfacePointer();
 
-    nsCOMPtr<nsISupports> mData;
-    nsID *mIID;
+  nsCOMPtr<nsISupports> mData;
+  nsID* mIID;
 };
 
 /***************************************************************************/
@@ -308,14 +309,14 @@ private:
  * Only use this class with static buffers, or arena-allocated buffers of
  * permanent lifetime!
  */
-class nsSupportsDependentCString MOZ_FINAL : public nsISupportsCString
+class nsSupportsDependentCString final : public nsISupportsCString
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSISUPPORTSPRIMITIVE
   NS_DECL_NSISUPPORTSCSTRING
 
-  nsSupportsDependentCString(const char* aStr);
+  explicit nsSupportsDependentCString(const char* aStr);
 
 private:
   ~nsSupportsDependentCString() {}

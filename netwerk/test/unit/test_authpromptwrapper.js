@@ -5,6 +5,7 @@
 // - HTTPS
 // - Proxies
 
+Cu.import("resource://gre/modules/NetUtil.jsm");
 const nsIAuthInformation = Components.interfaces.nsIAuthInformation;
 const nsIAuthPromptAdapterFactory = Components.interfaces.nsIAuthPromptAdapterFactory;
 
@@ -100,9 +101,11 @@ function run_test() {
 
 
   // Also have to make up a channel
-  var ios = Components.classes["@mozilla.org/network/io-service;1"]
-                      .getService(Components.interfaces.nsIIOService);
-  var chan = ios.newChannel("http://" + host, "", null);
+  var uri = NetUtil.newURI("http://" + host, "", null)
+  var chan = NetUtil.newChannel({
+    uri: uri,
+    loadUsingSystemPrincipal: true
+  });
 
   function do_tests(expectedRV) {
     var prompt1;
@@ -199,7 +202,11 @@ function run_test() {
     info.password = "";
 
     // 5: FTP
-    var ftpchan = ios.newChannel("ftp://" + host, "", null);
+    var uri2 = NetUtil.newURI("ftp://" + host, "", null);
+    var ftpchan = NetUtil.newChannel({
+      uri: uri2,
+      loadUsingSystemPrincipal: true 
+    });
 
     prompt1 = new Prompt1();
     prompt1.rv = expectedRV;

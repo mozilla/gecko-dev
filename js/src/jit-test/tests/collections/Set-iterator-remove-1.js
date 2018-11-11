@@ -1,10 +1,10 @@
 // A set iterator can cope with removing the current entry.
 
 function test(letters, toRemove) {
-    var set = Set(letters);
-    toRemove = Set(toRemove);
+    var set = new Set(letters);
+    toRemove = new Set(toRemove);
 
-    var leftovers = [x for (x of set) if (!toRemove.has(x))].join("");
+    var leftovers = [...set].filter(x => !toRemove.has(x)).join("");
 
     var log = "";
     for (let x of set) {
@@ -14,7 +14,7 @@ function test(letters, toRemove) {
     }
     assertEq(log, letters);
 
-    var remaining = [x for (x of set)].join("");
+    var remaining = [...set].join("");
     assertEq(remaining, leftovers);
 }
 

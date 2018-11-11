@@ -12,7 +12,7 @@
 #include "nsICancelable.h"
 #include "nsIDNSRecord.h"
 #include "nsHostResolver.h"
-#include "mozilla/unused.h"
+#include "mozilla/Unused.h"
 
 using namespace mozilla::ipc;
 
@@ -20,7 +20,8 @@ namespace mozilla {
 namespace net {
 
 DNSRequestParent::DNSRequestParent()
-  : mIPCClosed(false)
+  : mFlags(0)
+  , mIPCClosed(false)
 {
 
 }
@@ -31,7 +32,8 @@ DNSRequestParent::~DNSRequestParent()
 }
 
 void
-DNSRequestParent::DoAsyncResolve(const nsACString &hostname, uint32_t flags)
+DNSRequestParent::DoAsyncResolve(const nsACString &hostname, uint32_t flags,
+                                 const nsACString &networkInterface)
 {
   nsresult rv;
   mFlags = flags;
@@ -39,13 +41,36 @@ DNSRequestParent::DoAsyncResolve(const nsACString &hostname, uint32_t flags)
   if (NS_SUCCEEDED(rv)) {
     nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
     nsCOMPtr<nsICancelable> unused;
-    rv = dns->AsyncResolve(hostname, flags, this, mainThread,
-                           getter_AddRefs(unused));
+    rv = dns->AsyncResolveExtended(hostname, flags, networkInterface, this,
+                                   mainThread, getter_AddRefs(unused));
   }
 
   if (NS_FAILED(rv) && !mIPCClosed) {
-    unused << Send__delete__(this, DNSRequestResponse(rv));
+    mIPCClosed = true;
+    Unused << SendLookupCompleted(DNSRequestResponse(rv));
   }
+}
+
+bool
+DNSRequestParent::RecvCancelDNSRequest(const nsCString& hostName,
+                                       const uint32_t& flags,
+                                       const nsCString& networkInterface,
+                                       const nsresult& reason)
+{
+  nsresult rv;
+  nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID, &rv);
+  if (NS_SUCCEEDED(rv)) {
+    rv = dns->CancelAsyncResolveExtended(hostName, flags, networkInterface,
+                                         this, reason);
+  }
+  return true;
+}
+
+bool
+DNSRequestParent::Recv__delete__()
+{
+  mIPCClosed = true;
+  return true;
 }
 
 void
@@ -92,14 +117,16 @@ DNSRequestParent::OnLookupComplete(nsICancelable *request,
       array.AppendElement(addr);
     }
 
-    unused << Send__delete__(this, DNSRequestResponse(DNSRecord(cname, array)));
+    Unused << SendLookupCompleted(DNSRequestResponse(DNSRecord(cname, array)));
   } else {
-    unused << Send__delete__(this, DNSRequestResponse(status));
+    Unused << SendLookupCompleted(DNSRequestResponse(status));
   }
 
+  mIPCClosed = true;
   return NS_OK;
 }
 
 
 
-}} // mozilla::net
+} // namespace net
+} // namespace mozilla

@@ -28,14 +28,14 @@
 #ifdef DO_STATUS_REPORT // {
 namespace {
 
-class DumpStatusInfoToTempDirRunnable : public nsRunnable
+class DumpStatusInfoToTempDirRunnable : public mozilla::Runnable
 {
 public:
   DumpStatusInfoToTempDirRunnable()
   {
   }
 
-  NS_IMETHOD Run()
+  NS_IMETHOD Run() override
   {
     nsCOMPtr<nsIStatusReporterManager> mgr =
       do_GetService("@mozilla.org/status-reporter-manager;1");
@@ -48,7 +48,7 @@ void
 doStatusReport(const nsCString& aInputStr)
 {
   LOG("FifoWatcher(%s) dispatching status report runnable.", aInputStr.get());
-  nsRefPtr<DumpStatusInfoToTempDirRunnable> runnable =
+  RefPtr<DumpStatusInfoToTempDirRunnable> runnable =
     new DumpStatusInfoToTempDirRunnable();
   NS_DispatchToMainThread(runnable);
 }
@@ -78,23 +78,21 @@ NS_STATUS_REPORTER_IMPLEMENT(StatusReporter, "StatusReporter State", getStatus)
   do { \
     const char* s2 = (s); \
     uint32_t dummy; \
-    nsresult rv = (o)->Write((s2), strlen(s2), &dummy); \
-    if (NS_WARN_IF(NS_FAILED(rv))) \
-      return rv; \
+    nsresult rvDump = (o)->Write((s2), strlen(s2), &dummy); \
+    if (NS_WARN_IF(NS_FAILED(rvDump))) \
+      return rvDump; \
   } while (0)
 
 static nsresult
 DumpReport(nsIFileOutputStream* aOStream, const nsCString& aProcess,
            const nsCString& aName, const nsCString& aDescription)
 {
-  int pid;
   if (aProcess.IsEmpty()) {
-    pid = getpid();
+    int pid = getpid();
     nsPrintfCString pidStr("PID %u", pid);
     DUMP(aOStream, "\n  {\n  \"Process\": \"");
     DUMP(aOStream, pidStr.get());
   } else {
-    pid = 0;
     DUMP(aOStream, "\n  {  \"Unknown Process\": \"");
   }
 

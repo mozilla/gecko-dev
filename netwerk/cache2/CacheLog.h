@@ -5,27 +5,16 @@
 #ifndef Cache2Log__h__
 #define Cache2Log__h__
 
-#if defined(MOZ_LOGGING)
-#define FORCE_PR_LOG
-#endif
-
-#if defined(PR_LOG)
-#error "If nsCache.h #included it must come before any files that #include prlog.h"
-#endif
-
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 namespace mozilla {
 namespace net {
 
-#if defined(PR_LOGGING)
-extern PRLogModuleInfo* GetCache2Log();
-#define LOG(x)  PR_LOG(GetCache2Log(), PR_LOG_DEBUG, x)
-#else
-#define LOG(x)
-#endif /* PR_LOGGING */
+extern LazyLogModule gCache2Log;
+#define LOG(x)  MOZ_LOG(gCache2Log, mozilla::LogLevel::Debug, x)
+#define LOG_ENABLED() MOZ_LOG_TEST(gCache2Log, mozilla::LogLevel::Debug)
 
-} // net
-} // mozilla
+} // namespace net
+} // namespace mozilla
 
 #endif

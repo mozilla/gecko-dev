@@ -1,5 +1,5 @@
-# This mozconfig is used when compiling the browser for the SM(Hf) rooting
-# hazard analysis build, see
+# This mozconfig is used when compiling the browser for the rooting hazard
+# analysis build (labeled H on treeherder). See
 # https://wiki.mozilla.org/Javascript:SpiderMonkey:ExactStackRooting
 
 # Do NOT include build/unix/mozconfig.linux because it points directly at the
@@ -9,7 +9,8 @@
 
 . "$topsrcdir/build/mozconfig.common"
 ac_add_options --enable-elf-hack
-ac_add_options --enable-stdcxx-compat
+
+. "$topsrcdir/build/unix/mozconfig.stdcxx"
 
 # The objdir must be at a known location so its path can be stripped from the
 # filenames stored by the analysis
@@ -21,9 +22,14 @@ mk_add_options MOZ_OBJDIR=obj-analyzed
 ac_add_options --enable-debug
 ac_add_options --enable-tests
 ac_add_options --enable-optimize
+ac_add_options --with-compiler-wrapper=$TOOLTOOL_DIR/sixgill/usr/libexec/sixgill/scripts/wrap_gcc/basecc
+ac_add_options --without-ccache
 
 CFLAGS="$CFLAGS -Wno-attributes"
 CPPFLAGS="$CPPFLAGS -Wno-attributes"
 CXXFLAGS="$CXXFLAGS -Wno-attributes"
+
+export PKG_CONFIG_LIBDIR=/usr/lib64/pkgconfig:/usr/share/pkgconfig
+. $topsrcdir/build/unix/mozconfig.gtk
 
 . "$topsrcdir/build/mozconfig.common.override"

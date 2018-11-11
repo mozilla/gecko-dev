@@ -5,6 +5,7 @@
      
 #include "DrawTargetDual.h"
 #include "Tools.h"
+#include "Logging.h"
 
 namespace mozilla {
 namespace gfx {
@@ -12,8 +13,13 @@ namespace gfx {
 class DualSurface
 {
 public:
-  inline DualSurface(SourceSurface *aSurface)
+  inline explicit DualSurface(SourceSurface *aSurface)
   {
+    if (!aSurface) {
+      mA = mB = nullptr;
+      return;
+    }
+
     if (aSurface->GetType() != SurfaceType::DUAL_DT) {
       mA = mB = aSurface;
       return;
@@ -36,7 +42,7 @@ public:
 class DualPattern
 {
 public:
-  inline DualPattern(const Pattern &aPattern)
+  inline explicit DualPattern(const Pattern &aPattern)
     : mPatternsInitialized(false)
   {
     if (aPattern.GetType() != PatternType::SURFACE) {
@@ -55,9 +61,11 @@ public:
     const SourceSurfaceDual *ssDual =
       static_cast<const SourceSurfaceDual*>(surfPat->mSurface.get());
     mA = new (mSurfPatA.addr()) SurfacePattern(ssDual->mA, surfPat->mExtendMode,
-                                               surfPat->mMatrix, surfPat->mFilter);
+                                               surfPat->mMatrix,
+                                               surfPat->mSamplingFilter);
     mB = new (mSurfPatB.addr()) SurfacePattern(ssDual->mB, surfPat->mExtendMode,
-                                               surfPat->mMatrix, surfPat->mFilter);
+                                               surfPat->mMatrix,
+                                               surfPat->mSamplingFilter);
     mPatternsInitialized = true;
   }
 
@@ -77,6 +85,13 @@ public:
 
   bool mPatternsInitialized;
 };
+
+void
+DrawTargetDual::DetachAllSnapshots()
+{
+  mA->DetachAllSnapshots();
+  mB->DetachAllSnapshots();
+}
 
 void
 DrawTargetDual::DrawSurface(SourceSurface *aSurface, const Rect &aDest, const Rect &aSource,
@@ -180,14 +195,29 @@ DrawTargetDual::Mask(const Pattern &aSource, const Pattern &aMask, const DrawOpt
   mB->Mask(*source.mB, *mask.mB, aOptions);
 }
 
-TemporaryRef<DrawTarget>
+void
+DrawTargetDual::PushLayer(bool aOpaque, Float aOpacity, SourceSurface* aMask,
+                          const Matrix& aMaskTransform, const IntRect& aBounds,
+                          bool aCopyBackground)
+{
+  DualSurface mask(aMask);
+  mA->PushLayer(aOpaque, aOpacity, mask.mA, aMaskTransform, aBounds, aCopyBackground);
+  mB->PushLayer(aOpaque, aOpacity, mask.mB, aMaskTransform, aBounds, aCopyBackground);
+}
+
+already_AddRefed<DrawTarget>
 DrawTargetDual::CreateSimilarDrawTarget(const IntSize &aSize, SurfaceFormat aFormat) const
 {
   RefPtr<DrawTarget> dtA = mA->CreateSimilarDrawTarget(aSize, aFormat);
   RefPtr<DrawTarget> dtB = mB->CreateSimilarDrawTarget(aSize, aFormat);
 
-  return new DrawTargetDual(dtA, dtB);
+  if (!dtA || !dtB) {
+    gfxWarning() << "Failure to allocate a similar DrawTargetDual. Size: " << aSize;
+    return nullptr;
+  }
+
+  return MakeAndAddRef<DrawTargetDual>(dtA, dtB);
 }
 
-}
-}
+} // namespace gfx
+} // namespace mozilla

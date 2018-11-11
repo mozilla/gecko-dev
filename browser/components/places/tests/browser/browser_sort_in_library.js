@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -35,7 +35,6 @@ const SORT_LOOKUP_TABLE = {
   url:          { key: "URI",          dir: "ASCENDING"  },
   date:         { key: "DATE",         dir: "DESCENDING" },
   visitCount:   { key: "VISITCOUNT",   dir: "DESCENDING" },
-  keyword:      { key: "KEYWORD",      dir: "ASCENDING"  },
   dateAdded:    { key: "DATEADDED",    dir: "DESCENDING" },
   lastModified: { key: "LASTMODIFIED", dir: "DESCENDING" },
   description:  { key:  "ANNOTATION",
@@ -52,10 +51,8 @@ const DEFAULT_SORT_KEY = "TITLE";
 
 // Part of the test is checking that sorts stick, so each time we sort we need
 // to remember it.
-let prevSortDir = null;
-let prevSortKey = null;
-
-///////////////////////////////////////////////////////////////////////////////
+var prevSortDir = null;
+var prevSortKey = null;
 
 /**
  * Ensures that the sort of aTree is aSortingMode and aSortingAnno.
@@ -230,8 +227,6 @@ function testSortByDir(aOrganizerWin, aPlaceContentTree, aUnsortFirst) {
     checkSort(aPlaceContentTree, expectedSortMode, "");
   });
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 function test() {
   waitForExplicitFinish();

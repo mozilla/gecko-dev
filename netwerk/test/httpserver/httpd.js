@@ -1,4 +1,4 @@
-/* -*- Mode: JavaScript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -2741,6 +2741,8 @@ ServerHandler.prototype =
         var sis = new ScriptableInputStream(fis);
         var s = Cu.Sandbox(gGlobalObject);
         s.importFunction(dump, "dump");
+        s.importFunction(atob, "atob");
+        s.importFunction(btoa, "btoa");
 
         // Define a basic key-value state-preservation API across requests, with
         // keys initially corresponding to the empty string.
@@ -2854,8 +2856,7 @@ ServerHandler.prototype =
         throw e;
       }
 
-      function writeMore()
-      {
+      let writeMore = function () {
         gThreadManager.currentThread
                       .dispatch(writeData, Ci.nsIThread.DISPATCH_NORMAL);
       }
@@ -3698,6 +3699,15 @@ Response.prototype =
     this._ensureAlive();
 
     this._headers.setHeader(name, value, merge);
+  },
+
+  setHeaderNoCheck: function(name, value)
+  {
+    if (!this._headers || this._finished || this._powerSeized)
+      throw Cr.NS_ERROR_NOT_AVAILABLE;
+    this._ensureAlive();
+
+    this._headers.setHeaderNoCheck(name, value);
   },
 
   //
@@ -4985,6 +4995,17 @@ nsHttpHeaders.prototype =
     else
     {
       this._headers[name] = [value];
+    }
+  },
+
+  setHeaderNoCheck: function(fieldName, fieldValue)
+  {
+    var name = headerUtils.normalizeFieldName(fieldName);
+    var value = headerUtils.normalizeFieldValue(fieldValue);
+    if (name in this._headers) {
+      this._headers[name].push(fieldValue);
+    } else {
+      this._headers[name] = [fieldValue];
     }
   },
 

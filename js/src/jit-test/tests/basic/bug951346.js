@@ -1,3 +1,3 @@
 
-setObjectMetadataCallback(function(obj) {});
+enableShellAllocationMetadataBuilder();
 eval(uneval({'-1':true}));

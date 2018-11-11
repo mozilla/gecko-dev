@@ -5,8 +5,8 @@
 /*
  * Description of the test:
  *   We show that we can separate the safebrowsing cookie by creating a custom
- *   LoadContext using a reserved AppId (UINT_32_MAX - 1). Setting this
- *   custom LoadContext as a callback on the channel allows us to query the
+ *   OriginAttributes using a reserved AppId (UINT_32_MAX - 1). Setting this
+ *   custom OriginAttributes on the loadInfo of the channel allows us to query the
  *   AppId and therefore separate the safebrowing cookie in its own cookie-jar.
  *   For testing safebrowsing update we do >> NOT << emulate a response
  *   in the body, rather we only set the cookies in the header of the response
@@ -25,6 +25,8 @@
 
 Cu.import("resource://testing-common/httpd.js");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
+
 
 XPCOMUtils.defineLazyGetter(this, "URL", function() {
   return "http://localhost:" + httpserver.identity.primaryPort;
@@ -67,10 +69,9 @@ function safebrowsingUpdateHandler(metadata, response) {
   response.bodyOutputStream.write("Ok", "Ok".length);
 }
 
-function setupChannel(path, loadContext) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
-  var channel = ios.newChannel(URL + path, "", null);
-  channel.notificationCallbacks = loadContext;
+function setupChannel(path, originAttributes) {
+  var channel = NetUtil.newChannel({uri: URL + path, loadUsingSystemPrincipal: true});
+  channel.loadInfo.originAttributes = originAttributes;
   channel.QueryInterface(Ci.nsIHttpChannel);
   return channel;
 }
@@ -102,8 +103,6 @@ add_test(function test_safebrowsing_update() {
   var streamUpdater = Cc["@mozilla.org/url-classifier/streamupdater;1"]
                      .getService(Ci.nsIUrlClassifierStreamUpdater);
 
-  streamUpdater.updateUrl = URL + safebrowsingUpdatePath;
-
   function onSuccess() {
     run_next_test();
   }
@@ -115,23 +114,23 @@ add_test(function test_safebrowsing_update() {
   }
 
   streamUpdater.downloadUpdates("test-phish-simple,test-malware-simple", "",
-    onSuccess, onUpdateError, onDownloadError);
+    true, URL + safebrowsingUpdatePath, onSuccess, onUpdateError, onDownloadError);
 });
 
 add_test(function test_non_safebrowsing_cookie() {
 
   var cookieName = 'regCookie_id0';
-  var loadContext = new LoadContextCallback(0, false, false, false);
+  var originAttributes = new OriginAttributes(0, false, 0);
 
   function setNonSafeBrowsingCookie() {
-    var channel = setupChannel(setCookiePath, loadContext);
+    var channel = setupChannel(setCookiePath, originAttributes);
     channel.setRequestHeader("set-cookie", cookieName, false);
-    channel.asyncOpen(new ChannelListener(checkNonSafeBrowsingCookie, null), null);
+    channel.asyncOpen2(new ChannelListener(checkNonSafeBrowsingCookie, null));
   }
 
   function checkNonSafeBrowsingCookie() {
-    var channel = setupChannel(checkCookiePath, loadContext);
-    channel.asyncOpen(new ChannelListener(completeCheckNonSafeBrowsingCookie, null), null);
+    var channel = setupChannel(checkCookiePath, originAttributes);
+    channel.asyncOpen2(new ChannelListener(completeCheckNonSafeBrowsingCookie, null));
   }
 
   function completeCheckNonSafeBrowsingCookie(request, data, context) {
@@ -149,17 +148,17 @@ add_test(function test_non_safebrowsing_cookie() {
 add_test(function test_safebrowsing_cookie() {
 
   var cookieName = 'sbCookie_id4294967294';
-  var loadContext = new LoadContextCallback(Ci.nsIScriptSecurityManager.SAFEBROWSING_APP_ID, false, false, false);
+  var originAttributes = new OriginAttributes(Ci.nsIScriptSecurityManager.SAFEBROWSING_APP_ID, false, 0);
 
   function setSafeBrowsingCookie() {
-    var channel = setupChannel(setCookiePath, loadContext);
+    var channel = setupChannel(setCookiePath, originAttributes);
     channel.setRequestHeader("set-cookie", cookieName, false);
-    channel.asyncOpen(new ChannelListener(checkSafeBrowsingCookie, null), null);
+    channel.asyncOpen2(new ChannelListener(checkSafeBrowsingCookie, null));
   }
 
   function checkSafeBrowsingCookie() {
-    var channel = setupChannel(checkCookiePath, loadContext);
-    channel.asyncOpen(new ChannelListener(completeCheckSafeBrowsingCookie, null), null);
+    var channel = setupChannel(checkCookiePath, originAttributes);
+    channel.asyncOpen2(new ChannelListener(completeCheckSafeBrowsingCookie, null));
   }
 
   function completeCheckSafeBrowsingCookie(request, data, context) {

@@ -25,15 +25,18 @@
  *
  * Synchronization is influenced by the following preferences:
  *
- *  - services.sync.addons.ignoreRepositoryChecking
  *  - services.sync.addons.ignoreUserEnabledChanges
  *  - services.sync.addons.trustedSourceHostnames
+ *
+ *  and also influenced by whether addons have repository caching enabled and
+ *  whether they allow installation of addons from insecure options (both of
+ *  which are themselves influenced by the "extensions." pref branch)
  *
  * See the documentation in services-sync.js for the behavior of these prefs.
  */
 "use strict";
 
-const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
+var {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 Cu.import("resource://services-sync/addonutils.js");
 Cu.import("resource://services-sync/addonsreconciler.js");
@@ -41,6 +44,7 @@ Cu.import("resource://services-sync/engines.js");
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/util.js");
 Cu.import("resource://services-sync/constants.js");
+Cu.import("resource://services-sync/collection_validator.js");
 Cu.import("resource://services-common/async.js");
 
 Cu.import("resource://gre/modules/Preferences.jsm");
@@ -50,7 +54,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "AddonManager",
 XPCOMUtils.defineLazyModuleGetter(this, "AddonRepository",
                                   "resource://gre/modules/addons/AddonRepository.jsm");
 
-this.EXPORTED_SYMBOLS = ["AddonsEngine"];
+this.EXPORTED_SYMBOLS = ["AddonsEngine", "AddonValidator"];
 
 // 7 days in milliseconds.
 const PRUNE_ADDON_CHANGES_THRESHOLD = 60 * 60 * 24 * 7 * 1000;
@@ -119,6 +123,8 @@ AddonsEngine.prototype = {
   _recordObj:             AddonRecord,
   version:                1,
 
+  syncPriority:           5,
+
   _reconciler:            null,
 
   /**
@@ -148,7 +154,7 @@ AddonsEngine.prototype = {
    */
   getChangedIDs: function getChangedIDs() {
     let changes = {};
-    for (let [id, modified] in Iterator(this._tracker.changedIDs)) {
+    for (let [id, modified] of Object.entries(this._tracker.changedIDs)) {
       changes[id] = modified;
     }
 
@@ -158,7 +164,7 @@ AddonsEngine.prototype = {
     // we assume this function is only called from within a sync.
     let reconcilerChanges = this._reconciler.getChangesSinceDate(lastSyncDate);
     let addons = this._reconciler.addons;
-    for each (let change in reconcilerChanges) {
+    for (let change of reconcilerChanges) {
       let changeTime = change[0];
       let id = change[2];
 
@@ -171,7 +177,7 @@ AddonsEngine.prototype = {
           continue;
       }
 
-      if (!this._store.isAddonSyncable(addons[id])) {
+      if (!this.isAddonSyncable(addons[id])) {
         continue;
       }
 
@@ -229,6 +235,10 @@ AddonsEngine.prototype = {
     let cb = Async.makeSpinningCallback();
     this._reconciler.refreshGlobalState(cb);
     cb.wait();
+  },
+
+  isAddonSyncable(addon, ignoreRepoCheck) {
+    return this._store.isAddonSyncable(addon, ignoreRepoCheck);
   }
 };
 
@@ -276,6 +286,14 @@ AddonsStore.prototype = {
       }
     }
 
+    // Ignore incoming records for which an existing non-syncable addon
+    // exists.
+    let existingMeta = this.reconciler.addons[record.addonID];
+    if (existingMeta && !this.isAddonSyncable(existingMeta)) {
+      this._log.info("Ignoring incoming record for an existing but non-syncable addon", record.addonID);
+      return;
+    }
+
     Store.prototype.applyIncoming.call(this, record);
   },
 
@@ -289,15 +307,23 @@ AddonsStore.prototype = {
       id:               record.addonID,
       syncGUID:         record.id,
       enabled:          record.enabled,
-      requireSecureURI: !Svc.Prefs.get("addons.ignoreRepositoryChecking", false),
+      requireSecureURI: this._extensionsPrefs.get("install.requireSecureOrigin", true),
     }], cb);
 
     // This will throw if there was an error. This will get caught by the sync
     // engine and the record will try to be applied later.
     let results = cb.wait();
 
+    if (results.skipped.includes(record.addonID)) {
+      this._log.info("Add-on skipped: " + record.addonID);
+      // Just early-return for skipped addons - we don't want to arrange to
+      // try again next time because the condition that caused up to skip
+      // will remain true for this addon forever.
+      return;
+    }
+
     let addon;
-    for each (let a in results.addons) {
+    for (let a of results.addons) {
       if (a.id == record.addonID) {
         addon = a;
         break;
@@ -441,7 +467,8 @@ AddonsStore.prototype = {
     let ids = {};
 
     let addons = this.reconciler.addons;
-    for each (let addon in addons) {
+    for (let id in addons) {
+      let addon = addons[id];
       if (this.isAddonSyncable(addon)) {
         ids[addon.guid] = true;
       }
@@ -472,7 +499,7 @@ AddonsStore.prototype = {
       }
 
       this._log.info("Uninstalling add-on as part of wipe: " + addon.id);
-      Utils.catch(addon.uninstall)();
+      Utils.catch.call(this, () => addon.uninstall())();
     }
   },
 
@@ -511,16 +538,22 @@ AddonsStore.prototype = {
    *
    * @param  addon
    *         Addon instance
+   * @param ignoreRepoCheck
+   *         Should we skip checking the Addons repository (primarially useful
+   *         for testing and validation).
    * @return Boolean indicating whether it is appropriate for Sync
    */
-  isAddonSyncable: function isAddonSyncable(addon) {
+  isAddonSyncable: function isAddonSyncable(addon, ignoreRepoCheck = false) {
     // Currently, we limit syncable add-ons to those that are:
     //   1) In a well-defined set of types
     //   2) Installed in the current profile
     //   3) Not installed by a foreign entity (i.e. installed by the app)
     //      since they act like global extensions.
     //   4) Is not a hotfix.
-    //   5) Are installed from AMO
+    //   5) The addons XPIProvider doesn't veto it (i.e not being installed in
+    //      the profile directory, or any other reasons it says the addon can't
+    //      be synced)
+    //   6) Are installed from AMO
 
     // We could represent the test as a complex boolean expression. We go the
     // verbose route so the failure reason is logged.
@@ -540,6 +573,12 @@ AddonsStore.prototype = {
       return false;
     }
 
+    // If the addon manager says it's not syncable, we skip it.
+    if (!addon.isSyncable) {
+      this._log.debug(addon.id + " not syncable: vetoed by the addon manager.");
+      return false;
+    }
+
     // This may be too aggressive. If an add-on is downloaded from AMO and
     // manually placed in the profile directory, foreignInstall will be set.
     // Arguably, that add-on should be syncable.
@@ -550,15 +589,20 @@ AddonsStore.prototype = {
     }
 
     // Ignore hotfix extensions (bug 741670). The pref may not be defined.
+    // XXX - note that addon.isSyncable will be false for hotfix addons, so
+    // this check isn't strictly necessary - except for Sync tests which aren't
+    // setup to create a "real" hotfix addon. This can be removed once those
+    // tests are fixed (but keeping it doesn't hurt either)
     if (this._extensionsPrefs.get("hotfix.id", null) == addon.id) {
       this._log.debug(addon.id + " not syncable: is a hotfix.");
       return false;
     }
 
-    // We provide a back door to skip the repository checking of an add-on.
-    // This is utilized by the tests to make testing easier. Users could enable
-    // this, but it would sacrifice security.
-    if (Svc.Prefs.get("addons.ignoreRepositoryChecking", false)) {
+    // If the AddonRepository's cache isn't enabled (which it typically isn't
+    // in tests), getCachedAddonByID always returns null - so skip the check
+    // in that case. We also provide a way to specifically opt-out of the check
+    // even if the cache is enabled, which is used by the validators.
+    if (ignoreRepoCheck || !AddonRepository.cacheEnabled) {
       return true;
     }
 
@@ -701,3 +745,69 @@ AddonsTracker.prototype = {
     this.reconciler.stopListening();
   },
 };
+
+class AddonValidator extends CollectionValidator {
+  constructor(engine = null) {
+    super("addons", "id", [
+      "addonID",
+      "enabled",
+      "applicationID",
+      "source"
+    ]);
+    this.engine = engine;
+  }
+
+  getClientItems() {
+    return Promise.all([
+      new Promise(resolve =>
+        AddonManager.getAllAddons(resolve)),
+      new Promise(resolve =>
+        AddonManager.getAddonsWithOperationsByTypes(["extension", "theme"], resolve)),
+    ]).then(([installed, addonsWithPendingOperation]) => {
+      // Addons pending install won't be in the first list, but addons pending
+      // uninstall/enable/disable will be in both lists.
+      let all = new Map(installed.map(addon => [addon.id, addon]));
+      for (let addon of addonsWithPendingOperation) {
+        all.set(addon.id, addon);
+      }
+      // Convert to an array since Map.prototype.values returns an iterable
+      return [...all.values()];
+    });
+  }
+
+  normalizeClientItem(item) {
+    let enabled = !item.userDisabled;
+    if (item.pendingOperations & AddonManager.PENDING_ENABLE) {
+      enabled = true;
+    } else if (item.pendingOperations & AddonManager.PENDING_DISABLE) {
+      enabled = false;
+    }
+    return {
+      enabled,
+      id: item.syncGUID,
+      addonID: item.id,
+      applicationID: Services.appinfo.ID,
+      source: "amo", // check item.foreignInstall?
+      original: item
+    };
+  }
+
+  normalizeServerItem(item) {
+    let guid = this.engine._findDupe(item);
+    if (guid) {
+      item.id = guid;
+    }
+    return item;
+  }
+
+  clientUnderstands(item) {
+    return item.applicationID === Services.appinfo.ID;
+  }
+
+  syncedByClient(item) {
+    return !item.original.hidden &&
+           !item.original.isSystem &&
+           !(item.original.pendingOperations & AddonManager.PENDING_UNINSTALL) &&
+           this.engine.isAddonSyncable(item.original, true);
+  }
+}

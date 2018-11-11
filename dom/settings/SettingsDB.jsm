@@ -4,17 +4,27 @@
 
 "use strict";
 
-let Cc = Components.classes;
-let Ci = Components.interfaces;
-let Cu = Components.utils;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
 
+Cu.importGlobalProperties(['Blob', 'File']);
 Cu.import("resource://gre/modules/Services.jsm");
 
 this.EXPORTED_SYMBOLS = ["SettingsDB", "SETTINGSDB_NAME", "SETTINGSSTORE_NAME"];
 
-const DEBUG = false;
+var DEBUG = false;
+var VERBOSE = false;
+
+try {
+  DEBUG   =
+    Services.prefs.getBoolPref("dom.mozSettings.SettingsDB.debug.enabled");
+  VERBOSE =
+    Services.prefs.getBoolPref("dom.mozSettings.SettingsDB.verbose.enabled");
+} catch (ex) { }
+
 function debug(s) {
-  if (DEBUG) dump("-*- SettingsDB: " + s + "\n");
+  dump("-*- SettingsDB: " + s + "\n");
 }
 
 const TYPED_ARRAY_THINGS = new Set([
@@ -30,7 +40,7 @@ const TYPED_ARRAY_THINGS = new Set([
 ]);
 
 this.SETTINGSDB_NAME = "settings";
-this.SETTINGSDB_VERSION = 4;
+this.SETTINGSDB_VERSION = 8;
 this.SETTINGSSTORE_NAME = "settings";
 
 Cu.import("resource://gre/modules/IndexedDBHelper.jsm");
@@ -47,13 +57,13 @@ SettingsDB.prototype = {
     let objectStore;
     if (aOldVersion == 0) {
       objectStore = aDb.createObjectStore(SETTINGSSTORE_NAME, { keyPath: "settingName" });
-      if (DEBUG) debug("Created object stores");
+      if (VERBOSE) debug("Created object stores");
     } else if (aOldVersion == 1) {
-      if (DEBUG) debug("Get object store for upgrade and remove old index");
+      if (VERBOSE) debug("Get object store for upgrade and remove old index");
       objectStore = aTransaction.objectStore(SETTINGSSTORE_NAME);
       objectStore.deleteIndex("settingValue");
     } else {
-      if (DEBUG) debug("Get object store for upgrade");
+      if (VERBOSE) debug("Get object store for upgrade");
       objectStore = aTransaction.objectStore(SETTINGSSTORE_NAME);
     }
 
@@ -70,8 +80,10 @@ SettingsDB.prototype = {
       }
     }
 
-    let chan = NetUtil.newChannel(settingsFile);
-    let stream = chan.open();
+    let chan = NetUtil.newChannel({
+      uri: NetUtil.newURI(settingsFile),
+      loadUsingSystemPrincipal: true});
+    let stream = chan.open2();
     // Obtain a converter to read from a UTF-8 encoded input stream.
     let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
                     .createInstance(Ci.nsIScriptableUnicodeConverter);
@@ -93,7 +105,7 @@ SettingsDB.prototype = {
       if (cursor) {
         let value = cursor.value;
         if (value.settingName in settings) {
-          if (DEBUG) debug("Upgrade " +settings[value.settingName]);
+          if (VERBOSE) debug("Upgrade " +settings[value.settingName]);
           value.defaultValue = this.prepareValue(settings[value.settingName]);
           delete settings[value.settingName];
           if ("settingValue" in value) {
@@ -115,7 +127,7 @@ SettingsDB.prototype = {
       } else {
         for (let name in settings) {
           let value = this.prepareValue(settings[name]);
-          if (DEBUG) debug("Set new:" + name +", " + value);
+          if (VERBOSE) debug("Set new:" + name +", " + value);
           objectStore.add({ settingName: name, defaultValue: value, userValue: undefined });
         }
       }
@@ -192,7 +204,7 @@ SettingsDB.prototype = {
       return "primitive";
     } else if (Array.isArray(aObject)) {
       return "array";
-    } else if (aObject instanceof Ci.nsIDOMFile) {
+    } else if (aObject instanceof File) {
       return "file";
     } else if (aObject instanceof Ci.nsIDOMBlob) {
       return "blob";

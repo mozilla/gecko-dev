@@ -17,7 +17,7 @@
 
 "use strict";
 
-const Cu = Components.utils;
+var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-sync/util.js");
@@ -218,11 +218,12 @@ AddonsReconciler.prototype = {
       }
 
       this._addons = json.addons;
-      for each (let record in this._addons) {
+      for (let id in this._addons) {
+        let record = this._addons[id];
         record.modified = new Date(record.modified);
       }
 
-      for each (let [time, change, id] in json.changes) {
+      for (let [time, change, id] of json.changes) {
         this._changes.push([new Date(time), change, id]);
       }
 
@@ -246,9 +247,9 @@ AddonsReconciler.prototype = {
     let file = path || DEFAULT_STATE_FILE;
     let state = {version: 1, addons: {}, changes: []};
 
-    for (let [id, record] in Iterator(this._addons)) {
+    for (let [id, record] of Object.entries(this._addons)) {
       state.addons[id] = {};
-      for (let [k, v] in Iterator(record)) {
+      for (let [k, v] of Object.entries(record)) {
         if (k == "modified") {
           state.addons[id][k] = v.getTime();
         }
@@ -258,7 +259,7 @@ AddonsReconciler.prototype = {
       }
     }
 
-    for each (let [time, change, id] in this._changes) {
+    for (let [time, change, id] of this._changes) {
       state.changes.push([time.getTime(), change, id]);
     }
 
@@ -350,14 +351,14 @@ AddonsReconciler.prototype = {
     AddonManager.getAllAddons(function (addons) {
       let ids = {};
 
-      for each (let addon in addons) {
+      for (let addon of addons) {
         ids[addon.id] = true;
         this.rectifyStateFromAddon(addon);
       }
 
       // Look for locally-defined add-ons that no longer exist and update their
       // record.
-      for (let [id, addon] in Iterator(this._addons)) {
+      for (let [id, addon] of Object.entries(this._addons)) {
         if (id in ids) {
           continue;
         }
@@ -373,7 +374,7 @@ AddonsReconciler.prototype = {
         }
 
         let installFound = false;
-        for each (let install in installs) {
+        for (let install of installs) {
           if (install.addon && install.addon.id == id &&
               install.state == AddonManager.STATE_INSTALLED) {
 
@@ -416,7 +417,7 @@ AddonsReconciler.prototype = {
    *        Addon instance being updated.
    */
   rectifyStateFromAddon: function rectifyStateFromAddon(addon) {
-    this._log.debug("Rectifying state for addon: " + addon.id);
+    this._log.debug(`Rectifying state for addon ${addon.name} (version=${addon.version}, id=${addon.id})`);
     this._ensureStateLoaded();
 
     let id = addon.id;
@@ -433,7 +434,8 @@ AddonsReconciler.prototype = {
         modified: now,
         type: addon.type,
         scope: addon.scope,
-        foreignInstall: addon.foreignInstall
+        foreignInstall: addon.foreignInstall,
+        isSyncable: addon.isSyncable,
       };
       this._addons[id] = record;
       this._log.debug("Adding change because add-on not present locally: " +
@@ -443,6 +445,7 @@ AddonsReconciler.prototype = {
     }
 
     let record = this._addons[id];
+    record.isSyncable = addon.isSyncable;
 
     if (!record.installed) {
       // It is possible the record is marked as uninstalled because an
@@ -483,12 +486,11 @@ AddonsReconciler.prototype = {
     this._log.info("Change recorded for " + state.id);
     this._changes.push([date, change, state.id]);
 
-    for each (let listener in this._listeners) {
+    for (let listener of this._listeners) {
       try {
         listener.changeListener.call(listener, date, change, state);
       } catch (ex) {
-        this._log.warn("Exception calling change listener: " +
-                       Utils.exceptionStr(ex));
+        this._log.warn("Exception calling change listener", ex);
       }
     }
   },
@@ -554,7 +556,8 @@ AddonsReconciler.prototype = {
    * @return Object on success on null on failure.
    */
   getAddonStateFromSyncGUID: function getAddonStateFromSyncGUID(guid) {
-    for each (let addon in this.addons) {
+    for (let id in this.addons) {
+      let addon = this.addons[id];
       if (addon.guid == guid) {
         return addon;
       }
@@ -633,7 +636,7 @@ AddonsReconciler.prototype = {
       }
     }
     catch (ex) {
-      this._log.warn("Exception: " + Utils.exceptionStr(ex));
+      this._log.warn("Exception", ex);
     }
   },
 

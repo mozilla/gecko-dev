@@ -10,7 +10,7 @@ function makeSteamEngine() {
   return new SyncEngine('Steam', Service);
 }
 
-let server;
+var server;
 
 function test_url_attributes() {
   _("SyncEngine url attributes");
@@ -35,12 +35,12 @@ function test_syncID() {
     do_check_eq(Svc.Prefs.get("steam.syncID"), undefined);
 
     // Performing the first get on the attribute will generate a new GUID.
-    do_check_eq(engine.syncID, "fake-guid-0");
-    do_check_eq(Svc.Prefs.get("steam.syncID"), "fake-guid-0");
+    do_check_eq(engine.syncID, "fake-guid-00");
+    do_check_eq(Svc.Prefs.get("steam.syncID"), "fake-guid-00");
 
     Svc.Prefs.set("steam.syncID", Utils.makeGUID());
-    do_check_eq(Svc.Prefs.get("steam.syncID"), "fake-guid-1");
-    do_check_eq(engine.syncID, "fake-guid-1");
+    do_check_eq(Svc.Prefs.get("steam.syncID"), "fake-guid-01");
+    do_check_eq(engine.syncID, "fake-guid-01");
   } finally {
     Svc.Prefs.resetBranch("");
   }

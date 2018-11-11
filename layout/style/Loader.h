@@ -11,6 +11,7 @@
 #include "nsIPrincipal.h"
 #include "nsAutoPtr.h"
 #include "nsCompatibility.h"
+#include "nsCycleCollectionParticipant.h"
 #include "nsDataHashtable.h"
 #include "nsRefPtrHashtable.h"
 #include "nsStringFwd.h"
@@ -19,61 +20,74 @@
 #include "nsURIHashKey.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/CORSMode.h"
+#include "mozilla/StyleSheetInlines.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/StyleBackendType.h"
+#include "mozilla/StyleSheet.h"
+#include "mozilla/net/ReferrerPolicy.h"
 
-class nsIAtom;
 class nsICSSLoaderObserver;
-class nsCSSStyleSheet;
+class nsIConsoleReportCollector;
 class nsIContent;
 class nsIDocument;
-class nsCSSParser;
 class nsMediaList;
 class nsIStyleSheetLinkingElement;
-class nsCycleCollectionTraversalCallback;
 
 namespace mozilla {
 namespace dom {
 class Element;
-}
-}
+} // namespace dom
+} // namespace mozilla
 
 namespace mozilla {
 
-class URIPrincipalAndCORSModeHashKey : public nsURIHashKey
+class URIPrincipalReferrerPolicyAndCORSModeHashKey : public nsURIHashKey
 {
 public:
-  typedef URIPrincipalAndCORSModeHashKey* KeyType;
-  typedef const URIPrincipalAndCORSModeHashKey* KeyTypePointer;
+  typedef URIPrincipalReferrerPolicyAndCORSModeHashKey* KeyType;
+  typedef const URIPrincipalReferrerPolicyAndCORSModeHashKey* KeyTypePointer;
+  typedef mozilla::net::ReferrerPolicy ReferrerPolicy;
 
-  URIPrincipalAndCORSModeHashKey(const URIPrincipalAndCORSModeHashKey* aKey)
-    : nsURIHashKey(aKey->mKey), mPrincipal(aKey->mPrincipal),
-      mCORSMode(aKey->mCORSMode)
+  explicit URIPrincipalReferrerPolicyAndCORSModeHashKey(const URIPrincipalReferrerPolicyAndCORSModeHashKey* aKey)
+    : nsURIHashKey(aKey->mKey),
+      mPrincipal(aKey->mPrincipal),
+      mCORSMode(aKey->mCORSMode),
+      mReferrerPolicy(aKey->mReferrerPolicy)
   {
-    MOZ_COUNT_CTOR(URIPrincipalAndCORSModeHashKey);
-  }
-  URIPrincipalAndCORSModeHashKey(nsIURI* aURI, nsIPrincipal* aPrincipal,
-                                 CORSMode aCORSMode)
-    : nsURIHashKey(aURI), mPrincipal(aPrincipal), mCORSMode(aCORSMode)
-  {
-    MOZ_COUNT_CTOR(URIPrincipalAndCORSModeHashKey);
-  }
-  URIPrincipalAndCORSModeHashKey(const URIPrincipalAndCORSModeHashKey& toCopy)
-    : nsURIHashKey(toCopy), mPrincipal(toCopy.mPrincipal),
-      mCORSMode(toCopy.mCORSMode)
-  {
-    MOZ_COUNT_CTOR(URIPrincipalAndCORSModeHashKey);
-  }
-  ~URIPrincipalAndCORSModeHashKey()
-  {
-    MOZ_COUNT_DTOR(URIPrincipalAndCORSModeHashKey);
+    MOZ_COUNT_CTOR(URIPrincipalReferrerPolicyAndCORSModeHashKey);
   }
 
-  URIPrincipalAndCORSModeHashKey* GetKey() const {
-    return const_cast<URIPrincipalAndCORSModeHashKey*>(this);
+  URIPrincipalReferrerPolicyAndCORSModeHashKey(nsIURI* aURI,
+                                               nsIPrincipal* aPrincipal,
+                                               CORSMode aCORSMode,
+                                               ReferrerPolicy aReferrerPolicy)
+    : nsURIHashKey(aURI),
+      mPrincipal(aPrincipal),
+      mCORSMode(aCORSMode),
+      mReferrerPolicy(aReferrerPolicy)
+  {
+    MOZ_COUNT_CTOR(URIPrincipalReferrerPolicyAndCORSModeHashKey);
   }
-  const URIPrincipalAndCORSModeHashKey* GetKeyPointer() const { return this; }
+  URIPrincipalReferrerPolicyAndCORSModeHashKey(const URIPrincipalReferrerPolicyAndCORSModeHashKey& toCopy)
+    : nsURIHashKey(toCopy),
+      mPrincipal(toCopy.mPrincipal),
+      mCORSMode(toCopy.mCORSMode),
+      mReferrerPolicy(toCopy.mReferrerPolicy)
+  {
+    MOZ_COUNT_CTOR(URIPrincipalReferrerPolicyAndCORSModeHashKey);
+  }
+  ~URIPrincipalReferrerPolicyAndCORSModeHashKey()
+  {
+    MOZ_COUNT_DTOR(URIPrincipalReferrerPolicyAndCORSModeHashKey);
+  }
 
-  bool KeyEquals(const URIPrincipalAndCORSModeHashKey* aKey) const {
+  URIPrincipalReferrerPolicyAndCORSModeHashKey* GetKey() const {
+    return const_cast<URIPrincipalReferrerPolicyAndCORSModeHashKey*>(this);
+  }
+  const URIPrincipalReferrerPolicyAndCORSModeHashKey* GetKeyPointer() const { return this; }
+
+  bool KeyEquals(const URIPrincipalReferrerPolicyAndCORSModeHashKey* aKey) const {
     if (!nsURIHashKey::KeyEquals(aKey->mKey)) {
       return false;
     }
@@ -88,14 +102,19 @@ public:
       return false;
     }
 
+    if (mReferrerPolicy != aKey->mReferrerPolicy) {
+      // Different ReferrerPolicy; we don't match
+      return false;
+    }
+
     bool eq;
     return !mPrincipal ||
       (NS_SUCCEEDED(mPrincipal->Equals(aKey->mPrincipal, &eq)) && eq);
   }
 
-  static const URIPrincipalAndCORSModeHashKey*
-  KeyToPointer(URIPrincipalAndCORSModeHashKey* aKey) { return aKey; }
-  static PLDHashNumber HashKey(const URIPrincipalAndCORSModeHashKey* aKey) {
+  static const URIPrincipalReferrerPolicyAndCORSModeHashKey*
+  KeyToPointer(URIPrincipalReferrerPolicyAndCORSModeHashKey* aKey) { return aKey; }
+  static PLDHashNumber HashKey(const URIPrincipalReferrerPolicyAndCORSModeHashKey* aKey) {
     return nsURIHashKey::HashKey(aKey->mKey);
   }
 
@@ -106,6 +125,7 @@ public:
 protected:
   nsCOMPtr<nsIPrincipal> mPrincipal;
   CORSMode mCORSMode;
+  ReferrerPolicy mReferrerPolicy;
 };
 
 
@@ -114,6 +134,47 @@ namespace css {
 
 class SheetLoadData;
 class ImportRule;
+
+/*********************
+ * Style sheet reuse *
+ *********************/
+
+class MOZ_RAII LoaderReusableStyleSheets
+{
+public:
+  LoaderReusableStyleSheets()
+  {
+  }
+
+  /**
+   * Look for a reusable sheet (see AddReusableSheet) matching the
+   * given URL.  If found, set aResult, remove the reused sheet from
+   * the internal list, and return true.  If not found, return false;
+   * in this case, aResult is not modified.
+   *
+   * @param aURL the url to match
+   * @param aResult [out] the style sheet which can be reused
+   */
+  bool FindReusableStyleSheet(nsIURI* aURL, RefPtr<CSSStyleSheet>& aResult);
+
+  /**
+   * Indicate that a certain style sheet is available for reuse if its
+   * URI matches the URI of an @import.  Sheets should be added in the
+   * opposite order in which they are intended to be reused.
+   *
+   * @param aSheet the sheet which can be reused
+   */
+  void AddReusableSheet(CSSStyleSheet* aSheet) {
+    mReusableSheets.AppendElement(aSheet);
+  }
+
+private:
+  LoaderReusableStyleSheets(const LoaderReusableStyleSheets&) = delete;
+  LoaderReusableStyleSheets& operator=(const LoaderReusableStyleSheets&) = delete;
+
+  // The sheets that can be reused.
+  nsTArray<RefPtr<CSSStyleSheet>> mReusableSheets;
+};
 
 /***********************************************************************
  * Enum that describes the state of the sheet returned by CreateSheet. *
@@ -126,17 +187,20 @@ enum StyleSheetState {
   eSheetComplete
 };
 
-class Loader MOZ_FINAL {
+class Loader final {
+  typedef mozilla::net::ReferrerPolicy ReferrerPolicy;
+
 public:
-  Loader();
-  Loader(nsIDocument*);
+  explicit Loader(StyleBackendType aType);
+  explicit Loader(nsIDocument*);
 
  private:
   // Private destructor, to discourage deletion outside of Release():
   ~Loader();
 
  public:
-  NS_INLINE_DECL_REFCOUNTING(Loader)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(Loader)
+  NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(Loader)
 
   void DropDocumentReference(); // notification that doc is going away
 
@@ -203,6 +267,8 @@ public:
                          const nsAString& aMedia,
                          bool aHasAlternateRel,
                          CORSMode aCORSMode,
+                         ReferrerPolicy aReferrerPolicy,
+                         const nsAString& aIntegrity,
                          nsICSSLoaderObserver* aObserver,
                          bool* aIsAlternate);
 
@@ -221,11 +287,14 @@ public:
    * @param aMedia the already-parsed media list for the child sheet
    * @param aRule the @import rule importing this child.  This is used to
    *              properly order the child sheet list of aParentSheet.
+   * @param aSavedSheets any saved style sheets which could be reused
+   *              for this load
    */
-  nsresult LoadChildSheet(nsCSSStyleSheet* aParentSheet,
+  nsresult LoadChildSheet(StyleSheet* aParentSheet,
                           nsIURI* aURL,
                           nsMediaList* aMedia,
-                          ImportRule* aRule);
+                          ImportRule* aRule,
+                          LoaderReusableStyleSheets* aSavedSheets);
 
   /**
    * Synchronously load and return the stylesheet at aURL.  Any child sheets
@@ -235,13 +304,8 @@ public:
    * method can be used to load sheets not associated with a document.
    *
    * @param aURL the URL of the sheet to load
-   * @param aEnableUnsafeRules whether unsafe rules are enabled for this
-   * sheet load
-   * Unsafe rules are rules that can violate key Gecko invariants if misused.
-   * In particular, most anonymous box pseudoelements must be very carefully
-   * styled or we will have severe problems. Therefore unsafe rules should
-   * never be enabled for stylesheets controlled by untrusted sites; preferably
-   * unsafe rules should only be enabled for agent sheets.
+   * @param aParsingMode the mode in which to parse the sheet
+   *        (see comments at enum SheetParsingMode, above).
    * @param aUseSystemPrincipal if true, give the resulting sheet the system
    * principal no matter where it's being loaded from.
    * @param [out] aSheet the loaded, complete sheet.
@@ -254,22 +318,25 @@ public:
    * whether the data could be parsed as CSS and doesn't indicate anything
    * about the status of child sheets of the returned sheet.
    */
-  nsresult LoadSheetSync(nsIURI* aURL, bool aEnableUnsafeRules,
+  nsresult LoadSheetSync(nsIURI* aURL,
+                         SheetParsingMode aParsingMode,
                          bool aUseSystemPrincipal,
-                         nsCSSStyleSheet** aSheet);
+                         RefPtr<StyleSheet>* aSheet);
 
   /**
-   * As above, but aUseSystemPrincipal and aEnableUnsafeRules are assumed false.
+   * As above, but defaults aParsingMode to eAuthorSheetFeatures and
+   * aUseSystemPrincipal to false.
    */
-  nsresult LoadSheetSync(nsIURI* aURL, nsCSSStyleSheet** aSheet) {
-    return LoadSheetSync(aURL, false, false, aSheet);
+  nsresult LoadSheetSync(nsIURI* aURL, RefPtr<StyleSheet>* aSheet) {
+    return LoadSheetSync(aURL, eAuthorSheetFeatures, false, aSheet);
   }
 
   /**
    * Asynchronously load the stylesheet at aURL.  If a successful result is
    * returned, aObserver is guaranteed to be notified asynchronously once the
    * sheet is loaded and marked complete.  This method can be used to load
-   * sheets not associated with a document.
+   * sheets not associated with a document.  This method cannot be used to
+   * load user or agent sheets.
    *
    * @param aURL the URL of the sheet to load
    * @param aOriginPrincipal the principal to use for security checks.  This
@@ -289,17 +356,20 @@ public:
                      nsIPrincipal* aOriginPrincipal,
                      const nsCString& aCharset,
                      nsICSSLoaderObserver* aObserver,
-                     nsCSSStyleSheet** aSheet);
+                     RefPtr<StyleSheet>* aSheet);
 
   /**
    * Same as above, to be used when the caller doesn't care about the
    * not-yet-loaded sheet.
    */
   nsresult LoadSheet(nsIURI* aURL,
+                     bool aIsPreload,
                      nsIPrincipal* aOriginPrincipal,
                      const nsCString& aCharset,
                      nsICSSLoaderObserver* aObserver,
-                     CORSMode aCORSMode = CORS_NONE);
+                     CORSMode aCORSMode = CORS_NONE,
+                     ReferrerPolicy aReferrerPolicy = mozilla::net::RP_Default,
+                     const nsAString& aIntegrity = EmptyString());
 
   /**
    * Stop loading all sheets.  All nsICSSLoaderObservers involved will be
@@ -363,15 +433,7 @@ public:
   // is selected and aHasAlternateRel is false.
   bool IsAlternate(const nsAString& aTitle, bool aHasAlternateRel);
 
-  typedef nsTArray<nsRefPtr<SheetLoadData> > LoadDataArray;
-
-  // Traverse the cached stylesheets we're holding on to.  This should
-  // only be called from the document that owns this loader.
-  void TraverseCachedSheets(nsCycleCollectionTraversalCallback& cb);
-
-  // Unlink the cached stylesheets we're holding on to.  Again, this
-  // should only be called from the document that owns this loader.
-  void UnlinkCachedSheets();
+  typedef nsTArray<RefPtr<SheetLoadData> > LoadDataArray;
 
   // Measure our size.
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
@@ -383,17 +445,10 @@ public:
 private:
   friend class SheetLoadData;
 
-  static PLDHashOperator
-  RemoveEntriesWithURI(URIPrincipalAndCORSModeHashKey* aKey,
-                       nsRefPtr<nsCSSStyleSheet> &aSheet,
-                       void* aUserData);
-
-  // Note: null aSourcePrincipal indicates that the content policy and
-  // CheckLoadURI checks should be skipped.
-  nsresult CheckLoadAllowed(nsIPrincipal* aSourcePrincipal,
-                            nsIURI* aTargetURI,
-                            nsISupports* aContext);
-
+  nsresult CheckContentPolicy(nsIPrincipal* aSourcePrincipal,
+                              nsIURI* aTargetURI,
+                              nsISupports* aContext,
+                              bool aIsPreload);
 
   // For inline style, the aURI param is null, but the aLinkingContent
   // must be non-null then.  The loader principal must never be null
@@ -402,40 +457,46 @@ private:
   nsresult CreateSheet(nsIURI* aURI,
                        nsIContent* aLinkingContent,
                        nsIPrincipal* aLoaderPrincipal,
+                       css::SheetParsingMode aParsingMode,
                        CORSMode aCORSMode,
+                       ReferrerPolicy aReferrerPolicy,
+                       const nsAString& aIntegrity,
                        bool aSyncLoad,
                        bool aHasAlternateRel,
                        const nsAString& aTitle,
                        StyleSheetState& aSheetState,
                        bool *aIsAlternate,
-                       nsCSSStyleSheet** aSheet);
+                       RefPtr<StyleSheet>* aSheet);
 
   // Pass in either a media string or the nsMediaList from the
   // CSSParser.  Don't pass both.
   // This method will set the sheet's enabled state based on isAlternate
-  void PrepareSheet(nsCSSStyleSheet* aSheet,
+  void PrepareSheet(StyleSheet* aSheet,
                     const nsAString& aTitle,
                     const nsAString& aMediaString,
                     nsMediaList* aMediaList,
                     dom::Element* aScopeElement,
                     bool isAlternate);
 
-  nsresult InsertSheetInDoc(nsCSSStyleSheet* aSheet,
+  nsresult InsertSheetInDoc(StyleSheet* aSheet,
                             nsIContent* aLinkingContent,
                             nsIDocument* aDocument);
 
-  nsresult InsertChildSheet(nsCSSStyleSheet* aSheet,
-                            nsCSSStyleSheet* aParentSheet,
+  nsresult InsertChildSheet(StyleSheet* aSheet,
+                            StyleSheet* aParentSheet,
                             ImportRule* aParentRule);
 
   nsresult InternalLoadNonDocumentSheet(nsIURI* aURL,
-                                        bool aAllowUnsafeRules,
+                                        bool aIsPreload,
+                                        SheetParsingMode aParsingMode,
                                         bool aUseSystemPrincipal,
                                         nsIPrincipal* aOriginPrincipal,
                                         const nsCString& aCharset,
-                                        nsCSSStyleSheet** aSheet,
+                                        RefPtr<StyleSheet>* aSheet,
                                         nsICSSLoaderObserver* aObserver,
-                                        CORSMode aCORSMode = CORS_NONE);
+                                        CORSMode aCORSMode = CORS_NONE,
+                                        ReferrerPolicy aReferrerPolicy = mozilla::net::RP_Default,
+                                        const nsAString& aIntegrity = EmptyString());
 
   // Post a load event for aObserver to be notified about aSheet.  The
   // notification will be sent with status NS_OK unless the load event is
@@ -445,7 +506,7 @@ private:
   // sheet was loaded from (may be null for inline sheets).  aElement is the
   // owning element for this sheet.
   nsresult PostLoadEvent(nsIURI* aURI,
-                         nsCSSStyleSheet* aSheet,
+                         StyleSheet* aSheet,
                          nsICSSLoaderObserver* aObserver,
                          bool aWasAlternate,
                          nsIStyleSheetLinkingElement* aElement);
@@ -458,7 +519,9 @@ private:
 
   // Note: LoadSheet is responsible for releasing aLoadData and setting the
   // sheet to complete on failure.
-  nsresult LoadSheet(SheetLoadData* aLoadData, StyleSheetState aSheetState);
+  nsresult LoadSheet(SheetLoadData* aLoadData,
+                     StyleSheetState aSheetState,
+                     bool aIsPreLoad);
 
   // Parse the stylesheet in aLoadData.  The sheet data comes from aInput.
   // Set aCompleted to true if the parse finished, false otherwise (e.g. if the
@@ -478,30 +541,33 @@ private:
   void DoSheetComplete(SheetLoadData* aLoadData, nsresult aStatus,
                        LoadDataArray& aDatasToNotify);
 
+  StyleBackendType GetStyleBackendType() const;
+
   struct Sheets {
-    nsRefPtrHashtable<URIPrincipalAndCORSModeHashKey, nsCSSStyleSheet>
-                      mCompleteSheets;
-    nsDataHashtable<URIPrincipalAndCORSModeHashKey, SheetLoadData*>
+    nsBaseHashtable<URIPrincipalReferrerPolicyAndCORSModeHashKey,
+                    RefPtr<StyleSheet>,
+                    StyleSheet*> mCompleteSheets;
+    nsDataHashtable<URIPrincipalReferrerPolicyAndCORSModeHashKey, SheetLoadData*>
                       mLoadingDatas; // weak refs
-    nsDataHashtable<URIPrincipalAndCORSModeHashKey, SheetLoadData*>
+    nsDataHashtable<URIPrincipalReferrerPolicyAndCORSModeHashKey, SheetLoadData*>
                       mPendingDatas; // weak refs
   };
   nsAutoPtr<Sheets> mSheets;
 
   // We're not likely to have many levels of @import...  But likely to have
   // some.  Allocate some storage, what the hell.
-  nsAutoTArray<SheetLoadData*, 8> mParsingDatas;
+  AutoTArray<SheetLoadData*, 8> mParsingDatas;
 
   // The array of posted stylesheet loaded events (SheetLoadDatas) we have.
   // Note that these are rare.
   LoadDataArray     mPostedEvents;
 
   // Our array of "global" observers
-  // XXXbz these are strong refs; should we be cycle collecting CSS loaders?
   nsTObserverArray<nsCOMPtr<nsICSSLoaderObserver> > mObservers;
 
-  // the load data needs access to the document...
-  nsIDocument*      mDocument;  // the document we live for
+  // This reference is nulled by the Document in it's destructor through
+  // DropDocumentReference().
+  nsIDocument* MOZ_NON_OWNING_REF mDocument;  // the document we live for
 
 
   // Number of datas still waiting to be notified on if we're notifying on a
@@ -513,7 +579,13 @@ private:
   nsCompatibility   mCompatMode;
   nsString          mPreferredSheet;  // title of preferred sheet
 
+  // Set explicitly when the Loader(StyleBackendType) constructor is used, or
+  // taken from the document when the Loader(nsIDocument*) constructor is used.
+  mozilla::Maybe<StyleBackendType> mStyleBackendType;
+
   bool              mEnabled; // is enabled to load new styles
+
+  nsCOMPtr<nsIConsoleReportCollector> mReporter;
 
 #ifdef DEBUG
   bool              mSyncCallback;

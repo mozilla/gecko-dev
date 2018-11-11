@@ -15,14 +15,16 @@
 
 #ifdef DEBUG
 class nsFrameUtil : public nsIFrameUtil {
+protected:
+  virtual ~nsFrameUtil();
+
 public:
   nsFrameUtil();
-  virtual ~nsFrameUtil();
 
   NS_DECL_ISUPPORTS
 
-  NS_IMETHOD CompareRegressionData(FILE* aFile1, FILE* aFile2,int32_t aRegressionOutput=0);
-  NS_IMETHOD DumpRegressionData(FILE* aInputFile, FILE* aOutputFile);
+  NS_IMETHOD CompareRegressionData(FILE* aFile1, FILE* aFile2,int32_t aRegressionOutput=0) override;
+  NS_IMETHOD DumpRegressionData(FILE* aInputFile, FILE* aOutputFile) override;
 
   struct Node;
   struct Tag;

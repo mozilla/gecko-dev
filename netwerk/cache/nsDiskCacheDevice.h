@@ -20,7 +20,7 @@
 class nsDiskCacheMap;
 
 
-class nsDiskCacheDevice : public nsCacheDevice {
+class nsDiskCacheDevice final : public nsCacheDevice {
 public:
     nsDiskCacheDevice();
     virtual ~nsDiskCacheDevice();

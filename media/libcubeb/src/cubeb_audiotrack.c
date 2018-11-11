@@ -35,14 +35,14 @@
  * call dlsym to get the symbol |mangled_name|, handle the error and store the
  * pointer in |pointer|. Because depending on Android version, we want different
  * symbols, not finding a symbol is not an error. */
-#define DLSYM_DLERROR(mangled_name, pointer, lib)                        \
-  do {                                                                   \
-    pointer = dlsym(lib, mangled_name);                                  \
-    if (!pointer) {                                                      \
+#define DLSYM_DLERROR(mangled_name, pointer, lib)                       \
+  do {                                                                  \
+    pointer = dlsym(lib, mangled_name);                                 \
+    if (!pointer) {                                                     \
       ALOG("error while loading %stm: %stm\n", mangled_name, dlerror()); \
-    } else {                                                             \
-      ALOG("%stm: OK", mangled_name);                                    \
-    }                                                                    \
+    } else {                                                            \
+      ALOG("%stm: OK", mangled_name);                                   \
+    }                                                                   \
   } while(0);
 
 static struct cubeb_ops const audiotrack_ops;
@@ -50,28 +50,22 @@ void audiotrack_destroy(cubeb * context);
 void audiotrack_stream_destroy(cubeb_stream * stream);
 
 struct AudioTrack {
-               /* only available on ICS and later. The second int paramter is in fact of type audio_stream_type_t. */
+  /* only available on ICS and later. The second int paramter is in fact of type audio_stream_type_t. */
   /* static */ status_t (*get_min_frame_count)(int* frame_count, int stream_type, uint32_t rate);
-              /* if we have a recent ctor, but can't find the above symbol, we
-               * can get the minimum frame count with this signature, and we are
-               * running gingerbread. */
+  /* if we have a recent ctor, but can't find the above symbol, we
+   * can get the minimum frame count with this signature, and we are
+   * running gingerbread. */
   /* static */ status_t (*get_min_frame_count_gingerbread)(int* frame_count, int stream_type, uint32_t rate);
-               /* if this symbol is not availble, and the next one is, we know
-                * we are on a Froyo (Android 2.2) device. */
-               void* (*ctor)(void* instance, int, unsigned int, int, int, int, unsigned int, void (*)(int, void*, void*), void*, int, int);
-               void* (*ctor_froyo)(void* instance, int, unsigned int, int, int, int, unsigned int, void (*)(int, void*, void*), void*, int);
-               void* (*dtor)(void* instance);
-               void (*start)(void* instance);
-               void (*pause)(void* instance);
-               uint32_t (*latency)(void* instance);
-               status_t (*check)(void* instance);
-               status_t (*get_position)(void* instance, uint32_t* position);
-              /* only used on froyo. */
-  /* static */ int (*get_output_frame_count)(int* frame_count, int stream);
-  /* static */ int (*get_output_latency)(uint32_t* latency, int stream);
+  void* (*ctor)(void* instance, int, unsigned int, int, int, int, unsigned int, void (*)(int, void*, void*), void*, int, int);
+  void* (*dtor)(void* instance);
+  void (*start)(void* instance);
+  void (*pause)(void* instance);
+  uint32_t (*latency)(void* instance);
+  status_t (*check)(void* instance);
+  status_t (*get_position)(void* instance, uint32_t* position);
   /* static */ int (*get_output_samplingrate)(int* samplerate, int stream);
-               status_t (*set_marker_position)(void* instance, unsigned int);
-
+  status_t (*set_marker_position)(void* instance, unsigned int);
+  status_t (*set_volume)(void* instance, float left, float right);
 };
 
 struct cubeb {
@@ -97,52 +91,44 @@ audiotrack_refill(int event, void* user, void* info)
 {
   cubeb_stream * stream = user;
   switch (event) {
-    case EVENT_MORE_DATA: {
-      long got = 0;
-      struct Buffer * b = (struct Buffer*)info;
+  case EVENT_MORE_DATA: {
+    long got = 0;
+    struct Buffer * b = (struct Buffer*)info;
 
-      if (stream->draining) {
-        return;
-      }
-
-      got = stream->data_callback(stream, stream->user_ptr, b->raw, b->frameCount);
-
-      stream->written += got;
-
-      if (got != (long)b->frameCount) {
-        uint32_t p;
-        stream->draining = 1;
-        /* set a marker so we are notified when the are done draining, that is,
-         * when every frame has been played by android. */
-        stream->context->klass.set_marker_position(stream->instance, stream->written);
-      }
-
-      break;
+    if (stream->draining) {
+      return;
     }
-    case EVENT_UNDERRUN:
-      ALOG("underrun in cubeb backend.");
-      break;
-    case EVENT_LOOP_END:
-      assert(0 && "We don't support the loop feature of audiotrack.");
-      break;
-    case EVENT_MARKER:
-      assert(stream->draining);
-      stream->state_callback(stream, stream->user_ptr, CUBEB_STATE_DRAINED);
-      break;
-    case EVENT_NEW_POS:
-      assert(0 && "We don't support the setPositionUpdatePeriod feature of audiotrack.");
-      break;
-    case EVENT_BUFFER_END:
-      assert(0 && "Should not happen.");
-      break;
-  }
-}
 
-/* We are running on froyo if we found the right AudioTrack constructor */
-static int
-audiotrack_version_is_froyo(cubeb * ctx)
-{
-  return ctx->klass.ctor_froyo != NULL;
+    got = stream->data_callback(stream, stream->user_ptr, NULL, b->raw, b->frameCount);
+
+    stream->written += got;
+
+    if (got != (long)b->frameCount) {
+      stream->draining = 1;
+      /* set a marker so we are notified when the are done draining, that is,
+       * when every frame has been played by android. */
+      stream->context->klass.set_marker_position(stream->instance, stream->written);
+    }
+
+    break;
+  }
+  case EVENT_UNDERRUN:
+    ALOG("underrun in cubeb backend.");
+    break;
+  case EVENT_LOOP_END:
+    assert(0 && "We don't support the loop feature of audiotrack.");
+    break;
+  case EVENT_MARKER:
+    assert(stream->draining);
+    stream->state_callback(stream, stream->user_ptr, CUBEB_STATE_DRAINED);
+    break;
+  case EVENT_NEW_POS:
+    assert(0 && "We don't support the setPositionUpdatePeriod feature of audiotrack.");
+    break;
+  case EVENT_BUFFER_END:
+    assert(0 && "Should not happen.");
+    break;
+  }
 }
 
 /* We are running on gingerbread if we found the gingerbread signature for
@@ -157,35 +143,6 @@ int
 audiotrack_get_min_frame_count(cubeb * ctx, cubeb_stream_params * params, int * min_frame_count)
 {
   status_t status;
-  /* Recent Android have a getMinFrameCount method. On Froyo, we have to compute it by hand. */
-  if (audiotrack_version_is_froyo(ctx)) {
-    int samplerate, frame_count, latency, min_buffer_count;
-    status = ctx->klass.get_output_frame_count(&frame_count, params->stream_type);
-    if (status) {
-      ALOG("error getting the output frame count.");
-      return CUBEB_ERROR;
-    }
-    status = ctx->klass.get_output_latency((uint32_t*)&latency, params->stream_type);
-    if (status) {
-      ALOG("error getting the output frame count.");
-      return CUBEB_ERROR;
-    }
-    status = ctx->klass.get_output_samplingrate(&samplerate, params->stream_type);
-    if (status) {
-      ALOG("error getting the output frame count.");
-      return CUBEB_ERROR;
-    }
-
-    /* Those numbers were found reading the Android source. It is the minimum
-     * numbers that will be accepted by the AudioTrack class, hence yielding the
-     * best latency possible.
-     * See https://android.googlesource.com/platform/frameworks/base/+/android-2.2.3_r2.1/media/libmedia/AudioTrack.cpp
-     * around line 181 for Android 2.2 */
-    min_buffer_count = latency / ((1000 * frame_count) / samplerate);
-    min_buffer_count = min_buffer_count < 2 ? min_buffer_count : 2;
-    *min_frame_count = (frame_count * params->rate * min_buffer_count) / samplerate;
-    return CUBEB_OK;
-  }
   /* Recent Android have a getMinFrameCount method. */
   if (!audiotrack_version_is_gingerbread(ctx)) {
     status = ctx->klass.get_min_frame_count(min_frame_count, params->stream_type, params->rate);
@@ -222,12 +179,8 @@ audiotrack_init(cubeb ** context, char const * context_name)
     return CUBEB_ERROR;
   }
 
-  /* Recent Android first, then Froyo. */
+  /* Recent Android first, then Gingerbread. */
   DLSYM_DLERROR("_ZN7android10AudioTrackC1EijiiijPFviPvS1_ES1_ii", ctx->klass.ctor, ctx->library);
-  if (!ctx->klass.ctor) {
-    DLSYM_DLERROR("_ZN7android10AudioTrackC1EijiiijPFviPvS1_ES1_i", ctx->klass.ctor_froyo, ctx->library);
-    assert(ctx->klass.ctor_froyo);
-  }
   DLSYM_DLERROR("_ZN7android10AudioTrackD1Ev", ctx->klass.dtor, ctx->library);
 
   DLSYM_DLERROR("_ZNK7android10AudioTrack7latencyEv", ctx->klass.latency, ctx->library);
@@ -235,32 +188,26 @@ audiotrack_init(cubeb ** context, char const * context_name)
 
   DLSYM_DLERROR("_ZN7android11AudioSystem21getOutputSamplingRateEPii", ctx->klass.get_output_samplingrate, ctx->library);
 
-  /* |getMinFrameCount| is not available on Froyo, and is available on
-   * gingerbread and ICS with a different signature. */
-  if (audiotrack_version_is_froyo(ctx)) {
-    DLSYM_DLERROR("_ZN7android11AudioSystem19getOutputFrameCountEPii", ctx->klass.get_output_frame_count, ctx->library);
-    DLSYM_DLERROR("_ZN7android11AudioSystem16getOutputLatencyEPji", ctx->klass.get_output_latency, ctx->library);
-  } else {
-    DLSYM_DLERROR("_ZN7android10AudioTrack16getMinFrameCountEPi19audio_stream_type_tj", ctx->klass.get_min_frame_count, ctx->library);
-    if (!ctx->klass.get_min_frame_count) {
-      DLSYM_DLERROR("_ZN7android10AudioTrack16getMinFrameCountEPiij", ctx->klass.get_min_frame_count_gingerbread, ctx->library);
-    }
+  /* |getMinFrameCount| is available on gingerbread and ICS with different signatures. */
+  DLSYM_DLERROR("_ZN7android10AudioTrack16getMinFrameCountEPi19audio_stream_type_tj", ctx->klass.get_min_frame_count, ctx->library);
+  if (!ctx->klass.get_min_frame_count) {
+    DLSYM_DLERROR("_ZN7android10AudioTrack16getMinFrameCountEPiij", ctx->klass.get_min_frame_count_gingerbread, ctx->library);
   }
 
   DLSYM_DLERROR("_ZN7android10AudioTrack5startEv", ctx->klass.start, ctx->library);
   DLSYM_DLERROR("_ZN7android10AudioTrack5pauseEv", ctx->klass.pause, ctx->library);
   DLSYM_DLERROR("_ZN7android10AudioTrack11getPositionEPj", ctx->klass.get_position, ctx->library);
   DLSYM_DLERROR("_ZN7android10AudioTrack17setMarkerPositionEj", ctx->klass.set_marker_position, ctx->library);
+  DLSYM_DLERROR("_ZN7android10AudioTrack9setVolumeEff", ctx->klass.set_volume, ctx->library);
 
   /* check that we have a combination of symbol that makes sense */
   c = &ctx->klass;
-  if(!((c->ctor || c->ctor_froyo) && /* at least on ctor. */
-     c->dtor && c->latency && c->check &&
-     /* at least one way to get the minimum frame count to request. */
-     ((c->get_output_frame_count && c->get_output_latency && c->get_output_samplingrate) ||
-      c->get_min_frame_count ||
-      c->get_min_frame_count_gingerbread) &&
-     c->start && c->pause && c->get_position && c->set_marker_position)) {
+  if(!(c->ctor &&
+       c->dtor && c->latency && c->check &&
+       /* at least one way to get the minimum frame count to request. */
+       (c->get_min_frame_count ||
+        c->get_min_frame_count_gingerbread) &&
+       c->start && c->pause && c->get_position && c->set_marker_position)) {
     ALOG("Could not find all the symbols we need.");
     audiotrack_destroy(ctx);
     return CUBEB_ERROR;
@@ -285,7 +232,7 @@ audiotrack_get_max_channel_count(cubeb * ctx, uint32_t * max_channels)
   assert(ctx && max_channels);
 
   /* The android mixer handles up to two channels, see
-  http://androidxref.com/4.2.2_r1/xref/frameworks/av/services/audioflinger/AudioFlinger.h#67 */
+     http://androidxref.com/4.2.2_r1/xref/frameworks/av/services/audioflinger/AudioFlinger.h#67 */
   *max_channels = 2;
 
   return CUBEB_OK;
@@ -296,15 +243,12 @@ audiotrack_get_min_latency(cubeb * ctx, cubeb_stream_params params, uint32_t * l
 {
   /* We always use the lowest latency possible when using this backend (see
    * audiotrack_stream_init), so this value is not going to be used. */
-  int rv;
+  int r;
 
-  rv = audiotrack_get_min_frame_count(ctx, &params, (int *)latency_ms);
-  if (rv != CUBEB_OK) {
+  r = audiotrack_get_min_frame_count(ctx, &params, (int *)latency_ms);
+  if (r != CUBEB_OK) {
     return CUBEB_ERROR;
   }
-
-  /* Convert to milliseconds. */
-  *latency_ms = *latency_ms * 1000 / params.rate;
 
   return CUBEB_OK;
 }
@@ -312,11 +256,11 @@ audiotrack_get_min_latency(cubeb * ctx, cubeb_stream_params params, uint32_t * l
 static int
 audiotrack_get_preferred_sample_rate(cubeb * ctx, uint32_t * rate)
 {
-  status_t rv;
+  status_t r;
 
-  rv = ctx->klass.get_output_samplingrate((int32_t *)rate, 3 /* MUSIC */);
+  r = ctx->klass.get_output_samplingrate((int32_t *)rate, 3 /* MUSIC */);
 
-  return rv == 0 ? CUBEB_OK : CUBEB_ERROR;
+  return r == 0 ? CUBEB_OK : CUBEB_ERROR;
 }
 
 void
@@ -331,7 +275,11 @@ audiotrack_destroy(cubeb * context)
 
 int
 audiotrack_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_name,
-                       cubeb_stream_params stream_params, unsigned int latency,
+                       cubeb_devid input_device,
+                       cubeb_stream_params * input_stream_params,
+                       cubeb_devid output_device,
+                       cubeb_stream_params * output_stream_params,
+                       unsigned int latency,
                        cubeb_data_callback data_callback,
                        cubeb_state_callback state_callback,
                        void * user_ptr)
@@ -342,12 +290,18 @@ audiotrack_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_
 
   assert(ctx && stream);
 
-  if (stream_params.format == CUBEB_SAMPLE_FLOAT32LE ||
-      stream_params.format == CUBEB_SAMPLE_FLOAT32BE) {
+  assert(!input_stream_params && "not supported");
+  if (input_device || output_device) {
+    /* Device selection not yet implemented. */
+    return CUBEB_ERROR_DEVICE_UNAVAILABLE;
+  }
+
+  if (output_stream_params->format == CUBEB_SAMPLE_FLOAT32LE ||
+      output_stream_params->format == CUBEB_SAMPLE_FLOAT32BE) {
     return CUBEB_ERROR_INVALID_FORMAT;
   }
 
-  if (audiotrack_get_min_frame_count(ctx, &stream_params, (int *)&min_frame_count)) {
+  if (audiotrack_get_min_frame_count(ctx, output_stream_params, (int *)&min_frame_count)) {
     return CUBEB_ERROR;
   }
 
@@ -358,43 +312,22 @@ audiotrack_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_
   stm->data_callback = data_callback;
   stm->state_callback = state_callback;
   stm->user_ptr = user_ptr;
-  stm->params = stream_params;
+  stm->params = *output_stream_params;
 
   stm->instance = calloc(SIZE_AUDIOTRACK_INSTANCE, 1);
   (*(uint32_t*)((intptr_t)stm->instance + SIZE_AUDIOTRACK_INSTANCE - 4)) = 0xbaadbaad;
   assert(stm->instance && "cubeb: EOM");
 
   /* gingerbread uses old channel layout enum */
-  if (audiotrack_version_is_froyo(ctx) || audiotrack_version_is_gingerbread(ctx)) {
+  if (audiotrack_version_is_gingerbread(ctx)) {
     channels = stm->params.channels == 2 ? AUDIO_CHANNEL_OUT_STEREO_Legacy : AUDIO_CHANNEL_OUT_MONO_Legacy;
   } else {
     channels = stm->params.channels == 2 ? AUDIO_CHANNEL_OUT_STEREO_ICS : AUDIO_CHANNEL_OUT_MONO_ICS;
   }
 
-  if (audiotrack_version_is_froyo(ctx)) {
-    ctx->klass.ctor_froyo(stm->instance,
-                          stm->params.stream_type,
-                          stm->params.rate,
-                          AUDIO_FORMAT_PCM_16_BIT,
-                          channels,
-                          min_frame_count,
-                          0,
-                          audiotrack_refill,
-                          stm,
-                          0);
-  } else {
-    ctx->klass.ctor(stm->instance,
-                    stm->params.stream_type,
-                    stm->params.rate,
-                    AUDIO_FORMAT_PCM_16_BIT,
-                    channels,
-                    min_frame_count,
-                    0,
-                    audiotrack_refill,
-                    stm,
-                    0,
-                    0);
-  }
+  ctx->klass.ctor(stm->instance, stm->params.stream_type, stm->params.rate,
+                  AUDIO_FORMAT_PCM_16_BIT, channels, min_frame_count, 0,
+                  audiotrack_refill, stm, 0, 0);
 
   assert((*(uint32_t*)((intptr_t)stm->instance + SIZE_AUDIOTRACK_INSTANCE - 4)) == 0xbaadbaad);
 
@@ -468,17 +401,38 @@ audiotrack_stream_get_latency(cubeb_stream * stream, uint32_t * latency)
   return 0;
 }
 
+int
+audiotrack_stream_set_volume(cubeb_stream * stream, float volume)
+{
+  status_t status;
+
+  status = stream->context->klass.set_volume(stream->instance, volume, volume);
+
+  if (status) {
+    return CUBEB_ERROR;
+  }
+
+  return CUBEB_OK;
+}
+
 static struct cubeb_ops const audiotrack_ops = {
   .init = audiotrack_init,
   .get_backend_id = audiotrack_get_backend_id,
   .get_max_channel_count = audiotrack_get_max_channel_count,
   .get_min_latency = audiotrack_get_min_latency,
   .get_preferred_sample_rate = audiotrack_get_preferred_sample_rate,
+  .enumerate_devices = NULL,
   .destroy = audiotrack_destroy,
   .stream_init = audiotrack_stream_init,
   .stream_destroy = audiotrack_stream_destroy,
   .stream_start = audiotrack_stream_start,
   .stream_stop = audiotrack_stream_stop,
   .stream_get_position = audiotrack_stream_get_position,
-  .stream_get_latency = audiotrack_stream_get_latency
+  .stream_get_latency = audiotrack_stream_get_latency,
+  .stream_set_volume = audiotrack_stream_set_volume,
+  .stream_set_panning = NULL,
+  .stream_get_current_device = NULL,
+  .stream_device_destroy = NULL,
+  .stream_register_device_changed_callback = NULL,
+  .register_device_collection_changed = NULL
 };

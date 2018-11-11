@@ -17,7 +17,8 @@
       'type': 'static_library',
       'dependencies': [
         '<(DEPTH)/testing/gtest.gyp:gtest',
-        '<(webrtc_root)/system_wrappers/source/system_wrappers.gyp:system_wrappers',
+        '<(webrtc_root)/common.gyp:webrtc_common',
+        '<(webrtc_root)/system_wrappers/system_wrappers.gyp:system_wrappers',
       ],
       'sources': [
         'channel_transport/channel_transport.cc',
@@ -53,26 +54,75 @@
       ],
     },
     {
+      'target_name': 'rtp_test_utils',
+      'type': 'static_library',
+      'sources': [
+        'rtcp_packet_parser.cc',
+        'rtcp_packet_parser.h',
+        'rtp_file_reader.cc',
+        'rtp_file_reader.h',
+        'rtp_file_writer.cc',
+        'rtp_file_writer.h',
+      ],
+      'dependencies': [
+        '<(DEPTH)/webrtc/common.gyp:webrtc_common',
+        '<(DEPTH)/testing/gtest.gyp:gtest',
+        '<(webrtc_root)/modules/modules.gyp:rtp_rtcp',
+      ],
+    },
+    {
+      'target_name': 'field_trial',
+      'type': 'static_library',
+      'sources': [
+        'field_trial.cc',
+        'field_trial.h',
+      ],
+      'dependencies': [
+        '<(webrtc_root)/common.gyp:webrtc_common',
+        '<(webrtc_root)/system_wrappers/system_wrappers.gyp:system_wrappers',
+      ],
+    },
+    {
+      'target_name': 'histogram',
+      'type': 'static_library',
+      'sources': [
+        'histogram.cc',
+        'histogram.h',
+      ],
+      'dependencies': [
+        '<(webrtc_root)/common.gyp:webrtc_common',
+        '<(webrtc_root)/system_wrappers/system_wrappers.gyp:system_wrappers',
+      ],
+    },
+    {
+      'target_name': 'test_main',
+      'type': 'static_library',
+      'sources': [
+        'test_main.cc',
+      ],
+      'dependencies': [
+        'field_trial',
+        'histogram',
+        '<(DEPTH)/testing/gtest.gyp:gtest',
+        '<(DEPTH)/third_party/gflags/gflags.gyp:gflags',
+      ],
+    },
+    {
       'target_name': 'test_support',
       'type': 'static_library',
       'dependencies': [
         '<(DEPTH)/testing/gtest.gyp:gtest',
         '<(DEPTH)/testing/gmock.gyp:gmock',
-        '<(DEPTH)/third_party/gflags/gflags.gyp:gflags',
-        '<(webrtc_root)/system_wrappers/source/system_wrappers.gyp:system_wrappers',
+        '<(webrtc_root)/common.gyp:gtest_prod',
+        '<(webrtc_root)/system_wrappers/system_wrappers.gyp:system_wrappers',
       ],
       'sources': [
-        'test_suite.cc',
-        'test_suite.h',
-        'testsupport/android/root_path_android.cc',
-        'testsupport/android/root_path_android_chromium.cc',
         'testsupport/fileutils.cc',
         'testsupport/fileutils.h',
         'testsupport/frame_reader.cc',
         'testsupport/frame_reader.h',
         'testsupport/frame_writer.cc',
         'testsupport/frame_writer.h',
-        'testsupport/gtest_prod_util.h',
         'testsupport/gtest_disable.h',
         'testsupport/mock/mock_frame_reader.h',
         'testsupport/mock/mock_frame_writer.h',
@@ -83,22 +133,6 @@
         'testsupport/trace_to_stderr.cc',
         'testsupport/trace_to_stderr.h',
       ],
-      'conditions': [
-        # TODO(henrike): remove build_with_chromium==1 when the bots are using
-        # Chromium's buildbots.
-        ['build_with_chromium==1 and OS=="android" and gtest_target_type=="shared_library"', {
-          'dependencies': [
-            '<(DEPTH)/base/base.gyp:base',
-          ],
-          'sources!': [
-            'testsupport/android/root_path_android.cc',
-          ],
-        }, {
-          'sources!': [
-            'testsupport/android/root_path_android_chromium.cc',
-          ],
-        }],
-      ],
     },
     {
       # Depend on this target when you want to have test_support but also the
@@ -106,10 +140,17 @@
       'target_name': 'test_support_main',
       'type': 'static_library',
       'dependencies': [
+        'field_trial',
+        'histogram',
         'test_support',
+        '<(DEPTH)/testing/gmock.gyp:gmock',
+        '<(DEPTH)/testing/gtest.gyp:gtest',
+        '<(DEPTH)/third_party/gflags/gflags.gyp:gflags',
       ],
       'sources': [
         'run_all_unittests.cc',
+        'test_suite.cc',
+        'test_suite.h',
       ],
     },
     {
@@ -142,6 +183,7 @@
         'channel_transport/udp_transport_unittest.cc',
         'channel_transport/udp_socket_manager_unittest.cc',
         'channel_transport/udp_socket_wrapper_unittest.cc',
+        'testsupport/always_passing_unittest.cc',
         'testsupport/unittest_utils.h',
         'testsupport/fileutils_unittest.cc',
         'testsupport/frame_reader_unittest.cc',
@@ -154,9 +196,7 @@
         4267,  # size_t to int truncation.
       ],
       'conditions': [
-        # TODO(henrike): remove build_with_chromium==1 when the bots are
-        # using Chromium's buildbots.
-        ['build_with_chromium==1 and OS=="android" and gtest_target_type=="shared_library"', {
+        ['OS=="android"', {
           'dependencies': [
             '<(DEPTH)/testing/android/native_test.gyp:native_test_native_code',
           ],
@@ -165,33 +205,7 @@
     },
   ],
   'conditions': [
-    ['build_with_chromium==0', {
-      'targets': [
-        {
-          'target_name': 'buildbot_tests_scripts',
-          'type': 'none',
-          'copies': [
-            {
-              'destination': '<(PRODUCT_DIR)',
-              'files': [
-                'buildbot_tests.py',
-                '<(webrtc_root)/tools/e2e_quality/audio/run_audio_test.py',
-              ],
-            },
-            {
-              'destination': '<(PRODUCT_DIR)/perf',
-              'files': [
-                '<(DEPTH)/tools/perf/__init__.py',
-                '<(DEPTH)/tools/perf/perf_utils.py',
-              ],
-            },
-          ],
-        },  # target buildbot_tests_scripts
-      ],
-    }],
-    # TODO(henrike): remove build_with_chromium==1 when the bots are using
-    # Chromium's buildbots.
-    ['include_tests==1 and build_with_chromium==1 and OS=="android" and gtest_target_type=="shared_library"', {
+    ['include_tests==1 and OS=="android"', {
       'targets': [
         {
           'target_name': 'test_support_unittests_apk_target',
@@ -212,7 +226,6 @@
           ],
           'includes': [
             '../build/isolate.gypi',
-            'test_support_unittests.isolate',
           ],
           'sources': [
             'test_support_unittests.isolate',

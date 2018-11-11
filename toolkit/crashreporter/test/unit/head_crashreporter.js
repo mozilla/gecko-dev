@@ -35,14 +35,10 @@ function do_crash(setup, callback, canReturnZero)
   // get current process filename (xpcshell)
   let ds = Components.classes["@mozilla.org/file/directory_service;1"]
     .getService(Components.interfaces.nsIProperties);
-  let bin = ds.get("CurProcD", Components.interfaces.nsILocalFile);
-  bin.append("xpcshell");
+  let bin = ds.get("XREExeF", Components.interfaces.nsILocalFile);
   if (!bin.exists()) {
-    bin.leafName = "xpcshell.exe";
-    do_check_true(bin.exists());
-    if (!bin.exists())
-      // weird, can't find xpcshell binary?
-      do_throw("Can't find xpcshell binary!");
+    // weird, can't find xpcshell binary?
+    do_throw("Can't find xpcshell binary!");
   }
   // get Gre dir (GreD)
   let greD = ds.get("GreD", Components.interfaces.nsILocalFile);
@@ -68,7 +64,7 @@ function do_crash(setup, callback, canReturnZero)
   let crashD = do_get_tempdir();
   crashD.append("crash-events");
   if (!crashD.exists()) {
-    crashD.create(crashD.DIRECTORY_TYPE, 0700);
+    crashD.create(crashD.DIRECTORY_TYPE, 0o700);
   }
 
   env.set("CRASHES_EVENTS_DIR", crashD.path);
@@ -76,7 +72,7 @@ function do_crash(setup, callback, canReturnZero)
   try {
       process.run(true, args, args.length);
   }
-  catch(ex) {} // on Windows we exit with a -1 status when crashing.
+  catch (ex) {} // on Windows we exit with a -1 status when crashing.
   finally {
     env.set("CRASHES_EVENTS_DIR", "");
   }
@@ -108,12 +104,17 @@ function handleMinidump(callback)
   let extrafile = minidump.clone();
   extrafile.leafName = extrafile.leafName.slice(0, -4) + ".extra";
 
+  let memoryfile = minidump.clone();
+  memoryfile.leafName = memoryfile.leafName.slice(0, -4) + ".memory.json.gz";
+
   // Just in case, don't let these files linger.
   do_register_cleanup(function() {
           if (minidump.exists())
               minidump.remove(false);
           if (extrafile.exists())
               extrafile.remove(false);
+          if (memoryfile.exists())
+              memoryfile.remove(false);
       });
   do_check_true(extrafile.exists());
   let extra = parseKeyValuePairsFromFile(extrafile);
@@ -125,6 +126,8 @@ function handleMinidump(callback)
     minidump.remove(false);
   if (extrafile.exists())
     extrafile.remove(false);
+  if (memoryfile.exists())
+    memoryfile.remove(false);
 }
 
 function do_content_crash(setup, callback)
@@ -156,10 +159,10 @@ function do_content_crash(setup, callback)
     do_test_finished();
   };
 
-  sendCommand("load(\"" + headfile.path.replace(/\\/g, "/") + "\");", function()
-    sendCommand(setup, function()
-      sendCommand("load(\"" + tailfile.path.replace(/\\/g, "/") + "\");",
-        function() do_execute_soon(handleCrash)
+  sendCommand("load(\"" + headfile.path.replace(/\\/g, "/") + "\");", () =>
+    sendCommand(setup, () =>
+      sendCommand("load(\"" + tailfile.path.replace(/\\/g, "/") + "\");", () =>
+        do_execute_soon(handleCrash)
       )
     )
   );

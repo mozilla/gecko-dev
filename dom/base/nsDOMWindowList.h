@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,14 +17,13 @@ class nsIDOMWindow;
 class nsDOMWindowList : public nsIDOMWindowCollection
 {
 public:
-  nsDOMWindowList(nsIDocShell *aDocShell);
-  virtual ~nsDOMWindowList();
+  explicit nsDOMWindowList(nsIDocShell* aDocShell);
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMWINDOWCOLLECTION
 
   uint32_t GetLength();
-  already_AddRefed<nsIDOMWindow> IndexedGetter(uint32_t aIndex, bool& aFound);
+  already_AddRefed<nsPIDOMWindowOuter> IndexedGetter(uint32_t aIndex);
 
   //local methods
   NS_IMETHOD SetDocShell(nsIDocShell* aDocShell);
@@ -38,6 +38,8 @@ public:
   }
 
 protected:
+  virtual ~nsDOMWindowList();
+
   // Note: this function may flush and cause mDocShellNode to become null.
   void EnsureFresh();
 

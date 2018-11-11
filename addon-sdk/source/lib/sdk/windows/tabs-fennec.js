@@ -19,7 +19,7 @@ const { EventTarget } = require('../event/target');
 const { when: unload } = require('../system/unload');
 const { windowIterator } = require('../deprecated/window-utils');
 const { List, addListItem, removeListItem } = require('../util/list');
-const { isPrivateBrowsingSupported } = require('../self');
+const { isPrivateBrowsingSupported, data } = require('../self');
 const { isTabPBSupported, ignoreWindow } = require('../private-browsing/utils');
 
 const mainWindow = windowNS(browserWindows.activeWindow).window;
@@ -55,7 +55,8 @@ const Tabs = Class({
       console.error(ERR_FENNEC_MSG); // TODO
     }
 
-    let rawTab = openTab(windowNS(activeWin).window, options.url, {
+    let url = options.url ? data.url(options.url) : options.url;
+    let rawTab = openTab(windowNS(activeWin).window, url, {
       inBackground: options.inBackground,
       isPrivate: supportPrivateTabs && options.isPrivate
     });
@@ -89,7 +90,7 @@ const Tabs = Class({
     return tab;
   }
 });
-let gTabs = exports.tabs = Tabs(mainWindow);
+var gTabs = exports.tabs = Tabs(mainWindow);
 
 function tabsUnloader(event, window) {
   window = window || (event && event.target);
@@ -134,10 +135,10 @@ function onTabOpen(event) {
 
   tabNS(tab).opened = true;
 
-  tab.on('ready', function() emit(gTabs, 'ready', tab));
+  tab.on('ready', () => emit(gTabs, 'ready', tab));
   tab.once('close', onTabClose);
 
-  tab.on('pageshow', function(_tab, persisted)
+  tab.on('pageshow', (_tab, persisted) =>
     emit(gTabs, 'pageshow', tab, persisted));
 
   emit(tab, 'open', tab);
@@ -157,7 +158,7 @@ function onTabSelect(event) {
   emit(tab, 'activate', tab);
   emit(gTabs, 'activate', tab);
 
-  for each (let t in gTabs) {
+  for (let t of gTabs) {
     if (t === tab) continue;
     emit(t, 'deactivate', t);
     emit(gTabs, 'deactivate', t);

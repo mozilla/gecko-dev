@@ -16,7 +16,8 @@ nsresult NS_NewFrameTraversal(nsIFrameEnumerator **aEnumerator,
                               nsIteratorType aType,
                               bool aVisual,
                               bool aLockInScrollView,
-                              bool aFollowOOFs);
+                              bool aFollowOOFs,
+                              bool aSkipPopupChecks);
 
 nsresult NS_CreateFrameTraversal(nsIFrameTraversal** aResult);
 
@@ -24,7 +25,6 @@ class nsFrameTraversal : public nsIFrameTraversal
 {
 public:
   nsFrameTraversal();
-  virtual ~nsFrameTraversal();
 
   NS_DECL_ISUPPORTS
 
@@ -34,7 +34,11 @@ public:
                                int32_t aType,
                                bool aVisual,
                                bool aLockInScrollView,
-                               bool aFollowOOFs) MOZ_OVERRIDE;
+                               bool aFollowOOFs,
+                               bool aSkipPopupChecks) override;
+
+protected:
+  virtual ~nsFrameTraversal();
 };
 
 #endif //NSFRAMETRAVERSAL_H

@@ -5,6 +5,7 @@
 // Note: sets Cc and Ci variables
 
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "URL", function() {
   return "http://localhost:" + httpserver.identity.primaryPort;
@@ -45,26 +46,46 @@ function setup_test() {
   setOK = channel.getRequestHeader("MergeMe");
   do_check_eq(setOK, "foo1, foo2, foo3");
 
-  var uri = ios.newURI("http://foo1.invalid:80", null, null);
+  channel.setEmptyRequestHeader("Empty");
+  setOK = channel.getRequestHeader("Empty");
+  do_check_eq(setOK, "");
+
+  channel.setRequestHeader("ReplaceWithEmpty", "initial value", true);
+  setOK = channel.getRequestHeader("ReplaceWithEmpty");
+  do_check_eq(setOK, "initial value");
+  channel.setEmptyRequestHeader("ReplaceWithEmpty");
+  setOK = channel.getRequestHeader("ReplaceWithEmpty");
+  do_check_eq(setOK, "");
+
+  channel.setEmptyRequestHeader("MergeWithEmpty");
+  setOK = channel.getRequestHeader("MergeWithEmpty");
+  do_check_eq(setOK, "");
+  channel.setRequestHeader("MergeWithEmpty", "foo", true);
+  setOK = channel.getRequestHeader("MergeWithEmpty");
+  do_check_eq(setOK, "foo");
+
+  var uri = NetUtil.newURI("http://foo1.invalid:80");
   channel.referrer = uri;
   do_check_true(channel.referrer.equals(uri));
   setOK = channel.getRequestHeader("Referer");
   do_check_eq(setOK, "http://foo1.invalid/");
 
-  uri = ios.newURI("http://foo2.invalid:90/bar", null, null);
+  uri = NetUtil.newURI("http://foo2.invalid:90/bar");
   channel.referrer = uri;
   setOK = channel.getRequestHeader("Referer");
   do_check_eq(setOK, "http://foo2.invalid:90/bar");
 
   // ChannelListener defined in head_channels.js
-  channel.asyncOpen(new ChannelListener(checkRequestResponse, channel), null);
+  channel.asyncOpen2(new ChannelListener(checkRequestResponse, channel));
 
   if (dbg) { print("============== setup_test: out"); }
 }
 
 function setupChannel(path) {
-  ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
-  var chan = ios.newChannel(URL + path, "", null);
+  var chan = NetUtil.newChannel({
+    uri: URL + path,
+    loadUsingSystemPrincipal: true
+  });
   chan.QueryInterface(Ci.nsIHttpChannel);
   chan.requestMethod = "GET";
   return chan;
@@ -77,6 +98,12 @@ function serverHandler(metadata, response) {
   do_check_eq(setOK, "replaced");
   setOK = metadata.getHeader("MergeMe");
   do_check_eq(setOK, "foo1, foo2, foo3");
+  setOK = metadata.getHeader("Empty");
+  do_check_eq(setOK, "");
+  setOK = metadata.getHeader("ReplaceWithEmpty");
+  do_check_eq(setOK, "");
+  setOK = metadata.getHeader("MergeWithEmpty");
+  do_check_eq(setOK, "foo");
   setOK = metadata.getHeader("Referer");
   do_check_eq(setOK, "http://foo2.invalid:90/bar");
 

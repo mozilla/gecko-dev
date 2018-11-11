@@ -10,7 +10,7 @@
 using mozilla::ArrayLength;
 using mozilla::PodEqual;
 
-static const jschar arr[] = {
+static const char16_t arr[] = {
     'h', 'i', ',', 'd', 'o', 'n', '\'', 't', ' ', 'd', 'e', 'l', 'e', 't', 'e', ' ', 'm', 'e', '\0'
 };
 static const size_t arrlen = ArrayLength(arr) - 1;
@@ -19,15 +19,15 @@ static int finalized1 = 0;
 static int finalized2 = 0;
 
 static void
-finalize_str(const JSStringFinalizer *fin, jschar *chars);
+finalize_str(JS::Zone* zone, const JSStringFinalizer* fin, char16_t* chars);
 
 static const JSStringFinalizer finalizer1 = { finalize_str };
 static const JSStringFinalizer finalizer2 = { finalize_str };
 
 static void
-finalize_str(const JSStringFinalizer *fin, jschar *chars)
+finalize_str(JS::Zone* zone, const JSStringFinalizer* fin, char16_t* chars)
 {
-    if (chars && PodEqual(const_cast<const jschar *>(chars), arr, arrlen)) {
+    if (chars && PodEqual(const_cast<const char16_t*>(chars), arr, arrlen)) {
         if (fin == &finalizer1) {
             ++finalized1;
         } else if (fin == &finalizer2) {
@@ -48,7 +48,7 @@ BEGIN_TEST(testExternalStrings)
     // clear that newborn root
     JS_NewUCStringCopyN(cx, arr, arrlen);
 
-    JS_GC(rt);
+    JS_GC(cx);
 
     // a generous fudge factor to account for strings rooted by conservative gc
     const unsigned epsilon = 10;

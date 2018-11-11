@@ -31,12 +31,17 @@ extern "C" {
 
 /**
  * Escape the given string according to mask
- * @param str The string to escape
- * @param mask How to escape the string
+ * @param aSstr The string to escape
+ * @param aLength The length of the string to escape
+ * @param aOutputLen A pointer that will be used to store the length of the
+ *        output string, if not null
+ * @param aMask How to escape the string
  * @return A newly allocated escaped string that must be free'd with
  *         nsCRT::free, or null on failure
+ * @note: Please, don't use this function. Use NS_Escape instead!
  */
-char* nsEscape(const char* aStr, nsEscapeMask aMask);
+char* nsEscape(const char* aStr, size_t aLength, size_t* aOutputLen,
+               nsEscapeMask aMask);
 
 char* nsUnescape(char* aStr);
 /* decode % escaped hex codes into character values,
@@ -100,15 +105,19 @@ enum EscapeMask {
  * NS_EscapeURL
  *
  * Escapes invalid char's in an URL segment.  Has no side-effect if the URL
- * segment is already escaped.  Otherwise, the escaped URL segment is appended
- * to |result|.
+ * segment is already escaped, unless aFlags has the esc_Forced bit in which
+ * case % will also be escaped.  Iff some part of aStr is escaped is the
+ * final result appended to aResult.  You can also request that aStr is
+ * always appended to aResult with esc_AlwaysCopy.
  *
- * @param  str     url segment string
- * @param  len     url segment string length (-1 if unknown)
- * @param  flags   url segment type flag
- * @param  result  result buffer, untouched if part is already escaped
+ * @param aStr     url segment string
+ * @param aLen     url segment string length (-1 if unknown)
+ * @param aFlags   url segment type flag (see EscapeMask above)
+ * @param aResult  result buffer, untouched if aStr is already escaped unless
+ *                 aFlags has esc_AlwaysCopy
  *
- * @return TRUE if escaping was performed, FALSE otherwise.
+ * @return true if aResult was written to (i.e. at least one character was
+ *              escaped or esc_AlwaysCopy was requested), false otherwise.
  */
 bool NS_EscapeURL(const char* aStr,
                   int32_t aLen,
@@ -118,13 +127,15 @@ bool NS_EscapeURL(const char* aStr,
 /**
  * Expands URL escape sequences... beware embedded null bytes!
  *
- * @param  str     url string to unescape
- * @param  len     length of |str|
- * @param  flags   only esc_OnlyNonASCII, esc_SkipControl and esc_AlwaysCopy
+ * @param aStr     url string to unescape
+ * @param aLen     length of aStr
+ * @param aFlags   only esc_OnlyNonASCII, esc_SkipControl and esc_AlwaysCopy
  *                 are recognized
- * @param  result  result buffer, untouched if |str| is already unescaped
+ * @param aResult  result buffer, untouched if aStr is already unescaped unless
+ *                 aFlags has esc_AlwaysCopy
  *
- * @return TRUE if unescaping was performed, FALSE otherwise.
+ * @return true if aResult was written to (i.e. at least one character was
+ *              unescaped or esc_AlwaysCopy was requested), false otherwise.
  */
 bool NS_UnescapeURL(const char* aStr,
                     int32_t aLen,
@@ -149,6 +160,15 @@ NS_EscapeURL(const nsCSubstring& aStr, uint32_t aFlags, nsCSubstring& aResult)
   }
   return aStr;
 }
+
+/**
+ * Fallible version of NS_EscapeURL. On success aResult will point to either
+ * the original string or an escaped copy.
+ */
+nsresult
+NS_EscapeURL(const nsCSubstring& aStr, uint32_t aFlags, nsCSubstring& aResult,
+             const mozilla::fallible_t&);
+
 inline const nsCSubstring&
 NS_UnescapeURL(const nsCSubstring& aStr, uint32_t aFlags, nsCSubstring& aResult)
 {
@@ -157,28 +177,45 @@ NS_UnescapeURL(const nsCSubstring& aStr, uint32_t aFlags, nsCSubstring& aResult)
   }
   return aStr;
 }
+const nsSubstring&
+NS_EscapeURL(const nsSubstring& aStr, uint32_t aFlags, nsSubstring& aResult);
+
+/**
+ * Percent-escapes all characters in aStr that occurs in aForbidden.
+ * @param aStr the input URL string
+ * @param aForbidden the characters that should be escaped if found in aStr
+ * @note that aForbidden MUST be sorted (low to high)
+ * @param aResult the result if some characters were escaped
+ * @return aResult if some characters were escaped, or aStr otherwise (aResult
+ *         is unmodified in that case)
+ */
+const nsSubstring&
+NS_EscapeURL(const nsAFlatString& aStr, const nsTArray<char16_t>& aForbidden,
+             nsSubstring& aResult);
 
 /**
  * CString version of nsEscape. Returns true on success, false
  * on out of memory. To reverse this function, use NS_UnescapeURL.
  */
 inline bool
-NS_Escape(const nsCString& aOriginal, nsCString& aEscaped,
+NS_Escape(const nsACString& aOriginal, nsACString& aEscaped,
           nsEscapeMask aMask)
 {
-  char* esc = nsEscape(aOriginal.get(), aMask);
+  size_t escLen = 0;
+  char* esc = nsEscape(aOriginal.BeginReading(), aOriginal.Length(), &escLen,
+                       aMask);
   if (! esc) {
     return false;
   }
-  aEscaped.Adopt(esc);
+  aEscaped.Adopt(esc, escLen);
   return true;
 }
 
 /**
  * Inline unescape of mutable string object.
  */
-inline nsCString&
-NS_UnescapeURL(nsCString& aStr)
+inline nsACString&
+NS_UnescapeURL(nsACString& aStr)
 {
   aStr.SetLength(nsUnescapeCount(aStr.BeginWriting()));
   return aStr;

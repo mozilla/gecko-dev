@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -29,9 +30,9 @@ public:
   // Forward to base class
   NS_FORWARD_TO_EVENT
 
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE
+  virtual JSObject* WrapObjectInternal(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override
   {
-    return CommandEventBinding::Wrap(aCx, this);
+    return CommandEventBinding::Wrap(aCx, this, aGivenProto);
   }
 
   void InitCommandEvent(const nsAString& aType,
@@ -42,9 +43,17 @@ public:
   {
     aRv = InitCommandEvent(aType, aCanBubble, aCancelable, aCommand);
   }
+
+protected:
+  ~CommandEvent() {}
 };
 
 } // namespace dom
 } // namespace mozilla
+
+already_AddRefed<mozilla::dom::CommandEvent>
+NS_NewDOMCommandEvent(mozilla::dom::EventTarget* aOwner,
+                      nsPresContext* aPresContext,
+                      mozilla::WidgetCommandEvent* aEvent);
 
 #endif // mozilla_dom_CommandEvent_h_

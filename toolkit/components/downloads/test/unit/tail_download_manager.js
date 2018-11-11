@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,10 +10,9 @@
 
 "use strict";
 
-////////////////////////////////////////////////////////////////////////////////
-//// Termination functions common to all tests
+// Termination functions common to all tests
 
-add_task(function test_common_terminate()
+add_task(function* test_common_terminate()
 {
   // Stop the HTTP server.  We must do this inside a task in "tail.js" until the
   // xpcshell testing framework supports asynchronous termination functions.

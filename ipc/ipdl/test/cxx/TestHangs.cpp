@@ -6,13 +6,6 @@
 
 using base::KillProcess;
 
-template<>
-struct RunnableMethodTraits<mozilla::_ipdltest::TestHangsParent>
-{
-    static void RetainCallee(mozilla::_ipdltest::TestHangsParent* obj) { }
-    static void ReleaseCallee(mozilla::_ipdltest::TestHangsParent* obj) { }
-};
-
 namespace mozilla {
 namespace _ipdltest {
 
@@ -82,7 +75,9 @@ TestHangsParent::ShouldContinueFromReplyTimeout()
     // reply should be here; we'll post a task to shut things down.
     // This must be after OnMaybeDequeueOne() in the event queue.
     MessageLoop::current()->PostTask(
-        FROM_HERE, NewRunnableMethod(this, &TestHangsParent::CleanUp));
+        NewNonOwningRunnableMethod(this, &TestHangsParent::CleanUp));
+
+    GetIPCChannel()->CloseWithTimeout();
 
     return false;
 }
@@ -109,8 +104,14 @@ TestHangsParent::AnswerStackFrame()
 void
 TestHangsParent::CleanUp()
 {
-    if (!KillProcess(OtherProcess(), 0, false))
-        fail("terminating child process");
+    ipc::ScopedProcessHandle otherProcessHandle;
+    if (!base::OpenProcessHandle(OtherPid(), &otherProcessHandle.rwget())) {
+        fail("couldn't open child process");
+    } else {
+        if (!KillProcess(otherProcessHandle, 0, false)) {
+            fail("terminating child process");
+        }
+    }
     Close();
 }
 

@@ -15,13 +15,13 @@
  *
  * Usage is documented in nsHtml5AtomTable and nsIAtom.
  */
-class nsHtml5Atom MOZ_FINAL : public nsIAtom
+class nsHtml5Atom final : public nsIAtom
 {
   public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIATOM
 
-    nsHtml5Atom(const nsAString& aString);
+    explicit nsHtml5Atom(const nsAString& aString);
     ~nsHtml5Atom();
 };
 

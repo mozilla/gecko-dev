@@ -8,6 +8,7 @@
 #include "nsRenderingContext.h"
 #include "nsMathMLmmultiscriptsFrame.h"
 #include <algorithm>
+#include "gfxMathTable.h"
 
 //
 // <munderover> -- attach an underscript-overscript pair to a base - implementation
@@ -79,7 +80,7 @@ nsMathMLmunderoverFrame::ScriptIncrement(nsIFrame* aFrame)
   }
   child = child->GetNextSibling();
   if (aFrame == child) {
-    if (mContent->Tag() == nsGkAtoms::mover_) {
+    if (mContent->IsMathMLElement(nsGkAtoms::mover_)) {
       return mIncrementOver ? 1 : 0;
     }
     return mIncrementUnder ? 1 : 0;
@@ -128,19 +129,19 @@ XXX The winner is the outermost setting in conflicting settings like these:
   nsIFrame* overscriptFrame = nullptr;
   nsIFrame* underscriptFrame = nullptr;
   nsIFrame* baseFrame = mFrames.FirstChild();
-  nsIAtom* tag = mContent->Tag();
 
   if (baseFrame) {
-    if (tag == nsGkAtoms::munder_ ||
-        tag == nsGkAtoms::munderover_) {
+    if (mContent->IsAnyOfMathMLElements(nsGkAtoms::munder_,
+                                        nsGkAtoms::munderover_)) {
       underscriptFrame = baseFrame->GetNextSibling();
     } else {
-      NS_ASSERTION(tag == nsGkAtoms::mover_, "mContent->Tag() not recognized");
+      NS_ASSERTION(mContent->IsMathMLElement(nsGkAtoms::mover_),
+                   "mContent->NodeInfo()->NameAtom() not recognized");
       overscriptFrame = baseFrame->GetNextSibling();
     }
   }
   if (underscriptFrame &&
-      tag == nsGkAtoms::munderover_) {
+      mContent->IsMathMLElement(nsGkAtoms::munderover_)) {
     overscriptFrame = underscriptFrame->GetNextSibling();
 
   }
@@ -155,8 +156,8 @@ XXX The winner is the outermost setting in conflicting settings like these:
   // and its core <mo> is an accent
   nsEmbellishData embellishData;
   nsAutoString value;
-  if (tag == nsGkAtoms::munder_ ||
-      tag == nsGkAtoms::munderover_) {
+  if (mContent->IsAnyOfMathMLElements(nsGkAtoms::munder_,
+                                      nsGkAtoms::munderover_)) {
     GetEmbellishDataFrom(underscriptFrame, embellishData);
     if (NS_MATHML_EMBELLISH_IS_ACCENT(embellishData.flags)) {
       mEmbellishData.flags |= NS_MATHML_EMBELLISH_ACCENTUNDER;
@@ -176,8 +177,8 @@ XXX The winner is the outermost setting in conflicting settings like these:
 
   // The default value of accent is false, unless the overscript is embellished
   // and its core <mo> is an accent
-  if (tag == nsGkAtoms::mover_ ||
-      tag == nsGkAtoms::munderover_) {
+  if (mContent->IsAnyOfMathMLElements(nsGkAtoms::mover_,
+                                      nsGkAtoms::munderover_)) {
     GetEmbellishDataFrom(overscriptFrame, embellishData);
     if (NS_MATHML_EMBELLISH_IS_ACCENT(embellishData.flags)) {
       mEmbellishData.flags |= NS_MATHML_EMBELLISH_ACCENTOVER;
@@ -224,14 +225,14 @@ XXX The winner is the outermost setting in conflicting settings like these:
      that math accents and \overline change uncramped styles to their
      cramped counterparts.
   */
-  if (tag == nsGkAtoms::mover_ ||
-      tag == nsGkAtoms::munderover_) {
+  if (mContent->IsAnyOfMathMLElements(nsGkAtoms::mover_,
+                                      nsGkAtoms::munderover_)) {
     uint32_t compress = NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags)
       ? NS_MATHML_COMPRESSED : 0;
     mIncrementOver =
       !NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags) ||
       subsupDisplay;
-    SetIncrementScriptLevel(tag == nsGkAtoms::mover_ ? 1 : 2, mIncrementOver);
+    SetIncrementScriptLevel(mContent->IsMathMLElement(nsGkAtoms::mover_) ? 1 : 2, mIncrementOver);
     if (mIncrementOver) {
       PropagateFrameFlagFor(overscriptFrame,
                             NS_FRAME_MATHML_SCRIPT_DESCENDANT);
@@ -242,8 +243,8 @@ XXX The winner is the outermost setting in conflicting settings like these:
      The TeXBook treats 'under' like a subscript, so p.141 or Rule 13a 
      say it should be compressed
   */
-  if (tag == nsGkAtoms::munder_ ||
-      tag == nsGkAtoms::munderover_) {
+  if (mContent->IsAnyOfMathMLElements(nsGkAtoms::munder_,
+                                      nsGkAtoms::munderover_)) {
     mIncrementUnder =
       !NS_MATHML_EMBELLISH_IS_ACCENTUNDER(mEmbellishData.flags) ||
       subsupDisplay;
@@ -256,6 +257,28 @@ XXX The winner is the outermost setting in conflicting settings like these:
                                  NS_MATHML_COMPRESSED,
                                  NS_MATHML_COMPRESSED);
   }
+
+  /* Set flags for dtls font feature settings.
+
+     dtls
+     Dotless Forms
+     This feature provides dotless forms for Math Alphanumeric
+     characters, such as U+1D422 MATHEMATICAL BOLD SMALL I,
+     U+1D423 MATHEMATICAL BOLD SMALL J, U+1D456
+     U+MATHEMATICAL ITALIC SMALL I, U+1D457 MATHEMATICAL ITALIC
+     SMALL J, and so on.
+     The dotless forms are to be used as base forms for placing
+     mathematical accents over them.
+
+     To opt out of this change, add the following to the stylesheet:
+     "font-feature-settings: 'dtls' 0"
+   */
+  if (overscriptFrame &&
+      NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags) &&
+      !NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags)) {
+    PropagatePresentationDataFor(baseFrame, NS_MATHML_DTLS, NS_MATHML_DTLS);
+  }
+
   return NS_OK;
 }
 
@@ -279,37 +302,37 @@ i.e.,:
 */
 
 /* virtual */ nsresult
-nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
+nsMathMLmunderoverFrame::Place(DrawTarget*          aDrawTarget,
                                bool                 aPlaceOrigin,
-                               nsHTMLReflowMetrics& aDesiredSize)
+                               ReflowOutput& aDesiredSize)
 {
-  nsIAtom* tag = mContent->Tag();
+  float fontSizeInflation = nsLayoutUtils::FontSizeInflationFor(this);
   if (NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags) &&
       StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_INLINE) {
     //place like sub sup or subsup
-    nscoord scriptSpace = nsPresContext::CSSPointsToAppUnits(0.5f);
-    if (tag == nsGkAtoms::munderover_) {
+    if (mContent->IsMathMLElement(nsGkAtoms::munderover_)) {
       return nsMathMLmmultiscriptsFrame::PlaceMultiScript(PresContext(),
-                                                          aRenderingContext,
+                                                          aDrawTarget,
                                                           aPlaceOrigin,
                                                           aDesiredSize,
                                                           this, 0, 0,
-                                                          scriptSpace);
-    } else if (tag == nsGkAtoms::munder_) {
+                                                          fontSizeInflation);
+    } else if (mContent->IsMathMLElement( nsGkAtoms::munder_)) {
       return nsMathMLmmultiscriptsFrame::PlaceMultiScript(PresContext(),
-                                                          aRenderingContext,
+                                                          aDrawTarget,
                                                           aPlaceOrigin,
                                                           aDesiredSize,
                                                           this, 0, 0,
-                                                          scriptSpace);
+                                                          fontSizeInflation);
     } else {
-      NS_ASSERTION(tag == nsGkAtoms::mover_, "mContent->Tag() not recognized");
+      NS_ASSERTION(mContent->IsMathMLElement(nsGkAtoms::mover_),
+                   "mContent->NodeInfo()->NameAtom() not recognized");
       return nsMathMLmmultiscriptsFrame::PlaceMultiScript(PresContext(),
-                                                          aRenderingContext,
+                                                          aDrawTarget,
                                                           aPlaceOrigin,
                                                           aDesiredSize,
                                                           this, 0, 0,
-                                                          scriptSpace);
+                                                          fontSizeInflation);
     }
     
   }
@@ -318,9 +341,9 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
   // Get the children's desired sizes
 
   nsBoundingMetrics bmBase, bmUnder, bmOver;
-  nsHTMLReflowMetrics baseSize(aDesiredSize.GetWritingMode());
-  nsHTMLReflowMetrics underSize(aDesiredSize.GetWritingMode());
-  nsHTMLReflowMetrics overSize(aDesiredSize.GetWritingMode());
+  ReflowOutput baseSize(aDesiredSize.GetWritingMode());
+  ReflowOutput underSize(aDesiredSize.GetWritingMode());
+  ReflowOutput overSize(aDesiredSize.GetWritingMode());
   nsIFrame* overFrame = nullptr;
   nsIFrame* underFrame = nullptr;
   nsIFrame* baseFrame = mFrames.FirstChild();
@@ -328,30 +351,30 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
   overSize.SetBlockStartAscent(0);
   bool haveError = false;
   if (baseFrame) {
-    if (tag == nsGkAtoms::munder_ ||
-        tag == nsGkAtoms::munderover_) {
+    if (mContent->IsAnyOfMathMLElements(nsGkAtoms::munder_,
+                                        nsGkAtoms::munderover_)) {
       underFrame = baseFrame->GetNextSibling();
-    } else if (tag == nsGkAtoms::mover_) {
+    } else if (mContent->IsMathMLElement(nsGkAtoms::mover_)) {
       overFrame = baseFrame->GetNextSibling();
     }
   }
-  if (underFrame && tag == nsGkAtoms::munderover_) {
+  if (underFrame && mContent->IsMathMLElement(nsGkAtoms::munderover_)) {
     overFrame = underFrame->GetNextSibling();
   }
   
-  if (tag == nsGkAtoms::munder_) {
+  if (mContent->IsMathMLElement(nsGkAtoms::munder_)) {
     if (!baseFrame || !underFrame || underFrame->GetNextSibling()) {
       // report an error, encourage people to get their markups in order
       haveError = true;
     }
   }
-  if (tag == nsGkAtoms::mover_) {
+  if (mContent->IsMathMLElement(nsGkAtoms::mover_)) {
     if (!baseFrame || !overFrame || overFrame->GetNextSibling()) {
       // report an error, encourage people to get their markups in order
       haveError = true;
     }
   }
-  if (tag == nsGkAtoms::munderover_) {
+  if (mContent->IsMathMLElement(nsGkAtoms::munderover_)) {
     if (!baseFrame || !underFrame || !overFrame || overFrame->GetNextSibling()) {
       // report an error, encourage people to get their markups in order
       haveError = true;
@@ -360,8 +383,8 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
   if (haveError) {
     if (aPlaceOrigin) {
       ReportChildCountError();
-    } 
-    return ReflowError(aRenderingContext, aDesiredSize);
+    }
+    return ReflowError(aDrawTarget, aDesiredSize);
   }
   GetReflowAndBoundingMetricsFor(baseFrame, baseSize, bmBase);
   if (underFrame) {
@@ -376,14 +399,15 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
   ////////////////////
   // Place Children
 
-  nsRefPtr<nsFontMetrics> fm;
-  nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm));
-  aRenderingContext.SetFont(fm);
+  RefPtr<nsFontMetrics> fm =
+    nsLayoutUtils::GetFontMetricsForFrame(this, fontSizeInflation);
 
   nscoord xHeight = fm->XHeight();
+  nscoord oneDevPixel = fm->AppUnitsPerDevPixel();
+  gfxFont* mathFont = fm->GetThebesFontGroup()->GetFirstMathFont();
 
   nscoord ruleThickness;
-  GetRuleThickness (aRenderingContext, fm, ruleThickness);
+  GetRuleThickness (aDrawTarget, fm, ruleThickness);
 
   nscoord correction = 0;
   GetItalicCorrection (bmBase, correction);
@@ -401,14 +425,27 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
                       dummy, bigOpSpacing2, 
                       dummy, bigOpSpacing4, 
                       bigOpSpacing5);
+    if (mathFont) {
+      // XXXfredw The Open Type MATH table has some StretchStack* parameters
+      // that we may use when the base is a stretchy horizontal operator. See
+      // bug 963131.
+      bigOpSpacing2 =
+        mathFont->MathTable()->Constant(gfxMathTable::LowerLimitGapMin,
+                                        oneDevPixel);
+      bigOpSpacing4 =
+        mathFont->MathTable()->Constant(gfxMathTable::LowerLimitBaselineDropMin,
+                                        oneDevPixel);
+      bigOpSpacing5 = 0;
+    }
     underDelta1 = std::max(bigOpSpacing2, (bigOpSpacing4 - bmUnder.ascent));
     underDelta2 = bigOpSpacing5;
   }
   else {
     // No corresponding rule in TeXbook - we are on our own here
     // XXX tune the gap delta between base and underscript 
-
-    // Should we use Rule 10 like \underline does?
+    // XXX Should we use Rule 10 like \underline does?
+    // XXXfredw Perhaps use the Underbar* parameters of the MATH table. See
+    // bug 963125.
     underDelta1 = ruleThickness + onePixel/2;
     underDelta2 = ruleThickness;
   }
@@ -423,11 +460,26 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
 
   if (!NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags)) {    
     // Rule 13a, App. G, TeXbook
+    // XXXfredw The Open Type MATH table has some StretchStack* parameters
+    // that we may use when the base is a stretchy horizontal operator. See
+    // bug 963131.
     nscoord bigOpSpacing1, bigOpSpacing3, bigOpSpacing5, dummy; 
     GetBigOpSpacings (fm, 
                       bigOpSpacing1, dummy, 
                       bigOpSpacing3, dummy, 
                       bigOpSpacing5);
+    if (mathFont) {
+      // XXXfredw The Open Type MATH table has some StretchStack* parameters
+      // that we may use when the base is a stretchy horizontal operator. See
+      // bug 963131.
+      bigOpSpacing1 =
+        mathFont->MathTable()->Constant(gfxMathTable::UpperLimitGapMin,
+                                        oneDevPixel);
+      bigOpSpacing3 =
+        mathFont->MathTable()->Constant(gfxMathTable::UpperLimitBaselineRiseMin,
+                                        oneDevPixel);
+      bigOpSpacing5 = 0;
+    }
     overDelta1 = std::max(bigOpSpacing1, (bigOpSpacing3 - bmOver.descent));
     overDelta2 = bigOpSpacing5;
 
@@ -468,9 +520,15 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
     // from the baseline of the base char. we also slap on an extra
     // padding between the accent and base chars.
     overDelta1 = ruleThickness + onePixel/2;
-    if (bmBase.ascent < xHeight) {
-      // also ensure at least x-height above the baseline of the base
-      overDelta1 += xHeight - bmBase.ascent;
+    nscoord accentBaseHeight = xHeight;
+    if (mathFont) {
+      accentBaseHeight =
+        mathFont->MathTable()->Constant(gfxMathTable::AccentBaseHeight,
+                                        oneDevPixel);
+    }
+    if (bmBase.ascent < accentBaseHeight) {
+      // also ensure at least accentBaseHeight above the baseline of the base
+      overDelta1 += accentBaseHeight - bmBase.ascent;
     }
     overDelta2 = ruleThickness;
   }

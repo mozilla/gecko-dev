@@ -1,6 +1,6 @@
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 var gToolboxDocument = null;
 var gToolbox = null;
@@ -8,6 +8,9 @@ var gCurrentDragOverItem = null;
 var gToolboxChanged = false;
 var gToolboxSheet = false;
 var gPaletteBox = null;
+
+Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 
 function onLoad()
 {
@@ -197,10 +200,10 @@ function wrapToolbarItems()
 {
   forEachCustomizableToolbar(function (toolbar) {
     Array.forEach(toolbar.childNodes, function (item) {
-#ifdef XP_MACOSX
-      if (item.firstChild && item.firstChild.localName == "menubar")
-        return;
-#endif
+      if (AppConstants.platform == "macosx") {
+        if (item.firstChild && item.firstChild.localName == "menubar")
+          return;
+      }
       if (isToolbarItem(item)) {
         let wrapper = wrapToolbarItem(item);
         cleanupItemForToolbar(item, wrapper);
@@ -414,7 +417,7 @@ function restoreItemForToolbar(aItem, aWrapper)
     let commandID = aWrapper.getAttribute("itemcommand");
     aItem.setAttribute("command", commandID);
 
-    //XXX Bug 309953 - toolbarbuttons aren't in sync with their commands after customizing
+    // XXX Bug 309953 - toolbarbuttons aren't in sync with their commands after customizing
     let command = gToolboxDocument.getElementById(commandID);
     if (command && command.hasAttribute("disabled"))
       aItem.setAttribute("disabled", command.getAttribute("disabled"));
@@ -457,9 +460,7 @@ function setDragActive(aItem, aValue)
 
 function addNewToolbar()
 {
-  var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
-                                .getService(Components.interfaces.nsIPromptService);
-
+  var promptService = Services.prompt;
   var stringBundle = document.getElementById("stringBundle");
   var message = stringBundle.getString("enterToolbarName");
   var title = stringBundle.getString("enterToolbarTitle");
@@ -617,11 +618,14 @@ function isToolbarItem(aElt)
          aElt.localName == "toolbarspacer";
 }
 
-///////////////////////////////////////////////////////////////////////////
-//// Drag and Drop observers
+// Drag and Drop observers
 
 function onToolbarDragExit(aEvent)
 {
+  if (isUnwantedDragEvent(aEvent)) {
+    return;
+  }
+
   if (gCurrentDragOverItem)
     setDragActive(gCurrentDragOverItem, false);
 }
@@ -645,8 +649,12 @@ function onToolbarDragStart(aEvent)
 
 function onToolbarDragOver(aEvent)
 {
+  if (isUnwantedDragEvent(aEvent)) {
+    return;
+  }
+
   var documentId = gToolboxDocument.documentElement.id;
-  if (!aEvent.dataTransfer.types.contains("text/toolbarwrapper-id/" + documentId.toLowerCase()))
+  if (!aEvent.dataTransfer.types.includes("text/toolbarwrapper-id/" + documentId.toLowerCase()))
     return;
 
   var toolbar = aEvent.target;
@@ -697,6 +705,10 @@ function onToolbarDragOver(aEvent)
 
 function onToolbarDrop(aEvent)
 {
+  if (isUnwantedDragEvent(aEvent)) {
+    return;
+  }
+
   if (!gCurrentDragOverItem)
     return;
 
@@ -716,7 +728,7 @@ function onToolbarDrop(aEvent)
     // The wrapper has been dragged from the toolbar.
     // Get the wrapper from the toolbar document and make sure that
     // it isn't being dropped on itself.
-    var wrapper = gToolboxDocument.getElementById("wrapper-"+draggedItemId);
+    let wrapper = gToolboxDocument.getElementById("wrapper-"+draggedItemId);
     if (wrapper == gCurrentDragOverItem)
        return;
 
@@ -743,7 +755,7 @@ function onToolbarDrop(aEvent)
     // The item has been dragged from the palette
 
     // Create a new wrapper for the item. We don't know the id yet.
-    var wrapper = createWrapper("", gToolboxDocument);
+    let wrapper = createWrapper("", gToolboxDocument);
 
     // Ask the toolbar to clone the item's template, place it inside the wrapper, and insert it in the toolbar.
     var newItem = toolbar.insertItem(draggedItemId, gCurrentDragOverItem == toolbar ? null : gCurrentDragOverItem, wrapper);
@@ -763,17 +775,23 @@ function onToolbarDrop(aEvent)
   gCurrentDragOverItem = null;
 
   toolboxChanged();
-};
+}
 
 function onPaletteDragOver(aEvent)
 {
+  if (isUnwantedDragEvent(aEvent)) {
+    return;
+  }
   var documentId = gToolboxDocument.documentElement.id;
-  if (aEvent.dataTransfer.types.contains("text/toolbarwrapper-id/" + documentId.toLowerCase()))
+  if (aEvent.dataTransfer.types.includes("text/toolbarwrapper-id/" + documentId.toLowerCase()))
     aEvent.preventDefault();
 }
 
 function onPaletteDrop(aEvent)
- {
+{
+  if (isUnwantedDragEvent(aEvent)) {
+    return;
+  }
   var documentId = gToolboxDocument.documentElement.id;
   var itemId = aEvent.dataTransfer.getData("text/toolbarwrapper-id/" + documentId);
 
@@ -798,3 +816,24 @@ function onPaletteDrop(aEvent)
 
   toolboxChanged();
 }
+
+
+function isUnwantedDragEvent(aEvent) {
+  try {
+    if (Services.prefs.getBoolPref("toolkit.customization.unsafe_drag_events")) {
+      return false;
+    }
+  } catch (ex) {}
+
+  /* Discard drag events that originated from a separate window to
+     prevent content->chrome privilege escalations. */
+  let mozSourceNode = aEvent.dataTransfer.mozSourceNode;
+  // mozSourceNode is null in the dragStart event handler or if
+  // the drag event originated in an external application.
+  if (!mozSourceNode) {
+    return true;
+  }
+  let sourceWindow = mozSourceNode.ownerDocument.defaultView;
+  return sourceWindow != window && sourceWindow != gToolboxDocument.defaultView;
+}
+

@@ -11,11 +11,11 @@
 #ifndef WEBRTC_MODULES_DESKTOP_CAPTURE_WIN_DESKTOP_H_
 #define WEBRTC_MODULES_DESKTOP_CAPTURE_WIN_DESKTOP_H_
 
-#include <string>
 #include <windows.h>
+#include <string>
 
-#include "webrtc/system_wrappers/interface/constructor_magic.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/base/constructormagic.h"
+#include "webrtc/base/scoped_ptr.h"
 
 namespace webrtc {
 

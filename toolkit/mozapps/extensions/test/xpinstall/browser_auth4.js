@@ -1,3 +1,10 @@
+//
+// Whitelisting this test.
+// As part of bug 1077403, the leaking uncaught rejection should be fixed.
+//
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: this.docShell is null");
+
+
 // ----------------------------------------------------------------------------
 // Test whether a request for auth for an XPI switches to the appropriate tab
 var gNewTab;
@@ -13,7 +20,7 @@ function test() {
   pm.add(makeURI("http://example.com/"), "install", pm.ALLOW_ACTION);
 
   var triggers = encodeURIComponent(JSON.stringify({
-    "Unsigned XPI": TESTROOT + "authRedirect.sjs?" + TESTROOT + "unsigned.xpi"
+    "Unsigned XPI": TESTROOT + "authRedirect.sjs?" + TESTROOT + "amosigned.xpi"
   }));
   gNewTab = gBrowser.addTab();
   gBrowser.getBrowserForTab(gNewTab).loadURI(TESTROOT + "installtrigger.html?" + triggers);
@@ -38,7 +45,7 @@ function finish_test(count) {
                           .getService(Components.interfaces.nsIHttpAuthManager);
   authMgr.clearAll();
 
-  Services.perms.remove("example.com", "install");
+  Services.perms.remove(makeURI("http://example.com"), "install");
 
   gBrowser.removeTab(gNewTab);
   Harness.finish();

@@ -1,20 +1,14 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/collation/el.xml
-// *
-// ***************************************************************************
-/**
- * ICU <specials> source: <path>/xml/collation/el.xml
- */
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 el{
-    Version{"2.0.82.42"}
+    Version{"2.1.19.14"}
     collations{
         standard{
-            Sequence{"[normalization on][reorder Grek]"}
-            Version{"24"}
+            Sequence{
+                "[normalization on]"
+                "[reorder Grek]"
+            }
+            Version{"30.0.3"}
         }
     }
 }

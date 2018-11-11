@@ -42,11 +42,13 @@ namespace frontend {
 namespace irregexp {
 
 bool
-ParsePattern(frontend::TokenStream &ts, LifoAlloc &alloc, JSAtom *str, bool multiline,
-             RegExpCompileData *data);
+ParsePattern(frontend::TokenStream& ts, LifoAlloc& alloc, JSAtom* str,
+             bool multiline, bool match_only, bool unicode, bool ignore_case,
+             bool global, bool sticky, RegExpCompileData* data);
 
 bool
-ParsePatternSyntax(frontend::TokenStream &ts, LifoAlloc &alloc, JSAtom *str);
+ParsePatternSyntax(frontend::TokenStream& ts, LifoAlloc& alloc, JSAtom* str,
+                   bool unicode);
 
 // A BufferedVector is an automatically growing list, just like (and backed
 // by) a Vector, that is optimized for the case of adding and removing
@@ -58,14 +60,14 @@ template <typename T, int initial_size>
 class BufferedVector
 {
   public:
-    typedef Vector<T*, 1, LifoAllocPolicy<Infallible> > VectorType;
+    typedef InfallibleVector<T*, 1> VectorType;
 
     BufferedVector() : list_(nullptr), last_(nullptr) {}
 
     // Adds element at end of list. This element is buffered and can
     // be read using last() or removed using RemoveLast until a new Add or until
     // RemoveLast or GetList has been called.
-    void Add(LifoAlloc *alloc, T* value) {
+    void Add(LifoAlloc* alloc, T* value) {
         if (last_ != nullptr) {
             if (list_ == nullptr) {
                 list_ = alloc->newInfallible<VectorType>(*alloc);
@@ -77,12 +79,12 @@ class BufferedVector
     }
 
     T* last() {
-        JS_ASSERT(last_ != nullptr);
+        MOZ_ASSERT(last_ != nullptr);
         return last_;
     }
 
     T* RemoveLast() {
-        JS_ASSERT(last_ != nullptr);
+        MOZ_ASSERT(last_ != nullptr);
         T* result = last_;
         if ((list_ != nullptr) && (list_->length() > 0))
             last_ = list_->popCopy();
@@ -92,13 +94,13 @@ class BufferedVector
     }
 
     T* Get(int i) {
-        JS_ASSERT((0 <= i) && (i < length()));
+        MOZ_ASSERT((0 <= i) && (i < length()));
         if (list_ == nullptr) {
-            JS_ASSERT(0 == i);
+            MOZ_ASSERT(0 == i);
             return last_;
         } else {
             if (size_t(i) == list_->length()) {
-                JS_ASSERT(last_ != nullptr);
+                MOZ_ASSERT(last_ != nullptr);
                 return last_;
             } else {
                 return (*list_)[i];
@@ -116,7 +118,7 @@ class BufferedVector
         return length + ((last_ == nullptr) ? 0 : 1);
     }
 
-    VectorType *GetList(LifoAlloc *alloc) {
+    VectorType* GetList(LifoAlloc* alloc) {
         if (list_ == nullptr)
             list_ = alloc->newInfallible<VectorType>(*alloc);
         if (last_ != nullptr) {
@@ -127,7 +129,7 @@ class BufferedVector
     }
 
   private:
-    VectorType *list_;
+    VectorType* list_;
     T* last_;
 };
 
@@ -136,8 +138,8 @@ class BufferedVector
 class RegExpBuilder
 {
   public:
-    explicit RegExpBuilder(LifoAlloc *alloc);
-    void AddCharacter(jschar character);
+    explicit RegExpBuilder(LifoAlloc* alloc);
+    void AddCharacter(char16_t character);
     // "Adds" an empty expression. Does nothing except consume a
     // following quantifier
     void AddEmpty();
@@ -152,9 +154,9 @@ class RegExpBuilder
     void FlushText();
     void FlushTerms();
 
-    LifoAlloc *alloc;
+    LifoAlloc* alloc;
     bool pending_empty_;
-    CharacterVector *characters_;
+    CharacterVector* characters_;
     BufferedVector<RegExpTree, 2> terms_;
     BufferedVector<RegExpTree, 2> text_;
     BufferedVector<RegExpTree, 2> alternatives_;
@@ -162,37 +164,45 @@ class RegExpBuilder
     enum LastAdded {
         ADD_NONE, ADD_CHAR, ADD_TERM, ADD_ASSERT, ADD_ATOM
     };
-    mozilla::DebugOnly<LastAdded> last_added_;
+#ifdef DEBUG
+    LastAdded last_added_;
+#endif
 };
 
-// Characters parsed by RegExpParser can be either jschars or kEndMarker.
+// Characters parsed by RegExpParser can be either char16_t or kEndMarker.
 typedef uint32_t widechar;
 
 template <typename CharT>
 class RegExpParser
 {
   public:
-    RegExpParser(frontend::TokenStream &ts, LifoAlloc *alloc,
-                 const CharT *chars, const CharT *end, bool multiline_mode);
+    RegExpParser(frontend::TokenStream& ts, LifoAlloc* alloc,
+                 const CharT* chars, const CharT* end, bool multiline_mode, bool unicode,
+                 bool ignore_case);
 
     RegExpTree* ParsePattern();
     RegExpTree* ParseDisjunction();
-    RegExpTree* ParseGroup();
     RegExpTree* ParseCharacterClass();
 
     // Parses a {...,...} quantifier and stores the range in the given
     // out parameters.
     bool ParseIntervalQuantifier(int* min_out, int* max_out);
 
-    // Parses and returns a single escaped character.  The character
-    // must not be 'b' or 'B' since they are usually handled specially.
-    widechar ParseClassCharacterEscape();
+    // Tries to parse the input as a single escaped character.  If successful
+    // it stores the result in the output parameter and returns true.
+    // Otherwise it throws an error and returns false.  The character must not
+    // be 'b' or 'B' since they are usually handled specially.
+    bool ParseClassCharacterEscape(widechar* code);
 
     // Checks whether the following is a length-digit hexadecimal number,
     // and sets the value if it is.
-    bool ParseHexEscape(int length, size_t* value);
+    bool ParseHexEscape(int length, widechar* value);
 
-    size_t ParseOctalLiteral();
+    bool ParseBracedHexEscape(widechar* value);
+    bool ParseTrailSurrogate(widechar* value);
+    bool ParseRawSurrogatePair(char16_t* lead, char16_t* trail);
+
+    widechar ParseOctalLiteral();
 
     // Tries to parse the input as a back reference.  If successful it
     // stores the result in the output parameter and returns true.  If
@@ -200,7 +210,7 @@ class RegExpParser
     // can be reparsed.
     bool ParseBackReferenceIndex(int* index_out);
 
-    bool ParseClassAtom(jschar* char_class, CharacterRange *char_range);
+    bool ParseClassAtom(char16_t* char_class, widechar *value);
     RegExpTree* ReportError(unsigned errorNumber);
     void Advance();
     void Advance(int dist) {
@@ -208,7 +218,7 @@ class RegExpParser
         Advance();
     }
 
-    void Reset(const CharT *pos) {
+    void Reset(const CharT* pos) {
         next_pos_ = pos;
         has_more_ = (pos < end_);
         Advance();
@@ -220,7 +230,7 @@ class RegExpParser
     bool contains_anchor() { return contains_anchor_; }
     void set_contains_anchor() { contains_anchor_ = true; }
     int captures_started() { return captures_ == nullptr ? 0 : captures_->length(); }
-    const CharT *position() { return next_pos_ - 1; }
+    const CharT* position() { return next_pos_ - 1; }
 
     static const int kMaxCaptures = 1 << 16;
     static const widechar kEndMarker = (1 << 21);
@@ -236,7 +246,7 @@ class RegExpParser
 
     class RegExpParserState {
       public:
-        RegExpParserState(LifoAlloc *alloc,
+        RegExpParserState(LifoAlloc* alloc,
                           RegExpParserState* previous_state,
                           SubexpressionType group_type,
                           int disjunction_capture_index)
@@ -278,15 +288,18 @@ class RegExpParser
     }
     void ScanForCaptures();
 
-    frontend::TokenStream &ts;
-    LifoAlloc *alloc;
-    RegExpCaptureVector *captures_;
-    const CharT *next_pos_, *end_;
+    frontend::TokenStream& ts;
+    LifoAlloc* alloc;
+    RegExpCaptureVector* captures_;
+    const CharT* next_pos_;
+    const CharT* end_;
     widechar current_;
     // The capture count is only valid after we have scanned for captures.
     int capture_count_;
     bool has_more_;
     bool multiline_;
+    bool unicode_;
+    bool ignore_case_;
     bool simple_;
     bool contains_anchor_;
     bool is_scanned_for_captures_;

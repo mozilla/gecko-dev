@@ -7,11 +7,11 @@
 const kButtonId = "test-886323-removable-moved-node";
 const kLazyAreaId = "test-886323-lazy-area-for-removability-testing";
 
-let gNavBar = document.getElementById(CustomizableUI.AREA_NAVBAR);
-let gLazyArea;
+var gNavBar = document.getElementById(CustomizableUI.AREA_NAVBAR);
+var gLazyArea;
 
 // Removable nodes shouldn't be moved by buildArea
-add_task(function() {
+add_task(function*() {
   let dummyBtn = createDummyXULButton(kButtonId, "Dummy");
   dummyBtn.setAttribute("removable", "true");
   gNavBar.customizationTarget.appendChild(dummyBtn);
@@ -34,13 +34,13 @@ add_task(function() {
   assertAreaPlacements(kLazyAreaId, [], "Placements should no longer include widget.");
   is(btn.parentNode.id, gNavBar.customizationTarget.id,
      "Button shouldn't actually have moved as it's not removable");
-  let btn = document.getElementById(kButtonId);
+  btn = document.getElementById(kButtonId);
   if (btn) btn.remove();
   CustomizableUI.removeWidgetFromArea(kButtonId);
   CustomizableUI.unregisterArea(kLazyAreaId);
   gLazyArea.remove();
 });
 
-add_task(function asyncCleanup() {
+add_task(function* asyncCleanup() {
   yield resetCustomization();
 });

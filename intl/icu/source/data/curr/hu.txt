@@ -1,14 +1,5 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/hu.xml
-// *
-// ***************************************************************************
-/**
- * ICU <specials> source: <path>/common/main/hu.xml
- */
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 hu{
     Currencies{
         ADP{
@@ -195,9 +186,13 @@ hu{
             "BYB",
             "Fehérorosz új rubel (1994–1999)",
         }
+        BYN{
+            "BYN",
+            "fehérorosz rubel",
+        }
         BYR{
             "BYR",
-            "fehérorosz rubel",
+            "fehérorosz rubel (2000–2016)",
         }
         BZD{
             "BZD",
@@ -233,7 +228,7 @@ hu{
         }
         CNY{
             "CNY",
-            "Kínai jüan renminbi",
+            "kínai jüan",
         }
         COP{
             "COP",
@@ -357,7 +352,7 @@ hu{
         }
         GBP{
             "GBP",
-            "brit font sterling",
+            "brit font",
         }
         GEK{
             "GEK",
@@ -932,7 +927,7 @@ hu{
             "ugandai shilling",
         }
         USD{
-            "$",
+            "USD",
             "USA-dollár",
         }
         USN{
@@ -1112,6 +1107,105 @@ hu{
             "Zimbabwei dollár (2008)",
         }
     }
+    Currencies%narrow{
+        AOA{"Kz"}
+        ARS{"$"}
+        AUD{"$"}
+        BAM{"KM"}
+        BBD{"$"}
+        BDT{"৳"}
+        BMD{"$"}
+        BND{"$"}
+        BOB{"Bs"}
+        BRL{"R$"}
+        BSD{"$"}
+        BWP{"P"}
+        BYN{"р."}
+        BZD{"$"}
+        CAD{"$"}
+        CLP{"$"}
+        CNY{"¥"}
+        COP{"$"}
+        CRC{"₡"}
+        CUC{"$"}
+        CUP{"$"}
+        CZK{"Kč"}
+        DKK{"kr"}
+        DOP{"$"}
+        EGP{"E£"}
+        EUR{"€"}
+        FJD{"$"}
+        FKP{"£"}
+        GBP{"£"}
+        GEL{"₾"}
+        GIP{"£"}
+        GNF{"FG"}
+        GTQ{"Q"}
+        GYD{"$"}
+        HKD{"$"}
+        HNL{"L"}
+        HRK{"kn"}
+        HUF{"Ft"}
+        IDR{"Rp"}
+        ILS{"₪"}
+        INR{"₹"}
+        ISK{"kr"}
+        JMD{"$"}
+        JPY{"¥"}
+        KHR{"៛"}
+        KMF{"CF"}
+        KPW{"₩"}
+        KRW{"₩"}
+        KYD{"$"}
+        KZT{"₸"}
+        LAK{"₭"}
+        LBP{"L£"}
+        LKR{"Rs"}
+        LRD{"$"}
+        MGA{"Ar"}
+        MMK{"K"}
+        MNT{"₮"}
+        MUR{"Rs"}
+        MXN{"$"}
+        MYR{"RM"}
+        NAD{"$"}
+        NGN{"₦"}
+        NIO{"C$"}
+        NOK{"kr"}
+        NPR{"Rs"}
+        NZD{"$"}
+        PHP{"₱"}
+        PKR{"Rs"}
+        PLN{"zł"}
+        PYG{"₲"}
+        RUB{"₽"}
+        RWF{"RF"}
+        SBD{"$"}
+        SEK{"kr"}
+        SGD{"$"}
+        SHP{"£"}
+        SRD{"$"}
+        SSP{"£"}
+        STD{"Db"}
+        SYP{"£"}
+        THB{"฿"}
+        TOP{"T$"}
+        TRY{"₺"}
+        TTD{"$"}
+        TWD{"NT$"}
+        UAH{"₴"}
+        USD{"$"}
+        UYU{"$"}
+        VEF{"Bs"}
+        VND{"₫"}
+        XCD{"$"}
+        ZAR{"R"}
+        ZMW{"ZK"}
+    }
+    Currencies%variant{
+        GEL{"₾"}
+        TRY{"TL"}
+    }
     CurrencyPlurals{
         ADP{
             one{"Andorrai peseta"}
@@ -1289,9 +1383,13 @@ hu{
             one{"botswanai pula"}
             other{"botswanai pula"}
         }
-        BYR{
+        BYN{
             one{"fehérorosz rubel"}
             other{"fehérorosz rubel"}
+        }
+        BYR{
+            one{"fehérorosz rubel (2000–2016)"}
+            other{"fehérorosz rubel (2000–2016)"}
         }
         BZD{
             one{"belize-i dollár"}
@@ -1314,8 +1412,8 @@ hu{
             other{"chilei peso"}
         }
         CNY{
-            one{"Kínai jüan renminbi"}
-            other{"Kínai jüan renminbi"}
+            one{"kínai jüan"}
+            other{"kínai jüan"}
         }
         COP{
             one{"kolumbiai peso"}
@@ -1382,8 +1480,8 @@ hu{
             other{"falkland-szigeteki font"}
         }
         GBP{
-            one{"brit font sterling"}
-            other{"brit font sterling"}
+            one{"brit font"}
+            other{"brit font"}
         }
         GEL{
             one{"grúz lari"}
@@ -1914,5 +2012,5 @@ hu{
         one{"{0} {1}"}
         other{"{0} {1}"}
     }
-    Version{"2.0.93.17"}
+    Version{"2.1.28.79"}
 }

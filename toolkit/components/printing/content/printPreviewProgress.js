@@ -1,4 +1,4 @@
-// -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+// -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
 
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,7 @@
 var dialog;
 
 // the printProgress is a nsIPrintProgress object
-var printProgress = null; 
+var printProgress = null;
 
 // random global variables...
 var targetFile;
@@ -28,7 +28,7 @@ function ellipseString(aStr, doFront)
 
   if (doFront)
     return "..." + aStr.substr(aStr.length-fixedLen, fixedLen);
-  
+
   return aStr.substr(0, fixedLen) + "...";
 }
 
@@ -40,7 +40,7 @@ var progressListener = {
     if (aStateFlags & Components.interfaces.nsIWebProgressListener.STATE_STOP)
       window.close();
   },
-  
+
   onProgressChange: function (aWebProgress, aRequest, aCurSelfProgress, aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress)
   {
     if (!progressParams)
@@ -70,7 +70,7 @@ var progressListener = {
   QueryInterface: function (iid)
   {
     if (iid.equals(Components.interfaces.nsIWebProgressListener) || iid.equals(Components.interfaces.nsISupportsWeakReference))
-      return this;   
+      return this;
     throw Components.results.NS_NOINTERFACE;
   }
 }
@@ -92,7 +92,7 @@ function onLoad() {
     return;
   }
 
-  dialog         = new Object;
+  dialog         = {};
   dialog.strings = new Array;
   dialog.title   = document.getElementById("dialog.title");
   dialog.titleLabel = document.getElementById("dialog.titleLabel");
@@ -101,13 +101,12 @@ function onLoad() {
 
   // set our web progress listener on the helper app launcher
   printProgress.registerListener(progressListener);
-  moveToAlertPosition();
 
-  //We need to delay the set title else dom will overwrite it
+  // We need to delay the set title else dom will overwrite it
   window.setTimeout(doneIniting, 100);
 }
 
-function onUnload() 
+function onUnload()
 {
   if (!printProgress)
     return;
@@ -115,7 +114,7 @@ function onUnload()
     printProgress.unregisterListener(progressListener);
     printProgress = null;
   }
-  catch(e) {}
+  catch (e) {}
 }
 
 function getString (stringId) {
@@ -136,19 +135,19 @@ function getString (stringId) {
 }
 
 // If the user presses cancel, tell the app launcher and close the dialog...
-function onCancel () 
+function onCancel ()
 {
   // Cancel app launcher.
   try {
     printProgress.processCanceledByUser = true;
   }
-  catch(e) {return true;}
-    
+  catch (e) { return true; }
+
   // don't Close up dialog by returning false, the backend will close the dialog when everything will be aborted.
   return false;
 }
 
-function doneIniting() 
+function doneIniting()
 {
   // called by function timeout in onLoad
   printProgress.doneIniting();

@@ -13,19 +13,16 @@
 #include "nsWindow.h"
 #include <imgIContainer.h>
 
-// This isn't ideal, we should figure out how to export
-// the #defines here; need this to figure out if we have
-// the DirectDraw surface or not.
-#include "cairo-features.h"
-
 class nsWindowGfx {
 public:
   enum IconSizeType {
     kSmallIcon,
     kRegularIcon
   };
-  static gfxIntSize GetIconMetrics(IconSizeType aSizeType);
-  static nsresult CreateIcon(imgIContainer *aContainer, bool aIsCursor, uint32_t aHotspotX, uint32_t aHotspotY, gfxIntSize aScaledSize, HICON *aIcon);
+  static mozilla::gfx::IntSize GetIconMetrics(IconSizeType aSizeType);
+  static nsresult CreateIcon(imgIContainer *aContainer, bool aIsCursor,
+                             uint32_t aHotspotX, uint32_t aHotspotY,
+                             mozilla::gfx::IntSize aScaledSize, HICON *aIcon);
 
 private:
   /**

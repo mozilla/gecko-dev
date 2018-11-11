@@ -28,7 +28,6 @@ nsRuleData::GetPoisonOffset()
 nsRuleData::nsRuleData(uint32_t aSIDs, nsCSSValue* aValueStorage,
                        nsPresContext* aContext, nsStyleContext* aStyleContext)
   : mSIDs(aSIDs),
-    mCanStoreInRuleTree(true),
     mPresContext(aContext),
     mStyleContext(aStyleContext),
     mValueStorage(aValueStorage)
@@ -48,9 +47,8 @@ nsRuleData::~nsRuleData()
   // assert nothing in mSIDs has poison value
   size_t framePoisonOffset = GetPoisonOffset();
   for (size_t i = 0; i < nsStyleStructID_Length; ++i) {
-    NS_ABORT_IF_FALSE(!(mSIDs & (1 << i)) ||
-                      mValueOffsets[i] != framePoisonOffset,
-                      "value in SIDs was left with poison offset");
+    MOZ_ASSERT(!(mSIDs & (1 << i)) || mValueOffsets[i] != framePoisonOffset,
+               "value in SIDs was left with poison offset");
   }
 #endif
 }

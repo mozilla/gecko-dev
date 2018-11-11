@@ -2,17 +2,22 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include "sandbox/linux/seccomp-bpf/die.h"
+
 #include <errno.h>
-#include <linux/unistd.h>
+#include <signal.h>
 #include <stdio.h>
 #include <sys/prctl.h>
+#include <sys/syscall.h>
+#include <unistd.h>
 
 #include <string>
 
 #include "base/logging.h"
 #include "base/posix/eintr_wrapper.h"
-#include "sandbox/linux/seccomp-bpf/sandbox_bpf.h"
 #include "sandbox/linux/seccomp-bpf/syscall.h"
+#include "sandbox/linux/services/syscall_wrappers.h"
+#include "sandbox/linux/system_headers/linux_signal.h"
 
 namespace sandbox {
 
@@ -22,15 +27,18 @@ void Die::ExitGroup() {
   // Especially, since we are dealing with system call filters. Continuing
   // execution would be very bad in most cases where ExitGroup() gets called.
   // So, we'll try a few other strategies too.
-  SandboxSyscall(__NR_exit_group, 1);
+  Syscall::Call(__NR_exit_group, 1);
 
   // We have no idea what our run-time environment looks like. So, signal
   // handlers might or might not do the right thing. Try to reset settings
   // to a defined state; but we have not way to verify whether we actually
   // succeeded in doing so. Nonetheless, triggering a fatal signal could help
   // us terminate.
-  signal(SIGSEGV, SIG_DFL);
-  SandboxSyscall(__NR_prctl, PR_SET_DUMPABLE, (void*)0, (void*)0, (void*)0);
+  struct sigaction sa = {};
+  sa.sa_handler = LINUX_SIG_DFL;
+  sa.sa_flags = LINUX_SA_RESTART;
+  sys_sigaction(LINUX_SIGSEGV, &sa, nullptr);
+  Syscall::Call(__NR_prctl, PR_SET_DUMPABLE, (void*)0, (void*)0, (void*)0);
   if (*(volatile char*)0) {
   }
 
@@ -40,7 +48,7 @@ void Die::ExitGroup() {
   // We in fact retry the system call inside of our loop so that it will
   // stand out when somebody tries to diagnose the problem by using "strace".
   for (;;) {
-    SandboxSyscall(__NR_exit_group, 1);
+    Syscall::Call(__NR_exit_group, 1);
   }
 }
 
@@ -75,7 +83,7 @@ void Die::LogToStderr(const char* msg, const char* file, int line) {
     // No need to loop. Short write()s are unlikely and if they happen we
     // probably prefer them over a loop that blocks.
     ignore_result(
-        HANDLE_EINTR(SandboxSyscall(__NR_write, 2, s.c_str(), s.length())));
+        HANDLE_EINTR(Syscall::Call(__NR_write, 2, s.c_str(), s.length())));
   }
 }
 

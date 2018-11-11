@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -14,15 +15,11 @@ template<class T> struct already_AddRefed;
 #include "nsError.h"
 #include "nsID.h"
 
+#include "js/SliceBudget.h"
+
 namespace mozilla {
-
-class CycleCollectedJSRuntime;
-
-// See the comments in nsContentUtils.h for explanations of these functions.
-typedef void* (*DeferredFinalizeAppendFunction)(void* aPointers, void* aThing);
-typedef bool (*DeferredFinalizeFunction)(uint32_t aSlice, void* aData);
-
-}
+class CycleCollectedJSContext;
+} // namespace mozilla
 
 bool nsCycleCollector_init();
 
@@ -42,27 +39,26 @@ void nsCycleCollector_prepareForGarbageCollection();
 // If an incremental cycle collection is in progress, finish it.
 void nsCycleCollector_finishAnyCurrentCollection();
 
-void nsCycleCollector_dispatchDeferredDeletion(bool aContinuation = false);
+void nsCycleCollector_dispatchDeferredDeletion(bool aContinuation = false,
+                                               bool aPurge = false);
 bool nsCycleCollector_doDeferredDeletion();
 
 already_AddRefed<nsICycleCollectorLogSink> nsCycleCollector_createLogSink();
 
 void nsCycleCollector_collect(nsICycleCollectorListener* aManualListener);
 
-// If aSliceTime is negative, the CC will run to completion. Otherwise,
-// aSliceTime will be used as the time budget for the slice, in ms.
-void nsCycleCollector_collectSlice(int64_t aSliceTime);
-
-// If aSliceTime is negative, the CC will run to completion. Otherwise,
-// aSliceTime will be used as the work budget for the slice.
-void nsCycleCollector_collectSliceWork(int64_t aSliceWork);
+void nsCycleCollector_collectSlice(js::SliceBudget& budget,
+                                   bool aPreferShorterSlices = false);
 
 uint32_t nsCycleCollector_suspectedCount();
-void nsCycleCollector_shutdown();
+
+// If aDoCollect is true, then run the GC and CC a few times before
+// shutting down the CC completely.
+void nsCycleCollector_shutdown(bool aDoCollect = true);
 
 // Helpers for interacting with JS
-void nsCycleCollector_registerJSRuntime(mozilla::CycleCollectedJSRuntime* aRt);
-void nsCycleCollector_forgetJSRuntime();
+void nsCycleCollector_registerJSContext(mozilla::CycleCollectedJSContext* aCx);
+void nsCycleCollector_forgetJSContext();
 
 #define NS_CYCLE_COLLECTOR_LOGGER_CID \
 { 0x58be81b4, 0x39d2, 0x437c, \
@@ -72,21 +68,5 @@ extern nsresult
 nsCycleCollectorLoggerConstructor(nsISupports* aOuter,
                                   const nsIID& aIID,
                                   void** aInstancePtr);
-
-namespace mozilla {
-namespace cyclecollector {
-
-#ifdef DEBUG
-bool IsJSHolder(void* aHolder);
-#endif
-
-void DeferredFinalize(DeferredFinalizeAppendFunction aAppendFunc,
-                      DeferredFinalizeFunction aFunc,
-                      void* aThing);
-void DeferredFinalize(nsISupports* aSupports);
-
-
-} // namespace cyclecollector
-} // namespace mozilla
 
 #endif // nsCycleCollector_h__

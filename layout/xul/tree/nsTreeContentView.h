@@ -6,7 +6,6 @@
 #ifndef nsTreeContentView_h__
 #define nsTreeContentView_h__
 
-#include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsTArray.h"
 #include "nsStubDocumentObserver.h"
@@ -16,20 +15,19 @@
 #include "nsITreeContentView.h"
 #include "nsITreeSelection.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/UniquePtr.h"
 
 class nsIDocument;
 class Row;
 
 nsresult NS_NewTreeContentView(nsITreeView** aResult);
 
-class nsTreeContentView MOZ_FINAL : public nsINativeTreeView,
-                                    public nsITreeContentView,
-                                    public nsStubDocumentObserver
+class nsTreeContentView final : public nsINativeTreeView,
+                                public nsITreeContentView,
+                                public nsStubDocumentObserver
 {
   public:
     nsTreeContentView(void);
-
-    ~nsTreeContentView(void);
 
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsTreeContentView,
@@ -37,7 +35,7 @@ class nsTreeContentView MOZ_FINAL : public nsINativeTreeView,
 
     NS_DECL_NSITREEVIEW
     // nsINativeTreeView: Untrusted code can use us
-    NS_IMETHOD EnsureNative() MOZ_OVERRIDE { return NS_OK; }
+    NS_IMETHOD EnsureNative() override { return NS_OK; }
 
     NS_DECL_NSITREECONTENTVIEW
 
@@ -51,15 +49,17 @@ class nsTreeContentView MOZ_FINAL : public nsINativeTreeView,
     static bool CanTrustTreeSelection(nsISupports* aValue);
 
   protected:
+    ~nsTreeContentView(void);
+
     // Recursive methods which deal with serializing of nested content.
     void Serialize(nsIContent* aContent, int32_t aParentIndex, int32_t* aIndex,
-                   nsTArray<nsAutoPtr<Row> >& aRows);
+                   nsTArray<mozilla::UniquePtr<Row>>& aRows);
 
     void SerializeItem(nsIContent* aContent, int32_t aParentIndex,
-                       int32_t* aIndex, nsTArray<nsAutoPtr<Row> >& aRows);
+                       int32_t* aIndex, nsTArray<mozilla::UniquePtr<Row>>& aRows);
 
     void SerializeSeparator(nsIContent* aContent, int32_t aParentIndex,
-                            int32_t* aIndex, nsTArray<nsAutoPtr<Row> >& aRows);
+                            int32_t* aIndex, nsTArray<mozilla::UniquePtr<Row>>& aRows);
 
     void GetIndexInSubtree(nsIContent* aContainer, nsIContent* aContent, int32_t* aResult);
     
@@ -95,7 +95,7 @@ class nsTreeContentView MOZ_FINAL : public nsINativeTreeView,
     nsCOMPtr<nsIContent>                mRoot;
     nsCOMPtr<nsIContent>                mBody;
     nsIDocument*                        mDocument;      // WEAK
-    nsTArray<nsAutoPtr<Row> >           mRows;
+    nsTArray<mozilla::UniquePtr<Row>>   mRows;
 };
 
 #endif // nsTreeContentView_h__

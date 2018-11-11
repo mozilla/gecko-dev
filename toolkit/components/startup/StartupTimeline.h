@@ -19,6 +19,10 @@ mozilla_StartupTimeline_Event(CREATE_TOP_LEVEL_WINDOW, "createTopLevelWindow")
 mozilla_StartupTimeline_Event(LINKER_INITIALIZED, "linkerInitialized")
 mozilla_StartupTimeline_Event(LIBRARIES_LOADED, "librariesLoaded")
 mozilla_StartupTimeline_Event(FIRST_LOAD_URI, "firstLoadURI")
+
+// The following are actually shutdown events, used to monitor the duration of shutdown
+mozilla_StartupTimeline_Event(QUIT_APPLICATION, "quitApplication")
+mozilla_StartupTimeline_Event(PROFILE_BEFORE_CHANGE, "profileBeforeChange")
 #else
 
 #ifndef mozilla_StartupTimeline
@@ -44,7 +48,6 @@ namespace mozilla {
 
 void RecordShutdownEndTimeStamp();
 void RecordShutdownStartTimeStamp();
-void StartupTimelineRecordExternal(int, uint64_t);
 
 class StartupTimeline {
 public:
@@ -90,7 +93,7 @@ private:
   static NS_EXTERNAL_VIS_(const char *) sStartupTimelineDesc[MAX_EVENT_ID];
 };
 
-}
+} // namespace mozilla
 
 #endif /* mozilla_StartupTimeline */
 

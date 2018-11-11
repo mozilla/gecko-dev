@@ -11,59 +11,76 @@
 
 #include "gc/Barrier.h"
 
+#include "jscntxtinlines.h"
+
 inline void
-JSCompartment::initGlobal(js::GlobalObject &global)
+JSCompartment::initGlobal(js::GlobalObject& global)
 {
-    JS_ASSERT(global.compartment() == this);
-    JS_ASSERT(!global_);
+    MOZ_ASSERT(global.compartment() == this);
+    MOZ_ASSERT(!global_);
     global_.set(&global);
 }
 
-js::GlobalObject *
+js::GlobalObject*
 JSCompartment::maybeGlobal() const
 {
-    JS_ASSERT_IF(global_, global_->compartment() == this);
+    MOZ_ASSERT_IF(global_, global_->compartment() == this);
     return global_;
 }
 
-js::AutoCompartment::AutoCompartment(ExclusiveContext *cx, JSObject *target)
-  : cx_(cx),
-    origin_(cx->compartment_)
+js::GlobalObject*
+JSCompartment::unsafeUnbarrieredMaybeGlobal() const
 {
-    cx_->enterCompartment(target->compartment());
+    return *global_.unsafeGet();
 }
 
-js::AutoCompartment::AutoCompartment(ExclusiveContext *cx, JSCompartment *target)
+js::AutoCompartment::AutoCompartment(ExclusiveContext* cx, JSObject* target,
+                                     js::AutoLockForExclusiveAccess* maybeLock /* = nullptr */)
   : cx_(cx),
-    origin_(cx_->compartment_)
+    origin_(cx->compartment_),
+    maybeLock_(maybeLock)
 {
-    cx_->enterCompartment(target);
+    cx_->enterCompartment(target->compartment(), maybeLock);
+}
+
+js::AutoCompartment::AutoCompartment(ExclusiveContext* cx, JSCompartment* target,
+                                     js::AutoLockForExclusiveAccess* maybeLock /* = nullptr */)
+  : cx_(cx),
+    origin_(cx_->compartment_),
+    maybeLock_(maybeLock)
+{
+    cx_->enterCompartment(target, maybeLock);
 }
 
 js::AutoCompartment::~AutoCompartment()
 {
-    cx_->leaveCompartment(origin_);
+    cx_->leaveCompartment(origin_, maybeLock_);
 }
 
 inline bool
-JSCompartment::wrap(JSContext *cx, JS::MutableHandleValue vp, JS::HandleObject existing)
+JSCompartment::wrap(JSContext* cx, JS::MutableHandleValue vp)
 {
-    JS_ASSERT_IF(existing, vp.isObject());
-
     /* Only GC things have to be wrapped or copied. */
     if (!vp.isMarkable())
+        return true;
+
+    /*
+     * Symbols are GC things, but never need to be wrapped or copied because
+     * they are always allocated in the atoms compartment.
+     */
+    if (vp.isSymbol())
         return true;
 
     /* Handle strings. */
     if (vp.isString()) {
         JS::RootedString str(cx, vp.toString());
-        if (!wrap(cx, str.address()))
+        if (!wrap(cx, &str))
             return false;
         vp.setString(str);
         return true;
     }
 
-    JS_ASSERT(vp.isObject());
+    MOZ_ASSERT(vp.isObject());
 
     /*
      * All that's left are objects.
@@ -93,16 +110,16 @@ JSCompartment::wrap(JSContext *cx, JS::MutableHandleValue vp, JS::HandleObject e
 #ifdef DEBUG
         cacheResult = &p->value().get().toObject();
 #else
-        vp.set(p->value());
+        vp.set(p->value().get());
         return true;
 #endif
     }
 
     JS::RootedObject obj(cx, &vp.toObject());
-    if (!wrap(cx, &obj, existing))
+    if (!wrap(cx, &obj))
         return false;
     vp.setObject(*obj);
-    JS_ASSERT_IF(cacheResult, obj == cacheResult);
+    MOZ_ASSERT_IF(cacheResult, obj == cacheResult);
     return true;
 }
 

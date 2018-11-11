@@ -28,15 +28,21 @@
  *   Ted Mielczarek <ted.mielczarek@gmail.com>
  */
 /*
- * screenshot.cpp : Save a screenshot of the Windows desktop in .png format.
+ * win32-screenshot.cpp: Save a screenshot of the Windows desktop in .png format.
  *  If a filename is specified as the first argument on the commandline,
  *  then the image will be saved to that filename. Otherwise, the image will
  *  be saved as "screenshot.png" in the current working directory.
  */
 
+ // VS2015: Platform SDK 8.1's GdiplusTypes.h uses the min macro
+#undef NOMINMAX
 #undef WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <gdiplus.h>
+
+// Link w/ subsystem windows so we don't get a console when executing
+// this binary.
+#pragma comment(linker, "/SUBSYSTEM:windows /ENTRY:wmainCRTStartup")
 
 using namespace Gdiplus;
 
@@ -65,7 +71,7 @@ static int GetEncoderClsid(const WCHAR* format, CLSID* pClsid)
           *pClsid = pImageCodecInfo[j].Clsid;
           free(pImageCodecInfo);
           return j;  // Success
-        }    
+        }
     }
 
   free(pImageCodecInfo);
@@ -100,7 +106,7 @@ int wmain(int argc, wchar_t** argv)
   }
   if (b)
     delete b;
-  
+
   // cleanup
   GdiplusShutdown(gdiplusToken);
   ReleaseDC(desktop, desktopdc);

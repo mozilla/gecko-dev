@@ -6,19 +6,27 @@ function test() {
   Services.prefs.setBoolPref("xpinstall.enabled", false);
 
   gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function() {
-    gBrowser.selectedBrowser.removeEventListener("load", arguments.callee, true);
-    // Allow the in-page load handler to run first
-    executeSoon(page_loaded);
-  }, true);
-  gBrowser.loadURI(TESTROOT + "enabled.html");
-}
 
-function page_loaded() {
-  Services.prefs.clearUserPref("xpinstall.enabled");
+  ContentTask.spawn(gBrowser.selectedBrowser, TESTROOT + "enabled.html", function (url) {
+    return new Promise(resolve => {
+      function page_loaded() {
+        content.removeEventListener("PageLoaded", page_loaded, false);
+        resolve(content.document.getElementById("enabled").textContent);
+      }
 
-  var doc = gBrowser.contentDocument;
-  is(doc.getElementById("enabled").textContent, "false", "installTrigger should have not been enabled");
-  gBrowser.removeCurrentTab();
-  finish();
+      function load_listener() {
+        removeEventListener("load", load_listener, true);
+        content.addEventListener("PageLoaded", page_loaded, false);
+      }
+
+      addEventListener("load", load_listener, true);
+
+      content.location.href = url;
+    });
+  }).then(text => {
+    is(text, "false", "installTrigger should have not been enabled");
+    Services.prefs.clearUserPref("xpinstall.enabled");
+    gBrowser.removeCurrentTab();
+    finish();
+  });
 }

@@ -25,6 +25,7 @@
 #include "nsStackLayout.h"
 #include "nsDisplayList.h"
 #include "nsContainerFrame.h"
+#include "nsContentUtils.h"
 
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"
@@ -33,7 +34,7 @@
 nsIFrame*
 NS_NewDeckFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
-  return new (aPresShell) nsDeckFrame(aPresShell, aContext);
+  return new (aPresShell) nsDeckFrame(aContext);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsDeckFrame)
@@ -43,12 +44,12 @@ NS_QUERYFRAME_HEAD(nsDeckFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsBoxFrame)
 
 
-nsDeckFrame::nsDeckFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
-  : nsBoxFrame(aPresShell, aContext), mIndex(0)
+nsDeckFrame::nsDeckFrame(nsStyleContext* aContext)
+  : nsBoxFrame(aContext), mIndex(0)
 {
   nsCOMPtr<nsBoxLayout> layout;
-  NS_NewStackLayout(aPresShell, layout);
-  SetLayoutManager(layout);
+  NS_NewStackLayout(layout);
+  SetXULLayoutManager(layout);
 }
 
 nsIAtom*
@@ -155,6 +156,34 @@ nsDeckFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 }
 
 void
+nsDeckFrame::RemoveFrame(ChildListID aListID,
+                         nsIFrame* aOldFrame)
+{
+  nsIFrame* currentFrame = GetSelectedBox();
+  if (currentFrame &&
+      aOldFrame &&
+      currentFrame != aOldFrame) {
+    // If the frame we're removing is at an index that's less
+    // than mIndex, that means we're going to be shifting indexes
+    // by 1.
+    //
+    // We attempt to keep the same child displayed by automatically
+    // updating our internal notion of the current index.
+    int32_t removedIndex = mFrames.IndexOf(aOldFrame);
+    MOZ_ASSERT(removedIndex >= 0,
+               "A deck child was removed that was not in mFrames.");
+    if (removedIndex < mIndex) {
+      mIndex--;
+      // This is going to cause us to handle the index change in IndexedChanged,
+      // but since the new index will match mIndex, it's essentially a noop.
+      nsContentUtils::AddScriptRunner(new nsSetAttrRunnable(
+        mContent, nsGkAtoms::selectedIndex, mIndex));
+    }
+  }
+  nsBoxFrame::RemoveFrame(aListID, aOldFrame);
+}
+
+void
 nsDeckFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
                                          const nsRect&           aDirtyRect,
                                          const nsDisplayListSet& aLists)
@@ -171,7 +200,7 @@ nsDeckFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
 }
 
 NS_IMETHODIMP
-nsDeckFrame::DoLayout(nsBoxLayoutState& aState)
+nsDeckFrame::DoXULLayout(nsBoxLayoutState& aState)
 {
   // Make sure we tweak the state so it does not resize our children.
   // We will do that.
@@ -179,10 +208,10 @@ nsDeckFrame::DoLayout(nsBoxLayoutState& aState)
   aState.SetLayoutFlags(NS_FRAME_NO_SIZE_VIEW | NS_FRAME_NO_VISIBILITY);
 
   // do a normal layout
-  nsresult rv = nsBoxFrame::DoLayout(aState);
+  nsresult rv = nsBoxFrame::DoXULLayout(aState);
 
   // run though each child. Hide all but the selected one
-  nsIFrame* box = nsBox::GetChildBox(this);
+  nsIFrame* box = nsBox::GetChildXULBox(this);
 
   nscoord count = 0;
   while (box) 
@@ -191,7 +220,7 @@ nsDeckFrame::DoLayout(nsBoxLayoutState& aState)
     if (count != mIndex) 
       HideBox(box);
 
-    box = GetNextBox(box);
+    box = GetNextXULBox(box);
     count++;
   }
 

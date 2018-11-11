@@ -7,8 +7,9 @@
 /* class that a parent frame uses to reflow a block frame */
 
 #include "nsBlockReflowContext.h"
-#include "nsBlockReflowState.h"
+#include "BlockReflowInput.h"
 #include "nsFloatManager.h"
+#include "nsColumnSetFrame.h"
 #include "nsContainerFrame.h"
 #include "nsBlockFrame.h"
 #include "nsLineBox.h"
@@ -27,9 +28,9 @@ using namespace mozilla;
 #endif
 
 nsBlockReflowContext::nsBlockReflowContext(nsPresContext* aPresContext,
-                                           const nsHTMLReflowState& aParentRS)
+                                           const ReflowInput& aParentRS)
   : mPresContext(aPresContext),
-    mOuterReflowState(aParentRS),
+    mOuterReflowInput(aParentRS),
     mSpace(aParentRS.GetWritingMode()),
     mMetrics(aParentRS)
 {
@@ -38,29 +39,36 @@ nsBlockReflowContext::nsBlockReflowContext(nsPresContext* aPresContext,
 static nsIFrame* DescendIntoBlockLevelFrame(nsIFrame* aFrame)
 {
   nsIAtom* type = aFrame->GetType();
-  if (type == nsGkAtoms::columnSetFrame)
-    return DescendIntoBlockLevelFrame(aFrame->GetFirstPrincipalChild());
+  if (type == nsGkAtoms::columnSetFrame) {
+    static_cast<nsColumnSetFrame*>(aFrame)->DrainOverflowColumns();
+    nsIFrame* child = aFrame->PrincipalChildList().FirstChild();
+    if (child) {
+      return DescendIntoBlockLevelFrame(child);
+    }
+  }
   return aFrame;
 }
 
 bool
-nsBlockReflowContext::ComputeCollapsedBStartMargin(const nsHTMLReflowState& aRS,
+nsBlockReflowContext::ComputeCollapsedBStartMargin(const ReflowInput& aRI,
                                                    nsCollapsingMargin* aMargin,
                                                    nsIFrame* aClearanceFrame,
                                                    bool* aMayNeedRetry,
                                                    bool* aBlockIsEmpty)
 {
-  WritingMode wm = aRS.GetWritingMode();
-  // Include frame's block-start margin
-  aMargin->Include(aRS.ComputedLogicalMargin().BStart(wm));
+  WritingMode wm = aRI.GetWritingMode();
+  WritingMode parentWM = mMetrics.GetWritingMode();
+
+  // Include block-start element of frame's margin
+  aMargin->Include(aRI.ComputedLogicalMargin().ConvertTo(parentWM, wm).BStart(parentWM));
 
   // The inclusion of the block-end margin when empty is done by the caller
   // since it doesn't need to be done by the top-level (non-recursive)
   // caller.
 
 #ifdef NOISY_BLOCKDIR_MARGINS
-  nsFrame::ListTag(stdout, aRS.frame);
-  printf(": %d => %d\n", aRS.ComputedLogicalMargin().BStart(wm), aMargin->get());
+  nsFrame::ListTag(stdout, aRI.mFrame);
+  printf(": %d => %d\n", aRI.ComputedLogicalMargin().BStart(wm), aMargin->get());
 #endif
 
   bool dirtiedLine = false;
@@ -71,10 +79,10 @@ nsBlockReflowContext::ComputeCollapsedBStartMargin(const nsHTMLReflowState& aRS,
   // block-start-padding then this step is skipped because it will be a margin
   // root.  It is also skipped if the frame is a margin root for other
   // reasons.
-  nsIFrame* frame = DescendIntoBlockLevelFrame(aRS.frame);
+  nsIFrame* frame = DescendIntoBlockLevelFrame(aRI.mFrame);
   nsPresContext* prescontext = frame->PresContext();
   nsBlockFrame* block = nullptr;
-  if (0 == aRS.ComputedLogicalBorderPadding().BStart(wm)) {
+  if (0 == aRI.ComputedLogicalBorderPadding().BStart(wm)) {
     block = nsLayoutUtils::GetAsBlock(frame);
     if (block) {
       bool bStartMarginRoot, unused;
@@ -93,8 +101,8 @@ nsBlockReflowContext::ComputeCollapsedBStartMargin(const nsHTMLReflowState& aRS,
   // OK because our traversal is idempotent.
   for ( ;block; block = static_cast<nsBlockFrame*>(block->GetNextInFlow())) {
     for (int overflowLines = 0; overflowLines <= 1; ++overflowLines) {
-      nsBlockFrame::line_iterator line;
-      nsBlockFrame::line_iterator line_end;
+      nsBlockFrame::LineIterator line;
+      nsBlockFrame::LineIterator line_end;
       bool anyLines = true;
       if (overflowLines) {
         nsBlockFrame::FrameLines* frames = block->GetOverflowLines();
@@ -106,8 +114,8 @@ nsBlockReflowContext::ComputeCollapsedBStartMargin(const nsHTMLReflowState& aRS,
           line_end = lines->end();
         }
       } else {
-        line = block->begin_lines();
-        line_end = block->end_lines();
+        line = block->LinesBegin();
+        line_end = block->LinesEnd();
       }
       for (; anyLines && line != line_end; ++line) {
         if (!aClearanceFrame && line->HasClearance()) {
@@ -128,6 +136,10 @@ nsBlockReflowContext::ComputeCollapsedBStartMargin(const nsHTMLReflowState& aRS,
             line->SetHasClearance();
             line->MarkDirty();
             dirtiedLine = true;
+            if (!setBlockIsEmpty && aBlockIsEmpty) {
+              setBlockIsEmpty = true;
+              *aBlockIsEmpty = false;
+            }
             goto done;
           }
           // Here is where we recur. Now that we have determined that a
@@ -140,40 +152,41 @@ nsBlockReflowContext::ComputeCollapsedBStartMargin(const nsHTMLReflowState& aRS,
           // we drilled down through a block wrapper. At the moment
           // we can only drill down one level so we only have to support
           // one extra reflow state.
-          const nsHTMLReflowState* outerReflowState = &aRS;
-          if (frame != aRS.frame) {
-            NS_ASSERTION(frame->GetParent() == aRS.frame,
+          const ReflowInput* outerReflowInput = &aRI;
+          if (frame != aRI.mFrame) {
+            NS_ASSERTION(frame->GetParent() == aRI.mFrame,
                          "Can only drill through one level of block wrapper");
-            nsSize availSpace(aRS.ComputedWidth(), aRS.ComputedHeight());
-            outerReflowState = new nsHTMLReflowState(prescontext,
-                                                     aRS, frame, availSpace);
+            LogicalSize availSpace = aRI.ComputedSize(frame->GetWritingMode());
+            outerReflowInput = new ReflowInput(prescontext,
+                                                     aRI, frame, availSpace);
           }
           {
-            nsSize availSpace(outerReflowState->ComputedWidth(),
-                              outerReflowState->ComputedHeight());
-            nsHTMLReflowState innerReflowState(prescontext,
-                                               *outerReflowState, kid,
+            LogicalSize availSpace =
+              outerReflowInput->ComputedSize(kid->GetWritingMode());
+            ReflowInput innerReflowInput(prescontext,
+                                               *outerReflowInput, kid,
                                                availSpace);
             // Record that we're being optimistic by assuming the kid
             // has no clearance
-            if (kid->StyleDisplay()->mBreakType != NS_STYLE_CLEAR_NONE) {
+            if (kid->StyleDisplay()->mBreakType != StyleClear::None ||
+                !nsBlockFrame::BlockCanIntersectFloats(kid)) {
               *aMayNeedRetry = true;
             }
-            if (ComputeCollapsedBStartMargin(innerReflowState, aMargin,
+            if (ComputeCollapsedBStartMargin(innerReflowInput, aMargin,
                                              aClearanceFrame, aMayNeedRetry,
                                              &isEmpty)) {
               line->MarkDirty();
               dirtiedLine = true;
             }
             if (isEmpty) {
-              WritingMode innerWM = innerReflowState.GetWritingMode();
+              WritingMode innerWM = innerReflowInput.GetWritingMode();
               LogicalMargin innerMargin =
-                innerReflowState.ComputedLogicalMargin().ConvertTo(wm, innerWM);
-              aMargin->Include(innerMargin.BEnd(wm));
+                innerReflowInput.ComputedLogicalMargin().ConvertTo(parentWM, innerWM);
+              aMargin->Include(innerMargin.BEnd(parentWM));
             }
           }
-          if (outerReflowState != &aRS) {
-            delete const_cast<nsHTMLReflowState*>(outerReflowState);
+          if (outerReflowInput != &aRI) {
+            delete const_cast<ReflowInput*>(outerReflowInput);
           }
         }
         if (!isEmpty) {
@@ -189,18 +202,18 @@ nsBlockReflowContext::ComputeCollapsedBStartMargin(const nsHTMLReflowState& aRS,
         // and we have processed all its normal lines.
         setBlockIsEmpty = true;
         // All lines are empty, or we wouldn't be here!
-        *aBlockIsEmpty = aRS.frame->IsSelfEmpty();
+        *aBlockIsEmpty = aRI.mFrame->IsSelfEmpty();
       }
     }
   }
   done:
 
   if (!setBlockIsEmpty && aBlockIsEmpty) {
-    *aBlockIsEmpty = aRS.frame->IsEmpty();
+    *aBlockIsEmpty = aRI.mFrame->IsEmpty();
   }
   
 #ifdef NOISY_BLOCKDIR_MARGINS
-  nsFrame::ListTag(stdout, aRS.frame);
+  nsFrame::ListTag(stdout, aRI.mFrame);
   printf(": => %d\n", aMargin->get());
 #endif
 
@@ -208,40 +221,50 @@ nsBlockReflowContext::ComputeCollapsedBStartMargin(const nsHTMLReflowState& aRS,
 }
 
 void
-nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
+nsBlockReflowContext::ReflowBlock(const LogicalRect&  aSpace,
                                   bool                aApplyBStartMargin,
                                   nsCollapsingMargin& aPrevMargin,
                                   nscoord             aClearance,
                                   bool                aIsAdjacentWithBStart,
                                   nsLineBox*          aLine,
-                                  nsHTMLReflowState&  aFrameRS,
+                                  ReflowInput&  aFrameRI,
                                   nsReflowStatus&     aFrameReflowStatus,
-                                  nsBlockReflowState& aState)
+                                  BlockReflowInput& aState)
 {
-  mFrame = aFrameRS.frame;
-  mWritingMode = aState.mReflowState.GetWritingMode();
-  mContainerWidth = aState.mContainerWidth;
-  mSpace = LogicalRect(mWritingMode, aSpace, mContainerWidth);
+  mFrame = aFrameRI.mFrame;
+  mWritingMode = aState.mReflowInput.GetWritingMode();
+  mContainerSize = aState.ContainerSize();
+  mSpace = aSpace;
 
   if (!aIsAdjacentWithBStart) {
-    aFrameRS.mFlags.mIsTopOfPage = false;  // make sure this is cleared
+    aFrameRI.mFlags.mIsTopOfPage = false;  // make sure this is cleared
   }
 
   if (aApplyBStartMargin) {
     mBStartMargin = aPrevMargin;
 
 #ifdef NOISY_BLOCKDIR_MARGINS
-    nsFrame::ListTag(stdout, mOuterReflowState.frame);
+    nsFrame::ListTag(stdout, mOuterReflowInput.mFrame);
     printf(": reflowing ");
     nsFrame::ListTag(stdout, mFrame);
     printf(" margin => %d, clearance => %d\n", mBStartMargin.get(), aClearance);
 #endif
 
-    // Adjust the available block size if it's constrained so that the
+    // Adjust the available size if it's constrained so that the
     // child frame doesn't think it can reflow into its margin area.
-    if (NS_UNCONSTRAINEDSIZE != aFrameRS.AvailableBSize()) {
-      aFrameRS.AvailableBSize() -= mBStartMargin.get() + aClearance;
+    if (mWritingMode.IsOrthogonalTo(mFrame->GetWritingMode())) {
+      if (NS_UNCONSTRAINEDSIZE != aFrameRI.AvailableISize()) {
+        aFrameRI.AvailableISize() -= mBStartMargin.get() + aClearance;
+      }
+    } else {
+      if (NS_UNCONSTRAINEDSIZE != aFrameRI.AvailableBSize()) {
+        aFrameRI.AvailableBSize() -= mBStartMargin.get() + aClearance;
+      }
     }
+  } else {
+    // nsBlockFrame::ReflowBlock might call us multiple times with
+    // *different* values of aApplyBStartMargin.
+    mBStartMargin.Zero();
   }
 
   nscoord tI = 0, tB = 0;
@@ -255,47 +278,50 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
     // rules from 10.3.3 to determine what to apply. At this point in the
     // reflow auto inline-start/end margins will have a zero value.
 
-    WritingMode frameWM = aFrameRS.GetWritingMode();
-    mICoord = tI =
-      mSpace.IStart(mWritingMode) +
-      aFrameRS.ComputedLogicalMargin().ConvertTo(mWritingMode,
-                                                 frameWM).IStart(mWritingMode);
-    mBCoord = tB = mSpace.BStart(mWritingMode) +
-                   mBStartMargin.get() + aClearance;
+    WritingMode frameWM = aFrameRI.GetWritingMode();
+    LogicalMargin usedMargin =
+      aFrameRI.ComputedLogicalMargin().ConvertTo(mWritingMode, frameWM);
+    mICoord = mSpace.IStart(mWritingMode) + usedMargin.IStart(mWritingMode);
+    mBCoord = mSpace.BStart(mWritingMode) + mBStartMargin.get() + aClearance;
 
-    //XXX temporary until nsFloatManager is logicalized
-    tI = aSpace.x + aFrameRS.ComputedPhysicalMargin().left;
-    tB = aSpace.y + mBStartMargin.get() + aClearance;
+    LogicalRect space(mWritingMode, mICoord, mBCoord,
+                      mSpace.ISize(mWritingMode) -
+                      usedMargin.IStartEnd(mWritingMode),
+                      mSpace.BSize(mWritingMode) -
+                      usedMargin.BStartEnd(mWritingMode));
+    tI = space.LineLeft(mWritingMode, mContainerSize);
+    tB = mBCoord;
 
     if ((mFrame->GetStateBits() & NS_BLOCK_FLOAT_MGR) == 0)
-      aFrameRS.mBlockDelta =
-        mOuterReflowState.mBlockDelta + mBCoord - aLine->BStart();
+      aFrameRI.mBlockDelta =
+        mOuterReflowInput.mBlockDelta + mBCoord - aLine->BStart();
   }
 
-  // Let frame know that we are reflowing it
-  mFrame->WillReflow(mPresContext);
-
 #ifdef DEBUG
-  mMetrics.Width() = nscoord(0xdeadbeef);
-  mMetrics.Height() = nscoord(0xdeadbeef);
+  mMetrics.ISize(mWritingMode) = nscoord(0xdeadbeef);
+  mMetrics.BSize(mWritingMode) = nscoord(0xdeadbeef);
 #endif
 
-  mOuterReflowState.mFloatManager->Translate(tI, tB);
-  mFrame->Reflow(mPresContext, mMetrics, aFrameRS, aFrameReflowStatus);
-  mOuterReflowState.mFloatManager->Translate(-tI, -tB);
+  mOuterReflowInput.mFloatManager->Translate(tI, tB);
+  mFrame->Reflow(mPresContext, mMetrics, aFrameRI, aFrameReflowStatus);
+  mOuterReflowInput.mFloatManager->Translate(-tI, -tB);
 
 #ifdef DEBUG
   if (!NS_INLINE_IS_BREAK_BEFORE(aFrameReflowStatus)) {
-    if (CRAZY_SIZE(mMetrics.Width()) || CRAZY_SIZE(mMetrics.Height())) {
+    if ((CRAZY_SIZE(mMetrics.ISize(mWritingMode)) ||
+         CRAZY_SIZE(mMetrics.BSize(mWritingMode))) &&
+        !mFrame->GetParent()->IsCrazySizeAssertSuppressed()) {
       printf("nsBlockReflowContext: ");
       nsFrame::ListTag(stdout, mFrame);
-      printf(" metrics=%d,%d!\n", mMetrics.Width(), mMetrics.Height());
+      printf(" metrics=%d,%d!\n",
+             mMetrics.ISize(mWritingMode), mMetrics.BSize(mWritingMode));
     }
-    if ((mMetrics.Width() == nscoord(0xdeadbeef)) ||
-        (mMetrics.Height() == nscoord(0xdeadbeef))) {
+    if ((mMetrics.ISize(mWritingMode) == nscoord(0xdeadbeef)) ||
+        (mMetrics.BSize(mWritingMode) == nscoord(0xdeadbeef))) {
       printf("nsBlockReflowContext: ");
       nsFrame::ListTag(stdout, mFrame);
-      printf(" didn't set w/h %d,%d!\n", mMetrics.Width(), mMetrics.Height());
+      printf(" didn't set i/b %d,%d!\n",
+             mMetrics.ISize(mWritingMode), mMetrics.BSize(mWritingMode));
     }
   }
 #endif
@@ -331,7 +357,7 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
  * collapse margins (CSS2 8.3.1). Also apply relative positioning.
  */
 bool
-nsBlockReflowContext::PlaceBlock(const nsHTMLReflowState&  aReflowState,
+nsBlockReflowContext::PlaceBlock(const ReflowInput&  aReflowInput,
                                  bool                      aForceFit,
                                  nsLineBox*                aLine,
                                  nsCollapsingMargin&       aBEndMarginResult,
@@ -339,13 +365,14 @@ nsBlockReflowContext::PlaceBlock(const nsHTMLReflowState&  aReflowState,
                                  nsReflowStatus            aReflowStatus)
 {
   // Compute collapsed block-end margin value.
-  WritingMode wm = aReflowState.GetWritingMode();
+  WritingMode wm = aReflowInput.GetWritingMode();
   WritingMode parentWM = mMetrics.GetWritingMode();
   if (NS_FRAME_IS_COMPLETE(aReflowStatus)) {
-    aBEndMarginResult = mMetrics.mCarriedOutBottomMargin;
-    aBEndMarginResult.Include(aReflowState.ComputedLogicalMargin().BEnd(wm));
+    aBEndMarginResult = mMetrics.mCarriedOutBEndMargin;
+    aBEndMarginResult.Include(aReflowInput.ComputedLogicalMargin().
+      ConvertTo(parentWM, wm).BEnd(parentWM));
   } else {
-    // The used bottom-margin is set to zero above a break.
+    // The used block-end-margin is set to zero before a break.
     aBEndMarginResult.Zero();
   }
 
@@ -368,7 +395,7 @@ nsBlockReflowContext::PlaceBlock(const nsHTMLReflowState&  aReflowState,
 
 #ifdef NOISY_BLOCKDIR_MARGINS
     printf("  ");
-    nsFrame::ListTag(stdout, mOuterReflowState.frame);
+    nsFrame::ListTag(stdout, mOuterReflowInput.mFrame);
     printf(": ");
     nsFrame::ListTag(stdout, mFrame);
     printf(" -- collapsing block start & end margin together; BStart=%d spaceBStart=%d\n",
@@ -397,14 +424,14 @@ nsBlockReflowContext::PlaceBlock(const nsHTMLReflowState&  aReflowState,
   // See if the frame fit. If it's the first frame or empty then it
   // always fits. If the block-size is unconstrained then it always fits,
   // even if there's some sort of integer overflow that makes bCoord +
-  // mMetrics.BSize() appear to go beyond the available height.
+  // mMetrics.BSize() appear to go beyond the available block size.
   if (!empty && !aForceFit &&
       mSpace.BSize(mWritingMode) != NS_UNCONSTRAINEDSIZE) {
     nscoord bEnd = mBCoord -
                    backupContainingBlockAdvance + mMetrics.BSize(mWritingMode);
     if (bEnd > mSpace.BEnd(mWritingMode)) {
       // didn't fit, we must acquit.
-      mFrame->DidReflow(mPresContext, &aReflowState,
+      mFrame->DidReflow(mPresContext, &aReflowInput,
                         nsDidReflowStatus::FINISHED);
       return false;
     }
@@ -413,22 +440,25 @@ nsBlockReflowContext::PlaceBlock(const nsHTMLReflowState&  aReflowState,
   aLine->SetBounds(mWritingMode,
                    mICoord, mBCoord - backupContainingBlockAdvance,
                    mMetrics.ISize(mWritingMode), mMetrics.BSize(mWritingMode),
-                   mContainerWidth);
+                   mContainerSize);
 
-  // XXX temporary until other classes are logicalized
-  nsPoint position = LogicalRect(mWritingMode,
-                                 mICoord, mBCoord,
-                                 mMetrics.ISize(mWritingMode),
-                                 mMetrics.BSize(mWritingMode)).
-                       GetPhysicalPosition(mWritingMode, mContainerWidth);
+  WritingMode frameWM = mFrame->GetWritingMode();
+  LogicalPoint logPos =
+    LogicalPoint(mWritingMode, mICoord, mBCoord).
+      ConvertTo(frameWM, mWritingMode,
+                mContainerSize - mMetrics.PhysicalSize());
 
-  aReflowState.ApplyRelativePositioning(&position);
+  // ApplyRelativePositioning in right-to-left writing modes needs to
+  // know the updated frame width
+  mFrame->SetSize(mWritingMode, mMetrics.Size(mWritingMode));
+  aReflowInput.ApplyRelativePositioning(&logPos, mContainerSize);
 
   // Now place the frame and complete the reflow process
   nsContainerFrame::FinishReflowChild(mFrame, mPresContext, mMetrics,
-                                      &aReflowState, position.x, position.y, 0);
+                                      &aReflowInput, frameWM, logPos,
+                                      mContainerSize, 0);
 
-  aOverflowAreas = mMetrics.mOverflowAreas + position;
+  aOverflowAreas = mMetrics.mOverflowAreas + mFrame->GetPosition();
 
   return true;
 }

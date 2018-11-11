@@ -132,7 +132,7 @@ SSLExceptions.prototype = {
   }
 };
 
-let ErrorPage = {
+var ErrorPage = {
   _addCertException: function(aMessage) {
     let frameLoaderOwner = aMessage.target.QueryInterface(Ci.nsIFrameLoaderOwner);
     let win = frameLoaderOwner.ownerDocument.defaultView;
@@ -177,7 +177,7 @@ let ErrorPage = {
   observe: function errorPageObserve(aSubject, aTopic, aData) {
     let frameLoader = aSubject.QueryInterface(Ci.nsIFrameLoader);
     // Ignore notifications that aren't from a BrowserOrApp
-    if (!frameLoader.ownerIsBrowserOrAppFrame) {
+    if (!frameLoader.ownerIsMozBrowserOrAppFrame) {
       return;
     }
     this._listenError(frameLoader);

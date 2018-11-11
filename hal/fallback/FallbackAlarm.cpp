@@ -54,8 +54,7 @@ bool
 SetAlarm(int32_t aSeconds, int32_t aNanoseconds)
 {
   if (!sTimer) {
-    HAL_LOG(("We should have enabled the alarm"));
-    MOZ_ASSERT(false);
+    MOZ_ASSERT(false, "We should have enabled the alarm");
     return false;
   }
 
@@ -76,5 +75,5 @@ SetAlarm(int32_t aSeconds, int32_t aNanoseconds)
   return true;
 }
 
-} // hal_impl
+} // namespace hal_impl
 } // namespace mozilla

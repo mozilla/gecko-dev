@@ -1,4 +1,4 @@
-// -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+// -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
 
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,7 +26,7 @@ function init() {
 
   var richlist = document.getElementById("addonList");
   var list = gArgs.list;
-  list.sort(function listSort(a, b) { return String.localeCompare(a.name, b.name); });
+  list.sort(function(a, b) { return String.localeCompare(a.name, b.name); });
   for (let listItem of list) {
     let item = document.createElement("richlistitem");
     item.setAttribute("name", listItem.name);

@@ -11,7 +11,7 @@
  * and create derivative works of this document.
  */
 
-[OverrideBuiltins]
+[OverrideBuiltins, LegacyUnenumerableNamedProperties]
 interface HTMLFormElement : HTMLElement {
            [Pure, SetterThrows]
            attribute DOMString acceptCharset;
@@ -45,6 +45,7 @@ interface HTMLFormElement : HTMLElement {
   void submit();
   void reset();
   boolean checkValidity();
+  boolean reportValidity();
 
   [Pref="dom.forms.requestAutocomplete"]
   void requestAutocomplete();

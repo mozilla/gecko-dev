@@ -24,8 +24,8 @@ intr protocol PBrowserStream
   manager PPluginInstance;
 
 child:
-  async Write(int32_t offset, Buffer data,
-              uint32_t newlength);
+  async Write(int32_t offset, uint32_t newlength,
+              Buffer data);
   async NPP_StreamAsFile(nsCString fname);
 
   /**
@@ -36,6 +36,7 @@ child:
   async __delete__();
 
 parent:
+  async AsyncNPP_NewStreamResult(NPError rv, uint16_t stype);
   intr NPN_RequestRead(IPCByteRanges ranges)
     returns (NPError result);
   async NPN_DestroyStream(NPReason reason);

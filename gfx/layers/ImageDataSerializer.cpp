@@ -5,145 +5,292 @@
 
 #include "ImageDataSerializer.h"
 #include "gfx2DGlue.h"                  // for SurfaceFormatToImageFormat
-#include "gfxPoint.h"                   // for gfxIntSize
+#include "mozilla/gfx/Point.h"          // for IntSize
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
 #include "mozilla/gfx/2D.h"             // for DataSourceSurface, Factory
+#include "mozilla/gfx/Logging.h"        // for gfxDebug
 #include "mozilla/gfx/Tools.h"          // for GetAlignedStride, etc
+#include "mozilla/gfx/Types.h"
 #include "mozilla/mozalloc.h"           // for operator delete, etc
+#include "YCbCrUtils.h"                 // for YCbCr conversions
 
 namespace mozilla {
 namespace layers {
+namespace ImageDataSerializer {
 
 using namespace gfx;
 
-// The Data is layed out as follows:
-//
-//  +-------------------+   -++ --+   <-- ImageDataSerializerBase::mData pointer
-//  | SurfaceBufferInfo |     |   |
-//  +-------------------+   --+   | offset
-//  |        ...        |         |
-//  +-------------------+   ------+
-//  |                   |
-//  |       data        |
-//  |                   |
-//  +-------------------+
-
-// Structure written at the beginning of the data blob containing the image
-// (as shown in the figure above). It contains the necessary informations to
-// read the image in the blob.
-namespace {
-struct SurfaceBufferInfo
+int32_t
+ComputeRGBStride(SurfaceFormat aFormat, int32_t aWidth)
 {
-  uint32_t width;
-  uint32_t height;
-  SurfaceFormat format;
-
-  static uint32_t GetOffset()
-  {
-    return GetAlignedStride<16>(sizeof(SurfaceBufferInfo));
-  }
-};
-} // anonymous namespace
-
-static SurfaceBufferInfo*
-GetBufferInfo(uint8_t* aData, size_t aDataSize)
-{
-  return aDataSize >= sizeof(SurfaceBufferInfo)
-         ? reinterpret_cast<SurfaceBufferInfo*>(aData)
-         : nullptr;
+  return GetAlignedStride<4>(aWidth, BytesPerPixel(aFormat));
 }
 
-void
-ImageDataSerializer::InitializeBufferInfo(IntSize aSize,
-                                          SurfaceFormat aFormat)
+int32_t
+GetRGBStride(const RGBDescriptor& aDescriptor)
 {
-  SurfaceBufferInfo* info = GetBufferInfo(mData, mDataSize);
-  MOZ_ASSERT(info); // OK to assert here, this method is client-side-only
-  info->width = aSize.width;
-  info->height = aSize.height;
-  info->format = aFormat;
-  Validate();
-}
-
-static inline uint32_t
-ComputeStride(SurfaceFormat aFormat, uint32_t aWidth)
-{
-  return GetAlignedStride<4>(BytesPerPixel(aFormat) * aWidth);
+  return ComputeRGBStride(aDescriptor.format(), aDescriptor.size().width);
 }
 
 uint32_t
-ImageDataSerializerBase::ComputeMinBufferSize(IntSize aSize,
-                                          SurfaceFormat aFormat)
+ComputeRGBBufferSize(IntSize aSize, SurfaceFormat aFormat)
 {
-  uint32_t bufsize = aSize.height * ComputeStride(aFormat, aSize.width);
-  return SurfaceBufferInfo::GetOffset()
-       + GetAlignedStride<16>(bufsize);
+  MOZ_ASSERT(aSize.height >= 0 && aSize.width >= 0);
+
+  // This takes care of checking whether there could be overflow
+  // with enough margin for the metadata.
+  if (!gfx::Factory::AllowedSurfaceSize(aSize)) {
+    return 0;
+  }
+
+  // Note we're passing height instad of the bpp parameter, but the end
+  // result is the same - and the bpp was already taken care of in the
+  // ComputeRGBStride function.
+  int32_t bufsize = GetAlignedStride<16>(ComputeRGBStride(aFormat, aSize.width),
+                                         aSize.height);
+
+  if (bufsize < 0) {
+    // This should not be possible thanks to Factory::AllowedSurfaceSize
+    return 0;
+  }
+
+  return bufsize;
 }
 
-void
-ImageDataSerializerBase::Validate()
+
+
+// Minimum required shmem size in bytes
+uint32_t
+ComputeYCbCrBufferSize(const gfx::IntSize& aYSize, int32_t aYStride,
+                       const gfx::IntSize& aCbCrSize, int32_t aCbCrStride)
 {
-  mIsValid = false;
-  if (!mData) {
-    return;
+  MOZ_ASSERT(aYSize.height >= 0 && aYSize.width >= 0);
+
+  if (aYSize.height < 0 || aYSize.width < 0 || aCbCrSize.height < 0 || aCbCrSize.width < 0 ||
+      !gfx::Factory::AllowedSurfaceSize(IntSize(aYStride, aYSize.height)) ||
+      !gfx::Factory::AllowedSurfaceSize(IntSize(aCbCrStride, aCbCrSize.height))) {
+    return 0;
   }
-  SurfaceBufferInfo* info = GetBufferInfo(mData, mDataSize);
-  if (!info) {
-    return;
-  }
-  size_t requiredSize =
-           ComputeMinBufferSize(IntSize(info->width, info->height), info->format);
-  mIsValid = requiredSize <= mDataSize;
+  // Overflow checks are performed in AllowedSurfaceSize
+  return GetAlignedStride<4>(aYSize.height, aYStride) +
+         2 * GetAlignedStride<4>(aCbCrSize.height, aCbCrStride);
 }
 
-uint8_t*
-ImageDataSerializerBase::GetData()
+// Minimum required shmem size in bytes
+uint32_t
+ComputeYCbCrBufferSize(const gfx::IntSize& aYSize, const gfx::IntSize& aCbCrSize)
 {
-  MOZ_ASSERT(IsValid());
-  return mData + SurfaceBufferInfo::GetOffset();
+  return ComputeYCbCrBufferSize(aYSize, aYSize.width, aCbCrSize, aCbCrSize.width);
 }
 
 uint32_t
-ImageDataSerializerBase::GetStride() const
+ComputeYCbCrBufferSize(const gfx::IntSize& aYSize, const gfx::IntSize& aCbCrSize,
+                       uint32_t aYOffset, uint32_t aCbOffset, uint32_t aCrOffset)
 {
-  MOZ_ASSERT(IsValid());
-  SurfaceBufferInfo* info = GetBufferInfo(mData, mDataSize);
-  return ComputeStride(GetFormat(), info->width);
+  MOZ_ASSERT(aYSize.height >= 0 && aYSize.width >= 0);
+
+  int32_t yStride = aYSize.width;
+  int32_t cbCrStride = aCbCrSize.width;
+  if (aYSize.height < 0 || aYSize.width < 0 || aCbCrSize.height < 0 || aCbCrSize.width < 0 ||
+      !gfx::Factory::AllowedSurfaceSize(IntSize(yStride, aYSize.height)) ||
+      !gfx::Factory::AllowedSurfaceSize(IntSize(cbCrStride, aCbCrSize.height))) {
+    return 0;
+  }
+
+  uint32_t yLength = GetAlignedStride<4>(yStride, aYSize.height);
+  uint32_t cbCrLength = GetAlignedStride<4>(cbCrStride, aCbCrSize.height);
+  if (yLength == 0 || cbCrLength == 0) {
+    return 0;
+  }
+
+  CheckedInt<uint32_t> yEnd = aYOffset;
+  yEnd += yLength;
+  CheckedInt<uint32_t> cbEnd = aCbOffset;
+  cbEnd += cbCrLength;
+  CheckedInt<uint32_t> crEnd = aCrOffset;
+  crEnd += cbCrLength;
+
+  if (!yEnd.isValid() || !cbEnd.isValid() || !crEnd.isValid() ||
+      yEnd.value() > aCbOffset || cbEnd.value() > aCrOffset) {
+    return 0;
+  }
+
+  return crEnd.value();
 }
 
-IntSize
-ImageDataSerializerBase::GetSize() const
+uint32_t
+ComputeYCbCrBufferSize(uint32_t aBufferSize)
 {
-  MOZ_ASSERT(IsValid());
-  SurfaceBufferInfo* info = GetBufferInfo(mData, mDataSize);
-  return IntSize(info->width, info->height);
+  return GetAlignedStride<4>(aBufferSize, 1);
 }
 
-SurfaceFormat
-ImageDataSerializerBase::GetFormat() const
+void ComputeYCbCrOffsets(int32_t yStride, int32_t yHeight,
+                         int32_t cbCrStride, int32_t cbCrHeight,
+                         uint32_t& outYOffset, uint32_t& outCbOffset,
+                         uint32_t& outCrOffset)
 {
-  MOZ_ASSERT(IsValid());
-  return GetBufferInfo(mData, mDataSize)->format;
+  outYOffset = 0;
+  outCbOffset = outYOffset + GetAlignedStride<4>(yStride, yHeight);
+  outCrOffset = outCbOffset + GetAlignedStride<4>(cbCrStride, cbCrHeight);
 }
 
-TemporaryRef<DrawTarget>
-ImageDataSerializerBase::GetAsDrawTarget(gfx::BackendType aBackend)
+gfx::SurfaceFormat FormatFromBufferDescriptor(const BufferDescriptor& aDescriptor)
 {
-  MOZ_ASSERT(IsValid());
-  return gfx::Factory::CreateDrawTargetForData(aBackend,
-                                               GetData(), GetSize(),
-                                               GetStride(), GetFormat());
+  switch (aDescriptor.type()) {
+    case BufferDescriptor::TRGBDescriptor:
+      return aDescriptor.get_RGBDescriptor().format();
+    case BufferDescriptor::TYCbCrDescriptor:
+      return gfx::SurfaceFormat::YUV;
+    default:
+      MOZ_CRASH("GFX: FormatFromBufferDescriptor");
+  }
 }
 
-TemporaryRef<gfx::DataSourceSurface>
-ImageDataSerializerBase::GetAsSurface()
+gfx::IntSize SizeFromBufferDescriptor(const BufferDescriptor& aDescriptor)
 {
-  MOZ_ASSERT(IsValid());
-  return Factory::CreateWrappingDataSourceSurface(GetData(),
-                                                  GetStride(),
-                                                  GetSize(),
-                                                  GetFormat());
+  switch (aDescriptor.type()) {
+    case BufferDescriptor::TRGBDescriptor:
+      return aDescriptor.get_RGBDescriptor().size();
+    case BufferDescriptor::TYCbCrDescriptor:
+      return aDescriptor.get_YCbCrDescriptor().ySize();
+    default:
+      MOZ_CRASH("GFX: SizeFromBufferDescriptor");
+  }
 }
 
+Maybe<gfx::IntSize> CbCrSizeFromBufferDescriptor(const BufferDescriptor& aDescriptor)
+{
+  switch (aDescriptor.type()) {
+    case BufferDescriptor::TRGBDescriptor:
+      return Nothing();
+    case BufferDescriptor::TYCbCrDescriptor:
+      return Some(aDescriptor.get_YCbCrDescriptor().cbCrSize());
+    default:
+      MOZ_CRASH("GFX:  CbCrSizeFromBufferDescriptor");
+  }
+}
+
+Maybe<YUVColorSpace> YUVColorSpaceFromBufferDescriptor(const BufferDescriptor& aDescriptor)
+{
+{
+  switch (aDescriptor.type()) {
+    case BufferDescriptor::TRGBDescriptor:
+      return Nothing();
+    case BufferDescriptor::TYCbCrDescriptor:
+      return Some(aDescriptor.get_YCbCrDescriptor().yUVColorSpace());
+    default:
+      MOZ_CRASH("GFX:  CbCrSizeFromBufferDescriptor");
+  }
+}
+}
+
+Maybe<StereoMode> StereoModeFromBufferDescriptor(const BufferDescriptor& aDescriptor)
+{
+  switch (aDescriptor.type()) {
+    case BufferDescriptor::TRGBDescriptor:
+      return Nothing();
+    case BufferDescriptor::TYCbCrDescriptor:
+      return Some(aDescriptor.get_YCbCrDescriptor().stereoMode());
+    default:
+      MOZ_CRASH("GFX:  CbCrSizeFromBufferDescriptor");
+  }
+}
+
+uint8_t* GetYChannel(uint8_t* aBuffer, const YCbCrDescriptor& aDescriptor)
+{
+  return aBuffer + aDescriptor.yOffset();
+}
+
+uint8_t* GetCbChannel(uint8_t* aBuffer, const YCbCrDescriptor& aDescriptor)
+{
+  return aBuffer + aDescriptor.cbOffset();
+}
+
+uint8_t* GetCrChannel(uint8_t* aBuffer, const YCbCrDescriptor& aDescriptor)
+{
+  return aBuffer + aDescriptor.crOffset();
+}
+
+already_AddRefed<DataSourceSurface>
+DataSourceSurfaceFromYCbCrDescriptor(uint8_t* aBuffer, const YCbCrDescriptor& aDescriptor, gfx::DataSourceSurface* aSurface)
+{
+  gfx::IntSize ySize = aDescriptor.ySize();
+  gfx::IntSize cbCrSize = aDescriptor.cbCrSize();
+  int32_t yStride = ySize.width;
+  int32_t cbCrStride = cbCrSize.width;
+
+  RefPtr<DataSourceSurface> result;
+  if (aSurface) {
+    MOZ_ASSERT(aSurface->GetSize() == ySize);
+    MOZ_ASSERT(aSurface->GetFormat() == gfx::SurfaceFormat::B8G8R8X8);
+    if (aSurface->GetSize() == ySize &&
+        aSurface->GetFormat() == gfx::SurfaceFormat::B8G8R8X8) {
+      result = aSurface;
+    }
+  }
+
+  if (!result) {
+    result =
+      Factory::CreateDataSourceSurface(ySize, gfx::SurfaceFormat::B8G8R8X8);
+  }
+  if (NS_WARN_IF(!result)) {
+    return nullptr;
+  }
+
+  DataSourceSurface::MappedSurface map;
+  if (NS_WARN_IF(!result->Map(DataSourceSurface::MapType::WRITE, &map))) {
+    return nullptr;
+  }
+
+  layers::PlanarYCbCrData ycbcrData;
+  ycbcrData.mYChannel     = GetYChannel(aBuffer, aDescriptor);
+  ycbcrData.mYStride      = yStride;
+  ycbcrData.mYSize        = ySize;
+  ycbcrData.mCbChannel    = GetCbChannel(aBuffer, aDescriptor);
+  ycbcrData.mCrChannel    = GetCrChannel(aBuffer, aDescriptor);
+  ycbcrData.mCbCrStride   = cbCrStride;
+  ycbcrData.mCbCrSize     = cbCrSize;
+  ycbcrData.mPicSize      = ySize;
+  ycbcrData.mYUVColorSpace = aDescriptor.yUVColorSpace();
+
+  gfx::ConvertYCbCrToRGB(ycbcrData,
+                         gfx::SurfaceFormat::B8G8R8X8,
+                         ySize,
+                         map.mData,
+                         map.mStride);
+
+  result->Unmap();
+  return result.forget();
+}
+
+void
+ConvertAndScaleFromYCbCrDescriptor(uint8_t* aBuffer,
+                                   const YCbCrDescriptor& aDescriptor,
+                                   const gfx::SurfaceFormat& aDestFormat,
+                                   const gfx::IntSize& aDestSize,
+                                   unsigned char* aDestBuffer,
+                                   int32_t aStride)
+{
+  MOZ_ASSERT(aBuffer);
+  gfx::IntSize ySize = aDescriptor.ySize();
+  gfx::IntSize cbCrSize = aDescriptor.cbCrSize();
+  int32_t yStride = ySize.width;
+  int32_t cbCrStride = cbCrSize.width;
+
+  layers::PlanarYCbCrData ycbcrData;
+  ycbcrData.mYChannel     = GetYChannel(aBuffer, aDescriptor);
+  ycbcrData.mYStride      = yStride;
+  ycbcrData.mYSize        = ySize;
+  ycbcrData.mCbChannel    = GetCbChannel(aBuffer, aDescriptor);
+  ycbcrData.mCrChannel    = GetCrChannel(aBuffer, aDescriptor);
+  ycbcrData.mCbCrStride   = cbCrStride;
+  ycbcrData.mCbCrSize     = cbCrSize;
+  ycbcrData.mPicSize      = ySize;
+  ycbcrData.mYUVColorSpace = aDescriptor.yUVColorSpace();
+
+  gfx::ConvertYCbCrToRGB(ycbcrData, aDestFormat, aDestSize, aDestBuffer, aStride);
+}
+
+} // namespace ImageDataSerializer
 } // namespace layers
 } // namespace mozilla

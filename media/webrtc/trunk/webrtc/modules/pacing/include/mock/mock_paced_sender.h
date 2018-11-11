@@ -16,19 +16,20 @@
 #include <vector>
 
 #include "webrtc/modules/pacing/include/paced_sender.h"
+#include "webrtc/system_wrappers/interface/clock.h"
 
 namespace webrtc {
 
 class MockPacedSender : public PacedSender {
  public:
-  MockPacedSender() : PacedSender(NULL, 0, 0) {}
+  MockPacedSender() : PacedSender(Clock::GetRealTimeClock(), NULL, 0, 0, 0) {}
   MOCK_METHOD6(SendPacket, bool(Priority priority,
                                 uint32_t ssrc,
                                 uint16_t sequence_number,
                                 int64_t capture_time_ms,
-                                int bytes,
+                                size_t bytes,
                                 bool retransmission));
-  MOCK_CONST_METHOD0(QueueInMs, int());
+  MOCK_CONST_METHOD0(QueueInMs, int64_t());
   MOCK_CONST_METHOD0(QueueInPackets, int());
 };
 

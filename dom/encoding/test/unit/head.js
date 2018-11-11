@@ -79,7 +79,7 @@ function assert_throws(ex, func) {
                    Components.stack.caller, false);
 }
 
-let tests = [];
+var tests = [];
 
 function test(func, msg) {
   tests.push({msg: msg, func: func,
@@ -88,8 +88,8 @@ function test(func, msg) {
 
 function run_test() {
   tests.forEach(function(t) {
-    _log("test_info", {source_file: t.filename,
-                       diagnostic: "test group: " + t.msg});
+    do_print("test group: " + t.msg,
+             {source_file: t.filename});
     t.func();
   });
 };

@@ -14,8 +14,8 @@
 #include <fstream>
 
 #include "testing/gtest/include/gtest/gtest.h"
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/common_video/libyuv/include/webrtc_libyuv.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/test/testsupport/fileutils.h"
 #include "webrtc/tools/frame_editing/frame_editing_lib.h"
 
@@ -24,13 +24,14 @@ namespace test {
 
 const int kWidth = 352;
 const int kHeight = 288;
-const int kFrameSize = CalcBufferSize(kI420, kWidth, kHeight);
+const size_t kFrameSize = CalcBufferSize(kI420, kWidth, kHeight);
 
 class FrameEditingTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
     reference_video_ = ResourcePath("foreman_cif", "yuv");
-    test_video_ = OutputPath() + "testvideo.yuv";
+    test_video_ = webrtc::test::TempFilename(webrtc::test::OutputPath(),
+                                             "frame_editing_unittest.yuv");
 
     original_fid_ = fopen(reference_video_.c_str(), "rb");
     ASSERT_TRUE(original_fid_ != NULL);
@@ -50,11 +51,13 @@ class FrameEditingTest : public ::testing::Test {
   virtual void TearDown() {
     fclose(original_fid_);
     fclose(edited_fid_);
+    remove(test_video_.c_str());
   }
   // Compares the frames in both streams to the end of one of the streams.
-  void CompareToTheEnd(FILE* test_video_fid, FILE* ref_video_fid,
-                       scoped_array<int>* ref_buffer,
-                       scoped_array<int>* test_buffer) {
+  void CompareToTheEnd(FILE* test_video_fid,
+                       FILE* ref_video_fid,
+                       rtc::scoped_ptr<int[]>* ref_buffer,
+                       rtc::scoped_ptr<int[]>* test_buffer) {
     while (!feof(test_video_fid) && !feof(ref_video_fid)) {
       num_bytes_read_ = fread(ref_buffer->get(), 1, kFrameSize, ref_video_fid);
       if (!feof(ref_video_fid)) {
@@ -77,9 +80,9 @@ class FrameEditingTest : public ::testing::Test {
   std::string test_video_;
   FILE* original_fid_;
   FILE* edited_fid_;
-  int num_bytes_read_;
-  scoped_array<int> original_buffer_;
-  scoped_array<int> edited_buffer_;
+  size_t num_bytes_read_;
+  rtc::scoped_ptr<int[]> original_buffer_;
+  rtc::scoped_ptr<int[]> edited_buffer_;
   int num_frames_read_;
 };
 

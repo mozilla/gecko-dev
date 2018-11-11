@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set sw=2 ts=2 sts=2 et : */
 /**
  * Any copyright is dedicated to the Public Domain.
@@ -9,8 +9,7 @@
  * This file tests that the JS language helpers in various ways.
  */
 
-////////////////////////////////////////////////////////////////////////////////
-//// Test Functions
+// Test Functions
 
 function test_params_enumerate()
 {
@@ -21,8 +20,11 @@ function test_params_enumerate()
   // Make sure they are right.
   let expected = ["a", "b", "c"];
   let index = 0;
-  for (let name in stmt.params)
+  for (let name in stmt.params) {
+    if (name == "QueryInterface")
+      continue;
     do_check_eq(name, expected[index++]);
+  }
 }
 
 function test_params_prototype()
@@ -67,7 +69,7 @@ function test_params_gets_sync()
   // Make sure we do not assert in getting the value.
   let originalCount = Object.getOwnPropertyNames(stmt.params).length;
   let expected = ["a", "b", "c"];
-  for each (let name in expected) {
+  for (let name of expected) {
     stmt.params[name];
   }
 
@@ -88,7 +90,7 @@ function test_params_gets_async()
   // Make sure we do not assert in getting the value.
   let originalCount = Object.getOwnPropertyNames(stmt.params).length;
   let expected = ["a", "b", "c"];
-  for each (let name in expected) {
+  for (let name of expected) {
     stmt.params[name];
   }
 
@@ -98,10 +100,9 @@ function test_params_gets_async()
   */
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//// Test Runner
+// Test Runner
 
-let tests = [
+var tests = [
   test_params_enumerate,
   test_params_prototype,
   test_row_prototype,
@@ -120,5 +121,5 @@ function run_test()
   );
 
   // Run the tests.
-  tests.forEach(function(test) test());
+  tests.forEach(test => test());
 }

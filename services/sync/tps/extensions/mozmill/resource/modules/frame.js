@@ -5,9 +5,9 @@
 var EXPORTED_SYMBOLS = ['Collector','Runner','events', 'runTestFile', 'log',
                         'timers', 'persisted', 'shutdownApplication'];
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
 
 const TIMEOUT_SHUTDOWN_HTTPD = 15000;
 
@@ -33,6 +33,7 @@ var httpd = null;
 var persisted = {};
 
 var assert = new assertions.Assert();
+var expect = new assertions.Expect();
 
 var mozmill = undefined;
 var mozelement = undefined;
@@ -255,7 +256,7 @@ events.pass = function (obj) {
     events.currentTest.__passes__.push(obj);
   }
 
-  for each (var timer in timers) {
+  for (var timer of timers) {
     timer.actions.push(
       {"currentTest": events.currentModule.__file__ + "::" + events.currentTest.__name__,
        "obj": obj,
@@ -285,7 +286,7 @@ events.fail = function (obj) {
     events.currentTest.__fails__.push(obj);
   }
 
-  for each (var time in timers) {
+  for (var time of timers) {
     timer.actions.push(
       {"currentTest": events.currentModule.__file__ + "::" + events.currentTest.__name__,
        "obj": obj,
@@ -324,7 +325,7 @@ events.fireEvent = function (name, obj) {
     }
   }
 
-  for each(var listener in this.globalListeners) {
+  for (var listener of this.globalListeners) {
     listener(name, obj);
   }
 }
@@ -521,7 +522,7 @@ Collector.prototype.loadFile = function (path, collector) {
 
   var systemPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
   var module = new Components.utils.Sandbox(systemPrincipal);
-  module.assert = new assertions.Assert();
+  module.assert = assert;
   module.Cc = Cc;
   module.Ci = Ci;
   module.Cr = Components.results;
@@ -530,7 +531,7 @@ Collector.prototype.loadFile = function (path, collector) {
   module.driver = moduleLoader.require("driver");
   module.elementslib = mozelement;
   module.errors = errors;
-  module.expect = new assertions.Expect();
+  module.expect = expect;
   module.findElement = mozelement;
   module.log = log;
   module.mozmill = mozmill;
@@ -541,7 +542,9 @@ Collector.prototype.loadFile = function (path, collector) {
       rootPaths: [Services.io.newFileURI(file.parent).spec,
                   "resource://mozmill/modules/"],
       defaultPrincipal: "system",
-      globals : { mozmill: mozmill,
+      globals : { assert: assert,
+                  expect: expect,
+                  mozmill: mozmill,
                   elementslib: mozelement,      // This a quick hack to maintain backwards compatibility with 1.5.x
                   findElement: mozelement,
                   persisted: persisted,

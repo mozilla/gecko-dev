@@ -90,7 +90,7 @@ function testSteps()
       req.result.continue();
     }
     e = yield undefined;
-    is(req.result, undefined, "exhausted indexes");
+    ok(req.result == null, "exhausted indexes");
 
     let tempIndex = store.createIndex("temp index", "x", { multiEntry: true });
     req = tempIndex.openKeyCursor();
@@ -102,7 +102,7 @@ function testSteps()
       req.result.continue();
     }
     e = yield undefined;
-    is(req.result, undefined, "exhausted temp index");
+    ok(req.result == null, "exhausted temp index");
     store.deleteIndex("temp index");
   }
 
@@ -143,7 +143,6 @@ function testSteps()
   index = store.createIndex("myindex", "x", { multiEntry: true, unique: true });
   is(index.multiEntry, true, "index created with multiEntry");
 
-  let i;
   let indexes;
   for (i = 0; i < tests.length; ++i) {
     let test = tests[i];
@@ -187,7 +186,7 @@ function testSteps()
       req.result.continue();
     }
     e = yield undefined;
-    is(req.result, undefined, "exhausted indexes");
+    ok(req.result == null, "exhausted indexes");
 
     let tempIndex = store.createIndex("temp index", "x", { multiEntry: true, unique: true });
     req = tempIndex.openKeyCursor();
@@ -199,7 +198,7 @@ function testSteps()
       req.result.continue();
     }
     e = yield undefined;
-    is(req.result, undefined, "exhausted temp index");
+    ok(req.result == null, "exhausted temp index");
     store.deleteIndex("temp index");
   }
 

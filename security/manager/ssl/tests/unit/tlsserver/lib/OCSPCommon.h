@@ -8,6 +8,7 @@
 #ifndef OCSPCommon_h
 #define OCSPCommon_h
 
+#include "ScopedNSSTypes.h"
 #include "certt.h"
 #include "seccomon.h"
 
@@ -16,7 +17,9 @@ enum OCSPResponseType
   ORTNull = 0,
   ORTGood,             // the certificate is good
   ORTRevoked,          // the certificate has been revoked
+  ORTRevokedOld,       // same, but the response is old
   ORTUnknown,          // the responder doesn't know if the cert is good
+  ORTUnknownOld,       // same, but the response is old
   ORTGoodOtherCert,    // the response references a different certificate
   ORTGoodOtherCA,      // the wrong CA has signed the response
   ORTExpired,          // the signature on the response has expired
@@ -46,10 +49,13 @@ struct OCSPHost
   const char *mHostName;
   OCSPResponseType mORT;
   const char *mAdditionalCertName; // useful for ORTGoodOtherCert, etc.
+  const char *mServerCertName;
 };
 
-SECItemArray *
-GetOCSPResponseForType(OCSPResponseType aORT, CERTCertificate *aCert,
-                       PLArenaPool *aArena, const char *aAdditionalCertName);
+SECItemArray*
+GetOCSPResponseForType(OCSPResponseType aORT,
+                       const mozilla::UniqueCERTCertificate& aCert,
+                       const mozilla::UniquePLArenaPool& aArena,
+                       const char* aAdditionalCertName);
 
 #endif // OCSPCommon_h

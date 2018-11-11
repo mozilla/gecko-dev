@@ -1,10 +1,10 @@
-/* -*- Mode: Java; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- /
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- /
 /* vim: set shiftwidth=4 tabstop=8 autoindent cindent expandtab: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const CC = Components.classes;
+var CC = Components.classes;
 const CI = Components.interfaces;
 const CR = Components.results;
 const CU = Components.utils;
@@ -14,6 +14,8 @@ const XHTML_NS = "http://www.w3.org/1999/xhtml";
 const DEBUG_CONTRACTID = "@mozilla.org/xpcom/debug;1";
 const PRINTSETTINGS_CONTRACTID = "@mozilla.org/gfx/printsettings-service;1";
 const ENVIRONMENT_CONTRACTID = "@mozilla.org/process/environment;1";
+const NS_OBSERVER_SERVICE_CONTRACTID = "@mozilla.org/observer-service;1";
+const NS_GFXINFO_CONTRACTID = "@mozilla.org/gfx/info;1";
 
 // "<!--CLEAR-->"
 const BLANK_URL_FOR_CLEARING = "data:text/html;charset=UTF-8,%3C%21%2D%2DCLEAR%2D%2D%3E";
@@ -38,6 +40,7 @@ var gTimeoutHook = null;
 var gFailureTimeout = null;
 var gFailureReason;
 var gAssertionCount = 0;
+var gTestCount = 0;
 
 var gDebug;
 var gVerbose = false;
@@ -50,16 +53,20 @@ const TYPE_LOAD = 'load';  // test without a reference (just test that it does
 const TYPE_SCRIPT = 'script'; // test contains individual test results
 
 function markupDocumentViewer() {
-    return docShell.contentViewer.QueryInterface(CI.nsIMarkupDocumentViewer);
+    return docShell.contentViewer;
 }
 
 function webNavigation() {
     return docShell.QueryInterface(CI.nsIWebNavigation);
 }
 
+function windowUtilsForWindow(w) {
+    return w.QueryInterface(CI.nsIInterfaceRequestor)
+            .getInterface(CI.nsIDOMWindowUtils);
+}
+
 function windowUtils() {
-    return content.QueryInterface(CI.nsIInterfaceRequestor)
-                  .getInterface(CI.nsIDOMWindowUtils);
+    return windowUtilsForWindow(content);
 }
 
 function IDForEventTarget(event)
@@ -111,11 +118,38 @@ function OnInitialLoad()
     addEventListener("MozPaintWait", PaintWaitListener, true);
     addEventListener("MozPaintWaitFinished", PaintWaitFinishedListener, true);
 
-    LogWarning("Using browser remote="+ gBrowserIsRemote +"\n");
+    LogInfo("Using browser remote="+ gBrowserIsRemote +"\n");
+}
+
+function SetFailureTimeout(cb, timeout)
+{
+  var targetTime = Date.now() + timeout;
+
+  var wrapper = function() {
+    // Timeouts can fire prematurely in some cases (e.g. in chaos mode). If this
+    // happens, set another timeout for the remaining time.
+    let remainingMs = targetTime - Date.now();
+    if (remainingMs > 0) {
+      SetFailureTimeout(cb, remainingMs);
+    } else {
+      cb();
+    }
+  }
+
+  gFailureTimeout = setTimeout(wrapper, timeout);
 }
 
 function StartTestURI(type, uri, timeout)
 {
+    // The GC is only able to clean up compartments after the CC runs. Since
+    // the JS ref tests disable the normal browser chrome and do not otherwise
+    // create substatial DOM garbage, the CC tends not to run enough normally.
+    ++gTestCount;
+    if (gTestCount % 1000 == 0) {
+        CU.forceGC();
+        CU.forceCC();
+    }
+
     // Reset gExplicitPendingPaintCount in case there was a timeout or
     // the count is out of sync for some other reason
     if (gExplicitPendingPaintCount != 0) {
@@ -131,12 +165,12 @@ function StartTestURI(type, uri, timeout)
     if (gFailureTimeout != null) {
         SendException("program error managing timeouts\n");
     }
-    gFailureTimeout = setTimeout(LoadFailed, timeout);
+    SetFailureTimeout(LoadFailed, timeout);
 
     LoadURI(gCurrentURL);
 }
 
-function setupZoom(contentRootElement) {
+function setupFullZoom(contentRootElement) {
     if (!contentRootElement || !contentRootElement.hasAttribute('reftest-zoom'))
         return;
     markupDocumentViewer().fullZoom =
@@ -191,11 +225,11 @@ function setupViewport(contentRootElement) {
         return;
     }
 
-    var vw = attrOrDefault(contentRootElement, "reftest-viewport-w", 0);
-    var vh = attrOrDefault(contentRootElement, "reftest-viewport-h", 0);
-    if (vw !== 0 || vh !== 0) {
-        LogInfo("Setting viewport to <w="+ vw +", h="+ vh +">");
-        windowUtils().setCSSViewport(vw, vh);
+    var sw = attrOrDefault(contentRootElement, "reftest-scrollport-w", 0);
+    var sh = attrOrDefault(contentRootElement, "reftest-scrollport-h", 0);
+    if (sw !== 0 || sh !== 0) {
+        LogInfo("Setting scrollport to <w=" + sw + ", h=" + sh + ">");
+        windowUtils().setScrollPositionClampingScrollPortSize(sw, sh);
     }
 
     // XXX support resolution when needed
@@ -208,68 +242,108 @@ function setupDisplayport(contentRootElement) {
         return;
     }
 
-    function setupDisplayportForElement(element) {
+    function setupDisplayportForElement(element, winUtils) {
         var dpw = attrOrDefault(element, "reftest-displayport-w", 0);
         var dph = attrOrDefault(element, "reftest-displayport-h", 0);
         var dpx = attrOrDefault(element, "reftest-displayport-x", 0);
         var dpy = attrOrDefault(element, "reftest-displayport-y", 0);
         if (dpw !== 0 || dph !== 0 || dpx != 0 || dpy != 0) {
             LogInfo("Setting displayport to <x="+ dpx +", y="+ dpy +", w="+ dpw +", h="+ dph +">");
-            windowUtils().setDisplayPortForElement(dpx, dpy, dpw, dph, element, 1);
+            winUtils.setDisplayPortForElement(dpx, dpy, dpw, dph, element, 1);
         }
     }
 
-    function setupDisplayportForElementSubtree(element) {
-        setupDisplayportForElement(element);
+    function setupDisplayportForElementSubtree(element, winUtils) {
+        setupDisplayportForElement(element, winUtils);
         for (var c = element.firstElementChild; c; c = c.nextElementSibling) {
-            setupDisplayportForElementSubtree(c);
+            setupDisplayportForElementSubtree(c, winUtils);
+        }
+        if (element.contentDocument) {
+            LogInfo("Descending into subdocument");
+            setupDisplayportForElementSubtree(element.contentDocument.documentElement,
+                                              windowUtilsForWindow(element.contentWindow));
         }
     }
 
     if (contentRootElement.hasAttribute("reftest-async-scroll")) {
-        SendEnableAsyncScroll();
-        setupDisplayportForElementSubtree(contentRootElement);
+        setupDisplayportForElementSubtree(contentRootElement, windowUtils());
     } else {
-        setupDisplayportForElement(contentRootElement);
+        setupDisplayportForElement(contentRootElement, windowUtils());
     }
 }
 
+// Returns whether any offsets were updated
 function setupAsyncScrollOffsets(options) {
     var currentDoc = content.document;
     var contentRootElement = currentDoc ? currentDoc.documentElement : null;
 
     if (!contentRootElement) {
-        return;
+        return false;
     }
 
-    function setupAsyncScrollOffsetsForElement(element) {
+    function setupAsyncScrollOffsetsForElement(element, winUtils) {
         var sx = attrOrDefault(element, "reftest-async-scroll-x", 0);
         var sy = attrOrDefault(element, "reftest-async-scroll-y", 0);
         if (sx != 0 || sy != 0) {
             try {
                 // This might fail when called from RecordResult since layers
                 // may not have been constructed yet
-                windowUtils().setAsyncScrollOffset(element, sx, sy);
+                winUtils.setAsyncScrollOffset(element, sx, sy);
+                return true;
             } catch (e) {
                 if (!options.allowFailure) {
                     throw e;
                 }
             }
         }
+        return false;
     }
 
-    function setupAsyncScrollOffsetsForElementSubtree(element) {
-        setupAsyncScrollOffsetsForElement(element);
+    function setupAsyncScrollOffsetsForElementSubtree(element, winUtils) {
+        var updatedAny = setupAsyncScrollOffsetsForElement(element, winUtils);
         for (var c = element.firstElementChild; c; c = c.nextElementSibling) {
-            setupAsyncScrollOffsetsForElementSubtree(c);
+            if (setupAsyncScrollOffsetsForElementSubtree(c, winUtils)) {
+                updatedAny = true;
+            }
         }
+        if (element.contentDocument) {
+            LogInfo("Descending into subdocument (async offsets)");
+            if (setupAsyncScrollOffsetsForElementSubtree(element.contentDocument.documentElement,
+                                                         windowUtilsForWindow(element.contentWindow))) {
+                updatedAny = true;
+            }
+        }
+        return updatedAny;
     }
 
     var asyncScroll = contentRootElement.hasAttribute("reftest-async-scroll");
     if (asyncScroll) {
-        setupAsyncScrollOffsetsForElementSubtree(contentRootElement);
+        return setupAsyncScrollOffsetsForElementSubtree(contentRootElement, windowUtils());
     }
+    return false;
 }
+
+function setupAsyncZoom(options) {
+    var currentDoc = content.document;
+    var contentRootElement = currentDoc ? currentDoc.documentElement : null;
+
+    if (!contentRootElement || !contentRootElement.hasAttribute('reftest-async-zoom'))
+        return false;
+
+    var zoom = attrOrDefault(contentRootElement, "reftest-async-zoom", 1);
+    if (zoom != 1) {
+        try {
+            windowUtils().setAsyncZoom(contentRootElement, zoom);
+            return true;
+        } catch (e) {
+            if (!options.allowFailure) {
+                throw e;
+            }
+        }
+    }
+    return false;
+}
+
 
 function resetDisplayportAndViewport() {
     // XXX currently the displayport configuration lives on the
@@ -303,7 +377,25 @@ function shouldSnapshotWholePage(contentRootElement) {
 }
 
 function getNoPaintElements(contentRootElement) {
-  return contentRootElement.getElementsByClassName('reftest-no-paint');
+    return contentRootElement.getElementsByClassName('reftest-no-paint');
+}
+
+function getOpaqueLayerElements(contentRootElement) {
+    return contentRootElement.getElementsByClassName('reftest-opaque-layer');
+}
+
+function getAssignedLayerMap(contentRootElement) {
+    var layerNameToElementsMap = {};
+    var elements = contentRootElement.querySelectorAll('[reftest-assigned-layer]');
+    for (var i = 0; i < elements.length; ++i) {
+        var element = elements[i];
+        var layerName = element.getAttribute('reftest-assigned-layer');
+        if (!(layerName in layerNameToElementsMap)) {
+            layerNameToElementsMap[layerName] = [];
+        }
+        layerNameToElementsMap[layerName].push(element);
+    }
+    return layerNameToElementsMap;
 }
 
 // Initial state. When the document has loaded and all MozAfterPaint events and
@@ -316,10 +408,13 @@ const STATE_WAITING_FOR_REFTEST_WAIT_REMOVAL = 1;
 // When spell checking is done on all spell-checked elements, we can move to the
 // next state.
 const STATE_WAITING_FOR_SPELL_CHECKS = 2;
+// When any pending compositor-side repaint requests have been flushed, we can
+// move to the next state.
+const STATE_WAITING_FOR_APZ_FLUSH = 3;
 // When all MozAfterPaint events and all explicit paint waits are flushed, we're
 // done and can move to the COMPLETED state.
-const STATE_WAITING_TO_FINISH = 3;
-const STATE_COMPLETED = 4;
+const STATE_WAITING_TO_FINISH = 4;
+const STATE_COMPLETED = 5;
 
 function FlushRendering() {
     var anyPendingPaintsGeneratedInDescendants = false;
@@ -329,11 +424,14 @@ function FlushRendering() {
                     .getInterface(CI.nsIDOMWindowUtils);
         var afterPaintWasPending = utils.isMozAfterPaintPending;
 
-        try {
-            // Flush pending restyles and reflows for this window
-            win.document.documentElement.getBoundingClientRect();
-        } catch (e) {
-            LogWarning("flushWindow failed: " + e + "\n");
+        var root = win.document.documentElement;
+        if (root && !root.classList.contains("reftest-no-flush")) {
+            try {
+                // Flush pending restyles and reflows for this window
+                root.getBoundingClientRect();
+            } catch (e) {
+                LogWarning("flushWindow failed: " + e + "\n");
+            }
         }
 
         if (!afterPaintWasPending && utils.isMozAfterPaintPending) {
@@ -483,9 +581,36 @@ function WaitForTestEnd(contentRootElement, inPrintMode, spellCheckedElements) {
                 return;
             }
 
-            state = STATE_WAITING_TO_FINISH;
-            // Try next state
-            MakeProgress();
+            state = STATE_WAITING_FOR_APZ_FLUSH;
+            LogInfo("MakeProgress: STATE_WAITING_FOR_APZ_FLUSH");
+            gFailureReason = "timed out waiting for APZ flush to complete";
+
+            var os = CC[NS_OBSERVER_SERVICE_CONTRACTID].getService(CI.nsIObserverService);
+            var flushWaiter = function(aSubject, aTopic, aData) {
+                if (aTopic) LogInfo("MakeProgress: apz-repaints-flushed fired");
+                os.removeObserver(flushWaiter, "apz-repaints-flushed");
+                state = STATE_WAITING_TO_FINISH;
+                MakeProgress();
+            };
+            os.addObserver(flushWaiter, "apz-repaints-flushed", false);
+
+            var willSnapshot = (gCurrentTestType != TYPE_SCRIPT) &&
+                               (gCurrentTestType != TYPE_LOAD);
+            var noFlush =
+                !(contentRootElement &&
+                  contentRootElement.classList.contains("reftest-no-flush"));
+            if (noFlush && willSnapshot && windowUtils().flushApzRepaints()) {
+                LogInfo("MakeProgress: done requesting APZ flush");
+            } else {
+                LogInfo("MakeProgress: APZ flush not required");
+                flushWaiter(null, null, null);
+            }
+            return;
+
+        case STATE_WAITING_FOR_APZ_FLUSH:
+            LogInfo("MakeProgress: STATE_WAITING_FOR_APZ_FLUSH");
+            // Nothing to do here; once we get the apz-repaints-flushed event
+            // we will go to STATE_WAITING_TO_FINISH
             return;
 
         case STATE_WAITING_TO_FINISH:
@@ -510,6 +635,7 @@ function WaitForTestEnd(contentRootElement, inPrintMode, spellCheckedElements) {
                       SendFailedNoPaint();
                   }
               }
+              CheckLayerAssertions(contentRootElement);
             }
             LogInfo("MakeProgress: Completed");
             state = STATE_COMPLETED;
@@ -587,7 +713,7 @@ function OnDocumentLoad(event)
 
     var contentRootElement = currentDoc ? currentDoc.documentElement : null;
     currentDoc = null;
-    setupZoom(contentRootElement);
+    setupFullZoom(contentRootElement);
     setupViewport(contentRootElement);
     setupDisplayport(contentRootElement);
     var inPrintMode = false;
@@ -616,7 +742,8 @@ function OnDocumentLoad(event)
             // Go into reftest-wait mode belatedly.
             WaitForTestEnd(contentRootElement, inPrintMode, []);
         } else {
-            CheckForProcessCrashExpectation();
+            CheckLayerAssertions(contentRootElement);
+            CheckForProcessCrashExpectation(contentRootElement);
             RecordResult();
         }
     }
@@ -646,9 +773,60 @@ function OnDocumentLoad(event)
     }
 }
 
-function CheckForProcessCrashExpectation()
+function CheckLayerAssertions(contentRootElement)
 {
-    var contentRootElement = content.document.documentElement;
+    if (!contentRootElement) {
+        return;
+    }
+
+    var opaqueLayerElements = getOpaqueLayerElements(contentRootElement);
+    for (var i = 0; i < opaqueLayerElements.length; ++i) {
+        var elem = opaqueLayerElements[i];
+        try {
+            if (!windowUtils().isPartOfOpaqueLayer(elem)) {
+                SendFailedOpaqueLayer(elementDescription(elem) + ' is not part of an opaque layer');
+            }
+        } catch (e) {
+            SendFailedOpaqueLayer('got an exception while checking whether ' + elementDescription(elem) + ' is part of an opaque layer');
+        }
+    }
+    var layerNameToElementsMap = getAssignedLayerMap(contentRootElement);
+    var oneOfEach = [];
+    // Check that elements with the same reftest-assigned-layer share the same PaintedLayer.
+    for (var layerName in layerNameToElementsMap) {
+        try {
+            var elements = layerNameToElementsMap[layerName];
+            oneOfEach.push(elements[0]);
+            var numberOfLayers = windowUtils().numberOfAssignedPaintedLayers(elements, elements.length);
+            if (numberOfLayers !== 1) {
+                SendFailedAssignedLayer('these elements are assigned to ' + numberOfLayers +
+                                        ' different layers, instead of sharing just one layer: ' +
+                                        elements.map(elementDescription).join(', '));
+            }
+        } catch (e) {
+            SendFailedAssignedLayer('got an exception while checking whether these elements share a layer: ' +
+                                    elements.map(elementDescription).join(', '));
+        }
+    }
+    // Check that elements with different reftest-assigned-layer are assigned to different PaintedLayers.
+    if (oneOfEach.length > 0) {
+        try {
+            var numberOfLayers = windowUtils().numberOfAssignedPaintedLayers(oneOfEach, oneOfEach.length);
+            if (numberOfLayers !== oneOfEach.length) {
+                SendFailedAssignedLayer('these elements are assigned to ' + numberOfLayers +
+                                        ' different layers, instead of having none in common (expected ' +
+                                        oneOfEach.length + ' different layers): ' +
+                                        oneOfEach.map(elementDescription).join(', '));
+            }
+        } catch (e) {
+            SendFailedAssignedLayer('got an exception while checking whether these elements are assigned to different layers: ' +
+                                    oneOfEach.map(elementDescription).join(', '));
+        }
+    }
+}
+
+function CheckForProcessCrashExpectation(contentRootElement)
+{
     if (contentRootElement &&
         contentRootElement.hasAttribute('class') &&
         contentRootElement.getAttribute('class').split(/\s+/)
@@ -708,8 +886,19 @@ function RecordResult()
     }
 
     // Setup async scroll offsets now in case SynchronizeForSnapshot is not
-    // called (due to reftest-no-sync-layers being supplied).
-    setupAsyncScrollOffsets({allowFailure:true});
+    // called (due to reftest-no-sync-layers being supplied, or in the single
+    // process case).
+    var changedAsyncScrollZoom = false;
+    if (setupAsyncScrollOffsets({allowFailure:true})) {
+        changedAsyncScrollZoom = true;
+    }
+    if (setupAsyncZoom({allowFailure:true})) {
+        changedAsyncScrollZoom = true;
+    }
+    if (changedAsyncScrollZoom && !gBrowserIsRemote) {
+        sendAsyncMessage("reftest:UpdateWholeCanvasForInvalidation");
+    }
+
     SendTestDone(currentTestRunTime);
     FinishTestItem();
 }
@@ -783,17 +972,12 @@ function SynchronizeForSnapshot(flags)
         }
     }
 
-    var dummyCanvas = content.document.createElementNS(XHTML_NS, "canvas");
-    dummyCanvas.setAttribute("width", 1);
-    dummyCanvas.setAttribute("height", 1);
-
-    var ctx = dummyCanvas.getContext("2d");
-    var flags = ctx.DRAWWINDOW_DRAW_CARET | ctx.DRAWWINDOW_DRAW_VIEW | ctx.DRAWWINDOW_USE_WIDGET_LAYERS;
-    ctx.drawWindow(content, 0, 0, 1, 1, "rgb(255,255,255)", flags);
+    windowUtils().updateLayerTree();
 
     // Setup async scroll offsets now, because any scrollable layers should
     // have had their AsyncPanZoomControllers created.
     setupAsyncScrollOffsets({allowFailure:false});
+    setupAsyncZoom({allowFailure:false});
 }
 
 function RegisterMessageListeners()
@@ -845,7 +1029,17 @@ function SendAssertionCount(numAssertions)
 
 function SendContentReady()
 {
-    return sendSyncMessage("reftest:ContentReady")[0];
+    let gfxInfo = (NS_GFXINFO_CONTRACTID in CC) && CC[NS_GFXINFO_CONTRACTID].getService(CI.nsIGfxInfo);
+    let info = gfxInfo.getInfo();
+    try {
+        info.D2DEnabled = gfxInfo.D2DEnabled;
+        info.DWriteEnabled = gfxInfo.DWriteEnabled;
+    } catch (e) {
+        info.D2DEnabled = false;
+        info.DWriteEnabled = false;
+    }
+
+    return sendSyncMessage("reftest:ContentReady", { 'gfx': info })[0];
 }
 
 function SendException(what)
@@ -863,9 +1057,14 @@ function SendFailedNoPaint()
     sendAsyncMessage("reftest:FailedNoPaint");
 }
 
-function SendEnableAsyncScroll()
+function SendFailedOpaqueLayer(why)
 {
-    sendAsyncMessage("reftest:EnableAsyncScroll");
+    sendAsyncMessage("reftest:FailedOpaqueLayer", { why: why });
+}
+
+function SendFailedAssignedLayer(why)
+{
+    sendAsyncMessage("reftest:FailedAssignedLayer", { why: why });
 }
 
 // Return true if a snapshot was taken.
@@ -914,6 +1113,14 @@ function roundTo(x, fraction)
     return Math.round(x/fraction)*fraction;
 }
 
+function elementDescription(element)
+{
+    return '<' + element.localName +
+        [].slice.call(element.attributes).map((attr) =>
+            ` ${attr.nodeName}="${attr.value}"`).join('') +
+        '>';
+}
+
 function SendUpdateCanvasForEvent(event, contentRootElement)
 {
     var win = content;
@@ -958,5 +1165,10 @@ function SendUpdateCanvasForEvent(event, contentRootElement)
 #if REFTEST_B2G
 OnInitialLoad();
 #else
-addEventListener("load", OnInitialLoad, true);
+if (content.document.readyState == "complete") {
+  // load event has already fired for content, get started
+  OnInitialLoad();
+} else {
+  addEventListener("load", OnInitialLoad, true);
+}
 #endif

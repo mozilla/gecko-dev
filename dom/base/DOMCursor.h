@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -25,9 +25,10 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DOMCursor,
                                            DOMRequest)
 
-  DOMCursor(nsPIDOMWindow* aWindow, nsICursorContinueCallback *aCallback);
+  DOMCursor(nsPIDOMWindowInner* aWindow, nsICursorContinueCallback *aCallback);
+  DOMCursor(nsIGlobalObject* aGlobal, nsICursorContinueCallback *aCallback);
 
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   bool Done() const
   {
@@ -38,8 +39,16 @@ public:
   void Reset();
   void FireDone();
 
+protected:
+  ~DOMCursor() {}
+
 private:
-  DOMCursor() MOZ_DELETE;
+  DOMCursor() = delete;
+  // Calling Then() on DOMCursor is a mistake, since the DOMCursor object
+  // should not have a .then() method from JS' point of view.
+  already_AddRefed<mozilla::dom::Promise>
+  Then(JSContext* aCx, AnyCallback* aResolveCallback,
+       AnyCallback* aRejectCallback, ErrorResult& aRv) = delete;
 
   nsCOMPtr<nsICursorContinueCallback> mCallback;
   bool mFinished;

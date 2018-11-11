@@ -21,8 +21,14 @@
 
         // if the direction is rtl, set the rtl attribute so that the
         // stylesheet can use this to make the cursor appear properly
-        var direction = window.getComputedStyle(this, "").direction;
-        if (direction == "rtl") {
+        var cs = window.getComputedStyle(this, "");
+        if (cs.writingMode === undefined || cs.writingMode == "horizontal-tb") {
+          if (cs.direction == "rtl") {
+            this.setAttribute("rtl", "true");
+          }
+        } else if (cs.writingMode.endsWith("-rl")) {
+          // writing-modes 'vertical-rl' and 'sideways-rl' want rtl resizers,
+          // as they will appear at the bottom left of the element
           this.setAttribute("rtl", "true");
         }
       ]]>

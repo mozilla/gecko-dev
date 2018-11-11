@@ -8,12 +8,13 @@
 
 #import <Cocoa/Cocoa.h>
 
+#include "mozilla/RefPtr.h"
+#include "mozilla/UniquePtr.h"
 #include "nsMenuBaseX.h"
 #include "nsMenuBarX.h"
 #include "nsMenuGroupOwnerX.h"
 #include "nsCOMPtr.h"
 #include "nsChangeObserver.h"
-#include "nsAutoPtr.h"
 
 class nsMenuX;
 class nsMenuItemIconX;
@@ -22,11 +23,7 @@ class nsIWidget;
 
 // MenuDelegate is used to receive Cocoa notifications for setting
 // up carbon events. Protocol is defined as of 10.6 SDK.
-#if defined(MAC_OS_X_VERSION_10_6) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6)
 @interface MenuDelegate : NSObject < NSMenuDelegate >
-#else
-@interface MenuDelegate : NSObject
-#endif
 {
   nsMenuX* mGeckoMenu; // weak ref
 }
@@ -50,8 +47,9 @@ public:
   NS_DECL_CHANGEOBSERVER
 
   // nsMenuObjectX
-  void*             NativeData()     {return (void*)mNativeMenu;}
-  nsMenuObjectTypeX MenuObjectType() {return eSubmenuObjectType;}
+  void*             NativeData() override {return (void*)mNativeMenu;}
+  nsMenuObjectTypeX MenuObjectType() override {return eSubmenuObjectType;}
+  void              IconUpdated() override { mParent->IconUpdated(); }
 
   // nsMenuX
   nsresult       Create(nsMenuObjectX* aParent, nsMenuGroupOwnerX* aMenuGroupOwner, nsIContent* aNode);
@@ -63,6 +61,7 @@ public:
   void           MenuClosed();
   void           SetRebuild(bool aMenuEvent);
   NSMenuItem*    NativeMenuItem();
+  nsresult       SetupIcon();
 
   static bool    IsXULHelpMenu(nsIContent* aMenuContent);
 
@@ -71,23 +70,22 @@ protected:
   nsresult       RemoveAll();
   nsresult       SetEnabled(bool aIsEnabled);
   nsresult       GetEnabled(bool* aIsEnabled);
-  nsresult       SetupIcon();
   void           GetMenuPopupContent(nsIContent** aResult);
   bool           OnOpen();
   bool           OnClose();
   nsresult       AddMenuItem(nsMenuItemX* aMenuItem);
-  nsresult       AddMenu(nsMenuX* aMenu);
-  void           LoadMenuItem(nsIContent* inMenuItemContent);  
+  nsMenuX*       AddMenu(mozilla::UniquePtr<nsMenuX> aMenu);
+  void           LoadMenuItem(nsIContent* inMenuItemContent);
   void           LoadSubMenu(nsIContent* inMenuContent);
   GeckoNSMenu*   CreateMenuWithGeckoString(nsString& menuTitle);
 
-  nsTArray< nsAutoPtr<nsMenuObjectX> > mMenuObjectsArray;
+  nsTArray<mozilla::UniquePtr<nsMenuObjectX>> mMenuObjectsArray;
   nsString                  mLabel;
   uint32_t                  mVisibleItemsCount; // cache
   nsMenuObjectX*            mParent; // [weak]
   nsMenuGroupOwnerX*        mMenuGroupOwner; // [weak]
   // The icon object should never outlive its creating nsMenuX object.
-  nsRefPtr<nsMenuItemIconX> mIcon;
+  RefPtr<nsMenuItemIconX> mIcon;
   GeckoNSMenu*              mNativeMenu; // [strong]
   MenuDelegate*             mMenuDelegate; // [strong]
   // nsMenuX objects should always have a valid native menu item.

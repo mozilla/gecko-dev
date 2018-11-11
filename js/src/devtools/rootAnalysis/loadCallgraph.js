@@ -1,4 +1,4 @@
-/* -*- Mode: Javascript; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
 
 "use strict";
 
@@ -53,13 +53,8 @@ function addGCFunction(caller, reason)
 
 function addCallEdge(caller, callee, suppressed)
 {
-    if (!(caller in calleeGraph))
-        calleeGraph[caller] = [];
-    calleeGraph[caller].push({callee:callee, suppressed:suppressed});
-
-    if (!(callee in callerGraph))
-        callerGraph[callee] = [];
-    callerGraph[callee].push({caller:caller, suppressed:suppressed});
+    addToKeyedList(calleeGraph, caller, {callee:callee, suppressed:suppressed});
+    addToKeyedList(callerGraph, callee, {caller:caller, suppressed:suppressed});
 }
 
 // Map from identifier to full "mangled|readable" name. Or sometimes to a
@@ -74,8 +69,11 @@ function loadCallgraph(file)
     var suppressedFieldCalls = {};
     var resolvedFunctions = {};
 
-    var textLines = snarf(file).split('\n');
-    for (var line of textLines) {
+    var numGCCalls = 0;
+
+    for (var line of readFileLines_gen(file)) {
+        line = line.replace(/\n/, "");
+
         var match;
         if (match = line.charAt(0) == "#" && /^\#(\d+) (.*)/.exec(line)) {
             assert(functionNames.length == match[1]);
@@ -118,7 +116,20 @@ function loadCallgraph(file)
             var callee = idToMangled[match[2]];
             addCallEdge(callerField, callee, false);
             resolvedFunctions[callerField] = true;
+        } else if (match = tag == 'T' && /^T (\d+) (.*)/.exec(line)) {
+            var mangled = idToMangled[match[1]];
+            var tag = match[2];
+            if (tag == 'GC Call') {
+                addGCFunction(mangled, "GC");
+                numGCCalls++;
+            }
         }
+    }
+
+    // mess up the id <-> name correspondence. Also, we need to know if the
+    // functions even exist in the first place.)
+    for (var func of extraGCFunctions()) {
+        addGCFunction(func, "annotation");
     }
 
     // Initialize suppressedFunctions to the set of all functions, and the
@@ -160,12 +171,11 @@ function loadCallgraph(file)
         suppressedFunctions[name] = true;
     }
 
-    for (var gcName of [ 'void js::gc::GCRuntime::collect(uint8, int64, uint32, uint32)',
-                         'void js::MinorGC(JSRuntime*, uint32)' ])
-    {
-        assert(gcName in mangledName);
-        addGCFunction(mangledName[gcName], "GC");
-    }
+    // Sanity check to make sure the callgraph has some functions annotated as
+    // GC Calls. This is mostly a check to be sure the earlier processing
+    // succeeded (as opposed to, say, running on empty xdb files because you
+    // didn't actually compile anything interesting.)
+    assert(numGCCalls > 0, "No GC functions found!");
 
     // Initialize the worklist to all known gcFunctions.
     var worklist = [];

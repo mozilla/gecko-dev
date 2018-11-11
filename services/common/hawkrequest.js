@@ -4,7 +4,7 @@
 
 "use strict";
 
-const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
+var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 this.EXPORTED_SYMBOLS = [
   "HAWKAuthenticatedRESTRequest",
@@ -42,7 +42,9 @@ const Prefs = new Preferences("services.common.rest.");
  *        Valid properties are:
  *
  *          now:                 <current time in milliseconds>,
- *          localtimeOffsetMsec: <local clock offset vs server>
+ *          localtimeOffsetMsec: <local clock offset vs server>,
+ *          headers:             <An object with header/value pairs to be sent
+ *                                as headers on the request>
  *
  * extra.localtimeOffsetMsec is the value in milliseconds that must be added to
  * the local clock to make it agree with the server's clock.  For instance, if
@@ -58,6 +60,7 @@ this.HAWKAuthenticatedRESTRequest =
   this.now = extra.now || Date.now();
   this.localtimeOffsetMsec = extra.localtimeOffsetMsec || 0;
   this._log.trace("local time, offset: " + this.now + ", " + (this.localtimeOffsetMsec));
+  this.extraHeaders = extra.headers || {};
 
   // Expose for testing
   this._intl = getIntl();
@@ -67,7 +70,7 @@ HAWKAuthenticatedRESTRequest.prototype = {
 
   dispatch: function dispatch(method, data, onComplete, onProgress) {
     let contentType = "text/plain";
-    if (method == "POST" || method == "PUT") {
+    if (method == "POST" || method == "PUT" || method == "PATCH") {
       contentType = "application/json";
     }
     if (this.credentials) {
@@ -81,6 +84,10 @@ HAWKAuthenticatedRESTRequest.prototype = {
       let header = CryptoUtils.computeHAWK(this.uri, method, options);
       this.setHeader("Authorization", header.field);
       this._log.trace("hawk auth header: " + header.field);
+    }
+
+    for (let header in this.extraHeaders) {
+      this.setHeader(header, this.extraHeaders[header]);
     }
 
     this.setHeader("Content-Type", contentType);
@@ -117,13 +124,16 @@ HAWKAuthenticatedRESTRequest.prototype = {
   *          extra: size - 64 extra bytes (if size > 64)
   *        }
   */
-function deriveHawkCredentials(tokenHex, context, size=96) {
+this.deriveHawkCredentials = function deriveHawkCredentials(tokenHex,
+                                                            context,
+                                                            size = 96,
+                                                            hexKey = false) {
   let token = CommonUtils.hexToBytes(tokenHex);
   let out = CryptoUtils.hkdf(token, undefined, Credentials.keyWord(context), size);
 
   let result = {
     algorithm: "sha256",
-    key: out.slice(32, 64),
+    key: hexKey ? CommonUtils.bytesAsHex(out.slice(32, 64)) : out.slice(32, 64),
     id: CommonUtils.bytesAsHex(out.slice(0, 32))
   };
   if (size > 64) {
@@ -165,7 +175,7 @@ this.Intl.prototype = {
       this._accepted = Services.prefs.getComplexValue(
         "intl.accept_languages", Ci.nsIPrefLocalizedString).data;
     } catch (err) {
-      this._log.error("Error reading intl.accept_languages pref: " + CommonUtils.exceptionStr(err));
+      this._log.error("Error reading intl.accept_languages pref", err);
     }
   },
 
@@ -178,7 +188,7 @@ this.Intl.prototype = {
 };
 
 // Singleton getter for Intl, creating an instance only when we first need it.
-let intl = null;
+var intl = null;
 function getIntl() {
   if (!intl) {
     intl = new Intl();

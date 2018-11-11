@@ -52,8 +52,8 @@ function test_get_assertion() {
   jwcrypto.generateKeyPair(
     "DS160",
     function(err, kp) {
-      jwcrypto.generateAssertion("fake-cert", kp, RP_ORIGIN, (err, backedAssertion) => {
-        do_check_null(err);
+      jwcrypto.generateAssertion("fake-cert", kp, RP_ORIGIN, (err2, backedAssertion) => {
+        do_check_null(err2);
 
         do_check_eq(backedAssertion.split("~").length, 2);
         do_check_eq(backedAssertion.split(".").length, 3);
@@ -89,7 +89,7 @@ function test_rsa() {
 */
     do_test_finished();
     run_next_test();
-  };
+  }
 
   jwcrypto.generateKeyPair("RS256", checkRSA);
 }
@@ -120,7 +120,7 @@ function test_dsa() {
 */
     do_test_finished();
     run_next_test();
-  };
+  }
 
   jwcrypto.generateKeyPair("DS160", checkDSA);
 }
@@ -145,8 +145,8 @@ function test_get_assertion_with_offset() {
         { duration: MINUTE_MS,
           localtimeOffsetMsec: localtimeOffsetMsec,
           now: localMsec},
-          function(err, backedAssertion) {
-            do_check_null(err);
+          function(err2, backedAssertion) {
+            do_check_null(err2);
 
             // properly formed
             let cert;
@@ -178,8 +178,8 @@ function test_assertion_lifetime() {
     function(err, kp) {
       jwcrypto.generateAssertion("fake-cert", kp, RP_ORIGIN,
         {duration: MINUTE_MS},
-        function(err, backedAssertion) {
-          do_check_null(err);
+        function(err2, backedAssertion) {
+          do_check_null(err2);
 
           // properly formed
           let cert;
@@ -212,8 +212,8 @@ function test_audience_encoding_bug972582() {
     function(err, kp) {
       do_check_null(err);
       jwcrypto.generateAssertion("fake-cert", kp, audience,
-        function(err, backedAssertion) {
-          do_check_null(err);
+        function(err2, backedAssertion) {
+          do_check_null(err2);
 
           let [cert, assertion] = backedAssertion.split("~");
           let components = extractComponents(assertion);
@@ -261,9 +261,9 @@ function extractComponents(signedObject) {
           headerSegment: headerSegment,
           payloadSegment: payloadSegment,
           cryptoSegment: cryptoSegment};
-};
+}
 
-let TESTS = [
+var TESTS = [
   test_sanity,
   test_generate,
   test_get_assertion,

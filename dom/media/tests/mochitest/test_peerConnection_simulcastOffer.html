@@ -1,0 +1,142 @@
+﻿<!DOCTYPE HTML>
+<html>
+<head>
+  <script type="application/javascript" src="pc.js"></script>
+  <script type="application/javascript" src="/tests/dom/canvas/test/captureStream_common.js"></script>
+</head>
+<body>
+<pre id="test">
+<script type="application/javascript">
+  createHTML({
+    bug: "1231507",
+    title: "Basic video-only peer connection with Simulcast offer",
+    visible: true
+  });
+
+  var test;
+  var pushPrefs = (...p) => new Promise(r => SpecialPowers.pushPrefEnv({set: p}, r));
+
+  function selectRecvSsrc(pc, index) {
+    var receivers = pc._pc.getReceivers();
+    is(receivers.length, 1, "We have exactly one RTP receiver");
+    var receiver = receivers[0];
+
+    SpecialPowers.wrap(pc._pc).mozSelectSsrc(receiver, index);
+  }
+
+  runNetworkTest(() =>
+    pushPrefs(['media.peerconnection.simulcast', true],
+              // 180Kbps was determined empirically, set well-higher than
+              // the 80Kbps+overhead needed for the two simulcast streams.
+              // 100Kbps was apparently too low.
+              ['media.peerconnection.video.min_bitrate_estimate', 180*1000]).then(() => {
+      SimpleTest.requestCompleteLog();
+      var helper;
+
+      test = new PeerConnectionTest({bundle: false});
+      test.setMediaConstraints([{video: true}], []);
+
+      test.chain.replace("PC_LOCAL_GUM", [
+        function PC_LOCAL_CANVAS_CAPTURESTREAM(test) {
+          helper = new VideoStreamHelper();
+          test.pcLocal.attachLocalStream(helper.stream());
+        }
+      ]);
+
+      test.chain.insertBefore('PC_LOCAL_CREATE_OFFER', [
+        function PC_LOCAL_SET_RIDS(test) {
+          var senders = test.pcLocal._pc.getSenders();
+          is(senders.length, 1, "We have exactly one RTP sender");
+          var sender = senders[0];
+          ok(sender.track, "Sender has a track");
+
+          return sender.setParameters({
+            encodings: [{ rid: "foo", maxBitrate: 40000 },
+                        { rid: "bar", maxBitrate: 40000, scaleResolutionDownBy: 2 }]
+          });
+        }
+      ]);
+
+      test.chain.insertAfter('PC_LOCAL_GET_ANSWER', [
+        function PC_LOCAL_ADD_RIDS_TO_ANSWER(test) {
+          test._remote_answer.sdp = sdputils.transferSimulcastProperties(
+            test.originalOffer.sdp, test._remote_answer.sdp);
+          info("Answer with RIDs: " + JSON.stringify(test._remote_answer));
+          ok(test._remote_answer.sdp.match(/a=simulcast:/), "Modified answer has simulcast");
+          ok(test._remote_answer.sdp.match(/a=rid:/), "Modified answer has rid");
+        }
+      ]);
+
+      test.chain.insertAfter('PC_REMOTE_WAIT_FOR_MEDIA_FLOW',[
+        function PC_REMOTE_SET_RTP_FIRST_RID(test) {
+          // Cause pcRemote to filter out everything but the first SSRC. This
+          // lets only one of the simulcast streams through.
+          selectRecvSsrc(test.pcRemote, 0);
+        }
+      ]);
+
+      test.chain.append([
+        function PC_REMOTE_WAIT_FOR_FRAMES() {
+          var vremote = test.pcRemote.remoteMediaElements[0];
+          ok(vremote, "Should have remote video element for pcRemote");
+          return helper.waitForFrames(vremote);
+        },
+        function PC_REMOTE_CHECK_SIZE_1() {
+          var vlocal = test.pcLocal.localMediaElements[0];
+          var vremote = test.pcRemote.remoteMediaElements[0];
+          ok(vlocal, "Should have local video element for pcLocal");
+          ok(vremote, "Should have remote video element for pcRemote");
+          ok(vlocal.videoWidth > 0, "source width is positive");
+          ok(vlocal.videoHeight > 0, "source height is positive");
+          is(vremote.videoWidth, vlocal.videoWidth, "sink is same width as source");
+          is(vremote.videoHeight, vlocal.videoHeight, "sink is same height as source");
+        },
+        function PC_REMOTE_SET_RTP_SECOND_RID(test) {
+          // Now, cause pcRemote to filter out everything but the second SSRC.
+          // This lets only the other simulcast stream through.
+          selectRecvSsrc(test.pcRemote, 1);
+        },
+        function PC_REMOTE_WAIT_FOR_SECOND_MEDIA_FLOW(test) {
+          return test.pcRemote.waitForMediaFlow();
+        },
+        function PC_REMOTE_WAIT_FOR_FRAMES_2() {
+          var vremote = test.pcRemote.remoteMediaElements[0];
+          ok(vremote, "Should have remote video element for pcRemote");
+          return helper.waitForFrames(vremote);
+        },
+        // For some reason, even though we're getting a 25x25 stream, sometimes
+        // the resolution isn't updated on the video element on the first frame.
+        function PC_REMOTE_WAIT_FOR_FRAMES_3() {
+          var vremote = test.pcRemote.remoteMediaElements[0];
+          ok(vremote, "Should have remote video element for pcRemote");
+          return helper.waitForFrames(vremote);
+        },
+        function PC_REMOTE_CHECK_SIZE_2() {
+          var vlocal = test.pcLocal.localMediaElements[0];
+          var vremote = test.pcRemote.remoteMediaElements[0];
+          ok(vlocal, "Should have local video element for pcLocal");
+          ok(vremote, "Should have remote video element for pcRemote");
+          ok(vlocal.videoWidth > 0, "source width is positive");
+          ok(vlocal.videoHeight > 0, "source height is positive");
+          is(vremote.videoWidth, vlocal.videoWidth / 2, "sink is 1/2 width of source");
+          is(vremote.videoHeight, vlocal.videoHeight / 2,  "sink is 1/2 height of source");
+        },
+        function PC_REMOTE_SET_RTP_NONEXISTENT_RID(test) {
+          // Now, cause pcRemote to filter out everything, just to make sure
+          // selectRecvSsrc is working.
+          selectRecvSsrc(test.pcRemote, 2);
+        },
+        function PC_REMOTE_ENSURE_NO_FRAMES() {
+          var vremote = test.pcRemote.remoteMediaElements[0];
+          ok(vremote, "Should have remote video element for pcRemote");
+          return helper.verifyNoFrames(vremote);
+        },
+      ]);
+
+      return test.run();
+  })
+  .catch(e => ok(false, "unexpected failure: " + e)));
+</script>
+</pre>
+</body>
+</html>

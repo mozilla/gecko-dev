@@ -8,6 +8,22 @@
 
 #include "Layers.h"
 #include "nsTArray.h"
+#include "mozilla/layers/ISurfaceAllocator.h"
+
+namespace mozilla {
+namespace layers {
+
+class TestSurfaceAllocator final : public ISurfaceAllocator
+{
+public:
+  TestSurfaceAllocator() {}
+  ~TestSurfaceAllocator() override {}
+
+  bool IsSameProcess() const override { return true; }
+};
+
+} // layers
+} // mozilla
 
 /* Create layer tree from a simple layer tree description syntax.
  * Each index is either the first letter of the layer type or
@@ -27,9 +43,9 @@
 already_AddRefed<mozilla::layers::Layer> CreateLayerTree(
     const char* aLayerTreeDescription,
     nsIntRegion* aVisibleRegions,
-    const gfx3DMatrix* aTransforms,
-    nsRefPtr<mozilla::layers::LayerManager>& aLayerManager,
-    nsTArray<nsRefPtr<mozilla::layers::Layer> >& aLayersOut);
+    const mozilla::gfx::Matrix4x4* aTransforms,
+    RefPtr<mozilla::layers::LayerManager>& aLayerManager,
+    nsTArray<RefPtr<mozilla::layers::Layer> >& aLayersOut);
 
 
 #endif

@@ -16,6 +16,8 @@
 
 ******************************************************************/
 
+#include <string.h>
+
 #include "defines.h"
 #include "lpc_encode.h"
 #include "frame_classify.h"
@@ -43,7 +45,7 @@
 void WebRtcIlbcfix_EncodeImpl(
     uint16_t *bytes,     /* (o) encoded data bits iLBC */
     const int16_t *block, /* (i) speech vector to encode */
-    iLBC_Enc_Inst_t *iLBCenc_inst /* (i/o) the general encoder
+    IlbcEncoder *iLBCenc_inst /* (i/o) the general encoder
                                      state */
                           ){
   int n, meml_gotten, Nfor, Nback;
@@ -152,7 +154,7 @@ void WebRtcIlbcfix_EncodeImpl(
 
     index = (iLBCbits_inst->startIdx-1)*SUBL;
     max=WebRtcSpl_MaxAbsValueW16(&residual[index], 2*SUBL);
-    scale=WebRtcSpl_GetSizeInBits(WEBRTC_SPL_MUL_16_16(max,max));
+    scale = WebRtcSpl_GetSizeInBits((uint32_t)(max * max));
 
     /* Scale to maximum 25 bits so that the MAC won't cause overflow */
     scale = scale - 25;
@@ -352,7 +354,7 @@ void WebRtcIlbcfix_EncodeImpl(
 
       /* update memory */
 
-      WEBRTC_SPL_MEMMOVE_W16(mem, mem+SUBL, (CB_MEML-SUBL));
+      memmove(mem, mem + SUBL, (CB_MEML - SUBL) * sizeof(*mem));
       WEBRTC_SPL_MEMCPY_W16(mem+CB_MEML-SUBL,
                             &decresidual[(iLBCbits_inst->startIdx+1+subframe)*SUBL], SUBL);
 
@@ -457,8 +459,7 @@ void WebRtcIlbcfix_EncodeImpl(
                                 );
 
       /* update memory */
-
-      WEBRTC_SPL_MEMMOVE_W16(mem, mem+SUBL, (CB_MEML-SUBL));
+      memmove(mem, mem + SUBL, (CB_MEML - SUBL) * sizeof(*mem));
       WEBRTC_SPL_MEMCPY_W16(mem+CB_MEML-SUBL,
                             &reverseDecresidual[subframe*SUBL], SUBL);
 

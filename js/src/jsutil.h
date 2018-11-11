@@ -14,10 +14,14 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Compiler.h"
 #include "mozilla/GuardObjects.h"
+#include "mozilla/HashFunctions.h"
+#include "mozilla/MathAlgorithms.h"
+#include "mozilla/PodOperations.h"
 
 #include <limits.h>
 
 #include "js/Utility.h"
+#include "js/Value.h"
 
 #define JS_ALWAYS_TRUE(expr)      MOZ_ALWAYS_TRUE(expr)
 #define JS_ALWAYS_FALSE(expr)     MOZ_ALWAYS_FALSE(expr)
@@ -30,13 +34,13 @@
 # define JS_DIAGNOSTICS_ASSERT(expr) ((void) 0)
 #endif
 
-static MOZ_ALWAYS_INLINE void *
-js_memcpy(void *dst_, const void *src_, size_t len)
+static MOZ_ALWAYS_INLINE void*
+js_memcpy(void* dst_, const void* src_, size_t len)
 {
-    char *dst = (char *) dst_;
-    const char *src = (const char *) src_;
-    JS_ASSERT_IF(dst >= src, (size_t) (dst - src) >= len);
-    JS_ASSERT_IF(src >= dst, (size_t) (src - dst) >= len);
+    char* dst = (char*) dst_;
+    const char* src = (const char*) src_;
+    MOZ_ASSERT_IF(dst >= src, (size_t) (dst - src) >= len);
+    MOZ_ASSERT_IF(src >= dst, (size_t) (src - dst) >= len);
 
     return memcpy(dst, src, len);
 }
@@ -44,37 +48,26 @@ js_memcpy(void *dst_, const void *src_, size_t len)
 namespace js {
 
 template <class T>
-struct AlignmentTestStruct
-{
-    char c;
-    T t;
-};
-
-/* This macro determines the alignment requirements of a type. */
-#define JS_ALIGNMENT_OF(t_) \
-  (sizeof(js::AlignmentTestStruct<t_>) - sizeof(t_))
-
-template <class T>
 class AlignedPtrAndFlag
 {
     uintptr_t bits;
 
   public:
-    AlignedPtrAndFlag(T *t, bool aFlag) {
-        JS_ASSERT((uintptr_t(t) & 1) == 0);
+    AlignedPtrAndFlag(T* t, bool aFlag) {
+        MOZ_ASSERT((uintptr_t(t) & 1) == 0);
         bits = uintptr_t(t) | uintptr_t(aFlag);
     }
 
-    T *ptr() const {
-        return (T *)(bits & ~uintptr_t(1));
+    T* ptr() const {
+        return (T*)(bits & ~uintptr_t(1));
     }
 
     bool flag() const {
         return (bits & 1) != 0;
     }
 
-    void setPtr(T *t) {
-        JS_ASSERT((uintptr_t(t) & 1) == 0);
+    void setPtr(T* t) {
+        MOZ_ASSERT((uintptr_t(t) & 1) == 0);
         bits = uintptr_t(t) | uintptr_t(flag());
     }
 
@@ -86,15 +79,15 @@ class AlignedPtrAndFlag
         bits &= ~uintptr_t(1);
     }
 
-    void set(T *t, bool aFlag) {
-        JS_ASSERT((uintptr_t(t) & 1) == 0);
+    void set(T* t, bool aFlag) {
+        MOZ_ASSERT((uintptr_t(t) & 1) == 0);
         bits = uintptr_t(t) | aFlag;
     }
 };
 
 template <class T>
 static inline void
-Reverse(T *beg, T *end)
+Reverse(T* beg, T* end)
 {
     while (beg != end) {
         if (--end == beg)
@@ -107,10 +100,10 @@ Reverse(T *beg, T *end)
 }
 
 template <class T>
-static inline T *
-Find(T *beg, T *end, const T &v)
+static inline T*
+Find(T* beg, T* end, const T& v)
 {
-    for (T *p = beg; p != end; ++p) {
+    for (T* p = beg; p != end; ++p) {
         if (*p == v)
             return p;
     }
@@ -118,8 +111,8 @@ Find(T *beg, T *end, const T &v)
 }
 
 template <class Container>
-static inline typename Container::ElementType *
-Find(Container &c, const typename Container::ElementType &v)
+static inline typename Container::ElementType*
+Find(Container& c, const typename Container::ElementType& v)
 {
     return Find(c.begin(), c.end(), v);
 }
@@ -130,6 +123,28 @@ ForEach(InputIterT begin, InputIterT end, CallableT f)
 {
     for (; begin != end; ++begin)
         f(*begin);
+}
+
+template <class Container1, class Container2>
+static inline bool
+EqualContainers(const Container1& lhs, const Container2& rhs)
+{
+    if (lhs.length() != rhs.length())
+        return false;
+    for (size_t i = 0, n = lhs.length(); i < n; i++) {
+        if (lhs[i] != rhs[i])
+            return false;
+    }
+    return true;
+}
+
+template <class Container>
+static inline HashNumber
+AddContainerToHash(const Container& c, HashNumber hn = 0)
+{
+    for (size_t i = 0; i < c.length(); i++)
+        hn = mozilla::AddToHash(hn, HashNumber(c[i]));
+    return hn;
 }
 
 template <class T>
@@ -149,24 +164,24 @@ Max(T t1, T t2)
 /* Allows a const variable to be initialized after its declaration. */
 template <class T>
 static T&
-InitConst(const T &t)
+InitConst(const T& t)
 {
-    return const_cast<T &>(t);
+    return const_cast<T&>(t);
 }
 
 template <class T, class U>
-MOZ_ALWAYS_INLINE T &
-ImplicitCast(U &u)
+MOZ_ALWAYS_INLINE T&
+ImplicitCast(U& u)
 {
-    T &t = u;
+    T& t = u;
     return t;
 }
 
 template<typename T>
-class AutoScopedAssign
+class MOZ_RAII AutoScopedAssign
 {
   public:
-    AutoScopedAssign(T *addr, const T &value
+    AutoScopedAssign(T* addr, const T& value
                      MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
         : addr_(addr), old(*addr_)
     {
@@ -178,22 +193,18 @@ class AutoScopedAssign
 
   private:
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-    T *addr_;
+    T* addr_;
     T old;
 };
-
-template <typename T>
-static inline bool
-IsPowerOfTwo(T t)
-{
-    return t && !(t & (t - 1));
-}
 
 template <typename T, typename U>
 static inline U
 ComputeByteAlignment(T bytes, U alignment)
 {
-    JS_ASSERT(IsPowerOfTwo(alignment));
+    static_assert(mozilla::IsUnsigned<U>::value,
+                  "alignment amount must be unsigned");
+
+    MOZ_ASSERT(mozilla::IsPowerOfTwo(alignment));
     return (alignment - (bytes % alignment)) % alignment;
 }
 
@@ -201,13 +212,10 @@ template <typename T, typename U>
 static inline T
 AlignBytes(T bytes, U alignment)
 {
-    return bytes + ComputeByteAlignment(bytes, alignment);
-}
+    static_assert(mozilla::IsUnsigned<U>::value,
+                  "alignment amount must be unsigned");
 
-static MOZ_ALWAYS_INLINE size_t
-UnsignedPtrDiff(const void *bigger, const void *smaller)
-{
-    return size_t(bigger) - size_t(smaller);
+    return bytes + ComputeByteAlignment(bytes, alignment);
 }
 
 /*****************************************************************************/
@@ -226,7 +234,7 @@ static inline unsigned
 BitArrayIndexToWordIndex(size_t length, size_t bitIndex)
 {
     unsigned wordIndex = bitIndex / BitArrayElementBits;
-    JS_ASSERT(wordIndex < length);
+    MOZ_ASSERT(wordIndex < length);
     return wordIndex;
 }
 
@@ -237,13 +245,13 @@ BitArrayIndexToWordMask(size_t i)
 }
 
 static inline bool
-IsBitArrayElementSet(size_t *array, size_t length, size_t i)
+IsBitArrayElementSet(const size_t* array, size_t length, size_t i)
 {
     return array[BitArrayIndexToWordIndex(length, i)] & BitArrayIndexToWordMask(i);
 }
 
 static inline bool
-IsAnyBitArrayElementSet(size_t *array, size_t length)
+IsAnyBitArrayElementSet(const size_t* array, size_t length)
 {
     unsigned numWords = NumWordsForBitArrayOfLength(length);
     for (unsigned i = 0; i < numWords; ++i) {
@@ -254,19 +262,19 @@ IsAnyBitArrayElementSet(size_t *array, size_t length)
 }
 
 static inline void
-SetBitArrayElement(size_t *array, size_t length, size_t i)
+SetBitArrayElement(size_t* array, size_t length, size_t i)
 {
     array[BitArrayIndexToWordIndex(length, i)] |= BitArrayIndexToWordMask(i);
 }
 
 static inline void
-ClearBitArrayElement(size_t *array, size_t length, size_t i)
+ClearBitArrayElement(size_t* array, size_t length, size_t i)
 {
     array[BitArrayIndexToWordIndex(length, i)] &= ~BitArrayIndexToWordMask(i);
 }
 
 static inline void
-ClearAllBitArrayElements(size_t *array, size_t length)
+ClearAllBitArrayElements(size_t* array, size_t length)
 {
     for (unsigned i = 0; i < length; ++i)
         array[i] = 0;
@@ -274,18 +282,104 @@ ClearAllBitArrayElements(size_t *array, size_t length)
 
 }  /* namespace js */
 
-/* Crash diagnostics */
-#ifdef DEBUG
+namespace mozilla {
+
+/**
+ * Set the first |aNElem| T elements in |aDst| to |aSrc|.
+ */
+template<typename T>
+static MOZ_ALWAYS_INLINE void
+PodSet(T* aDst, const T& aSrc, size_t aNElem)
+{
+    for (const T* dstend = aDst + aNElem; aDst < dstend; ++aDst)
+        *aDst = aSrc;
+}
+
+} /* namespace mozilla */
+
+/*
+ * Patterns used by SpiderMonkey to overwrite unused memory. If you are
+ * accessing an object with one of these pattern, you probably have a dangling
+ * pointer. These values should be odd, see the comment in IsThingPoisoned.
+ *
+ * Note: new patterns should also be added to the array in IsThingPoisoned!
+ */
+#define JS_FRESH_NURSERY_PATTERN 0x2F
+#define JS_SWEPT_NURSERY_PATTERN 0x2B
+#define JS_ALLOCATED_NURSERY_PATTERN 0x2D
+#define JS_FRESH_TENURED_PATTERN 0x4F
+#define JS_MOVED_TENURED_PATTERN 0x49
+#define JS_SWEPT_TENURED_PATTERN 0x4B
+#define JS_ALLOCATED_TENURED_PATTERN 0x4D
+#define JS_FREED_HEAP_PTR_PATTERN 0x6B
+
+/*
+ * Ensure JS_SWEPT_CODE_PATTERN is a byte pattern that will crash immediately
+ * when executed, so either an undefined instruction or an instruction that's
+ * illegal in user mode.
+ */
+#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_NONE)
+# define JS_SWEPT_CODE_PATTERN 0xED // IN instruction, crashes in user mode.
+#elif defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64)
+# define JS_SWEPT_CODE_PATTERN 0xA3 // undefined instruction
+#elif defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64)
+# define JS_SWEPT_CODE_PATTERN 0x01 // undefined instruction
+#else
+# error "JS_SWEPT_CODE_PATTERN not defined for this platform"
+#endif
+
+static inline void*
+Poison(void* ptr, uint8_t value, size_t num)
+{
+    static bool disablePoison = bool(getenv("JSGC_DISABLE_POISONING"));
+    if (disablePoison)
+        return ptr;
+
+    // Without a valid Value tag, a poisoned Value may look like a valid
+    // floating point number. To ensure that we crash more readily when
+    // observing a poisoned Value, we make the poison an invalid ObjectValue.
+    // Unfortunately, this adds about 2% more overhead, so we can only enable
+    // it in debug.
+#if defined(DEBUG)
+    uintptr_t obj;
+    memset(&obj, value, sizeof(obj));
+# if defined(JS_PUNBOX64)
+    obj = obj & ((uintptr_t(1) << JSVAL_TAG_SHIFT) - 1);
+# endif
+    JS::Value v = JS::PoisonedObjectValue(reinterpret_cast<JSObject*>(obj));
+
+    size_t value_count = num / sizeof(v);
+    size_t byte_count = num % sizeof(v);
+    mozilla::PodSet(reinterpret_cast<JS::Value*>(ptr), v, value_count);
+    if (byte_count) {
+        uint8_t* bytes = static_cast<uint8_t*>(ptr);
+        uint8_t* end = bytes + num;
+        mozilla::PodSet(end - byte_count, value, byte_count);
+    }
+#else // !DEBUG
+    memset(ptr, value, num);
+#endif // !DEBUG
+    return ptr;
+}
+
+/* Crash diagnostics by default in debug and on nightly channel. */
+#if (defined(DEBUG) || defined(NIGHTLY_BUILD)) && !defined(MOZ_ASAN)
 # define JS_CRASH_DIAGNOSTICS 1
 #endif
+
+/* Enable poisoning in crash-diagnostics and zeal builds. */
 #if defined(JS_CRASH_DIAGNOSTICS) || defined(JS_GC_ZEAL)
-# define JS_POISON(p, val, size) memset((p), (val), (size))
+# define JS_POISON(p, val, size) Poison(p, val, size)
 #else
 # define JS_POISON(p, val, size) ((void) 0)
 #endif
 
-/* Bug 984101: Disable labeled poisoning until we have poison checking. */
-#define JS_EXTRA_POISON(p, val, size) ((void) 0)
+/* Enable even more poisoning in purely debug builds. */
+#if defined(DEBUG)
+# define JS_EXTRA_POISON(p, val, size) Poison(p, val, size)
+#else
+# define JS_EXTRA_POISON(p, val, size) ((void) 0)
+#endif
 
 /* Basic stats */
 #ifdef DEBUG
@@ -308,13 +402,13 @@ typedef struct JSBasicStats {
 # define JS_MeanAndStdDevBS(bs,sigma)                                         \
     JS_MeanAndStdDev((bs)->num, (bs)->sum, (bs)->sqsum, sigma)
 extern void
-JS_BasicStatsAccum(JSBasicStats *bs, uint32_t val);
+JS_BasicStatsAccum(JSBasicStats* bs, uint32_t val);
 extern double
-JS_MeanAndStdDev(uint32_t num, double sum, double sqsum, double *sigma);
+JS_MeanAndStdDev(uint32_t num, double sum, double sqsum, double* sigma);
 extern void
-JS_DumpBasicStats(JSBasicStats *bs, const char *title, FILE *fp);
+JS_DumpBasicStats(JSBasicStats* bs, const char* title, FILE* fp);
 extern void
-JS_DumpHistogram(JSBasicStats *bs, FILE *fp);
+JS_DumpHistogram(JSBasicStats* bs, FILE* fp);
 #else
 # define JS_BASIC_STATS_ACCUM(bs,val)
 #endif
@@ -341,7 +435,6 @@ typedef size_t jsbitmap;
     JS_END_MACRO
 #elif MOZ_IS_GCC
 
-#if MOZ_GCC_VERSION_AT_LEAST(4, 6, 0)
 # define JS_SILENCE_UNUSED_VALUE_IN_EXPR(expr)                                \
     JS_BEGIN_MACRO                                                            \
         _Pragma("GCC diagnostic push")                                        \
@@ -349,7 +442,6 @@ typedef size_t jsbitmap;
         expr;                                                                 \
         _Pragma("GCC diagnostic pop")                                         \
     JS_END_MACRO
-#endif
 #endif
 
 #if !defined(JS_SILENCE_UNUSED_VALUE_IN_EXPR)

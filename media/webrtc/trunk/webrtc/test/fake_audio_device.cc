@@ -55,15 +55,15 @@ int32_t FakeAudioDevice::Init() {
 
   if (!tick_->StartTimer(true, 10))
     return -1;
-  thread_.reset(ThreadWrapper::CreateThread(
-      FakeAudioDevice::Run, this, webrtc::kHighPriority, "FakeAudioDevice"));
+  thread_ = ThreadWrapper::CreateThread(FakeAudioDevice::Run, this,
+                                        "FakeAudioDevice");
   if (thread_.get() == NULL)
     return -1;
-  unsigned int thread_id;
-  if (!thread_->Start(thread_id)) {
+  if (!thread_->Start()) {
     thread_.reset();
     return -1;
   }
+  thread_->SetPriority(webrtc::kHighPriority);
   return 0;
 }
 
@@ -121,13 +121,17 @@ void FakeAudioDevice::CaptureAudio() {
         samples_needed = std::min(kFrequencyHz / time_since_last_playout_ms,
                                   kBufferSizeBytes / 2);
       uint32_t samples_out = 0;
+      int64_t elapsed_time_ms = -1;
+      int64_t ntp_time_ms = -1;
       EXPECT_EQ(0,
                 audio_callback_->NeedMorePlayData(samples_needed,
                                                   2,
                                                   1,
                                                   kFrequencyHz,
                                                   playout_buffer_,
-                                                  samples_out));
+                                                  samples_out,
+                                                  &elapsed_time_ms,
+                                                  &ntp_time_ms));
     }
   }
   tick_->Wait(WEBRTC_EVENT_INFINITE);

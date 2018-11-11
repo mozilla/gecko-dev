@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -37,7 +37,7 @@ function test()
   print('see bug 256617');
   code = '(function() { throw \n x++; })';
 //  expect = '(function() { throw ; x++; })';
-  expect = 'SyntaxError: syntax error';
+  expect = 'SyntaxError: no line break is allowed between \'throw\' and its expression';
   try { uneval(eval(code)); } catch(ex) { actual = ex + ''; };
 //  compareSource(expect, actual, summary + ': ' + code);
   reportCompare(expect, actual, summary + ': ' + code);

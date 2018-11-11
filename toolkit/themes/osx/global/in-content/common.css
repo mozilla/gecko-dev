@@ -1,0 +1,121 @@
+/* - This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this file,
+   - You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+%include ../shared.inc
+%include ../../../shared/in-content/common.inc.css
+
+xul|tabs {
+  padding-right: 0;
+  padding-left: 0;
+}
+
+xul|tab[visuallyselected] {
+  text-shadow: none;
+}
+
+xul|button,
+html|button,
+xul|colorpicker[type="button"],
+xul|menulist {
+  margin-top: 3px;
+}
+
+xul|button,
+html|button {
+  /* use the same margin of other elements for the alignment */
+  margin-left: 4px;
+  margin-right: 4px;
+}
+
+xul|caption {
+  padding-inline-start: 0;
+}
+
+xul|groupbox > xul|*.groupbox-body {
+  padding: 0;
+}
+
+xul|menulist:not([editable="true"]) > xul|menupopup > xul|menuitem[checked="true"]::before,
+xul|menulist:not([editable="true"]) > xul|menupopup > xul|menuitem[selected="true"]::before {
+  display: none;
+}
+
+xul|menulist:not([editable="true"]) > xul|*.menulist-dropmarker {
+  display: -moz-box;
+  margin-top: 1px;
+  margin-bottom: 1px;
+}
+
+xul|menulist > xul|menupopup xul|menu,
+xul|menulist > xul|menupopup xul|menuitem,
+xul|button[type="menu"] > xul|menupopup xul|menu,
+xul|button[type="menu"] > xul|menupopup xul|menuitem {
+  padding-inline-end: 34px;
+}
+
+xul|*.help-button > xul|*.button-box > xul|*.button-icon {
+  margin-inline-start: 0;
+}
+
+xul|*.checkbox-icon {
+  margin-right: 0;
+}
+
+xul|*.radio-icon {
+  margin-inline-end: 0;
+}
+
+xul|*.numberbox-input-box {
+  -moz-appearance: none;
+  border-width: 0;
+}
+
+xul|description {
+  font-size: 1.25rem;
+  line-height: 22px;
+}
+
+xul|*.text-link:-moz-focusring {
+  color: var(--in-content-link-highlight);
+  text-decoration: underline;
+  box-shadow: none;
+}
+
+xul|button:-moz-focusring,
+xul|menulist:-moz-focusring,
+xul|checkbox:-moz-focusring > .checkbox-check,
+html|input[type="checkbox"]:-moz-focusring + html|label:before,
+xul|radio[focused="true"] > .radio-check,
+xul|tab:-moz-focusring > .tab-middle > .tab-text {
+  outline: 2px solid rgba(0,149,221,0.5);
+  outline-offset: 1px;
+  -moz-outline-radius: 2px;
+}
+
+xul|radio[focused="true"] > .radio-check {
+  -moz-outline-radius: 100%;
+}
+
+xul|spinbuttons {
+  -moz-appearance: none;
+}
+
+xul|*.spinbuttons-up {
+  margin-top: 0 !important;
+  border-radius: 4px 4px 0 0;
+}
+
+xul|*.spinbuttons-down  {
+  margin-bottom: 0 !important;
+  border-radius: 0 0 4px 4px;
+}
+
+xul|*.spinbuttons-button > xul|*.button-box {
+  padding-inline-start: 2px !important;
+  padding-inline-end: 3px !important;
+}
+
+xul|*.spinbuttons-button > xul|*.button-box > xul|*.button-text {
+  display: none;
+}

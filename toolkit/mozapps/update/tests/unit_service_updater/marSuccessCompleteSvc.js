@@ -6,66 +6,91 @@
 /* General Complete MAR File Patch Apply Test */
 
 function run_test() {
-  if (!shouldRunServiceTest()) {
+  if (!setupTestCommon()) {
     return;
   }
-
-  setupTestCommon();
   gTestFiles = gTestFilesCompleteSuccess;
   gTestDirs = gTestDirsCompleteSuccess;
-  setupUpdaterTest(FILE_COMPLETE_MAR, false, false);
-
-  createUpdaterINI();
-
-  // For Mac OS X set the last modified time for the root directory to a date in
-  // the past to test that the last modified time is updated on a successful
-  // update (bug 600098).
-  if (IS_MACOSX) {
-    let now = Date.now();
-    let yesterday = now - (1000 * 60 * 60 * 24);
-    let applyToDir = getApplyDirFile();
-    applyToDir.lastModifiedTime = yesterday;
-  }
-
-  setupAppFilesAsync();
-}
-
-function setupAppFilesFinished() {
-  runUpdateUsingService(STATE_PENDING_SVC, STATE_SUCCEEDED);
+  preventDistributionFiles();
+  setupDistributionDir();
+  setupUpdaterTest(FILE_COMPLETE_MAR, true);
 }
 
 /**
- * Checks if the post update binary was properly launched for the platforms that
- * support launching post update process.
+ * Called after the call to setupUpdaterTest finishes.
  */
-function checkUpdateFinished() {
-  if (IS_MACOSX || IS_WIN) {
-    gCheckFunc = finishCheckUpdateFinished;
-    checkPostUpdateAppLog();
+function setupUpdaterTestFinished() {
+  runUpdate(STATE_SUCCEEDED, false, 0, true);
+}
+
+/**
+ * Called after the call to runUpdate finishes.
+ */
+function runUpdateFinished() {
+  checkPostUpdateAppLog();
+}
+
+/**
+ * Called after the call to checkPostUpdateAppLog finishes.
+ */
+function checkPostUpdateAppLogFinished() {
+  checkAppBundleModTime();
+  standardInit();
+  Assert.equal(readStatusState(), STATE_NONE,
+               "the status file state" + MSG_SHOULD_EQUAL);
+  Assert.ok(!gUpdateManager.activeUpdate,
+            "the active update should not be defined");
+  Assert.equal(gUpdateManager.updateCount, 1,
+               "the update manager updateCount attribute" + MSG_SHOULD_EQUAL);
+  Assert.equal(gUpdateManager.getUpdateAt(0).state, STATE_SUCCEEDED,
+               "the update state" + MSG_SHOULD_EQUAL);
+  checkPostUpdateRunningFile(true);
+  checkFilesAfterUpdateSuccess(getApplyDirFile);
+  checkUpdateLogContents(LOG_COMPLETE_SUCCESS, false, false, true);
+  checkDistributionDir();
+  checkCallbackLog();
+}
+
+/**
+ * Setup the state of the distribution directory for the test.
+ */
+function setupDistributionDir() {
+  if (IS_MACOSX) {
+    // Create files in the old distribution directory location to verify that
+    // the directory and its contents are moved to the new location on update.
+    let testFile = getApplyDirFile(DIR_MACOS + "distribution/testFile", true);
+    writeFile(testFile, "test\n");
+    testFile = getApplyDirFile(DIR_MACOS + "distribution/test/testFile", true);
+    writeFile(testFile, "test\n");
+  }
+}
+
+/**
+ * Checks the state of the distribution directory.
+ */
+function checkDistributionDir() {
+  let distributionDir = getApplyDirFile(DIR_RESOURCES + "distribution", true);
+  if (IS_MACOSX) {
+    Assert.ok(distributionDir.exists(),
+              MSG_SHOULD_EXIST + getMsgPath(distributionDir.path));
+
+    let testFile = getApplyDirFile(DIR_RESOURCES + "distribution/testFile", true);
+    Assert.ok(testFile.exists(),
+              MSG_SHOULD_EXIST + getMsgPath(testFile.path));
+
+    testFile = getApplyDirFile(DIR_RESOURCES + "distribution/test/testFile", true);
+    Assert.ok(testFile.exists(),
+              MSG_SHOULD_EXIST + getMsgPath(testFile.path));
+
+    distributionDir = getApplyDirFile(DIR_MACOS + "distribution", true);
+    Assert.ok(!distributionDir.exists(),
+              MSG_SHOULD_NOT_EXIST + getMsgPath(distributionDir.path));
+
+    checkUpdateLogContains(MOVE_OLD_DIST_DIR);
   } else {
-    finishCheckUpdateFinished();
+    debugDump("testing that files aren't added with an add-if instruction " +
+              "when the file's destination directory doesn't exist");
+    Assert.ok(!distributionDir.exists(),
+              MSG_SHOULD_NOT_EXIST + getMsgPath(distributionDir.path));
   }
-}
-
-/**
- * Checks if the update has finished and if it has finished performs checks for
- * the test.
- */
-function finishCheckUpdateFinished() {
-  if (IS_MACOSX) {
-    logTestInfo("testing last modified time on the apply to directory has " +
-                "changed after a successful update (bug 600098)");
-    let now = Date.now();
-    let applyToDir = getApplyDirFile();
-    let timeDiff = Math.abs(applyToDir.lastModifiedTime - now);
-    do_check_true(timeDiff < MAC_MAX_TIME_DIFFERENCE);
-  }
-
-  checkFilesAfterUpdateSuccess();
-  // Sorting on Linux is different so skip this check for now.
-  if (!IS_UNIX) {
-    checkUpdateLogContents(LOG_COMPLETE_SUCCESS);
-  }
-
-  checkCallbackServiceLog();
 }

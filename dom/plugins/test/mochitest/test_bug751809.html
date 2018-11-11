@@ -4,7 +4,7 @@
   <script type="application/javascript" src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
   <script type="application/javascript" src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
   <script type="application/javascript" src="chrome://mochikit/content/tests/SimpleTest/paint_listener.js"></script>
-  <script type="application/javascript" src="utils.js"></script>
+  <script type="application/javascript" src="plugin-utils.js"></script>
   <script type="application/javascript;version=1.7">
   Components.utils.import("resource://gre/modules/Services.jsm");
   Services.prefs.setBoolPref("plugins.click_to_play", true);
@@ -23,21 +23,6 @@
   const utils = window.QueryInterface(Ci.nsIInterfaceRequestor).
                                     getInterface(Ci.nsIDOMWindowUtils);
 
-  function waitForCondition(condition, nextTest, errorMsg) {
-    var tries = 0;
-    var interval = setInterval(function() {
-      if (tries >= 30) {
-        ok(false, errorMsg);
-        moveOn();
-      }
-      if (condition()) {
-        moveOn();
-      }
-      tries++;
-    }, 100);
-    var moveOn = function() { clearInterval(interval); nextTest(); };
-  }
-
   function go() {
     var plugin = document.getElementById('plugin');
     var objLoadingContent = SpecialPowers.wrap(plugin);
@@ -51,8 +36,9 @@
     var objLoadingContent = SpecialPowers.wrap(plugin);
 
     objLoadingContent.playPlugin();
-    var condition = function() plugin.setColor !== undefined;
-    waitForCondition(condition, afterPluginActivation, "Waited too long for plugin to activate");
+    var condition = () => plugin.setColor !== undefined;
+    SimpleTest.waitForCondition(condition, afterPluginActivation,
+                                "Waited too long for plugin to activate");
   }
     
   function afterPluginActivation() {
@@ -76,8 +62,9 @@
     }
 
     synthesizeMouseAtCenter(plugin, {});
-    var condition = function() plugin.getMouseUpEventCount() > 0;
-    waitForCondition(condition, afterFirstClick, "Waited too long for plugin to receive the mouse click");
+    var condition = () => plugin.getMouseUpEventCount() > 0;
+    SimpleTest.waitForCondition(condition, afterFirstClick,
+                                "Waited too long for plugin to receive the mouse click");
   }
 
   function afterFirstClick() {

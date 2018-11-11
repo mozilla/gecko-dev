@@ -5,7 +5,7 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "nsGConfService.h"
-#include "nsStringAPI.h"
+#include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsComponentManagerUtils.h"
 #include "nsISupportsPrimitives.h"
@@ -190,7 +190,7 @@ nsGConfService::GetStringList(const nsACString &aKey, nsIArray** aResult)
   }
   
   g_slist_free(list);
-  NS_ADDREF(*aResult = items);
+  items.forget(aResult);
   return NS_OK;
 }
 

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
+var {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
 this.EXPORTED_SYMBOLS = ["CryptoUtils"];
 
@@ -56,7 +56,7 @@ this.CryptoUtils = {
    */
   digestBytes: function digestBytes(message, hasher) {
     // No UTF-8 encoding for you, sunshine.
-    let bytes = [b.charCodeAt() for each (b in message)];
+    let bytes = Array.prototype.slice.call(message).map(b => b.charCodeAt(0));
     hasher.update(bytes, bytes.length);
     let result = hasher.finish(false);
     if (hasher instanceof Ci.nsICryptoHMAC) {
@@ -104,6 +104,13 @@ this.CryptoUtils = {
 
   sha1Base32: function sha1Base32(message) {
     return CommonUtils.encodeBase32(CryptoUtils.UTF8AndSHA1(message));
+  },
+
+  sha256(message) {
+    let hasher = Cc["@mozilla.org/security/hash;1"]
+                 .createInstance(Ci.nsICryptoHash);
+    hasher.init(hasher.SHA256);
+    return CommonUtils.bytesAsHex(CryptoUtils.digestUTF8(message, hasher));
   },
 
   /**
@@ -393,7 +400,7 @@ this.CryptoUtils = {
    */
 
   stripHeaderAttributes: function(value) {
-    let value = value || "";
+    value = value || "";
     let i = value.indexOf(";");
     return value.substring(0, (i >= 0) ? i : undefined).trim().toLowerCase();
   },
@@ -552,7 +559,7 @@ XPCOMUtils.defineLazyGetter(CryptoUtils, "_utf8Converter", function() {
   return converter;
 });
 
-let Svc = {};
+var Svc = {};
 
 XPCOMUtils.defineLazyServiceGetter(Svc,
                                    "KeyFactory",

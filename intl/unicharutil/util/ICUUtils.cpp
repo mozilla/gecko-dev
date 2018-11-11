@@ -75,7 +75,7 @@ ICUUtils::LanguageTagIterForContent::GetNext(nsACString& aBCP47LangTag)
       mozilla::services::GetToolkitChromeRegistryService();
     nsAutoCString uaLangTag;
     if (cr) {
-      cr->GetSelectedLocale(NS_LITERAL_CSTRING("global"), uaLangTag);
+      cr->GetSelectedLocale(NS_LITERAL_CSTRING("global"), true, uaLangTag);
     }
     if (!uaLangTag.IsEmpty()) {
       aBCP47LangTag = uaLangTag;
@@ -173,6 +173,25 @@ ICUUtils::AssignUCharArrayToString(UChar* aICUString,
   aMozString.Assign((const nsAString::char_type*)aICUString, aLength);
 
   NS_ASSERTION((int32_t)aMozString.Length() == aLength, "Conversion failed");
+}
+
+/* static */ nsresult
+ICUUtils::UErrorToNsResult(const UErrorCode aErrorCode)
+{
+  if (U_SUCCESS(aErrorCode)) {
+    return NS_OK;
+  }
+
+  switch(aErrorCode) {
+    case U_ILLEGAL_ARGUMENT_ERROR:
+      return NS_ERROR_INVALID_ARG;
+
+    case U_MEMORY_ALLOCATION_ERROR:
+      return NS_ERROR_OUT_OF_MEMORY;
+
+    default:
+      return NS_ERROR_FAILURE;
+  }
 }
 
 #if 0

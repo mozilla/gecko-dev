@@ -52,7 +52,6 @@ function saveStreamAsync(aPath, aStream, aFile) {
                createInstance(Ci.nsIBinaryInputStream);
   source.setInputStream(input);
 
-  let data = new Uint8Array(EXTRACTION_BUFFER);
 
   function readFailed(error) {
     try {
@@ -72,18 +71,19 @@ function saveStreamAsync(aPath, aStream, aFile) {
 
   function readData() {
     try {
-      let count = Math.min(source.available(), data.byteLength);
+      let count = Math.min(source.available(), EXTRACTION_BUFFER);
+      let data = new Uint8Array(count);
       source.readArrayBuffer(count, data.buffer);
 
       aFile.write(data, { bytes: count }).then(function() {
         input.asyncWait(readData, 0, 0, Services.tm.currentThread);
       }, readFailed);
     }
-    catch (e if e.result == Cr.NS_BASE_STREAM_CLOSED) {
-      deferred.resolve(aFile.close());
-    }
     catch (e) {
-      readFailed(e);
+      if (e.result == Cr.NS_BASE_STREAM_CLOSED)
+        deferred.resolve(aFile.close());
+      else
+        readFailed(e);
     }
   }
 
@@ -115,7 +115,7 @@ this.ZipUtils = {
       return Promise.reject(e);
     }
 
-    return Task.spawn(function() {
+    return Task.spawn(function* () {
       // Get all of the entries in the zip and sort them so we create directories
       // before files
       let entries = zipReader.findEntries(null);
@@ -211,7 +211,7 @@ this.ZipUtils = {
           target.permissions |= FileUtils.PERMS_FILE;
         }
         catch (e) {
-          dump("Failed to set permissions " + aPermissions.toString(8) + " on " + target.path + "\n");
+          dump("Failed to set permissions " + FileUtils.PERMS_FILE.toString(8) + " on " + target.path + " " + e + "\n");
         }
       }
     }

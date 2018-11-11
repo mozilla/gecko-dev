@@ -1,7 +1,9 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 *******************************************************************************
 *
-*   Copyright (C) 1999-2012, International Business Machines
+*   Copyright (C) 1999-2014, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *
 *******************************************************************************
@@ -236,7 +238,7 @@ static UBool U_CALLCONV compareEntries(const UHashTok p1, const UHashTok p2) {
 static void 
 storeMappingData(){
 
-    int32_t pos = -1;
+    int32_t pos = UHASH_FIRST;
     const UHashElement* element = NULL;
     ValueStruct* value  = NULL;
     int32_t codepoint = 0;
@@ -326,7 +328,7 @@ storeMappingData(){
                      mappingData[currentIndex++] = (uint16_t) mappingLength;
                 }
                 /* copy the contents to mappindData array */
-                uprv_memmove(mappingData+currentIndex, value->mapping, value->length*U_SIZEOF_UCHAR);
+                u_memmove(mappingData+currentIndex, value->mapping, value->length);
                 currentIndex += value->length;
                 if (currentIndex > mappingDataCapacity) {
                     /* If this happens there is a bug in the computation of the mapping data size in storeMapping() */

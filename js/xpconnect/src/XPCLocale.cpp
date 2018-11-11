@@ -17,6 +17,7 @@
 #include "nsComponentManagerUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "mozilla/dom/EncodingUtils.h"
+#include "mozilla/Preferences.h"
 #include "nsIUnicodeDecoder.h"
 
 #include "xpcpublic.h"
@@ -43,7 +44,6 @@ struct XPCLocaleCallbacks : public JSLocaleCallbacks
     localeToLowerCase = LocaleToLowerCase;
     localeCompare = LocaleCompare;
     localeToUnicode = LocaleToUnicode;
-    localeGetErrorMessage = nullptr;
   }
 
   ~XPCLocaleCallbacks()
@@ -53,34 +53,34 @@ struct XPCLocaleCallbacks : public JSLocaleCallbacks
   }
 
   /**
-   * Return the XPCLocaleCallbacks that's hidden away in |rt|. (This impl uses
-   * the locale callbacks struct to store away its per-runtime data.)
+   * Return the XPCLocaleCallbacks that's hidden away in |cx|. (This impl uses
+   * the locale callbacks struct to store away its per-context data.)
    */
   static XPCLocaleCallbacks*
-  This(JSRuntime *rt)
+  This(JSContext* cx)
   {
-    // Locale information for |rt| was associated using xpc_LocalizeRuntime;
+    // Locale information for |cx| was associated using xpc_LocalizeContext;
     // assert and double-check this.
-    JSLocaleCallbacks* lc = JS_GetLocaleCallbacks(rt);
+    const JSLocaleCallbacks* lc = JS_GetLocaleCallbacks(cx);
     MOZ_ASSERT(lc);
     MOZ_ASSERT(lc->localeToUpperCase == LocaleToUpperCase);
     MOZ_ASSERT(lc->localeToLowerCase == LocaleToLowerCase);
     MOZ_ASSERT(lc->localeCompare == LocaleCompare);
     MOZ_ASSERT(lc->localeToUnicode == LocaleToUnicode);
 
-    XPCLocaleCallbacks* ths = static_cast<XPCLocaleCallbacks*>(lc);
+    const XPCLocaleCallbacks* ths = static_cast<const XPCLocaleCallbacks*>(lc);
     ths->AssertThreadSafety();
-    return ths;
+    return const_cast<XPCLocaleCallbacks*>(ths);
   }
 
   static bool
-  LocaleToUpperCase(JSContext *cx, HandleString src, MutableHandleValue rval)
+  LocaleToUpperCase(JSContext* cx, HandleString src, MutableHandleValue rval)
   {
     return ChangeCase(cx, src, rval, ToUpperCase);
   }
 
   static bool
-  LocaleToLowerCase(JSContext *cx, HandleString src, MutableHandleValue rval)
+  LocaleToLowerCase(JSContext* cx, HandleString src, MutableHandleValue rval)
   {
     return ChangeCase(cx, src, rval, ToLowerCase);
   }
@@ -88,13 +88,13 @@ struct XPCLocaleCallbacks : public JSLocaleCallbacks
   static bool
   LocaleToUnicode(JSContext* cx, const char* src, MutableHandleValue rval)
   {
-    return This(JS_GetRuntime(cx))->ToUnicode(cx, src, rval);
+    return This(cx)->ToUnicode(cx, src, rval);
   }
 
   static bool
-  LocaleCompare(JSContext *cx, HandleString src1, HandleString src2, MutableHandleValue rval)
+  LocaleCompare(JSContext* cx, HandleString src1, HandleString src2, MutableHandleValue rval)
   {
-    return This(JS_GetRuntime(cx))->Compare(cx, src1, src2, rval);
+    return This(cx)->Compare(cx, src1, src2, rval);
   }
 
 private:
@@ -102,26 +102,26 @@ private:
   ChangeCase(JSContext* cx, HandleString src, MutableHandleValue rval,
              void(*changeCaseFnc)(const nsAString&, nsAString&))
   {
-    nsDependentJSString depStr;
-    if (!depStr.init(cx, src)) {
+    nsAutoJSString autoStr;
+    if (!autoStr.init(cx, src)) {
       return false;
     }
 
     nsAutoString result;
-    changeCaseFnc(depStr, result);
+    changeCaseFnc(autoStr, result);
 
-    JSString *ucstr =
+    JSString* ucstr =
       JS_NewUCStringCopyN(cx, result.get(), result.Length());
     if (!ucstr) {
       return false;
     }
 
-    rval.set(STRING_TO_JSVAL(ucstr));
+    rval.setString(ucstr);
     return true;
   }
 
   bool
-  Compare(JSContext *cx, HandleString src1, HandleString src2, MutableHandleValue rval)
+  Compare(JSContext* cx, HandleString src1, HandleString src2, MutableHandleValue rval)
   {
     nsresult rv;
 
@@ -149,21 +149,21 @@ private:
       }
     }
 
-    nsDependentJSString depStr1, depStr2;
-    if (!depStr1.init(cx, src1) || !depStr2.init(cx, src2)) {
+    nsAutoJSString autoStr1, autoStr2;
+    if (!autoStr1.init(cx, src1) || !autoStr2.init(cx, src2)) {
       return false;
     }
 
     int32_t result;
     rv = mCollation->CompareString(nsICollation::kCollationStrengthDefault,
-                                   depStr1, depStr2, &result);
+                                   autoStr1, autoStr2, &result);
 
     if (NS_FAILED(rv)) {
       xpc::Throw(cx, rv);
       return false;
     }
 
-    rval.set(INT_TO_JSVAL(result));
+    rval.setInt32(result);
     return true;
   }
 
@@ -203,8 +203,8 @@ private:
 
     if (mDecoder) {
       int32_t unicharLength = srcLength;
-      char16_t *unichars =
-        (char16_t *)JS_malloc(cx, (srcLength + 1) * sizeof(char16_t));
+      char16_t* unichars =
+        (char16_t*)JS_malloc(cx, (srcLength + 1) * sizeof(char16_t));
       if (unichars) {
         rv = mDecoder->Convert(src, &srcLength, unichars, &unicharLength);
         if (NS_SUCCEEDED(rv)) {
@@ -213,13 +213,14 @@ private:
 
           // nsIUnicodeDecoder::Convert may use fewer than srcLength PRUnichars
           if (unicharLength + 1 < srcLength + 1) {
-            char16_t *shrunkUnichars =
-              (char16_t *)JS_realloc(cx, unichars,
-                                      (unicharLength + 1) * sizeof(char16_t));
+            char16_t* shrunkUnichars =
+              (char16_t*)JS_realloc(cx, unichars,
+                                     (srcLength + 1) * sizeof(char16_t),
+                                     (unicharLength + 1) * sizeof(char16_t));
             if (shrunkUnichars)
               unichars = shrunkUnichars;
           }
-          JSString *str = JS_NewUCString(cx, reinterpret_cast<jschar*>(unichars), unicharLength);
+          JSString* str = JS_NewUCString(cx, reinterpret_cast<char16_t*>(unichars), unicharLength);
           if (str) {
             rval.setString(str);
             return true;
@@ -233,7 +234,7 @@ private:
     return false;
   }
 
-  void AssertThreadSafety()
+  void AssertThreadSafety() const
   {
     MOZ_ASSERT(mThread == PR_GetCurrentThread(),
                "XPCLocaleCallbacks used unsafely!");
@@ -247,11 +248,20 @@ private:
 };
 
 bool
-xpc_LocalizeRuntime(JSRuntime *rt)
+xpc_LocalizeContext(JSContext* cx)
 {
-  JS_SetLocaleCallbacks(rt, new XPCLocaleCallbacks());
+  JS_SetLocaleCallbacks(cx, new XPCLocaleCallbacks());
 
   // Set the default locale.
+
+  // Check a pref to see if we should use US English locale regardless
+  // of the system locale.
+  if (Preferences::GetBool("javascript.use_us_english_locale", false)) {
+    return JS_SetDefaultLocale(cx, "en-US");
+  }
+
+  // No pref has been found, so get the default locale from the
+  // application's locale.
   nsCOMPtr<nsILocaleService> localeService =
     do_GetService(NS_LOCALESERVICE_CONTRACTID);
   if (!localeService)
@@ -267,13 +277,13 @@ xpc_LocalizeRuntime(JSRuntime *rt)
   MOZ_ASSERT(NS_SUCCEEDED(rv), "failed to get app locale info");
   NS_LossyConvertUTF16toASCII locale(localeStr);
 
-  return !!JS_SetDefaultLocale(rt, locale.get());
+  return JS_SetDefaultLocale(cx, locale.get());
 }
 
 void
-xpc_DelocalizeRuntime(JSRuntime *rt)
+xpc_DelocalizeContext(JSContext* cx)
 {
-  XPCLocaleCallbacks* lc = XPCLocaleCallbacks::This(rt);
-  JS_SetLocaleCallbacks(rt, nullptr);
+  const XPCLocaleCallbacks* lc = XPCLocaleCallbacks::This(cx);
+  JS_SetLocaleCallbacks(cx, nullptr);
   delete lc;
 }

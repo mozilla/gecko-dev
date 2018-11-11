@@ -12,15 +12,15 @@ dbg.onDebuggerStatement = function (frame) {
     assertEq(arr[3].class, "Date");
     assertEq(arr[4].class, "Object");
     assertEq(arr[5].class, "Function");
-    assertEq(arr[6].class, "Date");
+    assertEq(arr[6].class, "Object");
     hits++;
 };
 g.f(Object.prototype, [], eval, new Date,
-    Proxy.create({}), Proxy.createFunction({}, eval), new Proxy(new Date, {}));
+    new Proxy({}, {}), new Proxy(eval, {}), new Proxy(new Date, {}));
 assertEq(hits, 1);
 
 // Debugger.Object.prototype.class should see through cross-compartment
 // wrappers.
 g.eval('f(Object.prototype, [], eval, new Date,\
-          Proxy.create({}), Proxy.createFunction({}, f), new Proxy(new Date, {}));');
+          new Proxy({}, {}), new Proxy(f, {}), new Proxy(new Date, {}));');
 assertEq(hits, 2);

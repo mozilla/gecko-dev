@@ -1,10 +1,10 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/** 
+/**
  * The next thing we do is create a test database for us.  Each test runs with
  * its own database (tail_queries.js will clear it after the run).  Take a look
  * at the queryData object in head_queries.js, and you'll see how this object
@@ -20,17 +20,15 @@ var testData = [
   // Add a bookmark that should be in the results
   { isBookmark: true,
     uri: "http://bookmarked.com/",
-    parentFolder: PlacesUtils.toolbarFolderId,
+    parentGuid: PlacesUtils.bookmarks.toolbarGuid,
     index: PlacesUtils.bookmarks.DEFAULT_INDEX,
-    title: "",
     isInQuery: true },
 
   // Add a bookmark that should not be in the results
   { isBookmark: true,
     uri: "http://bookmarked-elsewhere.com/",
-    parentFolder: PlacesUtils.bookmarksMenuFolderId,
+    parentGuid: PlacesUtils.bookmarks.menuGuid,
     index: PlacesUtils.bookmarks.DEFAULT_INDEX,
-    title: "",
     isInQuery: false },
 
   // Add an un-bookmarked visit
@@ -50,7 +48,7 @@ function run_test()
   run_next_test();
 }
 
-add_task(function test_onlyBookmarked()
+add_task(function* test_onlyBookmarked()
 {
   // This function in head_queries.js creates our database with the above data
   yield task_populateDB(testData);
@@ -59,7 +57,7 @@ add_task(function test_onlyBookmarked()
   var query = PlacesUtils.history.getNewQuery();
   query.setFolders([PlacesUtils.toolbarFolderId], 1);
   query.onlyBookmarked = true;
-  
+
   // query options
   var options = PlacesUtils.history.getNewQueryOptions();
   options.queryType = options.QUERY_TYPE_HISTORY;
@@ -68,36 +66,31 @@ add_task(function test_onlyBookmarked()
   var result = PlacesUtils.history.executeQuery(query, options);
   var root = result.root;
   root.containerOpen = true;
-  
+
   // You can use this to compare the data in the array with the result set,
   // if the array's isInQuery: true items are sorted the same way as the result
   // set.
-  LOG("begin first test");
+  do_print("begin first test");
   compareArrayToResult(testData, root);
-  LOG("end first test");
+  do_print("end first test");
 
-  /* ******************
-  Test live-update
-  ********************/
- 
+  // Test live-update
   var liveUpdateTestData = [
-    //Add a bookmark that should show up
+    // Add a bookmark that should show up
     { isBookmark: true,
       uri: "http://bookmarked2.com/",
-      parentFolder: PlacesUtils.toolbarFolderId,
+      parentGuid: PlacesUtils.bookmarks.toolbarGuid,
       index: PlacesUtils.bookmarks.DEFAULT_INDEX,
-      title: "",
       isInQuery: true },
 
-    //Add a bookmark that should not show up
+    // Add a bookmark that should not show up
     { isBookmark: true,
       uri: "http://bookmarked-elsewhere2.com/",
-      parentFolder: PlacesUtils.bookmarksMenuFolderId,
+      parentGuid: PlacesUtils.bookmarks.menuGuid,
       index: PlacesUtils.bookmarks.DEFAULT_INDEX,
-      title: "",
       isInQuery: false }
   ];
-  
+
   yield task_populateDB(liveUpdateTestData); // add to the db
 
   // add to the test data
@@ -105,9 +98,9 @@ add_task(function test_onlyBookmarked()
   testData.push(liveUpdateTestData[1]);
 
   // re-query and test
-  LOG("begin live-update test");
+  do_print("begin live-update test");
   compareArrayToResult(testData, root);
-  LOG("end live-update test");
+  do_print("end live-update test");
 /*
   // we are actually not updating during a batch.
   // see bug 432706 for details.
@@ -126,9 +119,9 @@ add_task(function test_onlyBookmarked()
   PlacesUtils.history.runInBatchMode(updateBatch, null);
 
   // re-query and test
-  LOG("begin batched test");
+  do_print("begin batched test");
   compareArrayToResult(testData, root);
-  LOG("end batched test");
+  do_print("end batched test");
 */
   // Close the container when finished
   root.containerOpen = false;

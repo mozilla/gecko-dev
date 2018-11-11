@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -13,7 +14,6 @@
 #include "nsAutoPtr.h"
 #include "nsXBLEventHandler.h"
 #include "nsIWeakReference.h"
-#include "nsIScriptGlobalObject.h"
 #include "nsCycleCollectionParticipant.h"
 #include "js/TypeDecls.h"
 
@@ -28,9 +28,10 @@ class nsXBLPrototypeBinding;
 
 namespace mozilla {
 namespace dom {
+class AutoJSAPI;
 class EventTarget;
-}
-}
+} // namespace dom
+} // namespace mozilla
 
 #define NS_HANDLER_TYPE_XBL_JS              (1 << 0)
 #define NS_HANDLER_TYPE_XBL_COMMAND         (1 << 1)
@@ -45,8 +46,30 @@ class EventTarget;
 #define NS_PHASE_TARGET             2
 #define NS_PHASE_BUBBLING           3
 
+namespace mozilla {
+namespace dom {
+
+struct IgnoreModifierState
+{
+  // When mShift is true, Shift key state will be ignored.
+  bool mShift;
+  // When mOS is true, OS key state will be ignored.
+  bool mOS;
+
+  IgnoreModifierState()
+    : mShift(false)
+    , mOS(false)
+  {
+  }
+};
+
+} // namespace dom
+} // namespace mozilla
+
 class nsXBLPrototypeHandler
 {
+  typedef mozilla::dom::IgnoreModifierState IgnoreModifierState;
+
 public:
   // This constructor is used by XBL handlers (both the JS and command shorthand variety)
   nsXBLPrototypeHandler(const char16_t* aEvent, const char16_t* aPhase,
@@ -60,35 +83,30 @@ public:
                         uint32_t aLineNumber);
 
   // This constructor is used only by XUL key handlers (e.g., <key>)
-  nsXBLPrototypeHandler(nsIContent* aKeyElement);
+  explicit nsXBLPrototypeHandler(nsIContent* aKeyElement);
 
   // This constructor is used for handlers loaded from the cache
-  nsXBLPrototypeHandler(nsXBLPrototypeBinding* aBinding);
+  explicit nsXBLPrototypeHandler(nsXBLPrototypeBinding* aBinding);
 
   ~nsXBLPrototypeHandler();
 
+  bool EventTypeEquals(nsIAtom* aEventType) const
+  {
+    return mEventName == aEventType;
+  }
+
   // if aCharCode is not zero, it is used instead of the charCode of aKeyEvent.
   bool KeyEventMatched(nsIDOMKeyEvent* aKeyEvent,
-                         uint32_t aCharCode = 0,
-                         bool aIgnoreShiftKey = false);
-  inline bool KeyEventMatched(nsIAtom* aEventType,
-                                nsIDOMKeyEvent* aEvent,
-                                uint32_t aCharCode = 0,
-                                bool aIgnoreShiftKey = false)
-  {
-    if (aEventType != mEventName)
-      return false;
-
-    return KeyEventMatched(aEvent, aCharCode, aIgnoreShiftKey);
-  }
+                       uint32_t aCharCode,
+                       const IgnoreModifierState& aIgnoreModifierState);
 
   bool MouseEventMatched(nsIDOMMouseEvent* aMouseEvent);
   inline bool MouseEventMatched(nsIAtom* aEventType,
                                   nsIDOMMouseEvent* aEvent)
   {
-    if (aEventType != mEventName)
+    if (!EventTypeEquals(aEventType)) {
       return false;
-
+    }
     return MouseEventMatched(aEvent);
   }
 
@@ -110,8 +128,7 @@ public:
   nsXBLEventHandler* GetEventHandler()
   {
     if (!mHandler) {
-      NS_NewXBLEventHandler(this, mEventName, getter_AddRefs(mHandler));
-      // XXX Need to signal out of memory?
+      mHandler = NS_NewXBLEventHandler(this, mEventName);
     }
 
     return mHandler;
@@ -163,11 +180,10 @@ protected:
   void ReportKeyConflict(const char16_t* aKey, const char16_t* aModifiers, nsIContent* aElement, const char *aMessageName);
   void GetEventType(nsAString& type);
   bool ModifiersMatchMask(nsIDOMUIEvent* aEvent,
-                            bool aIgnoreShiftKey = false);
+                          const IgnoreModifierState& aIgnoreModifierState);
   nsresult DispatchXBLCommand(mozilla::dom::EventTarget* aTarget, nsIDOMEvent* aEvent);
   nsresult DispatchXULKeyCommand(nsIDOMEvent* aEvent);
-  nsresult EnsureEventHandler(nsIScriptGlobalObject* aGlobal,
-                              nsIScriptContext *aBoundContext, nsIAtom *aName,
+  nsresult EnsureEventHandler(mozilla::dom::AutoJSAPI& jsapi, nsIAtom* aName,
                               JS::MutableHandle<JSObject*> aHandler);
   static int32_t KeyToMask(int32_t key);
   static int32_t AccelKeyMask();
@@ -220,7 +236,7 @@ protected:
   // Prototype handlers are chained. We own the next handler in the chain.
   nsXBLPrototypeHandler* mNextHandler;
   nsCOMPtr<nsIAtom> mEventName; // The type of the event, e.g., "keypress"
-  nsRefPtr<nsXBLEventHandler> mHandler;
+  RefPtr<nsXBLEventHandler> mHandler;
   nsXBLPrototypeBinding* mPrototypeBinding; // the binding owns us
 };
 

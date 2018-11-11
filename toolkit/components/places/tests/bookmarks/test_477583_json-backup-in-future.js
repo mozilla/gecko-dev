@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,7 @@
 function run_test() {
   do_test_pending();
 
-  Task.spawn(function() {
+  Task.spawn(function*() {
     let backupFolder = yield PlacesBackups.getBackupFolder();
     let bookmarksBackupDir = new FileUtils.File(backupFolder);
     // Remove all files from backups folder.
@@ -21,8 +21,8 @@ function run_test() {
     let dateObj = new Date();
     dateObj.setYear(dateObj.getFullYear() + 1);
     let name = PlacesBackups.getFilenameForDate(dateObj);
-    do_check_eq(name, "bookmarks-" + dateObj.toLocaleFormat("%Y-%m-%d") + ".json");
-    let files = bookmarksBackupDir.directoryEntries;
+    do_check_eq(name, "bookmarks-" + PlacesBackups.toISODateString(dateObj) + ".json");
+    files = bookmarksBackupDir.directoryEntries;
     while (files.hasMoreElements()) {
       let entry = files.getNext().QueryInterface(Ci.nsIFile);
       if (PlacesBackups.filenamesRegex.test(entry.leafName))
@@ -31,7 +31,7 @@ function run_test() {
 
     let futureBackupFile = bookmarksBackupDir.clone();
     futureBackupFile.append(name);
-    futureBackupFile.create(Ci.nsILocalFile.NORMAL_FILE_TYPE, 0600);
+    futureBackupFile.create(Ci.nsILocalFile.NORMAL_FILE_TYPE, 0o600);
     do_check_true(futureBackupFile.exists());
 
     do_check_eq((yield PlacesBackups.getBackupFiles()).length, 0);
@@ -41,7 +41,6 @@ function run_test() {
     do_check_eq((yield PlacesBackups.getBackupFiles()).length, 1);
     let mostRecentBackupFile = yield PlacesBackups.getMostRecentBackup();
     do_check_neq(mostRecentBackupFile, null);
-    let todayFilename = PlacesBackups.getFilenameForDate();
     do_check_true(PlacesBackups.filenamesRegex.test(OS.Path.basename(mostRecentBackupFile)));
 
     // Check that future backup has been removed.

@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -6,6 +6,7 @@
 
 XPIDL_SOURCES += [
     'nsIArray.idl',
+    'nsIArrayExtensions.idl',
     'nsIAtom.idl',
     'nsIAtomService.idl',
     'nsICollection.idl',
@@ -36,7 +37,6 @@ if CONFIG['OS_ARCH'] == 'WINNT':
         'nsIWindowsRegKey.idl',
     ]
     EXPORTS += ['nsWindowsRegKey.h']
-    EXPORTS.mozilla += ['TimeStamp_windows.h']
     SOURCES += [
         'nsWindowsRegKey.cpp'
     ]
@@ -62,12 +62,13 @@ EXPORTS += [
 ]
 
 EXPORTS.mozilla += [
-    'CharTokenizer.h',
-    'StringBuilder.h',
-    'TimeStamp.h',
+    'IncrementalTokenizer.h',
+    'StickyTimeDuration.h',
+    'Tokenizer.h',
 ]
 
 UNIFIED_SOURCES += [
+    'IncrementalTokenizer.cpp',
     'nsArray.cpp',
     'nsAtomService.cpp',
     'nsAtomTable.cpp',
@@ -82,7 +83,7 @@ UNIFIED_SOURCES += [
     'nsSupportsArrayEnumerator.cpp',
     'nsSupportsPrimitives.cpp',
     'nsVariant.cpp',
-    'TimeStamp.cpp',
+    'Tokenizer.cpp',
 ]
 
 # These two files cannot be built in unified mode because they use the
@@ -92,32 +93,13 @@ SOURCES += [
     'nsStaticNameTable.cpp',
 ]
 
-if CONFIG['OS_ARCH'] == 'WINNT':
-    SOURCES += [
-        'TimeStamp_windows.cpp',
-    ]
-elif CONFIG['HAVE_CLOCK_MONOTONIC']:
-    SOURCES += [
-        'TimeStamp_posix.cpp',
-    ]
-elif CONFIG['OS_ARCH'] == 'Darwin':
-    SOURCES += [
-        'TimeStamp_darwin.cpp',
-    ]
-elif CONFIG['COMPILE_ENVIRONMENT']:
-    error('No TimeStamp implementation on this platform.  Build will not succeed')
-
 EXTRA_COMPONENTS += [
     'nsINIProcessor.js',
     'nsINIProcessor.manifest',
 ]
 
-FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
-
 LOCAL_INCLUDES += [
     '../io',
 ]
 
-FINAL_LIBRARY = 'xpcom_core'
+FINAL_LIBRARY = 'xul'

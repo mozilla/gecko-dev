@@ -40,7 +40,7 @@ var addon2 = {
 
 const profileDir = gProfD.clone();
 profileDir.append("extensions");
-profileDir.create(AM_Ci.nsIFile.DIRECTORY_TYPE, 0755);
+profileDir.create(AM_Ci.nsIFile.DIRECTORY_TYPE, 0o755);
 
 const sourceDir = gProfD.clone();
 sourceDir.append("source");
@@ -123,7 +123,7 @@ function run_test_1() {
     do_check_eq(uri.spec, rootUri);
     uri = a1.getResourceURI("install.rdf");
     do_check_eq(uri.spec, rootUri + "install.rdf");
-    
+
     // Check that upgrade is disabled for addons installed by file-pointers.
     do_check_eq(a1.permissions & AddonManager.PERM_CAN_UPGRADE, 0);
     run_test_2();
@@ -247,9 +247,9 @@ function run_test_5() {
     restartManager();
 
     AddonManager.getAddonsByIDs(["addon1@tests.mozilla.org",
-                                 "addon2@tests.mozilla.org"], function([a1, a2]) {
-      do_check_eq(a1, null);
-      do_check_eq(a2, null);
+                                 "addon2@tests.mozilla.org"], function([a1_2, a2_2]) {
+      do_check_eq(a1_2, null);
+      do_check_eq(a2_2, null);
 
       let source = sourceDir.clone();
       source.append(addon1.id);
@@ -283,8 +283,8 @@ function run_test_6() {
 
     restartManager();
 
-    AddonManager.getAddonByID("addon1@tests.mozilla.org", function(a1) {
-      do_check_eq(a1, null);
+    AddonManager.getAddonByID("addon1@tests.mozilla.org", function(a1_2) {
+      do_check_eq(a1_2, null);
 
       do_execute_soon(run_test_7);
     });
@@ -309,11 +309,11 @@ function run_test_7() {
 
     restartManager();
 
-    AddonManager.getAddonByID("addon1@tests.mozilla.org", function(a1) {
-      do_check_neq(a1, null);
-      do_check_eq(a1.version, "2.0");
+    AddonManager.getAddonByID("addon1@tests.mozilla.org", function(a1_2) {
+      do_check_neq(a1_2, null);
+      do_check_eq(a1_2.version, "2.0");
 
-      a1.uninstall();
+      a1_2.uninstall();
 
       do_execute_soon(run_test_8);
     });
@@ -336,11 +336,11 @@ function run_test_8() {
 
     restartManager();
 
-    AddonManager.getAddonByID("addon1@tests.mozilla.org", function(a1) {
-      do_check_neq(a1, null);
-      do_check_eq(a1.version, "2.0");
+    AddonManager.getAddonByID("addon1@tests.mozilla.org", function(a1_2) {
+      do_check_neq(a1_2, null);
+      do_check_eq(a1_2.version, "2.0");
 
-      a1.uninstall();
+      a1_2.uninstall();
 
       do_execute_soon(run_test_9);
     });
@@ -364,8 +364,8 @@ function run_test_9() {
 
     restartManager();
 
-    AddonManager.getAddonByID(addon1.id, function(a1) {
-      do_check_eq(a1, null);
+    AddonManager.getAddonByID(addon1.id, function(a1_2) {
+      do_check_eq(a1_2, null);
 
       let pointer = profileDir.clone();
       pointer.append(addon1.id);
@@ -395,7 +395,7 @@ function run_test_10() {
     do_check_eq(uri.spec, rootUri);
     uri = a1.getResourceURI("install.rdf");
     do_check_eq(uri.spec, rootUri + "install.rdf");
-    
+
     // Check that upgrade is disabled for addons installed by file-pointers.
     do_check_eq(a1.permissions & AddonManager.PERM_CAN_UPGRADE, 0);
     end_test();

@@ -3,7 +3,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "nsIDOMEvent.idl"
+#include "nsISupports.idl"
+#include "nsIDOMWindow.idl"
+
+interface mozIDOMWindow;
+interface mozIDOMWindowProxy;
 
 /**
  * The nsIDOMUIEvent interface is the datatype for all UI events in the
@@ -13,15 +17,25 @@
  * http://www.w3.org/TR/DOM-Level-2-Events/
  */
 
-[builtinclass, uuid(d73852f8-7bd6-477d-8233-117dbf83860b)]
-interface nsIDOMUIEvent : nsIDOMEvent
+%{C++
+namespace mozilla {
+namespace dom {
+class Event;
+}
+}
+%}
+
+[ptr] native EventPtr(mozilla::dom::Event);
+
+[builtinclass, uuid(85ae52eb-37fa-4fd9-a2e6-c7d0f2a521b3)]
+interface nsIDOMUIEvent : nsISupports
 {
-  readonly attribute nsIDOMWindow       view;
+  readonly attribute mozIDOMWindowProxy view;
   readonly attribute long               detail;
   void                      initUIEvent(in DOMString typeArg,
                                         in boolean canBubbleArg,
                                         in boolean cancelableArg,
-                                        in nsIDOMWindow viewArg,
+                                        in mozIDOMWindow viewArg,
                                         in long detailArg);
 
   const long SCROLL_PAGE_UP = -32768;
@@ -35,7 +49,7 @@ interface nsIDOMUIEvent : nsIDOMEvent
   readonly attribute nsIDOMNode         rangeParent;
   readonly attribute long               rangeOffset;
 
-           attribute boolean            cancelBubble;
-
   readonly attribute boolean            isChar;
+
+  [notxpcom, nostdcall] EventPtr AsEvent();
 };

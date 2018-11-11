@@ -41,7 +41,7 @@ const { REOPEN_ON_REWIND, DEFER_OPEN } = Ci.nsIFileInputStream;
 const { DIRECTORY_TYPE, NORMAL_FILE_TYPE } = Ci.nsIFile;
 const { NS_SEEK_SET, NS_SEEK_CUR, NS_SEEK_END } = Ci.nsISeekableStream;
 
-const FILE_PERMISSION = parseInt("0666", 8);
+const FILE_PERMISSION = 0o666;
 const PR_UINT32_MAX = 0xfffffff;
 // Values taken from:
 // http://mxr.mozilla.org/mozilla-central/source/nsprpub/pr/include/prio.h#615
@@ -72,21 +72,29 @@ function accessor() {
   }
 }
 
-let nsIFile = accessor();
-let nsIFileInputStream = accessor();
-let nsIFileOutputStream = accessor();
-let nsIBinaryInputStream = accessor();
-let nsIBinaryOutputStream = accessor();
+var nsIFile = accessor();
+var nsIFileInputStream = accessor();
+var nsIFileOutputStream = accessor();
+var nsIBinaryInputStream = accessor();
+var nsIBinaryOutputStream = accessor();
 
 // Just a contstant object used to signal that all of the file
 // needs to be read.
 const ALL = new String("Read all of the file");
 
-function isWritable(mode) !!(mode & PR_WRONLY || mode & PR_RDWR)
-function isReadable(mode) !!(mode & PR_RDONLY || mode & PR_RDWR)
+function isWritable(mode) {
+  return !!(mode & PR_WRONLY || mode & PR_RDWR);
+}
+function isReadable(mode) {
+  return !!(mode & PR_RDONLY || mode & PR_RDWR);
+}
 
-function isString(value) typeof(value) === "string"
-function isFunction(value) typeof(value) === "function"
+function isString(value) {
+  return typeof(value) === "string";
+}
+function isFunction(value) {
+  return typeof(value) === "function";
+}
 
 function toArray(enumerator) {
   let value = [];
@@ -95,7 +103,9 @@ function toArray(enumerator) {
   return value
 }
 
-function getFileName(file) file.QueryInterface(Ci.nsIFile).leafName
+function getFileName(file) {
+  return file.QueryInterface(Ci.nsIFile).leafName;
+}
 
 
 function remove(path, recursive) {
@@ -111,8 +121,8 @@ function remove(path, recursive) {
 /**
  * Utility function to convert either an octal number or string
  * into an octal number
- * 0777 => 0777
- * "0644" => 0644
+ * 0777 => 0o777
+ * "0644" => 0o644
  */
 function Mode(mode, fallback) {
   return isString(mode) ? parseInt(mode, 8) : mode || fallback;
@@ -249,33 +259,67 @@ const Stats = Class({
     if (!file.exists()) throw FSError("stat", "ENOENT", 34, path);
     nsIFile(this, file);
   },
-  isDirectory: function() nsIFile(this).isDirectory(),
-  isFile: function() nsIFile(this).isFile(),
-  isSymbolicLink: function() nsIFile(this).isSymlink(),
-  get mode() nsIFile(this).permissions,
-  get size() nsIFile(this).fileSize,
-  get mtime() nsIFile(this).lastModifiedTime,
-  isBlockDevice: function() nsIFile(this).isSpecial(),
-  isCharacterDevice: function() nsIFile(this).isSpecial(),
-  isFIFO: function() nsIFile(this).isSpecial(),
-  isSocket: function() nsIFile(this).isSpecial(),
+  isDirectory: function() {
+    return nsIFile(this).isDirectory();
+  },
+  isFile: function() {
+    return nsIFile(this).isFile();
+  },
+  isSymbolicLink: function() {
+    return nsIFile(this).isSymlink();
+  },
+  get mode() {
+    return nsIFile(this).permissions;
+  },
+  get size() {
+    return nsIFile(this).fileSize;
+  },
+  get mtime() {
+    return nsIFile(this).lastModifiedTime;
+  },
+  isBlockDevice: function() {
+    return nsIFile(this).isSpecial();
+  },
+  isCharacterDevice: function() {
+    return nsIFile(this).isSpecial();
+  },
+  isFIFO: function() {
+    return nsIFile(this).isSpecial();
+  },
+  isSocket: function() {
+    return nsIFile(this).isSpecial();
+  },
   // non standard
-  get exists() nsIFile(this).exists(),
-  get hidden() nsIFile(this).isHidden(),
-  get writable() nsIFile(this).isWritable(),
-  get readable() nsIFile(this).isReadable()
+  get exists() {
+    return nsIFile(this).exists();
+  },
+  get hidden() {
+    return nsIFile(this).isHidden();
+  },
+  get writable() {
+    return nsIFile(this).isWritable();
+  },
+  get readable() {
+    return nsIFile(this).isReadable();
+  }
 });
 exports.Stats = Stats;
 
 const LStats = Class({
   extends: Stats,
-  get size() this.isSymbolicLink() ? nsIFile(this).fileSizeOfLink :
-                                     nsIFile(this).fileSize,
-  get mtime() this.isSymbolicLink() ? nsIFile(this).lastModifiedTimeOfLink :
-                                      nsIFile(this).lastModifiedTime,
+  get size() {
+    return this.isSymbolicLink() ? nsIFile(this).fileSizeOfLink :
+                                   nsIFile(this).fileSize;
+  },
+  get mtime() {
+    return this.isSymbolicLink() ? nsIFile(this).lastModifiedTimeOfLink :
+                                   nsIFile(this).lastModifiedTime;
+  },
   // non standard
-  get permissions() this.isSymbolicLink() ? nsIFile(this).permissionsOfLink :
-                                            nsIFile(this).permissions
+  get permissions() {
+    return this.isSymbolicLink() ? nsIFile(this).permissionsOfLink :
+                                   nsIFile(this).permissions;
+  }
 });
 
 const FStat = Class({
@@ -324,7 +368,7 @@ exports.renameSync = renameSync;
  * Asynchronous rename(2). No arguments other than a possible exception are
  * given to the completion callback.
  */
-let rename = Async(renameSync);
+var rename = Async(renameSync);
 exports.rename = rename;
 
 /**
@@ -335,7 +379,7 @@ function existsSync(path) {
 }
 exports.existsSync = existsSync;
 
-let exists = Async(existsSync);
+var exists = Async(existsSync);
 exports.exists = exists;
 
 /**
@@ -385,7 +429,7 @@ function chownSync(path, uid, gid) {
 }
 exports.chownSync = chownSync;
 
-let chown = Async(chownSync);
+var chown = Async(chownSync);
 exports.chown = chown;
 
 function lchownSync(path, uid, gid) {
@@ -393,7 +437,7 @@ function lchownSync(path, uid, gid) {
 }
 exports.lchownSync = chownSync;
 
-let lchown = Async(lchown);
+var lchown = Async(lchown);
 exports.lchown = lchown;
 
 /**
@@ -414,7 +458,7 @@ exports.chmodSync = chmodSync;
  * Asynchronous chmod(2). No arguments other than a possible exception are
  * given to the completion callback.
  */
-let chmod = Async(chmodSync);
+var chmod = Async(chmodSync);
 exports.chmod = chmod;
 
 /**
@@ -428,7 +472,7 @@ exports.fchmodSync = fchmodSync;
  * Asynchronous chmod(2). No arguments other than a possible exception are
  * given to the completion callback.
  */
-let fchmod = Async(fchmodSync);
+var fchmod = Async(fchmodSync);
 exports.fchmod = fchmod;
 
 
@@ -444,7 +488,7 @@ exports.statSync = statSync;
  * Asynchronous stat(2). The callback gets two arguments (err, stats) where
  * stats is a `fs.Stats` object. It looks like this:
  */
-let stat = Async(statSync);
+var stat = Async(statSync);
 exports.stat = stat;
 
 /**
@@ -461,7 +505,7 @@ exports.lstatSync = lstatSync;
  * path is a symbolic link, then the link itself is stat-ed, not the file that
  * it refers to.
  */
-let lstat = Async(lstatSync);
+var lstat = Async(lstatSync);
 exports.lstat = lstat;
 
 /**
@@ -476,7 +520,7 @@ exports.fstatSync = fstatSync;
  * Asynchronous fstat(2). The callback gets two arguments (err, stats) where
  * stats is a fs.Stats object.
  */
-let fstat = Async(fstatSync);
+var fstat = Async(fstatSync);
 exports.fstat = fstat;
 
 /**
@@ -491,7 +535,7 @@ exports.linkSync = linkSync;
  * Asynchronous link(2). No arguments other than a possible exception are given
  * to the completion callback.
  */
-let link = Async(linkSync);
+var link = Async(linkSync);
 exports.link = link;
 
 /**
@@ -506,7 +550,7 @@ exports.symlinkSync = symlinkSync;
  * Asynchronous symlink(2). No arguments other than a possible exception are
  * given to the completion callback.
  */
-let symlink = Async(symlinkSync);
+var symlink = Async(symlinkSync);
 exports.symlink = symlink;
 
 /**
@@ -521,7 +565,7 @@ exports.readlinkSync = readlinkSync;
  * Asynchronous readlink(2). The callback gets two arguments
  * `(error, resolvedPath)`.
  */
-let readlink = Async(readlinkSync);
+var readlink = Async(readlinkSync);
 exports.readlink = readlink;
 
 /**
@@ -536,33 +580,33 @@ exports.realpathSync = realpathSync;
  * Asynchronous realpath(2). The callback gets two arguments
  * `(err, resolvedPath)`.
  */
-let realpath = Async(realpathSync);
+var realpath = Async(realpathSync);
 exports.realpath = realpath;
 
 /**
  * Synchronous unlink(2).
  */
-let unlinkSync = remove;
+var unlinkSync = remove;
 exports.unlinkSync = unlinkSync;
 
 /**
  * Asynchronous unlink(2). No arguments other than a possible exception are
  * given to the completion callback.
  */
-let unlink = Async(remove);
+var unlink = Async(remove);
 exports.unlink = unlink;
 
 /**
  * Synchronous rmdir(2).
  */
-let rmdirSync = remove;
+var rmdirSync = remove;
 exports.rmdirSync = rmdirSync;
 
 /**
  * Asynchronous rmdir(2). No arguments other than a possible exception are
  * given to the completion callback.
  */
-let rmdir = Async(rmdirSync);
+var rmdir = Async(rmdirSync);
 exports.rmdir = rmdir;
 
 /**
@@ -586,7 +630,7 @@ exports.mkdirSync = mkdirSync;
  * Asynchronous mkdir(2). No arguments other than a possible exception are
  * given to the completion callback.
  */
-let mkdir = Async(mkdirSync);
+var mkdir = Async(mkdirSync);
 exports.mkdir = mkdir;
 
 /**
@@ -615,7 +659,7 @@ exports.readdirSync = readdirSync;
  * gets two arguments `(error, files)` where `files` is an array of the names
  * of the files in the directory excluding `"."` and `".."`.
  */
-let readdir = Async(readdirSync);
+var readdir = Async(readdirSync);
 exports.readdir = readdir;
 
 /**
@@ -641,22 +685,22 @@ exports.closeSync = closeSync;
  * Asynchronous close(2). No arguments other than a possible exception are
  * given to the completion callback.
  */
-let close = Async(closeSync);
+var close = Async(closeSync);
 exports.close = close;
 
 /**
  * Synchronous open(2).
  */
-function openSync(path, flags, mode) {
+function openSync(aPath, aFlag, aMode) {
   let [ fd, flags, mode, file ] =
-      [ { path: path }, Flags(flags), Mode(mode), nsILocalFile(path) ];
+      [ { path: aPath }, Flags(aFlag), Mode(aMode), nsILocalFile(aPath) ];
 
   nsIFile(fd, file);
 
   // If trying to open file for just read that does not exists
   // need to throw exception as node does.
   if (!file.exists() && !isWritable(flags))
-    throw FSError("open", "ENOENT", 34, path);
+    throw FSError("open", "ENOENT", 34, aPath);
 
   // If we want to open file in read mode we initialize input stream.
   if (isReadable(flags)) {
@@ -678,7 +722,7 @@ exports.openSync = openSync;
  * `"r", "r+", "w", "w+", "a"`, or `"a+"`. mode defaults to `0666`.
  * The callback gets two arguments `(error, fd).
  */
-let open = Async(openSync);
+var open = Async(openSync);
 exports.open = open;
 
 /**
@@ -692,8 +736,6 @@ function writeSync(fd, buffer, offset, length, position) {
   else if (length + offset !== buffer.length) {
     buffer = buffer.slice(offset, offset + length);
   }
-  let writeStream = new WriteStream(fd, { position: position,
-                                          length: length });
 
   let output = BinaryOutputStream(nsIFileOutputStream(fd));
   nsIBinaryOutputStream(fd, output);
@@ -822,7 +864,8 @@ function readFile(path, encoding, callback) {
       readStream.destroy();
       callback(null, buffer);
     });
-  } catch (error) {
+  }
+  catch (error) {
     setTimeout(callback, 0, error);
   }
 };
@@ -885,6 +928,7 @@ exports.writeFile = writeFile;
  * The synchronous version of `fs.writeFile`.
  */
 function writeFileSync(filename, data, encoding) {
+  // TODO: Implement this in bug 1148209 https://bugzilla.mozilla.org/show_bug.cgi?id=1148209
   throw Error("Not implemented");
 };
 exports.writeFileSync = writeFileSync;
@@ -895,7 +939,7 @@ function utimesSync(path, atime, mtime) {
 }
 exports.utimesSync = utimesSync;
 
-let utimes = Async(utimesSync);
+var utimes = Async(utimesSync);
 exports.utimes = utimes;
 
 function futimesSync(fd, atime, mtime, callback) {
@@ -903,7 +947,7 @@ function futimesSync(fd, atime, mtime, callback) {
 }
 exports.futimesSync = futimesSync;
 
-let futimes = Async(futimesSync);
+var futimes = Async(futimesSync);
 exports.futimes = futimes;
 
 function fsyncSync(fd, atime, mtime, callback) {
@@ -911,7 +955,7 @@ function fsyncSync(fd, atime, mtime, callback) {
 }
 exports.fsyncSync = fsyncSync;
 
-let fsync = Async(fsyncSync);
+var fsync = Async(fsyncSync);
 exports.fsync = fsync;
 
 

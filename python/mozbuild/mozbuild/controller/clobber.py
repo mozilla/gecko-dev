@@ -2,14 +2,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 
 r'''This module contains code for managing clobbering of the tree.'''
 
+import errno
 import os
+import subprocess
 import sys
 
-from mozfile.mozfile import rmtree
+from mozfile.mozfile import remove as mozfileremove
 from textwrap import TextWrapper
 
 
@@ -52,6 +54,10 @@ class Clobberer(object):
         self.src_clobber = os.path.join(topsrcdir, 'CLOBBER')
         self.obj_clobber = os.path.join(topobjdir, 'CLOBBER')
 
+        # Try looking for mozilla/CLOBBER, for comm-central
+        if not os.path.isfile(self.src_clobber):
+            self.src_clobber = os.path.join(topsrcdir, 'mozilla', 'CLOBBER')
+
         assert os.path.isfile(self.src_clobber)
 
     def clobber_needed(self):
@@ -80,6 +86,55 @@ class Clobberer(object):
         with open(self.src_clobber, 'rt') as fh:
             lines = [l.strip() for l in fh.readlines()]
             return [l for l in lines if l and not l.startswith('#')]
+
+    def have_winrm(self):
+        # `winrm -h` should print 'winrm version ...' and exit 1
+        try:
+            p = subprocess.Popen(['winrm.exe', '-h'],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT)
+            return p.wait() == 1 and p.stdout.read().startswith('winrm')
+        except:
+            return False
+
+    def remove_objdir(self, full=True):
+        """Remove the object directory.
+
+        ``full`` controls whether to fully delete the objdir. If False,
+        some directories (e.g. Visual Studio Project Files) will not be
+        deleted.
+        """
+        # Top-level files and directories to not clobber by default.
+        no_clobber = {
+            '.mozbuild',
+            'msvc',
+        }
+
+        if full:
+            # mozfile doesn't like unicode arguments (bug 818783).
+            paths = [self.topobjdir.encode('utf-8')]
+        else:
+            try:
+                paths = []
+                for p in os.listdir(self.topobjdir):
+                    if p not in no_clobber:
+                        paths.append(os.path.join(self.topobjdir, p).encode('utf-8'))
+            except OSError as e:
+                if e.errno != errno.ENOENT:
+                    raise
+                return
+
+        procs = []
+        for p in sorted(paths):
+            path = os.path.join(self.topobjdir, p)
+            if sys.platform.startswith('win') and self.have_winrm() and os.path.isdir(path):
+                procs.append(subprocess.Popen(['winrm', '-rf', path]))
+            else:
+                # We use mozfile because it is faster than shutil.rmtree().
+                mozfileremove(path)
+
+        for p in procs:
+            p.wait()
 
     def ensure_objdir_state(self):
         """Ensure the CLOBBER file in the objdir exists.
@@ -136,18 +191,7 @@ class Clobberer(object):
 
         print('Automatically clobbering %s' % self.topobjdir, file=fh)
         try:
-            if cwd == self.topobjdir:
-                for entry in os.listdir(self.topobjdir):
-                    full = os.path.join(self.topobjdir, entry)
-
-                    if os.path.isdir(full):
-                        rmtree(full)
-                    else:
-                        os.unlink(full)
-
-            else:
-                rmtree(self.topobjdir)
-
+            self.remove_objdir(False)
             self.ensure_objdir_state()
             print('Successfully completed auto clobber.', file=fh)
             return True, True, None

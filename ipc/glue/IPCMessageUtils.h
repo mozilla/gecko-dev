@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=2 ts=8 et tw=80 : */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -11,21 +11,30 @@
 #include "chrome/common/ipc_message_utils.h"
 
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/Attributes.h"
+#include "mozilla/DebugOnly.h"
+#include "mozilla/dom/ipc/StructuredCloneData.h"
+#include "mozilla/Maybe.h"
+#include "mozilla/net/WebSocketFrame.h"
 #include "mozilla/TimeStamp.h"
 #ifdef XP_WIN
 #include "mozilla/TimeStamp_windows.h"
 #endif
-#include "mozilla/TypedEnum.h"
+#include "mozilla/TypeTraits.h"
 #include "mozilla/IntegerTypeTraits.h"
 
 #include <stdint.h>
 
+#ifdef MOZ_CRASHREPORTER
+#include "nsExceptionHandler.h"
+#endif
 #include "nsID.h"
+#include "nsIWidget.h"
 #include "nsMemory.h"
 #include "nsString.h"
 #include "nsTArray.h"
 #include "js/StructuredClone.h"
-#include "nsCSSProperty.h"
+#include "nsCSSPropertyID.h"
 
 #ifdef _MSC_VER
 #pragma warning( disable : 4800 )
@@ -55,39 +64,44 @@ struct null_t {
   bool operator==(const null_t&) const { return true; }
 };
 
-struct SerializedStructuredCloneBuffer
+struct SerializedStructuredCloneBuffer final
 {
   SerializedStructuredCloneBuffer()
-  : data(nullptr), dataLength(0)
-  { }
-
-  SerializedStructuredCloneBuffer(const JSAutoStructuredCloneBuffer& aOther)
+   : data(JS::StructuredCloneScope::Unassigned)
   {
-    *this = aOther;
+  }
+
+
+  SerializedStructuredCloneBuffer&
+  operator=(const SerializedStructuredCloneBuffer& aOther)
+  {
+    data.Clear();
+    data.initScope(aOther.data.scope());
+    data.Append(aOther.data);
+    return *this;
   }
 
   bool
   operator==(const SerializedStructuredCloneBuffer& aOther) const
   {
-    return this->data == aOther.data &&
-           this->dataLength == aOther.dataLength;
+    // The copy assignment operator and the equality operator are
+    // needed by the IPDL generated code. We relied on the copy
+    // assignment operator at some places but we never use the
+    // equality operator.
+    return false;
   }
 
-  SerializedStructuredCloneBuffer&
-  operator=(const JSAutoStructuredCloneBuffer& aOther)
-  {
-    data = aOther.data();
-    dataLength = aOther.nbytes();
-    return *this;
-  }
-
-  uint64_t* data;
-  size_t dataLength;
+  JSStructuredCloneData data;
 };
 
 } // namespace mozilla
 
 namespace IPC {
+
+/**
+ * Maximum size, in bytes, of a single IPC message.
+ */
+static const uint32_t MAX_MESSAGE_SIZE = 65536;
 
 /**
  * Generic enum serializer.
@@ -113,10 +127,19 @@ struct EnumSerializer {
     WriteParam(aMsg, uintParamType(aValue));
   }
 
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult) {
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult) {
     uintParamType value;
-    if(!ReadParam(aMsg, aIter, &value) ||
-       !EnumValidator::IsLegalValue(paramType(value))) {
+    if (!ReadParam(aMsg, aIter, &value)) {
+#ifdef MOZ_CRASHREPORTER
+      CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("IPCReadErrorReason"),
+                                         NS_LITERAL_CSTRING("Bad iter"));
+#endif
+      return false;
+    } else if (!EnumValidator::IsLegalValue(paramType(value))) {
+#ifdef MOZ_CRASHREPORTER
+      CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("IPCReadErrorReason"),
+                                         NS_LITERAL_CSTRING("Illegal value"));
+#endif
       return false;
     }
     *aResult = paramType(value);
@@ -127,18 +150,7 @@ struct EnumSerializer {
 template <typename E,
           E MinLegal,
           E HighBound>
-struct ContiguousEnumValidator
-{
-  static bool IsLegalValue(E e)
-  {
-    return MinLegal <= e && e < HighBound;
-  }
-};
-
-template <typename E,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) MinLegal,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) HighBound>
-class ContiguousTypedEnumValidator
+class ContiguousEnumValidator
 {
   // Silence overzealous -Wtype-limits bug in GCC fixed in GCC 4.8:
   // "comparison of unsigned expression >= 0 is always true"
@@ -149,25 +161,13 @@ class ContiguousTypedEnumValidator
 public:
   static bool IsLegalValue(E e)
   {
-    typedef MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) ActualEnumType;
-    return IsLessThanOrEqual(MinLegal, ActualEnumType(e)) &&
-           ActualEnumType(e) < HighBound;
+    return IsLessThanOrEqual(MinLegal, e) && e < HighBound;
   }
 };
 
 template <typename E,
           E AllBits>
 struct BitFlagsEnumValidator
-{
-  static bool IsLegalValue(E e)
-  {
-    return (e & AllBits) == e;
-  }
-};
-
-template <typename E,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) AllBits>
-struct BitFlagsTypedEnumValidator
 {
   static bool IsLegalValue(E e)
   {
@@ -200,19 +200,6 @@ struct ContiguousEnumSerializer
 {};
 
 /**
- * Similar to ContiguousEnumSerializer, but for MFBT typed enums
- * as constructed by MOZ_BEGIN_ENUM_CLASS. This can go away when
- * we drop MOZ_BEGIN_ENUM_CLASS and use C++11 enum classes directly.
- */
-template <typename E,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) MinLegal,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) HighBound>
-struct ContiguousTypedEnumSerializer
-  : EnumSerializer<E,
-                   ContiguousTypedEnumValidator<E, MinLegal, HighBound>>
-{};
-
-/**
  * Specialization of EnumSerializer for enums representing bit flags.
  *
  * Provide one value: AllBits. An enum value x will be
@@ -239,18 +226,6 @@ struct BitFlagsEnumSerializer
                    BitFlagsEnumValidator<E, AllBits>>
 {};
 
-/**
- * Similar to BitFlagsEnumSerializer, but for MFBT typed enums
- * as constructed by MOZ_BEGIN_ENUM_CLASS. This can go away when
- * we drop MOZ_BEGIN_ENUM_CLASS and use C++11 enum classes directly.
- */
-template <typename E,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) AllBits>
-struct BitFlagsTypedEnumSerializer
-  : EnumSerializer<E,
-                   BitFlagsTypedEnumValidator<E, AllBits>>
-{};
-
 template <>
 struct ParamTraits<base::ChildPrivileges>
   : public ContiguousEnumSerializer<base::ChildPrivileges,
@@ -268,14 +243,9 @@ struct ParamTraits<int8_t>
     aMsg->WriteBytes(&aParam, sizeof(aParam));
   }
 
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
-    const char* outp;
-    if (!aMsg->ReadBytes(aIter, &outp, sizeof(*aResult)))
-      return false;
-
-    *aResult = *reinterpret_cast<const paramType*>(outp);
-    return true;
+    return aMsg->ReadBytesInto(aIter, aResult, sizeof(*aResult));
   }
 };
 
@@ -289,14 +259,9 @@ struct ParamTraits<uint8_t>
     aMsg->WriteBytes(&aParam, sizeof(aParam));
   }
 
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
-    const char* outp;
-    if (!aMsg->ReadBytes(aIter, &outp, sizeof(*aResult)))
-      return false;
-
-    *aResult = *reinterpret_cast<const paramType*>(outp);
-    return true;
+    return aMsg->ReadBytesInto(aIter, aResult, sizeof(*aResult));
   }
 };
 
@@ -309,7 +274,7 @@ struct ParamTraits<base::FileDescriptor>
   static void Write(Message* aMsg, const paramType& aParam) {
     NS_RUNTIMEABORT("FileDescriptor isn't meaningful on this platform");
   }
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult) {
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult) {
     NS_RUNTIMEABORT("FileDescriptor isn't meaningful on this platform");
     return false;
   }
@@ -335,7 +300,7 @@ struct ParamTraits<nsACString>
     aMsg->WriteBytes(aParam.BeginReading(), length);
   }
 
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
     bool isVoid;
     if (!aMsg->ReadBool(aIter, &isVoid))
@@ -347,14 +312,12 @@ struct ParamTraits<nsACString>
     }
 
     uint32_t length;
-    if (ReadParam(aMsg, aIter, &length)) {
-      const char* buf;
-      if (aMsg->ReadBytes(aIter, &buf, length)) {
-        aResult->Assign(buf, length);
-        return true;
-      }
+    if (!ReadParam(aMsg, aIter, &length)) {
+      return false;
     }
-    return false;
+    aResult->SetLength(length);
+
+    return aMsg->ReadBytesInto(aIter, aResult->BeginWriting(), length);
   }
 
   static void Log(const paramType& aParam, std::wstring* aLog)
@@ -385,7 +348,7 @@ struct ParamTraits<nsAString>
     aMsg->WriteBytes(aParam.BeginReading(), length * sizeof(char16_t));
   }
 
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
     bool isVoid;
     if (!aMsg->ReadBool(aIter, &isVoid))
@@ -397,15 +360,12 @@ struct ParamTraits<nsAString>
     }
 
     uint32_t length;
-    if (ReadParam(aMsg, aIter, &length)) {
-      const char16_t* buf;
-      if (aMsg->ReadBytes(aIter, reinterpret_cast<const char**>(&buf),
-                       length * sizeof(char16_t))) {
-        aResult->Assign(buf, length);
-        return true;
-      }
+    if (!ReadParam(aMsg, aIter, &length)) {
+      return false;
     }
-    return false;
+    aResult->SetLength(length);
+
+    return aMsg->ReadBytesInto(aIter, aResult->BeginWriting(), length * sizeof(char16_t));
   }
 
   static void Log(const paramType& aParam, std::wstring* aLog)
@@ -459,36 +419,73 @@ struct ParamTraits<nsLiteralString> : ParamTraits<nsAString>
   typedef nsLiteralString paramType;
 };
 
+// Pickle::ReadBytes and ::WriteBytes take the length in ints, so we must
+// ensure there is no overflow. This returns |false| if it would overflow.
+// Otherwise, it returns |true| and places the byte length in |aByteLength|.
+bool ByteLengthIsValid(uint32_t aNumElements, size_t aElementSize, int* aByteLength);
+
+// Note: IPDL will sometimes codegen specialized implementations of
+// nsTArray serialization and deserialization code in
+// implementSpecialArrayPickling(). This is needed when ParamTraits<E>
+// is not defined.
 template <typename E>
-struct ParamTraits<FallibleTArray<E> >
+struct ParamTraits<nsTArray<E>>
 {
-  typedef FallibleTArray<E> paramType;
+  typedef nsTArray<E> paramType;
+
+  // We write arrays of integer or floating-point data using a single pickling
+  // call, rather than writing each element individually.  We deliberately do
+  // not use mozilla::IsPod here because it is perfectly reasonable to have
+  // a data structure T for which IsPod<T>::value is true, yet also have a
+  // ParamTraits<T> specialization.
+  static const bool sUseWriteBytes = (mozilla::IsIntegral<E>::value ||
+                                      mozilla::IsFloatingPoint<E>::value);
 
   static void Write(Message* aMsg, const paramType& aParam)
   {
     uint32_t length = aParam.Length();
     WriteParam(aMsg, length);
-    for (uint32_t index = 0; index < length; index++) {
-      WriteParam(aMsg, aParam[index]);
+
+    if (sUseWriteBytes) {
+      int pickledLength = 0;
+      MOZ_RELEASE_ASSERT(ByteLengthIsValid(length, sizeof(E), &pickledLength));
+      aMsg->WriteBytes(aParam.Elements(), pickledLength);
+    } else {
+      const E* elems = aParam.Elements();
+      for (uint32_t index = 0; index < length; index++) {
+        WriteParam(aMsg, elems[index]);
+      }
     }
   }
 
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  // This method uses infallible allocation so that an OOM failure will
+  // show up as an OOM crash rather than an IPC FatalError.
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
     uint32_t length;
     if (!ReadParam(aMsg, aIter, &length)) {
       return false;
     }
 
-    aResult->SetCapacity(length);
-    for (uint32_t index = 0; index < length; index++) {
-      E* element = aResult->AppendElement();
-      if (!(element && ReadParam(aMsg, aIter, element))) {
+    if (sUseWriteBytes) {
+      int pickledLength = 0;
+      if (!ByteLengthIsValid(length, sizeof(E), &pickledLength)) {
         return false;
       }
-    }
 
-    return true;
+      E* elements = aResult->AppendElements(length);
+      return aMsg->ReadBytesInto(aIter, elements, pickledLength);
+    } else {
+      aResult->SetCapacity(length);
+
+      for (uint32_t index = 0; index < length; index++) {
+        E* element = aResult->AppendElement();
+        if (!ReadParam(aMsg, aIter, element)) {
+          return false;
+        }
+      }
+      return true;
+    }
   }
 
   static void Log(const paramType& aParam, std::wstring* aLog)
@@ -503,19 +500,19 @@ struct ParamTraits<FallibleTArray<E> >
 };
 
 template<typename E>
-struct ParamTraits<InfallibleTArray<E> >
+struct ParamTraits<FallibleTArray<E>>
 {
-  typedef InfallibleTArray<E> paramType;
+  typedef FallibleTArray<E> paramType;
 
   static void Write(Message* aMsg, const paramType& aParam)
   {
-    WriteParam(aMsg, static_cast<const FallibleTArray<E>&>(aParam));
+    WriteParam(aMsg, static_cast<const nsTArray<E>&>(aParam));
   }
 
-  // deserialize the array fallibly, but return an InfallibleTArray
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  // Deserialize the array infallibly, but return a FallibleTArray.
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
-    FallibleTArray<E> temp;
+    nsTArray<E> temp;
     if (!ReadParam(aMsg, aIter, &temp))
       return false;
 
@@ -525,8 +522,14 @@ struct ParamTraits<InfallibleTArray<E> >
 
   static void Log(const paramType& aParam, std::wstring* aLog)
   {
-    LogParam(static_cast<const FallibleTArray<E>&>(aParam), aLog);
+    LogParam(static_cast<const nsTArray<E>&>(aParam), aLog);
   }
+};
+
+template<typename E, size_t N>
+struct ParamTraits<AutoTArray<E, N>> : ParamTraits<nsTArray<E>>
+{
+  typedef AutoTArray<E, N> paramType;
 };
 
 template<>
@@ -539,13 +542,9 @@ struct ParamTraits<float>
     aMsg->WriteBytes(&aParam, sizeof(paramType));
   }
 
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
-    const char* outFloat;
-    if (!aMsg->ReadBytes(aIter, &outFloat, sizeof(float)))
-      return false;
-    *aResult = *reinterpret_cast<const float*>(outFloat);
-    return true;
+    return aMsg->ReadBytesInto(aIter, aResult, sizeof(*aResult));
   }
 
   static void Log(const paramType& aParam, std::wstring* aLog)
@@ -555,8 +554,8 @@ struct ParamTraits<float>
 };
 
 template <>
-struct ParamTraits<nsCSSProperty>
-  : public ContiguousEnumSerializer<nsCSSProperty,
+struct ParamTraits<nsCSSPropertyID>
+  : public ContiguousEnumSerializer<nsCSSPropertyID,
                                     eCSSProperty_UNKNOWN,
                                     eCSSProperty_COUNT>
 {};
@@ -567,7 +566,7 @@ struct ParamTraits<mozilla::void_t>
   typedef mozilla::void_t paramType;
   static void Write(Message* aMsg, const paramType& aParam) { }
   static bool
-  Read(const Message* aMsg, void** aIter, paramType* aResult)
+  Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
     *aResult = paramType();
     return true;
@@ -580,7 +579,7 @@ struct ParamTraits<mozilla::null_t>
   typedef mozilla::null_t paramType;
   static void Write(Message* aMsg, const paramType& aParam) { }
   static bool
-  Read(const Message* aMsg, void** aIter, paramType* aResult)
+  Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
     *aResult = paramType();
     return true;
@@ -602,7 +601,7 @@ struct ParamTraits<nsID>
     }
   }
 
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
     if(!ReadParam(aMsg, aIter, &(aResult->m0)) ||
        !ReadParam(aMsg, aIter, &(aResult->m1)) ||
@@ -637,7 +636,7 @@ struct ParamTraits<mozilla::TimeDuration>
   {
     WriteParam(aMsg, aParam.mValue);
   }
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
     return ReadParam(aMsg, aIter, &aResult->mValue);
   };
@@ -651,7 +650,7 @@ struct ParamTraits<mozilla::TimeStamp>
   {
     WriteParam(aMsg, aParam.mValue);
   }
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
     return ReadParam(aMsg, aIter, &aResult->mValue);
   };
@@ -670,7 +669,7 @@ struct ParamTraits<mozilla::TimeStampValue>
     WriteParam(aMsg, aParam.mHasQPC);
     WriteParam(aMsg, aParam.mIsNull);
   }
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
     return (ReadParam(aMsg, aIter, &aResult->mGTC) &&
             ReadParam(aMsg, aIter, &aResult->mQPC) &&
@@ -682,43 +681,148 @@ struct ParamTraits<mozilla::TimeStampValue>
 #endif
 
 template <>
+struct ParamTraits<mozilla::dom::ipc::StructuredCloneData>
+{
+  typedef mozilla::dom::ipc::StructuredCloneData paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    aParam.WriteIPCParams(aMsg);
+  }
+
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
+  {
+    return aResult->ReadIPCParams(aMsg, aIter);
+  }
+
+  static void Log(const paramType& aParam, std::wstring* aLog)
+  {
+    LogParam(aParam.DataLength(), aLog);
+  }
+};
+
+template <>
+struct ParamTraits<mozilla::net::WebSocketFrameData>
+{
+  typedef mozilla::net::WebSocketFrameData paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    aParam.WriteIPCParams(aMsg);
+  }
+
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
+  {
+    return aResult->ReadIPCParams(aMsg, aIter);
+  }
+};
+
+template <>
+struct ParamTraits<JSStructuredCloneData>
+{
+  typedef JSStructuredCloneData paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    MOZ_ASSERT(!(aParam.Size() % sizeof(uint64_t)));
+    WriteParam(aMsg, aParam.Size());
+    aParam.ForEachDataChunk([&](const char* aData, size_t aSize) {
+        return aMsg->WriteBytes(aData, aSize, sizeof(uint64_t));
+    });
+  }
+
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
+  {
+    size_t length = 0;
+    if (!ReadParam(aMsg, aIter, &length)) {
+      return false;
+    }
+    MOZ_ASSERT(!(length % sizeof(uint64_t)));
+
+    mozilla::BufferList<InfallibleAllocPolicy> buffers(0, 0, 4096);
+
+    // Borrowing is not suitable to use for IPC to hand out data
+    // because we often want to store the data somewhere for
+    // processing after IPC has released the underlying buffers. One
+    // case is PContentChild::SendGetXPCOMProcessAttributes. We can't
+    // return a borrowed buffer because the out param outlives the
+    // IPDL callback.
+    if (length && !aMsg->ExtractBuffers(aIter, length, &buffers, sizeof(uint64_t))) {
+      return false;
+    }
+
+    bool success;
+    mozilla::BufferList<js::SystemAllocPolicy> out =
+      buffers.MoveFallible<js::SystemAllocPolicy>(&success);
+    if (!success) {
+      return false;
+    }
+
+    *aResult = JSStructuredCloneData(Move(out), JS::StructuredCloneScope::DifferentProcess);
+
+    return true;
+  }
+};
+
+template <>
 struct ParamTraits<mozilla::SerializedStructuredCloneBuffer>
 {
   typedef mozilla::SerializedStructuredCloneBuffer paramType;
 
   static void Write(Message* aMsg, const paramType& aParam)
   {
-    WriteParam(aMsg, aParam.dataLength);
-    if (aParam.dataLength) {
-      // Structured clone data must be 64-bit aligned.
-      aMsg->WriteBytes(aParam.data, aParam.dataLength, sizeof(uint64_t));
-    }
+    WriteParam(aMsg, aParam.data);
   }
 
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
-    if (!ReadParam(aMsg, aIter, &aResult->dataLength)) {
-      return false;
-    }
-
-    if (aResult->dataLength) {
-      const char** buffer =
-        const_cast<const char**>(reinterpret_cast<char**>(&aResult->data));
-      // Structured clone data must be 64-bit aligned.
-      if (!aMsg->ReadBytes(aIter, buffer, aResult->dataLength,
-                           sizeof(uint64_t))) {
-        return false;
-      }
-    } else {
-      aResult->data = nullptr;
-    }
-
-    return true;
+    return ReadParam(aMsg, aIter, &aResult->data);
   }
 
   static void Log(const paramType& aParam, std::wstring* aLog)
   {
-    LogParam(aParam.dataLength, aLog);
+    LogParam(aParam.data.Size(), aLog);
+  }
+};
+
+template <>
+struct ParamTraits<nsIWidget::TouchPointerState>
+  : public BitFlagsEnumSerializer<nsIWidget::TouchPointerState,
+                                  nsIWidget::TouchPointerState::ALL_BITS>
+{
+};
+
+template<class T>
+struct ParamTraits<mozilla::Maybe<T>>
+{
+  typedef mozilla::Maybe<T> paramType;
+
+  static void Write(Message* msg, const paramType& param)
+  {
+    if (param.isSome()) {
+      WriteParam(msg, true);
+      WriteParam(msg, param.value());
+    } else {
+      WriteParam(msg, false);
+    }
+  }
+
+  static bool Read(const Message* msg, PickleIterator* iter, paramType* result)
+  {
+    bool isSome;
+    if (!ReadParam(msg, iter, &isSome)) {
+      return false;
+    }
+    if (isSome) {
+      T tmp;
+      if (!ReadParam(msg, iter, &tmp)) {
+        return false;
+      }
+      *result = mozilla::Some(mozilla::Move(tmp));
+    } else {
+      *result = mozilla::Nothing();
+    }
+    return true;
   }
 };
 

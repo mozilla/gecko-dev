@@ -18,6 +18,7 @@
 #include "nsITypeAheadFind.h"
 #include "nsISound.h"
 
+class nsPIDOMWindowInner;
 class nsIPresShell;
 class nsPresContext;
 
@@ -30,7 +31,6 @@ class nsTypeAheadFind : public nsITypeAheadFind,
 {
 public:
   nsTypeAheadFind();
-  virtual ~nsTypeAheadFind();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSITYPEAHEADFIND
@@ -39,6 +39,8 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsTypeAheadFind, nsITypeAheadFind)
 
 protected:
+  virtual ~nsTypeAheadFind();
+
   nsresult PrefsReset();
 
   void SaveFind();
@@ -84,7 +86,7 @@ protected:
   nsCOMPtr<nsIDOMElement> mFoundLink;     // Most recent elem found, if a link
   nsCOMPtr<nsIDOMElement> mFoundEditable; // Most recent elem found, if editable
   nsCOMPtr<nsIDOMRange> mFoundRange;      // Most recent range found
-  nsCOMPtr<nsIDOMWindow> mCurrentWindow;
+  nsCOMPtr<nsPIDOMWindowInner> mCurrentWindow;
   // mLastFindLength is the character length of the last find string.  It is used for
   // disabling the "not found" sound when using backspace or delete
   uint32_t mLastFindLength;
@@ -104,6 +106,7 @@ protected:
   nsCOMPtr<nsIFind> mFind;
 
   bool mCaseSensitive;
+  bool mEntireWord;
 
   bool EnsureFind() {
     if (mFind) {
@@ -116,7 +119,7 @@ protected:
     }
 
     mFind->SetCaseSensitive(mCaseSensitive);
-    mFind->SetWordBreaker(nullptr);
+    mFind->SetEntireWord(mEntireWord);
 
     return true;
   }

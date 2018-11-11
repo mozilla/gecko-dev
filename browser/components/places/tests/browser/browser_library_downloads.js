@@ -10,7 +10,7 @@
  * are shown in it.
  */
 
-let now = Date.now();
+var now = Date.now();
 
 function test() {
   waitForExplicitFinish();
@@ -52,7 +52,7 @@ function test() {
         }
 
         win.close();
-        waitForClearHistory(finish);
+        PlacesTestUtils.clearHistory().then(finish);
       }
     })
   }

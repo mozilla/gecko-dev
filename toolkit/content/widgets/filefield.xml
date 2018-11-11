@@ -23,17 +23,17 @@
     <implementation implements="nsIDOMXULLabeledControlElement">
       <property name="label" onget="return this.getAttribute('label');">
         <setter>
-          this.setAttribute('label', val); 
+          this.setAttribute('label', val);
           var elt = document.getAnonymousElementByAttribute(this, "class", "fileFieldLabel");
           return (elt.value = val);
         </setter>
       </property>
-      
+
       <field name="_file">null</field>
       <property name="file"  onget="return this._file">
         <setter>
         <![CDATA[
-          this._file = val; 
+          this._file = val;
           if (val) {
             this.image = this._getIconURLForFile(val);
             this.label = this._getDisplayNameForFile(val);
@@ -42,33 +42,32 @@
             this.removeAttribute("image");
             var bundle = document.getAnonymousElementByAttribute(this, "anonid", "bundle");
             this.label = bundle.getString("downloadHelperNoneSelected");
-          }            
+          }
           return val;
         ]]>
         </setter>
-      </property>      
+      </property>
       <method name="_getDisplayNameForFile">
         <parameter name="aFile"/>
         <body>
         <![CDATA[
-#ifdef XP_WIN
-          var lfw = aFile.QueryInterface(Components.interfaces.nsILocalFileWin);
-          try {
-            return lfw.getVersionInfoField("FileDescription"); 
+          if (/Win/.test(navigator.platform)) {
+            var lfw = aFile.QueryInterface(Components.interfaces.nsILocalFileWin);
+            try {
+              return lfw.getVersionInfoField("FileDescription");
+            }
+            catch (e) {
+              // fall through to the filename
+            }
+          } else if (/Mac/.test(navigator.platform)) {
+            var lfm = aFile.QueryInterface(Components.interfaces.nsILocalFileMac);
+            try {
+              return lfm.bundleDisplayName;
+            }
+            catch (e) {
+              // fall through to the file name
+            }
           }
-          catch (e) {
-            // fall through to the filename
-          }
-#endif
-#ifdef XP_MACOSX
-          var lfm = aFile.QueryInterface(Components.interfaces.nsILocalFileMac);
-          try {
-            return lfm.bundleDisplayName;
-          }
-          catch (e) {
-            // fall through to the file name
-          }
-#endif
           var ios = Components.classes["@mozilla.org/network/io-service;1"]
                               .getService(Components.interfaces.nsIIOService);
           var url = ios.newFileURI(aFile).QueryInterface(Components.interfaces.nsIURL);
@@ -76,7 +75,7 @@
         ]]>
         </body>
       </method>
-      
+
       <method name="_getIconURLForFile">
         <parameter name="aFile"/>
         <body>
@@ -88,7 +87,7 @@
           var fph = ios.getProtocolHandler("file")
                        .QueryInterface(Components.interfaces.nsIFileProtocolHandler);
           var urlspec = fph.getURLSpecFromFile(aFile);
-          return "moz-icon://" + urlspec + "?size=16";  
+          return "moz-icon://" + urlspec + "?size=16";
         ]]>
         </body>
       </method>

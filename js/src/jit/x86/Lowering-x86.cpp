@@ -14,295 +14,645 @@
 using namespace js;
 using namespace js::jit;
 
+LBoxAllocation
+LIRGeneratorX86::useBoxFixed(MDefinition* mir, Register reg1, Register reg2, bool useAtStart)
+{
+    MOZ_ASSERT(mir->type() == MIRType::Value);
+    MOZ_ASSERT(reg1 != reg2);
+
+    ensureDefined(mir);
+    return LBoxAllocation(LUse(reg1, mir->virtualRegister(), useAtStart),
+                          LUse(reg2, VirtualRegisterOfPayload(mir), useAtStart));
+}
+
+LAllocation
+LIRGeneratorX86::useByteOpRegister(MDefinition* mir)
+{
+    return useFixed(mir, eax);
+}
+
+LAllocation
+LIRGeneratorX86::useByteOpRegisterAtStart(MDefinition* mir)
+{
+    return useFixedAtStart(mir, eax);
+}
+
+LAllocation
+LIRGeneratorX86::useByteOpRegisterOrNonDoubleConstant(MDefinition* mir)
+{
+    return useFixed(mir, eax);
+}
+
 LDefinition
-LIRGeneratorX86::tempForDispatchCache(MIRType outputType)
+LIRGeneratorX86::tempByteOpRegister()
 {
-    // x86 doesn't have a scratch register and we need one for the
-    // indirect jump for dispatch-style ICs.
-    //
-    // Note that currently we only install dispatch-style ICs for parallel
-    // execution. If this assumption changes, please change it here.
-    if (gen->info().executionMode() != ParallelExecution)
-        return LDefinition::BogusTemp();
-
-    // If we don't have an output register, we need a temp.
-    if (outputType == MIRType_None)
-        return temp();
-
-    // If we have a double output register, we need a temp.
-    if (outputType == MIRType_Double)
-        return temp();
-
-    // Otherwise we have a non-double output register and we can reuse it.
-    return LDefinition::BogusTemp();
+    return tempFixed(eax);
 }
 
-bool
-LIRGeneratorX86::useBox(LInstruction *lir, size_t n, MDefinition *mir,
-                        LUse::Policy policy, bool useAtStart)
+void
+LIRGeneratorX86::visitBox(MBox* box)
 {
-    JS_ASSERT(mir->type() == MIRType_Value);
-
-    if (!ensureDefined(mir))
-        return false;
-    lir->setOperand(n, LUse(mir->virtualRegister(), policy, useAtStart));
-    lir->setOperand(n + 1, LUse(VirtualRegisterOfPayload(mir), policy, useAtStart));
-    return true;
-}
-
-bool
-LIRGeneratorX86::useBoxFixed(LInstruction *lir, size_t n, MDefinition *mir, Register reg1,
-                             Register reg2)
-{
-    JS_ASSERT(mir->type() == MIRType_Value);
-    JS_ASSERT(reg1 != reg2);
-
-    if (!ensureDefined(mir))
-        return false;
-    lir->setOperand(n, LUse(reg1, mir->virtualRegister()));
-    lir->setOperand(n + 1, LUse(reg2, VirtualRegisterOfPayload(mir)));
-    return true;
-}
-
-LAllocation
-LIRGeneratorX86::useByteOpRegister(MDefinition *mir)
-{
-    return useFixed(mir, eax);
-}
-
-LAllocation
-LIRGeneratorX86::useByteOpRegisterOrNonDoubleConstant(MDefinition *mir)
-{
-    return useFixed(mir, eax);
-}
-
-bool
-LIRGeneratorX86::visitBox(MBox *box)
-{
-    MDefinition *inner = box->getOperand(0);
+    MDefinition* inner = box->getOperand(0);
 
     // If the box wrapped a double, it needs a new register.
-    if (IsFloatingPointType(inner->type()))
-        return defineBox(new(alloc()) LBoxFloatingPoint(useRegisterAtStart(inner), tempCopy(inner, 0),
-                                                        inner->type()), box);
+    if (IsFloatingPointType(inner->type())) {
+        defineBox(new(alloc()) LBoxFloatingPoint(useRegisterAtStart(inner), tempCopy(inner, 0),
+                                                 inner->type()), box);
+        return;
+    }
 
-    if (box->canEmitAtUses())
-        return emitAtUses(box);
+    if (box->canEmitAtUses()) {
+        emitAtUses(box);
+        return;
+    }
 
-    if (inner->isConstant())
-        return defineBox(new(alloc()) LValue(inner->toConstant()->value()), box);
+    if (inner->isConstant()) {
+        defineBox(new(alloc()) LValue(inner->toConstant()->toJSValue()), box);
+        return;
+    }
 
-    LBox *lir = new(alloc()) LBox(use(inner), inner->type());
+    LBox* lir = new(alloc()) LBox(use(inner), inner->type());
 
     // Otherwise, we should not define a new register for the payload portion
     // of the output, so bypass defineBox().
     uint32_t vreg = getVirtualRegister();
-    if (vreg >= MAX_VIRTUAL_REGISTERS)
-        return false;
 
-    // Note that because we're using PASSTHROUGH, we do not change the type of
+    // Note that because we're using BogusTemp(), we do not change the type of
     // the definition. We also do not define the first output as "TYPE",
     // because it has no corresponding payload at (vreg + 1). Also note that
     // although we copy the input's original type for the payload half of the
-    // definition, this is only for clarity. PASSTHROUGH definitions are
+    // definition, this is only for clarity. BogusTemp() definitions are
     // ignored.
     lir->setDef(0, LDefinition(vreg, LDefinition::GENERAL));
-    lir->setDef(1, LDefinition(inner->virtualRegister(), LDefinition::TypeFrom(inner->type()),
-                               LDefinition::PASSTHROUGH));
+    lir->setDef(1, LDefinition::BogusTemp());
     box->setVirtualRegister(vreg);
-    return add(lir);
+    add(lir);
 }
 
-bool
-LIRGeneratorX86::visitUnbox(MUnbox *unbox)
+void
+LIRGeneratorX86::visitUnbox(MUnbox* unbox)
 {
-    // An unbox on x86 reads in a type tag (either in memory or a register) and
-    // a payload. Unlike most instructions conusming a box, we ask for the type
-    // second, so that the result can re-use the first input.
-    MDefinition *inner = unbox->getOperand(0);
+    MDefinition* inner = unbox->getOperand(0);
 
-    if (!ensureDefined(inner))
-        return false;
+    if (inner->type() == MIRType::ObjectOrNull) {
+        LUnboxObjectOrNull* lir = new(alloc()) LUnboxObjectOrNull(useRegisterAtStart(inner));
+        if (unbox->fallible())
+            assignSnapshot(lir, unbox->bailoutKind());
+        defineReuseInput(lir, unbox, 0);
+        return;
+    }
+
+    // An unbox on x86 reads in a type tag (either in memory or a register) and
+    // a payload. Unlike most instructions consuming a box, we ask for the type
+    // second, so that the result can re-use the first input.
+    MOZ_ASSERT(inner->type() == MIRType::Value);
+
+    ensureDefined(inner);
 
     if (IsFloatingPointType(unbox->type())) {
-        LUnboxFloatingPoint *lir = new(alloc()) LUnboxFloatingPoint(unbox->type());
-        if (unbox->fallible() && !assignSnapshot(lir, unbox->bailoutKind()))
-            return false;
-        if (!useBox(lir, LUnboxFloatingPoint::Input, inner))
-            return false;
-        return define(lir, unbox);
+        LUnboxFloatingPoint* lir = new(alloc()) LUnboxFloatingPoint(useBox(inner), unbox->type());
+        if (unbox->fallible())
+            assignSnapshot(lir, unbox->bailoutKind());
+        define(lir, unbox);
+        return;
     }
 
     // Swap the order we use the box pieces so we can re-use the payload register.
-    LUnbox *lir = new(alloc()) LUnbox;
+    LUnbox* lir = new(alloc()) LUnbox;
     lir->setOperand(0, usePayloadInRegisterAtStart(inner));
     lir->setOperand(1, useType(inner, LUse::ANY));
 
-    if (unbox->fallible() && !assignSnapshot(lir, unbox->bailoutKind()))
-        return false;
+    if (unbox->fallible())
+        assignSnapshot(lir, unbox->bailoutKind());
 
-    // Note that PASSTHROUGH here is illegal, since types and payloads form two
-    // separate intervals. If the type becomes dead before the payload, it
-    // could be used as a Value without the type being recoverable. Unbox's
-    // purpose is to eagerly kill the definition of a type tag, so keeping both
-    // alive (for the purpose of gcmaps) is unappealing. Instead, we create a
-    // new virtual register.
-    return defineReuseInput(lir, unbox, 0);
+    // Types and payloads form two separate intervals. If the type becomes dead
+    // before the payload, it could be used as a Value without the type being
+    // recoverable. Unbox's purpose is to eagerly kill the definition of a type
+    // tag, so keeping both alive (for the purpose of gcmaps) is unappealing.
+    // Instead, we create a new virtual register.
+    defineReuseInput(lir, unbox, 0);
 }
 
-bool
-LIRGeneratorX86::visitReturn(MReturn *ret)
+void
+LIRGeneratorX86::visitReturn(MReturn* ret)
 {
-    MDefinition *opd = ret->getOperand(0);
-    JS_ASSERT(opd->type() == MIRType_Value);
+    MDefinition* opd = ret->getOperand(0);
+    MOZ_ASSERT(opd->type() == MIRType::Value);
 
-    LReturn *ins = new(alloc()) LReturn;
+    LReturn* ins = new(alloc()) LReturn;
     ins->setOperand(0, LUse(JSReturnReg_Type));
     ins->setOperand(1, LUse(JSReturnReg_Data));
-    return fillBoxUses(ins, 0, opd) && add(ins);
+    fillBoxUses(ins, 0, opd);
+    add(ins);
 }
 
-bool
-LIRGeneratorX86::defineUntypedPhi(MPhi *phi, size_t lirIndex)
+void
+LIRGeneratorX86::defineUntypedPhi(MPhi* phi, size_t lirIndex)
 {
-    LPhi *type = current->getPhi(lirIndex + VREG_TYPE_OFFSET);
-    LPhi *payload = current->getPhi(lirIndex + VREG_DATA_OFFSET);
+    LPhi* type = current->getPhi(lirIndex + VREG_TYPE_OFFSET);
+    LPhi* payload = current->getPhi(lirIndex + VREG_DATA_OFFSET);
 
     uint32_t typeVreg = getVirtualRegister();
-    if (typeVreg >= MAX_VIRTUAL_REGISTERS)
-        return false;
 
     phi->setVirtualRegister(typeVreg);
 
     uint32_t payloadVreg = getVirtualRegister();
-    if (payloadVreg >= MAX_VIRTUAL_REGISTERS)
-        return false;
-    JS_ASSERT(typeVreg + 1 == payloadVreg);
+    MOZ_ASSERT(typeVreg + 1 == payloadVreg);
 
     type->setDef(0, LDefinition(typeVreg, LDefinition::TYPE));
     payload->setDef(0, LDefinition(payloadVreg, LDefinition::PAYLOAD));
     annotate(type);
     annotate(payload);
-    return true;
 }
 
 void
-LIRGeneratorX86::lowerUntypedPhiInput(MPhi *phi, uint32_t inputPosition, LBlock *block, size_t lirIndex)
+LIRGeneratorX86::lowerUntypedPhiInput(MPhi* phi, uint32_t inputPosition, LBlock* block, size_t lirIndex)
 {
-    MDefinition *operand = phi->getOperand(inputPosition);
-    LPhi *type = block->getPhi(lirIndex + VREG_TYPE_OFFSET);
-    LPhi *payload = block->getPhi(lirIndex + VREG_DATA_OFFSET);
+    MDefinition* operand = phi->getOperand(inputPosition);
+    LPhi* type = block->getPhi(lirIndex + VREG_TYPE_OFFSET);
+    LPhi* payload = block->getPhi(lirIndex + VREG_DATA_OFFSET);
     type->setOperand(inputPosition, LUse(operand->virtualRegister() + VREG_TYPE_OFFSET, LUse::ANY));
     payload->setOperand(inputPosition, LUse(VirtualRegisterOfPayload(operand), LUse::ANY));
 }
 
-bool
-LIRGeneratorX86::visitAsmJSUnsignedToDouble(MAsmJSUnsignedToDouble *ins)
+void
+LIRGeneratorX86::defineInt64Phi(MPhi* phi, size_t lirIndex)
 {
-    JS_ASSERT(ins->input()->type() == MIRType_Int32);
-    LAsmJSUInt32ToDouble *lir = new(alloc()) LAsmJSUInt32ToDouble(useRegisterAtStart(ins->input()), temp());
-    return define(lir, ins);
+    LPhi* low = current->getPhi(lirIndex + INT64LOW_INDEX);
+    LPhi* high = current->getPhi(lirIndex + INT64HIGH_INDEX);
+
+    uint32_t lowVreg = getVirtualRegister();
+
+    phi->setVirtualRegister(lowVreg);
+
+    uint32_t highVreg = getVirtualRegister();
+    MOZ_ASSERT(lowVreg + INT64HIGH_INDEX == highVreg + INT64LOW_INDEX);
+
+    low->setDef(0, LDefinition(lowVreg, LDefinition::INT32));
+    high->setDef(0, LDefinition(highVreg, LDefinition::INT32));
+    annotate(high);
+    annotate(low);
 }
 
-bool
-LIRGeneratorX86::visitAsmJSUnsignedToFloat32(MAsmJSUnsignedToFloat32 *ins)
+void
+LIRGeneratorX86::lowerInt64PhiInput(MPhi* phi, uint32_t inputPosition, LBlock* block, size_t lirIndex)
 {
-    JS_ASSERT(ins->input()->type() == MIRType_Int32);
-    LAsmJSUInt32ToFloat32 *lir = new(alloc()) LAsmJSUInt32ToFloat32(useRegisterAtStart(ins->input()), temp());
-    return define(lir, ins);
+    MDefinition* operand = phi->getOperand(inputPosition);
+    LPhi* low = block->getPhi(lirIndex + INT64LOW_INDEX);
+    LPhi* high = block->getPhi(lirIndex + INT64HIGH_INDEX);
+    low->setOperand(inputPosition, LUse(operand->virtualRegister() + INT64LOW_INDEX, LUse::ANY));
+    high->setOperand(inputPosition, LUse(operand->virtualRegister() + INT64HIGH_INDEX, LUse::ANY));
 }
 
-bool
-LIRGeneratorX86::visitAsmJSLoadHeap(MAsmJSLoadHeap *ins)
+void
+LIRGeneratorX86::lowerForALUInt64(LInstructionHelper<INT64_PIECES, 2 * INT64_PIECES, 0>* ins,
+                                  MDefinition* mir, MDefinition* lhs, MDefinition* rhs)
 {
-    MDefinition *ptr = ins->ptr();
-    LAllocation ptrAlloc;
-    JS_ASSERT(ptr->type() == MIRType_Int32);
-
-    // For the x86 it is best to keep the 'ptr' in a register if a bounds check is needed.
-    if (ptr->isConstant() && ins->skipBoundsCheck()) {
-        int32_t ptrValue = ptr->toConstant()->value().toInt32();
-        // A bounds check is only skipped for a positive index.
-        JS_ASSERT(ptrValue >= 0);
-        ptrAlloc = LAllocation(ptr->toConstant()->vp());
-    } else {
-        ptrAlloc = useRegisterAtStart(ptr);
-    }
-    LAsmJSLoadHeap *lir = new(alloc()) LAsmJSLoadHeap(ptrAlloc);
-    return define(lir, ins);
+    ins->setInt64Operand(0, useInt64RegisterAtStart(lhs));
+    ins->setInt64Operand(INT64_PIECES, useInt64OrConstant(rhs));
+    defineInt64ReuseInput(ins, mir, 0);
 }
 
-bool
-LIRGeneratorX86::visitAsmJSStoreHeap(MAsmJSStoreHeap *ins)
+void
+LIRGeneratorX86::lowerForMulInt64(LMulI64* ins, MMul* mir, MDefinition* lhs, MDefinition* rhs)
 {
-    MDefinition *ptr = ins->ptr();
-    LAsmJSStoreHeap *lir;
-    JS_ASSERT(ptr->type() == MIRType_Int32);
+    bool needsTemp = true;
 
-    if (ptr->isConstant() && ins->skipBoundsCheck()) {
-        int32_t ptrValue = ptr->toConstant()->value().toInt32();
-        JS_ASSERT(ptrValue >= 0);
-        LAllocation ptrAlloc = LAllocation(ptr->toConstant()->vp());
-        switch (ins->viewType()) {
-          case ArrayBufferView::TYPE_INT8: case ArrayBufferView::TYPE_UINT8:
-            // See comment below.
-            lir = new(alloc()) LAsmJSStoreHeap(ptrAlloc, useFixed(ins->value(), eax));
-            break;
-          case ArrayBufferView::TYPE_INT16: case ArrayBufferView::TYPE_UINT16:
-          case ArrayBufferView::TYPE_INT32: case ArrayBufferView::TYPE_UINT32:
-          case ArrayBufferView::TYPE_FLOAT32: case ArrayBufferView::TYPE_FLOAT64:
-            // See comment below.
-            lir = new(alloc()) LAsmJSStoreHeap(ptrAlloc, useRegisterAtStart(ins->value()));
-            break;
-          default: MOZ_ASSUME_UNREACHABLE("unexpected array type");
-        }
-        return add(lir, ins);
+    if (rhs->isConstant()) {
+        int64_t constant = rhs->toConstant()->toInt64();
+        int32_t shift = mozilla::FloorLog2(constant);
+        // See special cases in CodeGeneratorX86Shared::visitMulI64.
+        if (constant >= -1 && constant <= 2)
+            needsTemp = false;
+        if (int64_t(1) << shift == constant)
+            needsTemp = false;
     }
 
-    switch (ins->viewType()) {
-      case ArrayBufferView::TYPE_INT8: case ArrayBufferView::TYPE_UINT8:
+    // MulI64 on x86 needs output to be in edx, eax;
+    ins->setInt64Operand(0, useInt64Fixed(lhs, Register64(edx, eax), /*useAtStart = */ true));
+    ins->setInt64Operand(INT64_PIECES, useInt64OrConstant(rhs));
+    if (needsTemp)
+        ins->setTemp(0, temp());
+
+    defineInt64Fixed(ins, mir, LInt64Allocation(LAllocation(AnyRegister(edx)),
+                                                LAllocation(AnyRegister(eax))));
+}
+
+void
+LIRGeneratorX86::visitCompareExchangeTypedArrayElement(MCompareExchangeTypedArrayElement* ins)
+{
+    lowerCompareExchangeTypedArrayElement(ins, /* useI386ByteRegisters = */ true);
+}
+
+void
+LIRGeneratorX86::visitAtomicExchangeTypedArrayElement(MAtomicExchangeTypedArrayElement* ins)
+{
+    lowerAtomicExchangeTypedArrayElement(ins, /*useI386ByteRegisters=*/ true);
+}
+
+void
+LIRGeneratorX86::visitAtomicTypedArrayElementBinop(MAtomicTypedArrayElementBinop* ins)
+{
+    lowerAtomicTypedArrayElementBinop(ins, /* useI386ByteRegisters = */ true);
+}
+
+void
+LIRGeneratorX86::visitWasmUnsignedToDouble(MWasmUnsignedToDouble* ins)
+{
+    MOZ_ASSERT(ins->input()->type() == MIRType::Int32);
+    LWasmUint32ToDouble* lir = new(alloc()) LWasmUint32ToDouble(useRegisterAtStart(ins->input()), temp());
+    define(lir, ins);
+}
+
+void
+LIRGeneratorX86::visitWasmUnsignedToFloat32(MWasmUnsignedToFloat32* ins)
+{
+    MOZ_ASSERT(ins->input()->type() == MIRType::Int32);
+    LWasmUint32ToFloat32* lir = new(alloc()) LWasmUint32ToFloat32(useRegisterAtStart(ins->input()), temp());
+    define(lir, ins);
+}
+
+void
+LIRGeneratorX86::visitWasmLoad(MWasmLoad* ins)
+{
+    if (ins->type() != MIRType::Int64) {
+        lowerWasmLoad(ins);
+        return;
+    }
+
+    MDefinition* base = ins->base();
+    MOZ_ASSERT(base->type() == MIRType::Int32);
+
+    auto* lir = new(alloc()) LWasmLoadI64(useRegisterOrZeroAtStart(base));
+
+    Scalar::Type accessType = ins->access().type();
+    if (accessType == Scalar::Int8 || accessType == Scalar::Int16 || accessType == Scalar::Int32) {
+        // We use cdq to sign-extend the result and cdq demands these registers.
+        defineInt64Fixed(lir, ins, LInt64Allocation(LAllocation(AnyRegister(edx)),
+                                                    LAllocation(AnyRegister(eax))));
+        return;
+    }
+
+    defineInt64(lir, ins);
+}
+
+void
+LIRGeneratorX86::visitWasmStore(MWasmStore* ins)
+{
+    MDefinition* base = ins->base();
+    MOZ_ASSERT(base->type() == MIRType::Int32);
+
+    LAllocation baseAlloc = useRegisterOrZeroAtStart(base);
+
+    LAllocation valueAlloc;
+    switch (ins->access().type()) {
+      case Scalar::Int8: case Scalar::Uint8:
         // See comment for LIRGeneratorX86::useByteOpRegister.
-        lir = new(alloc()) LAsmJSStoreHeap(useRegister(ins->ptr()), useFixed(ins->value(), eax));
+        valueAlloc = useFixed(ins->value(), eax);
         break;
-      case ArrayBufferView::TYPE_INT16: case ArrayBufferView::TYPE_UINT16:
-      case ArrayBufferView::TYPE_INT32: case ArrayBufferView::TYPE_UINT32:
-      case ArrayBufferView::TYPE_FLOAT32: case ArrayBufferView::TYPE_FLOAT64:
-        // For now, don't allow constant values. The immediate operand
-        // affects instruction layout which affects patching.
-        lir = new(alloc()) LAsmJSStoreHeap(useRegisterAtStart(ptr), useRegisterAtStart(ins->value()));
+      case Scalar::Int16: case Scalar::Uint16:
+      case Scalar::Int32: case Scalar::Uint32:
+      case Scalar::Float32: case Scalar::Float64:
+      case Scalar::Float32x4:
+      case Scalar::Int8x16:
+      case Scalar::Int16x8:
+      case Scalar::Int32x4:
+        // For now, don't allow constant values. The immediate operand affects
+        // instruction layout which affects patching.
+        valueAlloc = useRegisterAtStart(ins->value());
         break;
-      default: MOZ_ASSUME_UNREACHABLE("unexpected array type");
+      case Scalar::Int64: {
+        LInt64Allocation valueAlloc = useInt64RegisterAtStart(ins->value());
+        auto* lir = new(alloc()) LWasmStoreI64(baseAlloc, valueAlloc);
+        add(lir, ins);
+        return;
+      }
+      case Scalar::Uint8Clamped:
+      case Scalar::MaxTypedArrayViewType:
+        MOZ_CRASH("unexpected array type");
     }
 
-    return add(lir, ins);
+    auto* lir = new(alloc()) LWasmStore(baseAlloc, valueAlloc);
+    add(lir, ins);
 }
 
-bool
-LIRGeneratorX86::visitStoreTypedArrayElementStatic(MStoreTypedArrayElementStatic *ins)
+void
+LIRGeneratorX86::visitAsmJSLoadHeap(MAsmJSLoadHeap* ins)
+{
+    MDefinition* base = ins->base();
+    MOZ_ASSERT(base->type() == MIRType::Int32);
+
+    // For simplicity, require a register if we're going to emit a bounds-check
+    // branch, so that we don't have special cases for constants.
+    LAllocation baseAlloc = ins->needsBoundsCheck()
+                            ? useRegisterAtStart(base)
+                            : useRegisterOrZeroAtStart(base);
+
+    define(new(alloc()) LAsmJSLoadHeap(baseAlloc), ins);
+}
+
+void
+LIRGeneratorX86::visitAsmJSStoreHeap(MAsmJSStoreHeap* ins)
+{
+    MDefinition* base = ins->base();
+    MOZ_ASSERT(base->type() == MIRType::Int32);
+
+    // For simplicity, require a register if we're going to emit a bounds-check
+    // branch, so that we don't have special cases for constants.
+    LAllocation baseAlloc = ins->needsBoundsCheck()
+                            ? useRegisterAtStart(base)
+                            : useRegisterOrZeroAtStart(base);
+
+    LAsmJSStoreHeap* lir = nullptr;
+    switch (ins->access().type()) {
+      case Scalar::Int8: case Scalar::Uint8:
+        // See comment for LIRGeneratorX86::useByteOpRegister.
+        lir = new(alloc()) LAsmJSStoreHeap(baseAlloc, useFixed(ins->value(), eax));
+        break;
+      case Scalar::Int16: case Scalar::Uint16:
+      case Scalar::Int32: case Scalar::Uint32:
+      case Scalar::Float32: case Scalar::Float64:
+      case Scalar::Float32x4:
+      case Scalar::Int8x16:
+      case Scalar::Int16x8:
+      case Scalar::Int32x4:
+        // For now, don't allow constant values. The immediate operand affects
+        // instruction layout which affects patching.
+        lir = new (alloc()) LAsmJSStoreHeap(baseAlloc, useRegisterAtStart(ins->value()));
+        break;
+      case Scalar::Int64:
+        MOZ_CRASH("NYI");
+      case Scalar::Uint8Clamped:
+      case Scalar::MaxTypedArrayViewType:
+        MOZ_CRASH("unexpected array type");
+    }
+    add(lir, ins);
+}
+
+void
+LIRGeneratorX86::visitStoreTypedArrayElementStatic(MStoreTypedArrayElementStatic* ins)
 {
     // The code generated for StoreTypedArrayElementStatic is identical to that
     // for AsmJSStoreHeap, and the same concerns apply.
-    LStoreTypedArrayElementStatic *lir;
-    switch (ins->viewType()) {
-      case ArrayBufferView::TYPE_INT8: case ArrayBufferView::TYPE_UINT8:
-      case ArrayBufferView::TYPE_UINT8_CLAMPED:
+    LStoreTypedArrayElementStatic* lir;
+    switch (ins->accessType()) {
+      case Scalar::Int8: case Scalar::Uint8:
+      case Scalar::Uint8Clamped:
         lir = new(alloc()) LStoreTypedArrayElementStatic(useRegister(ins->ptr()),
                                                          useFixed(ins->value(), eax));
         break;
-      case ArrayBufferView::TYPE_INT16: case ArrayBufferView::TYPE_UINT16:
-      case ArrayBufferView::TYPE_INT32: case ArrayBufferView::TYPE_UINT32:
-      case ArrayBufferView::TYPE_FLOAT32: case ArrayBufferView::TYPE_FLOAT64:
+      case Scalar::Int16: case Scalar::Uint16:
+      case Scalar::Int32: case Scalar::Uint32:
+      case Scalar::Float32: case Scalar::Float64:
         lir = new(alloc()) LStoreTypedArrayElementStatic(useRegisterAtStart(ins->ptr()),
                                                          useRegisterAtStart(ins->value()));
         break;
-      default: MOZ_ASSUME_UNREACHABLE("unexpected array type");
+      default: MOZ_CRASH("unexpected array type");
     }
 
-    return add(lir, ins);
+    add(lir, ins);
 }
 
-bool
-LIRGeneratorX86::visitAsmJSLoadFuncPtr(MAsmJSLoadFuncPtr *ins)
+void
+LIRGeneratorX86::visitAsmJSCompareExchangeHeap(MAsmJSCompareExchangeHeap* ins)
 {
-    return define(new(alloc()) LAsmJSLoadFuncPtr(useRegisterAtStart(ins->index())), ins);
+    MOZ_ASSERT(ins->access().type() < Scalar::Float32);
+
+    MDefinition* base = ins->base();
+    MOZ_ASSERT(base->type() == MIRType::Int32);
+
+    bool byteArray = byteSize(ins->access().type()) == 1;
+
+    // Register allocation:
+    //
+    // The output may not be used, but eax will be clobbered regardless
+    // so pin the output to eax.
+    //
+    // oldval must be in a register.
+    //
+    // newval must be in a register.  If the source is a byte array
+    // then newval must be a register that has a byte size: this must
+    // be ebx, ecx, or edx (eax is taken).
+    //
+    // Bug #1077036 describes some optimization opportunities.
+
+    const LAllocation oldval = useRegister(ins->oldValue());
+    const LAllocation newval = byteArray ? useFixed(ins->newValue(), ebx) : useRegister(ins->newValue());
+
+    LAsmJSCompareExchangeHeap* lir =
+        new(alloc()) LAsmJSCompareExchangeHeap(useRegister(base), oldval, newval);
+
+    lir->setAddrTemp(temp());
+    defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
+}
+
+void
+LIRGeneratorX86::visitAsmJSAtomicExchangeHeap(MAsmJSAtomicExchangeHeap* ins)
+{
+    MOZ_ASSERT(ins->base()->type() == MIRType::Int32);
+
+    const LAllocation base = useRegister(ins->base());
+    const LAllocation value = useRegister(ins->value());
+
+    LAsmJSAtomicExchangeHeap* lir =
+        new(alloc()) LAsmJSAtomicExchangeHeap(base, value);
+
+    lir->setAddrTemp(temp());
+    if (byteSize(ins->access().type()) == 1)
+        defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
+    else
+        define(lir, ins);
+}
+
+void
+LIRGeneratorX86::visitAsmJSAtomicBinopHeap(MAsmJSAtomicBinopHeap* ins)
+{
+    MOZ_ASSERT(ins->access().type() < Scalar::Float32);
+
+    MDefinition* base = ins->base();
+    MOZ_ASSERT(base->type() == MIRType::Int32);
+
+    bool byteArray = byteSize(ins->access().type()) == 1;
+
+    // Case 1: the result of the operation is not used.
+    //
+    // We'll emit a single instruction: LOCK ADD, LOCK SUB, LOCK AND,
+    // LOCK OR, or LOCK XOR.  These can all take an immediate.
+
+    if (!ins->hasUses()) {
+        LAllocation value;
+        if (byteArray && !ins->value()->isConstant())
+            value = useFixed(ins->value(), ebx);
+        else
+            value = useRegisterOrConstant(ins->value());
+        LAsmJSAtomicBinopHeapForEffect* lir =
+            new(alloc()) LAsmJSAtomicBinopHeapForEffect(useRegister(base), value);
+        lir->setAddrTemp(temp());
+        add(lir, ins);
+        return;
+    }
+
+    // Case 2: the result of the operation is used.
+    //
+    // For ADD and SUB we'll use XADD:
+    //
+    //    movl       value, output
+    //    lock xaddl output, mem
+    //
+    // For the 8-bit variants XADD needs a byte register for the
+    // output only, we can still set up with movl; just pin the output
+    // to eax (or ebx / ecx / edx).
+    //
+    // For AND/OR/XOR we need to use a CMPXCHG loop:
+    //
+    //    movl          *mem, eax
+    // L: mov           eax, temp
+    //    andl          value, temp
+    //    lock cmpxchg  temp, mem  ; reads eax also
+    //    jnz           L
+    //    ; result in eax
+    //
+    // Note the placement of L, cmpxchg will update eax with *mem if
+    // *mem does not have the expected value, so reloading it at the
+    // top of the loop would be redundant.
+    //
+    // We want to fix eax as the output.  We also need a temp for
+    // the intermediate value.
+    //
+    // For the 8-bit variants the temp must have a byte register.
+    //
+    // There are optimization opportunities:
+    //  - better 8-bit register allocation and instruction selection, Bug #1077036.
+
+    bool bitOp = !(ins->operation() == AtomicFetchAddOp || ins->operation() == AtomicFetchSubOp);
+    LDefinition tempDef = LDefinition::BogusTemp();
+    LAllocation value;
+
+    if (byteArray) {
+        value = useFixed(ins->value(), ebx);
+        if (bitOp)
+            tempDef = tempFixed(ecx);
+    } else if (bitOp || ins->value()->isConstant()) {
+        value = useRegisterOrConstant(ins->value());
+        if (bitOp)
+            tempDef = temp();
+    } else {
+        value = useRegisterAtStart(ins->value());
+    }
+
+    LAsmJSAtomicBinopHeap* lir =
+        new(alloc()) LAsmJSAtomicBinopHeap(useRegister(base), value, tempDef);
+
+    lir->setAddrTemp(temp());
+    if (byteArray || bitOp)
+        defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
+    else if (ins->value()->isConstant())
+        define(lir, ins);
+    else
+        defineReuseInput(lir, ins, LAsmJSAtomicBinopHeap::valueOp);
+}
+
+void
+LIRGeneratorX86::lowerDivI64(MDiv* div)
+{
+    if (div->isUnsigned()) {
+        lowerUDivI64(div);
+        return;
+    }
+
+    LDivOrModI64* lir = new(alloc()) LDivOrModI64(useInt64RegisterAtStart(div->lhs()),
+                                                  useInt64RegisterAtStart(div->rhs()));
+    defineReturn(lir, div);
+}
+
+void
+LIRGeneratorX86::lowerModI64(MMod* mod)
+{
+    if (mod->isUnsigned()) {
+        lowerUModI64(mod);
+        return;
+    }
+
+    LDivOrModI64* lir = new(alloc()) LDivOrModI64(useInt64RegisterAtStart(mod->lhs()),
+                                                  useInt64RegisterAtStart(mod->rhs()));
+    defineReturn(lir, mod);
+}
+
+void
+LIRGeneratorX86::lowerUDivI64(MDiv* div)
+{
+    LUDivOrModI64* lir = new(alloc()) LUDivOrModI64(useInt64RegisterAtStart(div->lhs()),
+                                                    useInt64RegisterAtStart(div->rhs()));
+    defineReturn(lir, div);
+}
+
+void
+LIRGeneratorX86::lowerUModI64(MMod* mod)
+{
+    LUDivOrModI64* lir = new(alloc()) LUDivOrModI64(useInt64RegisterAtStart(mod->lhs()),
+                                                    useInt64RegisterAtStart(mod->rhs()));
+    defineReturn(lir, mod);
+}
+
+void
+LIRGeneratorX86::visitSubstr(MSubstr* ins)
+{
+    // Due to lack of registers on x86, we reuse the string register as
+    // temporary. As a result we only need two temporary registers and take a
+    // bugos temporary as fifth argument.
+    LSubstr* lir = new (alloc()) LSubstr(useRegister(ins->string()),
+                                         useRegister(ins->begin()),
+                                         useRegister(ins->length()),
+                                         temp(),
+                                         LDefinition::BogusTemp(),
+                                         tempByteOpRegister());
+    define(lir, ins);
+    assignSafepoint(lir, ins);
+}
+
+void
+LIRGeneratorX86::visitRandom(MRandom* ins)
+{
+    LRandom *lir = new(alloc()) LRandom(temp(),
+                                        temp(),
+                                        temp(),
+                                        temp(),
+                                        temp());
+    defineFixed(lir, ins, LFloatReg(ReturnDoubleReg));
+}
+
+void
+LIRGeneratorX86::visitWasmTruncateToInt64(MWasmTruncateToInt64* ins)
+{
+    MDefinition* opd = ins->input();
+    MOZ_ASSERT(opd->type() == MIRType::Double || opd->type() == MIRType::Float32);
+
+    LDefinition temp = tempDouble();
+    defineInt64(new(alloc()) LWasmTruncateToInt64(useRegister(opd), temp), ins);
+}
+
+void
+LIRGeneratorX86::visitInt64ToFloatingPoint(MInt64ToFloatingPoint* ins)
+{
+    MDefinition* opd = ins->input();
+    MOZ_ASSERT(opd->type() == MIRType::Int64);
+    MOZ_ASSERT(IsFloatingPointType(ins->type()));
+
+    LDefinition maybeTemp =
+        (ins->isUnsigned() && AssemblerX86Shared::HasSSE3()) ? temp() : LDefinition::BogusTemp();
+
+    define(new(alloc()) LInt64ToFloatingPoint(useInt64Register(opd), maybeTemp), ins);
+}
+
+void
+LIRGeneratorX86::visitExtendInt32ToInt64(MExtendInt32ToInt64* ins)
+{
+    if (ins->isUnsigned()) {
+        defineInt64(new(alloc()) LExtendInt32ToInt64(useRegisterAtStart(ins->input())), ins);
+    } else {
+        LExtendInt32ToInt64* lir =
+            new(alloc()) LExtendInt32ToInt64(useFixedAtStart(ins->input(), eax));
+        defineInt64Fixed(lir, ins, LInt64Allocation(LAllocation(AnyRegister(edx)),
+                                                    LAllocation(AnyRegister(eax))));
+    }
 }

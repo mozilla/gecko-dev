@@ -5,13 +5,13 @@
 ;+#
 ;+# OK, this file is meant to support SUN, LINUX, AIX and WINDOWS
 ;+#   1. For all unix platforms, the string ";-"  means "remove this line"
-;+#   2. For all unix platforms, the string " DATA " will be removed from any 
+;+#   2. For all unix platforms, the string " DATA " will be removed from any
 ;+#	line on which it occurs.
 ;+#   3. Lines containing ";+" will have ";+" removed on SUN and LINUX.
-;+#      On AIX, lines containing ";+" will be removed.  
+;+#      On AIX, lines containing ";+" will be removed.
 ;+#   4. For all unix platforms, the string ";;" will thave the ";;" removed.
 ;+#   5. For all unix platforms, after the above processing has taken place,
-;+#    all characters after the first ";" on the line will be removed.  
+;+#    all characters after the first ";" on the line will be removed.
 ;+#    And for AIX, the first ";" will also be removed.
 ;+#  This file is passed directly to windows. Since ';' is a comment, all UNIX
 ;+#   directives are hidden behind ";", ";+", and ";-"
@@ -268,6 +268,25 @@ SECITEM_DupArray;
 SECITEM_FreeArray;
 SECITEM_ReallocItemV2;
 SECITEM_ZfreeArray;
+;+    local:
+;+       *;
+;+};
+;+NSSUTIL_3.17.1 {         # NSS Utilities 3.17.1 release
+;+    global:
+_SGN_VerifyPKCS1DigestInfo;
+;+    local:
+;+       *;
+;+};
+;+NSSUTIL_3.21 {         # NSS Utilities 3.21 release
+;+    global:
+NSSUTIL_ArgParseModuleSpecEx;
+;+    local:
+;+       *;
+;+};
+;+NSSUTIL_3.24 {       # NSS Utilities 3.24 release
+;+    global:
+PORT_InitCheapArena;
+PORT_DestroyCheapArena;
 ;+    local:
 ;+       *;
 ;+};

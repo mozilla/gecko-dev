@@ -34,75 +34,197 @@ function executeSoon(aFun)
 }
 
 function clearAllDatabases(callback) {
-  function runCallback() {
-    SimpleTest.executeSoon(function () { callback(); });
+  let qms = SpecialPowers.Services.qms;
+  let principal = SpecialPowers.wrap(document).nodePrincipal;
+  let request = qms.clearStoragesForPrincipal(principal);
+  let cb = SpecialPowers.wrapCallback(callback);
+  request.callback = cb;
+}
+
+var testHarnessGenerator = testHarnessSteps();
+testHarnessGenerator.next();
+
+function testHarnessSteps() {
+  function nextTestHarnessStep(val) {
+    testHarnessGenerator.send(val);
   }
 
-  if (!SpecialPowers.isMainProcess()) {
-    runCallback();
-    return;
-  }
+  let testScriptPath;
+  let testScriptFilename;
 
-  let comp = SpecialPowers.wrap(Components);
-
-  let quotaManager =
-    comp.classes["@mozilla.org/dom/quota/manager;1"]
-        .getService(comp.interfaces.nsIQuotaManager);
-
-  let uri = SpecialPowers.wrap(document).documentURIObject;
-
-  // We need to pass a JS callback to getUsageForURI. However, that callback
-  // takes an XPCOM URI object, which will cause us to throw when we wrap it
-  // for the content compartment. So we need to define the function in a
-  // privileged scope, which we do using a sandbox.
-  var sysPrin = SpecialPowers.Services.scriptSecurityManager.getSystemPrincipal();
-  var sb = new SpecialPowers.Cu.Sandbox(sysPrin);
-  sb.ok = ok;
-  sb.runCallback = runCallback;
-  var cb = SpecialPowers.Cu.evalInSandbox((function(uri, usage, fileUsage) {
-    if (usage) {
-      ok(false,
-         "getUsageForURI returned non-zero usage after clearing all " +
-         "storages!");
+  let scripts = document.getElementsByTagName("script");
+  for (let i = 0; i < scripts.length; i++) {
+    let src = scripts[i].src;
+    let match = src.match(/indexedDB\/test\/unit\/(test_[^\/]+\.js)$/);
+    if (match && match.length == 2) {
+      testScriptPath = src;
+      testScriptFilename = match[1];
+      break;
     }
-    runCallback();
-  }).toSource(), sb);
+  }
 
-  quotaManager.clearStoragesForURI(uri);
-  quotaManager.getUsageForURI(uri, cb);
+  yield undefined;
+
+  info("Running" +
+       (testScriptFilename ? " '" + testScriptFilename + "'" : ""));
+
+  info("Pushing preferences");
+
+  SpecialPowers.pushPrefEnv(
+    {
+      "set": [
+        ["dom.indexedDB.testing", true],
+        ["dom.indexedDB.experimental", true],
+        ["dom.archivereader.enabled", true],
+        ["dom.workers.latestJSVersion", true],
+        ["javascript.options.wasm", true]
+      ]
+    },
+    nextTestHarnessStep
+  );
+  yield undefined;
+
+  info("Pushing permissions");
+
+  SpecialPowers.pushPermissions(
+    [
+      {
+        type: "indexedDB",
+        allow: true,
+        context: document
+      }
+    ],
+    nextTestHarnessStep
+  );
+  yield undefined;
+
+  info("Clearing old databases");
+
+  clearAllDatabases(nextTestHarnessStep);
+  yield undefined;
+
+  if (testScriptFilename && !window.disableWorkerTest) {
+    info("Running test in a worker");
+
+    let workerScriptBlob =
+      new Blob([ "(" + workerScript.toString() + ")();" ],
+               { type: "text/javascript;version=1.7" });
+    let workerScriptURL = URL.createObjectURL(workerScriptBlob);
+
+    let worker = new Worker(workerScriptURL);
+
+    worker._expectingUncaughtException = false;
+    worker.onerror = function(event) {
+      if (worker._expectingUncaughtException) {
+        ok(true, "Worker had an expected error: " + event.message);
+        worker._expectingUncaughtException = false;
+        event.preventDefault();
+        return;
+      }
+      ok(false, "Worker had an error: " + event.message);
+      worker.terminate();
+      nextTestHarnessStep();
+    };
+
+    worker.onmessage = function(event) {
+      let message = event.data;
+      switch (message.op) {
+        case "ok":
+          ok(message.condition, message.name, message.diag);
+          break;
+
+        case "todo":
+          todo(message.condition, message.name, message.diag);
+          break;
+
+        case "info":
+          info(message.msg);
+          break;
+
+        case "ready":
+          worker.postMessage({ op: "load", files: [ testScriptPath ] });
+          break;
+
+        case "loaded":
+          worker.postMessage({ op: "start", wasmSupported: isWasmSupported() });
+          break;
+
+        case "done":
+          ok(true, "Worker finished");
+          nextTestHarnessStep();
+          break;
+
+        case "expectUncaughtException":
+          worker._expectingUncaughtException = message.expecting;
+          break;
+
+        case "clearAllDatabases":
+          clearAllDatabases(function(){
+            worker.postMessage({ op: "clearAllDatabasesDone" });
+          });
+          break;
+
+        case "getWasmBinary":
+          worker.postMessage({ op: "getWasmBinaryDone",
+                               wasmBinary: getWasmBinarySync(message.text) });
+          break;
+
+        default:
+          ok(false,
+             "Received a bad message from worker: " + JSON.stringify(message));
+          nextTestHarnessStep();
+      }
+    };
+
+    URL.revokeObjectURL(workerScriptURL);
+
+    yield undefined;
+
+    if (worker._expectingUncaughtException) {
+      ok(false, "expectUncaughtException was called but no uncaught " +
+                "exception was detected!");
+    }
+
+    worker.terminate();
+    worker = null;
+
+    clearAllDatabases(nextTestHarnessStep);
+    yield undefined;
+  } else if (testScriptFilename) {
+    todo(false,
+         "Skipping test in a worker because it is explicitly disabled: " +
+         disableWorkerTest);
+  } else {
+    todo(false,
+         "Skipping test in a worker because it's not structured properly");
+  }
+
+  info("Running test in main thread");
+
+  // Now run the test script in the main thread.
+  testGenerator.next();
+
+  yield undefined;
 }
 
 if (!window.runTest) {
-  window.runTest = function(limitedQuota)
+  window.runTest = function()
   {
     SimpleTest.waitForExplicitFinish();
-
-    if (limitedQuota) {
-      denyUnlimitedQuota();
-    }
-    else {
-      allowUnlimitedQuota();
-    }
-
-    enableExperimental();
-    enableArchiveReader();
-
-    clearAllDatabases(function () { testGenerator.next(); });
+    testHarnessGenerator.next();
   }
 }
 
 function finishTest()
 {
-  resetUnlimitedQuota();
-  resetExperimental();
-  resetArchiveReader();
-  SpecialPowers.notifyObserversInParentProcess(null, "disk-space-watcher",
+  SpecialPowers.notifyObserversInParentProcess(null,
+                                               "disk-space-watcher",
                                                "free");
 
   SimpleTest.executeSoon(function() {
     testGenerator.close();
-    //clearAllDatabases(function() { SimpleTest.finish(); });
-    SimpleTest.finish();
+    testHarnessGenerator.close();
+    clearAllDatabases(function() { SimpleTest.finish(); });
   });
 }
 
@@ -137,6 +259,18 @@ function errorHandler(event)
 {
   ok(false, "indexedDB error, '" + event.target.error.name + "'");
   finishTest();
+}
+
+// For error callbacks where the argument is not an event object.
+function errorCallbackHandler(err)
+{
+  ok(false, "got unexpected error callback: " + err);
+  finishTest();
+}
+
+function expectUncaughtException(expecting)
+{
+  SimpleTest.expectUncaughtException(expecting);
 }
 
 function browserErrorHandler(event)
@@ -179,26 +313,26 @@ ExpectError.prototype = {
   }
 };
 
-function compareKeys(k1, k2) {
-  let t = typeof k1;
-  if (t != typeof k2)
+function compareKeys(_k1_, _k2_) {
+  let t = typeof _k1_;
+  if (t != typeof _k2_)
     return false;
 
   if (t !== "object")
-    return k1 === k2;
+    return _k1_ === _k2_;
 
-  if (k1 instanceof Date) {
-    return (k2 instanceof Date) &&
-      k1.getTime() === k2.getTime();
+  if (_k1_ instanceof Date) {
+    return (_k2_ instanceof Date) &&
+      _k1_.getTime() === _k2_.getTime();
   }
 
-  if (k1 instanceof Array) {
-    if (!(k2 instanceof Array) ||
-        k1.length != k2.length)
+  if (_k1_ instanceof Array) {
+    if (!(_k2_ instanceof Array) ||
+        _k1_.length != _k2_.length)
       return false;
 
-    for (let i = 0; i < k1.length; ++i) {
-      if (!compareKeys(k1[i], k2[i]))
+    for (let i = 0; i < _k1_.length; ++i) {
+      if (!compareKeys(_k1_[i], _k2_[i]))
         return false;
     }
 
@@ -206,14 +340,6 @@ function compareKeys(k1, k2) {
   }
 
   return false;
-}
-
-function addPermission(type, allow, url)
-{
-  if (!url) {
-    url = window.document;
-  }
-  SpecialPowers.addPermission(type, allow, url);
 }
 
 function removePermission(type, url)
@@ -224,47 +350,6 @@ function removePermission(type, url)
   SpecialPowers.removePermission(type, url);
 }
 
-function setQuota(quota)
-{
-  SpecialPowers.setIntPref("dom.indexedDB.warningQuota", quota);
-}
-
-function allowUnlimitedQuota(url)
-{
-  addPermission("indexedDB-unlimited", true, url);
-}
-
-function denyUnlimitedQuota(url)
-{
-  addPermission("indexedDB-unlimited", false, url);
-}
-
-function resetUnlimitedQuota(url)
-{
-  removePermission("indexedDB-unlimited", url);
-}
-
-function enableArchiveReader()
-{
-  archiveReaderEnabled = SpecialPowers.getBoolPref("dom.archivereader.enabled");
-  SpecialPowers.setBoolPref("dom.archivereader.enabled", true);
-}
-
-function resetArchiveReader()
-{
-  SpecialPowers.setBoolPref("dom.archivereader.enabled", archiveReaderEnabled);
-}
-
-function enableExperimental()
-{
-  SpecialPowers.setBoolPref("dom.indexedDB.experimental", true);
-}
-
-function resetExperimental()
-{
-  SpecialPowers.clearUserPref("dom.indexedDB.experimental");
-}
-
 function gc()
 {
   SpecialPowers.forceGC();
@@ -273,5 +358,271 @@ function gc()
 
 function scheduleGC()
 {
-  SpecialPowers.exactGC(window, continueToNextStep);
+  SpecialPowers.exactGC(continueToNextStep);
+}
+
+function isWasmSupported()
+{
+  let testingFunctions = SpecialPowers.Cu.getJSTestingFunctions();
+  return testingFunctions.wasmIsSupported();
+}
+
+function getWasmBinarySync(text)
+{
+  let testingFunctions = SpecialPowers.Cu.getJSTestingFunctions();
+  let wasmTextToBinary = SpecialPowers.unwrap(testingFunctions.wasmTextToBinary);
+  let binary = wasmTextToBinary(text);
+  return binary;
+}
+
+function workerScript() {
+  "use strict";
+
+  self.wasmSupported = false;
+
+  self.repr = function(_thing_) {
+    if (typeof(_thing_) == "undefined") {
+      return "undefined";
+    }
+
+    let str;
+
+    try {
+      str = _thing_ + "";
+    } catch (e) {
+      return "[" + typeof(_thing_) + "]";
+    }
+
+    if (typeof(_thing_) == "function") {
+      str = str.replace(/^\s+/, "");
+      let idx = str.indexOf("{");
+      if (idx != -1) {
+        str = str.substr(0, idx) + "{...}";
+      }
+    }
+
+    return str;
+  };
+
+  self.ok = function(_condition_, _name_, _diag_) {
+    self.postMessage({ op: "ok",
+                       condition: !!_condition_,
+                       name: _name_,
+                       diag: _diag_ });
+  };
+
+  self.is = function(_a_, _b_, _name_) {
+    let pass = (_a_ == _b_);
+    let diag = pass ? "" : "got " + repr(_a_) + ", expected " + repr(_b_);
+    ok(pass, _name_, diag);
+  };
+
+  self.isnot = function(_a_, _b_, _name_) {
+    let pass = (_a_ != _b_);
+    let diag = pass ? "" : "didn't expect " + repr(_a_) + ", but got it";
+    ok(pass, _name_, diag);
+  };
+
+  self.todo = function(_condition_, _name_, _diag_) {
+    self.postMessage({ op: "todo",
+                       condition: !!_condition_,
+                       name: _name_,
+                       diag: _diag_ });
+  };
+
+  self.info = function(_msg_) {
+    self.postMessage({ op: "info", msg: _msg_ });
+  };
+
+  self.executeSoon = function(_fun_) {
+    var channel = new MessageChannel();
+    channel.port1.postMessage("");
+    channel.port2.onmessage = function(event) { _fun_(); };
+  };
+
+  self.finishTest = function() {
+    if (self._expectingUncaughtException) {
+      self.ok(false, "expectUncaughtException was called but no uncaught "
+                     + "exception was detected!");
+    }
+    self.postMessage({ op: "done" });
+  };
+
+  self.grabEventAndContinueHandler = function(_event_) {
+    testGenerator.send(_event_);
+  };
+
+  self.continueToNextStep = function() {
+    executeSoon(function() {
+      testGenerator.next();
+    });
+  };
+
+  self.continueToNextStepSync = function() {
+    testGenerator.next();
+  };
+
+  self.errorHandler = function(_event_) {
+    ok(false, "indexedDB error, '" + _event_.target.error.name + "'");
+    finishTest();
+  };
+
+  self.unexpectedSuccessHandler = function()
+  {
+    ok(false, "Got success, but did not expect it!");
+    finishTest();
+  };
+
+  self.expectedErrorHandler = function(_name_)
+  {
+    return function(_event_) {
+      is(_event_.type, "error", "Got an error event");
+      is(_event_.target.error.name, _name_, "Expected error was thrown.");
+      _event_.preventDefault();
+      grabEventAndContinueHandler(_event_);
+    };
+  };
+
+  self.ExpectError = function(_name_, _preventDefault_)
+  {
+    this._name = _name_;
+    this._preventDefault = _preventDefault_;
+  }
+  self.ExpectError.prototype = {
+    handleEvent: function(_event_)
+    {
+      is(_event_.type, "error", "Got an error event");
+      is(_event_.target.error.name, this._name, "Expected error was thrown.");
+      if (this._preventDefault) {
+        _event_.preventDefault();
+        _event_.stopPropagation();
+      }
+      grabEventAndContinueHandler(_event_);
+    }
+  };
+
+  self.compareKeys = function(_k1_, _k2_) {
+    let t = typeof _k1_;
+    if (t != typeof _k2_)
+      return false;
+
+    if (t !== "object")
+      return _k1_ === _k2_;
+
+    if (_k1_ instanceof Date) {
+      return (_k2_ instanceof Date) &&
+        _k1_.getTime() === _k2_.getTime();
+    }
+
+    if (_k1_ instanceof Array) {
+      if (!(_k2_ instanceof Array) ||
+          _k1_.length != _k2_.length)
+        return false;
+
+      for (let i = 0; i < _k1_.length; ++i) {
+        if (!compareKeys(_k1_[i], _k2_[i]))
+          return false;
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
+  self.getRandomBuffer = function(_size_) {
+    let buffer = new ArrayBuffer(_size_);
+    is(buffer.byteLength, _size_, "Correct byte length");
+    let view = new Uint8Array(buffer);
+    for (let i = 0; i < _size_; i++) {
+      view[i] = parseInt(Math.random() * 255)
+    }
+    return buffer;
+  };
+
+  self._expectingUncaughtException = false;
+  self.expectUncaughtException = function(_expecting_) {
+    self._expectingUncaughtException = !!_expecting_;
+    self.postMessage({ op: "expectUncaughtException", expecting: !!_expecting_ });
+  };
+
+  self._clearAllDatabasesCallback = undefined;
+  self.clearAllDatabases = function(_callback_) {
+    self._clearAllDatabasesCallback = _callback_;
+    self.postMessage({ op: "clearAllDatabases" });
+  }
+
+  self.onerror = function(_message_, _file_, _line_) {
+    if (self._expectingUncaughtException) {
+      self._expectingUncaughtException = false;
+      ok(true, "Worker: expected exception [" + _file_ + ":" + _line_ + "]: '" +
+         _message_ + "'");
+      return;
+    }
+    ok(false,
+       "Worker: uncaught exception [" + _file_ + ":" + _line_ + "]: '" +
+         _message_ + "'");
+    self.finishTest();
+    self.close();
+    return true;
+  };
+
+  self.isWasmSupported = function() {
+    return self.wasmSupported;
+  }
+
+  self.getWasmBinarySync = function(_text_) {
+    self.ok(false, "This can't be used on workers");
+  }
+
+  self.getWasmBinary = function(_text_) {
+    self.postMessage({ op: "getWasmBinary", text: _text_ });
+  }
+
+  self.getWasmModule = function(_binary_) {
+    let module = new WebAssembly.Module(_binary_);
+    return module;
+  }
+
+  self.verifyWasmModule = function(_module) {
+    self.todo(false, "Need a verifyWasmModule implementation on workers");
+    self.continueToNextStep();
+  }
+
+  self.onmessage = function(_event_) {
+    let message = _event_.data;
+    switch (message.op) {
+      case "load":
+        info("Worker: loading " + JSON.stringify(message.files));
+        self.importScripts(message.files);
+        self.postMessage({ op: "loaded" });
+        break;
+
+      case "start":
+        self.wasmSupported = message.wasmSupported;
+        executeSoon(function() {
+          info("Worker: starting tests");
+          testGenerator.next();
+        });
+        break;
+
+      case "clearAllDatabasesDone":
+        info("Worker: all databases are cleared");
+        if (self._clearAllDatabasesCallback) {
+          self._clearAllDatabasesCallback();
+        }
+        break;
+
+      case "getWasmBinaryDone":
+        info("Worker: get wasm binary done");
+        testGenerator.send(message.wasmBinary);
+        break;
+
+      default:
+        throw new Error("Received a bad message from parent: " +
+                        JSON.stringify(message));
+    }
+  };
+
+  self.postMessage({ op: "ready" });
 }

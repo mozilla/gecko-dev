@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -45,14 +45,14 @@ var gMoveBookmarksDialog = {
       return;
     }
 
-    PlacesTransactions.transact(function* () {
-      let newParentGUID = yield PlacesUtils.promiseItemGUID(selectedFolderId);
+    PlacesTransactions.batch(function* () {
+      let newParentGuid = yield PlacesUtils.promiseItemGuid(selectedFolderId);
       for (let node of this._nodes) {
         // Nothing to do if the node is already under the selected folder.
         if (node.parent.itemId == selectedFolderId)
           continue;
-        yield PlacesTransactions.MoveItem({ GUID: node.bookmarkGuid
-                                          , newParentGUID: newParentGUID });
+        yield PlacesTransactions.Move({ guid: node.bookmarkGuid
+                                      , newParentGuid }).transact();
       }
     }.bind(this)).then(null, Components.utils.reportError);
   },

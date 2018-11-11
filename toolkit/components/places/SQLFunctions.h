@@ -56,7 +56,7 @@ namespace places {
  * @param aSearchBehavior
  *        A bitfield dictating the search behavior.
  */
-class MatchAutoCompleteFunction MOZ_FINAL : public mozIStorageFunction
+class MatchAutoCompleteFunction final : public mozIStorageFunction
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -71,6 +71,8 @@ public:
   static nsresult create(mozIStorageConnection *aDBConn);
 
 private:
+  ~MatchAutoCompleteFunction() {}
+
   /**
    * Argument Indexes
    */
@@ -164,13 +166,14 @@ private:
    * @param aMatchBehavior
    *        The matching behavior to use defined by one of the
    *        mozIPlacesAutoComplete::MATCH_* values.
-   * @param _fixedSpec
-   *        An out parameter that is the fixed up string.
+   * @param aSpecBuf
+   *        A string buffer that the returned slice can point into, if needed.
+   * @return the fixed up string.
    */
-  static void fixupURISpec(const nsCString &aURISpec, int32_t aMatchBehavior,
-                           nsCString &_fixedSpec);
+  static nsDependentCSubstring fixupURISpec(const nsACString &aURISpec,
+                                            int32_t aMatchBehavior,
+                                            nsACString &aSpecBuf);
 };
-
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -193,7 +196,7 @@ private:
  * @param [optional] isBookmarked
  *        Whether the page is bookmarked. Default is false.
  */
-class CalculateFrecencyFunction MOZ_FINAL : public mozIStorageFunction
+class CalculateFrecencyFunction final : public mozIStorageFunction
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -206,6 +209,8 @@ public:
    *        The database connection to register with.
    */
   static nsresult create(mozIStorageConnection *aDBConn);
+private:
+  ~CalculateFrecencyFunction() {}
 };
 
 /**
@@ -214,7 +219,7 @@ public:
  *
  * @return a guid for the item.
  */
-class GenerateGUIDFunction MOZ_FINAL : public mozIStorageFunction
+class GenerateGUIDFunction final : public mozIStorageFunction
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -227,6 +232,8 @@ public:
    *        The database connection to register with.
    */
   static nsresult create(mozIStorageConnection *aDBConn);
+private:
+  ~GenerateGUIDFunction() {}
 };
 
 /**
@@ -237,7 +244,7 @@ public:
  *
  * @return the unreversed host of the page.
  */
-class GetUnreversedHostFunction MOZ_FINAL : public mozIStorageFunction
+class GetUnreversedHostFunction final : public mozIStorageFunction
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -250,6 +257,8 @@ public:
    *        The database connection to register with.
    */
   static nsresult create(mozIStorageConnection *aDBConn);
+private:
+  ~GetUnreversedHostFunction() {}
 };
 
 
@@ -265,7 +274,7 @@ public:
  * @return
  *        The same URL, with redundant parts removed.
  */
-class FixupURLFunction MOZ_FINAL : public mozIStorageFunction
+class FixupURLFunction final : public mozIStorageFunction
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -278,6 +287,8 @@ public:
    *        The database connection to register with.
    */
   static nsresult create(mozIStorageConnection *aDBConn);
+private:
+  ~FixupURLFunction() {}
 };
 
 
@@ -301,7 +312,7 @@ public:
  *        The place's last visit date.
  * @return newFrecency
  */
-class FrecencyNotificationFunction MOZ_FINAL : public mozIStorageFunction
+class FrecencyNotificationFunction final : public mozIStorageFunction
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -314,10 +325,70 @@ public:
    *        The database connection to register with.
    */
   static nsresult create(mozIStorageConnection *aDBConn);
+private:
+  ~FrecencyNotificationFunction() {}
 };
 
 
+////////////////////////////////////////////////////////////////////////////////
+//// Store Last Inserted Id Function
+
+/**
+ * Store the last inserted id for reference purpose.
+ *
+ * @param tableName
+ *        The table name.
+ * @param id
+ *        The last inserted id.
+ * @return null
+ */
+class StoreLastInsertedIdFunction final : public mozIStorageFunction
+{
+public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_MOZISTORAGEFUNCTION
+
+  /**
+   * Registers the function with the specified database connection.
+   *
+   * @param aDBConn
+   *        The database connection to register with.
+   */
+  static nsresult create(mozIStorageConnection *aDBConn);
+private:
+  ~StoreLastInsertedIdFunction() {}
+};
+
+
+////////////////////////////////////////////////////////////////////////////////
+//// Hash Function
+
+/**
+ * Calculates hash for a given string using the mfbt AddToHash function.
+ *
+ * @param string
+ *        A string.
+ * @return
+ *        The hash for the string.
+ */
+class HashFunction final : public mozIStorageFunction
+{
+public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_MOZISTORAGEFUNCTION
+
+  /**
+   * Registers the function with the specified database connection.
+   *
+   * @param aDBConn
+   *        The database connection to register with.
+   */
+  static nsresult create(mozIStorageConnection *aDBConn);
+private:
+  ~HashFunction() {}
+};
+
 } // namespace places
-} // namespace storage
+} // namespace mozilla
 
 #endif // mozilla_places_SQLFunctions_h_

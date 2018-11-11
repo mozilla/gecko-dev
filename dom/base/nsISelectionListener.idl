@@ -1,0 +1,27 @@
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface nsIDOMDocument;
+interface nsISelection;
+
+[scriptable, uuid(45686299-ae2b-46bc-9502-c56c35691ab9)]
+interface nsISelectionListener : nsISupports
+{
+  const short NO_REASON=0;
+  const short DRAG_REASON=1;
+  const short MOUSEDOWN_REASON=2;/*bitflags*/
+  const short MOUSEUP_REASON=4;/*bitflags*/
+  const short KEYPRESS_REASON=8;/*bitflags*/
+  const short SELECTALL_REASON=16;
+  const short COLLAPSETOSTART_REASON=32;
+  const short COLLAPSETOEND_REASON=64;
+  const short IME_REASON=128;
+
+	void			notifySelectionChanged(in nsIDOMDocument doc, in nsISelection sel, in short reason);
+};
+
+

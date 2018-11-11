@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,33 +8,41 @@ EXPORTS.mozilla += [
     'BrowserElementParent.h',
 ]
 
+EXPORTS.mozilla.dom += [
+    'BrowserElementAudioChannel.h',
+]
+
 SOURCES += [
+    'BrowserElementAudioChannel.cpp',
     'BrowserElementParent.cpp',
 ]
+
+XPIDL_SOURCES += [
+    'nsIBrowserElementAPI.idl',
+]
+
+XPIDL_MODULE = 'browser-element'
 
 EXTRA_COMPONENTS += [
     'BrowserElementParent.js',
     'BrowserElementParent.manifest',
+    'BrowserElementProxy.js',
+    'BrowserElementProxy.manifest',
 ]
 
 EXTRA_JS_MODULES += [
-    'BrowserElementParent.jsm',
     'BrowserElementPromptService.jsm',
 ]
 
-FAIL_ON_WARNINGS = True
-
 LOCAL_INCLUDES += [
-    '../bluetooth',
-    '/content/html/content/src',
+    '/dom/html',
 ]
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
-FINAL_LIBRARY = 'gklayout'
+FINAL_LIBRARY = 'xul'
 
 LOCAL_INCLUDES += [
-    '/content/base/src',
     '/dom/',
     '/dom/base',
     '/dom/ipc',
@@ -44,4 +52,9 @@ MOCHITEST_MANIFESTS += [
     'mochitest/mochitest-oop.ini',
     'mochitest/mochitest.ini',
     'mochitest/priority/mochitest.ini',
+]
+
+MOCHITEST_CHROME_MANIFESTS += [
+    'mochitest/chrome.ini',
+    'mochitest/priority/chrome.ini',
 ]

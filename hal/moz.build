@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,7 +20,6 @@ EXPORTS.mozilla += [
     'HalWakeLock.h',
 ]
 
-TEST_DIRS += ['tests']
 UNIFIED_SOURCES += [
     'HalWakeLock.cpp',
     'sandbox/SandboxHal.cpp',
@@ -32,31 +31,13 @@ SOURCES += [
     'Hal.cpp',
 ]
 
-if CONFIG['MOZ_GAMEPAD_BACKEND'] == 'stub':
-    UNIFIED_SOURCES += [
-        'fallback/FallbackGamepad.cpp'
-    ]
-elif CONFIG['MOZ_GAMEPAD_BACKEND'] == 'cocoa':
-    UNIFIED_SOURCES += [
-        'cocoa/CocoaGamepad.cpp'
-    ]
-elif CONFIG['MOZ_GAMEPAD_BACKEND'] == 'windows':
-    UNIFIED_SOURCES += [
-        'windows/WindowsGamepad.cpp'
-    ]
-elif CONFIG['MOZ_GAMEPAD_BACKEND'] == 'linux':
-    UNIFIED_SOURCES += [
-        'linux/LinuxGamepad.cpp'
-    ]
-elif CONFIG['MOZ_GAMEPAD_BACKEND'] == 'android':
-    UNIFIED_SOURCES += [
-        'android/AndroidGamepad.cpp'
-    ]
-
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
+    LOCAL_INCLUDES += [
+        '/widget/android',
+    ]
     UNIFIED_SOURCES += [
+        'android/AndroidAlarm.cpp',
         'android/AndroidSensor.cpp',
-        'fallback/FallbackAlarm.cpp',
         'fallback/FallbackPower.cpp',
         'linux/LinuxMemory.cpp',
     ]
@@ -67,9 +48,13 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
 elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
     UNIFIED_SOURCES += [
         'gonk/GonkDiskSpaceWatcher.cpp',
-        'gonk/GonkFMRadio.cpp',
         'gonk/GonkSensor.cpp',
+        'gonk/GonkSensorsHelpers.cpp',
+        'gonk/GonkSensorsInterface.cpp',
+        'gonk/GonkSensorsPollInterface.cpp',
+        'gonk/GonkSensorsRegistryInterface.cpp',
         'gonk/GonkSwitch.cpp',
+        'gonk/SystemService.cpp',
         'gonk/UeventPoller.cpp',
         'linux/LinuxMemory.cpp',
         'linux/LinuxPower.cpp',
@@ -150,10 +135,10 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'gonk':
     UNIFIED_SOURCES += [
         'fallback/FallbackDiskSpaceWatcher.cpp',
         'fallback/FallbackFactoryReset.cpp',
-        'fallback/FallbackFMRadio.cpp',
         'fallback/FallbackProcessPriority.cpp',
         'fallback/FallbackScreenPower.cpp',
         'fallback/FallbackSwitch.cpp',
+        'fallback/FallbackSystemService.cpp',
         'fallback/FallbackThreadPriority.cpp',
         'fallback/FallbackTime.cpp',
         'fallback/FallbackWakeLocks.cpp',
@@ -175,8 +160,6 @@ IPDL_SOURCES = [
     'sandbox/PHal.ipdl',
 ]
 
-FAIL_ON_WARNINGS = True
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
@@ -189,9 +172,14 @@ if CONFIG['MOZ_GAMEPAD']:
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
     # So that we can call nsScreenManagerGonk::GetConfiguration().
     LOCAL_INCLUDES += [
+        '/widget',
         '/widget/gonk',
-        '/widget/xpwidgets'
     ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
-    CXXFLAGS += ['-I%s/hardware/libhardware_legacy/include' % CONFIG['ANDROID_SOURCE']]
+    LOCAL_INCLUDES += ['%' + '%s/hardware/libhardware_legacy/include' % CONFIG['ANDROID_SOURCE']]
+
+CFLAGS += CONFIG['GLIB_CFLAGS']
+CFLAGS += CONFIG['MOZ_DBUS_GLIB_CFLAGS']
+CXXFLAGS += CONFIG['GLIB_CFLAGS']
+CXXFLAGS += CONFIG['MOZ_DBUS_GLIB_CFLAGS']

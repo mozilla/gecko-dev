@@ -8,12 +8,11 @@
 #ifndef mozilla_css_Rule_h___
 #define mozilla_css_Rule_h___
 
+#include "mozilla/StyleSheetInlines.h"
 #include "mozilla/MemoryReporting.h"
-#include "nsIStyleRule.h"
+#include "nsISupports.h"
 #include "nsIDOMCSSRule.h"
-#include "nsCSSStyleSheet.h"
 
-class nsIStyleSheet;
 class nsIDocument;
 struct nsRuleData;
 template<class T> struct already_AddRefed;
@@ -24,24 +23,28 @@ namespace css {
 class GroupRule;
 
 #define DECL_STYLE_RULE_INHERIT_NO_DOMRULE  \
-virtual void MapRuleInfoInto(nsRuleData* aRuleData);
+ /* nothing */
 
-#define DECL_STYLE_RULE_INHERIT                   \
-  DECL_STYLE_RULE_INHERIT_NO_DOMRULE              \
-  virtual nsIDOMCSSRule* GetDOMRule();            \
-  virtual nsIDOMCSSRule* GetExistingDOMRule();
+#define DECL_STYLE_RULE_INHERIT                            \
+  DECL_STYLE_RULE_INHERIT_NO_DOMRULE                       \
+  virtual nsIDOMCSSRule* GetDOMRule() override;        \
+  virtual nsIDOMCSSRule* GetExistingDOMRule() override;
 
-class Rule : public nsIStyleRule {
+class Rule : public nsISupports {
 protected:
-  Rule()
-    : mSheet(0),
-      mParentRule(nullptr)
+  Rule(uint32_t aLineNumber, uint32_t aColumnNumber)
+    : mSheet(nullptr),
+      mParentRule(nullptr),
+      mLineNumber(aLineNumber),
+      mColumnNumber(aColumnNumber)
   {
   }
 
   Rule(const Rule& aCopy)
     : mSheet(aCopy.mSheet),
-      mParentRule(aCopy.mParentRule)
+      mParentRule(aCopy.mParentRule),
+      mLineNumber(aCopy.mLineNumber),
+      mColumnNumber(aCopy.mColumnNumber)
   {
   }
 
@@ -49,10 +52,14 @@ protected:
 
 public:
 
+#ifdef DEBUG
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const = 0;
+#endif
+
   // The constants in this list must maintain the following invariants:
   //   If a rule of type N must appear before a rule of type M in stylesheets
   //   then N < M
-  // Note that nsCSSStyleSheet::RebuildChildList assumes that no other kinds of
+  // Note that CSSStyleSheet::RebuildChildList assumes that no other kinds of
   // rules can come between two rules of type IMPORT_RULE.
   enum {
     UNKNOWN_RULE = 0,
@@ -73,20 +80,16 @@ public:
 
   virtual int32_t GetType() const = 0;
 
-  nsCSSStyleSheet* GetStyleSheet() const;
-  nsHTMLCSSStyleSheet* GetHTMLCSSStyleSheet() const;
+  CSSStyleSheet* GetStyleSheet() const { return mSheet; }
 
   // Return the document the rule lives in, if any
   nsIDocument* GetDocument() const
   {
-    nsCSSStyleSheet* sheet = GetStyleSheet();
+    CSSStyleSheet* sheet = GetStyleSheet();
     return sheet ? sheet->GetDocument() : nullptr;
   }
 
-  virtual void SetStyleSheet(nsCSSStyleSheet* aSheet);
-  // This does not need to be virtual, because GroupRule and MediaRule are not
-  // used for inline style.
-  void SetHTMLCSSStyleSheet(nsHTMLCSSStyleSheet* aSheet);
+  virtual void SetStyleSheet(CSSStyleSheet* aSheet);
 
   void SetParentRule(GroupRule* aRule) {
     // We don't reference count this up reference. The group rule
@@ -94,6 +97,9 @@ public:
     // it.
     mParentRule = aRule;
   }
+
+  uint32_t GetLineNumber() const { return mLineNumber; }
+  uint32_t GetColumnNumber() const { return mColumnNumber; }
 
   /**
    * Clones |this|. Never returns nullptr.
@@ -110,22 +116,23 @@ public:
   // to implement methods on nsIDOMCSSRule
   nsresult GetParentRule(nsIDOMCSSRule** aParentRule);
   nsresult GetParentStyleSheet(nsIDOMCSSStyleSheet** aSheet);
+  Rule* GetCSSRule();
 
   // This is pure virtual because all of Rule's data members are non-owning and
   // thus measured elsewhere.
   virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
     const MOZ_MUST_OVERRIDE = 0;
 
-  // This is used to measure nsCOMArray<Rule>s.
-  static size_t SizeOfCOMArrayElementIncludingThis(css::Rule* aElement,
-                                                   mozilla::MallocSizeOf aMallocSizeOf,
-                                                   void* aData);
-
 protected:
-  // This is either an nsCSSStyleSheet* or a nsHTMLStyleSheet*.  The former
-  // if the low bit is 0, the latter if the low bit is 1.
-  uintptr_t         mSheet;
-  GroupRule*        mParentRule;
+  // This is sometimes null (e.g., for style attributes).
+  CSSStyleSheet*    mSheet;
+  // When the parent GroupRule is destroyed, it will call SetParentRule(nullptr)
+  // on this object. (Through SetParentRuleReference);
+  GroupRule* MOZ_NON_OWNING_REF mParentRule;
+
+  // Keep the same type so that MSVC packs them.
+  uint32_t          mLineNumber;
+  uint32_t          mColumnNumber;
 };
 
 } // namespace css

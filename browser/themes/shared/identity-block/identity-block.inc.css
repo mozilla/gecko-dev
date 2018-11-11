@@ -1,0 +1,163 @@
+%if 0
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+%endif
+
+%filter substitution
+
+%define selectorPrefix
+%define selectorSuffix
+%define iconVariant
+%include icons.inc.css
+
+%define selectorPrefix
+%define selectorSuffix :-moz-lwtheme
+%define iconVariant -black
+%include icons.inc.css
+
+#identity-box {
+  font-size: .9em;
+  padding: 3px 5px;
+  overflow: hidden;
+  /* The padding-left and padding-right transitions handle the delayed hiding of
+     the forward button when hovered. */
+  transition: padding-left, padding-right;
+}
+
+#urlbar[pageproxystate="valid"] > #identity-box.verifiedIdentity > #identity-icon-labels {
+  color: hsl(92,100%,30%);
+}
+
+#urlbar[pageproxystate="valid"] > #identity-box.chromeUI > #identity-icon-labels {
+%ifdef MOZ_OFFICIAL_BRANDING
+  color: rgb(229,115,0);
+%else
+  color: inherit;
+%endif
+}
+
+#identity-icon-labels:-moz-locale-dir(ltr) {
+  padding-left: 2px;
+}
+
+#identity-icon-labels:-moz-locale-dir(rtl) {
+  padding-right: 2px;
+}
+
+@conditionalForwardWithUrlbar@ > #forward-button[disabled] + #urlbar > #identity-box {
+  padding-inline-start: calc(var(--backbutton-urlbar-overlap) + 5px);
+}
+
+@conditionalForwardWithUrlbar@:hover:not([switchingtabs]) > #forward-button[disabled] + #urlbar > #identity-box {
+  /* Forward button hiding is delayed when hovered, so we should use the same
+     delay for the identity box. We handle both horizontal paddings (for LTR and
+     RTL), the latter two delays here are for padding-left and padding-right. */
+  transition-delay: 100s, 100s;
+}
+
+@conditionalForwardWithUrlbar@:not(:hover) > #forward-button[disabled] + #urlbar > #identity-box {
+  /* when not hovered anymore, trigger a new non-delayed transition to react to the forward button hiding */
+  padding-inline-start: calc(var(--backbutton-urlbar-overlap) + 5.01px);
+}
+
+/* MAIN IDENTITY ICON */
+
+#identity-icon {
+  width: 16px;
+  height: 16px;
+}
+
+#urlbar[pageproxystate="invalid"] > #identity-box > #identity-icon {
+  opacity: .3;
+}
+
+#urlbar[actiontype="searchengine"] > #identity-box > #identity-icon {
+  -moz-image-region: inherit;
+  list-style-image: url(chrome://global/skin/icons/autocomplete-search.svg#search-icon);
+  width: 16px;
+  height: 16px;
+}
+
+#urlbar[actiontype="extension"] > #identity-box > #identity-icon {
+  -moz-image-region: inherit;
+  list-style-image: url(chrome://browser/skin/addons/addon-install-anchor.svg);
+  width: 16px;
+  height: 16px;
+}
+
+/* SHARING ICON */
+
+#sharing-icon {
+  width: 16px;
+  height: 16px;
+  margin-inline-start: -16px;
+  position: relative;
+  display: none;
+}
+
+#identity-box[sharing="camera"] > #sharing-icon {
+  list-style-image: url("chrome://browser/skin/notification-icons.svg#camera-sharing");
+}
+
+#identity-box[sharing="microphone"] > #sharing-icon {
+  list-style-image: url("chrome://browser/skin/notification-icons.svg#microphone-sharing");
+}
+
+#identity-box[sharing="screen"] > #sharing-icon {
+  list-style-image: url("chrome://browser/skin/notification-icons.svg#screen-sharing");
+}
+
+#identity-box[sharing] > #sharing-icon {
+  display: -moz-box;
+  animation-delay: -1.5s;
+}
+
+#identity-box[sharing] > #identity-icon,
+#sharing-icon {
+  animation: 3s linear pulse infinite;
+}
+
+@keyframes pulse {
+  0%, 16.66%, 83.33%, 100% {
+    opacity: 0;
+  }
+  33.33%, 66.66% {
+    opacity: 1;
+  }
+}
+
+/* TRACKING PROTECTION ICON */
+
+#tracking-protection-icon {
+  width: 16px;
+  height: 16px;
+  margin-inline-start: 2px;
+  margin-inline-end: 0;
+}
+
+#tracking-protection-icon[animate] {
+  transition: margin-left 200ms ease-out, margin-right 200ms ease-out;
+}
+
+#tracking-protection-icon:not([state]) {
+  margin-inline-end: -18px;
+  pointer-events: none;
+  opacity: 0;
+  /* Only animate the shield in, when it disappears hide it immediately. */
+  transition: none;
+}
+
+#urlbar[pageproxystate="invalid"] > #identity-box > #tracking-protection-icon {
+  visibility: collapse;
+}
+
+/* CONNECTION ICON */
+
+#connection-icon {
+  width: 16px;
+  height: 16px;
+  margin-inline-start: 2px;
+  visibility: collapse;
+}
+

@@ -15,9 +15,10 @@
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsITimer.h"
-#include "npapi.h"
 #include "nsTArray.h"
 #include "mozilla/EventForwards.h"
+#include "mozilla/TextEventDispatcherListener.h"
+#include "WritingModes.h"
 
 class nsChildView;
 
@@ -27,7 +28,10 @@ namespace widget {
 // Key code constants
 enum
 {
+#if !defined(MAC_OS_X_VERSION_10_12) || \
+  MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_12
   kVK_RightCommand    = 0x36, // right command key
+#endif
 
   kVK_PC_PrintScreen     = kVK_F13,
   kVK_PC_ScrollLock      = kVK_F14,
@@ -54,6 +58,10 @@ class TISInputSourceWrapper
 {
 public:
   static TISInputSourceWrapper& CurrentInputSource();
+  /**
+   * Shutdown() should be called when nobody doesn't need to use this class.
+   */
+  static void Shutdown();
 
   TISInputSourceWrapper()
   {
@@ -61,19 +69,19 @@ public:
     Clear();
   }
 
-  TISInputSourceWrapper(const char* aID)
+  explicit TISInputSourceWrapper(const char* aID)
   {
     mInputSourceList = nullptr;
     InitByInputSourceID(aID);
   }
 
-  TISInputSourceWrapper(SInt32 aLayoutID)
+  explicit TISInputSourceWrapper(SInt32 aLayoutID)
   {
     mInputSourceList = nullptr;
     InitByLayoutID(aLayoutID);
   }
 
-  TISInputSourceWrapper(TISInputSourceRef aInputSource)
+  explicit TISInputSourceWrapper(TISInputSourceRef aInputSource)
   {
     mInputSourceList = nullptr;
     InitByTISInputSourceRef(aInputSource);
@@ -226,6 +234,26 @@ public:
                     const nsAString *aInsertString = nullptr);
 
   /**
+   * WillDispatchKeyboardEvent() computes aKeyEvent.mAlternativeCharCodes and
+   * recompute aKeyEvent.mCharCode if it's necessary.
+   *
+   * @param aNativeKeyEvent       A native key event for which you want to
+   *                              dispatch a Gecko key event.
+   * @param aInsertString         If caller expects that the event will cause
+   *                              a character to be input (say in an editor),
+   *                              the caller should set this.  Otherwise,
+   *                              if caller sets null to this, this method will
+   *                              compute the character to be input from
+   *                              characters of aNativeKeyEvent.
+   * @param aKeyEvent             The result -- a Gecko key event initialized
+   *                              from the native key event.  This must be
+   *                              eKeyPress event.
+   */
+  void WillDispatchKeyboardEvent(NSEvent* aNativeKeyEvent,
+                                 const nsAString* aInsertString,
+                                 WidgetKeyboardEvent& aKeyEvent);
+
+  /**
    * ComputeGeckoKeyCode() returns Gecko keycode for aNativeKeyCode on current
    * keyboard layout.
    *
@@ -285,23 +313,34 @@ protected:
   uint32_t TranslateToChar(UInt32 aKeyCode, UInt32 aModifiers, UInt32 aKbType);
 
   /**
-   * InitKeyPressEvent() initializes aKeyEvent for aNativeKeyEvent.
-   * Don't call this method when aKeyEvent isn't NS_KEY_PRESS.
+   * ComputeInsertString() computes string to be inserted with the key event.
    *
-   * @param aNativeKeyEvent       A native key event for which you want to
-   *                              dispatch a Gecko key event.
-   * @param aInsertChar           A character to be input in an editor by the
-   *                              event.
-   * @param aKeyEvent             The result -- a Gecko key event initialized
-   *                              from the native key event.  This must be
-   *                              NS_KEY_PRESS event.
-   * @param aKbType               A native Keyboard Type value.  Typically,
-   *                              this is a result of ::LMGetKbdType().
+   * @param aNativeKeyEvent     The native key event which causes our keyboard
+   *                            event(s).
+   * @param aKeyEvent           A Gecko key event which was partially
+   *                            initialized with aNativeKeyEvent.
+   * @param aInsertString       The string to be inputting by aNativeKeyEvent.
+   *                            This should be specified by InsertText().
+   *                            In other words, if the key event doesn't cause
+   *                            a call of InsertText(), this can be nullptr.
+   * @param aResult             The string which should be set to charCode of
+   *                            keypress event(s).
    */
-  void InitKeyPressEvent(NSEvent *aNativeKeyEvent,
-                         char16_t aInsertChar,
-                         WidgetKeyboardEvent& aKeyEvent,
-                         UInt32 aKbType);
+  void ComputeInsertStringForCharCode(NSEvent* aNativeKeyEvent,
+                                      const WidgetKeyboardEvent& aKeyEvent,
+                                      const nsAString* aInsertString,
+                                      nsAString& aResult);
+
+  /**
+   * IsPrintableKeyEvent() returns true if aNativeKeyEvent is caused by
+   * a printable key.  Otherwise, returns false.
+   */
+  bool IsPrintableKeyEvent(NSEvent* aNativeKeyEvent) const;
+
+  /**
+   * GetKbdType() returns physical keyboard type.
+   */
+  UInt32 GetKbdType() const;
 
   bool GetBoolProperty(const CFStringRef aKey);
   bool GetStringProperty(const CFStringRef aKey, CFStringRef &aStr);
@@ -314,36 +353,23 @@ protected:
   int8_t mIsRTL;
 
   bool mOverrideKeyboard;
+
+  static TISInputSourceWrapper* sCurrentInputSource;
 };
 
 /**
- * TextInputHandlerBase is a base class of PluginTextInputHandler,
- * IMEInputHandler and TextInputHandler.  Utility methods should be implemented
- * this level.
+ * TextInputHandlerBase is a base class of IMEInputHandler and TextInputHandler.
+ * Utility methods should be implemented this level.
  */
 
-class TextInputHandlerBase
+class TextInputHandlerBase : public TextEventDispatcherListener
 {
 public:
-  nsrefcnt AddRef()
-  {
-    NS_PRECONDITION(int32_t(mRefCnt) >= 0, "mRefCnt is negative");
-    ++mRefCnt;
-    NS_LOG_ADDREF(this, mRefCnt, "TextInputHandlerBase", sizeof(*this));
-    return mRefCnt;
-  }
-  nsrefcnt Release()
-  {
-    NS_PRECONDITION(mRefCnt != 0, "mRefCnt is alrady zero");
-    --mRefCnt;
-    NS_LOG_RELEASE(this, mRefCnt, "TextInputHandlerBase");
-    if (mRefCnt == 0) {
-        mRefCnt = 1; /* stabilize */
-        delete this;
-        return 0;
-    }
-    return mRefCnt;
-  }
+  /**
+   * Other TextEventDispatcherListener methods should be implemented in
+   * IMEInputHandler.
+   */
+  NS_DECL_ISUPPORTS
 
   /**
    * DispatchEvent() dispatches aEvent on mWidget.
@@ -355,7 +381,7 @@ public:
   bool DispatchEvent(WidgetGUIEvent& aEvent);
 
   /**
-   * SetSelection() dispatches NS_SELECTION_SET event for the aRange.
+   * SetSelection() dispatches eSetSelection event for the aRange.
    *
    * @param aRange                The range which will be selected.
    * @return                      TRUE if setting selection is succeeded and
@@ -442,9 +468,6 @@ public:
    */
   static void EnsureSecureEventInputDisabled();
 
-protected:
-  nsAutoRefCnt mRefCnt;
-
 public:
    /**
    * mWidget must not be destroyed without OnDestroyWidget being called.
@@ -459,9 +482,11 @@ public:
   virtual bool OnDestroyWidget(nsChildView* aDestroyingWidget);
 
 protected:
-  // The creater of this instance and client.
-  // This must not be null after initialized until OnDestroyWidget() is called.
+  // The creator of this instance, client and its text event dispatcher.
+  // These members must not be nullptr after initialized until
+  // OnDestroyWidget() is called.
   nsChildView* mWidget; // [WEAK]
+  RefPtr<TextEventDispatcher> mDispatcher;
 
   // The native view for mWidget.
   // This view handles the actual text inputting.
@@ -482,6 +507,12 @@ protected:
   {
     // Handling native key event
     NSEvent* mKeyEvent;
+    // String specified by InsertText().  This is not null only during a
+    // call of InsertText().
+    nsAString* mInsertString;
+    // String which are included in [mKeyEvent characters] and already handled
+    // by InsertText() call(s).
+    nsString mInsertedString;
     // Whether keydown event was consumed by web contents or chrome contents.
     bool mKeyDownHandled;
     // Whether keypress event was dispatched for mKeyEvent.
@@ -490,29 +521,23 @@ protected:
     bool mKeyPressHandled;
     // Whether the key event causes other key events via IME or something.
     bool mCausedOtherKeyEvents;
+    // Whether the key event causes composition change or committing
+    // composition.  So, even if InsertText() is called, this may be false
+    // if it dispatches keypress event.
+    bool mCompositionDispatched;
 
     KeyEventState() : mKeyEvent(nullptr)
     {
       Clear();
     }    
 
-    KeyEventState(NSEvent* aNativeKeyEvent) : mKeyEvent(nullptr)
+    explicit KeyEventState(NSEvent* aNativeKeyEvent) : mKeyEvent(nullptr)
     {
       Clear();
       Set(aNativeKeyEvent);
     }
 
-    KeyEventState(const KeyEventState &aOther) : mKeyEvent(nullptr)
-    {
-      Clear();
-      if (aOther.mKeyEvent) {
-        mKeyEvent = [aOther.mKeyEvent retain];
-      }
-      mKeyDownHandled = aOther.mKeyDownHandled;
-      mKeyPressDispatched = aOther.mKeyPressDispatched;
-      mKeyPressHandled = aOther.mKeyPressHandled;
-      mCausedOtherKeyEvents = aOther.mCausedOtherKeyEvents;
-    }
+    KeyEventState(const KeyEventState &aOther) = delete;
 
     ~KeyEventState()
     {
@@ -532,30 +557,47 @@ protected:
         [mKeyEvent release];
         mKeyEvent = nullptr;
       }
+      mInsertString = nullptr;
+      mInsertedString.Truncate();
       mKeyDownHandled = false;
       mKeyPressDispatched = false;
       mKeyPressHandled = false;
       mCausedOtherKeyEvents = false;
+      mCompositionDispatched = false;
     }
 
     bool IsDefaultPrevented() const
     {
-      return mKeyDownHandled || mKeyPressHandled || mCausedOtherKeyEvents;
+      return mKeyDownHandled || mKeyPressHandled || mCausedOtherKeyEvents ||
+             mCompositionDispatched;
     }
 
     bool CanDispatchKeyPressEvent() const
     {
       return !mKeyPressDispatched && !IsDefaultPrevented();
     }
+
+    void InitKeyEvent(TextInputHandlerBase* aHandler,
+                      WidgetKeyboardEvent& aKeyEvent);
+
+    /**
+     * GetUnhandledString() returns characters of the event which have not been
+     * handled with InsertText() yet. For example, if there is a composition
+     * caused by a dead key press like '`' and it's committed by some key
+     * combinations like |Cmd+v|, then, the |v|'s KeyDown event's |characters|
+     * is |`v|.  Then, after |`| is committed with a call of InsertString(),
+     * this returns only 'v'.
+     */
+    void GetUnhandledString(nsAString& aUnhandledString) const;
   };
 
   /**
-   * Helper class for guaranteeing cleaning mCurrentKeyEvent
+   * Helper classes for guaranteeing cleaning mCurrentKeyEvent
    */
   class AutoKeyEventStateCleaner
   {
   public:
-    AutoKeyEventStateCleaner(TextInputHandlerBase* aHandler) :
+    explicit AutoKeyEventStateCleaner(TextInputHandlerBase* aHandler) :
       mHandler(aHandler)
     {
     }
@@ -565,7 +607,20 @@ protected:
       mHandler->RemoveCurrentKeyEvent();
     }
   private:
-    nsRefPtr<TextInputHandlerBase> mHandler;
+    RefPtr<TextInputHandlerBase> mHandler;
+  };
+
+  class MOZ_STACK_CLASS AutoInsertStringClearer
+  {
+  public:
+    explicit AutoInsertStringClearer(KeyEventState* aState)
+      : mState(aState)
+    {
+    }
+    ~AutoInsertStringClearer();
+
+  private:
+    KeyEventState* mState;
   };
 
   /**
@@ -631,6 +686,22 @@ protected:
     return mCurrentKeyEvents[mCurrentKeyEvents.Length() - 1];
   }
 
+  struct KeyboardLayoutOverride final
+  {
+    int32_t mKeyboardLayout;
+    bool mOverrideEnabled;
+
+    KeyboardLayoutOverride() :
+      mKeyboardLayout(0), mOverrideEnabled(false)
+    {
+    }
+  };
+
+  const KeyboardLayoutOverride& KeyboardLayoutOverrideRef() const
+  {
+    return mKeyboardOverride;
+  }
+
   /**
    * IsPrintableChar() checks whether the unicode character is
    * a non-printable ASCII character or not.  Note that this returns
@@ -663,164 +734,9 @@ protected:
   static bool IsModifierKey(UInt32 aNativeKeyCode);
 
 private:
-  struct KeyboardLayoutOverride {
-    int32_t mKeyboardLayout;
-    bool mOverrideEnabled;
-
-    KeyboardLayoutOverride() :
-      mKeyboardLayout(0), mOverrideEnabled(false)
-    {
-    }
-  };
-
   KeyboardLayoutOverride mKeyboardOverride;
 
   static int32_t sSecureEventInputCount;
-};
-
-/**
- * PluginTextInputHandler handles text input events for plugins.
- */
-
-class PluginTextInputHandler : public TextInputHandlerBase
-{
-public:
-
-  /**
-   * When starting complex text input for current event on plugin, this is
-   * called.  See also the comment of StartComplexTextInputForCurrentEvent() of
-   * nsIPluginWidget.
-   */
-  nsresult StartComplexTextInputForCurrentEvent()
-  {
-    mPluginComplexTextInputRequested = true;
-    return NS_OK;
-  }
-
-  /**
-   * HandleKeyDownEventForPlugin() handles aNativeKeyEvent.
-   *
-   * @param aNativeKeyEvent       A native NSKeyDown event.
-   */
-  void HandleKeyDownEventForPlugin(NSEvent* aNativeKeyEvent);
-
-  /**
-   * HandleKeyUpEventForPlugin() handles aNativeKeyEvent.
-   *
-   * @param aNativeKeyEvent       A native NSKeyUp event.
-   */
-  void HandleKeyUpEventForPlugin(NSEvent* aNativeKeyEvent);
-
-  /**
-   * ConvertCocoaKeyEventToNPCocoaEvent() converts aCocoaEvent to NPCocoaEvent.
-   *
-   * @param aCocoaEvent           A native key event.
-   * @param aPluginEvent          The result.
-   */
-  static void ConvertCocoaKeyEventToNPCocoaEvent(NSEvent* aCocoaEvent,
-                                                 NPCocoaEvent& aPluginEvent);
-
-#ifndef __LP64__
-
-  /**
-   * InstallPluginKeyEventsHandler() is called when initializing process.
-   * RemovePluginKeyEventsHandler() is called when finalizing process.
-   * These methods initialize/finalize global resource for handling events for
-   * plugins.
-   */
-  static void InstallPluginKeyEventsHandler();
-  static void RemovePluginKeyEventsHandler();
-
-  /**
-   * This must be called before first key/IME event for plugins.
-   * This method initializes IMKInputSession methods swizzling.
-   */
-  static void SwizzleMethods();
-
-  /**
-   * When a composition starts or finishes, this is called.
-   */
-  void SetPluginTSMInComposition(bool aInComposition)
-  {
-    mPluginTSMInComposition = aInComposition;
-  }
-
-#endif // #ifndef __LP64__
-
-protected:
-  bool mIgnoreNextKeyUpEvent;
-
-  PluginTextInputHandler(nsChildView* aWidget, NSView<mozView> *aNativeView);
-  ~PluginTextInputHandler();
-
-private:
-
-#ifndef __LP64__
-  TSMDocumentID mPluginTSMDoc;
-
-  bool mPluginTSMInComposition;
-#endif // #ifndef __LP64__
-
-  bool mPluginComplexTextInputRequested;
-
-  /**
-   * DispatchCocoaNPAPITextEvent() dispatches a text event for Cocoa plugin.
-   *
-   * @param aString               A string inputted by the dispatching event.
-   * @return                      TRUE if the dispatched event was consumed.
-   *                              Otherwise, FALSE.
-   */
-  bool DispatchCocoaNPAPITextEvent(NSString* aString);
-
-  /**
-   * Whether the plugin is in composition or not.
-   * On 32bit build, this returns the state of mPluginTSMInComposition.
-   * On 64bit build, this returns ComplexTextInputPanel's state.
-   *
-   * @return                      TRUE if plugin is in composition.  Otherwise,
-   *                              FALSE.
-   */
-  bool IsInPluginComposition();
-
-#ifndef __LP64__
-
-  /**
-   * Create a TSM document for use with plugins, so that we can support IME in
-   * them.  Once it's created, if need be (re)activate it.  Some plugins (e.g.
-   * the Flash plugin running in Camino) don't create their own TSM document --
-   * without which IME can't work.  Others (e.g. the Flash plugin running in
-   * Firefox) create a TSM document that (somehow) makes the input window behave
-   * badly when it contains more than one kind of input (say Hiragana and
-   * Romaji).  (We can't just use the per-NSView TSM documents that Cocoa
-   * provides (those created and managed by the NSTSMInputContext class) -- for
-   * some reason TSMProcessRawKeyEvent() doesn't work with them.)
-   */
-  void ActivatePluginTSMDocument();
-
-  /**
-   * HandleCarbonPluginKeyEvent() handles the aKeyEvent.  This is called by
-   * PluginKeyEventsHandler().
-   *
-   * @param aKeyEvent             A native Carbon event.
-   */
-  void HandleCarbonPluginKeyEvent(EventRef aKeyEvent);
-
-  /**
-   * Target for text services events sent as the result of calls made to
-   * TSMProcessRawKeyEvent() in HandleKeyDownEventForPlugin() when a plugin has
-   * the focus.  The calls to TSMProcessRawKeyEvent() short-circuit Cocoa-based
-   * IME (which would otherwise interfere with our efforts) and allow Carbon-
-   * based IME to work in plugins (via the NPAPI).  This strategy doesn't cause
-   * trouble for plugins that (like the Java Embedding Plugin) bypass the NPAPI
-   * to get their keyboard events and do their own Cocoa-based IME.
-   */
-  static OSStatus PluginKeyEventsHandler(EventHandlerCallRef aHandlerRef,
-                                         EventRef aEvent,
-                                         void *aUserData);
-
-  static EventHandlerRef sPluginKeyEventsHandler;
-
-#endif // #ifndef __LP64__
 };
 
 /**
@@ -836,29 +752,31 @@ private:
  * actual focused view is notified by OnFocusChangeInGecko.
  */
 
-class IMEInputHandler : public PluginTextInputHandler
+class IMEInputHandler : public TextInputHandlerBase
 {
 public:
-  virtual bool OnDestroyWidget(nsChildView* aDestroyingWidget);
+  // TextEventDispatcherListener methods
+  NS_IMETHOD NotifyIME(TextEventDispatcher* aTextEventDispatcher,
+                       const IMENotification& aNotification) override;
+  NS_IMETHOD_(void) OnRemovedFrom(
+                      TextEventDispatcher* aTextEventDispatcher) override;
+  NS_IMETHOD_(void) WillDispatchKeyboardEvent(
+                      TextEventDispatcher* aTextEventDispatcher,
+                      WidgetKeyboardEvent& aKeyboardEvent,
+                      uint32_t aIndexOfKeypress,
+                      void* aData) override;
+
+public:
+  virtual bool OnDestroyWidget(nsChildView* aDestroyingWidget) override;
 
   virtual void OnFocusChangeInGecko(bool aFocus);
 
-  void OnSelectionChange() { mSelectedRange.location = NSNotFound; }
+  void OnSelectionChange(const IMENotification& aIMENotification);
 
   /**
-   * DispatchTextEvent() dispatches a text event on mWidget.
-   *
-   * @param aText                 User text input.
-   * @param aAttrString           An NSAttributedString instance which indicates
-   *                              current composition string.
-   * @param aSelectedRange        Current selected range (or caret position).
-   * @param aDoCommit             TRUE if the composition string should be
-   *                              committed.  Otherwise, FALSE.
+   * Call [NSTextInputContext handleEvent] for mouse event support of IME
    */
-  bool DispatchTextEvent(const nsString& aText,
-                           NSAttributedString* aAttrString,
-                           NSRange& aSelectedRange,
-                           bool aDoCommit);
+  bool OnHandleEvent(NSEvent* aEvent);
 
   /**
    * SetMarkedText() is a handler of setMarkedText of NSTextInput.
@@ -876,15 +794,6 @@ public:
   void SetMarkedText(NSAttributedString* aAttrString,
                      NSRange& aSelectedRange,
                      NSRange* aReplacementRange = nullptr);
-
-  /**
-   * ConversationIdentifier() returns an ID for the current editor.  The ID is
-   * guaranteed to be unique among currently existing editors.  But it might be
-   * the same as the ID of an editor that has already been destroyed.
-   *
-   * @return                      An identifier of current focused editor.
-   */
-  NSInteger ConversationIdentifier();
 
   /**
    * GetAttributedSubstringFromRange() returns an NSAttributedString instance
@@ -909,6 +818,17 @@ public:
    *                              selection range  in the focused document.
    */
   NSRange SelectedRange();
+
+  /**
+   * DrawsVerticallyForCharacterAtIndex() returns whether the character at
+   * the given index is being rendered vertically.
+   *
+   * @param aCharIndex            The character offset to query.
+   *
+   * @return                      True if writing-mode is vertical at the given
+   *                              character offset; otherwise false.
+   */
+  bool DrawsVerticallyForCharacterAtIndex(uint32_t aCharIndex);
 
   /**
    * FirstRectForCharacterRange() returns first *character* rect in the range.
@@ -970,6 +890,9 @@ public:
   void SetIMEOpenState(bool aOpen);
   void SetASCIICapableOnly(bool aASCIICapableOnly);
 
+  /**
+   * True if OSX believes that our view has keyboard focus.
+   */
   bool IsFocused();
 
   static CFArrayRef CreateAllIMEModeList();
@@ -1012,12 +935,14 @@ protected:
 private:
   // If mIsIMEComposing is true, the composition string is stored here.
   NSString* mIMECompositionString;
-  // mLastDispatchedCompositionString stores the lastest dispatched composition
-  // string by compositionupdate event.
-  nsString mLastDispatchedCompositionString;
+  // If mIsIMEComposing is true, the start offset of the composition string.
+  uint32_t mIMECompositionStart;
 
   NSRange mMarkedRange;
   NSRange mSelectedRange;
+
+  NSRange mRangeForWritingMode; // range within which mWritingMode applies
+  mozilla::WritingMode mWritingMode;
 
   bool mIsIMEComposing;
   bool mIsIMEEnabled;
@@ -1059,8 +984,8 @@ private:
    * @param aSelectedRange        Current selected range (or caret position).
    * @return                      NS_TEXTRANGE_*.
    */
-  uint32_t ConvertToTextRangeType(uint32_t aUnderlineStyle,
-                                  NSRange& aSelectedRange);
+  TextRangeType ConvertToTextRangeType(uint32_t aUnderlineStyle,
+                                       NSRange& aSelectedRange);
 
   /**
    * GetRangeCount() computes the range count of aAttrString.
@@ -1088,27 +1013,43 @@ private:
                          NSRange& aSelectedRange);
 
   /**
-   * InitCompositionEvent() initializes aCompositionEvent.
+   * DispatchCompositionStartEvent() dispatches a compositionstart event and
+   * initializes the members indicating composition state.
    *
-   * @param aCompositionEvent     A composition event which you want to
-   *                              initialize.
+   * @return                      true if it can continues handling composition.
+   *                              Otherwise, e.g., canceled by the web page,
+   *                              this returns false.
    */
-  void InitCompositionEvent(WidgetCompositionEvent& aCompositionEvent);
+  bool DispatchCompositionStartEvent();
 
   /**
-   * When a composition starts, OnStartIMEComposition() is called.
+   * DispatchCompositionChangeEvent() dispatches a compositionchange event on
+   * mWidget and modifies the members indicating composition state.
+   *
+   * @param aText                 User text input.
+   * @param aAttrString           An NSAttributedString instance which indicates
+   *                              current composition string.
+   * @param aSelectedRange        Current selected range (or caret position).
+   *
+   * @return                      true if it can continues handling composition.
+   *                              Otherwise, e.g., canceled by the web page,
+   *                              this returns false.
    */
-  void OnStartIMEComposition();
+  bool DispatchCompositionChangeEvent(const nsString& aText,
+                                      NSAttributedString* aAttrString,
+                                      NSRange& aSelectedRange);
 
   /**
-   * When a composition is updated, OnUpdateIMEComposition() is called.
+   * DispatchCompositionCommitEvent() dispatches a compositioncommit event or
+   * compositioncommitasis event.  If aCommitString is null, dispatches
+   * compositioncommitasis event.  I.e., if aCommitString is null, this
+   * commits the composition with the last data.  Otherwise, commits the
+   * composition with aCommitString value.
+   *
+   * @return                      true if the widget isn't destroyed.
+   *                              Otherwise, false.
    */
-  void OnUpdateIMEComposition(NSString* aIMECompositionString);
-
-  /**
-   * When a composition is finished, OnEndIMEComposition() is called.
-   */
-  void OnEndIMEComposition();
+  bool DispatchCompositionCommitEvent(const nsAString* aCommitString = nullptr);
 
   // The focused IME handler.  Please note that the handler might lost the
   // actual focus by deactivating the application.  If we are active, this
@@ -1116,6 +1057,8 @@ private:
   // We cannot access to the NSInputManager during we aren't active, so, the
   // focused handler can have an IME transaction even if we are deactive.
   static IMEInputHandler* sFocusedIMEHandler;
+
+  static bool sCachedIsForRTLLangage;
 };
 
 /**
@@ -1158,7 +1101,7 @@ public:
   /**
    * Insert the string to content.  I.e., this is a text input event handler.
    * If this is called during keydown event handling, this may dispatch a
-   * NS_KEY_PRESS event.  If this is called during composition, this commits
+   * eKeyPress event.  If this is called during composition, this commits
    * the composition by the aAttrString.
    *
    * @param aAttrString           An inserted string.

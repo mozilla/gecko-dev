@@ -4,50 +4,67 @@
 
 /* File locked partial MAR file staged patch apply failure test */
 
+const STATE_AFTER_STAGE = STATE_PENDING;
+
 function run_test() {
-  gStageUpdate = true;
-  setupTestCommon();
+  if (!setupTestCommon()) {
+    return;
+  }
   gTestFiles = gTestFilesPartialSuccess;
   gTestDirs = gTestDirsPartialSuccess;
   setTestFilesAndDirsForFailure();
-  setupUpdaterTest(FILE_PARTIAL_MAR, true, false);
-
-  // Exclusively lock an existing file so it is in use during the update.
-  let helperBin = getTestDirFile(FILE_HELPER_BIN);
-  let helperDestDir = getApplyDirFile("a/b/");
-  helperBin.copyTo(helperDestDir, FILE_HELPER_BIN);
-  helperBin = getApplyDirFile("a/b/" + FILE_HELPER_BIN);
-  // Strip off the first two directories so the path has to be from the helper's
-  // working directory.
-  let lockFileRelPath = gTestFiles[2].relPathDir.split("/");
-  lockFileRelPath = lockFileRelPath.slice(2);
-  lockFileRelPath = lockFileRelPath.join("/") + "/" + gTestFiles[2].fileName;
-  let args = [getApplyDirPath() + "a/b/", "input", "output", "-s",
-              HELPER_SLEEP_TIMEOUT, lockFileRelPath];
-  let lockFileProcess = AUS_Cc["@mozilla.org/process/util;1"].
-                     createInstance(AUS_Ci.nsIProcess);
-  lockFileProcess.init(helperBin);
-  lockFileProcess.run(false, args, args.length);
-
-  do_timeout(TEST_HELPER_TIMEOUT, waitForHelperSleep);
+  setupUpdaterTest(FILE_PARTIAL_MAR, false);
 }
 
-function doUpdate() {
-  runUpdate(1, STATE_FAILED_WRITE_ERROR, null);
+/**
+ * Called after the call to setupUpdaterTest finishes.
+ */
+function setupUpdaterTestFinished() {
+  runHelperLockFile(gTestFiles[2]);
+}
 
+/**
+ * Called after the call to waitForHelperSleep finishes.
+ */
+function waitForHelperSleepFinished() {
+  stageUpdate(true);
+}
+
+/**
+ * Called after the call to stageUpdate finishes.
+ */
+function stageUpdateFinished() {
+  checkPostUpdateRunningFile(false);
+  // Files aren't checked after staging since this test locks a file which
+  // prevents reading the file.
+  checkUpdateLogContains(ERR_ENSURE_COPY);
   // Switch the application to the staged application that was updated.
-  gStageUpdate = false;
-  gSwitchApp = true;
-  gDisableReplaceFallback = true;
-  runUpdate(1, STATE_FAILED_WRITE_ERROR);
+  runUpdate(STATE_FAILED_READ_ERROR, false, 1, false);
 }
 
-function checkUpdateApplied() {
-  setupHelperFinish();
+/**
+ * Called after the call to runUpdate finishes.
+ */
+function runUpdateFinished() {
+  waitForHelperExit();
 }
 
-function checkUpdate() {
+/**
+ * Called after the call to waitForHelperExit finishes.
+ */
+function waitForHelperExitFinished() {
+  standardInit();
+  Assert.equal(readStatusFile(), STATE_NONE,
+               "the status file failure code" + MSG_SHOULD_EQUAL);
+  Assert.equal(gUpdateManager.updateCount, 2,
+               "the update manager updateCount attribute" + MSG_SHOULD_EQUAL);
+  Assert.equal(gUpdateManager.getUpdateAt(0).state, STATE_FAILED,
+               "the update state" + MSG_SHOULD_EQUAL);
+  Assert.equal(gUpdateManager.getUpdateAt(0).errorCode, READ_ERROR,
+               "the update errorCode" + MSG_SHOULD_EQUAL);
+  checkPostUpdateRunningFile(false);
   checkFilesAfterUpdateFailure(getApplyDirFile);
-  checkUpdateLogContains(ERR_RENAME_FILE);
-  checkCallbackAppLog();
+  checkUpdateLogContains(ERR_UNABLE_OPEN_DEST);
+  checkUpdateLogContains(STATE_FAILED_READ_ERROR + "\n" + CALL_QUIT);
+  checkCallbackLog();
 }

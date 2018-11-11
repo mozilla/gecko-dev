@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -67,7 +69,7 @@ ScopedXREEmbed::Start()
   NS_ENSURE_TRUE_VOID(localFile);
 
 #ifdef OS_MACOSX
-  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+  if (XRE_IsContentProcess()) {
     // We're an XPCOM-using subprocess.  Walk out of
     // [subprocess].app/Contents/MacOS to the real GRE dir.
     rv = localFile->GetParent(getter_AddRefs(parent));
@@ -90,6 +92,11 @@ ScopedXREEmbed::Start()
 
     localFile = do_QueryInterface(parent);
     NS_ENSURE_TRUE_VOID(localFile);
+
+    rv = localFile->SetNativeLeafName(NS_LITERAL_CSTRING("Resources"));
+    if (NS_FAILED(rv)) {
+      return;
+    }
   }
 #endif
 

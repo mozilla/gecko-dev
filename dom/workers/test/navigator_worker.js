@@ -8,69 +8,72 @@ var supportedProps = [
   "appCodeName",
   "appName",
   "appVersion",
-  { name: "getDataStores", b2g: true },
   "platform",
   "product",
-  "taintEnabled",
   "userAgent",
-  "onLine"
+  "onLine",
+  "language",
+  "languages",
+  "hardwareConcurrency",
+  { name: "storage", nightly: true },
 ];
 
-var isDesktop = !/Mobile|Tablet/.test(navigator.userAgent);
-var isB2G = !isDesktop && !navigator.userAgent.contains("Android");
-
-// Prepare the interface map showing if a propery should exist in this build.
-// For example, if interfaceMap[foo] = true means navigator.foo should exist.
-var interfaceMap = {};
-
-for (var prop of supportedProps) {
-  if (typeof(prop) === "string") {
-    interfaceMap[prop] = true;
-    continue;
+self.onmessage = function(event) {
+  if (!event || !event.data) {
+    return;
   }
 
-  if (prop.b2g === !isB2G) {
-    interfaceMap[prop.name] = false;
-    continue;
+  startTest(event.data);
+};
+
+function startTest(channelData) {
+  // Prepare the interface map showing if a propery should exist in this build.
+  // For example, if interfaceMap[foo] = true means navigator.foo should exist.
+  var interfaceMap = {};
+
+  for (var prop of supportedProps) {
+    if (typeof(prop) === "string") {
+      interfaceMap[prop] = true;
+      continue;
+    }
+
+    if (prop.nightly === !channelData.isNightly ||
+        prop.release === !channelData.isRelease) {
+      interfaceMap[prop.name] = false;
+      continue;
+    }
+
+    interfaceMap[prop.name] = true;
   }
 
-  interfaceMap[prop.name] = true;
-}
-
-for (var prop in navigator) {
-  // Make sure the list is current!
-  if (!interfaceMap[prop]) {
-    throw "Navigator has the '" + prop + "' property that isn't in the list!";
-  }
-}
-
-var obj;
-
-for (var prop in interfaceMap) {
-  // Skip the property that is not supposed to exist in this build.
-  if (!interfaceMap[prop]) {
-    continue;
+  for (var prop in navigator) {
+    // Make sure the list is current!
+    if (!interfaceMap[prop]) {
+      throw "Navigator has the '" + prop + "' property that isn't in the list!";
+    }
   }
 
-  if (typeof navigator[prop] == "undefined") {
-    throw "Navigator has no '" + prop + "' property!";
-  }
+  var obj;
 
-  obj = { name:  prop };
+  for (var prop in interfaceMap) {
+    // Skip the property that is not supposed to exist in this build.
+    if (!interfaceMap[prop]) {
+      continue;
+    }
 
-  if (prop === "taintEnabled") {
-    obj.value = navigator[prop]();
-  } else if (prop === "getDataStores") {
-    obj.value = typeof navigator[prop];
-  } else {
+    if (typeof navigator[prop] == "undefined") {
+      throw "Navigator has no '" + prop + "' property!";
+    }
+
+    obj = { name:  prop };
     obj.value = navigator[prop];
+
+    postMessage(JSON.stringify(obj));
   }
+
+  obj = {
+    name: "testFinished"
+  };
 
   postMessage(JSON.stringify(obj));
 }
-
-obj = {
-  name: "testFinished"
-};
-
-postMessage(JSON.stringify(obj));

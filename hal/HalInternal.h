@@ -55,19 +55,9 @@ void EnableScreenConfigurationNotifications();
 void DisableScreenConfigurationNotifications();
 
 /**
- * Enable switch notifications from the backend
- */
-void EnableSwitchNotifications(hal::SwitchDevice aDevice);
-
-/**
- * Disable switch notifications from the backend
- */
-void DisableSwitchNotifications(hal::SwitchDevice aDevice);
-
-/**
  * Enable alarm notifications from the backend.
  */
-bool EnableAlarm();
+MOZ_MUST_USE bool EnableAlarm();
 
 /**
  * Disable alarm notifications from the backend.

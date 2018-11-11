@@ -44,28 +44,6 @@ HexEncode(const SECItem * it, nsACString & result)
   }
 }
 
-nsresult
-Base64UrlEncodeImpl(const nsACString & utf8Input, nsACString & result)
-{
-  nsresult rv = Base64Encode(utf8Input, result);
-
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsACString::char_type * out = result.BeginWriting();
-  nsACString::size_type length = result.Length();
-  // base64url encoding is defined in RFC 4648. It replaces the last two
-  // alphabet characters of base64 encoding with '-' and '_' respectively.
-  for (unsigned int i = 0; i < length; ++i) {
-    if (out[i] == '+') {
-      out[i] = '-';
-    } else if (out[i] == '/') {
-      out[i] = '_';
-    }
-  }
-
-  return NS_OK;
-}
-
 #define DSA_KEY_TYPE_STRING (NS_LITERAL_CSTRING("DS160"))
 #define RSA_KEY_TYPE_STRING (NS_LITERAL_CSTRING("RS256"))
 
@@ -75,7 +53,8 @@ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIIDENTITYKEYPAIR
 
-  KeyPair(SECKEYPrivateKey* aPrivateKey, SECKEYPublicKey* aPublicKey);
+  KeyPair(SECKEYPrivateKey* aPrivateKey, SECKEYPublicKey* aPublicKey,
+          nsIEventTarget* aOperationThread);
 
 private:
   ~KeyPair()
@@ -85,10 +64,10 @@ private:
       return;
     }
     destructorSafeDestroyNSSReference();
-    shutdown(calledFromObject);
+    shutdown(ShutdownCalledFrom::Object);
   }
 
-  void virtualDestroyNSSReference() MOZ_OVERRIDE
+  void virtualDestroyNSSReference() override
   {
     destructorSafeDestroyNSSReference();
   }
@@ -103,19 +82,21 @@ private:
 
   SECKEYPrivateKey * mPrivateKey;
   SECKEYPublicKey * mPublicKey;
+  nsCOMPtr<nsIEventTarget> mThread;
 
-  KeyPair(const KeyPair &) MOZ_DELETE;
-  void operator=(const KeyPair &) MOZ_DELETE;
+  KeyPair(const KeyPair &) = delete;
+  void operator=(const KeyPair &) = delete;
 };
 
 NS_IMPL_ISUPPORTS(KeyPair, nsIIdentityKeyPair)
 
-class KeyGenRunnable : public nsRunnable, public nsNSSShutDownObject
+class KeyGenRunnable : public Runnable, public nsNSSShutDownObject
 {
 public:
   NS_DECL_NSIRUNNABLE
 
-  KeyGenRunnable(KeyType keyType, nsIIdentityKeyGenCallback * aCallback);
+  KeyGenRunnable(KeyType keyType, nsIIdentityKeyGenCallback * aCallback,
+                 nsIEventTarget* aOperationThread);
 
 private:
   ~KeyGenRunnable()
@@ -125,10 +106,10 @@ private:
       return;
     }
     destructorSafeDestroyNSSReference();
-    shutdown(calledFromObject);
+    shutdown(ShutdownCalledFrom::Object);
   }
 
-  virtual void virtualDestroyNSSReference() MOZ_OVERRIDE
+  virtual void virtualDestroyNSSReference() override
   {
     destructorSafeDestroyNSSReference();
   }
@@ -141,12 +122,13 @@ private:
   nsMainThreadPtrHandle<nsIIdentityKeyGenCallback> mCallback; // in
   nsresult mRv; // out
   nsCOMPtr<nsIIdentityKeyPair> mKeyPair; // out
+  nsCOMPtr<nsIEventTarget> mThread;
 
-  KeyGenRunnable(const KeyGenRunnable &) MOZ_DELETE;
-  void operator=(const KeyGenRunnable &) MOZ_DELETE;
+  KeyGenRunnable(const KeyGenRunnable &) = delete;
+  void operator=(const KeyGenRunnable &) = delete;
 };
 
-class SignRunnable : public nsRunnable, public nsNSSShutDownObject
+class SignRunnable : public Runnable, public nsNSSShutDownObject
 {
 public:
   NS_DECL_NSIRUNNABLE
@@ -162,10 +144,10 @@ private:
       return;
     }
     destructorSafeDestroyNSSReference();
-    shutdown(calledFromObject);
+    shutdown(ShutdownCalledFrom::Object);
   }
 
-  void virtualDestroyNSSReference() MOZ_OVERRIDE
+  void virtualDestroyNSSReference() override
   {
     destructorSafeDestroyNSSReference();
   }
@@ -183,11 +165,11 @@ private:
   nsCString mSignature; // out
 
 private:
-  SignRunnable(const SignRunnable &) MOZ_DELETE;
-  void operator=(const SignRunnable &) MOZ_DELETE;
+  SignRunnable(const SignRunnable &) = delete;
+  void operator=(const SignRunnable &) = delete;
 };
 
-class IdentityCryptoService MOZ_FINAL : public nsIIdentityCryptoService
+class IdentityCryptoService final : public nsIIdentityCryptoService
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -201,12 +183,21 @@ public:
       = do_GetService("@mozilla.org/psm;1", &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    nsCOMPtr<nsIThread> thread;
+    rv = NS_NewNamedThread("IdentityCrypto", getter_AddRefs(thread));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    mThread = thread.forget();
+
     return NS_OK;
   }
 
 private:
-  IdentityCryptoService(const KeyPair &) MOZ_DELETE;
-  void operator=(const IdentityCryptoService &) MOZ_DELETE;
+  ~IdentityCryptoService() { }
+  IdentityCryptoService(const KeyPair &) = delete;
+  void operator=(const IdentityCryptoService &) = delete;
+
+  nsCOMPtr<nsIEventTarget> mThread;
 };
 
 NS_IMPL_ISUPPORTS(IdentityCryptoService, nsIIdentityCryptoService)
@@ -224,9 +215,8 @@ IdentityCryptoService::GenerateKeyPair(
     return NS_ERROR_UNEXPECTED;
   }
 
-  nsCOMPtr<nsIRunnable> r = new KeyGenRunnable(keyType, callback);
-  nsCOMPtr<nsIThread> thread;
-  nsresult rv = NS_NewThread(getter_AddRefs(thread), r);
+  nsCOMPtr<nsIRunnable> r = new KeyGenRunnable(keyType, callback, mThread);
+  nsresult rv = mThread->Dispatch(r.forget(), NS_DISPATCH_NORMAL);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -236,12 +226,16 @@ NS_IMETHODIMP
 IdentityCryptoService::Base64UrlEncode(const nsACString & utf8Input,
                                        nsACString & result)
 {
-  return Base64UrlEncodeImpl(utf8Input, result);
+  return Base64URLEncode(utf8Input.Length(),
+    reinterpret_cast<const uint8_t*>(utf8Input.BeginReading()),
+    Base64URLEncodePaddingPolicy::Include, result);
 }
 
-KeyPair::KeyPair(SECKEYPrivateKey * privateKey, SECKEYPublicKey * publicKey)
+KeyPair::KeyPair(SECKEYPrivateKey * privateKey, SECKEYPublicKey * publicKey,
+                 nsIEventTarget* operationThread)
   : mPrivateKey(privateKey)
   , mPublicKey(publicKey)
+  , mThread(operationThread)
 {
   MOZ_ASSERT(!NS_IsMainThread());
 }
@@ -327,20 +321,20 @@ KeyPair::Sign(const nsACString & textToSign,
   nsCOMPtr<nsIRunnable> r = new SignRunnable(textToSign, mPrivateKey,
                                              callback);
 
-  nsCOMPtr<nsIThread> thread;
-  nsresult rv = NS_NewThread(getter_AddRefs(thread), r);
-  return rv;
+  return mThread->Dispatch(r, NS_DISPATCH_NORMAL);
 }
 
 KeyGenRunnable::KeyGenRunnable(KeyType keyType,
-                               nsIIdentityKeyGenCallback * callback)
+                               nsIIdentityKeyGenCallback * callback,
+                               nsIEventTarget* operationThread)
   : mKeyType(keyType)
   , mCallback(new nsMainThreadPtrHolder<nsIIdentityKeyGenCallback>(callback))
   , mRv(NS_ERROR_NOT_INITIALIZED)
+  , mThread(operationThread)
 {
 }
 
-MOZ_WARN_UNUSED_RESULT nsresult
+MOZ_MUST_USE nsresult
 GenerateKeyPair(PK11SlotInfo * slot,
                 SECKEYPrivateKey ** privateKey,
                 SECKEYPublicKey ** publicKey,
@@ -366,7 +360,7 @@ GenerateKeyPair(PK11SlotInfo * slot,
 }
 
 
-MOZ_WARN_UNUSED_RESULT nsresult
+MOZ_MUST_USE nsresult
 GenerateRSAKeyPair(PK11SlotInfo * slot,
                    SECKEYPrivateKey ** privateKey,
                    SECKEYPublicKey ** publicKey)
@@ -380,7 +374,7 @@ GenerateRSAKeyPair(PK11SlotInfo * slot,
                          &rsaParams);
 }
 
-MOZ_WARN_UNUSED_RESULT nsresult
+MOZ_MUST_USE nsresult
 GenerateDSAKeyPair(PK11SlotInfo * slot,
                    SECKEYPrivateKey ** privateKey,
                    SECKEYPublicKey ** publicKey)
@@ -475,7 +469,7 @@ KeyGenRunnable::Run()
           MOZ_ASSERT(privk);
           MOZ_ASSERT(pubk);
 		  // mKeyPair will take over ownership of privk and pubk
-          mKeyPair = new KeyPair(privk, pubk);
+          mKeyPair = new KeyPair(privk, pubk, mThread);
         }
       }
     }
@@ -530,9 +524,9 @@ SignRunnable::Run()
           mRv = MapSECStatus(PK11_Sign(mPrivateKey, &sig, &hashItem));
         }
         if (NS_SUCCEEDED(mRv)) {
-          nsDependentCSubstring sigString(
-            reinterpret_cast<const char*>(sig.data), sig.len);
-          mRv = Base64UrlEncodeImpl(sigString, mSignature);
+          mRv = Base64URLEncode(sig.len, sig.data,
+                                Base64URLEncodePaddingPolicy::Include,
+                                mSignature);
         }
         SECITEM_FreeItem(&sig, false);
       }

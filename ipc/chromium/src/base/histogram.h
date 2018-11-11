@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 // Copyright (c) 2011 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -41,6 +43,7 @@
 #define BASE_METRICS_HISTOGRAM_H_
 #pragma once
 
+#include "mozilla/Atomics.h"
 #include "mozilla/MemoryReporting.h"
 
 #include <map>
@@ -50,9 +53,8 @@
 #include "base/time.h"
 #include "base/lock.h"
 
-class Pickle;
-
 namespace base {
+
 //------------------------------------------------------------------------------
 // Provide easy general purpose histogram in a macro, just like stats counters.
 // The first four macros use 50 buckets.
@@ -278,6 +280,7 @@ class Histogram {
     LINEAR_HISTOGRAM,
     BOOLEAN_HISTOGRAM,
     FLAG_HISTOGRAM,
+    COUNT_HISTOGRAM,
     CUSTOM_HISTOGRAM,
     NOT_VALID_IN_RENDERER
   };
@@ -291,14 +294,6 @@ class Histogram {
   enum Flags {
     kNoFlags = 0,
     kUmaTargetedHistogramFlag = 0x1,  // Histogram should be UMA uploaded.
-    kExtendedStatisticsFlag = 0x2, // OK to gather extended statistics on histograms.
-
-    // Indicate that the histogram was pickled to be sent across an IPC Channel.
-    // If we observe this flag on a histogram being aggregated into after IPC,
-    // then we are running in a single process mode, and the aggregation should
-    // not take place (as we would be aggregating back into the source
-    // histogram!).
-    kIPCSerializationSourceFlag = 0x10,
 
     kHexRangePrintingFlag = 0x8000  // Fancy bucket-naming supported.
   };
@@ -328,35 +323,33 @@ class Histogram {
     explicit SampleSet();
     ~SampleSet();
 
+    // None of the methods in this class are thread-safe.  Callers
+    // must deal with locking themselves.
+
     // Adjust size of counts_ for use with given histogram.
     void Resize(const Histogram& histogram);
-    void CheckSize(const Histogram& histogram) const;
 
     // Accessor for histogram to make routine additions.
-    void AccumulateWithLinearStats(Sample value, Count count, size_t index);
-    // Alternate routine for exponential histograms.
-    // computeExpensiveStatistics should be true if we want to compute log sums.
-    void AccumulateWithExponentialStats(Sample value, Count count, size_t index,
-					bool computeExtendedStatistics);
-
-    // Accessor methods.
-    Count counts(size_t i) const { return counts_[i]; }
-    Count TotalCount() const;
-    int64_t sum() const { return sum_; }
-    uint64_t sum_squares() const { return sum_squares_; }
-    double log_sum() const { return log_sum_; }
-    double log_sum_squares() const { return log_sum_squares_; }
-    int64_t redundant_count() const { return redundant_count_; }
-    size_t size() const { return counts_.size(); }
+    void Accumulate(Sample value, Count count, size_t index);
 
     // Arithmetic manipulation of corresponding elements of the set.
     void Add(const SampleSet& other);
-    void Subtract(const SampleSet& other);
-
-    bool Serialize(Pickle* pickle) const;
-    bool Deserialize(void** iter, const Pickle& pickle);
 
     size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf);
+
+    Count counts(size_t i) const {
+       return counts_[i];
+    }
+    Count TotalCount() const;
+    int64_t sum() const {
+       return sum_;
+    }
+    int64_t redundant_count() const {
+       return redundant_count_;
+    }
+    size_t size() const {
+       return counts_.size();
+    }
 
    protected:
     // Actual histogram data is stored in buckets, showing the count of values
@@ -366,16 +359,6 @@ class Histogram {
     // Save simple stats locally.  Note that this MIGHT get done in base class
     // without shared memory at some point.
     int64_t sum_;         // sum of samples.
-    uint64_t sum_squares_; // sum of squares of samples.
-
-    // These fields may or may not be updated at the discretion of the
-    // histogram.  We use the natural log and compute ln(sample+1) so that
-    // zeros are handled sanely.
-    double log_sum_;      // sum of logs of samples.
-    double log_sum_squares_; // sum of squares of logs of samples
-
-   private:
-    void Accumulate(Sample value, Count count, size_t index);
 
     // To help identify memory corruption, we reduntantly save the number of
     // samples we've accumulated into all of our buckets.  We can compare this
@@ -404,6 +387,12 @@ class Histogram {
   void Add(int value);
   void Subtract(int value);
 
+  // TODO: Currently recording_enabled_ is not used by any Histogram class, but
+  //       rather examined only by the telemetry code (via IsRecordingEnabled).
+  //       Move handling to Histogram's Add() etc after simplifying Histogram.
+  void SetRecordingEnabled(bool aEnabled) { recording_enabled_ = aEnabled; };
+  bool IsRecordingEnabled() const { return recording_enabled_; };
+
   // This method is an interface, used only by BooleanHistogram.
   virtual void AddBoolean(bool value);
 
@@ -414,7 +403,7 @@ class Histogram {
 
   virtual void AddSampleSet(const SampleSet& sample);
 
-  void Clear();
+  virtual void Clear();
 
   // This method is an interface, used only by LinearHistogram.
   virtual void SetRangeDescriptions(const DescriptionPair descriptions[]);
@@ -430,21 +419,6 @@ class Histogram {
   void SetFlags(Flags flags) { flags_ = static_cast<Flags> (flags_ | flags); }
   void ClearFlags(Flags flags) { flags_ = static_cast<Flags>(flags_ & ~flags); }
   int flags() const { return flags_; }
-
-  // Convenience methods for serializing/deserializing the histograms.
-  // Histograms from Renderer process are serialized and sent to the browser.
-  // Browser process reconstructs the histogram from the pickled version
-  // accumulates the browser-side shadow copy of histograms (that mirror
-  // histograms created in the renderer).
-
-  // Serialize the given snapshot of a Histogram into a String. Uses
-  // Pickle class to flatten the object.
-  static std::string SerializeHistogramInfo(const Histogram& histogram,
-                                            const SampleSet& snapshot);
-  // The following method accepts a list of pickled histograms and
-  // builds a histogram and updates shadow copy of histogram data in the
-  // browser process.
-  static bool DeserializeHistogramInfo(const std::string& histogram_info);
 
   // Check to see if bucket ranges, counts and tallies in the snapshot are
   // consistent with the bucket ranges and checksums in our histogram.  This can
@@ -463,8 +437,10 @@ class Histogram {
   virtual Sample ranges(size_t i) const;
   uint32_t range_checksum() const { return range_checksum_; }
   virtual size_t bucket_count() const;
-  // Snapshot the current complete set of sample data.
-  // Override with atomic/locked snapshot if needed.
+
+  // Do a safe atomic snapshot of sample data.  The caller is assumed to
+  // have exclusive access to the destination, |*sample|, and no locking
+  // of it is done here.
   virtual void SnapshotSample(SampleSet* sample) const;
 
   virtual bool HasConstructorArguments(Sample minimum, Sample maximum,
@@ -588,6 +564,9 @@ class Histogram {
   // have been corrupted.
   uint32_t range_checksum_;
 
+  // When false, new samples are completely ignored.
+  mozilla::Atomic<bool, mozilla::Relaxed> recording_enabled_;
+
   DISALLOW_COPY_AND_ASSIGN(Histogram);
 };
 
@@ -683,11 +662,31 @@ public:
 
   virtual void AddSampleSet(const SampleSet& sample);
 
+  virtual void Clear();
+
 private:
   explicit FlagHistogram(const std::string &name);
   bool mSwitched;
 
   DISALLOW_COPY_AND_ASSIGN(FlagHistogram);
+};
+
+// CountHistogram only allows a single monotic counter value.
+class CountHistogram : public LinearHistogram
+{
+public:
+  static Histogram *FactoryGet(const std::string &name, Flags flags);
+
+  virtual ClassType histogram_type() const;
+
+  virtual void Accumulate(Sample value, Count count, size_t index);
+
+  virtual void AddSampleSet(const SampleSet& sample);
+
+private:
+  explicit CountHistogram(const std::string &name);
+
+  DISALLOW_COPY_AND_ASSIGN(CountHistogram);
 };
 
 //------------------------------------------------------------------------------

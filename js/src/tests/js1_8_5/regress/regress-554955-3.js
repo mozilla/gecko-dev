@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
 /*
  * Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/licenses/publicdomain/
@@ -9,7 +9,8 @@ function f(s) {
     return function(a) {
         with({}) {}; // repel JägerMonkey
         eval(a);
-        let (c = 3) {
+        {
+            let c = 3;
             return b;
         };
     };

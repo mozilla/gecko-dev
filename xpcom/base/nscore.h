@@ -26,10 +26,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#ifdef __cplusplus
-#  include "mozilla/NullPtr.h"
-#endif
-
 #include "mozilla/RefCountType.h"
 
 /* Core XPCOM declarations. */
@@ -56,9 +52,6 @@
 
 #define NS_HIDDEN           NS_VISIBILITY_HIDDEN
 #define NS_EXTERNAL_VIS     NS_VISIBILITY_DEFAULT
-
-#undef  IMETHOD_VISIBILITY
-#define IMETHOD_VISIBILITY
 
 /**
  * Mark a function as using a potentially non-standard function calling
@@ -113,28 +106,18 @@
 #endif
 #define NS_FROZENCALL __cdecl
 
-/*
-  These are needed to mark static members in exported classes, due to
-  gcc bug XXX insert bug# here.
- */
-
-#define NS_EXPORT_STATIC_MEMBER_(type) type
-#define NS_IMPORT_STATIC_MEMBER_(type) type
-
 #else
 
 #define NS_IMPORT NS_EXTERNAL_VIS
 #define NS_IMPORT_(type) NS_EXTERNAL_VIS_(type)
 #define NS_EXPORT NS_EXTERNAL_VIS
 #define NS_EXPORT_(type) NS_EXTERNAL_VIS_(type)
-#define NS_IMETHOD_(type) virtual IMETHOD_VISIBILITY type
+#define NS_IMETHOD_(type) virtual type
 #define NS_IMETHODIMP_(type) type
 #define NS_METHOD_(type) type
 #define NS_CALLBACK_(_type, _name) _type (* _name)
 #define NS_STDCALL
 #define NS_FROZENCALL
-#define NS_EXPORT_STATIC_MEMBER_(type) NS_EXTERNAL_VIS_(type)
-#define NS_IMPORT_STATIC_MEMBER_(type) NS_EXTERNAL_VIS_(type)
 
 #endif
 
@@ -178,6 +161,11 @@
 
 /**
  * Generic API modifiers which return the standard XPCOM nsresult type
+ *
+ * - NS_IMETHOD: use for in-class declarations and definitions.
+ * - NS_IMETHODIMP: use for out-of-class definitions.
+ * - NS_METHOD: usually used in conjunction with NS_CALLBACK.
+ * - NS_CALLBACK: used in some legacy situations. Best avoided.
  */
 #define NS_IMETHOD          NS_IMETHOD_(nsresult)
 #define NS_IMETHODIMP       NS_IMETHODIMP_(nsresult)
@@ -207,7 +195,6 @@
 #endif
 
 #ifdef MOZILLA_INTERNAL_API
-#  define NS_COM_GLUE
    /*
      The frozen string API has different definitions of nsAC?String
      classes than the internal API. On systems that explicitly declare
@@ -217,12 +204,6 @@
    */
 #  define nsAString nsAString_internal
 #  define nsACString nsACString_internal
-#else
-#  ifdef HAVE_VISIBILITY_ATTRIBUTE
-#    define NS_COM_GLUE NS_VISIBILITY_HIDDEN
-#  else
-#    define NS_COM_GLUE
-#  endif
 #endif
 
 #if (defined(DEBUG) || defined(FORCE_BUILD_REFCNT_LOGGING))
@@ -242,7 +223,7 @@
  * sense to touch memory pages and free that memory at shutdown,
  * unless we are running leak stats.
  */
-#if defined(NS_TRACE_MALLOC) || defined(NS_BUILD_REFCNT_LOGGING) || defined(MOZ_VALGRIND)
+#if defined(NS_BUILD_REFCNT_LOGGING) || defined(MOZ_VALGRIND) || defined(MOZ_ASAN)
 #define NS_FREE_PERMANENT_DATA
 #endif
 
@@ -256,7 +237,7 @@
 #ifdef NS_NO_VTABLE
 #undef NS_NO_VTABLE
 #endif
-#if defined(_MSC_VER) && !defined(__clang__)
+#if defined(_MSC_VER)
 #define NS_NO_VTABLE __declspec(novtable)
 #else
 #define NS_NO_VTABLE
@@ -291,10 +272,6 @@ typedef MozRefCountType nsrefcnt;
  */
 #if defined(XPCOM_GLUE) && !defined(XPCOM_GLUE_USE_NSPR)
 #define XPCOM_GLUE_AVOID_NSPR
-#endif
-
-#if defined(HAVE_THREAD_TLS_KEYWORD)
-#define NS_TLS __thread
 #endif
 
 /*

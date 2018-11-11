@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
@@ -9,14 +9,13 @@
 
 "use strict";
 
-////////////////////////////////////////////////////////////////////////////////
-//// Tests
+// Tests
 
 /**
  * Tests that the createDownload function exists and can be called.  More
  * detailed tests are implemented separately for the DownloadCore module.
  */
-add_task(function test_createDownload()
+add_task(function* test_createDownload()
 {
   // Creates a simple Download object without starting the download.
   yield Downloads.createDownload({
@@ -29,7 +28,7 @@ add_task(function test_createDownload()
 /**
  * Tests createDownload for private download.
  */
-add_task(function test_createDownload_private()
+add_task(function* test_createDownload_private()
 {
   let download = yield Downloads.createDownload({
     source: { url: "about:blank", isPrivate: true },
@@ -42,7 +41,7 @@ add_task(function test_createDownload_private()
 /**
  * Tests createDownload for normal (public) download.
  */
-add_task(function test_createDownload_public()
+add_task(function* test_createDownload_public()
 {
   let tempPath = getTempFile(TEST_TARGET_FILE_NAME).path;
   let download = yield Downloads.createDownload({
@@ -61,9 +60,38 @@ add_task(function test_createDownload_public()
 });
 
 /**
+ * Tests createDownload for a pdf saver throws if only given a url.
+ */
+add_task(function* test_createDownload_pdf()
+{
+  let download = yield Downloads.createDownload({
+    source: { url: "about:blank" },
+    target: { path: getTempFile(TEST_TARGET_FILE_NAME).path },
+    saver: { type: "pdf" },
+  });
+
+  try {
+    yield download.start();
+    do_throw("The download should have failed.");
+  } catch (ex) {
+    if (!(ex instanceof Downloads.Error) || !ex.becauseSourceFailed) {
+      throw ex;
+    }
+  }
+
+  do_check_false(download.succeeded);
+  do_check_true(download.stopped);
+  do_check_false(download.canceled);
+  do_check_true(download.error !== null);
+  do_check_true(download.error.becauseSourceFailed);
+  do_check_false(download.error.becauseTargetFailed);
+  do_check_false(yield OS.File.exists(download.target.path));
+});
+
+/**
  * Tests "fetch" with nsIURI and nsIFile as arguments.
  */
-add_task(function test_fetch_uri_file_arguments()
+add_task(function* test_fetch_uri_file_arguments()
 {
   let targetFile = getTempFile(TEST_TARGET_FILE_NAME);
   yield Downloads.fetch(NetUtil.newURI(httpUrl("source.txt")), targetFile);
@@ -73,7 +101,7 @@ add_task(function test_fetch_uri_file_arguments()
 /**
  * Tests "fetch" with DownloadSource and DownloadTarget as arguments.
  */
-add_task(function test_fetch_object_arguments()
+add_task(function* test_fetch_object_arguments()
 {
   let targetPath = getTempFile(TEST_TARGET_FILE_NAME).path;
   yield Downloads.fetch({ url: httpUrl("source.txt") }, { path: targetPath });
@@ -83,7 +111,7 @@ add_task(function test_fetch_object_arguments()
 /**
  * Tests "fetch" with string arguments.
  */
-add_task(function test_fetch_string_arguments()
+add_task(function* test_fetch_string_arguments()
 {
   let targetPath = getTempFile(TEST_TARGET_FILE_NAME).path;
   yield Downloads.fetch(httpUrl("source.txt"), targetPath);
@@ -101,7 +129,7 @@ add_task(function test_fetch_string_arguments()
  * different arguments.  More detailed tests are implemented separately for the
  * DownloadList module.
  */
-add_task(function test_getList()
+add_task(function* test_getList()
 {
   let publicListOne = yield Downloads.getList(Downloads.PUBLIC);
   let privateListOne = yield Downloads.getList(Downloads.PRIVATE);
@@ -121,7 +149,7 @@ add_task(function test_getList()
  * called with different arguments.  More detailed tests are implemented
  * separately for the DownloadSummary object in the DownloadList module.
  */
-add_task(function test_getSummary()
+add_task(function* test_getSummary()
 {
   let publicSummaryOne = yield Downloads.getSummary(Downloads.PUBLIC);
   let privateSummaryOne = yield Downloads.getSummary(Downloads.PRIVATE);
@@ -139,7 +167,7 @@ add_task(function test_getSummary()
  * Tests that the getSystemDownloadsDirectory returns a non-empty download
  * directory string.
  */
-add_task(function test_getSystemDownloadsDirectory()
+add_task(function* test_getSystemDownloadsDirectory()
 {
   let downloadDir = yield Downloads.getSystemDownloadsDirectory();
   do_check_neq(downloadDir, "");
@@ -149,7 +177,7 @@ add_task(function test_getSystemDownloadsDirectory()
  * Tests that the getPreferredDownloadsDirectory returns a non-empty download
  * directory string.
  */
-add_task(function test_getPreferredDownloadsDirectory()
+add_task(function* test_getPreferredDownloadsDirectory()
 {
   let downloadDir = yield Downloads.getPreferredDownloadsDirectory();
   do_check_neq(downloadDir, "");
@@ -159,14 +187,8 @@ add_task(function test_getPreferredDownloadsDirectory()
  * Tests that the getTemporaryDownloadsDirectory returns a non-empty download
  * directory string.
  */
-add_task(function test_getTemporaryDownloadsDirectory()
+add_task(function* test_getTemporaryDownloadsDirectory()
 {
   let downloadDir = yield Downloads.getTemporaryDownloadsDirectory();
   do_check_neq(downloadDir, "");
 });
-
-////////////////////////////////////////////////////////////////////////////////
-//// Termination
-
-let tailFile = do_get_file("tail.js");
-Services.scriptloader.loadSubScript(NetUtil.newURI(tailFile).spec);

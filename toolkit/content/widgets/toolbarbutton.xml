@@ -14,10 +14,10 @@
     <resources>
       <stylesheet src="chrome://global/skin/toolbarbutton.css"/>
     </resources>
-    
+
     <content>
       <children includes="observes|template|menupopup|panel|tooltip"/>
-      <xul:image class="toolbarbutton-icon" xbl:inherits="validate,src=image,label"/>
+      <xul:image class="toolbarbutton-icon" xbl:inherits="validate,src=image,label,consumeanchor"/>
       <xul:label class="toolbarbutton-text" crop="right" flex="1"
                  xbl:inherits="value=label,accesskey,crop,wrap"/>
       <xul:label class="toolbarbutton-multiline-text" flex="1"
@@ -25,11 +25,11 @@
     </content>
   </binding>
 
-  <binding id="menu" display="xul:menu" 
+  <binding id="menu" display="xul:menu"
            extends="chrome://global/content/bindings/toolbarbutton.xml#toolbarbutton">
     <content>
       <children includes="observes|template|menupopup|panel|tooltip"/>
-      <xul:image class="toolbarbutton-icon" xbl:inherits="validate,src=image,label,type"/>
+      <xul:image class="toolbarbutton-icon" xbl:inherits="validate,src=image,label,type,consumeanchor"/>
       <xul:label class="toolbarbutton-text" crop="right" flex="1"
                  xbl:inherits="value=label,accesskey,crop,dragover-top,wrap"/>
       <xul:label class="toolbarbutton-multiline-text" flex="1"
@@ -38,14 +38,14 @@
                       class="toolbarbutton-menu-dropmarker" xbl:inherits="disabled,label"/>
     </content>
   </binding>
-  
+
   <binding id="menu-vertical" display="xul:menu"
            extends="chrome://global/content/bindings/toolbarbutton.xml#toolbarbutton">
     <content>
       <children includes="observes|template|menupopup|panel|tooltip"/>
       <xul:hbox flex="1" align="center">
         <xul:vbox flex="1" align="center">
-          <xul:image class="toolbarbutton-icon" xbl:inherits="validate,src=image,label"/>
+          <xul:image class="toolbarbutton-icon" xbl:inherits="validate,src=image,label,consumeanchor"/>
           <xul:label class="toolbarbutton-text" crop="right" flex="1"
                      xbl:inherits="value=label,accesskey,crop,dragover-top,wrap"/>
           <xul:label class="toolbarbutton-multiline-text" flex="1"
@@ -56,8 +56,8 @@
       </xul:hbox>
     </content>
   </binding>
-  
-  <binding id="menu-button" display="xul:menu" 
+
+  <binding id="menu-button" display="xul:menu"
            extends="chrome://global/content/bindings/button.xml#menu-button-base">
     <resources>
       <stylesheet src="chrome://global/skin/toolbarbutton.css"/>
@@ -67,10 +67,10 @@
       <children includes="observes|template|menupopup|panel|tooltip"/>
       <xul:toolbarbutton class="box-inherit toolbarbutton-menubutton-button"
                          anonid="button" flex="1" allowevents="true"
-                         xbl:inherits="disabled,crop,image,label,accesskey,command,wrap,
+                         xbl:inherits="disabled,crop,image,label,accesskey,command,wrap,badge,
                                        align,dir,pack,orient,tooltiptext=buttontooltiptext"/>
       <xul:dropmarker type="menu-button" class="toolbarbutton-menubutton-dropmarker"
-                      anonid="dropmarker" xbl:inherits="align,dir,pack,orient,disabled,label,open"/>
+                      anonid="dropmarker" xbl:inherits="align,dir,pack,orient,disabled,label,open,consumeanchor"/>
     </content>
   </binding>
 
@@ -78,6 +78,38 @@
            extends="chrome://global/content/bindings/toolbarbutton.xml#toolbarbutton">
     <content>
       <xul:image class="toolbarbutton-icon" xbl:inherits="src=image"/>
+    </content>
+  </binding>
+
+  <binding id="toolbarbutton-badged"
+           extends="chrome://global/content/bindings/toolbarbutton.xml#toolbarbutton">
+    <content>
+      <children includes="observes|template|menupopup|panel|tooltip"/>
+      <xul:stack class="toolbarbutton-badge-stack">
+        <xul:image class="toolbarbutton-icon" xbl:inherits="validate,src=image,label,consumeanchor"/>
+        <xul:label class="toolbarbutton-badge" xbl:inherits="value=badge" top="0" end="0" crop="none"/>
+      </xul:stack>
+      <xul:label class="toolbarbutton-text" crop="right" flex="1"
+                 xbl:inherits="value=label,accesskey,crop,wrap"/>
+      <xul:label class="toolbarbutton-multiline-text" flex="1"
+                 xbl:inherits="xbl:text=label,accesskey,wrap"/>
+    </content>
+  </binding>
+
+  <binding id="toolbarbutton-badged-menu" display="xul:menu"
+           extends="chrome://global/content/bindings/toolbarbutton.xml#toolbarbutton">
+    <content>
+      <children includes="observes|template|menupopup|panel|tooltip"/>
+      <xul:stack class="toolbarbutton-badge-stack">
+        <xul:image class="toolbarbutton-icon" xbl:inherits="validate,src=image,label,consumeanchor"/>
+        <xul:label class="toolbarbutton-badge" xbl:inherits="value=badge" top="0" end="0" crop="none"/>
+      </xul:stack>
+      <xul:label class="toolbarbutton-text" crop="right" flex="1"
+                 xbl:inherits="value=label,accesskey,crop,dragover-top,wrap"/>
+      <xul:label class="toolbarbutton-multiline-text" flex="1"
+                 xbl:inherits="xbl:text=label,accesskey,wrap"/>
+      <xul:dropmarker anonid="dropmarker" type="menu"
+                      class="toolbarbutton-menu-dropmarker" xbl:inherits="disabled,label"/>
     </content>
   </binding>
 </bindings>

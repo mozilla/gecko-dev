@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,7 +12,6 @@
 #include "nsTArray.h"
 #include "nsCOMPtr.h"
 #include "nsITimer.h"
-#include "nsIDOMDeviceOrientationEvent.h"
 #include "mozilla/dom/DeviceMotionEvent.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/HalSensor.h"
@@ -21,8 +22,8 @@ class nsIDOMWindow;
 namespace mozilla {
 namespace dom {
 class EventTarget;
-}
-}
+} // namespace dom
+} // namespace mozilla
 
 class nsDeviceSensors : public nsIDeviceSensors, public mozilla::hal::ISensorObserver
 {
@@ -34,11 +35,11 @@ public:
 
   nsDeviceSensors();
 
-  virtual ~nsDeviceSensors();
-
-  void Notify(const mozilla::hal::SensorData& aSensorData);
+  void Notify(const mozilla::hal::SensorData& aSensorData) override;
 
 private:
+  virtual ~nsDeviceSensors();
+
   // sensor -> window listener
   nsTArray<nsTArray<nsIDOMWindow*>* > mWindowListeners;
 
@@ -53,15 +54,16 @@ private:
   void FireDOMUserProximityEvent(mozilla::dom::EventTarget* aTarget,
                                  bool aNear);
 
-  void FireDOMOrientationEvent(class nsIDOMDocument *domDoc,
-                               mozilla::dom::EventTarget* target,
-                               double alpha,
-                               double beta,
-                               double gamma);
+  void FireDOMOrientationEvent(mozilla::dom::EventTarget* target,
+                               double aAlpha,
+                               double aBeta,
+                               double aGamma,
+                               bool aIsAbsolute);
 
   void FireDOMMotionEvent(class nsIDOMDocument *domDoc,
                           mozilla::dom::EventTarget* target,
                           uint32_t type,
+                          PRTime timestamp,
                           double x,
                           double y,
                           double z);
@@ -75,7 +77,7 @@ private:
   mozilla::TimeStamp mLastDOMMotionEventTime;
   bool mIsUserProximityNear;
   mozilla::Maybe<DeviceAccelerationInit> mLastAcceleration;
-  mozilla::Maybe<DeviceAccelerationInit> mLastAccelerationIncluduingGravity;
+  mozilla::Maybe<DeviceAccelerationInit> mLastAccelerationIncludingGravity;
   mozilla::Maybe<DeviceRotationRateInit> mLastRotationRate;
 };
 

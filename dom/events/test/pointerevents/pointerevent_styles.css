@@ -1,0 +1,93 @@
+.spacer {
+height: 100px;
+}
+
+#square1 {
+background: black;
+top: 150px;
+left: 100px;
+}
+
+.square {
+height: 20px;
+width: 20px;
+position: absolute;
+padding: 0px;
+}
+
+#target0 {
+background: black;
+color: white;
+white-space: nowrap;
+overflow-y: auto;
+overflow-x: auto;
+}
+
+#target1 {
+background: purple;
+color: white;
+white-space: nowrap;
+overflow-y: auto;
+overflow-x: auto;
+}
+
+.touchActionNone {
+touch-action: none;
+}
+
+#innerframe {
+width: 90%;
+margin: 10px;
+margin-left: 10%;
+height: 200px;
+}
+
+.scroller {
+width: 700px;
+height: 430px;
+margin: 20px;
+overflow: auto;
+background: black;
+}
+
+.scroller > div {
+height: 1000px;
+width: 1000px;
+color: white;
+}
+
+.scroller > div div {
+height: 100%;
+width: 100%;
+color: white;
+}
+
+div {
+margin: 0em;
+padding: 2em;
+}
+
+#complete-notice {
+background: #afa;
+border: 1px solid #0a0;
+display: none;
+}
+
+#pointertype-log {
+font-weight: bold;
+}
+
+#event-log {
+font-weight: bold;
+}
+
+#listener {
+background: orange;
+border: 1px solid orange;
+position: absolute;
+top: -100px;
+}
+
+body.scrollable {
+min-height: 5000px;
+}

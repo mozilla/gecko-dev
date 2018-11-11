@@ -4,7 +4,7 @@
 
 this.EXPORTED_SYMBOLS = ["ClusterManager"];
 
-const {utils: Cu} = Components;
+var {utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-sync/constants.js");
@@ -80,6 +80,9 @@ ClusterManager.prototype = {
       return false;
     }
 
+    // Convert from the funky "String object with additional properties" that
+    // resource.js returns to a plain-old string.
+    cluster = cluster.toString();
     // Don't update stuff if we already have the right cluster
     if (cluster == this.service.clusterURL) {
       return false;
@@ -87,7 +90,6 @@ ClusterManager.prototype = {
 
     this._log.debug("Setting cluster to " + cluster);
     this.service.clusterURL = cluster;
-    Svc.Prefs.set("lastClusterUpdate", Date.now().toString());
 
     return true;
   },

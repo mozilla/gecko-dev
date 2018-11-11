@@ -7,76 +7,104 @@
 #ifndef jit_JitOptions_h
 #define jit_JitOptions_h
 
+#include "mozilla/Maybe.h"
+
 #include "jit/IonTypes.h"
 #include "js/TypeDecls.h"
-
-#ifdef JS_ION
 
 namespace js {
 namespace jit {
 
 // Longer scripts can only be compiled off thread, as these compilations
 // can be expensive and stall the main thread for too long.
-static const uint32_t MAX_OFF_THREAD_SCRIPT_SIZE = 100 * 1000;
 static const uint32_t MAX_MAIN_THREAD_SCRIPT_SIZE = 2 * 1000;
 static const uint32_t MAX_MAIN_THREAD_LOCALS_AND_ARGS = 256;
 
 // Possible register allocators which may be used.
 enum IonRegisterAllocator {
-    RegisterAllocator_LSRA,
     RegisterAllocator_Backtracking,
+    RegisterAllocator_Testbed,
     RegisterAllocator_Stupid
 };
 
-enum IonGvnKind {
-    GVN_Optimistic,
-    GVN_Pessimistic
-};
+static inline mozilla::Maybe<IonRegisterAllocator>
+LookupRegisterAllocator(const char* name)
+{
+    if (!strcmp(name, "backtracking"))
+        return mozilla::Some(RegisterAllocator_Backtracking);
+    if (!strcmp(name, "testbed"))
+        return mozilla::Some(RegisterAllocator_Testbed);
+    if (!strcmp(name, "stupid"))
+        return mozilla::Some(RegisterAllocator_Stupid);
+    return mozilla::Nothing();
+}
 
-struct JitOptions
+struct DefaultJitOptions
 {
     bool checkGraphConsistency;
 #ifdef CHECK_OSIPOINT_REGISTERS
     bool checkOsiPointRegisters;
 #endif
     bool checkRangeAnalysis;
-    bool compileTryCatch;
-    bool disableGvn;
-    bool disableLicm;
-    bool disableInlining;
-    bool disableEdgeCaseAnalysis;
-    bool disableRangeAnalysis;
-    bool disableUce;
+    bool runExtraChecks;
+    bool disableInlineBacktracking;
+    bool disableAma;
     bool disableEaa;
+    bool disableEagerSimdUnbox;
+    bool disableEdgeCaseAnalysis;
+    bool disableFlowAA;
+    bool disableGvn;
+    bool disableInlining;
+    bool disableLicm;
+    bool disableLoopUnrolling;
+    bool disablePgo;
+    bool disableInstructionReordering;
+    bool disableRangeAnalysis;
+    bool disableRecoverIns;
+    bool disableScalarReplacement;
+    bool disableCacheIR;
+    bool disableSharedStubs;
+    bool disableSincos;
+    bool disableSink;
     bool eagerCompilation;
-    bool forceDefaultIonUsesBeforeCompile;
-    uint32_t forcedDefaultIonUsesBeforeCompile;
-    bool forceGvnKind;
-    IonGvnKind forcedGvnKind;
-    bool forceRegisterAllocator;
-    IonRegisterAllocator forcedRegisterAllocator;
+    bool forceInlineCaches;
     bool limitScriptSize;
     bool osr;
-    uint32_t baselineUsesBeforeCompile;
+    bool asmJSAtomicsEnable;
+    bool wasmTestMode;
+    bool wasmAlwaysCheckBounds;
+    bool wasmFoldOffsets;
+    bool ionInterruptWithoutSignals;
+    uint32_t baselineWarmUpThreshold;
     uint32_t exceptionBailoutThreshold;
     uint32_t frequentBailoutThreshold;
     uint32_t maxStackArgs;
     uint32_t osrPcMismatchesBeforeRecompile;
     uint32_t smallFunctionMaxBytecodeLength_;
-    uint32_t usesBeforeCompilePar;
+    uint32_t jumpThreshold;
+    uint32_t branchPruningHitCountFactor;
+    uint32_t branchPruningInstFactor;
+    uint32_t branchPruningBlockSpanFactor;
+    uint32_t branchPruningEffectfulInstFactor;
+    uint32_t branchPruningThreshold;
+    mozilla::Maybe<uint32_t> forcedDefaultIonWarmUpThreshold;
+    mozilla::Maybe<uint32_t> forcedDefaultIonSmallFunctionWarmUpThreshold;
+    mozilla::Maybe<IonRegisterAllocator> forcedRegisterAllocator;
 
-    JitOptions();
-    bool isSmallFunction(JSScript *script) const;
+    // The options below affect the rest of the VM, and not just the JIT.
+    bool disableUnboxedObjects;
+
+    DefaultJitOptions();
+    bool isSmallFunction(JSScript* script) const;
     void setEagerCompilation();
-    void setUsesBeforeCompile(uint32_t useCount);
-    void resetUsesBeforeCompile();
+    void setCompilerWarmUpThreshold(uint32_t warmUpThreshold);
+    void resetCompilerWarmUpThreshold();
+    void enableGvn(bool val);
 };
 
-extern JitOptions js_JitOptions;
+extern DefaultJitOptions JitOptions;
 
 } // namespace jit
 } // namespace js
-
-#endif // JS_ION
 
 #endif /* jit_JitOptions_h */

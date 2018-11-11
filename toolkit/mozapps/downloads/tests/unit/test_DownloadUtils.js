@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-let Cu = Components.utils;
+var Cu = Components.utils;
 Cu.import("resource://gre/modules/DownloadUtils.jsm");
 
 const gDecimalSymbol = Number(5.4).toLocaleString().match(/\D/);
 function _(str) {
-  return str.replace(".", gDecimalSymbol, "g");
+  return str.replace(/\./g, gDecimalSymbol);
 }
 
 function testConvertByteUnits(aBytes, aValue, aUnit)
@@ -24,9 +24,9 @@ function testTransferTotal(aCurrBytes, aMaxBytes, aTransfer)
 }
 
 // Get the em-dash character because typing it directly here doesn't work :(
-let gDash = DownloadUtils.getDownloadStatus(0)[0].match(/remaining (.) 0 bytes/)[1];
+var gDash = DownloadUtils.getDownloadStatus(0)[0].match(/remaining (.) 0 bytes/)[1];
 
-let gVals = [0, 100, 2345, 55555, 982341, 23194134, 1482, 58, 9921949201, 13498132, Infinity];
+var gVals = [0, 100, 2345, 55555, 982341, 23194134, 1482, 58, 9921949201, 13498132, Infinity];
 
 function testStatus(aFunc, aCurr, aMore, aRate, aTest)
 {
@@ -84,6 +84,13 @@ function testAllGetReadableDates()
   const sixdaysago      = new Date(2000, 11, 25, 11, 30, 15);
   const sevendaysago    = new Date(2000, 11, 24, 11, 30, 15);
 
+  // TODO: Remove Intl fallback when bug 1215247 is fixed.
+  const locale = typeof Intl === "undefined"
+                 ? undefined
+                 : Components.classes["@mozilla.org/chrome/chrome-registry;1"]
+                                     .getService(Components.interfaces.nsIXULChromeRegistry)
+                                     .getSelectedLocale("global", true);
+
   let dts = Components.classes["@mozilla.org/intl/scriptabledateformat;1"].
             getService(Components.interfaces.nsIScriptableDateFormat);
 
@@ -93,10 +100,19 @@ function testAllGetReadableDates()
                                                    12, 30, 0));
   testGetReadableDates(yesterday_11_30, "Yesterday");
   testGetReadableDates(yesterday_12_30, "Yesterday");
-  testGetReadableDates(twodaysago, twodaysago.toLocaleFormat("%A"));
-  testGetReadableDates(sixdaysago, sixdaysago.toLocaleFormat("%A"));
-  testGetReadableDates(sevendaysago, sevendaysago.toLocaleFormat("%B") + " " +
-                                     sevendaysago.toLocaleFormat("%d"));
+  testGetReadableDates(twodaysago,
+                       typeof Intl === "undefined"
+                       ? twodaysago.toLocaleFormat("%A")
+                       : twodaysago.toLocaleDateString(locale, { weekday: "long" }));
+  testGetReadableDates(sixdaysago,
+                       typeof Intl === "undefined"
+                       ? sixdaysago.toLocaleFormat("%A")
+                       : sixdaysago.toLocaleDateString(locale, { weekday: "long" }));
+  testGetReadableDates(sevendaysago,
+                       (typeof Intl === "undefined"
+                        ? sevendaysago.toLocaleFormat("%B")
+                        : sevendaysago.toLocaleDateString(locale, { month: "long" })) + " " +
+                       sevendaysago.getDate().toString().padStart(2, "0"));
 
   let [, dateTimeFull] = DownloadUtils.getReadableDates(today_11_30);
   do_check_eq(dateTimeFull, dts.FormatDateTime("", dts.dateFormatLong,
@@ -128,7 +144,7 @@ function run_test()
 
   if (0) {
     // Help find some interesting test cases
-    let r = function() Math.floor(Math.random() * 10);
+    let r = () => Math.floor(Math.random() * 10);
     for (let i = 0; i < 100; i++) {
       testStatus(r(), r(), r());
     }
@@ -209,8 +225,13 @@ function run_test()
   testURI("data:text/html,Hello World", "data resource", "data resource");
   testURI("jar:http://www.mozilla.com/file!/magic", "mozilla.com", "www.mozilla.com");
   testURI("file:///C:/Cool/Stuff/", "local file", "local file");
-  testURI("moz-icon:file:///test.extension", "moz-icon resource", "moz-icon resource");
+  // Don't test for moz-icon if we don't have a protocol handler for it (e.g. b2g):
+  if ("@mozilla.org/network/protocol;1?name=moz-icon" in Components.classes) {
+    testURI("moz-icon:file:///test.extension", "local file", "local file");
+    testURI("moz-icon://.extension", "moz-icon resource", "moz-icon resource");
+  }
   testURI("about:config", "about resource", "about resource");
+  testURI("invalid.uri", "", "");
 
   testAllGetReadableDates();
 }

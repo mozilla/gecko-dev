@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
+var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-common/rest.js");
@@ -28,21 +28,6 @@ SyncStorageRequest.prototype = {
   _logName: "Sync.StorageRequest",
 
   /**
-   * The string to use as the base User-Agent in Sync requests.
-   * These strings will look something like
-   * 
-   *   Firefox/4.0 FxSync/1.8.0.20100101.mobile
-   * 
-   * or
-   * 
-   *   Firefox Aurora/5.0a1 FxSync/1.9.0.20110409.desktop
-   */
-  userAgent:
-    Services.appinfo.name + "/" + Services.appinfo.version +  // Product.
-    " FxSync/" + WEAVE_VERSION + "." +                        // Sync.
-    Services.appinfo.appBuildID + ".",                        // Build.
-
-  /**
    * Wait 5 minutes before killing a request.
    */
   timeout: STORAGE_REQUEST_TIMEOUT,
@@ -50,8 +35,7 @@ SyncStorageRequest.prototype = {
   dispatch: function dispatch(method, data, onComplete, onProgress) {
     // Compose a UA string fragment from the various available identifiers.
     if (Svc.Prefs.get("sendVersionInfo", true)) {
-      let ua = this.userAgent + Svc.Prefs.get("client.type", "desktop");
-      this.setHeader("user-agent", ua);
+      this.setHeader("user-agent", Utils.userAgent);
     }
 
     if (this.authenticator) {
@@ -86,5 +70,21 @@ SyncStorageRequest.prototype = {
       Svc.Obs.notify("weave:service:quota:remaining",
                      parseInt(headers["x-weave-quota-remaining"], 10));
     }
+  },
+
+  onStopRequest: function onStopRequest(channel, context, statusCode) {
+    if (this.status != this.ABORTED) {
+      let resp = this.response;
+      let contentLength = resp.headers ? resp.headers["content-length"] : "";
+
+      if (resp.success && contentLength &&
+          contentLength != resp.body.length) {
+        this._log.warn("The response body's length of: " + resp.body.length +
+                       " doesn't match the header's content-length of: " +
+                       contentLength + ".");
+      }
+    }
+
+    RESTRequest.prototype.onStopRequest.apply(this, arguments);
   }
 };

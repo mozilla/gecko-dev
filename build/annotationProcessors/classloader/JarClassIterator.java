@@ -4,17 +4,18 @@
 
 package org.mozilla.gecko.annotationProcessors.classloader;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Iterator;
 
 /**
  * Class for iterating over an IterableJarLoadingURLClassLoader's classes.
+ *
+ * This class is not thread safe: use it only from a single thread.
  */
 public class JarClassIterator implements Iterator<ClassWithOptions> {
     private IterableJarLoadingURLClassLoader mTarget;
     private Iterator<String> mTargetClassListIterator;
+
+    private ClassWithOptions lookAhead;
 
     public JarClassIterator(IterableJarLoadingURLClassLoader aTarget) {
         mTarget = aTarget;
@@ -23,66 +24,57 @@ public class JarClassIterator implements Iterator<ClassWithOptions> {
 
     @Override
     public boolean hasNext() {
-        return mTargetClassListIterator.hasNext();
+        return fillLookAheadIfPossible();
     }
 
     @Override
     public ClassWithOptions next() {
+        if (!fillLookAheadIfPossible()) {
+            throw new IllegalStateException("Failed to look ahead in next()!");
+        }
+        ClassWithOptions next = lookAhead;
+        lookAhead = null;
+        return next;
+    }
+
+    private boolean fillLookAheadIfPossible() {
+        if (lookAhead != null) {
+            return true;
+        }
+
+        if (!mTargetClassListIterator.hasNext()) {
+            return false;
+        }
+
         String className = mTargetClassListIterator.next();
         try {
             Class<?> ret = mTarget.loadClass(className);
-            final String canonicalName;
 
             // Incremental builds can leave stale classfiles in the jar. Such classfiles will cause
             // an exception at this point. We can safely ignore these classes - they cannot possibly
-            // ever be loaded as they conflict with their parent class and will be killed by Proguard
-            // later on anyway.
+            // ever be loaded as they conflict with their parent class and will be killed by
+            // Proguard later on anyway.
+            final Class<?> enclosingClass;
             try {
-                canonicalName = ret.getCanonicalName();
+                enclosingClass = ret.getEnclosingClass();
             } catch (IncompatibleClassChangeError e) {
-                return next();
+                return fillLookAheadIfPossible();
             }
 
-            if (canonicalName == null || "null".equals(canonicalName)) {
+            if (enclosingClass != null) {
                 // Anonymous inner class - unsupported.
-                return next();
-            } else {
-                String generateName = null;
-                for (Annotation annotation : ret.getAnnotations()) {
-                    Class<?> annotationType = annotation.annotationType();
-                    if (annotationType.getCanonicalName().equals("org.mozilla.gecko.mozglue.generatorannotations.GeneratorOptions")) {
-                        try {
-                            // Determine the explicitly-given name of the stub to generate, if any.
-                            final Method generateNameMethod = annotationType.getDeclaredMethod("generatedClassName");
-                            generateNameMethod.setAccessible(true);
-                            generateName = (String) generateNameMethod.invoke(annotation);
-                            break;
-                        } catch (NoSuchMethodException e) {
-                            System.err.println("Unable to find expected field on GeneratorOptions annotation. Did the signature change?");
-                            e.printStackTrace(System.err);
-                            System.exit(3);
-                        } catch (IllegalAccessException e) {
-                            System.err.println("IllegalAccessException reading fields on GeneratorOptions annotation. Seems the semantics of Reflection have changed...");
-                            e.printStackTrace(System.err);
-                            System.exit(4);
-                        } catch (InvocationTargetException e) {
-                            System.err.println("InvocationTargetException reading fields on GeneratorOptions annotation. This really shouldn't happen.");
-                            e.printStackTrace(System.err);
-                            System.exit(5);
-                        }
-                    }
-                }
-                if (generateName == null) {
-                    generateName = ret.getSimpleName();
-                }
-                return new ClassWithOptions(ret, generateName);
+                // Or named inner class, which will be processed when we process the outer class.
+                return fillLookAheadIfPossible();
             }
+
+            lookAhead = new ClassWithOptions(ret, ret.getSimpleName());
+            return true;
         } catch (ClassNotFoundException e) {
             System.err.println("Unable to enumerate class: " + className + ". Corrupted jar file?");
             e.printStackTrace();
             System.exit(2);
         }
-        return null;
+        return false;
     }
 
     @Override

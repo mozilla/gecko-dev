@@ -26,7 +26,6 @@ oopCommandlineHandler.prototype = {
                 // environment
                 branch.setBoolPref("dom.ipc.tabs.disabled", false);
                 branch.setBoolPref("layers.acceleration.disabled", false);
-                branch.setBoolPref("layers.offmainthreadcomposition.enabled", true);
                 branch.setBoolPref("layers.offmainthreadcomposition.async-animations", true);
                 branch.setBoolPref("layers.async-video.enabled", true);
                 branch.setBoolPref("layers.async-pan-zoom.enabled", true);
@@ -39,7 +38,7 @@ oopCommandlineHandler.prototype = {
         }
     },
 
-    helpInfo: "  -oop         Use out-of-process model in B2G\n",
+    helpInfo: "  --oop        Use out-of-process model in B2G\n",
     classID: Components.ID("{e30b0e13-2d12-4cb0-bc4c-4e617a1bf76e}"),
     QueryInterface: XPCOMUtils.generateQI([Ci.nsICommandLineHandler]),
 };

@@ -1,19 +1,18 @@
 To upgrade to a new revision of libjpeg-turbo, do the following:
 
-* Check out libjpeg-turbo from SVN:
+* Check out libjpeg-turbo from git:
 
-    $ svn co https://libjpeg-turbo.svn.sourceforge.net/svnroot/libjpeg-turbo/trunk libjpeg-turbo
+    $ git clone https://github.com/libjpeg-turbo/libjpeg-turbo.git
 
-* In a clean clone of mozilla-central, run the following commands
+* In a clean clone of mozilla-central, run the update script (tag defaults to HEAD):
 
-    $ rm -rf media/libjpeg
-    $ svn export --ignore-externals /path/to/libjpeg-turbo media/libjpeg
-    $ cd media/libjpeg
+    $ ./media/update-libjpeg.sh /path/to/libjpeg-turbo [tag]
 
-* Copy win/jsimdcfg.inc to simd/.
+  and fix up any rejects from applying the Mozilla specific patches at the end
+  of that script.
 
-* Since libjpeg-turbo normally creates config.h and jconfig.h at build time and
-  we use pre-generated versions, changes to jconfig.h.in and win/config.h.in
+* Since libjpeg-turbo normally creates jconfig.h and jconfigint.h at build time
+  and we use pre-generated versions, changes to jconfig.h.in and jconfigint.h.in
   should be looked for and noted for later inclusion.
 
 * Now look through the new files and rm any which are npotb.  When I upgraded
@@ -25,13 +24,13 @@ To upgrade to a new revision of libjpeg-turbo, do the following:
 
   You can easily look for all non *.c, *.h, *.asm, and *.inc files by running
 
-    $ hg status -nu | grep -v '\(c\|h\|asm\|inc\)$'
+    $ hg status -nu | grep -v '\(c\|h\|asm\|inc\|md\|ijg\)$'
 
   Once you're comfortable that you're only deleting files you want to delete
   (and you've hg add'ed the files you want to keep), you can nuke the remaining
   files with
 
-    $ hg status -nu | grep -v '\(c\|h\|asm\|inc\)$' | xargs rm
+    $ hg status -nu | grep -v '\(c\|h\|asm\|inc\|md\|ijg\)$' | xargs rm
 
   A helpful command for finding the *.c files which aren't *currently* part of
   the build is
@@ -41,22 +40,29 @@ To upgrade to a new revision of libjpeg-turbo, do the following:
   Of course, libjpeg-turbo might have added some new source files, so you'll
   have to look though and figure out which of these files to keep.
 
-* Restore files modified in the Mozilla repository.
+* Update jconfig.h and jconfigint.h as noted previously.
 
-    $ hg revert --no-backup config.h jconfig.h Makefile.in MOZCHANGES \
-      mozilla.diff simd/Makefile.in genTables.py
-
-* Update config.h and jconfig.h as noted previously.
-
-* Apply Mozilla-specific changes to upstream files.
-
-    $ patch -p0 -i mozilla.diff
-
-* Update Makefile.in to build any new files.
+* Update moz.build to build any new files.
 
 * Finally, tell hg that we've added or removed some files:
 
     $ hg addremove
+
+== September 22, 2016 (libjpeg-turbo v1.5.1 cb88e5da8003afcdc443b787fdcb77285e5a8a02 2016-09-20) ==
+
+* Updated to v1.5.1 release.
+
+== June 23, 2016 (libjpeg-turbo v1.5.0 3ff13e651bbe6de9c6f15d05235d1d4f26f63ffc 2016-05-31) ==
+
+* Updated to v1.5.0 release.
+
+== October 5, 2015 (libjpeg-turbo v1.4.2 d8da49effe6460d55239c4c009c57f42d8e4a494 2015-09-21) ==
+
+* Updated to v1.4.2 release.
+
+== January 15, 2015 (libjpeg-turbo v1.4.0 r1481 2015-01-07) ==
+
+* Updated to v1.4.0 release.
 
 == March 24, 2014 (libjpeg-turbo v1.3.1 r1205 2014-03-22) ==
 

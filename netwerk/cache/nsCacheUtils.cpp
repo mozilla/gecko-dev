@@ -10,12 +10,12 @@
 
 using namespace mozilla;
 
-class nsDestroyThreadEvent : public nsRunnable {
+class nsDestroyThreadEvent : public Runnable {
 public:
-  nsDestroyThreadEvent(nsIThread *thread)
+  explicit nsDestroyThreadEvent(nsIThread *thread)
     : mThread(thread)
   {}
-  NS_IMETHOD Run()
+  NS_IMETHOD Run() override
   {
     mThread->Shutdown();
     return NS_OK;
@@ -25,8 +25,8 @@ private:
 };
 
 nsShutdownThread::nsShutdownThread(nsIThread *aThread)
-  : mLock("nsShutdownThread.mLock")
-  , mCondVar(mLock, "nsShutdownThread.mCondVar")
+  : mMonitor("nsShutdownThread.mMonitor")
+  , mShuttingDown(false)
   , mThread(aThread)
 {
 }
@@ -39,7 +39,7 @@ nsresult
 nsShutdownThread::Shutdown(nsIThread *aThread)
 {
   nsresult rv;
-  nsRefPtr<nsDestroyThreadEvent> ev = new nsDestroyThreadEvent(aThread);
+  RefPtr<nsDestroyThreadEvent> ev = new nsDestroyThreadEvent(aThread);
   rv = NS_DispatchToMainThread(ev);
   if (NS_FAILED(rv)) {
     NS_WARNING("Dispatching event in nsShutdownThread::Shutdown failed!");
@@ -52,7 +52,7 @@ nsShutdownThread::BlockingShutdown(nsIThread *aThread)
 {
   nsresult rv;
 
-  nsRefPtr<nsShutdownThread> st = new nsShutdownThread(aThread);
+  RefPtr<nsShutdownThread> st = new nsShutdownThread(aThread);
   nsCOMPtr<nsIThread> workerThread;
 
   rv = NS_NewNamedThread("thread shutdown", getter_AddRefs(workerThread));
@@ -62,13 +62,16 @@ nsShutdownThread::BlockingShutdown(nsIThread *aThread)
   }
 
   {
-    MutexAutoLock lock(st->mLock);
+    MonitorAutoLock mon(st->mMonitor);
     rv = workerThread->Dispatch(st, NS_DISPATCH_NORMAL);
     if (NS_FAILED(rv)) {
       NS_WARNING(
         "Dispatching event in nsShutdownThread::BlockingShutdown failed!");
     } else {
-      st->mCondVar.Wait();
+      st->mShuttingDown = true;
+      while (st->mShuttingDown) {
+        mon.Wait();
+      }
     }
   }
 
@@ -78,8 +81,9 @@ nsShutdownThread::BlockingShutdown(nsIThread *aThread)
 NS_IMETHODIMP
 nsShutdownThread::Run()
 {
-  MutexAutoLock lock(mLock);
+  MonitorAutoLock mon(mMonitor);
   mThread->Shutdown();
-  mCondVar.Notify();
+  mShuttingDown = false;
+  mon.Notify();
   return NS_OK;
 }

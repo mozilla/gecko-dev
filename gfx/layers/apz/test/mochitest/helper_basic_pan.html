@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width; initial-scale=1.0">
+  <title>Sanity panning test</title>
+  <script type="application/javascript" src="apz_test_native_event_utils.js"></script>
+  <script type="application/javascript" src="apz_test_utils.js"></script>
+  <script type="application/javascript" src="/tests/SimpleTest/paint_listener.js"></script>
+  <script type="application/javascript">
+
+function scrollPage() {
+  var transformEnd = function() {
+    SpecialPowers.Services.obs.removeObserver(transformEnd, "APZ:TransformEnd", false);
+    dump("Transform complete; flushing repaints...\n");
+    flushApzRepaints(checkScroll);
+  };
+  SpecialPowers.Services.obs.addObserver(transformEnd, "APZ:TransformEnd", false);
+
+  synthesizeNativeTouchDrag(document.body, 10, 100, 0, -(50 + TOUCH_SLOP));
+  dump("Finished native drag, waiting for transform-end observer...\n");
+}
+
+function checkScroll() {
+  is(window.scrollY, 50, "check that the window scrolled");
+  subtestDone();
+}
+
+waitUntilApzStable().then(scrollPage);
+
+  </script>
+</head>
+<body>
+ <div style="height: 5000px; background-color: lightgreen;">
+  This div makes the page scrollable.
+ </div>
+</body>
+</html>

@@ -13,7 +13,7 @@ Cu.import("resource://testing-common/services/sync/utils.js");
 
 initTestLogging("Trace");
 
-let engineManager = Service.engineManager;
+var engineManager = Service.engineManager;
 engineManager.clear();
 
 function promiseStopServer(server) {
@@ -59,7 +59,7 @@ function sync_httpd_setup() {
   return httpd_setup(handlers);
 }
 
-function setUp(server) {
+function* setUp(server) {
   yield configureIdentity({username: "johndoe"});
   Service.serverURL = server.baseURI + "/";
   Service.clusterURL = server.baseURI + "/";
@@ -75,7 +75,7 @@ function generateAndUploadKeys(server) {
 }
 
 
-add_identity_test(this, function test_backoff500() {
+add_identity_test(this, function* test_backoff500() {
   _("Test: HTTP 500 sets backoff status.");
   let server = sync_httpd_setup();
   yield setUp(server);
@@ -102,7 +102,7 @@ add_identity_test(this, function test_backoff500() {
   yield promiseStopServer(server);
 });
 
-add_identity_test(this, function test_backoff503() {
+add_identity_test(this, function* test_backoff503() {
   _("Test: HTTP 503 with Retry-After header leads to backoff notification and sets backoff status.");
   let server = sync_httpd_setup();
   yield setUp(server);
@@ -138,7 +138,7 @@ add_identity_test(this, function test_backoff503() {
   yield promiseStopServer(server);
 });
 
-add_identity_test(this, function test_overQuota() {
+add_identity_test(this, function* test_overQuota() {
   _("Test: HTTP 400 with body error code 14 means over quota.");
   let server = sync_httpd_setup();
   yield setUp(server);
@@ -146,7 +146,9 @@ add_identity_test(this, function test_overQuota() {
   let engine = engineManager.get("catapult");
   engine.enabled = true;
   engine.exception = {status: 400,
-                      toString: function() "14"};
+                      toString() {
+                        return "14";
+                      }};
 
   try {
     do_check_eq(Status.sync, SYNC_SUCCEEDED);
@@ -165,7 +167,7 @@ add_identity_test(this, function test_overQuota() {
   yield promiseStopServer(server);
 });
 
-add_identity_test(this, function test_service_networkError() {
+add_identity_test(this, function* test_service_networkError() {
   _("Test: Connection refused error from Service.sync() leads to the right status code.");
   let server = sync_httpd_setup();
   yield setUp(server);
@@ -191,13 +193,14 @@ add_identity_test(this, function test_service_networkError() {
   yield deferred.promise;
 });
 
-add_identity_test(this, function test_service_offline() {
+add_identity_test(this, function* test_service_offline() {
   _("Test: Wanting to sync in offline mode leads to the right status code but does not increment the ignorable error count.");
   let server = sync_httpd_setup();
   yield setUp(server);
   let deferred = Promise.defer();
   server.stop(() => {
     Services.io.offline = true;
+    Services.prefs.setBoolPref("network.dns.offline-localhost", false);
 
     try {
       do_check_eq(Status.sync, SYNC_SUCCEEDED);
@@ -212,12 +215,13 @@ add_identity_test(this, function test_service_offline() {
       Service.startOver();
     }
     Services.io.offline = false;
+    Services.prefs.clearUserPref("network.dns.offline-localhost");
     deferred.resolve();
   });
   yield deferred.promise;
 });
 
-add_identity_test(this, function test_engine_networkError() {
+add_identity_test(this, function* test_engine_networkError() {
   _("Test: Network related exceptions from engine.sync() lead to the right status code.");
   let server = sync_httpd_setup();
   yield setUp(server);
@@ -244,7 +248,7 @@ add_identity_test(this, function test_engine_networkError() {
   yield promiseStopServer(server);
 });
 
-add_identity_test(this, function test_resource_timeout() {
+add_identity_test(this, function* test_resource_timeout() {
   let server = sync_httpd_setup();
   yield setUp(server);
 
@@ -272,6 +276,7 @@ add_identity_test(this, function test_resource_timeout() {
 });
 
 function run_test() {
+  validate_all_future_pings();
   engineManager.register(CatapultEngine);
   run_next_test();
 }

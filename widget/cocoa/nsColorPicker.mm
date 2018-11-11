@@ -54,11 +54,11 @@ HexStrToInt(NSString* str)
 
 - (void)open:(NSColor*)aInitialColor title:(NSString*)aTitle
 {
-  [mColorPanel setTitle:aTitle];
-  [mColorPanel setColor:aInitialColor];
   [mColorPanel setTarget:self];
   [mColorPanel setAction:@selector(colorChanged:)];
   [mColorPanel setDelegate:self];
+  [mColorPanel setTitle:aTitle];
+  [mColorPanel setColor:aInitialColor];
   [mColorPanel makeKeyAndOrderFront:nil];
 }
 
@@ -80,11 +80,9 @@ HexStrToInt(NSString* str)
 
 - (void)dealloc
 {
-  if ([mColorPanel delegate] == self) {
-    [mColorPanel setTarget:nil];
-    [mColorPanel setAction:nil];
-    [mColorPanel setDelegate:nil];
-  }
+  [mColorPanel setTarget:nil];
+  [mColorPanel setAction:nil];
+  [mColorPanel setDelegate:nil];
 
   mColorPanel = nil;
   mColorPicker = nullptr;
@@ -97,8 +95,12 @@ NS_IMPL_ISUPPORTS(nsColorPicker, nsIColorPicker)
 
 NSColorPanelWrapper* nsColorPicker::sColorPanelWrapper = nullptr;
 
+nsColorPicker::~nsColorPicker()
+{
+}
+
 NS_IMETHODIMP
-nsColorPicker::Init(nsIDOMWindow* aParent, const nsAString& aTitle,
+nsColorPicker::Init(mozIDOMWindowProxy* aParent, const nsAString& aTitle,
                     const nsAString& aInitialColor)
 {
   MOZ_ASSERT(NS_IsMainThread(),
@@ -132,7 +134,14 @@ nsColorPicker::GetNSColorFromHexString(const nsAString& aColor)
 nsColorPicker::GetHexStringFromNSColor(NSColor* aColor, nsAString& aResult)
 {
   CGFloat redFloat, greenFloat, blueFloat;
-  [aColor getRed: &redFloat green: &greenFloat blue: &blueFloat alpha: nil];
+
+  NSColor* color = aColor;
+  @try {
+    [color getRed:&redFloat green:&greenFloat blue:&blueFloat alpha: nil];
+  } @catch (NSException* e) {
+    color = [color colorUsingColorSpace:[NSColorSpace genericRGBColorSpace]];
+    [color getRed:&redFloat green:&greenFloat blue:&blueFloat alpha: nil];
+  }
 
   nsCocoaUtils::GetStringForNSString([NSString stringWithFormat:@"#%02x%02x%02x",
                                        (int)(redFloat * 255),

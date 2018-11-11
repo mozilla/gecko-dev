@@ -1,6 +1,6 @@
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cr = Components.results;
 
 const GCONF_BG_COLOR_KEY = "/desktop/gnome/background/primary_color";
 
@@ -20,7 +20,7 @@ function colorToHex(aColor) {
   var g = (aColor & gMask) >> 8;
   var b = (aColor & bMask);
 
-  return "#" + [r, g, b].map(function(aInt)
+  return "#" + [r, g, b].map(aInt =>
                               aInt.toString(16).replace(/^(.)$/, "0$1"))
                              .join("").toUpperCase();
 }
@@ -30,9 +30,9 @@ function colorToHex(aColor) {
  *  (r << 16 | g << 8 | b).
  */
 function hexToColor(aString) {
-  return parseInt(aString.substring(1,3), 16) << 16 |
-         parseInt(aString.substring(3,5), 16) << 8 |
-         parseInt(aString.substring(5,7), 16);
+  return parseInt(aString.substring(1, 3), 16) << 16 |
+         parseInt(aString.substring(3, 5), 16) << 8 |
+         parseInt(aString.substring(5, 7), 16);
 }
 
 /**
@@ -70,11 +70,11 @@ function run_test() {
   try {
     // If GSettings is available, then the GConf tests
     // will fail
-    var gsettings = Cc["@mozilla.org/gsettings-service;1"].
-                    getService(Ci.nsIGSettingsService).
-                    getCollectionForSchema("org.gnome.desktop.background");
+    Cc["@mozilla.org/gsettings-service;1"].
+      getService(Ci.nsIGSettingsService).
+      getCollectionForSchema("org.gnome.desktop.background");
     return;
-  } catch(e) { }
+  } catch (e) { }
 
   gGConf = Cc["@mozilla.org/gnome-gconf-service;1"].
            getService(Ci.nsIGConfService);

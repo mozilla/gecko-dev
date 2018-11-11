@@ -18,13 +18,13 @@ namespace mozilla {
 class NullTransport : public webrtc::Transport
 {
 public:
-  virtual int SendPacket(int channel, const void *data, int len)
+  virtual int SendPacket(int channel, const void *data, size_t len)
   {
     (void) channel; (void) data;
     return len;
   }
 
-  virtual int SendRTCPPacket(int channel, const void *data, int len)
+  virtual int SendRTCPPacket(int channel, const void *data, size_t len)
   {
     (void) channel; (void) data;
     return len;
@@ -35,8 +35,8 @@ public:
   virtual ~NullTransport() {}
 
 private:
-  NullTransport(const NullTransport& other) MOZ_DELETE;
-  void operator=(const NullTransport& other) MOZ_DELETE;
+  NullTransport(const NullTransport& other) = delete;
+  void operator=(const NullTransport& other) = delete;
 };
 
 } // end namespace

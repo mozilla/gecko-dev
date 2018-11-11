@@ -21,18 +21,27 @@ enum MediaSourceEndOfStreamError {
   "decode"
 };
 
-[Constructor, Pref="media.mediasource.enabled"]
+[Constructor, Func="mozilla::dom::MediaSource::Enabled"]
 interface MediaSource : EventTarget {
   readonly attribute SourceBufferList sourceBuffers;
   readonly attribute SourceBufferList activeSourceBuffers;
   readonly attribute MediaSourceReadyState readyState;
   [SetterThrows]
   attribute unrestricted double duration;
+  attribute EventHandler onsourceopen;
+  attribute EventHandler onsourceended;
+  attribute EventHandler onsourceclosed;
   [NewObject, Throws]
   SourceBuffer addSourceBuffer(DOMString type);
   [Throws]
   void removeSourceBuffer(SourceBuffer sourceBuffer);
   [Throws]
   void endOfStream(optional MediaSourceEndOfStreamError error);
+  [Throws]
+  void setLiveSeekableRange(double start, double end);
+  [Throws]
+  void clearLiveSeekableRange();
   static boolean isTypeSupported(DOMString type);
+  [ChromeOnly]
+  readonly attribute DOMString mozDebugReaderData;
 };

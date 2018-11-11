@@ -1,6 +1,8 @@
 var browser;
 
-function doc() browser.contentDocument;
+function doc() {
+  return browser.contentDocument;
+}
 
 function setHandlerFunc(aResultFunc) {
   gBrowser.addEventListener("DOMLinkAdded", function (event) {
@@ -34,13 +36,13 @@ var iconDiscoveryTests = [
 ];
 
 function runIconDiscoveryTest() {
-  var test = iconDiscoveryTests[0];
+  var testCase = iconDiscoveryTests[0];
   var head = doc().getElementById("linkparent");
   var hasSrc = gBrowser.getIcon() != null;
-  if (test.pass)
-    ok(hasSrc, test.text);
+  if (testCase.pass)
+    ok(hasSrc, testCase.text);
   else
-    ok(!hasSrc, test.text);
+    ok(!hasSrc, testCase.text);
 
   head.removeChild(head.getElementsByTagName('link')[0]);
   iconDiscoveryTests.shift();
@@ -50,18 +52,19 @@ function runIconDiscoveryTest() {
 function iconDiscovery() {
   if (iconDiscoveryTests.length) {
     setHandlerFunc(runIconDiscoveryTest);
-    gBrowser.setIcon(gBrowser.selectedTab, null);
+    gBrowser.setIcon(gBrowser.selectedTab, null,
+                     Services.scriptSecurityManager.getSystemPrincipal());
 
-    var test = iconDiscoveryTests[0];
+    var testCase = iconDiscoveryTests[0];
     var head = doc().getElementById("linkparent");
     var link = doc().createElement("link");
 
     var rootDir = getRootDirectory(gTestPath);
-    var rel = test.rel || "icon";
-    var href = test.href || rootDir + "moz.png";
-    var type = test.type || "image/png";
-    if (test.pass == undefined)
-      test.pass = true;
+    var rel = testCase.rel || "icon";
+    var href = testCase.href || rootDir + "moz.png";
+    var type = testCase.type || "image/png";
+    if (testCase.pass == undefined)
+      testCase.pass = true;
 
     link.rel = rel;
     link.href = href;
@@ -89,17 +92,17 @@ var searchDiscoveryTests = [
 ];
 
 function runSearchDiscoveryTest() {
-  var test = searchDiscoveryTests[0];
-  var title = test.title || searchDiscoveryTests.length;
+  var testCase = searchDiscoveryTests[0];
+  var title = testCase.title || searchDiscoveryTests.length;
   if (browser.engines) {
-    var hasEngine = (test.count) ? (browser.engines[0].title == title &&
-                                    browser.engines.length == test.count) :
-                                   (browser.engines[0].title == title);
-    ok(hasEngine, test.text);
+    var hasEngine = (testCase.count) ? (browser.engines[0].title == title &&
+                                        browser.engines.length == testCase.count) :
+                                       (browser.engines[0].title == title);
+    ok(hasEngine, testCase.text);
     browser.engines = null;
   }
   else
-    ok(!test.pass, test.text);
+    ok(!testCase.pass, testCase.text);
 
   searchDiscoveryTests.shift();
   searchDiscovery(); // Run the next test.
@@ -122,19 +125,19 @@ function runMultipleEnginesTestAndFinalize() {
 }
 
 function searchDiscovery() {
-  var head = doc().getElementById("linkparent");
+  let head = doc().getElementById("linkparent");
 
   if (searchDiscoveryTests.length) {
     setHandlerFunc(runSearchDiscoveryTest);
-    var test = searchDiscoveryTests[0];
-    var link = doc().createElement("link");
+    let testCase = searchDiscoveryTests[0];
+    let link = doc().createElement("link");
 
-    var rel = test.rel || "search";
-    var href = test.href || "http://so.not.here.mozilla.com/search.xml";
-    var type = test.type || "application/opensearchdescription+xml";
-    var title = test.title || searchDiscoveryTests.length;
-    if (test.pass == undefined)
-      test.pass = true;
+    let rel = testCase.rel || "search";
+    let href = testCase.href || "http://so.not.here.mozilla.com/search.xml";
+    let type = testCase.type || "application/opensearchdescription+xml";
+    let title = testCase.title || searchDiscoveryTests.length;
+    if (testCase.pass == undefined)
+      testCase.pass = true;
 
     link.rel = rel;
     link.href = href;
@@ -145,12 +148,12 @@ function searchDiscovery() {
     setHandlerFunc(runMultipleEnginesTestAndFinalize);
     setHandlerFunc(runMultipleEnginesTestAndFinalize);
     // Test multiple engines with the same title
-    var link = doc().createElement("link");
+    let link = doc().createElement("link");
     link.rel = "search";
     link.href = "http://first.mozilla.com/search.xml";
     link.type = "application/opensearchdescription+xml";
     link.title = "Test Engine";
-    var link2 = link.cloneNode(false);
+    let link2 = link.cloneNode(false);
     link2.href = "http://second.mozilla.com/search.xml";
 
     head.appendChild(link);

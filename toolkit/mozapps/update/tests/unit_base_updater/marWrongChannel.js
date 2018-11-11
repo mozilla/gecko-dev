@@ -6,36 +6,46 @@
 /* Test product/channel MAR security check */
 
 function run_test() {
-  if (!IS_MAR_CHECKS_ENABLED) {
+  if (!MOZ_VERIFY_MAR_SIGNATURE) {
     return;
   }
 
-  setupTestCommon();
-  // We don't actually care if the MAR has any data, we only care about the
-  // application return code and update.status result.
-  gTestFiles = gTestFilesCommon;
-  gTestDirs = [];
-  setupUpdaterTest(FILE_WRONG_CHANNEL_MAR, false, false);
-
-  createUpdaterINI();
-
-  // Apply the MAR
-  // Note that if execv is used, the updater process will turn into the
-  // callback process, so its return code will be that of the callback
-  // app.
-  runUpdate((USE_EXECV ? 0 : 1), STATE_FAILED_CHANNEL_MISMATCH_ERROR);
+  if (!setupTestCommon()) {
+    return;
+  }
+  gTestFiles = gTestFilesCompleteSuccess;
+  gTestDirs = gTestDirsCompleteSuccess;
+  setTestFilesAndDirsForFailure();
+  setupUpdaterTest(FILE_WRONG_CHANNEL_MAR, false);
 }
 
 /**
- * Checks if the update has finished and if it has finished performs checks for
- * the test.
+ * Called after the call to setupUpdaterTest finishes.
  */
-function checkUpdateApplied() {
-  if (IS_MACOSX || IS_WIN) {
-    // Check that the post update process was not launched.
-    do_check_false(getPostUpdateFile(".running").exists());
-  }
+function setupUpdaterTestFinished() {
+  // If execv is used the updater process will turn into the callback process
+  // and the updater's return code will be that of the callback process.
+  runUpdate(STATE_FAILED_MAR_CHANNEL_MISMATCH_ERROR, false, (USE_EXECV ? 0 : 1),
+            false);
+}
 
-  checkFilesAfterUpdateSuccess();
-  doTestFinish();
+/**
+ * Called after the call to runUpdateUsingUpdater finishes.
+ */
+function runUpdateFinished() {
+  standardInit();
+  Assert.equal(readStatusState(), STATE_NONE,
+               "the status file state" + MSG_SHOULD_EQUAL);
+  Assert.ok(!gUpdateManager.activeUpdate,
+            "the active update should not be defined");
+  Assert.equal(gUpdateManager.updateCount, 1,
+               "the update manager updateCount attribute" + MSG_SHOULD_EQUAL);
+  Assert.equal(gUpdateManager.getUpdateAt(0).state, STATE_FAILED,
+               "the update state" + MSG_SHOULD_EQUAL);
+  Assert.equal(gUpdateManager.getUpdateAt(0).errorCode, MAR_CHANNEL_MISMATCH_ERROR,
+               "the update errorCode" + MSG_SHOULD_EQUAL);
+  checkPostUpdateRunningFile(false);
+  checkFilesAfterUpdateFailure(getApplyDirFile);
+  checkUpdateLogContains(STATE_FAILED_MAR_CHANNEL_MISMATCH_ERROR);
+  waitForFilesInUse();
 }

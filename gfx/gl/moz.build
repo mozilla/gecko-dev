@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,26 +10,26 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     gl_provider = 'WGL'
 elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
     gl_provider = 'CGL'
-elif CONFIG['MOZ_WIDGET_GTK']:
+elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'uikit':
+    gl_provider = 'EAGL'
+elif 'gtk' in CONFIG['MOZ_WIDGET_TOOLKIT']:
     if CONFIG['MOZ_EGL_XRENDER_COMPOSITE']:
         gl_provider = 'EGL'
     else:
         gl_provider = 'GLX'
-elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'qt':
-    gl_provider = 'GLX'
 elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
-    gl_provider = 'EGL'
-elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
     gl_provider = 'EGL'
 
 if CONFIG['MOZ_GL_PROVIDER']:
     gl_provider = CONFIG['MOZ_GL_PROVIDER']
 
 EXPORTS += [
+    'AndroidSurfaceTexture.h',
     'DecomposeIntoNoRepeatTriangles.h',
+    'EGLUtils.h',
     'ForceDiscreteGPUHelperCGL.h',
     'GfxTexturesReporter.h',
-    'GLBlitTextureImageHelper.h',
+    'GLBlitHelper.h',
     'GLConsts.h',
     'GLContext.h',
     'GLContextEGL.h',
@@ -42,7 +42,6 @@ EXPORTS += [
     'GLLibraryLoader.h',
     'GLReadTexImageHelper.h',
     'GLScreenBuffer.h',
-    'GLSharedHandleHelpers.h',
     'GLTextureImage.h',
     'GLTypes.h',
     'GLUploadHelpers.h',
@@ -51,8 +50,6 @@ EXPORTS += [
     'SharedSurface.h',
     'SharedSurfaceEGL.h',
     'SharedSurfaceGL.h',
-    'SurfaceFactory.h',
-    'SurfaceStream.h',
     'SurfaceTypes.h',
     'TextureGarbageBin.h',
 ]
@@ -67,30 +64,28 @@ if CONFIG['MOZ_X11']:
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     EXPORTS += [
         'GLContextWGL.h',
-        'SharedSurfaceANGLE.h',
+        'SharedSurfaceANGLE.h', # Needs <windows.h> for `HANDLE`.
+        'SharedSurfaceD3D11Interop.h',
         'WGLLibrary.h',
     ]
     UNIFIED_SOURCES += [
-        'GLContextProviderEGL.cpp',
+        'GLContextProviderWGL.cpp',
         'SharedSurfaceANGLE.cpp',
+        'SharedSurfaceD3D11Interop.cpp',
     ]
 if CONFIG['MOZ_ENABLE_SKIA_GPU']:
     EXPORTS += ['SkiaGLGlue.h']
-    UNIFIED_SOURCES += [
+    SOURCES += [
         'SkiaGLGlue.cpp',
     ]
-
-if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
-    UNIFIED_SOURCES += ['SharedSurfaceGralloc.cpp']
-    EXPORTS += ['SharedSurfaceGralloc.h']
-    LOCAL_INCLUDES += ['/widget/gonk']
-    CXXFLAGS += ['-I%s/%s' % (CONFIG['ANDROID_SOURCE'], 'hardware/libhardware/include')]
+    if CONFIG['CLANG_CXX']:
+        # Suppress warnings from Skia header files.
+        SOURCES['SkiaGLGlue.cpp'].flags += ['-Wno-implicit-fallthrough']
 
 if gl_provider == 'CGL':
     # These files include Mac headers that are unfriendly to unified builds
     SOURCES += [
         "GLContextProviderCGL.mm",
-        "TextureImageCGL.mm"
     ]
     EXPORTS += [
         'GLContextCGL.h',
@@ -103,47 +98,51 @@ if gl_provider == 'CGL':
     SOURCES += [
         'SharedSurfaceIO.cpp',
     ]
+elif gl_provider == 'EAGL':
+    # These files include ObjC headers that are unfriendly to unified builds
+    SOURCES += [
+        'GLContextProviderEAGL.mm',
+    ]
+    EXPORTS += [
+        'GLContextEAGL.h',
+    ]
+
 elif gl_provider == 'GLX':
     # GLContextProviderGLX.cpp needs to be kept out of UNIFIED_SOURCES
     # as it includes X11 headers which cause conflicts.
     SOURCES += [
         'GLContextProviderGLX.cpp',
+        'SharedSurfaceGLX.cpp'
     ]
-else:
-    UNIFIED_SOURCES += [
-        'GLContextProvider%s.cpp' % gl_provider,
+    EXPORTS += [
+        'SharedSurfaceGLX.h'
     ]
 
 UNIFIED_SOURCES += [
+    'AndroidSurfaceTexture.cpp',
     'DecomposeIntoNoRepeatTriangles.cpp',
+    'EGLUtils.cpp',
     'GfxTexturesReporter.cpp',
     'GLBlitHelper.cpp',
-    'GLBlitTextureImageHelper.cpp',
     'GLContext.cpp',
     'GLContextFeatures.cpp',
+    'GLContextProviderEGL.cpp',
     'GLContextTypes.cpp',
     'GLDebugUtils.cpp',
     'GLLibraryEGL.cpp',
     'GLLibraryLoader.cpp',
     'GLReadTexImageHelper.cpp',
     'GLScreenBuffer.cpp',
-    'GLSharedHandleHelpers.cpp',
     'GLTextureImage.cpp',
     'GLUploadHelpers.cpp',
     'ScopedGLHelpers.cpp',
     'SharedSurface.cpp',
     'SharedSurfaceEGL.cpp',
     'SharedSurfaceGL.cpp',
-    'SurfaceFactory.cpp',
-    'SurfaceStream.cpp',
     'SurfaceTypes.cpp',
     'TextureGarbageBin.cpp',
     'TextureImageEGL.cpp',
 ]
-
-FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
@@ -154,5 +153,12 @@ if CONFIG['MOZ_D3DCOMPILER_VISTA_DLL']:
 if CONFIG['MOZ_D3DCOMPILER_XP_DLL']:
     DEFINES['MOZ_D3DCOMPILER_XP_DLL'] = CONFIG['MOZ_D3DCOMPILER_XP_DLL']
 
-if CONFIG['MOZ_ANDROID_OMTC']:
-    DEFINES['MOZ_ANDROID_OMTC'] = True
+CXXFLAGS += CONFIG['MOZ_CAIRO_CFLAGS']
+CXXFLAGS += CONFIG['TK_CFLAGS']
+CFLAGS += CONFIG['MOZ_CAIRO_CFLAGS']
+CFLAGS += CONFIG['TK_CFLAGS']
+
+LOCAL_INCLUDES += CONFIG['SKIA_INCLUDES']
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wno-error=shadow']

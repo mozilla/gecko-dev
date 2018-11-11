@@ -14,15 +14,31 @@ button {
   text-shadow: none;
 }
 
+button:not([disabled="true"]):hover:active {
+  color: -moz-mac-buttonactivetext;
+}
+
+/* When the window isn't focused, the default button background isn't drawn,
+ * so don't change the text color then: */
+button[default="true"]:not([disabled="true"]):not(:-moz-window-inactive) {
+  color: -moz-mac-defaultbuttontext;
+}
+
+/* Likewise, when active (mousedown) but not hovering, the default button
+ * background isn't drawn, override the previous selector for that case: */
+button[default="true"]:not(:hover):active {
+  color: ButtonText;
+}
+
 .button-text {
   margin: 1px 0 !important;
-  -moz-margin-start: 3px !important;
-  -moz-margin-end: 2px !important;
+  margin-inline-start: 3px !important;
+  margin-inline-end: 2px !important;
   text-align: center;
 }
 
 .button-icon {
-  -moz-margin-start: 1px;
+  margin-inline-start: 1px;
 }
 
 button[type="default"] {

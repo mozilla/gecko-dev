@@ -23,7 +23,6 @@
 #include <string>
 #include <vector>
 
-#include "mozilla/NullPtr.h"
 #include "common/linux/http_upload.h"
 #include "crashreporter.h"
 #include "crashreporter_gtk_common.h"
@@ -47,7 +46,7 @@ GtkWidget* gRestartButton = 0;
 
 bool gInitialized = false;
 bool gDidTrySend = false;
-string gDumpFile;
+StringTable gFiles;
 StringTable gQueryParameters;
 string gHttpProxy;
 string gAuth;
@@ -196,8 +195,7 @@ gpointer SendThread(gpointer args)
   bool success = google_breakpad::HTTPUpload::SendRequest
     (gSendURL,
      gQueryParameters,
-     gDumpFile,
-     "upload_file_minidump",
+     gFiles,
      gHttpProxy, gAuth,
      gCACertificateFile,
      &response,
@@ -411,17 +409,15 @@ bool UIMoveFile(const string& file, const string& newfile)
   }
   if (pID == 0) {
     char* const args[4] = {
-      "mv",
+      const_cast<char*>("mv"),
       strdup(file.c_str()),
       strdup(newfile.c_str()),
       0
     };
     if (args[1] && args[2])
       execve("/bin/mv", args, 0);
-    if (args[1])
-      free(args[1]);
-    if (args[2])
-      free(args[2]);
+    free(args[1]);
+    free(args[2]);
     exit(-1);
   }
   int status;
@@ -439,9 +435,19 @@ std::ifstream* UIOpenRead(const string& filename)
   return new std::ifstream(filename.c_str(), std::ios::in);
 }
 
-std::ofstream* UIOpenWrite(const string& filename, bool append) // append=false
+std::ofstream* UIOpenWrite(const string& filename,
+                           bool append, // append=false
+                           bool binary) // binary=false
 {
-  return new std::ofstream(filename.c_str(),
-                           append ? std::ios::out | std::ios::app
-                                  : std::ios::out);
+  std::ios_base::openmode mode = std::ios::out;
+
+  if (append) {
+    mode = mode | std::ios::app;
+  }
+
+  if (binary) {
+    mode = mode | std::ios::binary;
+  }
+
+  return new std::ofstream(filename.c_str(), mode);
 }

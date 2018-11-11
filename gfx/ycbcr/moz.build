@@ -1,18 +1,15 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 EXPORTS += [
-    'chromium_types.h',
-    'ycbcr_to_rgb565.h',
     'YCbCrUtils.h',
-    'yuv_convert.h',
-    'yuv_row.h',
 ]
 
 UNIFIED_SOURCES += [
+    'scale_yuv_argb.cpp',
     'ycbcr_to_rgb565.cpp',
     'YCbCrUtils.cpp',
     'yuv_convert.cpp',
@@ -38,15 +35,9 @@ if CONFIG['INTEL_ARCHITECTURE']:
 
 if CONFIG['_MSC_VER']:
     if CONFIG['OS_TEST'] == 'x86_64':
-        if CONFIG['_MSC_VER'] == '1400':
-            # VC8 doesn't support some SSE2 built-in functions
-            SOURCES += [
-                'yuv_row_win.cpp',
-            ]
-        else:
-            SOURCES += [
-                'yuv_row_win64.cpp',
-            ]
+        SOURCES += [
+            'yuv_row_win64.cpp',
+        ]
     else:
         SOURCES += [
             'yuv_row_win.cpp',
@@ -68,5 +59,7 @@ if CONFIG['CPU_ARCH'] == 'arm' and CONFIG['HAVE_ARM_NEON']:
     SOURCES += [
         'yuv_convert_arm.cpp',
     ]
+
+LOCAL_INCLUDES += ['/media/libyuv/include']
 
 FINAL_LIBRARY = 'xul'

@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
 var gIoService = Components.classes["@mozilla.org/network/io-service;1"]
@@ -129,14 +129,6 @@ var gTests = [
     ref:     "",
     nsIURL:  true, nsINestedURI: false },
   //Bug 706249
-  { spec:    "http:x:@",
-    scheme:  "http",
-    prePath: "http://x:@",
-    username: "x",
-    password: "",
-    path:    "",
-    ref:     "",
-    nsIURL:  true, nsINestedURI: false },
   { spec:    "gopher://mozilla.org/",
     scheme:  "gopher",
     prePath: "gopher:",
@@ -245,37 +237,6 @@ var gTests = [
     scheme:  "resource",
     prePath: "resource://gre",
     path:    "/components/",
-    ref:     "",
-    nsIURL:  true, nsINestedURI: false },
-  { spec:    "view-source:about:blank",
-    scheme:  "view-source",
-    prePath: "view-source:",
-    path:    "about:blank",
-    ref:     "",
-    nsIURL:  false, nsINestedURI: true, immutable: true },
-  { spec:    "view-source:http://www.mozilla.org/",
-    scheme:  "view-source",
-    prePath: "view-source:",
-    path:    "http://www.mozilla.org/",
-    ref:     "",
-    nsIURL:  false, nsINestedURI: true, immutable: true },
-  { spec:    "x-external:",
-    scheme:  "x-external",
-    prePath: "x-external:",
-    path:    "",
-    ref:     "",
-    nsIURL:  false, nsINestedURI: false },
-  { spec:    "x-external:abc",
-    scheme:  "x-external",
-    prePath: "x-external:",
-    path:    "abc",
-    ref:     "",
-    nsIURL:  false, nsINestedURI: false },
-  { spec:    "http://www2.example.com/",
-    relativeURI: "a/b/c/d",
-    scheme:  "http",
-    prePath: "http://www2.example.com",
-    path:    "/a/b/c/d",
     ref:     "",
     nsIURL:  true, nsINestedURI: false },
 
@@ -481,6 +442,19 @@ function do_test_uri_with_hash_suffix(aTest, aSuffix) {
     var cloneNoRef = testURI.cloneIgnoringRef();
     do_check_uri_eq(cloneNoRef, origURI);
     do_check_false(cloneNoRef.equals(testURI));
+
+    do_info("testing cloneWithNewRef on " + testURI.spec +
+            " with an empty ref is equal to no-ref version but not equal to ref version");
+    var cloneNewRef = testURI.cloneWithNewRef("");
+    do_check_uri_eq(cloneNewRef, origURI);
+    do_check_uri_eq(cloneNewRef, cloneNoRef);
+    do_check_false(cloneNewRef.equals(testURI));
+
+    do_info("testing cloneWithNewRef on " + origURI.spec +
+            " with the same new ref is equal to ref version and not equal to no-ref version");
+    cloneNewRef = origURI.cloneWithNewRef(aSuffix);
+    do_check_uri_eq(cloneNewRef, testURI);
+    do_check_true(cloneNewRef.equals(testURI));
   }
 
   do_check_property(aTest, testURI, "scheme");

@@ -1,14 +1,8 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/en_SG.xml
-// *
-// ***************************************************************************
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 en_SG{
-    %%Parent{"en_GB"}
-    Version{"2.0.92.80"}
+    %%Parent{"en_001"}
+    Version{"2.1.29.54"}
     calendar{
         generic{
             DateTimePatterns{
@@ -16,20 +10,18 @@ en_SG{
                 "h:mm:ss a z",
                 "h:mm:ss a",
                 "h:mm a",
-                "EEEE, d MMMM, y G",
-                "d MMMM, y G",
-                "d MMM, y G",
+                "EEEE, d MMMM y G",
+                "d MMMM y G",
+                "d MMM y G",
                 "d/M/yy GGGGG",
-                "{1} {0}",
-                "{1} {0}",
-                "{1} {0}",
-                "{1} {0}",
-                "{1} {0}",
+                "{1}, {0}",
+                "{1} 'at' {0}",
+                "{1} 'at' {0}",
+                "{1}, {0}",
+                "{1}, {0}",
             }
             availableFormats{
-                MMMEd{"E, d MMM"}
                 yyyyMEd{"E, d/M/y GGGGG"}
-                yyyyMMMEd{"E, d MMM, y G"}
             }
             intervalFormats{
                 MEd{
@@ -40,23 +32,13 @@ en_SG{
                     M{"E, d MMM – E, d MMM"}
                     d{"E, d MMM – E, d MMM"}
                 }
-                MMMd{
-                    d{"d-d MMM"}
-                }
                 yMEd{
                     M{"E, d/M/y – E, d/M/y G"}
                     d{"E, d/M/y – E, d/M/y G"}
                     y{"E, d/M/y – E, d/M/y G"}
                 }
                 yMMMEd{
-                    M{"E, d MMM – E, d MMM, y G"}
-                    d{"E, d MMM – E, d MMM, y G"}
-                    y{"E, d MMM, y – E, d MMM, y G"}
-                }
-                yMMMd{
-                    M{"d MMM – d MMM, y G"}
-                    d{"d-d MMM, y G"}
-                    y{"d MMM, y – d MMM, y G"}
+                    d{"E, d MMM – E, d MMM y G"}
                 }
                 yMd{
                     M{"d/M/y – d/M/y G"}
@@ -71,18 +53,15 @@ en_SG{
                 "h:mm:ss a z",
                 "h:mm:ss a",
                 "h:mm a",
-                "EEEE, d MMMM, y",
-                "d MMMM, y",
-                "d MMM, y",
+                "EEEE, d MMMM y",
+                "d MMMM y",
+                "d MMM y",
                 "d/M/yy",
-                "{1} {0}",
-                "{1} {0}",
-                "{1} {0}",
-                "{1} {0}",
-                "{1} {0}",
-            }
-            availableFormats{
-                MMMEd{"E, d MMM"}
+                "{1}, {0}",
+                "{1} 'at' {0}",
+                "{1} 'at' {0}",
+                "{1}, {0}",
+                "{1}, {0}",
             }
             intervalFormats{
                 MEd{
@@ -93,29 +72,70 @@ en_SG{
                     M{"E, d MMM – E, d MMM"}
                     d{"E, d MMM – E, d MMM"}
                 }
-                MMMd{
-                    d{"d-d MMM"}
-                }
                 yMEd{
                     M{"E, d/M/y – E, d/M/y"}
                     d{"E, d/M/y – E, d/M/y"}
                     y{"E, d/M/y – E, d/M/y"}
                 }
                 yMMMEd{
-                    M{"E, d MMM – E, d MMM, y"}
-                    d{"E, d MMM – E, d MMM, y"}
-                    y{"E, d MMM, y – E, d MMM, y"}
-                }
-                yMMMd{
-                    M{"d MMM – d MMM, y"}
-                    d{"d-d MMM, y"}
-                    y{"d MMM, y – d MMM, y"}
+                    d{"E, d MMM – E, d MMM y"}
                 }
                 yMd{
                     M{"d/M/y – d/M/y"}
                     d{"d/M/y – d/M/y"}
                     y{"d/M/y – d/M/y"}
                 }
+            }
+        }
+    }
+    fields{
+        month-short{
+            dn{"mth"}
+            relative{
+                "-1"{"last mth"}
+                "0"{"this mth"}
+                "1"{"next mth"}
+            }
+            relativeTime{
+                future{
+                    one{"in {0} mth"}
+                    other{"in {0} mth"}
+                }
+                past{
+                    one{"{0} mth ago"}
+                    other{"{0} mth ago"}
+                }
+            }
+        }
+        quarter-short{
+            relative{
+                "-1"{"last qtr"}
+                "0"{"this qtr"}
+                "1"{"next qtr"}
+            }
+            relativeTime{
+                future{
+                    one{"in {0} qtr"}
+                    other{"in {0} qtrs"}
+                }
+                past{
+                    one{"{0} qtr ago"}
+                    other{"{0} qtrs ago"}
+                }
+            }
+        }
+        week-short{
+            relative{
+                "-1"{"last wk"}
+                "0"{"this wk"}
+                "1"{"next wk"}
+            }
+        }
+        year-short{
+            relative{
+                "-1"{"last yr"}
+                "0"{"this yr"}
+                "1"{"next yr"}
             }
         }
     }

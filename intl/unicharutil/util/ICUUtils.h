@@ -38,7 +38,7 @@ public:
    */
   class LanguageTagIterForContent {
   public:
-    LanguageTagIterForContent(nsIContent* aContent)
+    explicit LanguageTagIterForContent(nsIContent* aContent)
       : mContent(aContent)
       , mCurrentFallbackIndex(-1)
     {}
@@ -87,6 +87,11 @@ public:
   static void AssignUCharArrayToString(UChar* aICUString,
                                        int32_t aLength,
                                        nsAString& aMozString);
+
+  /**
+   * Map ICU UErrorCode to nsresult
+   */
+  static nsresult UErrorToNsResult(const UErrorCode aErrorCode);
 
 #if 0
   // Currently disabled because using C++ API doesn't play nicely with enabling

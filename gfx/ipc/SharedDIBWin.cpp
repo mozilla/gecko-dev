@@ -11,10 +11,9 @@
 namespace mozilla {
 namespace gfx {
 
-static const uint32_t kBytesPerPixel = 4;
 static const uint32_t kByteAlign = 1 << gfxAlphaRecovery::GoodAlignmentLog2();
 static const uint32_t kHeaderBytes =
-  (sizeof(BITMAPV4HEADER) + kByteAlign - 1) & ~(kByteAlign - 1);
+  (uint32_t(sizeof(BITMAPV4HEADER)) + kByteAlign - 1) & ~(kByteAlign - 1);
 
 SharedDIBWin::SharedDIBWin() :
     mSharedHdc(nullptr)
@@ -135,7 +134,6 @@ SharedDIBWin::SetupSurface(HDC aHdc, BITMAPV4HEADER *aHdr)
 
   return NS_OK;
 }
-
 
 } // gfx
 } // mozilla

@@ -9,12 +9,14 @@ const Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/AppConstants.jsm");
 
 const XRE_OS_UPDATE_APPLY_TO_DIR = "OSUpdApplyToD"
 const UPDATE_ARCHIVE_DIR = "UpdArchD"
 const LOCAL_DIR = "/data/local";
 const UPDATES_DIR = "updates/0";
 const FOTA_DIR = "updates/fota";
+const COREAPPSDIR_PREF = "b2g.coreappsdir"
 
 XPCOMUtils.defineLazyServiceGetter(Services, "env",
                                    "@mozilla.org/process/environment;1",
@@ -40,7 +42,7 @@ XPCOMUtils.defineLazyGetter(this, "gExtStorage", function dp_gExtStorage() {
 const gUseSDCard = true;
 
 const VERBOSE = 1;
-let log =
+var log =
   VERBOSE ?
   function log_dump(msg) { dump("DirectoryProvider: " + msg + "\n"); } :
   function log_noop(msg) { };
@@ -56,8 +58,14 @@ DirectoryProvider.prototype = {
 
   _profD: null,
 
-  getFile: function dp_getFile(prop, persistent) {
-#ifdef MOZ_WIDGET_GONK
+  getFile: function(prop, persistent) {
+    if (AppConstants.platform === "gonk") {
+      return this.getFileOnGonk(prop, persistent);
+    }
+    return this.getFileNotGonk(prop, persistent);
+  },
+
+  getFileOnGonk: function(prop, persistent) {
     let localProps = ["cachePDir", "webappsDir", "PrefD", "indexedDBPDir",
                       "permissionDBPDir", "UpdRootD"];
     if (localProps.indexOf(prop) != -1) {
@@ -96,13 +104,31 @@ DirectoryProvider.prototype = {
       // before apply, check if free space is 1.1 times of update.mar
       return this.getUpdateDir(persistent, FOTA_DIR, 1.1);
     }
-#else
-    // In desktop builds, coreAppsDir is the same as the profile directory.
-    // We just need to get the path from the parent, and it is then used to
-    // build jar:remoteopenfile:// uris.
+    return null;
+  },
+
+  getFileNotGonk: function(prop, persistent) {
+    // In desktop builds, coreAppsDir is the same as the profile
+    // directory unless otherwise specified. We just need to get the
+    // path from the parent, and it is then used to build
+    // jar:remoteopenfile:// uris.
     if (prop == "coreAppsDir") {
-      let appsDir = Services.dirsvc.get("ProfD", Ci.nsIFile);
-      appsDir.append("webapps");
+      let coreAppsDirPref;
+      try {
+        coreAppsDirPref = Services.prefs.getCharPref(COREAPPSDIR_PREF);
+      } catch (e) {
+        // coreAppsDirPref may not exist if we're on an older version
+        // of gaia, so just fail silently.
+      }
+      let appsDir;
+      // If pref doesn't exist or isn't set, default to old value
+      if (!coreAppsDirPref || coreAppsDirPref == "") {
+        appsDir = Services.dirsvc.get("ProfD", Ci.nsIFile);
+        appsDir.append("webapps");
+      } else {
+        appsDir = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile)
+        appsDir.initWithPath(coreAppsDirPref);
+      }
       persistent.value = true;
       return appsDir;
     } else if (prop == "ProfD") {
@@ -121,7 +147,6 @@ DirectoryProvider.prototype = {
       persistent.value = true;
       return file;
     }
-#endif
     return null;
   },
 
@@ -227,7 +252,7 @@ DirectoryProvider.prototype = {
       // subdir doesn't exist, and the parent is writable, so try to
       // create it. This can fail if a file named updates exists.
       try {
-        dir.create(Ci.nsIFile.DIRECTORY_TYPE, 0770);
+        dir.create(Ci.nsIFile.DIRECTORY_TYPE, parseInt('0770', 8));
       } catch (e) {
         // The create failed for some reason. We can't use it.
         log("Error: " + dir.path + " unable to create directory");

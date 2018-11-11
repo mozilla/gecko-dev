@@ -6,13 +6,36 @@
 #ifndef MOZILLA_GFX_SCALEDFONTMAC_H_
 #define MOZILLA_GFX_SCALEDFONTMAC_H_
 
-#import <ApplicationServices/ApplicationServices.h>
+#ifdef MOZ_WIDGET_COCOA
+#include <ApplicationServices/ApplicationServices.h>
+#else
+#include <CoreGraphics/CoreGraphics.h>
+#include <CoreText/CoreText.h>
+#endif
+
 #include "2D.h"
 
 #include "ScaledFontBase.h"
 
 namespace mozilla {
 namespace gfx {
+
+class GlyphRenderingOptionsCG : public GlyphRenderingOptions
+{
+public:
+  MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(GlyphRenderingOptionsCG, override)
+
+  explicit GlyphRenderingOptionsCG(const Color &aFontSmoothingBackgroundColor)
+    : mFontSmoothingBackgroundColor(aFontSmoothingBackgroundColor)
+  {}
+
+  const Color &FontSmoothingBackgroundColor() const { return mFontSmoothingBackgroundColor; }
+
+  virtual FontType GetType() const override { return FontType::MAC; }
+
+private:
+  Color mFontSmoothingBackgroundColor;
+};
 
 class ScaledFontMac : public ScaledFontBase
 {
@@ -25,12 +48,15 @@ public:
 #ifdef USE_SKIA
   virtual SkTypeface* GetSkTypeface();
 #endif
-  virtual TemporaryRef<Path> GetPathForGlyphs(const GlyphBuffer &aBuffer, const DrawTarget *aTarget);
-  virtual void CopyGlyphsToBuilder(const GlyphBuffer &aBuffer, PathBuilder *aBuilder, BackendType aBackendType, const Matrix *aTransformHint);
+  virtual already_AddRefed<Path> GetPathForGlyphs(const GlyphBuffer &aBuffer, const DrawTarget *aTarget);
   virtual bool GetFontFileData(FontFileDataOutput aDataCallback, void *aBaton);
 
+#ifdef USE_CAIRO_SCALED_FONT
+  cairo_font_face_t* GetCairoFontFace();
+#endif
+
 private:
-  friend class DrawTargetCG;
+  friend class DrawTargetSkia;
   CGFontRef mFont;
   CTFontRef mCTFont; // only created if CTFontDrawGlyphs is available, otherwise null
 
@@ -47,7 +73,7 @@ public:
   static CTFontDrawGlyphsFuncT* CTFontDrawGlyphsPtr;
 };
 
-}
-}
+} // namespace gfx
+} // namespace mozilla
 
 #endif /* MOZILLA_GFX_SCALEDFONTMAC_H_ */

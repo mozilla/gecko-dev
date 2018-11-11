@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 *******************************************************************************
-* Copyright (C) 2007-2008, International Business Machines Corporation and
+* Copyright (C) 2007-2016, International Business Machines Corporation and
 * others. All Rights Reserved.
 *******************************************************************************
 *
@@ -30,6 +32,7 @@
 #define RIGHT_CURLY_BRACKET ((UChar)0x007D)
 #define SPACE             ((UChar)0x0020)
 #define EN_DASH           ((UChar)0x2013)
+#define SOLIDUS           ((UChar)0x002F)
 
 #define DIGIT_ZERO        ((UChar)0x0030)
 #define DIGIT_ONE         ((UChar)0x0031)
@@ -74,6 +77,7 @@
 #define CAP_Q             ((UChar)0x0051)
 #define CAP_S             ((UChar)0x0053)
 #define CAP_T             ((UChar)0x0054)
+#define CAP_U             ((UChar)0x0055)
 #define CAP_V             ((UChar)0x0056)
 #define CAP_W             ((UChar)0x0057)
 #define CAP_Y             ((UChar)0x0059)

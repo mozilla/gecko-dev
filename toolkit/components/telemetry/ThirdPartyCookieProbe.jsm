@@ -4,9 +4,9 @@
 
 "use strict";
 
-let Ci = Components.interfaces;
-let Cu = Components.utils;
-let Cr = Components.results;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
+var Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://gre/modules/Services.jsm", this);
@@ -116,16 +116,6 @@ this.ThirdPartyCookieProbe.prototype = {
       return;
     }
     this._latestFlush = aNow;
-    let acceptedSites = Services.telemetry.getHistogramById("COOKIES_3RDPARTY_NUM_SITES_ACCEPTED");
-    let rejectedSites = Services.telemetry.getHistogramById("COOKIES_3RDPARTY_NUM_SITES_BLOCKED");
-    let acceptedRequests = Services.telemetry.getHistogramById("COOKIES_3RDPARTY_NUM_ATTEMPTS_ACCEPTED");
-    let rejectedRequests = Services.telemetry.getHistogramById("COOKIES_3RDPARTY_NUM_ATTEMPTS_BLOCKED");
-    for (let [k, data] of this._thirdPartyCookies) {
-      acceptedSites.add(data.countAcceptedSites / updays);
-      rejectedSites.add(data.countRejectedSites / updays);
-      acceptedRequests.add(data.countAcceptedRequests / updays);
-      rejectedRequests.add(data.countRejectedRequests / updays);
-    }
     this._thirdPartyCookies.clear();
   }
 };
@@ -138,7 +128,7 @@ this.ThirdPartyCookieProbe.prototype = {
  *
  * @constructor
  */
-let RejectStats = function() {
+var RejectStats = function() {
   /**
    * The set of all sites for which we have accepted third-party cookies.
    */
@@ -188,4 +178,4 @@ RejectStats.prototype = {
  */
 function normalizeHost(host) {
   return Services.eTLD.getBaseDomainFromHost(host);
-};
+}

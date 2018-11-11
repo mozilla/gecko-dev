@@ -6,10 +6,12 @@
 #ifndef mozilla_net_Http2Session_h
 #define mozilla_net_Http2Session_h
 
-// HTTP/2
+// HTTP/2 - RFC 7540
+// https://www.rfc-editor.org/rfc/rfc7540.txt
 
 #include "ASpdySession.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/UniquePtr.h"
 #include "nsAHttpConnection.h"
 #include "nsClassHashtable.h"
 #include "nsDataHashtable.h"
@@ -27,34 +29,35 @@ class Http2PushedStream;
 class Http2Stream;
 class nsHttpTransaction;
 
-class Http2Session MOZ_FINAL : public ASpdySession
-  , public nsAHttpConnection
-  , public nsAHttpSegmentReader
-  , public nsAHttpSegmentWriter
+class Http2Session final : public ASpdySession
+                         , public nsAHttpConnection
+                         , public nsAHttpSegmentReader
+                         , public nsAHttpSegmentWriter
 {
-public:
-  NS_DECL_ISUPPORTS
-    NS_DECL_NSAHTTPTRANSACTION
-    NS_DECL_NSAHTTPCONNECTION(mConnection)
-    NS_DECL_NSAHTTPSEGMENTREADER
-    NS_DECL_NSAHTTPSEGMENTWRITER
-
-   Http2Session(nsISocketTransport *);
   ~Http2Session();
 
+public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSAHTTPTRANSACTION
+  NS_DECL_NSAHTTPCONNECTION(mConnection)
+  NS_DECL_NSAHTTPSEGMENTREADER
+  NS_DECL_NSAHTTPSEGMENTWRITER
+
+ Http2Session(nsISocketTransport *, uint32_t version);
+
   bool AddStream(nsAHttpTransaction *, int32_t,
-                 bool, nsIInterfaceRequestor *);
-  bool CanReuse() { return !mShouldGoAway && !mClosed; }
-  bool RoomForMoreStreams();
+                 bool, nsIInterfaceRequestor *) override;
+  bool CanReuse() override { return !mShouldGoAway && !mClosed; }
+  bool RoomForMoreStreams() override;
 
   // When the connection is active this is called up to once every 1 second
   // return the interval (in seconds) that the connection next wants to
   // have this invoked. It might happen sooner depending on the needs of
   // other connections.
-  uint32_t  ReadTimeoutTick(PRIntervalTime now);
+  uint32_t  ReadTimeoutTick(PRIntervalTime now) override;
 
   // Idle time represents time since "goodput".. e.g. a data or header frame
-  PRIntervalTime IdleTime();
+  PRIntervalTime IdleTime() override;
 
   // Registering with a newID of 0 means pick the next available odd ID
   uint32_t RegisterStreamID(Http2Stream *, uint32_t aNewID = 0);
@@ -73,20 +76,19 @@ public:
   +---------------------------------------------------------------+
 */
 
-  enum frameType {
-    FRAME_TYPE_DATA = 0,
-    FRAME_TYPE_HEADERS = 1,
-    FRAME_TYPE_PRIORITY = 2,
-    FRAME_TYPE_RST_STREAM = 3,
-    FRAME_TYPE_SETTINGS = 4,
-    FRAME_TYPE_PUSH_PROMISE = 5,
-    FRAME_TYPE_PING = 6,
-    FRAME_TYPE_GOAWAY = 7,
-    FRAME_TYPE_WINDOW_UPDATE = 8,
-    FRAME_TYPE_CONTINUATION = 9,
-    FRAME_TYPE_ALTSVC = 10,
-    FRAME_TYPE_BLOCKED = 11,
-    FRAME_TYPE_LAST = 12
+  enum FrameType {
+    FRAME_TYPE_DATA          = 0x0,
+    FRAME_TYPE_HEADERS       = 0x1,
+    FRAME_TYPE_PRIORITY      = 0x2,
+    FRAME_TYPE_RST_STREAM    = 0x3,
+    FRAME_TYPE_SETTINGS      = 0x4,
+    FRAME_TYPE_PUSH_PROMISE  = 0x5,
+    FRAME_TYPE_PING          = 0x6,
+    FRAME_TYPE_GOAWAY        = 0x7,
+    FRAME_TYPE_WINDOW_UPDATE = 0x8,
+    FRAME_TYPE_CONTINUATION  = 0x9,
+    FRAME_TYPE_ALTSVC        = 0xA,
+    FRAME_TYPE_LAST          = 0xB
   };
 
   // NO_ERROR is a macro defined on windows, so we'll name the HTTP2 goaway
@@ -104,7 +106,9 @@ public:
     COMPRESSION_ERROR = 9,
     CONNECT_ERROR = 10,
     ENHANCE_YOUR_CALM = 11,
-    INADEQUATE_SECURITY = 12
+    INADEQUATE_SECURITY = 12,
+    HTTP_1_1_REQUIRED = 13,
+    UNASSIGNED = 31
   };
 
   // These are frame flags. If they, or other undefined flags, are
@@ -113,10 +117,7 @@ public:
   const static uint8_t kFlag_END_HEADERS = 0x04; // headers, continuation
   const static uint8_t kFlag_END_PUSH_PROMISE = 0x04; // push promise
   const static uint8_t kFlag_ACK = 0x01; // ping and settings
-  const static uint8_t kFlag_END_SEGMENT = 0x02; // data
-  const static uint8_t kFlag_PAD_LOW = 0x08; // data, headers, push promise, continuation
-  const static uint8_t kFlag_PAD_HIGH = 0x10; // data, headers, push promise, continuation
-  const static uint8_t kFlag_COMPRESSED = 0x20; // data
+  const static uint8_t kFlag_PADDED = 0x08; // data, headers, push promise, continuation
   const static uint8_t kFlag_PRIORITY = 0x20; // headers
 
   enum {
@@ -124,7 +125,7 @@ public:
     SETTINGS_TYPE_ENABLE_PUSH = 2,     // can be used to disable push
     SETTINGS_TYPE_MAX_CONCURRENT = 3,  // streams recvr allowed to initiate
     SETTINGS_TYPE_INITIAL_WINDOW = 4,  // bytes for flow control default
-    SETTINGS_TYPE_COMPRESS_DATA = 5 // whether other side allowes compressed DATA
+    SETTINGS_TYPE_MAX_FRAME_SIZE = 5   // max frame size settings sender allows receipt of
   };
 
   // This should be big enough to hold all of your control packets,
@@ -137,7 +138,6 @@ public:
   const static uint32_t kQueueTailRoom    =  4096;
   const static uint32_t kQueueReserved    =  1024;
 
-  const static uint32_t kDefaultMaxConcurrent = 100;
   const static uint32_t kMaxStreamID = 0x7800000;
 
   // This is a sentinel for a deleted stream. It is not a valid
@@ -152,9 +152,24 @@ public:
   // The default rwin is 64KB - 1 unless updated by a settings frame
   const static uint32_t kDefaultRwin = 65535;
 
-  // Frames with HTTP semantics are limited to 2^14 - 1 bytes of length in
-  // order to preserve responsiveness
-  const static uint32_t kMaxFrameData = 16383;
+  // We limit frames to 2^14 bytes of length in order to preserve responsiveness
+  // This is the smallest allowed value for SETTINGS_MAX_FRAME_SIZE
+  const static uint32_t kMaxFrameData = 0x4000;
+
+  const static uint8_t kFrameLengthBytes = 3;
+  const static uint8_t kFrameStreamIDBytes = 4;
+  const static uint8_t kFrameFlagBytes = 1;
+  const static uint8_t kFrameTypeBytes = 1;
+  const static uint8_t kFrameHeaderBytes = kFrameLengthBytes + kFrameFlagBytes +
+    kFrameTypeBytes + kFrameStreamIDBytes;
+
+  enum {
+    kLeaderGroupID =     0x3,
+    kOtherGroupID =       0x5,
+    kBackgroundGroupID =  0x7,
+    kSpeculativeGroupID = 0x9,
+    kFollowerGroupID =    0xB
+  };
 
   static nsresult RecvHeaders(Http2Session *);
   static nsresult RecvPriority(Http2Session *);
@@ -166,7 +181,6 @@ public:
   static nsresult RecvWindowUpdate(Http2Session *);
   static nsresult RecvContinuation(Http2Session *);
   static nsresult RecvAltSvc(Http2Session *);
-  static nsresult RecvBlocked(Http2Session *);
 
   char       *EnsureOutputBuffer(uint32_t needed);
 
@@ -179,28 +193,31 @@ public:
   static void LogIO(Http2Session *, Http2Stream *, const char *,
                     const char *, uint32_t);
 
-  // an overload of nsAHttpConnection
-  void TransactionHasDataToWrite(nsAHttpTransaction *);
+  // overload of nsAHttpConnection
+  void TransactionHasDataToWrite(nsAHttpTransaction *) override;
+  void TransactionHasDataToRecv(nsAHttpTransaction *) override;
 
   // a similar version for Http2Stream
   void TransactionHasDataToWrite(Http2Stream *);
 
   // an overload of nsAHttpSegementReader
-  virtual nsresult CommitToSegmentSize(uint32_t size, bool forceCommitment);
+  virtual nsresult CommitToSegmentSize(uint32_t size, bool forceCommitment) override;
   nsresult BufferOutput(const char *, uint32_t, uint32_t *);
   void     FlushOutputQueue();
   uint32_t AmountOfOutputBuffered() { return mOutputQueueUsed - mOutputQueueSent; }
 
   uint32_t GetServerInitialStreamWindow() { return mServerInitialStreamWindow; }
 
+  bool TryToActivate(Http2Stream *stream);
   void ConnectPushedStream(Http2Stream *stream);
-  void MaybeDecrementConcurrent(Http2Stream *stream);
+  void ConnectSlowConsumer(Http2Stream *stream);
 
   nsresult ConfirmTLSProfile();
+  static bool ALPNCallback(nsISupports *securityInfo);
 
   uint64_t Serial() { return mSerial; }
 
-  void PrintDiagnostics (nsCString &log);
+  void PrintDiagnostics (nsCString &log) override;
 
   // Streams need access to these
   uint32_t SendingChunkSize() { return mSendingChunkSize; }
@@ -209,6 +226,15 @@ public:
   nsISocketTransport *SocketTransport() { return mSocketTransport; }
   int64_t ServerSessionWindow() { return mServerSessionWindow; }
   void DecrementServerSessionWindow (uint32_t bytes) { mServerSessionWindow -= bytes; }
+  uint32_t InitialRwin() { return mInitialRwin; }
+
+  void SendPing() override;
+  bool MaybeReTunnel(nsAHttpTransaction *) override;
+  bool UseH2Deps() { return mUseH2Deps; }
+
+  // overload of nsAHttpTransaction
+  nsresult ReadSegmentsAgain(nsAHttpSegmentReader *, uint32_t, uint32_t *, bool *) override final;
+  nsresult WriteSegmentsAgain(nsAHttpSegmentWriter *, uint32_t , uint32_t *, bool *) override final;
 
 private:
 
@@ -222,7 +248,8 @@ private:
     DISCARDING_DATA_FRAME_PADDING,
     DISCARDING_DATA_FRAME,
     PROCESSING_COMPLETE_HEADERS,
-    PROCESSING_CONTROL_RST_STREAM
+    PROCESSING_CONTROL_RST_STREAM,
+    NOT_USING_NETWORK
   };
 
   static const uint8_t kMagicHello[24];
@@ -232,13 +259,14 @@ private:
   void        ChangeDownstreamState(enum internalStateType);
   void        ResetDownstreamState();
   nsresult    ReadyToProcessDataFrame(enum internalStateType);
-  nsresult    UncompressAndDiscard();
+  nsresult    UncompressAndDiscard(bool);
   void        GeneratePing(bool);
   void        GenerateSettingsAck();
   void        GeneratePriority(uint32_t, uint8_t);
   void        GenerateRstStream(uint32_t, uint32_t);
   void        GenerateGoAway(uint32_t);
   void        CleanupStream(Http2Stream *, nsresult, errorType);
+  void        CleanupStream(uint32_t, nsresult, errorType);
   void        CloseStream(Http2Stream *, nsresult);
   void        SendHello();
   void        RemoveStreamFromQueues(Http2Stream *);
@@ -247,10 +275,14 @@ private:
   void        SetWriteCallbacks();
   void        RealignOutputQueue();
 
-  bool        RoomForMoreConcurrent();
-  void        ActivateStream(Http2Stream *);
   void        ProcessPending();
+  nsresult    ProcessConnectedPush(Http2Stream *, nsAHttpSegmentWriter *,
+                                   uint32_t, uint32_t *);
+  nsresult    ProcessSlowConsumer(Http2Stream *, nsAHttpSegmentWriter *,
+                                  uint32_t, uint32_t *);
+
   nsresult    SetInputFrameDataStream(uint32_t);
+  void        CreatePriorityNode(uint32_t, uint32_t, uint8_t, const char *);
   bool        VerifyStream(Http2Stream *, uint32_t);
   void        SetNeedsCleanup();
 
@@ -258,30 +290,21 @@ private:
   void        UpdateLocalStreamWindow(Http2Stream *stream, uint32_t bytes);
   void        UpdateLocalSessionWindow(uint32_t bytes);
 
+  void        MaybeDecrementConcurrent(Http2Stream *stream);
+  bool        RoomForMoreConcurrent();
+  void        IncrementConcurrent(Http2Stream *stream);
+  void        QueueStream(Http2Stream *stream);
+
   // a wrapper for all calls to the nshttpconnection level segment writer. Used
   // to track network I/O for timeout purposes
   nsresult   NetworkRead(nsAHttpSegmentWriter *, char *, uint32_t, uint32_t *);
 
-  static PLDHashOperator ShutdownEnumerator(nsAHttpTransaction *,
-                                            nsAutoPtr<Http2Stream> &,
-                                            void *);
-
-  static PLDHashOperator GoAwayEnumerator(nsAHttpTransaction *,
-                                          nsAutoPtr<Http2Stream> &,
-                                          void *);
-
-  static PLDHashOperator UpdateServerRwinEnumerator(nsAHttpTransaction *,
-                                                    nsAutoPtr<Http2Stream> &,
-                                                    void *);
-
-  static PLDHashOperator RestartBlockedOnRwinEnumerator(nsAHttpTransaction *,
-                                                        nsAutoPtr<Http2Stream> &,
-                                                        void *);
+  void Shutdown();
 
   // This is intended to be nsHttpConnectionMgr:nsConnectionHandle taken
   // from the first transaction on this session. That object contains the
   // pointer to the real network-level nsHttpConnection object.
-  nsRefPtr<nsAHttpConnection> mConnection;
+  RefPtr<nsAHttpConnection> mConnection;
 
   // The underlying socket transport object is needed to propogate some events
   nsISocketTransport         *mSocketTransport;
@@ -294,6 +317,7 @@ private:
 
   uint32_t          mSendingChunkSize;        /* the transmission chunk size */
   uint32_t          mNextStreamID;            /* 24 bits */
+  uint32_t          mLastPushedID;
   uint32_t          mConcurrentHighWater;     /* max parallelism on session */
   uint32_t          mPushAllowance;           /* rwin for unmatched pushes */
 
@@ -312,7 +336,8 @@ private:
 
   nsDeque                                             mReadyForWrite;
   nsDeque                                             mQueuedStreams;
-  nsDeque                                             mReadyForRead;
+  nsDeque                                             mPushesReadyForRead;
+  nsDeque                                             mSlowConsumersReadyForRead;
   nsTArray<Http2PushedStream *>                       mPushedStreams;
 
   // Compression contexts for header transport.
@@ -328,7 +353,7 @@ private:
   // of header on data packets
   uint32_t             mInputFrameBufferSize; // buffer allocation
   uint32_t             mInputFrameBufferUsed; // amt of allocation used
-  nsAutoArrayPtr<char> mInputFrameBuffer;
+  UniquePtr<char[]>    mInputFrameBuffer;
 
   // mInputFrameDataSize/Read are used for tracking the amount of data consumed
   // in a frame after the 8 byte header. Control frames are always fully buffered
@@ -391,6 +416,11 @@ private:
   // only NO_HTTP_ERROR, PROTOCOL_ERROR, or INTERNAL_ERROR will be sent.
   errorType            mGoAwayReason;
 
+  // The error code sent/received on the session goaway frame. UNASSIGNED/31
+  // if not transmitted.
+  int32_t             mClientGoAwayReason;
+  int32_t             mPeerGoAwayReason;
+
   // If a GoAway message was received this is the ID of the last valid
   // stream. 0 otherwise. (0 is never a valid stream id.)
   uint32_t             mGoAwayID;
@@ -424,6 +454,9 @@ private:
   // signed because asynchronous changes via SETTINGS can drive it negative.
   int64_t              mServerSessionWindow;
 
+  // The initial value of the local stream and session window
+  uint32_t             mInitialRwin;
+
   // This is a output queue of bytes ready to be written to the SSL stream.
   // When that streams returns WOULD_BLOCK on direct write the bytes get
   // coalesced together here. This results in larger writes to the SSL layer.
@@ -432,12 +465,15 @@ private:
   uint32_t             mOutputQueueSize;
   uint32_t             mOutputQueueUsed;
   uint32_t             mOutputQueueSent;
-  nsAutoArrayPtr<char> mOutputQueueBuffer;
+  UniquePtr<char[]>    mOutputQueueBuffer;
 
   PRIntervalTime       mPingThreshold;
   PRIntervalTime       mLastReadEpoch;     // used for ping timeouts
   PRIntervalTime       mLastDataReadEpoch; // used for IdleTime()
   PRIntervalTime       mPingSentEpoch;
+
+  PRIntervalTime       mPreviousPingThreshold; // backup for the former value
+  bool                 mPreviousUsed;          // true when backup is used
 
   // used as a temporary buffer while enumerating the stream hash during GoAway
   nsDeque  mGoAwayStreamsToRestart;
@@ -447,17 +483,26 @@ private:
   // to make sure streams aren't shared across sessions.
   uint64_t        mSerial;
 
+  // If push is disabled, we want to be able to send PROTOCOL_ERRORs if we
+  // receive a PUSH_PROMISE, but we have to wait for the SETTINGS ACK before
+  // we can actually tell the other end to go away. These help us keep track
+  // of that state so we can behave appropriately.
+  bool mWaitingForSettingsAck;
+  bool mGoAwayOnPush;
+
+  bool mUseH2Deps;
+
 private:
 /// connect tunnels
   void DispatchOnTunnel(nsAHttpTransaction *, nsIInterfaceRequestor *);
+  void CreateTunnel(nsHttpTransaction *, nsHttpConnectionInfo *, nsIInterfaceRequestor *);
   void RegisterTunnel(Http2Stream *);
   void UnRegisterTunnel(Http2Stream *);
   uint32_t FindTunnelCount(nsHttpConnectionInfo *);
-
   nsDataHashtable<nsCStringHashKey, uint32_t> mTunnelHash;
 };
 
-} // namespace mozilla::net
+} // namespace net
 } // namespace mozilla
 
 #endif // mozilla_net_Http2Session_h

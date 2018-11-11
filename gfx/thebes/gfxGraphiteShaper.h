@@ -8,26 +8,29 @@
 
 #include "gfxFont.h"
 
+#include "mozilla/gfx/2D.h"
+
 struct gr_face;
 struct gr_font;
 struct gr_segment;
 
 class gfxGraphiteShaper : public gfxFontShaper {
 public:
-    gfxGraphiteShaper(gfxFont *aFont);
+    explicit gfxGraphiteShaper(gfxFont *aFont);
     virtual ~gfxGraphiteShaper();
 
-    virtual bool ShapeText(gfxContext      *aContext,
+    virtual bool ShapeText(DrawTarget      *aDrawTarget,
                            const char16_t *aText,
                            uint32_t         aOffset,
                            uint32_t         aLength,
-                           int32_t          aScript,
+                           Script           aScript,
+                           bool             aVertical,
                            gfxShapedText   *aShapedText);
 
     static void Shutdown();
 
 protected:
-    nsresult SetGlyphsFromSegment(gfxContext      *aContext,
+    nsresult SetGlyphsFromSegment(DrawTarget      *aDrawTarget,
                                   gfxShapedText   *aShapedText,
                                   uint32_t         aOffset,
                                   uint32_t         aLength,
@@ -41,12 +44,12 @@ protected:
     gr_font *mGrFont; // owned by the shaper itself
 
     struct CallbackData {
-        gfxFont           *mFont;
-        gfxGraphiteShaper *mShaper;
-        gfxContext        *mContext;
+        gfxFont* mFont;
+        mozilla::gfx::DrawTarget* mDrawTarget;
     };
 
     CallbackData mCallbackData;
+    bool mFallbackToSmallCaps; // special fallback for the petite-caps case
 
     // Convert HTML 'lang' (BCP47) to Graphite language code
     static uint32_t GetGraphiteTagForLang(const nsCString& aLang);

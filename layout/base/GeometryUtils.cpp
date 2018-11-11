@@ -12,6 +12,7 @@
 #include "mozilla/dom/DOMPoint.h"
 #include "mozilla/dom/DOMQuad.h"
 #include "mozilla/dom/DOMRect.h"
+#include "nsContentUtils.h"
 #include "nsIFrame.h"
 #include "nsGenericDOMDataNode.h"
 #include "nsCSSFrameConstructor.h"
@@ -139,8 +140,8 @@ GetBoxRectForFrame(nsIFrame** aFrame, CSSBoxType aType)
 {
   nsRect r;
   nsIFrame* f = nsSVGUtils::GetOuterSVGFrameAndCoveredRegion(*aFrame, &r);
-  if (f) {
-    // For SVG, the BoxType is ignored.
+  if (f && f != *aFrame) {
+    // For non-outer SVG frames, the BoxType is ignored.
     *aFrame = f;
     return r;
   }
@@ -164,7 +165,7 @@ GetBoxRectForFrame(nsIFrame** aFrame, CSSBoxType aType)
 class AccumulateQuadCallback : public nsLayoutUtils::BoxCallback {
 public:
   AccumulateQuadCallback(nsISupports* aParentObject,
-                         nsTArray<nsRefPtr<DOMQuad> >& aResult,
+                         nsTArray<RefPtr<DOMQuad> >& aResult,
                          nsIFrame* aRelativeToFrame,
                          const nsPoint& aRelativeToBoxTopLeft,
                          CSSBoxType aBoxType)
@@ -174,11 +175,22 @@ public:
     , mRelativeToBoxTopLeft(aRelativeToBoxTopLeft)
     , mBoxType(aBoxType)
   {
+    if (mBoxType == CSSBoxType::Margin) {
+      // Don't include the caption margin when computing margins for a
+      // table
+      mIncludeCaptionBoxForTable = false;
+    }
   }
 
-  virtual void AddBox(nsIFrame* aFrame) MOZ_OVERRIDE
+  virtual void AddBox(nsIFrame* aFrame) override
   {
     nsIFrame* f = aFrame;
+    if (mBoxType == CSSBoxType::Margin &&
+        f->GetType() == nsGkAtoms::tableFrame) {
+      // Margin boxes for table frames should be taken from the table wrapper
+      // frame, since that has the margin.
+      f = f->GetParent();
+    }
     nsRect box = GetBoxRectForFrame(&f, mBoxType);
     nsPoint appUnits[4] =
       { box.TopLeft(), box.TopRight(), box.BottomRight(), box.BottomLeft() };
@@ -202,7 +214,7 @@ public:
   }
 
   nsISupports* mParentObject;
-  nsTArray<nsRefPtr<DOMQuad> >& mResult;
+  nsTArray<RefPtr<DOMQuad> >& mResult;
   nsIFrame* mRelativeToFrame;
   nsPoint mRelativeToBoxTopLeft;
   CSSBoxType mBoxType;
@@ -241,7 +253,7 @@ CheckFramesInSameTopLevelBrowsingContext(nsIFrame* aFrame1, nsIFrame* aFrame2)
 
 void GetBoxQuads(nsINode* aNode,
                  const dom::BoxQuadOptions& aOptions,
-                 nsTArray<nsRefPtr<DOMQuad> >& aResult,
+                 nsTArray<RefPtr<DOMQuad> >& aResult,
                  ErrorResult& aRv)
 {
   nsIFrame* frame = GetFrameForNode(aNode);
@@ -341,7 +353,7 @@ ConvertQuadFromNode(nsINode* aTo, dom::DOMQuad& aQuad,
   if (aRv.Failed()) {
     return nullptr;
   }
-  nsRefPtr<DOMQuad> result = new DOMQuad(aTo->GetParentObject().mObject, points);
+  RefPtr<DOMQuad> result = new DOMQuad(aTo->GetParentObject().mObject, points);
   return result.forget();
 }
 
@@ -361,7 +373,7 @@ ConvertRectFromNode(nsINode* aTo, dom::DOMRectReadOnly& aRect,
   if (aRv.Failed()) {
     return nullptr;
   }
-  nsRefPtr<DOMQuad> result = new DOMQuad(aTo->GetParentObject().mObject, points);
+  RefPtr<DOMQuad> result = new DOMQuad(aTo->GetParentObject().mObject, points);
   return result.forget();
 }
 
@@ -380,8 +392,8 @@ ConvertPointFromNode(nsINode* aTo, const dom::DOMPointInit& aPoint,
   if (aRv.Failed()) {
     return nullptr;
   }
-  nsRefPtr<DOMPoint> result = new DOMPoint(aTo->GetParentObject().mObject, point.x, point.y);
+  RefPtr<DOMPoint> result = new DOMPoint(aTo->GetParentObject().mObject, point.x, point.y);
   return result.forget();
 }
 
-}
+} // namespace mozilla

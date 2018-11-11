@@ -7,71 +7,66 @@
 #ifndef jit_JSONSpewer_h
 #define jit_JSONSpewer_h
 
-#include "mozilla/NullPtr.h"
+#ifdef JS_JITSPEW
 
 #include <stdio.h>
 
 #include "js/TypeDecls.h"
+#include "vm/Printer.h"
 
 namespace js {
 namespace jit {
 
+class BacktrackingAllocator;
 class MDefinition;
-class MInstruction;
-class MBasicBlock;
 class MIRGraph;
 class MResumePoint;
-class LinearScanAllocator;
-class LInstruction;
+class LNode;
 
 class JSONSpewer
 {
   private:
-    // Set by beginFunction(); unset by endFunction().
-    // Used to correctly format output in case of abort during compilation.
-    bool inFunction_;
-
     int indentLevel_;
     bool first_;
-    FILE *fp_;
+    GenericPrinter& out_;
 
     void indent();
 
-    void property(const char *name);
+    void property(const char* name);
     void beginObject();
-    void beginObjectProperty(const char *name);
-    void beginListProperty(const char *name);
-    void stringValue(const char *format, ...);
-    void stringProperty(const char *name, const char *format, ...);
+    void beginObjectProperty(const char* name);
+    void beginListProperty(const char* name);
+    void stringValue(const char* format, ...) MOZ_FORMAT_PRINTF(2, 3);
+    void stringProperty(const char* name, const char* format, ...) MOZ_FORMAT_PRINTF(3, 4);
+    void beginStringProperty(const char* name);
+    void endStringProperty();
     void integerValue(int value);
-    void integerProperty(const char *name, int value);
+    void integerProperty(const char* name, int value);
     void endObject();
     void endList();
 
   public:
-    JSONSpewer()
-      : inFunction_(false),
-        indentLevel_(0),
+    explicit JSONSpewer(GenericPrinter& out)
+      : indentLevel_(0),
         first_(true),
-        fp_(nullptr)
+        out_(out)
     { }
-    ~JSONSpewer();
 
-    bool init(const char *path);
-    void beginFunction(JSScript *script);
+    void beginFunction(JSScript* script);
     void beginPass(const char * pass);
-    void spewMDef(MDefinition *def);
-    void spewMResumePoint(MResumePoint *rp);
-    void spewMIR(MIRGraph *mir);
-    void spewLIns(LInstruction *ins);
-    void spewLIR(MIRGraph *mir);
-    void spewIntervals(LinearScanAllocator *regalloc);
+    void spewMDef(MDefinition* def);
+    void spewMResumePoint(MResumePoint* rp);
+    void spewMIR(MIRGraph* mir);
+    void spewLIns(LNode* ins);
+    void spewLIR(MIRGraph* mir);
+    void spewRanges(BacktrackingAllocator* regalloc);
     void endPass();
     void endFunction();
-    void finish();
 };
 
 } // namespace jit
 } // namespace js
+
+#endif /* JS_JITSPEW */
 
 #endif /* jit_JSONSpewer_h */

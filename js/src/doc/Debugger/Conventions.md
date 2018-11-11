@@ -76,10 +76,6 @@ following forms:
 :   The code completed normally, returning <i>value</i>. <i>Value</i> is a
     debuggee value.
 
-<code>{ yield: <i>value</i> }</code>
-:   <i>(Not yet implemented.)</i> The running code is a generator frame
-    which has yielded <i>value</i>. <i>Value</i> is a debuggee value.
-
 <code>{ throw: <i>value</i> }</code>
 :   The code threw <i>value</i> as an exception. <i>Value</i> is a debuggee
     value.
@@ -111,15 +107,13 @@ resumption value has one of the following forms:
     was called as a constructor (that is, via a `new` expression), then
     <i>value</i> serves as the value returned by the function's body, not
     that produced by the `new` expression: if the value is not an object,
-    the `new` expression returns the frame's `this` value.
-
-<code>{ yield: <i>value</i> }</code>
-:   <i>(Not yet implemented.)</i> Yield <i>value</i> immediately as the
-    next value of the current frame, which must be a generator frame.
-    <i>Value</i> is a debuggee value. The current frame must be a generator
-    frame that has not yet completed in some other way. You may use `yield`
-    resumption values to substitute a new value or one already yielded by a
-    generator, or to make a generator yield additional values.
+    the `new` expression returns the frame's `this` value. Similarly, if
+    the function is the constructor for a subclass, then a non-object
+    value may result in a TypeError.
+    If the frame is a generator or async function, then <i>value</i> must
+    conform to the iterator protocol: it must be a non-proxy object of the form
+    <code>{ done: <i>boolean</i>, value: <i>v</i> }</code>, where
+    both `done` and `value` are ordinary properties.
 
 <code>{ throw: <i>value</i> }</code>
 :   Throw <i>value</i> as an exception from the current bytecode
@@ -136,6 +130,13 @@ associated `Debugger` instance's `uncaughtExceptionHook` property, as
 described below.
 
 
+## Timestamps
+
+Timestamps are expressed in units of milliseconds since an arbitrary,
+but fixed, epoch.  The resolution of timestamps is generally greater
+than milliseconds, though no specific resolution is guaranteed.
+
+
 ## The `Debugger.DebuggeeWouldRun` Exception
 
 Some debugger operations that appear to simply inspect the debuggee's state
@@ -148,6 +149,10 @@ methods are called [invocation functions][inv fr], and they follow certain
 common conventions to report the debuggee's behavior safely. For other
 methods, if their normal operation would cause debuggee code to run, they
 throw an instance of the `Debugger.DebuggeeWouldRun` exception.
+
+If there are debugger frames on stack from multiple Debugger instances, the
+thrown exception is an instance of the topmost locking debugger's global's
+`Debugger.DebuggeeWouldRun`.
 
 A `Debugger.DebuggeeWouldRun` exception may have a `cause` property,
 providing more detailed information on why the debuggee would have run. The

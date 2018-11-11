@@ -6,7 +6,7 @@
 
 /* View buttons */
 #viewGroup {
-  -moz-padding-start: 10px;
+  padding-inline-start: 10px;
 }
 
 #viewGroup > radio {
@@ -31,7 +31,7 @@
 
 #topBar {
   border-bottom: 2px groove ThreeDFace;
-  -moz-padding-start: 10px;
+  padding-inline-start: 10px;
   background-color: -moz-Field;
   color: -moz-FieldText;
 }
@@ -98,7 +98,7 @@ textbox {
 }
 
 textbox.header {
-  -moz-margin-start: 0;
+  margin-inline-start: 0;
 }
 
 .iframe {
@@ -116,14 +116,14 @@ textbox[disabled] {
 }
 
 /* General Tab */
-groupbox.collapsable caption .caption-icon { 
+groupbox.collapsable caption .caption-icon {
   width: 9px;
   height: 9px;
   background-repeat: no-repeat;
   background-position: center;
-  -moz-margin-start: 2px;
-  -moz-margin-end: 2px;
-  background-image: url("chrome://global/skin/tree/twisty-open.png");
+  margin-inline-start: 2px;
+  margin-inline-end: 2px;
+  background-image: url("chrome://global/skin/tree/twisty.svg#open");
 }
 
 groupbox.collapsable[closed="true"] {
@@ -132,17 +132,17 @@ groupbox.collapsable[closed="true"] {
   -moz-appearance: none;
 }
 
-groupbox.collapsable[closed="true"] caption .caption-icon { 
-  background-image: url("chrome://global/skin/tree/twisty-clsd.png");
+groupbox.collapsable[closed="true"] caption .caption-icon {
+  background-image: url("chrome://global/skin/tree/twisty.svg#clsd");
 }
 
-groupbox tree { 
+groupbox tree {
   margin: 0 3px;
   border: none;
 }
 
-#securityBox description { 
-  -moz-margin-start: 10px;
+#securityBox description {
+  margin-inline-start: 10px;
 }
 
 #general-security-identity {
@@ -187,8 +187,8 @@ treechildren::-moz-tree-cell-text(broken) {
 #feedListbox richlistitem {
   padding-top: 6px;
   padding-bottom: 6px;
-  -moz-padding-start: 7px;
-  -moz-padding-end: 7px;
+  padding-inline-start: 7px;
+  padding-inline-end: 7px;
   min-height: 25px;
   border-bottom: 1px dotted #C0C0C0;
 }
@@ -206,7 +206,7 @@ treechildren::-moz-tree-cell-text(broken) {
   -moz-border-left-colors: ThreeDShadow ThreeDDarkShadow;
 }
 
-.feedTitle { 
+.feedTitle {
   font-weight: bold;
 }
 
@@ -225,8 +225,8 @@ treechildren::-moz-tree-cell-text(broken) {
 .permission {
   padding-top: 6px;
   padding-bottom: 6px;
-  -moz-padding-start: 7px;
-  -moz-padding-end: 7px;
+  padding-inline-start: 7px;
+  padding-inline-end: 7px;
   min-height: 25px;
   border-bottom: 1px dotted #C0C0C0;
 }
@@ -247,12 +247,16 @@ treechildren::-moz-tree-cell-text(broken) {
 #securityPanel .header {
   font-size: 120%;
 }
- 
+
 #securityPanel .fieldLabel {
-  margin: 2px 10px 3px 10px;
+  margin: 2px 10px 3px;
 }
 
 #securityPanel .fieldValue {
   font-weight: bold;
-  margin: 2px 10px 0px 10px;
+  margin: 2px 10px 3px;
+}
+
+#securityPanel row {
+  -moz-box-align: center;
 }

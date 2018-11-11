@@ -3,15 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
 // Dummy boomark/history observer
 function DummyObserver() {
-  let os = Cc["@mozilla.org/observer-service;1"].
-           getService(Ci.nsIObserverService);
-  os.notifyObservers(null, "dummy-observer-created", null);
+  Services.obs.notifyObservers(null, "dummy-observer-created", null);
 }
 
 DummyObserver.prototype = {
@@ -19,9 +18,7 @@ DummyObserver.prototype = {
   onBeginUpdateBatch: function () {},
   onEndUpdateBatch: function () {},
   onVisit: function (aURI, aVisitID, aTime, aSessionID, aReferringID, aTransitionType) {
-    let os = Cc["@mozilla.org/observer-service;1"].
-             getService(Ci.nsIObserverService);
-    os.notifyObservers(null, "dummy-observer-visited", null);
+    Services.obs.notifyObservers(null, "dummy-observer-visited", null);
   },
   onTitleChanged: function () {},
   onDeleteURI: function () {},
@@ -30,12 +27,10 @@ DummyObserver.prototype = {
   onDeleteVisits: function () {},
 
   // bookmark observer
-  //onBeginUpdateBatch: function() {},
-  //onEndUpdateBatch: function() {},
+  // onBeginUpdateBatch: function() {},
+  // onEndUpdateBatch: function() {},
   onItemAdded: function(aItemId, aParentId, aIndex, aItemType, aURI) {
-    let os = Cc["@mozilla.org/observer-service;1"].
-             getService(Ci.nsIObserverService);
-    os.notifyObservers(null, "dummy-observer-item-added", null);
+    Services.obs.notifyObservers(null, "dummy-observer-item-added", null);
   },
   onItemChanged: function () {},
   onItemRemoved: function() {},

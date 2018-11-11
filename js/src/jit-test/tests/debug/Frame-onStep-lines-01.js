@@ -13,11 +13,11 @@ var offsets;
 dbg.onDebuggerStatement = function (frame) {
     var script = frame.script;
     offsets = script.getAllOffsets();
-    print("debugger line: " + script.getOffsetLine(frame.offset));
+    print("debugger line: " + script.getOffsetLocation(frame.offset).lineNumber);
     print("original lines: " + uneval(Object.keys(offsets)));
     if (doSingleStep) {
 	frame.onStep = function onStepHandler() {
-	    var line = script.getOffsetLine(this.offset);
+	    var line = script.getOffsetLocation(this.offset).lineNumber;
 	    delete offsets[line];
 	};
     }
@@ -48,7 +48,7 @@ assertEq(Object.keys(offsets).length, 2);
 // have no effect on this one.
 doSingleStep = false;
 g.eval('t(0, 0, 0)');
-assertEq(Object.keys(offsets).length, 6);
+assertEq(Object.keys(offsets).length, 7);
 doSingleStep = true;
 
 // Single-step in an eval frame. This should reach every line but the

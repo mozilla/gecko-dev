@@ -15,7 +15,7 @@ its prototype:
 
 `enabled`
 :   A boolean value indicating whether this `Debugger` instance's handlers,
-    breakpoints, watchpoints, and the like are currently enabled. It is an
+    breakpoints, and the like are currently enabled. It is an
     accessor property with a getter and setter: assigning to it enables or
     disables this `Debugger` instance; reading it produces true if the
     instance is enabled, or false otherwise. This property is initially
@@ -25,9 +25,39 @@ its prototype:
     disentangling itself from the debuggee, regardless of what sort of
     events or handlers or "points" we add to the interface.
 
+`allowUnobservedAsmJS`
+:   A boolean value indicating whether asm.js code running inside this
+    `Debugger` instance's debuggee globals is invisible to Debugger API
+    handlers and breakpoints. Setting this to `false` inhibits the
+    ahead-of-time asm.js compiler and forces asm.js code to run as normal
+    JavaScript. This is an accessor property with a getter and setter. It is
+    initially `false` in a freshly created `Debugger` instance.
+
+    Setting this flag to `true` is intended for uses of subsystems of the
+    Debugger API (e.g, [`Debugger.Source`][source]) for purposes other than
+    step debugging a target JavaScript program.
+
+`collectCoverageInfo`
+:   A boolean value indicating whether code coverage should be enabled inside
+    each debuggee of this `Debugger` instance. Changing this flag value will
+    recompile all JIT code to add or remove code coverage
+    instrumentation. Changing this flag when any frame of the debuggee is
+    currently active on the stack will produce an exception.
+
+    Setting this to `true` enables code coverage instrumentation, which can be
+    accessed via the [`Debugger.Script`][script] `getOffsetsCoverage`
+    function. In some cases, the code coverage might expose information which
+    pre-date the modification of this flag. Code coverage reports are monotone,
+    thus one can take a snapshot when the Debugger is enabled, and output the
+    difference.
+
+    Setting this to `false` prevents this `Debugger` instance from requiring any
+    code coverage instrumentation, but it does not guarantee that the
+    instrumentation is not present.
+
 `uncaughtExceptionHook`
 :   Either `null` or a function that SpiderMonkey calls when a call to a
-    debug event handler, breakpoint handler, watchpoint handler, or similar
+    debug event handler, breakpoint handler, or similar
     function throws some exception, which we refer to as
     <i>debugger-exception</i> here. Exceptions thrown in the debugger are
     not propagated to debuggee code; instead, SpiderMonkey calls this
@@ -81,11 +111,33 @@ compartment.
 
 <code>onNewScript(<i>script</i>, <i>global</i>)</code>
 :   New code, represented by the [`Debugger.Script`][script] instance
-    <i>script</i>, has been loaded in the scope of the debuggee global
-    object <i>global</i>. <i>global</i> is a [`Debugger.Object`][object]
-    instance whose referent is the global object.
+    <i>script</i>, has been loaded in the scope of the debuggees.
 
     This method's return value is ignored.
+
+<code>onNewPromise(<i>promise</i>)</code>
+:   A new Promise object, referenced by the [`Debugger.Object`][object] instance
+    *promise*, has been allocated in the scope of the debuggees. The Promise's
+    allocation stack can be obtained using the *promiseAllocationStack*
+    accessor property of the [`Debugger.Object`][object] instance *promise*.
+
+    This handler method should return a [resumption value][rv] specifying how
+    the debuggee's execution should proceed. However, note that a <code>{
+    return: <i>value</i> }</code> resumption value is treated like `undefined`
+    ("continue normally"); <i>value</i> is ignored.
+
+<code>onPromiseSettled(<i>promise</i>)</code>
+:   A Promise object, referenced by the [`Debugger.Object`][object] instance
+    *promise* that was allocated within a debuggee scope, has settled (either
+    fulfilled or rejected). The Promise's state, fulfillment or rejection
+    value, and the allocation and resolution stacks can be obtained using the
+    Promise-related accessor properties of the [`Debugger.Object`][object]
+    instance *promise*.
+
+    This handler method should return a [resumption value][rv] specifying how
+    the debuggee's execution should proceed. However, note that a <code>{
+    return: <i>value</i> }</code> resumption value is treated like `undefined`
+    ("continue normally"); <i>value</i> is ignored.
 
 <code>onDebuggerStatement(<i>frame</i>)</code>
 :   Debuggee code has executed a <i>debugger</i> statement in <i>frame</i>.
@@ -101,29 +153,6 @@ compartment.
 
     SpiderMonkey only calls `onEnterFrame` to report
     [visible][vf], non-`"debugger"` frames.
-
-<code>onThrow(<i>frame</i>, <i>value</i>) <i>(future plan)</i></code>
-:   The exception <i>value</i> is being thrown by <i>frame</i>, which is
-    running debuggee code. This method should return a
-    [resumption value][rv] specifying how the debuggee's execution should
-    proceed. If it returns `undefined`, the exception is thrown as normal.
-
-    A call to the `onThrow` handler is typically followed by one or more
-    calls to the `onExceptionUnwind` handler.
-
-    *(pending discussion)* If the debuggee executes
-    `try { throw 0; } finally { f(); }` and `f()` executes without error,
-    the `onThrow` handler is called only once. The debugger is not notified
-    when the exception is set aside in order to execute the `finally` block,
-    nor when it is restored after the `finally` block completes normally.
-
-    *(An alternative design here would be: onException(status, frame, value)
-    where status is one of the strings "throw", "unwind", "catch",
-    "finally", "rethrow". JS\_SaveExceptionState would trigger a "finally"
-    event, JS\_RestoreExceptionState would trigger a "rethrow",
-    JS\_ClearPendingException would trigger a "catch"; not sure what
-    JS\_DropExceptionState or a return/throw from a finally block should
-    do.)*
 
 <code>onExceptionUnwind(<i>frame</i>, <i>value</i>)</code>
 :   The exception <i>value</i> has been thrown, and has propagated to
@@ -142,6 +171,9 @@ compartment.
     other possibility is for the `finally` block to exit due to a `return`,
     `continue`, or `break` statement, or a new exception. In those cases the
     old exception does not continue to propagate; it is discarded.)
+
+    This handler is not called when unwinding a frame due to an over-recursion
+    or out-of-memory exception.
 
 <code>sourceHandler(<i>ASuffusionOfYellow</i>)</code>
 :   This method is never called. If it is ever called, a contradiction has
@@ -184,9 +216,7 @@ compartment.
     This method's return value is ignored.
 
 `onNewGlobalObject(global)`
-:   A new global object, <i>global</i>, has been created. The application
-    embedding the JavaScript implementation may provide details about what
-    kind of global it is via <code><i>global</i>.hostAnnotations</code>.
+:   A new global object, <i>global</i>, has been created.
 
     This handler method should return a [resumption value][rv] specifying how
     the debuggee's execution should proceed. However, note that a <code>{ return:
@@ -252,12 +282,42 @@ other kinds of objects.
     [`Debugger.Object`][object] instance this method returns does hold a strong
     reference to the added global.)
 
+    If this debugger is [tracking allocation sites][tracking-allocs] and cannot
+    track allocation sites for <i>global</i>, this method throws an `Error`.
+
+`addAllGlobalsAsDebuggees()`
+:   This method is like [`addDebuggee`][add], but adds all the global
+    objects from all compartments to this `Debugger` instance's set of
+    debuggees. Note that it skips this debugger's compartment.
+
+    If this debugger is [tracking allocation sites][tracking-allocs] and cannot
+    track allocation sites for some global, this method throws an `Error`.
+    Otherwise this method returns `undefined`.
+
+    This method is only available to debuggers running in privileged
+    code ("chrome", in Firefox). Most functions provided by this `Debugger`
+    API observe activity in only those globals that are reachable by the
+    API's user, thus imposing capability-based restrictions on a
+    `Debugger`'s reach. However, the `addAllGlobalsAsDebuggees` method
+    allows the API user to monitor all global object creation that
+    occurs anywhere within the JavaScript system (the "JSRuntime", in
+    SpiderMonkey terms), thereby escaping the capability-based
+    limits. For this reason, `addAllGlobalsAsDebuggees` is only
+    available to privileged code.
+
 <code>removeDebuggee(<i>global</i>)</code>
 :   Remove the global object designated by <i>global</i> from this
     `Debugger` instance's set of debuggees. Return `undefined`.
 
     This method interprets <i>global</i> using the same rules that
     [`addDebuggee`][add] does.
+
+    Removing a global as a debuggee from this `Debugger` clears all breakpoints
+    that belong to that `Debugger` in that global.
+
+`removeAllDebuggees()`
+:   Remove all the global objects from this `Debugger` instance's set
+    of debuggees.  Return `undefined`.
 
 <code>hasDebuggee(<i>global</i>)</code>
 :   Return `true` if the global object designated by <i>global</i> is a
@@ -318,7 +378,7 @@ other kinds of objects.
     `url`
     :   The script's `url` property must be equal to this value.
 
-    `source` <i>(not yet implemented)</i>
+    `source`
     :   The script's `source` property must be equal to this value.
 
     `line`
@@ -350,6 +410,32 @@ other kinds of objects.
     such scripts appear can be affected by the garbage collector's
     behavior, so this function's behavior is not entirely deterministic.
 
+<code>findObjects([<i>query</i>])</code>
+:   Return an array of [`Debugger.Object`][object] instances referring to each
+    live object allocated in the scope of the debuggee globals that matches
+    *query*. Each instance appears only once in the array. *Query* is an object
+    whose properties restrict which objects are returned; an object must meet
+    all the criteria given by *query* to be returned. If *query* is omitted, we
+    return the [`Debugger.Object`][object] instances for all objects allocated
+    in the scope of debuggee globals.
+
+    The *query* object may have the following properties:
+
+    `class`
+    :   If present, only return objects whose internal `[[Class]]`'s name
+        matches the given string. Note that in some cases, the prototype object
+        for a given constructor has the same `[[Class]]` as the instances that
+        refer to it, but cannot itself be used as a valid instance of the
+        class. Code gathering objects by class name may need to examine them
+        further before trying to use them.
+
+    All properties of *query* are optional. Passing an empty object returns all
+    objects in debuggee globals.
+
+    Unlike `findScripts`, this function is deterministic and will never return
+    [`Debugger.Object`s][object] referring to previously unreachable objects
+    that had not been collected yet.
+
 <code>clearBreakpoint(<i>handler</i>)</code>
 :   Remove all breakpoints set in this `Debugger` instance that use
     <i>handler</i> as their handler. Note that, if breakpoints using other
@@ -359,14 +445,9 @@ other kinds of objects.
 `clearAllBreakpoints()`
 :   Remove all breakpoints set using this `Debugger` instance.
 
-`clearAllWatchpoints()` <i>(future plan)</i>
-:   Clear all watchpoints owned by this `Debugger` instance.
-
 `findAllGlobals()`
 :   Return an array of [`Debugger.Object`][object] instances referring to all the
-    global objects present in this JavaScript instance. The application may
-    provide details about what kind of globals they are via the
-    [`Debugger.Object`][object] instances' `hostAnnotations` accessors.
+    global objects present in this JavaScript instance.
 
     The results of this call can be affected in non-deterministic ways by
     the details of the JavaScript implementation. The array may include
@@ -393,3 +474,23 @@ other kinds of objects.
     `TypeError`. Determine which global is designated by <i>global</i>
     using the same rules as [`Debugger.prototype.addDebuggee`][add].
 
+<code>adoptDebuggeeValue(<i>value</i>)</code>
+:    Given a debuggee value `value` owned by an arbitrary `Debugger`, return an
+     equivalent debuggee value owned by this `Debugger`.
+
+     If `value` is a primitive value, return it unchanged. If `value` is a
+     `Debugger.Object` owned by an arbitrary `Debugger`, return an equivalent
+     `Debugger.Object` owned by this `Debugger`. Otherwise, if `value` is some
+     other kind of object, and hence not a proper debuggee value, throw a
+     TypeError instead.
+
+## Static methods of the Debugger Object
+
+The functions described below are not called with a `this` value.
+
+<code id="isCompilableUnit">isCompilableUnit(<i>source</i>)</code>
+:   Given a string of source code, designated by <i>source</i>, return false if
+    the string might become a valid JavaScript statement with the addition of
+    more lines. Otherwise return true. The intent is to support interactive
+    compilation - accumulate lines in a buffer until isCompilableUnit is true,
+    then pass it to the compiler.

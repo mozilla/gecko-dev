@@ -7,10 +7,9 @@
 #define mozilla_net_CookieServiceParent_h
 
 #include "mozilla/net/PCookieServiceParent.h"
-#include "SerializedLoadContext.h"
 
 class nsCookieService;
-class nsIIOService;
+namespace mozilla { class NeckoOriginAttributes; }
 
 namespace mozilla {
 namespace net {
@@ -22,38 +21,26 @@ public:
   virtual ~CookieServiceParent();
 
 protected:
-  MOZ_WARN_UNUSED_RESULT bool
-  GetAppInfoFromParams(const IPC::SerializedLoadContext &aLoadContext,
-                       uint32_t& aAppId,
-                       bool& aIsInBrowserElement,
-                       bool& aIsPrivate);
-
-  virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
+  virtual void ActorDestroy(ActorDestroyReason aWhy) override;
 
   virtual bool RecvGetCookieString(const URIParams& aHost,
                                    const bool& aIsForeign,
                                    const bool& aFromHttp,
-                                   const IPC::SerializedLoadContext&
-                                         loadContext,
-                                   nsCString* aResult) MOZ_OVERRIDE;
+                                   const NeckoOriginAttributes& aAttrs,
+                                   nsCString* aResult) override;
 
   virtual bool RecvSetCookieString(const URIParams& aHost,
                                    const bool& aIsForeign,
                                    const nsCString& aCookieString,
                                    const nsCString& aServerTime,
                                    const bool& aFromHttp,
-                                   const IPC::SerializedLoadContext&
-                                         loadContext) MOZ_OVERRIDE;
+                                   const NeckoOriginAttributes& aAttrs) override;
 
-  virtual mozilla::ipc::IProtocol*
-  CloneProtocol(Channel* aChannel,
-                mozilla::ipc::ProtocolCloneContext* aCtx) MOZ_OVERRIDE;
-
-  nsRefPtr<nsCookieService> mCookieService;
+  RefPtr<nsCookieService> mCookieService;
 };
 
-}
-}
+} // namespace net
+} // namespace mozilla
 
 #endif // mozilla_net_CookieServiceParent_h
 

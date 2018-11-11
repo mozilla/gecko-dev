@@ -1,7 +1,9 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 ******************************************************************************
 *
-*   Copyright (C) 1999-2013, International Business Machines
+*   Copyright (C) 1999-2015, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *
 ******************************************************************************
@@ -21,10 +23,6 @@
 #include "unicode/ubidi.h"
 #include "ubidiimp.h"
 #include "uassert.h"
-
-#ifndef U_COMMON_IMPLEMENTATION
-#error U_COMMON_IMPLEMENTATION not set - must be set for all ICU source files in common/ - see http://userguide.icu-project.org/howtouseicu
-#endif
 
 /*
  * General remarks about the functions in this file:
@@ -110,7 +108,7 @@ setTrailingWSStart(UBiDi *pBiDi) {
         return;
     }
     /* go backwards across all WS, BN, explicit codes */
-    while(start>0 && DIRPROP_FLAG(PURE_DIRPROP(dirProps[start-1]))&MASK_WS) {
+    while(start>0 && DIRPROP_FLAG(dirProps[start-1])&MASK_WS) {
         --start;
     }
 

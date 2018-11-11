@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,11 @@
 if CONFIG['MOZ_ZIPWRITER']:
     DIRS += ['zipwriter']
 
-TEST_TOOL_DIRS += ['test']
+MOCHITEST_CHROME_MANIFESTS += ['test/chrome/chrome.ini']
+
+MOCHITEST_MANIFESTS += ['test/mochitest/mochitest.ini']
+
+XPCSHELL_TESTS_MANIFESTS += ['test/unit/xpcshell.ini']
 
 XPIDL_SOURCES += [
     'nsIJARChannel.idl',
@@ -17,7 +21,6 @@ XPIDL_SOURCES += [
 ]
 
 XPIDL_MODULE = 'jar'
-LIBRARY_NAME	= 'jar'
 
 EXPORTS += [
     'nsJARURI.h',
@@ -38,10 +41,6 @@ SOURCES += [
     'nsJARInputStream.cpp',
     'nsZipArchive.cpp',
 ]
-
-FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
 
 include('/ipc/chromium/chromium-config.mozbuild')
 

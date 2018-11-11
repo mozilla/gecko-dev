@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  * vim: sw=2 ts=2 sts=2
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,8 +9,7 @@
  * to remove all traces of visiting a site.
  */
 
-////////////////////////////////////////////////////////////////////////////////
-//// Globals
+// Globals
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -19,6 +18,8 @@ Cu.import("resource://gre/modules/ForgetAboutSite.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
                                   "resource://gre/modules/Promise.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesTestUtils",
+                                  "resource://testing-common/PlacesTestUtils.jsm");
 
 const COOKIE_EXPIRY = Math.round(Date.now() / 1000) + 60;
 const COOKIE_NAME = "testcookie";
@@ -34,8 +35,7 @@ const PERMISSION_VALUE = Ci.nsIPermissionManager.ALLOW_ACTION;
 
 const PREFERENCE_NAME = "test-pref";
 
-////////////////////////////////////////////////////////////////////////////////
-//// Utility Functions
+// Utility Functions
 
 /**
  * Creates an nsIURI object for the given string representation of a URI.
@@ -52,70 +52,6 @@ function uri(aURIString)
 }
 
 /**
- * Asynchronously adds visits to a page.
- *
- * @param aPlaceInfo
- *        Can be an nsIURI, in such a case a single LINK visit will be added.
- *        Otherwise can be an object describing the visit to add, or an array
- *        of these objects:
- *          { uri: nsIURI of the page,
- *            transition: one of the TRANSITION_* from nsINavHistoryService,
- *            [optional] title: title of the page,
- *            [optional] visitDate: visit date in microseconds from the epoch
- *            [optional] referrer: nsIURI of the referrer for this visit
- *          }
- *
- * @return {Promise}
- * @resolves When all visits have been added successfully.
- * @rejects JavaScript exception.
- */
-function promiseAddVisits(aPlaceInfo)
-{
-  let deferred = Promise.defer();
-  let places = [];
-  if (aPlaceInfo instanceof Ci.nsIURI) {
-    places.push({ uri: aPlaceInfo });
-  }
-  else if (Array.isArray(aPlaceInfo)) {
-    places = places.concat(aPlaceInfo);
-  } else {
-    places.push(aPlaceInfo)
-  }
-
-  // Create mozIVisitInfo for each entry.
-  let now = Date.now();
-  for (let i = 0; i < places.length; i++) {
-    if (!places[i].title) {
-      places[i].title = "test visit for " + places[i].uri.spec;
-    }
-    places[i].visits = [{
-      transitionType: places[i].transition === undefined ? Ci.nsINavHistoryService.TRANSITION_LINK
-                                                         : places[i].transition,
-      visitDate: places[i].visitDate || (now++) * 1000,
-      referrerURI: places[i].referrer
-    }];
-  }
-
-  PlacesUtils.asyncHistory.updatePlaces(
-    places,
-    {
-      handleError: function handleError(aResultCode, aPlaceInfo) {
-        let ex = new Components.Exception("Unexpected error in adding visits.",
-                                          aResultCode);
-        deferred.reject(ex);
-      },
-      handleResult: function () {},
-      handleCompletion: function handleCompletion() {
-        deferred.resolve();
-      }
-    }
-  );
-
-  return deferred.promise;
-}
-
-
-/**
  * Asynchronously check a url is visited.
  *
  * @param aURI
@@ -128,7 +64,7 @@ function promiseAddVisits(aPlaceInfo)
 function promiseIsURIVisited(aURI)
 {
   let deferred = Promise.defer();
-  PlacesUtils.asyncHistory.isURIVisited(aURI, function(aURI, aIsVisited) {
+  PlacesUtils.asyncHistory.isURIVisited(aURI, function(unused, aIsVisited) {
     deferred.resolve(aIsVisited);
   });
 
@@ -145,7 +81,7 @@ function add_cookie(aDomain)
   check_cookie_exists(aDomain, false);
   let cm = Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieManager2);
   cm.add(aDomain, COOKIE_PATH, COOKIE_NAME, "", false, false, false,
-         COOKIE_EXPIRY);
+         COOKIE_EXPIRY, {});
   check_cookie_exists(aDomain, true);
 }
 
@@ -167,74 +103,6 @@ function check_cookie_exists(aDomain, aExists)
   }
   let checker = aExists ? do_check_true : do_check_false;
   checker(cm.cookieExists(cookie));
-}
-
-/**
- * Adds a download to download history.
- *
- * @param aURIString
- *        The string of the URI to add.
- * @param aIsActive
- *        If it should be set to an active state in the database.  This does not
- *        make it show up in the list of active downloads however!
- */
-function add_download(aURIString, aIsActive)
-{
-  function makeGUID() {
-    let guid = "";
-    for (var i = 0; i < 12; i++)
-      guid += Math.floor(Math.random() * 10);
-    return guid;
-  }
-
-  check_downloaded(aURIString, false);
-  let db = Cc["@mozilla.org/download-manager;1"].
-           getService(Ci.nsIDownloadManager).
-           DBConnection;
-  let stmt = db.createStatement(
-    "INSERT INTO moz_downloads (source, state, guid) " +
-    "VALUES (:source, :state, :guid)"
-  );
-  stmt.params.source = aURIString;
-  stmt.params.state = aIsActive ? Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING :
-                                  Ci.nsIDownloadManager.DOWNLOAD_FINISHED;
-  stmt.params.guid = makeGUID();
-  try {
-    stmt.execute();
-  }
-  finally {
-    stmt.finalize();
-  }
-  check_downloaded(aURIString, true);
-}
-
-/**
- * Checks to ensure a URI string is in download history or not.
- *
- * @param aURIString
- *        The string of the URI to check.
- * @param aIsDownloaded
- *        True if the URI should be downloaded, false otherwise.
- */
-function check_downloaded(aURIString, aIsDownloaded)
-{
-  let db = Cc["@mozilla.org/download-manager;1"].
-           getService(Ci.nsIDownloadManager).
-           DBConnection;
-  let stmt = db.createStatement(
-    "SELECT * " +
-    "FROM moz_downloads " +
-    "WHERE source = :source"
-  );
-  stmt.params.source = aURIString;
-
-  let checker = aIsDownloaded ? do_check_true : do_check_false;
-  try {
-    checker(stmt.executeStep());
-  }
-  finally {
-    stmt.finalize();
-  }
 }
 
 /**
@@ -315,9 +183,9 @@ function add_permission(aURI)
   check_permission_exists(aURI, false);
   let pm = Cc["@mozilla.org/permissionmanager;1"].
            getService(Ci.nsIPermissionManager);
-  let principal = Cc["@mozilla.org/scriptsecuritymanager;1"]
-                    .getService(Ci.nsIScriptSecurityManager)
-                    .getNoAppCodebasePrincipal(aURI);
+  let ssm = Cc["@mozilla.org/scriptsecuritymanager;1"]
+              .getService(Ci.nsIScriptSecurityManager);
+  let principal = ssm.createCodebasePrincipal(aURI, {});
 
   pm.addFromPrincipal(principal, PERMISSION_TYPE, PERMISSION_VALUE);
   check_permission_exists(aURI, true);
@@ -335,9 +203,9 @@ function check_permission_exists(aURI, aExists)
 {
   let pm = Cc["@mozilla.org/permissionmanager;1"].
            getService(Ci.nsIPermissionManager);
-  let principal = Cc["@mozilla.org/scriptsecuritymanager;1"]
-                    .getService(Ci.nsIScriptSecurityManager)
-                    .getNoAppCodebasePrincipal(aURI);
+  let ssm = Cc["@mozilla.org/scriptsecuritymanager;1"]
+              .getService(Ci.nsIScriptSecurityManager);
+  let principal = ssm.createCodebasePrincipal(aURI, {});
 
   let perm = pm.testExactPermissionFromPrincipal(principal, PERMISSION_TYPE);
   let checker = aExists ? do_check_eq : do_check_neq;
@@ -356,7 +224,7 @@ function add_preference(aURI)
   let cp = Cc["@mozilla.org/content-pref/service;1"].
              getService(Ci.nsIContentPrefService2);
   cp.set(aURI.spec, PREFERENCE_NAME, "foo", null, {
-    handleCompletion: function() deferred.resolve()
+    handleCompletion: () => deferred.resolve()
   });
   return deferred.promise;
 }
@@ -374,47 +242,46 @@ function preference_exists(aURI)
              getService(Ci.nsIContentPrefService2);
   let exists = false;
   cp.getByDomainAndName(aURI.spec, PREFERENCE_NAME, null, {
-    handleResult: function() exists = true,
-    handleCompletion: function() deferred.resolve(exists)
+    handleResult: () => exists = true,
+    handleCompletion: () => deferred.resolve(exists)
   });
   return deferred.promise;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//// Test Functions
+// Test Functions
 
 // History
-function test_history_cleared_with_direct_match()
+function* test_history_cleared_with_direct_match()
 {
   const TEST_URI = uri("http://mozilla.org/foo");
   do_check_false(yield promiseIsURIVisited(TEST_URI));
-  yield promiseAddVisits(TEST_URI);
+  yield PlacesTestUtils.addVisits(TEST_URI);
   do_check_true(yield promiseIsURIVisited(TEST_URI));
   ForgetAboutSite.removeDataFromDomain("mozilla.org");
   do_check_false(yield promiseIsURIVisited(TEST_URI));
 }
 
-function test_history_cleared_with_subdomain()
+function* test_history_cleared_with_subdomain()
 {
   const TEST_URI = uri("http://www.mozilla.org/foo");
   do_check_false(yield promiseIsURIVisited(TEST_URI));
-  yield promiseAddVisits(TEST_URI);
+  yield PlacesTestUtils.addVisits(TEST_URI);
   do_check_true(yield promiseIsURIVisited(TEST_URI));
   ForgetAboutSite.removeDataFromDomain("mozilla.org");
   do_check_false(yield promiseIsURIVisited(TEST_URI));
 }
 
-function test_history_not_cleared_with_uri_contains_domain()
+function* test_history_not_cleared_with_uri_contains_domain()
 {
   const TEST_URI = uri("http://ilovemozilla.org/foo");
   do_check_false(yield promiseIsURIVisited(TEST_URI));
-  yield promiseAddVisits(TEST_URI);
+  yield PlacesTestUtils.addVisits(TEST_URI);
   do_check_true(yield promiseIsURIVisited(TEST_URI));
   ForgetAboutSite.removeDataFromDomain("mozilla.org");
   do_check_true(yield promiseIsURIVisited(TEST_URI));
 
   // Clear history since we left something there from this test.
-  PlacesUtils.bhistory.removeAllPages();
+  yield PlacesTestUtils.clearHistory();
 }
 
 // Cookie Service
@@ -440,51 +307,6 @@ function test_cookie_not_cleared_with_uri_contains_domain()
   add_cookie(TEST_DOMAIN);
   ForgetAboutSite.removeDataFromDomain("mozilla.org");
   check_cookie_exists(TEST_DOMAIN, true);
-}
-
-// Download Manager
-function test_download_history_cleared_with_direct_match()
-{
-  if (oldDownloadManagerDisabled()) {
-    return;
-  }
-
-  const TEST_URI = "http://mozilla.org/foo";
-  add_download(TEST_URI, false);
-  ForgetAboutSite.removeDataFromDomain("mozilla.org");
-  check_downloaded(TEST_URI, false);
-}
-
-function test_download_history_cleared_with_subdomain()
-{
-  if (oldDownloadManagerDisabled()) {
-    return;
-  }
-
-  const TEST_URI = "http://www.mozilla.org/foo";
-  add_download(TEST_URI, false);
-  ForgetAboutSite.removeDataFromDomain("mozilla.org");
-  check_downloaded(TEST_URI, false);
-}
-
-function test_download_history_not_cleared_with_active_direct_match()
-{
-  if (oldDownloadManagerDisabled()) {
-    return;
-  }
-
-  // Tests that downloads marked as active in the db are not deleted from the db
-  const TEST_URI = "http://mozilla.org/foo";
-  add_download(TEST_URI, true);
-  ForgetAboutSite.removeDataFromDomain("mozilla.org");
-  check_downloaded(TEST_URI, true);
-
-  // Reset state
-  let db = Cc["@mozilla.org/download-manager;1"].
-           getService(Ci.nsIDownloadManager).
-           DBConnection;
-  db.executeSimpleSQL("DELETE FROM moz_downloads");
-  check_downloaded(TEST_URI, false);
 }
 
 // Login Manager
@@ -534,7 +356,7 @@ function test_login_manager_logins_cleared_with_subdomain()
   check_login_exists(TEST_HOST, false);
 }
 
-function tets_login_manager_logins_not_cleared_with_uri_contains_domain()
+function test_login_manager_logins_not_cleared_with_uri_contains_domain()
 {
   const TEST_HOST = "http://ilovemozilla.org";
   add_login(TEST_HOST);
@@ -599,7 +421,7 @@ function waitForPurgeNotification() {
 }
 
 // Content Preferences
-function test_content_preferences_cleared_with_direct_match()
+function* test_content_preferences_cleared_with_direct_match()
 {
   const TEST_URI = uri("http://mozilla.org");
   do_check_false(yield preference_exists(TEST_URI));
@@ -610,7 +432,7 @@ function test_content_preferences_cleared_with_direct_match()
   do_check_false(yield preference_exists(TEST_URI));
 }
 
-function test_content_preferences_cleared_with_subdomain()
+function* test_content_preferences_cleared_with_subdomain()
 {
   const TEST_URI = uri("http://www.mozilla.org");
   do_check_false(yield preference_exists(TEST_URI));
@@ -621,7 +443,7 @@ function test_content_preferences_cleared_with_subdomain()
   do_check_false(yield preference_exists(TEST_URI));
 }
 
-function test_content_preferences_not_cleared_with_uri_contains_domain()
+function* test_content_preferences_not_cleared_with_uri_contains_domain()
 {
   const TEST_URI = uri("http://ilovemozilla.org");
   do_check_false(yield preference_exists(TEST_URI));
@@ -635,6 +457,81 @@ function test_content_preferences_not_cleared_with_uri_contains_domain()
   ForgetAboutSite.removeDataFromDomain("ilovemozilla.org");
   yield waitForPurgeNotification();
   do_check_false(yield preference_exists(TEST_URI));
+}
+
+function push_registration_exists(aURL, ps)
+{
+  return new Promise(resolve => {
+    let ssm = Cc["@mozilla.org/scriptsecuritymanager;1"]
+                .getService(Ci.nsIScriptSecurityManager);
+    let principal = ssm.createCodebasePrincipalFromOrigin(aURL);
+    return ps.getSubscription(aURL, principal, (status, record) => {
+      if (!Components.isSuccessCode(status)) {
+        resolve(false);
+      } else {
+        resolve(!!record);
+      }
+    });
+  });
+}
+
+// Push
+function* test_push_cleared()
+{
+  let ps;
+  try {
+    ps = Cc["@mozilla.org/push/Service;1"].
+           getService(Ci.nsIPushService);
+  } catch (e) {
+    // No push service, skip test.
+    return;
+  }
+
+  do_get_profile();
+  setPrefs();
+  const {PushDB, PushService, PushServiceWebSocket} = serviceExports;
+  const userAgentID = 'bd744428-f125-436a-b6d0-dd0c9845837f';
+  const channelID = '0ef2ad4a-6c49-41ad-af6e-95d2425276bf';
+
+  let db = PushServiceWebSocket.newPushDB();
+
+  try {
+    PushService.init({
+      serverURI: "wss://push.example.org/",
+      db,
+      makeWebSocket(uriObj) {
+        return new MockWebSocket(uriObj, {
+          onHello(request) {
+            this.serverSendMsg(JSON.stringify({
+              messageType: 'hello',
+              status: 200,
+              uaid: userAgentID,
+            }));
+          },
+        });
+      }
+    });
+
+    const TEST_URL = "https://www.mozilla.org/scope/";
+    do_check_false(yield push_registration_exists(TEST_URL, ps));
+    yield db.put({
+      channelID,
+      pushEndpoint: 'https://example.org/update/clear-success',
+      scope: TEST_URL,
+      version: 1,
+      originAttributes: '',
+      quota: Infinity,
+    });
+    do_check_true(yield push_registration_exists(TEST_URL, ps));
+
+    let promisePurgeNotification = waitForPurgeNotification();
+    yield ForgetAboutSite.removeDataFromDomain("mozilla.org");
+    yield promisePurgeNotification;
+
+    do_check_false(yield push_registration_exists(TEST_URL, ps));
+  } finally {
+    yield PushService._shutdownService();
+  }
 }
 
 // Cache
@@ -664,16 +561,17 @@ function test_cache_cleared()
   do_test_pending();
 }
 
-function test_storage_cleared()
+function* test_storage_cleared()
 {
   function getStorageForURI(aURI)
   {
-    let principal = Cc["@mozilla.org/scriptsecuritymanager;1"].
-                    getService(Ci.nsIScriptSecurityManager).
-                    getNoAppCodebasePrincipal(aURI);
+    let ssm = Cc["@mozilla.org/scriptsecuritymanager;1"]
+              .getService(Ci.nsIScriptSecurityManager);
+    let principal = ssm.createCodebasePrincipal(aURI, {});
+
     let dsm = Cc["@mozilla.org/dom/localStorage-manager;1"].
               getService(Ci.nsIDOMStorageManager);
-    return dsm.createStorage(principal, "");
+    return dsm.createStorage(null, principal, "");
   }
 
   let s = [
@@ -701,7 +599,7 @@ function test_storage_cleared()
   do_check_eq(s[2].length, 1);
 }
 
-let tests = [
+var tests = [
   // History
   test_history_cleared_with_direct_match,
   test_history_cleared_with_subdomain,
@@ -712,19 +610,13 @@ let tests = [
   test_cookie_cleared_with_subdomain,
   test_cookie_not_cleared_with_uri_contains_domain,
 
-  // Download Manager
-  // Note: active downloads tested in test_removeDataFromDomain_activeDownloads.js
-  test_download_history_cleared_with_direct_match,
-  test_download_history_cleared_with_subdomain,
-  test_download_history_not_cleared_with_active_direct_match,
-
   // Login Manager
   test_login_manager_disabled_hosts_cleared_with_direct_match,
   test_login_manager_disabled_hosts_cleared_with_subdomain,
   test_login_manager_disabled_hosts_not_cleared_with_uri_contains_domain,
   test_login_manager_logins_cleared_with_direct_match,
   test_login_manager_logins_cleared_with_subdomain,
-  tets_login_manager_logins_not_cleared_with_uri_contains_domain,
+  test_login_manager_logins_not_cleared_with_uri_contains_domain,
 
   // Permission Manager
   test_permission_manager_cleared_with_direct_match,
@@ -735,6 +627,9 @@ let tests = [
   test_content_preferences_cleared_with_direct_match,
   test_content_preferences_cleared_with_subdomain,
   test_content_preferences_not_cleared_with_uri_contains_domain,
+
+  // Push
+  test_push_cleared,
 
   // Storage
   test_storage_cleared,

@@ -67,12 +67,12 @@ function createTestEventValue(name) {
       is(ev.pointerId, pointerId, "Correct pointerId");
     }
 
-    for each (let target in [document, window, testTarget, parent])
+    for (let target of [document, window, testTarget, parent])
       target.addEventListener(name, check, false);
 
     testTarget.dispatchEvent(event);
 
-    for each (let target in [document, window, testTarget, parent])
+    for (let target of [document, window, testTarget, parent])
       target.removeEventListener(name, check, false);
 
 
@@ -309,7 +309,6 @@ function testPointerEventCTORS()
 }
 
 function runTests() {
-  SpecialPowers.setBoolPref("dom.w3c_pointer_events.enabled", true);      // Enable Pointer Events
   testTarget = document.getElementById("testTarget");
   parent = testTarget.parentNode;
   gOnPointerPropHandled = new Array;
@@ -330,26 +329,14 @@ function runTests() {
   tests.push(testPointerEventCTORS());
 
   tests.push(function() {
-    clearPrefs();
     SimpleTest.finish();
   });
 
   nextTest();
 }
 
-function initPrefs()
-{
-  SpecialPowers.setBoolPref("dom.w3c_pointer_events.enabled", true);      // Enable Pointer Events
-}
-
-function clearPrefs()
-{
-  SpecialPowers.clearUserPref("dom.w3c_pointer_events.enabled");      // Disable Pointer Events
-}
-
-window.onload = function () {
-  initPrefs();
-  SimpleTest.executeSoon(runTests);
+window.onload = function() {
+  SpecialPowers.pushPrefEnv({"set":[["dom.w3c_pointer_events.enabled", true]]}, runTests);
 }
 
 SimpleTest.waitForExplicitFinish();

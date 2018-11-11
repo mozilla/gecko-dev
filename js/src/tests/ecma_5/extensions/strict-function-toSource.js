@@ -8,10 +8,10 @@ function testRunOptionStrictMode(str, arg, result) {
     var strict_inner = new Function('return typeof this == "undefined";');
     return strict_inner;
 }
-assertEq(eval(uneval(testRunOptionStrictMode()))(), true);
+let inner = testRunOptionStrictMode();
+assertEq(inner(), true);
+assertEq(eval(uneval(inner))(), true);
 
-if (typeof decompileBody !== "undefined") {
-    assertEq(decompileBody(new Function('x', 'return x*2;')).contains('\n"use strict"'), true);
-}
+assertEq((new Function('x', 'return x*2;')).toSource().includes('"use strict"'), false);
 
 reportCompare(true, true);

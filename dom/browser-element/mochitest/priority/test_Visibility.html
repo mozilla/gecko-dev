@@ -4,9 +4,9 @@
 Test that setVisible() changes a process's priority.
 -->
 <head>
-  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="application/javascript" src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
   <script type="application/javascript" src="../browserElementTestHelpers.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+  <link rel="stylesheet" type="text/css" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
 </head>
 <body>
 
@@ -15,7 +15,6 @@ Test that setVisible() changes a process's priority.
 
 SimpleTest.waitForExplicitFinish();
 browserElementTestHelpers.setEnabledPref(true);
-browserElementTestHelpers.addPermission();
 browserElementTestHelpers.enableProcessPriorityManager();
 
 function runTest() {
@@ -24,12 +23,12 @@ function runTest() {
   iframe.src = browserElementTestHelpers.emptyPage1;
 
   var childID = null;
-  expectOnlyOneProcessCreated().then(function(chid) {
-    childID = chid;
-    return Promise.all(
-      [expectPriorityChange(childID, 'FOREGROUND'),
-       expectMozbrowserEvent(iframe, 'loadend')]);
-  }).then(function() {
+  Promise.all([
+    expectOnlyOneProcessCreated('FOREGROUND').then(function(chid) {
+      childID = chid;
+    }),
+    expectMozbrowserEvent(iframe, 'loadend')
+  ]).then(function() {
     // Mark the frame as not visible.  This should cause its priority to drop
     // to BACKGROUND.
     var p = expectPriorityChange(childID, 'BACKGROUND');

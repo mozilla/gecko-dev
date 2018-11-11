@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// Equivalent to 0600 permissions; used for saved Sync Recovery Key.
+// Equivalent to 0o600 permissions; used for saved Sync Recovery Key.
 // This constant can be replaced when the equivalent values are available to
 // chrome JS; see Bug 433295 and Bug 757351.
 const PERMISSIONS_RWUSR = 0x180;
 
 // Weave should always exist before before this file gets included.
-let gSyncUtils = {
+var gSyncUtils = {
   get bundle() {
     delete this.bundle;
     return this.bundle = Services.strings.createBundle("chrome://browser/locale/syncSetup.properties");
@@ -77,24 +77,22 @@ let gSyncUtils = {
     this._openLink(Weave.Service.pwResetURL);
   },
 
-  openToS: function () {
+  get tosURL() {
     let root = this.fxAccountsEnabled ? "fxa." : "";
-    this._openLink(Weave.Svc.Prefs.get(root + "termsURL"));
+    return  Weave.Svc.Prefs.get(root + "termsURL");
+  },
+
+  openToS: function () {
+    this._openLink(this.tosURL);
+  },
+
+  get privacyPolicyURL() {
+    let root = this.fxAccountsEnabled ? "fxa." : "";
+    return  Weave.Svc.Prefs.get(root + "privacyURL");
   },
 
   openPrivacyPolicy: function () {
-    let root = this.fxAccountsEnabled ? "fxa." : "";
-    this._openLink(Weave.Svc.Prefs.get(root + "privacyURL"));
-  },
-
-  openMPInfoPage: function (event) {
-    event.stopPropagation();
-    let baseURL = Services.urlFormatter.formatURLPref("app.support.baseURL");
-    this._openLink(baseURL + "sync-master-password");
-  },
-
-  openFirstSyncProgressPage: function () {
-    this._openLink("about:sync-progress");
+    this._openLink(this.privacyPolicyURL);
   },
 
   /**
@@ -136,7 +134,7 @@ let gSyncUtils = {
 
   /**
    * Print passphrase backup document.
-   * 
+   *
    * @param elid : ID of the form element containing the passphrase.
    */
   passphrasePrint: function(elid) {
@@ -164,7 +162,7 @@ let gSyncUtils = {
 
   /**
    * Save passphrase backup document to disk as HTML file.
-   * 
+   *
    * @param elid : ID of the form element containing the passphrase.
    */
   passphraseSave: function(elid) {
@@ -202,7 +200,7 @@ let gSyncUtils = {
    *
    * @param el1 : the first textbox element in the form
    * @param el2 : the second textbox element, if omitted it's an update form
-   * 
+   *
    * returns [valid, errorString]
    */
   validatePassword: function (el1, el2) {

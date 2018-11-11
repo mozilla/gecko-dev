@@ -7,6 +7,7 @@ IPDLTESTS = $(IPDLTESTSRCS:.cpp=)
 
 EXTRA_PROTOCOLS = \
   TestBridgeSub \
+  TestEndpointBridgeSub \
   $(NULL)
 
 IPDLTESTHDRS = $(addprefix $(srcdir)/,$(addsuffix .h,$(IPDLTESTS)))
@@ -19,7 +20,7 @@ include $(topsrcdir)/config/rules.mk
 
 IPDLUNITTEST_BIN = $(DEPTH)/dist/bin/ipdlunittest$(BIN_SUFFIX)
 
-IPDLUnitTests.cpp : Makefile.in $(GENTESTER) $(TESTER_TEMPLATE) $(IPDLTESTHDRS)
+IPDLUnitTests.cpp : Makefile.in moz.build $(GENTESTER) $(TESTER_TEMPLATE) $(IPDLTESTHDRS)
 	$(PYTHON) $(GENTESTER) $(TESTER_TEMPLATE) -t $(IPDLTESTS) -e $(EXTRA_PROTOCOLS) > $@
 
 check-proc::

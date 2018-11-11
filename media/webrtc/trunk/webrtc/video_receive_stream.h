@@ -31,58 +31,76 @@ enum RtcpMode { kRtcpCompound, kRtcpReducedSize };
 
 class VideoDecoder;
 
-// TODO(mflodman) Move all these settings to VideoDecoder and move the
-// declaration to common_types.h.
-struct ExternalVideoDecoder {
-  ExternalVideoDecoder()
-      : decoder(NULL), payload_type(0), renderer(false), expected_delay_ms(0) {}
-  // The actual decoder.
-  VideoDecoder* decoder;
-
-  // Received RTP packets with this payload type will be sent to this decoder
-  // instance.
-  int payload_type;
-
-  // 'true' if the decoder handles rendering as well.
-  bool renderer;
-
-  // The expected delay for decoding and rendering, i.e. the frame will be
-  // delivered this many milliseconds, if possible, earlier than the ideal
-  // render time.
-  // Note: Ignored if 'renderer' is false.
-  int expected_delay_ms;
-};
-
 class VideoReceiveStream {
  public:
-  struct Stats : public StreamStats {
-    Stats()
-        : network_frame_rate(0),
-          decode_frame_rate(0),
-          render_frame_rate(0),
-          avg_delay_ms(0),
-          discarded_packets(0),
-          ssrc(0) {}
+  // TODO(mflodman) Move all these settings to VideoDecoder and move the
+  // declaration to common_types.h.
+  struct Decoder {
+    Decoder()
+        : decoder(NULL),
+          payload_type(0),
+          is_renderer(false),
+          expected_delay_ms(0) {}
+    std::string ToString() const;
 
-    int network_frame_rate;
-    int decode_frame_rate;
-    int render_frame_rate;
-    int avg_delay_ms;
-    uint32_t discarded_packets;
-    uint32_t ssrc;
+    // The actual decoder instance.
+    VideoDecoder* decoder;
+
+    // Received RTP packets with this payload type will be sent to this decoder
+    // instance.
+    int payload_type;
+
+    // Name of the decoded payload (such as VP8). Maps back to the depacketizer
+    // used to unpack incoming packets.
+    std::string payload_name;
+
+    // 'true' if the decoder handles rendering as well.
+    bool is_renderer;
+
+    // The expected delay for decoding and rendering, i.e. the frame will be
+    // delivered this many milliseconds, if possible, earlier than the ideal
+    // render time.
+    // Note: Ignored if 'renderer' is false.
+    int expected_delay_ms;
+  };
+
+  struct Stats {
+    int network_frame_rate = 0;
+    int decode_frame_rate = 0;
+    int render_frame_rate = 0;
+
+    // Decoder stats.
+    FrameCounts frame_counts;
+    int decode_ms = 0;
+    int max_decode_ms = 0;
+    int current_delay_ms = 0;
+    int target_delay_ms = 0;
+    int jitter_buffer_ms = 0;
+    int min_playout_delay_ms = 0;
+    int render_delay_ms = 0;
+
+    int total_bitrate_bps = 0;
+    int discarded_packets = 0;
+
+    uint32_t ssrc = 0;
     std::string c_name;
+    StreamDataCounters rtp_stats;
+    RtcpPacketTypeCounter rtcp_packet_type_counts;
+    RtcpStatistics rtcp_stats;
   };
 
   struct Config {
     Config()
         : renderer(NULL),
           render_delay_ms(0),
-          audio_channel_id(0),
+          audio_channel_id(-1),
           pre_decode_callback(NULL),
           pre_render_callback(NULL),
           target_delay_ms(0) {}
-    // Codecs the receive stream can receive.
-    std::vector<VideoCodec> codecs;
+    std::string ToString() const;
+
+    // Decoders for every payload that we can receive.
+    std::vector<Decoder> decoders;
 
     // Receive-stream specific RTP settings.
     struct Rtp {
@@ -90,7 +108,8 @@ class VideoReceiveStream {
           : remote_ssrc(0),
             local_ssrc(0),
             rtcp_mode(newapi::kRtcpReducedSize),
-            remb(false) {}
+            remb(true) {}
+      std::string ToString() const;
 
       // Synchronization source (stream identifier) to be received.
       uint32_t remote_ssrc;
@@ -162,21 +181,16 @@ class VideoReceiveStream {
     // stream. 'NULL' disables the callback.
     I420FrameCallback* pre_render_callback;
 
-    // External video decoders to be used if incoming payload type matches the
-    // registered type for an external decoder.
-    std::vector<ExternalVideoDecoder> external_decoders;
-
     // Target delay in milliseconds. A positive value indicates this stream is
     // used for streaming instead of a real-time call.
     int target_delay_ms;
   };
 
-  virtual void StartReceiving() = 0;
-  virtual void StopReceiving() = 0;
-  virtual Stats GetStats() const = 0;
+  virtual void Start() = 0;
+  virtual void Stop() = 0;
 
-  // TODO(mflodman) Replace this with callback.
-  virtual void GetCurrentReceiveCodec(VideoCodec* receive_codec) = 0;
+  // TODO(pbos): Add info on currently-received codec to Stats.
+  virtual Stats GetStats() const = 0;
 
  protected:
   virtual ~VideoReceiveStream() {}

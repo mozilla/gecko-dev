@@ -4,16 +4,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsIArray.idl"
 #include "nsISupports.idl"
-#include "nsISupportsArray.idl"
 #include "nsIFormatConverter.idl"
+#include "nsIContentPolicyBase.idl"
 
+interface nsIPrincipal;
 
 %{ C++
 
 // these probably shouldn't live here, but in some central repository shared
 // by the entire app.
 #define kTextMime                   "text/plain"
+#define kRTFMime                    "text/rtf"
 #define kUnicodeMime                "text/unicode"
 #define kMozTextInternal          "text/x-moz-text-internal"  // text data which isn't suppoed to be parsed by other apps.
 #define kHTMLMime                   "text/html"
@@ -46,6 +49,8 @@
 #define kFilePromiseMime            "application/x-moz-file-promise"
 // a synthetic flavor, put into the transferable once we know the destination directory of a file drag
 #define kFilePromiseDirectoryMime   "application/x-moz-file-promise-dir"
+
+#define kCustomTypesMime "application/x-moz-custom-clipdata"
 
 %}
 
@@ -81,7 +86,7 @@ interface nsIFlavorDataProvider : nsISupports
 };
 
 
-[scriptable, uuid(5a611a60-e5b5-11e1-aff1-0800200c9a66)]
+[scriptable, uuid(97e0c418-1c1e-4106-bad1-9fcb11dff2fe)]
 interface nsITransferable : nsISupports
 {
   const long kFlavorHasDataProvider = 0;
@@ -118,7 +123,7 @@ interface nsITransferable : nsISupports
     * @param  aDataFlavorList fills list with supported flavors. This is a copy of
     *          the internal list, so it may be edited w/out affecting the transferable.
     */
-  nsISupportsArray flavorsTransferableCanExport ( ) ;
+  nsIArray flavorsTransferableCanExport ( ) ;
 
   /**
     * Given a flavor retrieve the data. 
@@ -137,7 +142,8 @@ interface nsITransferable : nsISupports
     * @param  aData the data. Some variant of class in nsISupportsPrimitives.idl
     * @param  aDataLen the length of the data
     */
-  void getAnyTransferData ( out string aFlavor, out nsISupports aData, out unsigned long aDataLen ) ;
+  void getAnyTransferData ( out ACString aFlavor, out nsISupports aData,
+                            out unsigned long aDataLen ) ;
 
   /**
     * Returns true if the data is large.
@@ -156,7 +162,7 @@ interface nsITransferable : nsISupports
     * @param  outFlavorList fills list with supported flavors. This is a copy of
     *          the internal list, so it may be edited w/out affecting the transferable.
     */
-  nsISupportsArray flavorsTransferableCanImport ( ) ;
+  nsIArray flavorsTransferableCanImport ( ) ;
 
   /**
     * Sets the data in the transferable with the specified flavor. The transferable
@@ -194,5 +200,13 @@ interface nsITransferable : nsISupports
    */
   [noscript] attribute boolean isPrivateData;
 
-};
+  /**
+   * The principal of the source dom node this transferable was
+   * created from and the contentPolicyType for the transferable.
+   * Note, currently only used on Windows for network principal and
+   * contentPolicyType information in clipboard and drag operations.
+   */
+  [noscript] attribute nsIPrincipal requestingPrincipal;
+  [noscript] attribute nsContentPolicyType contentPolicyType;
 
+};

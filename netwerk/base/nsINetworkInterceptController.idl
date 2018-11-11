@@ -1,0 +1,144 @@
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+#include "nsIContentPolicyBase.idl"
+
+interface nsIChannel;
+interface nsIConsoleReportCollector;
+interface nsIOutputStream;
+interface nsIURI;
+
+%{C++
+#include "nsIConsoleReportCollector.h"
+namespace mozilla {
+namespace dom {
+class ChannelInfo;
+}
+}
+%}
+
+[ptr] native ChannelInfo(mozilla::dom::ChannelInfo);
+
+/**
+ * Interface to allow implementors of nsINetworkInterceptController to control the behaviour
+ * of intercepted channels without tying implementation details of the interception to
+ * the actual channel. nsIInterceptedChannel is expected to be implemented by objects
+ * which do not implement nsIChannel.
+ */
+
+[scriptable, uuid(f4b82975-6a86-4cc4-87fe-9a1fd430c86d)]
+interface nsIInterceptedChannel : nsISupports
+{
+    /**
+     * Instruct a channel that has been intercepted to continue with the original
+     * network request.
+     */
+    void resetInterception();
+
+    /**
+     * Set the status and reason for the forthcoming synthesized response.
+     * Multiple calls overwrite existing values.
+     */
+    void synthesizeStatus(in uint16_t status, in ACString reason);
+
+    /**
+     * Attach a header name/value pair to the forthcoming synthesized response.
+     * Overwrites any existing header value.
+     */
+    void synthesizeHeader(in ACString name, in ACString value);
+
+    /**
+     * Instruct a channel that has been intercepted that a response has been
+     * synthesized and can now be read. No further header modification is allowed
+     * after this point. The caller may optionally pass a spec for a URL that
+     * this response originates from; an empty string will cause the original
+     * intercepted request's URL to be used instead.
+     */
+    void finishSynthesizedResponse(in ACString finalURLSpec);
+
+    /**
+     * Cancel the pending intercepted request.
+     * @return NS_ERROR_FAILURE if the response has already been synthesized or
+     *         the original request has been instructed to continue.
+     */
+    void cancel(in nsresult status);
+
+    /**
+     * The synthesized response body to be produced.
+     */
+    readonly attribute nsIOutputStream responseBody;
+
+    /**
+     * The underlying channel object that was intercepted.
+     */
+    readonly attribute nsIChannel channel;
+
+    /**
+     * The URL of the underlying channel object, corrected for a potential
+     * secure upgrade.
+     */
+    readonly attribute nsIURI secureUpgradedChannelURI;
+
+    /**
+     * This method allows to override the channel info for the channel.
+     */
+    [noscript]
+    void setChannelInfo(in ChannelInfo channelInfo);
+
+    /**
+     * Get the internal load type from the underlying channel.
+     */
+    [noscript]
+    readonly attribute nsContentPolicyType internalContentPolicyType;
+
+    [noscript]
+    readonly attribute nsIConsoleReportCollector consoleReportCollector;
+
+%{C++
+    already_AddRefed<nsIConsoleReportCollector>
+    GetConsoleReportCollector()
+    {
+      nsCOMPtr<nsIConsoleReportCollector> reporter;
+      GetConsoleReportCollector(getter_AddRefs(reporter));
+      return reporter.forget();
+    }
+%}
+
+    /**
+     * Allow the ServiceWorkerManager to set an RAII-style object on the
+     * intercepted channel that should be released once the channel is
+     * torn down.
+     */
+    [noscript]
+    void setReleaseHandle(in nsISupports aHandle);
+};
+
+/**
+ * Interface to allow consumers to attach themselves to a channel's
+ * notification callbacks/loadgroup and determine if a given channel
+ * request should be intercepted before any network request is initiated.
+ */
+
+[scriptable, uuid(70d2b4fe-a552-48cd-8d93-1d8437a56b53)]
+interface nsINetworkInterceptController : nsISupports
+{
+    /**
+     * Returns true if a channel should avoid initiating any network
+     * requests until specifically instructed to do so.
+     *
+     * @param aURI the URI being requested by a channel
+     * @param aIsNavigate True if the request is for a navigation, false for a fetch.
+     */
+    bool shouldPrepareForIntercept(in nsIURI aURI, in bool aIsNonSubresourceRequest);
+
+    /**
+     * Notification when a given intercepted channel is prepared to accept a synthesized
+     * response via the provided stream.
+     *
+     * @param aChannel the controlling interface for a channel that has been intercepted
+     */
+    void channelIntercepted(in nsIInterceptedChannel aChannel);
+};

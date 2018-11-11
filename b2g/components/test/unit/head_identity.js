@@ -1,10 +1,10 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const Ci = Components.interfaces;
-const Cu = Components.utils;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
 
-// The following boilerplate makes sure that XPCom calls
+// The following boilerplate makes sure that XPCOM calls
 // that use the profile directory work.
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");

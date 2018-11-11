@@ -8,8 +8,8 @@ var EXPORTED_SYMBOLS = ["disableNonTestMouseEvents","sendMouseEvent", "sendChar"
                         "synthesizeText",
                         "synthesizeComposition", "synthesizeQuerySelectedText"];
 
-const Ci = Components.interfaces;
-const Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cc = Components.classes;
 
 var window = Cc["@mozilla.org/appshell/appShellService;1"]
              .getService(Ci.nsIAppShellService).hiddenDOMWindow;
@@ -551,12 +551,6 @@ function synthesizeKey(aKey, aEvent, aWindow)
           break;
         case KeyboardEvent.DOM_KEY_LOCATION_NUMPAD:
           flags |= utils.KEY_FLAG_LOCATION_NUMPAD;
-          break;
-        case KeyboardEvent.DOM_KEY_LOCATION_MOBILE:
-          flags |= utils.KEY_FLAG_LOCATION_MOBILE;
-          break;
-        case KeyboardEvent.DOM_KEY_LOCATION_JOYSTICK:
-          flags |= utils.KEY_FLAG_LOCATION_JOYSTICK;
           break;
       }
     }

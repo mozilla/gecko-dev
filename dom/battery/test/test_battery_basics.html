@@ -2,8 +2,8 @@
 <html>
 <head>
   <title>Test for Battery API</title>
-  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+  <script type="application/javascript" src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
 </head>
 <body>
 <p id="display"></p>
@@ -12,20 +12,26 @@
 <pre id="test">
 <script type="application/javascript">
 
+"use strict";
+
+SimpleTest.waitForExplicitFinish();
+
 /** Test for Battery API **/
+ok("getBattery" in navigator, "navigator.getBattery should exist");
+ok(!("battery" in navigator), "navigator.battery should not exist");
 
-ok('battery' in navigator, "navigator.battery should exist");
+navigator.getBattery().then(function (battery) {
+  ok(battery.level >= 0.0 && battery.level <= 1.0, "Battery level " + battery.level + " should be in the range [0.0, 1.0]");
 
-var battery = navigator.battery;
-ok(battery.level >= 0.0 && battery.level <= 1.0, "Battery level " + battery.level + " should be in the range [0.0, 1.0]");
+  SpecialPowers.pushPrefEnv({"set": [["dom.battery.test.default", true]]}, function () {
+    ok(battery.charging, "Battery should be charging by default");
+    is(battery.chargingTime, 0, "Battery chargingTime " + battery.chargingTime + " should be zero by default");
+    is(battery.dischargingTime, Infinity, "Battery dischargingTime should be Infinity by default");
+    is(battery.level, 1.0, "Battery level " + battery.level + " should be 1.0 by default");
 
-if (battery.charging) {
-  ok(battery.chargingTime >= 0, "Battery chargingTime " + battery.chargingTime + " should be nonnegative when charging");
-  is(battery.dischargingTime, Infinity, "Battery dischargingTime should be Infinity when charging");
-} else {
-  is(battery.chargingTime, Infinity, "Battery chargingTime should be Infinity when discharging");
-  ok(battery.dischargingTime > 0, "Battery dischargingTime " + battery.dischargingTime + " should be positive when discharging");
-}
+    SimpleTest.finish();
+  });
+});
 
 </script>
 </pre>

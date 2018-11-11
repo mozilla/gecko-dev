@@ -8,23 +8,27 @@
 #include "mozIDownloadPlatform.h"
 
 #include "nsCOMPtr.h"
-
 class nsIURI;
-class nsIFile;
 
 class DownloadPlatform : public mozIDownloadPlatform
 {
+protected:
+
+  virtual ~DownloadPlatform() { }
+
 public:
 
   NS_DECL_ISUPPORTS
   NS_DECL_MOZIDOWNLOADPLATFORM
 
   DownloadPlatform() { }
-  virtual ~DownloadPlatform() { }
 
   static DownloadPlatform *gDownloadPlatformService;
 
   static DownloadPlatform* GetDownloadPlatform();
+
+private:
+  static bool IsURLPossiblyFromWeb(nsIURI* aURI);
 };
 
 #endif

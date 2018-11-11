@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -34,13 +35,13 @@ NS_IMPL_CYCLE_COLLECTING_ADDREF(PowerManager)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(PowerManager)
 
 /* virtual */ JSObject*
-PowerManager::WrapObject(JSContext* aCx)
+PowerManager::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return MozPowerManagerBinding::Wrap(aCx, this);
+  return MozPowerManagerBinding::Wrap(aCx, this, aGivenProto);
 }
 
 nsresult
-PowerManager::Init(nsIDOMWindow *aWindow)
+PowerManager::Init(nsPIDOMWindowInner* aWindow)
 {
   mWindow = aWindow;
 
@@ -78,9 +79,9 @@ PowerManager::Reboot(ErrorResult& aRv)
 }
 
 void
-PowerManager::FactoryReset()
+PowerManager::FactoryReset(mozilla::dom::FactoryResetReason& aReason)
 {
-  hal::FactoryReset();
+  hal::FactoryReset(aReason);
 }
 
 void
@@ -134,7 +135,7 @@ PowerManager::Callback(const nsAString &aTopic, const nsAString &aState)
    * because the callbacks may install new listeners. We expect no
    * more than one listener per window, so it shouldn't be too long.
    */
-  nsAutoTArray<nsCOMPtr<nsIDOMMozWakeLockListener>, 2> listeners(mListeners);
+  AutoTArray<nsCOMPtr<nsIDOMMozWakeLockListener>, 2> listeners(mListeners);
   for (uint32_t i = 0; i < listeners.Length(); ++i) {
     listeners[i]->Callback(aTopic, aState);
   }
@@ -195,9 +196,9 @@ PowerManager::SetCpuSleepAllowed(bool aAllowed)
 }
 
 already_AddRefed<PowerManager>
-PowerManager::CreateInstance(nsPIDOMWindow* aWindow)
+PowerManager::CreateInstance(nsPIDOMWindowInner* aWindow)
 {
-  nsRefPtr<PowerManager> powerManager = new PowerManager();
+  RefPtr<PowerManager> powerManager = new PowerManager();
   if (NS_FAILED(powerManager->Init(aWindow))) {
     powerManager = nullptr;
   }
@@ -205,5 +206,5 @@ PowerManager::CreateInstance(nsPIDOMWindow* aWindow)
   return powerManager.forget();
 }
 
-} // dom
-} // mozilla
+} // namespace dom
+} // namespace mozilla

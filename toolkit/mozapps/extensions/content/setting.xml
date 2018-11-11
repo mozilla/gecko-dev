@@ -8,17 +8,12 @@
 %extensionsDTD;
 ]>
 
+<!-- import-globals-from extensions.js -->
+
 <bindings xmlns="http://www.mozilla.org/xbl"
           xmlns:xbl="http://www.mozilla.org/xbl"
           xmlns:html="http://www.w3.org/1999/xhtml"
           xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
-
-  <binding id="settings">
-    <content orient="vertical">
-      <xul:label class="settings-title" xbl:inherits="xbl:text=label" flex="1"/>
-      <children/>
-    </content>
-  </binding>
 
   <binding id="setting-base">
     <implementation>
@@ -28,7 +23,7 @@
         this.addEventListener("keypress", function(event) {
           event.stopPropagation();
         }, false);
-        
+
         if (this.usePref)
           Services.prefs.addObserver(this.pref, this._observer, true);
       ]]></constructor>
@@ -144,6 +139,8 @@
           <xul:label class="preferences-title" flex="1" xbl:inherits="xbl:text=title"/>
         </xul:hbox>
         <xul:description class="preferences-description" flex="1" xbl:inherits="xbl:text=desc"/>
+        <xul:label class="preferences-learnmore text-link"
+                   onclick="document.getBindingParent(this).openLearnMore()">&setting.learnmore;</xul:label>
       </xul:vbox>
       <xul:hbox class="preferences-alignment">
         <xul:checkbox anonid="input" xbl:inherits="disabled,onlabel,offlabel,label=checkboxlabel" oncommand="inputChanged();"/>
@@ -171,6 +168,14 @@
 
       <property name="value" onget="return this.input.checked;" onset="return this.input.setChecked(val);"/>
       <property name="inverted" readonly="true" onget="return this.getAttribute('inverted');"/>
+
+      <method name="openLearnMore">
+        <body>
+        <![CDATA[
+          window.open(this.getAttribute("learnmore"), "_blank");
+        ]]>
+        </body>
+      </method>
     </implementation>
   </binding>
 
@@ -201,7 +206,7 @@
         <body>
         <![CDATA[
           let val = Services.prefs.getComplexValue(this.pref, Components.interfaces.nsIPrefLocalizedString).data;
-          if(this.inverted) val = !val;
+          if (this.inverted) val = !val;
           this.value = (val == "true");
          ]]>
         </body>
@@ -211,7 +216,7 @@
         <body>
         <![CDATA[
           let val = this.value;
-          if(this.inverted) val = !val;
+          if (this.inverted) val = !val;
           let pref = Components.classes["@mozilla.org/pref-localizedstring;1"].createInstance(Components.interfaces.nsIPrefLocalizedString);
           pref.data = this.inverted ? (!val).toString() : val.toString();
           Services.prefs.setComplexValue(this.pref, Components.interfaces.nsIPrefLocalizedString, pref);
@@ -287,8 +292,7 @@
       <method name="valueFromPreference">
         <body>
         <![CDATA[
-          const nsISupportsString = Components.interfaces.nsISupportsString;
-          this.value = Services.prefs.getComplexValue(this.pref, nsISupportsString).data;
+          this.value = Preferences.get(this.pref, "");
          ]]>
         </body>
       </method>
@@ -296,10 +300,7 @@
       <method name="valueToPreference">
         <body>
         <![CDATA[
-          const nsISupportsString = Components.interfaces.nsISupportsString;
-          let iss = Components.classes["@mozilla.org/supports-string;1"].createInstance(nsISupportsString);
-          iss.data = this.value;
-          Services.prefs.setComplexValue(this.pref, nsISupportsString, iss);
+          Preferences.set(this.pref, this.value);
         ]]>
         </body>
       </method>
@@ -385,7 +386,7 @@
       <method name="valueFromPreference">
         <body>
         <![CDATA[
-          this.value = Services.prefs.getCharPref(this.pref);
+          this.value = Preferences.get(this.pref, "");
         ]]>
         </body>
       </method>
@@ -393,7 +394,7 @@
       <method name="valueToPreference">
         <body>
         <![CDATA[
-          Services.prefs.setCharPref(this.pref, this.value);
+          Preferences.set(this.pref, this.value);
         ]]>
         </body>
       </method>
@@ -448,20 +449,7 @@
       <method name="valueFromPreference">
         <body>
         <![CDATA[
-          let val;
-          switch (Services.prefs.getPrefType(this.pref)) {
-            case Ci.nsIPrefBranch.PREF_STRING:
-              val = Services.prefs.getCharPref(this.pref);
-              break;
-            case Ci.nsIPrefBranch.PREF_INT:
-              val = Services.prefs.getIntPref(this.pref);
-              break;
-            case Ci.nsIPrefBranch.PREF_BOOL:
-              val = Services.prefs.getBoolPref(this.pref).toString();
-              break;
-            default:
-              return;
-          }
+          let val = Preferences.get(this.pref, "").toString();
 
           if ("itemCount" in this.control) {
             for (let i = 0; i < this.control.itemCount; i++) {
@@ -482,12 +470,12 @@
         <![CDATA[
           // We might not have a pref already set, so we guess the type from the value attribute
           let val = this.control.selectedItem.value;
-          if (val == "true" || val == "false")
-            Services.prefs.setBoolPref(this.pref, val == "true");
-          else if (/^-?\d+$/.test(val))
-            Services.prefs.setIntPref(this.pref, val);
-          else
-            Services.prefs.setCharPref(this.pref, val);
+          if (val == "true" || val == "false") {
+            val = val == "true";
+          } else if (/^-?\d+$/.test(val)) {
+            val = parseInt(val, 10);
+          }
+          Preferences.set(this.pref, val);
         ]]>
         </body>
       </method>

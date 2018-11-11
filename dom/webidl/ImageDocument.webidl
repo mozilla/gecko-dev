@@ -4,16 +4,13 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is:
- * content/html/document/public/nsIImageDocument.idl
+ * dom/html/public/nsIImageDocument.idl
  */
 
 interface imgIRequest;
 
 [ChromeOnly, OverrideBuiltins]
 interface ImageDocument : HTMLDocument {
-  /* Whether the pref for image resizing has been set. */
-  readonly attribute boolean imageResizingEnabled;
-
   /* Whether the image is overflowing visible area. */
   readonly attribute boolean imageIsOverflowing;
 

@@ -214,6 +214,9 @@
 #endif
 
 #ifdef _MSC_VER
+
+#define HAVE_WIN32_ATOMIC_PRIMITIVES 1
+
 #ifndef __cplusplus
 #undef inline
 #define inline __inline
@@ -251,16 +254,14 @@ ffs (int x)
    be needed for GCC but it seems fine for now. */
 #define CAIRO_ENSURE_UNIQUE                       \
     do {                                          \
-	char func[] = __FUNCTION__;               \
 	char file[] = __FILE__;                   \
 	__asm {                                   \
 	    __asm jmp __internal_skip_line_no     \
-	    __asm _emit (__LINE__ & 0xff)         \
-	    __asm _emit ((__LINE__>>8) & 0xff)    \
-	    __asm _emit ((__LINE__>>16) & 0xff)   \
-	    __asm _emit ((__LINE__>>24) & 0xff)   \
-	    __asm lea eax, func                   \
-	    __asm lea eax, file                   \
+	    __asm _emit (__COUNTER__ & 0xff)      \
+	    __asm _emit ((__COUNTER__>>8) & 0xff) \
+	    __asm _emit ((__COUNTER__>>16) & 0xff)\
+	    __asm _emit ((__COUNTER__>>24) & 0xff)\
+	    __asm lea eax, dword ptr file         \
 	    __asm __internal_skip_line_no:        \
 	};                                        \
     } while (0)

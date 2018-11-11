@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,10 +11,13 @@ XPIDL_SOURCES += [
 
 XPIDL_MODULE = 'gfx'
 
+DEFINES['MOZ_APP_VERSION'] = '"%s"' % CONFIG['MOZ_APP_VERSION']
+
 EXPORTS += [
+    'DriverCrashGuard.h',
     'FilterSupport.h',
-    'gfxCore.h',
     'gfxCrashReporterUtils.h',
+    'gfxTelemetry.h',
     'nsBoundingMetrics.h',
     'nsColor.h',
     'nsColorNameList.h',
@@ -29,14 +32,23 @@ EXPORTS += [
     'nsPoint.h',
     'nsRect.h',
     'nsRegion.h',
+    'nsRegionFwd.h',
     'nsRenderingContext.h',
     'nsSize.h',
     'nsThemeConstants.h',
     'nsTransform2D.h',
+    'PingPongRegion.h',
+    'RegionBuilder.h',
+    'X11UndefineNone.h'
 ]
 
 EXPORTS.mozilla += [
     'AppUnits.h',
+    'ArrayView.h',
+]
+
+EXPORTS.mozilla.gfx += [
+    'TiledRegion.h',
 ]
 
 if CONFIG['MOZ_X11']:
@@ -46,18 +58,20 @@ if CONFIG['MOZ_X11']:
     ]
 
 UNIFIED_SOURCES += [
+    'DriverCrashGuard.cpp',
     'FilterSupport.cpp',
     'gfxCrashReporterUtils.cpp',
+    'gfxTelemetry.cpp',
     'nsColor.cpp',
     'nsFont.cpp',
     'nsFontMetrics.cpp',
     'nsRect.cpp',
     'nsRegion.cpp',
-    'nsRenderingContext.cpp',
     'nsScriptableRegion.cpp',
     'nsThebesFontEnumerator.cpp',
     'nsThebesGfxFactory.cpp',
     'nsTransform2D.cpp',
+    'TiledRegion.cpp',
 ]
 
 # nsDeviceContext.cpp cannot be built in unified mode because it pulls in OS X system headers.
@@ -65,8 +79,16 @@ SOURCES += [
     'nsDeviceContext.cpp',
 ]
 
-FAIL_ON_WARNINGS = True
+include('/ipc/chromium/chromium-config.mozbuild')
 
-MSVC_ENABLE_PGO = True
+LOCAL_INCLUDES += [
+    '/dom/ipc',  # for ContentChild.h
+]
 
 FINAL_LIBRARY = 'xul'
+
+CXXFLAGS += CONFIG['MOZ_CAIRO_CFLAGS']
+CXXFLAGS += CONFIG['TK_CFLAGS']
+
+if 'gtk' in CONFIG['MOZ_WIDGET_TOOLKIT']:
+    CXXFLAGS += CONFIG['MOZ_PANGO_CFLAGS']

@@ -9,15 +9,32 @@ function test() {
   Services.prefs.setBoolPref("xpinstall.enabled", false);
 
   var triggers = encodeURIComponent(JSON.stringify({
-    "Unsigned XPI": TESTROOT + "unsigned.xpi"
+    "Unsigned XPI": TESTROOT + "amosigned.xpi"
   }));
   gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function() {
-    gBrowser.selectedBrowser.removeEventListener("load", arguments.callee, true);
-    // Allow the in-page load handler to run first
-    executeSoon(page_loaded);
-  }, true);
-  gBrowser.loadURI(TESTROOT + "installtrigger.html?" + triggers);
+
+  ContentTask.spawn(gBrowser.selectedBrowser, TESTROOT + "installtrigger.html?" + triggers, url => {
+    return new Promise(resolve => {
+      function page_loaded() {
+        content.removeEventListener("PageLoaded", page_loaded, false);
+        resolve(content.document.getElementById("return").textContent);
+      }
+
+      function load_listener() {
+        removeEventListener("load", load_listener, true);
+        content.addEventListener("InstallTriggered", page_loaded, false);
+      }
+
+      addEventListener("load", load_listener, true);
+
+      content.location.href = url;
+    });
+  }).then(text => {
+    is(text, "false", "installTrigger should have not been enabled");
+    Services.prefs.clearUserPref("xpinstall.enabled");
+    gBrowser.removeCurrentTab();
+    Harness.finish();
+  });
 }
 
 function install_disabled(installInfo) {
@@ -33,13 +50,3 @@ function confirm_install(window) {
   ok(false, "Should never see an install confirmation dialog");
   return false;
 }
-
-function page_loaded() {
-  Services.prefs.clearUserPref("xpinstall.enabled");
-
-  var doc = gBrowser.contentDocument;
-  is(doc.getElementById("return").textContent, "false", "installTrigger should have not been enabled");
-  gBrowser.removeCurrentTab();
-  Harness.finish();
-}
-// ----------------------------------------------------------------------------

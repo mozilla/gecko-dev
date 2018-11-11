@@ -11,6 +11,10 @@
 #ifndef VP9_COMMON_VP9_PPFLAGS_H_
 #define VP9_COMMON_VP9_PPFLAGS_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum {
   VP9D_NOFILTERING            = 0,
   VP9D_DEBLOCK                = 1 << 0,
@@ -22,17 +26,18 @@ enum {
   VP9D_DEBUG_TXT_RATE_INFO    = 1 << 6,
   VP9D_DEBUG_DRAW_MV          = 1 << 7,
   VP9D_DEBUG_CLR_BLK_MODES    = 1 << 8,
-  VP9D_DEBUG_CLR_FRM_REF_BLKS = 1 << 9
+  VP9D_DEBUG_CLR_FRM_REF_BLKS = 1 << 9,
+  VP9D_MFQE                   = 1 << 10
 };
 
 typedef struct {
   int post_proc_flag;
   int deblocking_level;
   int noise_level;
-  int display_ref_frame_flag;
-  int display_mb_modes_flag;
-  int display_b_modes_flag;
-  int display_mv_flag;
 } vp9_ppflags_t;
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // VP9_COMMON_VP9_PPFLAGS_H_

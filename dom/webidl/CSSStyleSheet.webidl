@@ -9,13 +9,21 @@
 
 interface CSSRule;
 
+enum CSSStyleSheetParsingMode {
+  "author",
+  "user",
+  "agent"
+};
+
 interface CSSStyleSheet : StyleSheet {
   [Pure]
   readonly attribute CSSRule? ownerRule;
-  [Throws]
+  [Throws, NeedsSubjectPrincipal]
   readonly attribute CSSRuleList cssRules;
-  [Throws]
+  [ChromeOnly, BinaryName="parsingModeDOM"]
+  readonly attribute CSSStyleSheetParsingMode parsingMode;
+  [Throws, NeedsSubjectPrincipal]
   unsigned long insertRule(DOMString rule, unsigned long index);
-  [Throws]
+  [Throws, NeedsSubjectPrincipal]
   void deleteRule(unsigned long index);
 };

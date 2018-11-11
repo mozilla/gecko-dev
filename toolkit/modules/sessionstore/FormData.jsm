@@ -9,7 +9,6 @@ this.EXPORTED_SYMBOLS = ["FormData"];
 const Cu = Components.utils;
 const Ci = Components.interfaces;
 
-Cu.import("resource://gre/modules/Timer.jsm");
 Cu.import("resource://gre/modules/XPathGenerator.jsm");
 
 /**
@@ -41,16 +40,50 @@ function getDocumentURI(doc) {
 }
 
 /**
+ * Returns whether the given value is a valid credit card number based on
+ * the Luhn algorithm. See https://en.wikipedia.org/wiki/Luhn_algorithm.
+ */
+function isValidCCNumber(value) {
+  // Remove dashes and whitespace.
+  let ccNumber = value.replace(/[-\s]+/g, "");
+
+  // Check for non-alphanumeric characters.
+  if (/[^0-9]/.test(ccNumber)) {
+    return false;
+  }
+
+  // Check for invalid length.
+  let length = ccNumber.length;
+  if (length != 9 && length != 15 && length != 16) {
+    return false;
+  }
+
+  let total = 0;
+  for (let i = 0; i < length; i++) {
+    let currentChar = ccNumber.charAt(length - i - 1);
+    let currentDigit = parseInt(currentChar, 10);
+
+    if (i % 2) {
+      // Double every other value.
+      total += currentDigit * 2;
+      // If the doubled value has two digits, add the digits together.
+      if (currentDigit > 4) {
+        total -= 9;
+      }
+    } else {
+      total += currentDigit;
+    }
+  }
+  return total % 10 == 0;
+}
+
+/**
  * The public API exported by this module that allows to collect
  * and restore form data for a document and its subframes.
  */
 this.FormData = Object.freeze({
   collect: function (frame) {
     return FormDataInternal.collect(frame);
-  },
-
-  restore: function (frame, data) {
-    FormDataInternal.restore(frame, data);
   },
 
   restoreTree: function (root, data) {
@@ -61,7 +94,7 @@ this.FormData = Object.freeze({
 /**
  * This module's internal API.
  */
-let FormDataInternal = {
+var FormDataInternal = {
   /**
    * Collect form data for a given |frame| *not* including any subframes.
    *
@@ -101,13 +134,19 @@ let FormDataInternal = {
     const MAX_TRAVERSED_XPATHS = 100;
     let generatedCount = 0;
 
-    while (node = formNodes.iterateNext()) {
+    while ((node = formNodes.iterateNext())) {
       let hasDefaultValue = true;
       let value;
 
       // Only generate a limited number of XPath expressions for perf reasons
       // (cf. bug 477564)
       if (!node.id && generatedCount > MAX_TRAVERSED_XPATHS) {
+        continue;
+      }
+
+      // We do not want to collect credit card numbers.
+      if (node instanceof Ci.nsIDOMHTMLInputElement &&
+          isValidCCNumber(node.value)) {
         continue;
       }
 
@@ -218,16 +257,10 @@ let FormDataInternal = {
     }
 
     if ("innerHTML" in data) {
-      // We know that the URL matches data.url right now, but the user
-      // may navigate away before the setTimeout handler runs. We do
-      // a simple comparison against savedURL to check for that.
-      let savedURL = doc.documentURI;
-
-      setTimeout(() => {
-        if (doc.body && doc.designMode == "on" && doc.documentURI == savedURL) {
-          doc.body.innerHTML = data.innerHTML;
-        }
-      });
+      if (doc.body && doc.designMode == "on") {
+        doc.body.innerHTML = data.innerHTML;
+        this.fireEvent(doc.body, "input");
+      }
     }
   },
 
@@ -295,7 +328,12 @@ let FormDataInternal = {
       }
     } else if (aValue && aValue.fileList && aValue.type == "file" &&
       aNode.type == "file") {
-      aNode.mozSetFileNameArray(aValue.fileList, aValue.fileList.length);
+      try {
+        // FIXME (bug 1122855): This won't work in content processes.
+        aNode.mozSetFileNameArray(aValue.fileList, aValue.fileList.length);
+      } catch (e) {
+        Cu.reportError("mozSetFileNameArray: " + e);
+      }
       eventType = "input";
     } else if (Array.isArray(aValue) && aNode.options) {
       Array.forEach(aNode.options, function(opt, index) {
@@ -311,11 +349,21 @@ let FormDataInternal = {
 
     // Fire events for this node if applicable
     if (eventType) {
-      let doc = aNode.ownerDocument;
-      let event = doc.createEvent("UIEvents");
-      event.initUIEvent(eventType, true, true, doc.defaultView, 0);
-      aNode.dispatchEvent(event);
+      this.fireEvent(aNode, eventType);
     }
+  },
+
+  /**
+   * Dispatches an event of type |type| to the given |node|.
+   *
+   * @param node (DOMNode)
+   * @param type (string)
+   */
+  fireEvent: function (node, type) {
+    let doc = node.ownerDocument;
+    let event = doc.createEvent("UIEvents");
+    event.initUIEvent(type, true, true, doc.defaultView, 0);
+    node.dispatchEvent(event);
   },
 
   /**

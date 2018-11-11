@@ -9,7 +9,9 @@
 #include <windows.h>
 #include <psapi.h>
 
+#include "mozilla/Unused.h"
 #include "nsWindowsHelpers.h"
+#include "GeckoProfiler.h"
 
 namespace {
 
@@ -23,12 +25,14 @@ struct ScopedMappedViewTraits
   }
   static void release(void* aPtr)
   {
-    UnmapViewOfFile(aPtr);
+    if (aPtr) {
+      mozilla::Unused << UnmapViewOfFile(aPtr);
+    }
   }
 };
 typedef mozilla::Scoped<ScopedMappedViewTraits> ScopedMappedView;
 
-} // anonymous namespace
+} // namespace
 
 namespace mozilla {
 
@@ -36,6 +40,8 @@ bool
 HandleToFilename(HANDLE aHandle, const LARGE_INTEGER& aOffset,
                  nsAString& aFilename)
 {
+  PROFILER_LABEL_FUNC(js::ProfileEntry::Category::NETWORK);
+
   aFilename.Truncate();
   // This implementation is nice because it uses fully documented APIs that
   // are available on all Windows versions that we support.

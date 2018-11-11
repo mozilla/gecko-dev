@@ -4,7 +4,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html
+ * https://webaudio.github.io/web-audio-api/
  *
  * Copyright © 2012 W3C® (MIT, ERCIM, Keio), All Rights Reserved. W3C
  * liability, trademark and document use rules apply.
@@ -18,6 +18,7 @@ enum OscillatorType {
   "custom"
 };
 
+[Pref="dom.webaudio.enabled"]
 interface OscillatorNode : AudioNode {
 
     [SetterThrows]
@@ -26,13 +27,16 @@ interface OscillatorNode : AudioNode {
     readonly attribute AudioParam frequency; // in Hertz
     readonly attribute AudioParam detune; // in Cents
 
-    [Throws]
+    [Throws, UnsafeInPrerendering]
     void start(optional double when = 0);
-    [Throws]
+    [Throws, UnsafeInPrerendering]
     void stop(optional double when = 0);
     void setPeriodicWave(PeriodicWave periodicWave);
 
     attribute EventHandler onended;
 
 };
+
+// Mozilla extensions
+OscillatorNode implements AudioNodePassThrough;
 

@@ -1,7 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-function runTests() {
+function* runTests() {
   let crashObserver = bgAddCrashObserver();
 
   // make a good capture first - this ensures we have the <browser>
@@ -29,7 +29,7 @@ function runTests() {
         next();
       }});
     });
-  } , "oop-frameloader-crashed", false);
+  }, "oop-frameloader-crashed", false);
 
   // Nothing is pending - crash the process.
   info("Crashing the thumbnail content process.");

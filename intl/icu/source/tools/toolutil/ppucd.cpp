@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 *******************************************************************************
-*   Copyright (C) 2011-2013, International Business Machines
+*   Copyright (C) 2011-2014, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 *   file name:  ppucd.cpp
@@ -22,8 +24,6 @@
 
 #include <stdio.h>
 #include <string.h>
-
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
 
 U_NAMESPACE_BEGIN
 
@@ -298,7 +298,7 @@ PreparsedUCD::parseProperty(UniProps &props, const char *field, UnicodeSet &newV
     int32_t prop=pnames->getPropertyEnum(p);
     if(prop<0) {
         for(int32_t i=0;; ++i) {
-            if(i==LENGTHOF(ppucdProperties)) {
+            if(i==UPRV_LENGTHOF(ppucdProperties)) {
                 // Ignore unknown property names.
                 return TRUE;
             }

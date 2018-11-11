@@ -12,13 +12,10 @@
 
 class nsIContent;
 class nsHtml5TreeOpExecutor;
-class nsHtml5StateSnapshot;
 class nsHtml5DocumentBuilder;
 
 enum eHtml5TreeOperation {
-#ifdef DEBUG
   eTreeOpUninitialized,
-#endif
   // main HTML5 ops
   eTreeOpAppend,
   eTreeOpDetach,
@@ -37,6 +34,7 @@ enum eHtml5TreeOperation {
   eTreeOpAppendCommentToDocument,
   eTreeOpAppendDoctypeToDocument,
   eTreeOpGetDocumentFragmentForTemplate,
+  eTreeOpGetFosterParent,
   // Gecko-specific on-pop ops
   eTreeOpMarkAsBroken,
   eTreeOpRunScript,
@@ -57,10 +55,9 @@ enum eHtml5TreeOperation {
   eTreeOpMaybeComplainAboutCharset,
   eTreeOpAddClass,
   eTreeOpAddViewSourceHref,
+  eTreeOpAddViewSourceBase,
   eTreeOpAddError,
   eTreeOpAddLineNumberId,
-  eTreeOpAddErrorAtom,
-  eTreeOpAddErrorTwoAtoms,
   eTreeOpStartLayout
 };
 
@@ -111,7 +108,7 @@ class nsHtml5TreeOperation {
       }
       nsAutoString str;
       aAtom->ToString(str);
-      return do_GetAtom(str);
+      return NS_Atomize(str);
     }
 
     static nsresult AppendTextToTextNode(const char16_t* aBuffer,
@@ -150,6 +147,7 @@ class nsHtml5TreeOperation {
                                      nsIAtom* aName,
                                      nsHtml5HtmlAttributes* aAttributes,
                                      mozilla::dom::FromParser aFromParser,
+                                     nsNodeInfoManager* aNodeInfoManager,
                                      nsHtml5DocumentBuilder* aBuilder);
 
     static void SetFormElement(nsIContent* aNode, nsIContent* aParent);
@@ -178,6 +176,8 @@ class nsHtml5TreeOperation {
                                             nsHtml5DocumentBuilder* aBuilder);
 
     static nsIContent* GetDocumentFragmentForTemplate(nsIContent* aNode);
+
+    static nsIContent* GetFosterParent(nsIContent* aTable, nsIContent* aStackParent);
 
     static void PreventScriptExecution(nsIContent* aNode);
 
@@ -289,6 +289,7 @@ class nsHtml5TreeOperation {
                      nsIAtom* aName, 
                      nsHtml5HtmlAttributes* aAttributes,
                      nsIContentHandle* aTarget,
+                     nsIContentHandle* aIntendedParent,
                      bool aFromNetwork)
     {
       NS_PRECONDITION(mOpCode == eTreeOpUninitialized,
@@ -299,6 +300,7 @@ class nsHtml5TreeOperation {
                 eTreeOpCreateElementNetwork :
                 eTreeOpCreateElementNotNetwork;
       mFour.integer = aNamespace;
+      mFive.node = static_cast<nsIContent**>(aIntendedParent);
       mOne.node = static_cast<nsIContent**>(aTarget);
       mTwo.atom = aName;
       if (aAttributes == nsHtml5HtmlAttributes::EMPTY_ATTRIBUTES) {
@@ -433,6 +435,15 @@ class nsHtml5TreeOperation {
       mFour.integer = aInt;
     }
 
+    inline void Init(nsresult aRv)
+    {
+      NS_PRECONDITION(mOpCode == eTreeOpUninitialized,
+        "Op code must be uninitialized when initializing.");
+      NS_PRECONDITION(NS_FAILED(aRv), "Initialized tree op with non-failure.");
+      mOpCode = eTreeOpMarkAsBroken;
+      mOne.result = aRv;
+    }
+
     inline void InitAddClass(nsIContentHandle* aNode, const char16_t* aClass)
     {
       NS_PRECONDITION(mOpCode == eTreeOpUninitialized,
@@ -463,6 +474,11 @@ class nsHtml5TreeOperation {
       return mOpCode == eTreeOpRunScript;
     }
     
+    inline bool IsMarkAsBroken()
+    {
+      return mOpCode == eTreeOpMarkAsBroken;
+    }
+
     inline void SetSnapshot(nsAHtml5TreeBuilderState* aSnapshot, int32_t aLine)
     {
       NS_ASSERTION(IsRunScript(), 
@@ -485,12 +501,13 @@ class nsHtml5TreeOperation {
       nsIAtom*                        atom;
       nsHtml5HtmlAttributes*          attributes;
       nsHtml5DocumentMode             mode;
-      char16_t*                      unicharPtr;
+      char16_t*                       unicharPtr;
       char*                           charPtr;
       nsHtml5TreeOperationStringPair* stringPair;
       nsAHtml5TreeBuilderState*       state;
       int32_t                         integer;
-    }                   mOne, mTwo, mThree, mFour;
+      nsresult                        result;
+    } mOne, mTwo, mThree, mFour, mFive;
 };
 
 #endif // nsHtml5TreeOperation_h

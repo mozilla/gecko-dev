@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 **********************************************************************
-*   Copyright (C) 2009-2012, International Business Machines
+*   Copyright (C) 2009-2015, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 **********************************************************************
 */
@@ -17,7 +19,6 @@
 #include "ulocimp.h"
 #include "uassert.h"
 
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
 
 /* struct holding a single variant */
 typedef struct VariantListEntry {
@@ -410,8 +411,8 @@ _isPrivateuseValueSubtags(const char* s, int32_t len) {
     return _isPrivateuseValueSubtag(pSubtag, (int32_t)(p - pSubtag));
 }
 
-static UBool
-_isLDMLKey(const char* s, int32_t len) {
+U_CFUNC UBool
+ultag_isUnicodeLocaleKey(const char* s, int32_t len) {
     if (len < 0) {
         len = (int32_t)uprv_strlen(s);
     }
@@ -421,17 +422,33 @@ _isLDMLKey(const char* s, int32_t len) {
     return FALSE;
 }
 
-static UBool
-_isLDMLType(const char* s, int32_t len) {
+U_CFUNC UBool
+ultag_isUnicodeLocaleType(const char*s, int32_t len) {
+    const char* p;
+    int32_t subtagLen = 0;
+
     if (len < 0) {
         len = (int32_t)uprv_strlen(s);
     }
-    if (len >= 3 && len <= 8 && _isAlphaNumericString(s, len)) {
-        return TRUE;
-    }
-    return FALSE;
-}
 
+    for (p = s; len > 0; p++, len--) {
+        if (*p == SEP) {
+            if (subtagLen < 3) {
+                return FALSE;
+            }
+            subtagLen = 0;
+        } else if (ISALPHA(*p) || ISNUMERIC(*p)) {
+            subtagLen++;
+            if (subtagLen > 8) {
+                return FALSE;
+            }
+        } else {
+            return FALSE;
+        }
+    }
+
+    return (subtagLen >= 3);
+}
 /*
 * -------------------------------------------------
 *
@@ -563,6 +580,14 @@ _addExtensionToList(ExtensionListEntry **first, ExtensionListEntry *ext, UBool l
                     cmp = LDMLEXT - *(cur->key);
                 } else {
                     cmp = uprv_compareInvCharsAsAscii(ext->key, cur->key);
+                    /* Both are u extension keys - we need special handling for 'attribute' */
+                    if (cmp != 0) {
+                        if (uprv_strcmp(cur->key, LOCALE_ATTRIBUTE_KEY) == 0) {
+                            cmp = 1;
+                        } else if (uprv_strcmp(ext->key, LOCALE_ATTRIBUTE_KEY) == 0) {
+                            cmp = -1;
+                        }
+                    }
                 }
             } else {
                 cmp = uprv_compareInvCharsAsAscii(ext->key, cur->key);
@@ -610,386 +635,6 @@ _initializeULanguageTag(ULanguageTag* langtag) {
     langtag->privateuse = EMPTY;
 }
 
-#define KEYTYPEDATA     "keyTypeData"
-#define KEYMAP          "keyMap"
-#define TYPEMAP         "typeMap"
-#define TYPEALIAS       "typeAlias"
-#define MAX_BCP47_SUBTAG_LEN    9   /* including null terminator */
-#define MAX_LDML_KEY_LEN        22
-#define MAX_LDML_TYPE_LEN       32
-
-static int32_t
-_ldmlKeyToBCP47(const char* key, int32_t keyLen,
-                char* bcpKey, int32_t bcpKeyCapacity,
-                UErrorCode *status) {
-    UResourceBundle *rb;
-    char keyBuf[MAX_LDML_KEY_LEN];
-    char bcpKeyBuf[MAX_BCP47_SUBTAG_LEN];
-    int32_t resultLen = 0;
-    int32_t i;
-    UErrorCode tmpStatus = U_ZERO_ERROR;
-    const UChar *uBcpKey;
-    int32_t bcpKeyLen;
-
-    if (keyLen < 0) {
-        keyLen = (int32_t)uprv_strlen(key);
-    }
-
-    if (keyLen >= sizeof(keyBuf)) {
-        /* no known valid LDML key exceeding 21 */
-        *status = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
-    }
-
-    uprv_memcpy(keyBuf, key, keyLen);
-    keyBuf[keyLen] = 0;
-
-    /* to lower case */
-    for (i = 0; i < keyLen; i++) {
-        keyBuf[i] = uprv_tolower(keyBuf[i]);
-    }
-
-    rb = ures_openDirect(NULL, KEYTYPEDATA, status);
-    ures_getByKey(rb, KEYMAP, rb, status);
-
-    if (U_FAILURE(*status)) {
-        ures_close(rb);
-        return 0;
-    }
-
-    uBcpKey = ures_getStringByKey(rb, keyBuf, &bcpKeyLen, &tmpStatus);
-    if (U_SUCCESS(tmpStatus)) {
-        u_UCharsToChars(uBcpKey, bcpKeyBuf, bcpKeyLen);
-        bcpKeyBuf[bcpKeyLen] = 0;
-        resultLen = bcpKeyLen;
-    } else {
-        if (_isLDMLKey(key, keyLen)) {
-            uprv_memcpy(bcpKeyBuf, key, keyLen);
-            bcpKeyBuf[keyLen] = 0;
-            resultLen = keyLen;
-        } else {
-            /* mapping not availabe */
-            *status = U_ILLEGAL_ARGUMENT_ERROR;
-        }
-    }
-    ures_close(rb);
-
-    if (U_FAILURE(*status)) {
-        return 0;
-    }
-
-    uprv_memcpy(bcpKey, bcpKeyBuf, uprv_min(resultLen, bcpKeyCapacity));
-    return u_terminateChars(bcpKey, bcpKeyCapacity, resultLen, status);
-}
-
-static int32_t
-_bcp47ToLDMLKey(const char* bcpKey, int32_t bcpKeyLen,
-                char* key, int32_t keyCapacity,
-                UErrorCode *status) {
-    UResourceBundle *rb;
-    char bcpKeyBuf[MAX_BCP47_SUBTAG_LEN];
-    int32_t resultLen = 0;
-    int32_t i;
-    const char *resKey = NULL;
-    UResourceBundle *mapData;
-
-    if (bcpKeyLen < 0) {
-        bcpKeyLen = (int32_t)uprv_strlen(bcpKey);
-    }
-
-    if (bcpKeyLen >= sizeof(bcpKeyBuf)) {
-        *status = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
-    }
-
-    uprv_memcpy(bcpKeyBuf, bcpKey, bcpKeyLen);
-    bcpKeyBuf[bcpKeyLen] = 0;
-
-    /* to lower case */
-    for (i = 0; i < bcpKeyLen; i++) {
-        bcpKeyBuf[i] = uprv_tolower(bcpKeyBuf[i]);
-    }
-
-    rb = ures_openDirect(NULL, KEYTYPEDATA, status);
-    ures_getByKey(rb, KEYMAP, rb, status);
-    if (U_FAILURE(*status)) {
-        ures_close(rb);
-        return 0;
-    }
-
-    mapData = ures_getNextResource(rb, NULL, status);
-    while (U_SUCCESS(*status)) {
-        const UChar *uBcpKey;
-        char tmpBcpKeyBuf[MAX_BCP47_SUBTAG_LEN];
-        int32_t tmpBcpKeyLen;
-
-        uBcpKey = ures_getString(mapData, &tmpBcpKeyLen, status);
-        if (U_FAILURE(*status)) {
-            break;
-        }
-        u_UCharsToChars(uBcpKey, tmpBcpKeyBuf, tmpBcpKeyLen);
-        tmpBcpKeyBuf[tmpBcpKeyLen] = 0;
-        if (uprv_compareInvCharsAsAscii(bcpKeyBuf, tmpBcpKeyBuf) == 0) {
-            /* found a matching BCP47 key */
-            resKey = ures_getKey(mapData);
-            resultLen = (int32_t)uprv_strlen(resKey);
-            break;
-        }
-        if (!ures_hasNext(rb)) {
-            break;
-        }
-        ures_getNextResource(rb, mapData, status);
-    }
-    ures_close(mapData);
-    ures_close(rb);
-
-    if (U_FAILURE(*status)) {
-        return 0;
-    }
-
-    if (resKey == NULL) {
-        resKey = bcpKeyBuf;
-        resultLen = bcpKeyLen;
-    }
-
-    uprv_memcpy(key, resKey, uprv_min(resultLen, keyCapacity));
-    return u_terminateChars(key, keyCapacity, resultLen, status);
-}
-
-static int32_t
-_ldmlTypeToBCP47(const char* key, int32_t keyLen,
-                 const char* type, int32_t typeLen,
-                 char* bcpType, int32_t bcpTypeCapacity,
-                 UErrorCode *status) {
-    UResourceBundle *rb, *keyTypeData, *typeMapForKey;
-    char keyBuf[MAX_LDML_KEY_LEN];
-    char typeBuf[MAX_LDML_TYPE_LEN];
-    char bcpTypeBuf[MAX_BCP47_SUBTAG_LEN];
-    int32_t resultLen = 0;
-    int32_t i;
-    UErrorCode tmpStatus = U_ZERO_ERROR;
-    const UChar *uBcpType, *uCanonicalType;
-    int32_t bcpTypeLen, canonicalTypeLen;
-    UBool isTimezone = FALSE;
-
-    if (keyLen < 0) {
-        keyLen = (int32_t)uprv_strlen(key);
-    }
-    if (keyLen >= sizeof(keyBuf)) {
-        /* no known valid LDML key exceeding 21 */
-        *status = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
-    }
-    uprv_memcpy(keyBuf, key, keyLen);
-    keyBuf[keyLen] = 0;
-
-    /* to lower case */
-    for (i = 0; i < keyLen; i++) {
-        keyBuf[i] = uprv_tolower(keyBuf[i]);
-    }
-    if (uprv_compareInvCharsAsAscii(keyBuf, "timezone") == 0) {
-        isTimezone = TRUE;
-    }
-
-    if (typeLen < 0) {
-        typeLen = (int32_t)uprv_strlen(type);
-    }
-    if (typeLen >= sizeof(typeBuf)) {
-        *status = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
-    }
-
-    if (isTimezone) {
-        /* replace '/' with ':' */
-        for (i = 0; i < typeLen; i++) {
-            if (*(type + i) == '/') {
-                typeBuf[i] = ':';
-            } else {
-                typeBuf[i] = *(type + i);
-            }
-        }
-        typeBuf[typeLen] = 0;
-        type = &typeBuf[0];
-    }
-
-    keyTypeData = ures_openDirect(NULL, KEYTYPEDATA, status);
-    rb = ures_getByKey(keyTypeData, TYPEMAP, NULL, status);
-    if (U_FAILURE(*status)) {
-        ures_close(rb);
-        ures_close(keyTypeData);
-        return 0;
-    }
-
-    typeMapForKey = ures_getByKey(rb, keyBuf, NULL, &tmpStatus);
-    uBcpType = ures_getStringByKey(typeMapForKey, type, &bcpTypeLen, &tmpStatus);
-    if (U_SUCCESS(tmpStatus)) {
-        u_UCharsToChars(uBcpType, bcpTypeBuf, bcpTypeLen);
-        resultLen = bcpTypeLen;
-    } else if (tmpStatus == U_MISSING_RESOURCE_ERROR) {
-        /* is this type alias? */
-        tmpStatus = U_ZERO_ERROR;
-        ures_getByKey(keyTypeData, TYPEALIAS, rb, &tmpStatus);
-        ures_getByKey(rb, keyBuf, rb, &tmpStatus);
-        uCanonicalType = ures_getStringByKey(rb, type, &canonicalTypeLen, &tmpStatus);
-        if (U_SUCCESS(tmpStatus)) {
-            u_UCharsToChars(uCanonicalType, typeBuf, canonicalTypeLen);
-            if (isTimezone) {
-                /* replace '/' with ':' */
-                for (i = 0; i < canonicalTypeLen; i++) {
-                    if (typeBuf[i] == '/') {
-                        typeBuf[i] = ':';
-                    }
-                }
-            }
-            typeBuf[canonicalTypeLen] = 0;
-
-            /* look up the canonical type */
-            uBcpType = ures_getStringByKey(typeMapForKey, typeBuf, &bcpTypeLen, &tmpStatus);
-            if (U_SUCCESS(tmpStatus)) {
-                u_UCharsToChars(uBcpType, bcpTypeBuf, bcpTypeLen);
-                resultLen = bcpTypeLen;
-            }
-        }
-        if (tmpStatus == U_MISSING_RESOURCE_ERROR) {
-            if (_isLDMLType(type, typeLen)) {
-                uprv_memcpy(bcpTypeBuf, type, typeLen);
-                resultLen = typeLen;
-            } else {
-                /* mapping not availabe */
-                *status = U_ILLEGAL_ARGUMENT_ERROR;
-            }
-        }
-    } else {
-        *status = tmpStatus;
-    }
-    ures_close(rb);
-    ures_close(typeMapForKey);
-    ures_close(keyTypeData);
-
-    if (U_FAILURE(*status)) {
-        return 0;
-    }
-
-    uprv_memcpy(bcpType, bcpTypeBuf, uprv_min(resultLen, bcpTypeCapacity));
-    return u_terminateChars(bcpType, bcpTypeCapacity, resultLen, status);
-}
-
-static int32_t
-_bcp47ToLDMLType(const char* key, int32_t keyLen,
-                 const char* bcpType, int32_t bcpTypeLen,
-                 char* type, int32_t typeCapacity,
-                 UErrorCode *status) {
-    UResourceBundle *rb;
-    char keyBuf[MAX_LDML_KEY_LEN];
-    char bcpTypeBuf[ULOC_KEYWORDS_CAPACITY]; /* ensure buffter is large enough for multiple values (e.g. buddhist-greg) */
-    int32_t resultLen = 0;
-    int32_t i, typeSize;
-    const char *resType = NULL;
-    UResourceBundle *mapData;
-    UErrorCode tmpStatus = U_ZERO_ERROR;
-    int32_t copyLen;
-
-    if (keyLen < 0) {
-        keyLen = (int32_t)uprv_strlen(key);
-    }
-
-    if (keyLen >= sizeof(keyBuf)) {
-        /* no known valid LDML key exceeding 21 */
-        *status = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
-    }
-    uprv_memcpy(keyBuf, key, keyLen);
-    keyBuf[keyLen] = 0;
-
-    /* to lower case */
-    for (i = 0; i < keyLen; i++) {
-        keyBuf[i] = uprv_tolower(keyBuf[i]);
-    }
-
-
-    if (bcpTypeLen < 0) {
-        bcpTypeLen = (int32_t)uprv_strlen(bcpType);
-    }
-
-    typeSize = 0;
-    for (i = 0; i < bcpTypeLen; i++) {
-        if (bcpType[i] == SEP) {
-            if (typeSize >= MAX_BCP47_SUBTAG_LEN) {
-                *status = U_ILLEGAL_ARGUMENT_ERROR;
-                return 0;
-            }
-            typeSize = 0;
-        } else {
-            typeSize++;
-        }
-    }
-
-    uprv_memcpy(bcpTypeBuf, bcpType, bcpTypeLen);
-    bcpTypeBuf[bcpTypeLen] = 0;
-
-    /* to lower case */
-    for (i = 0; i < bcpTypeLen; i++) {
-        bcpTypeBuf[i] = uprv_tolower(bcpTypeBuf[i]);
-    }
-
-    rb = ures_openDirect(NULL, KEYTYPEDATA, status);
-    ures_getByKey(rb, TYPEMAP, rb, status);
-    if (U_FAILURE(*status)) {
-        ures_close(rb);
-        return 0;
-    }
-
-    ures_getByKey(rb, keyBuf, rb, &tmpStatus);
-    mapData = ures_getNextResource(rb, NULL, &tmpStatus);
-    while (U_SUCCESS(tmpStatus)) {
-        const UChar *uBcpType;
-        char tmpBcpTypeBuf[MAX_BCP47_SUBTAG_LEN];
-        int32_t tmpBcpTypeLen;
-
-        uBcpType = ures_getString(mapData, &tmpBcpTypeLen, &tmpStatus);
-        if (U_FAILURE(tmpStatus)) {
-            break;
-        }
-        u_UCharsToChars(uBcpType, tmpBcpTypeBuf, tmpBcpTypeLen);
-        tmpBcpTypeBuf[tmpBcpTypeLen] = 0;
-        if (uprv_compareInvCharsAsAscii(bcpTypeBuf, tmpBcpTypeBuf) == 0) {
-            /* found a matching BCP47 type */
-            resType = ures_getKey(mapData);
-            resultLen = (int32_t)uprv_strlen(resType);
-            break;
-        }
-        if (!ures_hasNext(rb)) {
-            break;
-        }
-        ures_getNextResource(rb, mapData, &tmpStatus);
-    }
-    ures_close(mapData);
-    ures_close(rb);
-
-    if (U_FAILURE(tmpStatus) && tmpStatus != U_MISSING_RESOURCE_ERROR) {
-        *status = tmpStatus;
-        return 0;
-    }
-
-    if (resType == NULL) {
-        resType = bcpTypeBuf;
-        resultLen = bcpTypeLen;
-    }
-
-    copyLen = uprv_min(resultLen, typeCapacity);
-    uprv_memcpy(type, resType, copyLen);
-
-    if (uprv_compareInvCharsAsAscii(keyBuf, "timezone") == 0) {
-        for (i = 0; i < copyLen; i++) {
-            if (*(type + i) == ':') {
-                *(type + i) = '/';
-            }
-        }
-    }
-
-    return u_terminateChars(type, typeCapacity, resultLen, status);
-}
-
 static int32_t
 _appendLanguageToLanguageTag(const char* localeID, char* appendAt, int32_t capacity, UBool strict, UErrorCode* status) {
     char buf[ULOC_LANG_CAPACITY];
@@ -1029,7 +674,7 @@ _appendLanguageToLanguageTag(const char* localeID, char* appendAt, int32_t capac
         reslen += LANG_UND_LEN;
     } else {
         /* resolve deprecated */
-        for (i = 0; i < LENGTHOF(DEPRECATEDLANGS); i += 2) {
+        for (i = 0; i < UPRV_LENGTHOF(DEPRECATEDLANGS); i += 2) {
             if (uprv_compareInvCharsAsAscii(buf, DEPRECATEDLANGS[i]) == 0) {
                 uprv_strcpy(buf, DEPRECATEDLANGS[i + 1]);
                 len = (int32_t)uprv_strlen(buf);
@@ -1258,7 +903,6 @@ _appendKeywordsToLanguageTag(const char* localeID, char* appendAt, int32_t capac
     char buf[ULOC_KEYWORD_AND_VALUES_CAPACITY];
     char attrBuf[ULOC_KEYWORD_AND_VALUES_CAPACITY] = { 0 };
     int32_t attrBufLength = 0;
-    UBool isAttribute = FALSE;
     UEnumeration *keywordEnum = NULL;
     int32_t reslen = 0;
 
@@ -1282,16 +926,16 @@ _appendKeywordsToLanguageTag(const char* localeID, char* appendAt, int32_t capac
         const char *bcpKey, *bcpValue;
         UErrorCode tmpStatus = U_ZERO_ERROR;
         int32_t keylen;
-        UBool isLDMLKeyword;
+        UBool isBcpUExt;
 
         while (TRUE) {
-            isAttribute = FALSE;
             key = uenum_next(keywordEnum, NULL, status);
             if (key == NULL) {
                 break;
             }
             len = uloc_getKeywordValue(localeID, key, buf, sizeof(buf), &tmpStatus);
-            if (U_FAILURE(tmpStatus)) {
+            /* buf must be null-terminated */
+            if (U_FAILURE(tmpStatus) || tmpStatus == U_STRING_NOT_TERMINATED_WARNING) {
                 if (strict) {
                     *status = U_ILLEGAL_ARGUMENT_ERROR;
                     break;
@@ -1302,11 +946,10 @@ _appendKeywordsToLanguageTag(const char* localeID, char* appendAt, int32_t capac
             }
 
             keylen = (int32_t)uprv_strlen(key);
-            isLDMLKeyword = (keylen > 1);
+            isBcpUExt = (keylen > 1);
 
             /* special keyword used for representing Unicode locale attributes */
             if (uprv_strcmp(key, LOCALE_ATTRIBUTE_KEY) == 0) {
-                isAttribute = TRUE;
                 if (len > 0) {
                     int32_t i = 0;
                     while (TRUE) {
@@ -1349,37 +992,53 @@ _appendKeywordsToLanguageTag(const char* localeID, char* appendAt, int32_t capac
                             }
                         }
                     }
+                    /* for a place holder ExtensionListEntry */
+                    bcpKey = LOCALE_ATTRIBUTE_KEY;
+                    bcpValue = NULL;
                 }
-            } else if (isLDMLKeyword) {
-                int32_t modKeyLen;
-
-                /* transform key and value to bcp47 style */
-                modKeyLen = _ldmlKeyToBCP47(key, keylen, pExtBuf, extBufCapacity, &tmpStatus);
-                if (U_FAILURE(tmpStatus) || tmpStatus == U_STRING_NOT_TERMINATED_WARNING) {
+            } else if (isBcpUExt) {
+                bcpKey = uloc_toUnicodeLocaleKey(key);
+                if (bcpKey == NULL) {
                     if (strict) {
                         *status = U_ILLEGAL_ARGUMENT_ERROR;
                         break;
                     }
-                    tmpStatus = U_ZERO_ERROR;
                     continue;
                 }
 
-                bcpKey = pExtBuf;
-                pExtBuf += (modKeyLen + 1);
-                extBufCapacity -= (modKeyLen + 1);
-
-                len = _ldmlTypeToBCP47(key, keylen, buf, len, pExtBuf, extBufCapacity, &tmpStatus);
-                if (U_FAILURE(tmpStatus) || tmpStatus == U_STRING_NOT_TERMINATED_WARNING) {
+                /* we've checked buf is null-terminated above */
+                bcpValue = uloc_toUnicodeLocaleType(key, buf);
+                if (bcpValue == NULL) {
                     if (strict) {
                         *status = U_ILLEGAL_ARGUMENT_ERROR;
                         break;
                     }
-                    tmpStatus = U_ZERO_ERROR;
                     continue;
                 }
-                bcpValue = pExtBuf;
-                pExtBuf += (len + 1);
-                extBufCapacity -= (len + 1);
+                if (bcpValue == buf) {
+                    /* 
+                    When uloc_toUnicodeLocaleType(key, buf) returns the
+                    input value as is, the value is well-formed, but has
+                    no known mapping. This implementation normalizes the
+                    the value to lower case
+                    */
+                    int32_t bcpValueLen = uprv_strlen(bcpValue);
+                    if (bcpValueLen < extBufCapacity) {
+                        uprv_strcpy(pExtBuf, bcpValue);
+                        T_CString_toLowerCase(pExtBuf);
+
+                        bcpValue = pExtBuf;
+
+                        pExtBuf += (bcpValueLen + 1);
+                        extBufCapacity -= (bcpValueLen + 1);
+                    } else {
+                        if (strict) {
+                            *status = U_ILLEGAL_ARGUMENT_ERROR;
+                            break;
+                        }
+                        continue;
+                    }
+                }
             } else {
                 if (*key == PRIVATEUSE) {
                     if (!_isPrivateuseValueSubtags(buf, len)) {
@@ -1415,22 +1074,20 @@ _appendKeywordsToLanguageTag(const char* localeID, char* appendAt, int32_t capac
                 }
             }
 
-            if (!isAttribute) {
-                /* create ExtensionListEntry */
-                ext = (ExtensionListEntry*)uprv_malloc(sizeof(ExtensionListEntry));
-                if (ext == NULL) {
-                    *status = U_MEMORY_ALLOCATION_ERROR;
-                    break;
-                }
-                ext->key = bcpKey;
-                ext->value = bcpValue;
+            /* create ExtensionListEntry */
+            ext = (ExtensionListEntry*)uprv_malloc(sizeof(ExtensionListEntry));
+            if (ext == NULL) {
+                *status = U_MEMORY_ALLOCATION_ERROR;
+                break;
+            }
+            ext->key = bcpKey;
+            ext->value = bcpValue;
 
-                if (!_addExtensionToList(&firstExt, ext, TRUE)) {
-                    uprv_free(ext);
-                    if (strict) {
-                        *status = U_ILLEGAL_ARGUMENT_ERROR;
-                        break;
-                    }
+            if (!_addExtensionToList(&firstExt, ext, TRUE)) {
+                uprv_free(ext);
+                if (strict) {
+                    *status = U_ILLEGAL_ARGUMENT_ERROR;
+                    break;
                 }
             }
         }
@@ -1453,12 +1110,9 @@ _appendKeywordsToLanguageTag(const char* localeID, char* appendAt, int32_t capac
 
         if (U_SUCCESS(*status) && (firstExt != NULL || firstAttr != NULL)) {
             UBool startLDMLExtension = FALSE;
-
-            attr = firstAttr;
-            ext = firstExt;
-            do {
-                if (!startLDMLExtension && (ext && uprv_strlen(ext->key) > 1)) {
-                   /* write LDML singleton extension */
+            for (ext = firstExt; ext; ext = ext->next) {
+                if (!startLDMLExtension && uprv_strlen(ext->key) > 1) {
+                    /* first LDML u singlton extension */
                    if (reslen < capacity) {
                        *(appendAt + reslen) = SEP;
                    }
@@ -1472,7 +1126,20 @@ _appendKeywordsToLanguageTag(const char* localeID, char* appendAt, int32_t capac
                 }
 
                 /* write out the sorted BCP47 attributes, extensions and private use */
-                if (ext && (uprv_strlen(ext->key) == 1 || attr == NULL)) {
+                if (uprv_strcmp(ext->key, LOCALE_ATTRIBUTE_KEY) == 0) {
+                    /* write the value for the attributes */
+                    for (attr = firstAttr; attr; attr = attr->next) {
+                        if (reslen < capacity) {
+                            *(appendAt + reslen) = SEP;
+                        }
+                        reslen++;
+                        len = (int32_t)uprv_strlen(attr->attribute);
+                        if (reslen < capacity) {
+                            uprv_memcpy(appendAt + reslen, attr->attribute, uprv_min(len, capacity - reslen));
+                        }
+                        reslen += len;
+                    }
+                } else {
                     if (reslen < capacity) {
                         *(appendAt + reslen) = SEP;
                     }
@@ -1491,23 +1158,8 @@ _appendKeywordsToLanguageTag(const char* localeID, char* appendAt, int32_t capac
                         uprv_memcpy(appendAt + reslen, ext->value, uprv_min(len, capacity - reslen));
                     }
                     reslen += len;
-
-                    ext = ext->next;
-                } else if (attr) {
-                    /* write the value for the attributes */
-                    if (reslen < capacity) {
-                        *(appendAt + reslen) = SEP;
-                    }
-                    reslen++;
-                    len = (int32_t)uprv_strlen(attr->attribute);
-                    if (reslen < capacity) {
-                        uprv_memcpy(appendAt + reslen, attr->attribute, uprv_min(len, capacity - reslen));
-                    }
-                    reslen += len;
-
-                    attr = attr->next;
                 }
-            } while (attr != NULL || ext != NULL);
+            }
         }
 cleanup:
         /* clean up */
@@ -1571,7 +1223,7 @@ _appendLDMLExtensionAsKeywords(const char* ldmlext, ExtensionListEntry** appendT
         /* locate next separator char */
         for (len = 0; *(pTag + len) && *(pTag + len) != SEP; len++);
 
-        if (_isLDMLKey(pTag, len)) {
+        if (ultag_isUnicodeLocaleKey(pTag, len)) {
             pKwds = pTag;
             break;
         }
@@ -1672,14 +1324,14 @@ _appendLDMLExtensionAsKeywords(const char* ldmlext, ExtensionListEntry** appendT
         /* BCP47 representation of LDML key/type pairs */
         while (!isDone) {
             const char *pNextBcpKey = NULL;
-            int32_t nextBcpKeyLen;
+            int32_t nextBcpKeyLen = 0;
             UBool emitKeyword = FALSE;
 
             if (*pTag) {
                 /* locate next separator char */
                 for (len = 0; *(pTag + len) && *(pTag + len) != SEP; len++);
 
-                if (_isLDMLKey(pTag, len)) {
+                if (ultag_isUnicodeLocaleKey(pTag, len)) {
                     if (pBcpKey) {
                         emitKeyword = TRUE;
                         pNextBcpKey = pTag;
@@ -1715,28 +1367,78 @@ _appendLDMLExtensionAsKeywords(const char* ldmlext, ExtensionListEntry** appendT
                 const char *pKey = NULL;    /* LDML key */
                 const char *pType = NULL;   /* LDML type */
 
+                char bcpKeyBuf[9];          /* BCP key length is always 2 for now */
+
                 U_ASSERT(pBcpKey != NULL);
 
-                /* u extension key to LDML key */
-                len = _bcp47ToLDMLKey(pBcpKey, bcpKeyLen, buf + bufIdx, bufSize - bufIdx - 1, status);
-                if (U_FAILURE(*status)) {
+                if (bcpKeyLen >= sizeof(bcpKeyBuf)) {
+                    /* the BCP key is invalid */
+                    *status = U_ILLEGAL_ARGUMENT_ERROR;
                     goto cleanup;
                 }
-                pKey = buf + bufIdx;
-                bufIdx += len;
-                *(buf + bufIdx) = 0;
-                bufIdx++;
 
-                if (pBcpType) {
-                    /* BCP type to locale type */
-                    len = _bcp47ToLDMLType(pKey, -1, pBcpType, bcpTypeLen, buf + bufIdx, bufSize - bufIdx - 1, status);
-                    if (U_FAILURE(*status)) {
+                uprv_strncpy(bcpKeyBuf, pBcpKey, bcpKeyLen);
+                bcpKeyBuf[bcpKeyLen] = 0;
+
+                /* u extension key to LDML key */
+                pKey = uloc_toLegacyKey(bcpKeyBuf);
+                if (pKey == NULL) {
+                    *status = U_ILLEGAL_ARGUMENT_ERROR;
+                    goto cleanup;
+                }
+                if (pKey == bcpKeyBuf) {
+                    /*
+                    The key returned by toLegacyKey points to the input buffer.
+                    We normalize the result key to lower case.
+                    */
+                    T_CString_toLowerCase(bcpKeyBuf);
+                    if (bufSize - bufIdx - 1 >= bcpKeyLen) {
+                        uprv_memcpy(buf + bufIdx, bcpKeyBuf, bcpKeyLen);
+                        pKey = buf + bufIdx;
+                        bufIdx += bcpKeyLen;
+                        *(buf + bufIdx) = 0;
+                        bufIdx++;
+                    } else {
+                        *status = U_BUFFER_OVERFLOW_ERROR;
                         goto cleanup;
                     }
-                    pType = buf + bufIdx;
-                    bufIdx += len;
-                    *(buf + bufIdx) = 0;
-                    bufIdx++;
+                }
+
+                if (pBcpType) {
+                    char bcpTypeBuf[128];       /* practically long enough even considering multiple subtag type */
+                    if (bcpTypeLen >= sizeof(bcpTypeBuf)) {
+                        /* the BCP type is too long */
+                        *status = U_ILLEGAL_ARGUMENT_ERROR;
+                        goto cleanup;
+                    }
+
+                    uprv_strncpy(bcpTypeBuf, pBcpType, bcpTypeLen);
+                    bcpTypeBuf[bcpTypeLen] = 0;
+
+                    /* BCP type to locale type */
+                    pType = uloc_toLegacyType(pKey, bcpTypeBuf);
+                    if (pType == NULL) {
+                        *status = U_ILLEGAL_ARGUMENT_ERROR;
+                        goto cleanup;
+                    }
+                    if (pType == bcpTypeBuf) {
+                        /*
+                        The type returned by toLegacyType points to the input buffer.
+                        We normalize the result type to lower case.
+                        */
+                        /* normalize to lower case */
+                        T_CString_toLowerCase(bcpTypeBuf);
+                        if (bufSize - bufIdx - 1 >= bcpTypeLen) {
+                            uprv_memcpy(buf + bufIdx, bcpTypeBuf, bcpTypeLen);
+                            pType = buf + bufIdx;
+                            bufIdx += bcpTypeLen;
+                            *(buf + bufIdx) = 0;
+                            bufIdx++;
+                        } else {
+                            *status = U_BUFFER_OVERFLOW_ERROR;
+                            goto cleanup;
+                        }
+                    }
                 } else {
                     /* typeless - default type value is "yes" */
                     pType = LOCALE_TYPE_YES;
@@ -2073,6 +1775,15 @@ _appendPrivateuseToLanguageTag(const char* localeID, char* appendAt, int32_t cap
 #define EXTV 0x0040
 #define PRIV 0x0080
 
+/**
+ * Ticket #12705 - Visual Studio 2015 Update 3 contains a new code optimizer which has problems optimizing
+ * this function. (See https://blogs.msdn.microsoft.com/vcblog/2016/05/04/new-code-optimizer/ )
+ * As a workaround, we will turn off optimization just for this function on VS2015 Update 3 and above.
+ */
+#if (defined(_MSC_VER) && (_MSC_VER >= 1900) && defined(_MSC_FULL_VER) && (_MSC_FULL_VER >= 190024210))
+#pragma optimize( "", off )
+#endif
+
 static ULanguageTag*
 ultag_parse(const char* tag, int32_t tagLen, int32_t* parsedLen, UErrorCode* status) {
     ULanguageTag *t;
@@ -2135,6 +1846,7 @@ ultag_parse(const char* tag, int32_t tagLen, int32_t* parsedLen, UErrorCode* sta
                 tagBuf = (char*)uprv_malloc(newTagLength + 1);
                 if (tagBuf == NULL) {
                     *status = U_MEMORY_ALLOCATION_ERROR;
+                    ultag_close(t);
                     return NULL;
                 }
                 t->buf = tagBuf;
@@ -2431,9 +2143,16 @@ ultag_parse(const char* tag, int32_t tagLen, int32_t* parsedLen, UErrorCode* sta
     return t;
 
 error:
-    uprv_free(t);
+    ultag_close(t);
     return NULL;
 }
+
+/**
+* Ticket #12705 - Turn optimization back on.
+*/
+#if (defined(_MSC_VER) && (_MSC_VER >= 1900) && defined(_MSC_FULL_VER) && (_MSC_FULL_VER >= 190024210))
+#pragma optimize( "", on )
+#endif
 
 static void
 ultag_close(ULanguageTag* langtag) {

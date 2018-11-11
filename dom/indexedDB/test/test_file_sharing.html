@@ -34,7 +34,7 @@
     let db = event.target.result;
     db.onerror = errorHandler;
 
-    for each (let info in objectStoreInfo) {
+    for (let info of objectStoreInfo) {
       let objectStore = db.createObjectStore(info.name, info.options);
       objectStore.add(fileData.file, fileData.key);
     }
@@ -44,7 +44,7 @@
     is(event.type, "success", "Got correct event type");
 
     let refResult;
-    for each (let info in objectStoreInfo) {
+    for (let info of objectStoreInfo) {
       let objectStore = db.transaction([info.name])
                           .objectStore(info.name);
 
@@ -61,8 +61,7 @@
         continue;
       }
 
-      is(SpecialPowers.getMozFullPath(result),
-         SpecialPowers.getMozFullPath(refResult), "The same os file");
+      is(getFilePath(result), getFilePath(refResult), "The same os file");
     }
 
     for (let i = 1; i < objectStoreInfo.length; i++) {
@@ -85,8 +84,7 @@
       verifyBlob(result, refResult, 1);
       yield undefined;
 
-      is(SpecialPowers.getMozFullPath(result),
-         SpecialPowers.getMozFullPath(refResult), "The same os file");
+      is(getFilePath(result), getFilePath(refResult), "The same os file");
     }
 
     is(bufferCache.length, 2, "Correct length");

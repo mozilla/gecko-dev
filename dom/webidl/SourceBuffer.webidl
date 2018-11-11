@@ -15,12 +15,12 @@ enum SourceBufferAppendMode {
     "sequence"
 };
 
-[Pref="media.mediasource.enabled"]
+[Func="mozilla::dom::MediaSource::Enabled"]
 interface SourceBuffer : EventTarget {
   [SetterThrows]
   attribute SourceBufferAppendMode mode;
   readonly attribute boolean updating;
-  [NewObject, Throws]
+  [Throws]
   readonly attribute TimeRanges buffered;
   [SetterThrows]
   attribute double timestampOffset;
@@ -31,6 +31,11 @@ interface SourceBuffer : EventTarget {
   attribute double appendWindowStart;
   [SetterThrows]
   attribute unrestricted double appendWindowEnd;
+  attribute EventHandler onupdatestart;
+  attribute EventHandler onupdate;
+  attribute EventHandler onupdateend;
+  attribute EventHandler onerror;
+  attribute EventHandler onabort;
   [Throws]
   void appendBuffer(ArrayBuffer data);
   [Throws]
@@ -40,5 +45,5 @@ interface SourceBuffer : EventTarget {
   [Throws]
   void abort();
   [Throws]
-  void remove(double start, double end);
+  void remove(double start, unrestricted double end);
 };

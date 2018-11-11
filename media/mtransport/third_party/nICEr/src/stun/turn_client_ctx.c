@@ -63,6 +63,11 @@ int NR_LOG_TURN = 0;
                                                   times out after about 5. */
 #define TURN_PERMISSION_LIFETIME_SECONDS 300   /* 5 minutes. From RFC 5766 2.3 */
 
+// Set to enable a temporary fix that will run the TURN reservation keep-alive
+// logic when data is received via a TURN relayed path: a DATA_INDICATION packet is received.
+// TODO(pkerr@mozilla.com) This should be replace/removed when bug 935806 is implemented.
+#define REFRESH_RESERVATION_ON_RECV 1
+
 static int nr_turn_stun_ctx_create(nr_turn_client_ctx *tctx, int type,
                                    NR_async_cb success_cb,
                                    NR_async_cb failure_cb,
@@ -74,7 +79,6 @@ static int nr_turn_stun_set_auth_params(nr_turn_stun_ctx *ctx,
 static void nr_turn_client_refresh_timer_cb(NR_SOCKET s, int how, void *arg);
 static int nr_turn_client_refresh_setup(nr_turn_client_ctx *ctx,
                                         nr_turn_stun_ctx **sctx);
-static int nr_turn_client_failed(nr_turn_client_ctx *ctx);
 static int nr_turn_client_start_refresh_timer(nr_turn_client_ctx *ctx,
                                               nr_turn_stun_ctx *sctx,
                                               UINT4 lifetime);
@@ -85,10 +89,11 @@ static int nr_turn_permission_find(nr_turn_client_ctx *ctx,
                                    nr_transport_addr *addr,
                                    nr_turn_permission **permp);
 static int nr_turn_permission_destroy(nr_turn_permission **permp);
-static int nr_turn_client_ensure_perm(nr_turn_client_ctx *ctx,
-                                      nr_transport_addr *addr);
 static void nr_turn_client_refresh_cb(NR_SOCKET s, int how, void *arg);
 static void nr_turn_client_permissions_cb(NR_SOCKET s, int how, void *cb);
+static int nr_turn_client_send_stun_request(nr_turn_client_ctx *ctx,
+                                            nr_stun_message *req,
+                                            int flags);
 
 
 /* nr_turn_stun_ctx functions */
@@ -123,6 +128,7 @@ static int nr_turn_stun_ctx_create(nr_turn_client_ctx *tctx, int mode,
   sctx->success_cb=success_cb;
   sctx->error_cb=error_cb;
   sctx->mode=mode;
+  sctx->last_error_code=0;
 
   /* Add ourselves to the tctx's list */
   STAILQ_INSERT_TAIL(&tctx->stun_ctxs, sctx, entry);
@@ -199,7 +205,7 @@ static int nr_turn_stun_ctx_start(nr_turn_stun_ctx *ctx)
 
   if ((r=nr_stun_client_reset(ctx->stun))) {
     r_log(NR_LOG_TURN, LOG_ERR, "TURN(%s): Couldn't reset STUN",
-          ctx->tctx->label);
+          tctx->label);
     ABORT(r);
   }
 
@@ -218,6 +224,8 @@ static void nr_turn_stun_ctx_cb(NR_SOCKET s, int how, void *arg)
 {
   int r, _status;
   nr_turn_stun_ctx *ctx = (nr_turn_stun_ctx *)arg;
+
+  ctx->last_error_code = ctx->stun->error_code;
 
   switch (ctx->stun->state) {
     case NR_STUN_CLIENT_STATE_DONE:
@@ -365,6 +373,8 @@ nr_turn_client_ctx_destroy(nr_turn_client_ctx **ctxp)
   if (ctx->label)
     r_log(NR_LOG_TURN, LOG_DEBUG, "TURN(%s): destroy", ctx->label);
 
+  nr_turn_client_deallocate(ctx);
+
   /* Cancel frees the rest of our data */
   RFREE(ctx->label);
   ctx->label = 0;
@@ -404,7 +414,7 @@ int nr_turn_client_cancel(nr_turn_client_ctx *ctx)
 
   if (ctx->state == NR_TURN_CLIENT_STATE_CANCELLED ||
       ctx->state == NR_TURN_CLIENT_STATE_FAILED)
-    return 0;
+    return(0);
 
   if (ctx->label)
     r_log(NR_LOG_TURN, LOG_INFO, "TURN(%s): cancelling", ctx->label);
@@ -425,7 +435,77 @@ int nr_turn_client_cancel(nr_turn_client_ctx *ctx)
   return(0);
 }
 
-static int nr_turn_client_failed(nr_turn_client_ctx *ctx)
+int nr_turn_client_send_stun_request(nr_turn_client_ctx *ctx,
+                                     nr_stun_message *req,
+                                     int flags)
+{
+  int r,_status;
+
+  if ((r=nr_stun_encode_message(req)))
+    ABORT(r);
+
+  if ((r=nr_socket_sendto(ctx->sock,
+                          req->buffer, req->length, flags,
+                          &ctx->turn_server_addr))) {
+    r_log(NR_LOG_TURN, LOG_WARNING, "TURN(%s): Failed sending request",
+          ctx->label);
+    ABORT(r);
+  }
+
+  _status=0;
+abort:
+  return(_status);
+}
+
+int nr_turn_client_deallocate(nr_turn_client_ctx *ctx)
+{
+  int r,_status;
+  nr_stun_message *aloc = 0;
+  nr_stun_client_auth_params auth;
+  nr_stun_client_refresh_request_params refresh;
+
+  if (ctx->state != NR_TURN_CLIENT_STATE_ALLOCATED)
+    return(0);
+
+  r_log(NR_LOG_TURN, LOG_INFO, "TURN(%s): deallocating", ctx->label);
+
+  refresh.lifetime_secs = 0;
+
+  auth.username = ctx->username;
+  INIT_DATA(auth.password, ctx->password->data, ctx->password->len);
+
+  auth.realm = ctx->realm;
+  auth.nonce = ctx->nonce;
+
+  auth.authenticate = 1;
+
+  if ((r=nr_stun_build_refresh_request(&auth, &refresh, &aloc)))
+    ABORT(r);
+
+  // We are only sending a single request here because we are in the process of
+  // shutting everything down. Theoretically we should probably start a seperate
+  // STUN transaction which outlives the TURN context.
+  if ((r=nr_turn_client_send_stun_request(ctx, aloc, 0)))
+    ABORT(r);
+
+  ctx->state = NR_TURN_CLIENT_STATE_DEALLOCATING;
+
+  _status=0;
+abort:
+  nr_stun_message_destroy(&aloc);
+  return(_status);
+}
+
+static void nr_turn_client_fire_finished_cb(nr_turn_client_ctx *ctx)
+  {
+    if (ctx->finished_cb) {
+      NR_async_cb finished_cb=ctx->finished_cb;
+      ctx->finished_cb=0;
+      finished_cb(0, 0, ctx->cb_arg);
+    }
+  }
+
+int nr_turn_client_failed(nr_turn_client_ctx *ctx)
 {
   if (ctx->state == NR_TURN_CLIENT_STATE_FAILED ||
       ctx->state == NR_TURN_CLIENT_STATE_CANCELLED)
@@ -434,9 +514,7 @@ static int nr_turn_client_failed(nr_turn_client_ctx *ctx)
   r_log(NR_LOG_TURN, LOG_WARNING, "TURN(%s) failed", ctx->label);
   nr_turn_client_cancel(ctx);
   ctx->state = NR_TURN_CLIENT_STATE_FAILED;
-  if (ctx->finished_cb) {
-    ctx->finished_cb(0, 0, ctx->cb_arg);
-  }
+  nr_turn_client_fire_finished_cb(ctx);
 
   return(0);
 }
@@ -477,7 +555,6 @@ static void nr_turn_client_allocate_cb(NR_SOCKET s, int how, void *arg)
 {
   nr_turn_stun_ctx *ctx = (nr_turn_stun_ctx *)arg;
   nr_turn_stun_ctx *refresh_ctx;
-  NR_async_cb tmp_finished_cb;
   int r,_status;
 
   ctx->tctx->state = NR_TURN_CLIENT_STATE_ALLOCATED;
@@ -506,14 +583,12 @@ static void nr_turn_client_allocate_cb(NR_SOCKET s, int how, void *arg)
         ctx->tctx->relay_addr.as_string,
         ctx->stun->results.allocate_response.lifetime_secs);
 
+  nr_turn_client_fire_finished_cb(ctx->tctx);
   _status=0;
 abort:
   if (_status) {
     nr_turn_client_failed(ctx->tctx);
   }
-  tmp_finished_cb = ctx->tctx->finished_cb;
-  ctx->tctx->finished_cb = 0;  /* So we don't call it again */
-  tmp_finished_cb(0, 0, ctx->tctx->cb_arg);
 }
 
 static void nr_turn_client_error_cb(NR_SOCKET s, int how, void *arg)
@@ -526,11 +601,35 @@ static void nr_turn_client_error_cb(NR_SOCKET s, int how, void *arg)
   nr_turn_client_failed(ctx->tctx);
 }
 
+static void nr_turn_client_permission_error_cb(NR_SOCKET s, int how, void *arg)
+{
+  nr_turn_stun_ctx *ctx = (nr_turn_stun_ctx *)arg;
+
+  if (ctx->last_error_code == 403) {
+    r_log(NR_LOG_TURN, LOG_WARNING, "TURN(%s): mode %d, permission denied",
+          ctx->tctx->label, ctx->mode);
+
+  } else{
+    nr_turn_client_error_cb(0, 0, ctx);
+  }
+}
+
 int nr_turn_client_allocate(nr_turn_client_ctx *ctx,
                             NR_async_cb finished_cb, void *cb_arg)
 {
   nr_turn_stun_ctx *stun = 0;
   int r,_status;
+
+  if(ctx->state == NR_TURN_CLIENT_STATE_FAILED ||
+     ctx->state == NR_TURN_CLIENT_STATE_CANCELLED){
+    /* TURN TCP contexts can fail before we ever try to form an allocation,
+     * since the TCP connection can fail. It is also conceivable that a TURN
+     * TCP context could be cancelled before we are done forming all
+     * allocations (although we do not do this at the time this code was
+     * written) */
+    assert(ctx->turn_server_addr.protocol == IPPROTO_TCP);
+    ABORT(R_NOT_FOUND);
+  }
 
   assert(ctx->state == NR_TURN_CLIENT_STATE_INITTED);
 
@@ -728,20 +827,12 @@ int nr_turn_client_send_indication(nr_turn_client_ctx *ctx,
   if ((r=nr_stun_build_send_indication(&params, &ind)))
     ABORT(r);
 
-  if ((r=nr_stun_encode_message(ind)))
+  if ((r=nr_turn_client_send_stun_request(ctx, ind, flags)))
     ABORT(r);
-
-  if ((r=nr_socket_sendto(ctx->sock,
-                          ind->buffer, ind->length, flags,
-                          &ctx->turn_server_addr))) {
-    r_log(NR_LOG_TURN, LOG_WARNING, "TURN(%s): Failed sending send indication",
-          ctx->label);
-    ABORT(r);
-  }
 
   _status=0;
 abort:
-  RFREE(ind);
+  nr_stun_message_destroy(&ind);
   return(_status);
 }
 
@@ -790,6 +881,12 @@ int nr_turn_client_parse_data_indication(nr_turn_client_ctx *ctx,
                                 &attr->u.xor_mapped_address.unmasked)))
     ABORT(r);
 
+#if REFRESH_RESERVATION_ON_RECV
+  if ((r=nr_turn_client_ensure_perm(ctx, remote_addr))) {
+    ABORT(r);
+  }
+#endif
+
   if (!nr_stun_message_has_attribute(ind, NR_STUN_ATTR_DATA, &attr)) {
     ABORT(R_BAD_DATA);
   }
@@ -820,7 +917,7 @@ abort:
    unused.
 
 */
-static int nr_turn_client_ensure_perm(nr_turn_client_ctx *ctx, nr_transport_addr *addr)
+int nr_turn_client_ensure_perm(nr_turn_client_ctx *ctx, nr_transport_addr *addr)
 {
   int r, _status;
   nr_turn_permission *perm = 0;
@@ -880,7 +977,7 @@ static int nr_turn_permission_create(nr_turn_client_ctx *ctx, nr_transport_addr 
 
   if ((r=nr_turn_stun_ctx_create(ctx, NR_TURN_CLIENT_MODE_PERMISSION_REQUEST,
                                  nr_turn_client_permissions_cb,
-                                 nr_turn_client_error_cb,
+                                 nr_turn_client_permission_error_cb,
                                  &perm->stun)))
     ABORT(r);
 
@@ -921,6 +1018,9 @@ static int nr_turn_permission_find(nr_turn_client_ctx *ctx, nr_transport_addr *a
 
   if (!perm) {
     ABORT(R_NOT_FOUND);
+  }
+  if (perm->stun->last_error_code == 403) {
+    ABORT(R_NOT_PERMITTED);
   }
   *permp = perm;
 

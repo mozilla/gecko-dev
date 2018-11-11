@@ -5,8 +5,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/net/PNeckoParent.h"
 #include "mozilla/net/NeckoCommon.h"
+#include "nsIAuthPrompt2.h"
+#include "nsINetworkPredictor.h"
+#include "nsNetUtil.h"
 
 #ifndef mozilla_net_NeckoParent_h
 #define mozilla_net_NeckoParent_h
@@ -22,19 +26,19 @@ enum PBOverrideStatus {
 };
 
 // Header file contents
-class NeckoParent :
-  public PNeckoParent
+class NeckoParent
+  : public PNeckoParent
 {
 public:
   NeckoParent();
   virtual ~NeckoParent();
 
-  MOZ_WARN_UNUSED_RESULT
+  MOZ_MUST_USE
   static const char *
-  GetValidatedAppInfo(const SerializedLoadContext& aSerialized,
-                      PContentParent* aBrowser,
-                      uint32_t* aAppId,
-                      bool* aInBrowserElement);
+  GetValidatedOriginAttributes(const SerializedLoadContext& aSerialized,
+                               PContentParent* aBrowser,
+                               nsIPrincipal* aRequestingPrincipal,
+                               mozilla::DocShellOriginAttributes& aAttrs);
 
   /*
    * Creates LoadContext for parent-side of an e10s channel.
@@ -43,21 +47,18 @@ public:
    *
    * Returns null if successful, or an error string if failed.
    */
-  MOZ_WARN_UNUSED_RESULT
+  MOZ_MUST_USE
   static const char*
   CreateChannelLoadContext(const PBrowserOrId& aBrowser,
                            PContentParent* aContent,
                            const SerializedLoadContext& aSerialized,
+                           nsIPrincipal* aRequestingPrincipal,
                            nsCOMPtr<nsILoadContext> &aResult);
 
-  virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
-
-  virtual void
-  CloneManagees(ProtocolBase* aSource,
-              mozilla::ipc::ProtocolCloneContext* aCtx) MOZ_OVERRIDE;
-  virtual PCookieServiceParent* AllocPCookieServiceParent() MOZ_OVERRIDE;
+  virtual void ActorDestroy(ActorDestroyReason aWhy) override;
+  virtual PCookieServiceParent* AllocPCookieServiceParent() override;
   virtual bool
-  RecvPCookieServiceConstructor(PCookieServiceParent* aActor) MOZ_OVERRIDE
+  RecvPCookieServiceConstructor(PCookieServiceParent* aActor) override
   {
     return PNeckoParent::RecvPCookieServiceConstructor(aActor);
   }
@@ -68,141 +69,156 @@ public:
    * NeckoChild that we want an auth prompt, which forwards the request to the
    * TabParent in the remote iframe that contains the nested iframe
    */
-  class NestedFrameAuthPrompt MOZ_FINAL : public nsIAuthPrompt2
+  class NestedFrameAuthPrompt final : public nsIAuthPrompt2
   {
+    ~NestedFrameAuthPrompt() {}
+
   public:
     NS_DECL_ISUPPORTS
 
-    NestedFrameAuthPrompt(PNeckoParent* aParent, uint64_t aNestedFrameId);
+    NestedFrameAuthPrompt(PNeckoParent* aParent, TabId aNestedFrameId);
 
-    NS_IMETHOD PromptAuth(nsIChannel*, uint32_t, nsIAuthInformation*, bool*)
+    NS_IMETHOD PromptAuth(nsIChannel*, uint32_t, nsIAuthInformation*, bool*) override
     {
       return NS_ERROR_NOT_IMPLEMENTED;
     }
 
     NS_IMETHOD AsyncPromptAuth(nsIChannel* aChannel, nsIAuthPromptCallback* callback,
                                nsISupports*, uint32_t,
-                               nsIAuthInformation* aInfo, nsICancelable**);
-
-    NS_IMETHOD AsyncPromptAuth2(nsIChannel*, nsIDOMElement*,
-                                nsIAuthPromptCallback*, nsISupports*,
-                                uint32_t, nsIAuthInformation*, nsICancelable**)
-    {
-      return NS_ERROR_NOT_IMPLEMENTED;
-    }
+                               nsIAuthInformation* aInfo, nsICancelable**) override;
 
   protected:
     PNeckoParent* mNeckoParent;
-    uint64_t mNestedFrameId;
+    TabId mNestedFrameId;
   };
 
 protected:
   virtual PHttpChannelParent*
     AllocPHttpChannelParent(const PBrowserOrId&, const SerializedLoadContext&,
-                            const HttpChannelCreationArgs& aOpenArgs) MOZ_OVERRIDE;
+                            const HttpChannelCreationArgs& aOpenArgs) override;
   virtual bool
     RecvPHttpChannelConstructor(
                       PHttpChannelParent* aActor,
                       const PBrowserOrId& aBrowser,
                       const SerializedLoadContext& aSerialized,
-                      const HttpChannelCreationArgs& aOpenArgs) MOZ_OVERRIDE;
-  virtual bool DeallocPHttpChannelParent(PHttpChannelParent*) MOZ_OVERRIDE;
-  virtual bool DeallocPCookieServiceParent(PCookieServiceParent*) MOZ_OVERRIDE;
-  virtual PWyciwygChannelParent* AllocPWyciwygChannelParent() MOZ_OVERRIDE;
-  virtual bool DeallocPWyciwygChannelParent(PWyciwygChannelParent*) MOZ_OVERRIDE;
+                      const HttpChannelCreationArgs& aOpenArgs) override;
+  virtual bool DeallocPHttpChannelParent(PHttpChannelParent*) override;
+
+  virtual PAltDataOutputStreamParent* AllocPAltDataOutputStreamParent(
+    const nsCString& type, PHttpChannelParent* channel) override;
+  virtual bool DeallocPAltDataOutputStreamParent(
+    PAltDataOutputStreamParent* aActor) override;
+
+  virtual bool DeallocPCookieServiceParent(PCookieServiceParent*) override;
+  virtual PWyciwygChannelParent* AllocPWyciwygChannelParent() override;
+  virtual bool DeallocPWyciwygChannelParent(PWyciwygChannelParent*) override;
   virtual PFTPChannelParent*
     AllocPFTPChannelParent(const PBrowserOrId& aBrowser,
                            const SerializedLoadContext& aSerialized,
-                           const FTPChannelCreationArgs& aOpenArgs) MOZ_OVERRIDE;
+                           const FTPChannelCreationArgs& aOpenArgs) override;
   virtual bool
     RecvPFTPChannelConstructor(
                       PFTPChannelParent* aActor,
                       const PBrowserOrId& aBrowser,
                       const SerializedLoadContext& aSerialized,
-                      const FTPChannelCreationArgs& aOpenArgs) MOZ_OVERRIDE;
-  virtual bool DeallocPFTPChannelParent(PFTPChannelParent*) MOZ_OVERRIDE;
+                      const FTPChannelCreationArgs& aOpenArgs) override;
+  virtual bool DeallocPFTPChannelParent(PFTPChannelParent*) override;
   virtual PWebSocketParent*
     AllocPWebSocketParent(const PBrowserOrId& browser,
-                          const SerializedLoadContext& aSerialized) MOZ_OVERRIDE;
-  virtual bool DeallocPWebSocketParent(PWebSocketParent*) MOZ_OVERRIDE;
-  virtual PTCPSocketParent* AllocPTCPSocketParent() MOZ_OVERRIDE;
+                          const SerializedLoadContext& aSerialized,
+                          const uint32_t& aSerial) override;
+  virtual bool DeallocPWebSocketParent(PWebSocketParent*) override;
+  virtual PTCPSocketParent* AllocPTCPSocketParent(const nsString& host,
+                                                  const uint16_t& port) override;
 
-  virtual PRemoteOpenFileParent*
-    AllocPRemoteOpenFileParent(const SerializedLoadContext& aSerialized,
-                               const URIParams& aFileURI,
-                               const OptionalURIParams& aAppURI) MOZ_OVERRIDE;
-  virtual bool
-    RecvPRemoteOpenFileConstructor(PRemoteOpenFileParent* aActor,
-                                   const SerializedLoadContext& aSerialized,
-                                   const URIParams& aFileURI,
-                                   const OptionalURIParams& aAppURI)
-                                   MOZ_OVERRIDE;
-  virtual bool DeallocPRemoteOpenFileParent(PRemoteOpenFileParent* aActor)
-                                            MOZ_OVERRIDE;
-
-  virtual bool DeallocPTCPSocketParent(PTCPSocketParent*) MOZ_OVERRIDE;
+  virtual bool DeallocPTCPSocketParent(PTCPSocketParent*) override;
   virtual PTCPServerSocketParent*
     AllocPTCPServerSocketParent(const uint16_t& aLocalPort,
                                 const uint16_t& aBacklog,
-                                const nsString& aBinaryType) MOZ_OVERRIDE;
+                                const bool& aUseArrayBuffers) override;
   virtual bool RecvPTCPServerSocketConstructor(PTCPServerSocketParent*,
                                                const uint16_t& aLocalPort,
                                                const uint16_t& aBacklog,
-                                               const nsString& aBinaryType) MOZ_OVERRIDE;
-  virtual bool DeallocPTCPServerSocketParent(PTCPServerSocketParent*) MOZ_OVERRIDE;
-  virtual PUDPSocketParent* AllocPUDPSocketParent(const nsCString& aHost,
-                                                  const uint16_t& aPort,
-                                                  const nsCString& aFilter) MOZ_OVERRIDE;
+                                               const bool& aUseArrayBuffers) override;
+  virtual bool DeallocPTCPServerSocketParent(PTCPServerSocketParent*) override;
+  virtual PUDPSocketParent* AllocPUDPSocketParent(const Principal& aPrincipal,
+                                                  const nsCString& aFilter) override;
   virtual bool RecvPUDPSocketConstructor(PUDPSocketParent*,
-                                         const nsCString& aHost,
-                                         const uint16_t& aPort,
-                                         const nsCString& aFilter) MOZ_OVERRIDE;
-  virtual bool DeallocPUDPSocketParent(PUDPSocketParent*) MOZ_OVERRIDE;
+                                         const Principal& aPrincipal,
+                                         const nsCString& aFilter) override;
+  virtual bool DeallocPUDPSocketParent(PUDPSocketParent*) override;
   virtual PDNSRequestParent* AllocPDNSRequestParent(const nsCString& aHost,
-                                                    const uint32_t& aFlags) MOZ_OVERRIDE;
+                                                    const uint32_t& aFlags,
+                                                    const nsCString& aNetworkInterface) override;
   virtual bool RecvPDNSRequestConstructor(PDNSRequestParent* actor,
                                           const nsCString& hostName,
-                                          const uint32_t& flags) MOZ_OVERRIDE;
-  virtual bool DeallocPDNSRequestParent(PDNSRequestParent*) MOZ_OVERRIDE;
+                                          const uint32_t& flags,
+                                          const nsCString& aNetworkInterface) override;
+  virtual bool DeallocPDNSRequestParent(PDNSRequestParent*) override;
+  virtual bool RecvSpeculativeConnect(const URIParams& aURI,
+                                      const Principal& aPrincipal,
+                                      const bool& aAnonymous) override;
   virtual bool RecvHTMLDNSPrefetch(const nsString& hostname,
-                                   const uint16_t& flags) MOZ_OVERRIDE;
+                                   const uint16_t& flags) override;
   virtual bool RecvCancelHTMLDNSPrefetch(const nsString& hostname,
                                          const uint16_t& flags,
-                                         const nsresult& reason) MOZ_OVERRIDE;
+                                         const nsresult& reason) override;
+  virtual PWebSocketEventListenerParent*
+    AllocPWebSocketEventListenerParent(const uint64_t& aInnerWindowID) override;
+  virtual bool DeallocPWebSocketEventListenerParent(PWebSocketEventListenerParent*) override;
 
-  virtual mozilla::ipc::IProtocol*
-  CloneProtocol(Channel* aChannel,
-                mozilla::ipc::ProtocolCloneContext* aCtx) MOZ_OVERRIDE;
-  virtual PRtspControllerParent* AllocPRtspControllerParent() MOZ_OVERRIDE;
-  virtual bool DeallocPRtspControllerParent(PRtspControllerParent*) MOZ_OVERRIDE;
+  virtual PDataChannelParent*
+    AllocPDataChannelParent(const uint32_t& channelId) override;
+  virtual bool DeallocPDataChannelParent(PDataChannelParent* parent) override;
+
+  virtual bool RecvPDataChannelConstructor(PDataChannelParent* aActor,
+                                           const uint32_t& channelId) override;
+
+  virtual PRtspControllerParent* AllocPRtspControllerParent() override;
+  virtual bool DeallocPRtspControllerParent(PRtspControllerParent*) override;
 
   virtual PRtspChannelParent*
     AllocPRtspChannelParent(const RtspChannelConnectArgs& aArgs)
-                            MOZ_OVERRIDE;
+                            override;
   virtual bool
     RecvPRtspChannelConstructor(PRtspChannelParent* aActor,
                                 const RtspChannelConnectArgs& aArgs)
-                                MOZ_OVERRIDE;
-  virtual bool DeallocPRtspChannelParent(PRtspChannelParent*) MOZ_OVERRIDE;
+                                override;
+  virtual bool DeallocPRtspChannelParent(PRtspChannelParent*) override;
 
   virtual PChannelDiverterParent*
-  AllocPChannelDiverterParent(const ChannelDiverterArgs& channel) MOZ_OVERRIDE;
+  AllocPChannelDiverterParent(const ChannelDiverterArgs& channel) override;
   virtual bool
   RecvPChannelDiverterConstructor(PChannelDiverterParent* actor,
-                                  const ChannelDiverterArgs& channel) MOZ_OVERRIDE;
+                                  const ChannelDiverterArgs& channel) override;
   virtual bool DeallocPChannelDiverterParent(PChannelDiverterParent* actor)
-                                                                MOZ_OVERRIDE;
+                                                                override;
+  virtual PTransportProviderParent*
+  AllocPTransportProviderParent() override;
+  virtual bool
+  DeallocPTransportProviderParent(PTransportProviderParent* aActor) override;
 
   virtual bool RecvOnAuthAvailable(const uint64_t& aCallbackId,
                                    const nsString& aUser,
                                    const nsString& aPassword,
-                                   const nsString& aDomain) MOZ_OVERRIDE;
+                                   const nsString& aDomain) override;
   virtual bool RecvOnAuthCancelled(const uint64_t& aCallbackId,
-                                   const bool& aUserCancel) MOZ_OVERRIDE;
+                                   const bool& aUserCancel) override;
 
-private:
-  nsCString mCoreAppsBasePath;
-  nsCString mWebAppsBasePath;
+  /* Predictor Messages */
+  virtual bool RecvPredPredict(const ipc::OptionalURIParams& aTargetURI,
+                               const ipc::OptionalURIParams& aSourceURI,
+                               const PredictorPredictReason& aReason,
+                               const IPC::SerializedLoadContext& aLoadContext,
+                               const bool& hasVerifier) override;
+
+  virtual bool RecvPredLearn(const ipc::URIParams& aTargetURI,
+                             const ipc::OptionalURIParams& aSourceURI,
+                             const PredictorPredictReason& aReason,
+                             const IPC::SerializedLoadContext& aLoadContext) override;
+  virtual bool RecvPredReset() override;
+
+  virtual bool RecvRemoveRequestContext(const nsCString& rcid) override;
 };
 
 } // namespace net

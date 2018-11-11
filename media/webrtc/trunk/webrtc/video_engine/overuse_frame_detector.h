@@ -11,29 +11,19 @@
 #ifndef WEBRTC_VIDEO_ENGINE_OVERUSE_FRAME_DETECTOR_H_
 #define WEBRTC_VIDEO_ENGINE_OVERUSE_FRAME_DETECTOR_H_
 
+#include "webrtc/base/constructormagic.h"
+#include "webrtc/base/criticalsection.h"
+#include "webrtc/base/scoped_ptr.h"
+#include "webrtc/base/exp_filter.h"
+#include "webrtc/base/thread_annotations.h"
+#include "webrtc/base/thread_checker.h"
 #include "webrtc/modules/interface/module.h"
-#include "webrtc/system_wrappers/interface/constructor_magic.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
-#include "webrtc/test/testsupport/gtest_prod_util.h"
+#include "webrtc/video_engine/include/vie_base.h"
 
 namespace webrtc {
 
 class Clock;
 class CpuOveruseObserver;
-class CriticalSectionWrapper;
-class VCMExpFilter;
-
-// Limits on standard deviation for under/overuse.
-#ifdef WEBRTC_LINUX
-const float kOveruseStdDevMs = 15.0f;
-const float kNormalUseStdDevMs = 7.0f;
-#elif WEBRTC_MAC
-const float kOveruseStdDevMs = 24.0f;
-const float kNormalUseStdDevMs = 14.0f;
-#else
-const float kOveruseStdDevMs = 17.0f;
-const float kNormalUseStdDevMs = 10.0f;
-#endif
 
 // TODO(pbos): Move this somewhere appropriate.
 class Statistics {
@@ -42,6 +32,7 @@ class Statistics {
 
   void AddSample(float sample_ms);
   void Reset();
+  void SetOptions(const CpuOveruseOptions& options);
 
   float Mean() const;
   float StdDev() const;
@@ -53,24 +44,27 @@ class Statistics {
 
   float sum_;
   uint64_t count_;
-  scoped_ptr<VCMExpFilter> filtered_samples_;
-  scoped_ptr<VCMExpFilter> filtered_variance_;
+  CpuOveruseOptions options_;
+  rtc::scoped_ptr<rtc::ExpFilter> filtered_samples_;
+  rtc::scoped_ptr<rtc::ExpFilter> filtered_variance_;
 };
 
 // Use to detect system overuse based on jitter in incoming frames.
 class OveruseFrameDetector : public Module {
  public:
-  explicit OveruseFrameDetector(Clock* clock,
-                                float normaluse_stddev_ms,
-                                float overuse_stddev_ms);
+  OveruseFrameDetector(Clock* clock,
+                       CpuOveruseMetricsObserver* metrics_observer);
   ~OveruseFrameDetector();
 
   // Registers an observer receiving overuse and underuse callbacks. Set
   // 'observer' to NULL to disable callbacks.
   void SetObserver(CpuOveruseObserver* observer);
 
+  // Sets options for overuse detection.
+  void SetOptions(const CpuOveruseOptions& options);
+
   // Called for each captured frame.
-  void FrameCaptured(int width, int height);
+  void FrameCaptured(int width, int height, int64_t capture_time_ms);
 
   // Called when the processing of a captured frame is started.
   void FrameProcessingStarted();
@@ -78,91 +72,90 @@ class OveruseFrameDetector : public Module {
   // Called for each encoded frame.
   void FrameEncoded(int encode_time_ms);
 
-  // Accessors.
-  // The last estimated jitter based on the incoming captured frames.
-  int last_capture_jitter_ms() const;
+  // Called for each sent frame.
+  void FrameSent(int64_t capture_time_ms);
 
-  // Running average of reported encode time (FrameEncoded()).
-  // Only used for stats.
-  int AvgEncodeTimeMs() const;
-
-  // The average encode time divided by the average time difference between
-  // incoming captured frames.
-  // This variable is currently only used for statistics.
-  int EncodeUsagePercent() const;
-
-  // The current time delay between an incoming captured frame (FrameCaptured())
-  // until the frame is being processed (FrameProcessingStarted()).
-  // (Note: if a new frame is received before an old frame has been processed,
-  // the old frame is skipped).
-  // The delay is returned as the delay in ms per second.
-  // This variable is currently only used for statistics.
-  int AvgCaptureQueueDelayMsPerS() const;
+  // Only public for testing.
   int CaptureQueueDelayMsPerS() const;
+  int LastProcessingTimeMs() const;
+  int FramesInQueue() const;
 
   // Implements Module.
-  virtual int32_t TimeUntilNextProcess() OVERRIDE;
-  virtual int32_t Process() OVERRIDE;
+  int64_t TimeUntilNextProcess() override;
+  int32_t Process() override;
 
  private:
-  FRIEND_TEST_ALL_PREFIXES(OveruseFrameDetectorTest, TriggerOveruse);
-  FRIEND_TEST_ALL_PREFIXES(OveruseFrameDetectorTest, OveruseAndRecover);
-  FRIEND_TEST_ALL_PREFIXES(OveruseFrameDetectorTest, DoubleOveruseAndRecover);
-  FRIEND_TEST_ALL_PREFIXES(
-      OveruseFrameDetectorTest, TriggerNormalUsageWithMinProcessCount);
-  FRIEND_TEST_ALL_PREFIXES(
-      OveruseFrameDetectorTest, ConstantOveruseGivesNoNormalUsage);
-  FRIEND_TEST_ALL_PREFIXES(OveruseFrameDetectorTest, LastCaptureJitter);
-
-  void set_min_process_count_before_reporting(int64_t count) {
-    min_process_count_before_reporting_ = count;
-  }
-
   class EncodeTimeAvg;
-  class EncodeUsage;
+  class SendProcessingUsage;
   class CaptureQueueDelay;
+  class FrameQueue;
 
-  bool IsOverusing();
-  bool IsUnderusing(int64_t time_now);
+  void UpdateCpuOveruseMetrics() EXCLUSIVE_LOCKS_REQUIRED(crit_);
 
-  bool DetectFrameTimeout(int64_t now) const;
+  // TODO(asapersson): This method is only used on one thread, so it shouldn't
+  // need a guard.
+  void AddProcessingTime(int elapsed_ms) EXCLUSIVE_LOCKS_REQUIRED(crit_);
 
-  // Protecting all members.
-  scoped_ptr<CriticalSectionWrapper> crit_;
+  // TODO(asapersson): This method is always called on the processing thread.
+  // If locking is required, consider doing that locking inside the
+  // implementation and reduce scope as much as possible.  We should also
+  // see if we can avoid calling out to other methods while holding the lock.
+  bool IsOverusing() EXCLUSIVE_LOCKS_REQUIRED(crit_);
+  bool IsUnderusing(int64_t time_now) EXCLUSIVE_LOCKS_REQUIRED(crit_);
 
-  // Limits on standard deviation for under/overuse.
-  const float normaluse_stddev_ms_;
-  const float overuse_stddev_ms_;
+  bool FrameTimeoutDetected(int64_t now) const EXCLUSIVE_LOCKS_REQUIRED(crit_);
+  bool FrameSizeChanged(int num_pixels) const EXCLUSIVE_LOCKS_REQUIRED(crit_);
 
-  int64_t min_process_count_before_reporting_;
+  void ResetAll(int num_pixels) EXCLUSIVE_LOCKS_REQUIRED(crit_);
+
+  // Protecting all members except const and those that are only accessed on the
+  // processing thread.
+  // TODO(asapersson): See if we can reduce locking.  As is, video frame
+  // processing contends with reading stats and the processing thread.
+  mutable rtc::CriticalSection crit_;
 
   // Observer getting overuse reports.
-  CpuOveruseObserver* observer_;
+  CpuOveruseObserver* observer_ GUARDED_BY(crit_);
 
-  Clock* clock_;
-  int64_t next_process_time_;
-  int64_t num_process_times_;
+  CpuOveruseOptions options_ GUARDED_BY(crit_);
 
-  Statistics capture_deltas_;
-  int64_t last_capture_time_;
+  // Stats metrics.
+  CpuOveruseMetricsObserver* const metrics_observer_;
+  CpuOveruseMetrics metrics_ GUARDED_BY(crit_);
 
+  Clock* const clock_;
+  int64_t next_process_time_;  // Only accessed on the processing thread.
+  int64_t num_process_times_ GUARDED_BY(crit_);
+
+  Statistics capture_deltas_ GUARDED_BY(crit_);
+  int64_t last_capture_time_ GUARDED_BY(crit_);
+
+  // These six members are only accessed on the processing thread.
   int64_t last_overuse_time_;
   int checks_above_threshold_;
+  int num_overuse_detections_;
 
   int64_t last_rampup_time_;
   bool in_quick_rampup_;
   int current_rampup_delay_ms_;
 
   // Number of pixels of last captured frame.
-  int num_pixels_;
+  int num_pixels_ GUARDED_BY(crit_);
 
-  int last_capture_jitter_ms_;
+  int64_t last_encode_sample_ms_;  // Only accessed by one thread.
 
-  int64_t last_encode_sample_ms_;
-  scoped_ptr<EncodeTimeAvg> encode_time_;
-  scoped_ptr<EncodeUsage> encode_usage_;
+  // TODO(asapersson): Can these be regular members (avoid separate heap
+  // allocs)?
+  const rtc::scoped_ptr<EncodeTimeAvg> encode_time_ GUARDED_BY(crit_);
+  const rtc::scoped_ptr<SendProcessingUsage> usage_ GUARDED_BY(crit_);
+  const rtc::scoped_ptr<FrameQueue> frame_queue_ GUARDED_BY(crit_);
 
-  scoped_ptr<CaptureQueueDelay> capture_queue_delay_;
+  int64_t last_sample_time_ms_;  // Only accessed by one thread.
+
+  const rtc::scoped_ptr<CaptureQueueDelay> capture_queue_delay_
+      GUARDED_BY(crit_);
+
+  rtc::ThreadChecker processing_thread_;
 
   DISALLOW_COPY_AND_ASSIGN(OveruseFrameDetector);
 };

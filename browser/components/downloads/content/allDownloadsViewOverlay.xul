@@ -4,7 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-<?xml-stylesheet href="chrome://browser/content/downloads/allDownloadsViewOverlay.css"?>
+<?xml-stylesheet href="chrome://browser/content/downloads/downloads.css"?>
 <?xml-stylesheet href="chrome://browser/skin/downloads/allDownloadsViewOverlay.css"?>
 
 <!DOCTYPE overlay [
@@ -61,6 +61,14 @@
              oncommand="goDoCommand('downloadsCmd_pauseResume')"/>
     <command id="downloadsCmd_cancel"
              oncommand="goDoCommand('downloadsCmd_cancel')"/>
+    <command id="downloadsCmd_unblock"
+             oncommand="goDoCommand('downloadsCmd_unblock')"/>
+    <command id="downloadsCmd_chooseUnblock"
+             oncommand="goDoCommand('downloadsCmd_chooseUnblock')"/>
+    <command id="downloadsCmd_chooseOpen"
+             oncommand="goDoCommand('downloadsCmd_chooseOpen')"/>
+    <command id="downloadsCmd_confirmBlock"
+             oncommand="goDoCommand('downloadsCmd_confirmBlock')"/>
     <command id="downloadsCmd_open"
              oncommand="goDoCommand('downloadsCmd_open')"/>
     <command id="downloadsCmd_show"
@@ -86,6 +94,10 @@
               class="downloadCancelMenuItem"
               label="&cmd.cancel.label;"
               accesskey="&cmd.cancel.accesskey;"/>
+    <menuitem command="downloadsCmd_unblock"
+              class="downloadUnblockMenuItem"
+              label="&cmd.unblock2.label;"
+              accesskey="&cmd.unblock2.accesskey;"/>
     <menuitem command="cmd_delete"
               class="downloadRemoveFromHistoryMenuItem"
               label="&cmd.removeFromHistory.label;"

@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 // Copyright (c) 2006-2008 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -7,6 +9,7 @@
 #include "base/logging.h"
 #include "base/win_util.h"
 #include "base/string_util.h"
+#include "mozilla/ipc/ProtocolUtils.h"
 
 namespace base {
 
@@ -18,32 +21,18 @@ SharedMemory::SharedMemory()
       lock_(NULL) {
 }
 
-SharedMemory::SharedMemory(SharedMemoryHandle handle, bool read_only)
-    : mapped_file_(handle),
-      memory_(NULL),
-      read_only_(read_only),
-      max_size_(0),
-      lock_(NULL) {
-}
-
-SharedMemory::SharedMemory(SharedMemoryHandle handle, bool read_only,
-                           ProcessHandle process)
-    : mapped_file_(NULL),
-      memory_(NULL),
-      read_only_(read_only),
-      max_size_(0),
-      lock_(NULL) {
-  ::DuplicateHandle(process, handle,
-                    GetCurrentProcess(), &mapped_file_,
-                    STANDARD_RIGHTS_REQUIRED |
-                    (read_only_ ? FILE_MAP_READ : FILE_MAP_ALL_ACCESS),
-                    FALSE, 0);
-}
-
 SharedMemory::~SharedMemory() {
   Close();
   if (lock_ != NULL)
     CloseHandle(lock_);
+}
+
+bool SharedMemory::SetHandle(SharedMemoryHandle handle, bool read_only) {
+  DCHECK(mapped_file_ == NULL);
+
+  mapped_file_ = handle;
+  read_only_ = read_only;
+  return true;
 }
 
 // static
@@ -118,7 +107,7 @@ bool SharedMemory::Unmap() {
   return true;
 }
 
-bool SharedMemory::ShareToProcessCommon(ProcessHandle process,
+bool SharedMemory::ShareToProcessCommon(ProcessId processId,
                                         SharedMemoryHandle *new_handle,
                                         bool close_self) {
   *new_handle = 0;
@@ -135,23 +124,24 @@ bool SharedMemory::ShareToProcessCommon(ProcessHandle process,
     Unmap();
   }
 
-  if (process == GetCurrentProcess() && close_self) {
+  if (processId == GetCurrentProcId() && close_self) {
     *new_handle = mapped_file;
     return true;
   }
 
-  if (!DuplicateHandle(GetCurrentProcess(), mapped_file, process,
-      &result, access, FALSE, options))
+  if (!mozilla::ipc::DuplicateHandle(mapped_file, processId, &result, access,
+                                     options)) {
     return false;
+  }
+
   *new_handle = result;
   return true;
 }
 
 
-void SharedMemory::Close() {
-  if (memory_ != NULL) {
-    UnmapViewOfFile(memory_);
-    memory_ = NULL;
+void SharedMemory::Close(bool unmap_view) {
+  if (unmap_view) {
+    Unmap();
   }
 
   if (mapped_file_ != NULL) {

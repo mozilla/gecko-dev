@@ -12,7 +12,7 @@ Components.utils.import("resource://gre/modules/Services.jsm");
 
 const Ci = Components.interfaces;
 const CONTENT_PAGE = "http://mochi.test:8888/chrome/dom/tests/mochitest/localstorage/page_blank.html";
-const slavePath = "/tests/dom/tests/mochitest/localstorage/";
+const slavePath = "/chrome/dom/tests/mochitest/localstorage/";
 var currentTest = 1;
 var quota;
 
@@ -24,10 +24,6 @@ try {
 Services.prefs.setIntPref("browser.startup.page", 0);
 Services.prefs.setIntPref("dom.storage.default_quota", 1);
 
-var mainWindow = window.QueryInterface(Ci.nsIInterfaceRequestor).
-  getInterface(Ci.nsIWebNavigation).QueryInterface(Ci.nsIDocShellTreeItem).
-  rootTreeItem.QueryInterface(Ci.nsIInterfaceRequestor).
-  getInterface(Ci.nsIDOMWindow);
 var slaveLoadsPending = 1;
 var slaveOrigin = "";
 var slave = null;
@@ -43,7 +39,7 @@ function startTest() {
     }, false);
     slave = aWindow.content.frames[0];
 
-    SimpleTest.waitForFocus(function() doNextTest(aWindow), aWindow);
+    SimpleTest.waitForFocus(() => doNextTest(aWindow), aWindow);
   });
 }
 
@@ -142,7 +138,11 @@ function onMessageReceived(event, aWindow) {
       // Just fall through...
     // Indication of successfully finished step of a test
     case "perf":
-      slave.postMessage("step", slaveOrigin);
+      // postMessage should send to the slaveOrigin. However with the addition of private
+      // browsing flags in origin attributes this will cause postMessage to fail. The origin of this
+      // window has false privatebrowsing, while the recipient is in a private window.
+      // To fix this issue and preserve the integrity of the test a * is passed to get around origin equality.
+      slave.postMessage("step", "*");
       break;
     // Indication of all test parts finish (from any of the frames)
     case "done":
@@ -157,23 +157,34 @@ function onMessageReceived(event, aWindow) {
   }
 }
 
-function testOnWindow(aIsPrivate, aCallback) {
-  var win = mainWindow.OpenBrowserWindow({private: aIsPrivate});
-  win.addEventListener("load", function onLoad() {
-    win.removeEventListener("load", onLoad, false);
-    win.addEventListener("DOMContentLoaded", function onInnerLoad() {
-      if (win.content.location.href != CONTENT_PAGE) {
-        win.gBrowser.loadURI(CONTENT_PAGE);
-        return;
-      }
-      win.removeEventListener("DOMContentLoaded", onInnerLoad, true);
-      win.gBrowser.selectedBrowser.focus();
-      SimpleTest.executeSoon(function() { aCallback(win); });
-    }, true);
-    win.gBrowser.loadURI(CONTENT_PAGE);
-  }, true);
+function whenDelayedStartupFinished(aWindow, aCallback) {
+  Services.obs.addObserver(function observer(aSubject, aTopic) {
+    if (aWindow == aSubject) {
+      Services.obs.removeObserver(observer, aTopic);
+    }
+
+    if (aWindow.content == null || aWindow.content.location.href != CONTENT_PAGE ) {
+      aWindow.addEventListener("DOMContentLoaded", function onInnerLoad() {
+        aWindow.removeEventListener("DOMContentLoaded", onInnerLoad, true);
+        SimpleTest.executeSoon(function() { aCallback(aWindow); });
+      }, true);
+
+      aWindow.gBrowser.loadURI(CONTENT_PAGE);
+    }
+  }, "browser-delayed-startup-finished", false);
 }
 
+function testOnWindow(aIsPrivate, callback) {
+  var mainWindow = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                         .getInterface(Ci.nsIWebNavigation)
+                         .QueryInterface(Ci.nsIDocShellTreeItem)
+                         .rootTreeItem
+                         .QueryInterface(Ci.nsIInterfaceRequestor)
+                         .getInterface(Ci.nsIDOMWindow);
+
+  var win = mainWindow.OpenBrowserWindow({private: aIsPrivate});
+  whenDelayedStartupFinished(win, function() { callback(win); });
+};
 </script>
 </head>
 <body onload="startTest();">

@@ -15,6 +15,11 @@
 
 #include "ImageContainer.h"
 
+#include "webrtc/common_types.h"
+namespace webrtc {
+class I420VideoFrame;
+}
+
 #include <vector>
 
 namespace mozilla {
@@ -25,9 +30,10 @@ namespace mozilla {
  */
 class TransportInterface
 {
-public:
+protected:
   virtual ~TransportInterface() {}
 
+public:
   /**
    * RTP Transport Function to be implemented by concrete transport implementation
    * @param data : RTP Packet (audio/video) to be transported
@@ -53,7 +59,7 @@ public:
 class ImageHandle
 {
 public:
-  ImageHandle(layers::Image* image) : mImage(image) {}
+  explicit ImageHandle(layers::Image* image) : mImage(image) {}
 
   const RefPtr<layers::Image>& GetImage() const { return mImage; }
 
@@ -71,9 +77,10 @@ private:
  */
 class VideoRenderer
 {
- public:
+protected:
   virtual ~VideoRenderer() {}
 
+public:
   /**
    * Callback Function reportng any change in the video-frame dimensions
    * @param width:  current width of the video @ decoder
@@ -102,7 +109,14 @@ class VideoRenderer
    * inside until it's no longer needed.
    */
   virtual void RenderVideoFrame(const unsigned char* buffer,
-                                unsigned int buffer_size,
+                                size_t buffer_size,
+                                uint32_t time_stamp,
+                                int64_t render_time,
+                                const ImageHandle& handle) = 0;
+  virtual void RenderVideoFrame(const unsigned char* buffer,
+                                size_t buffer_size,
+                                uint32_t y_stride,
+                                uint32_t cbcr_stride,
                                 uint32_t time_stamp,
                                 int64_t render_time,
                                 const ImageHandle& handle) = 0;
@@ -122,10 +136,11 @@ class VideoRenderer
  */
 class MediaSessionConduit
 {
+protected:
+  virtual ~MediaSessionConduit() {}
+
 public:
   enum Type { AUDIO, VIDEO } ;
-
-  virtual ~MediaSessionConduit() {}
 
   virtual Type type() const = 0;
 
@@ -149,17 +164,39 @@ public:
    */
   virtual MediaConduitErrorCode ReceivedRTCPPacket(const void *data, int len) = 0;
 
+  virtual MediaConduitErrorCode StopTransmitting() = 0;
+  virtual MediaConduitErrorCode StartTransmitting() = 0;
+  virtual MediaConduitErrorCode StopReceiving() = 0;
+  virtual MediaConduitErrorCode StartReceiving() = 0;
+
 
   /**
-   * Function to attach Transport end-point of the Media conduit.
+   * Function to attach transmitter transport end-point of the Media conduit.
    * @param aTransport: Reference to the concrete teansport implementation
+   * When nullptr, unsets the transmitter transport endpoint.
    * Note: Multiple invocations of this call , replaces existing transport with
    * with the new one.
+   * Note: This transport is used for RTP, and RTCP if no receiver transport is
+   * set. In the future, we should ensure that RTCP sender reports use this
+   * regardless of whether the receiver transport is set.
    */
-  virtual MediaConduitErrorCode AttachTransport(RefPtr<TransportInterface> aTransport) = 0;
+  virtual MediaConduitErrorCode SetTransmitterTransport(RefPtr<TransportInterface> aTransport) = 0;
 
+  /**
+   * Function to attach receiver transport end-point of the Media conduit.
+   * @param aTransport: Reference to the concrete teansport implementation
+   * When nullptr, unsets the receiver transport endpoint.
+   * Note: Multiple invocations of this call , replaces existing transport with
+   * with the new one.
+   * Note: This transport is used for RTCP.
+   * Note: In the future, we should avoid using this for RTCP sender reports.
+   */
+  virtual MediaConduitErrorCode SetReceiverTransport(RefPtr<TransportInterface> aTransport) = 0;
+
+  virtual bool SetLocalSSRC(unsigned int ssrc) = 0;
   virtual bool GetLocalSSRC(unsigned int* ssrc) = 0;
   virtual bool GetRemoteSSRC(unsigned int* ssrc) = 0;
+  virtual bool SetLocalCNAME(const char* cname) = 0;
 
   /**
    * Functions returning stats needed by w3c stats model.
@@ -189,21 +226,31 @@ public:
                                    unsigned int* packetsSent,
                                    uint64_t* bytesSent) = 0;
 
+  virtual uint64_t CodecPluginID() = 0;
+
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaSessionConduit)
 
 };
 
 // Abstract base classes for external encoder/decoder.
-class VideoEncoder
+class CodecPluginID
 {
 public:
-  virtual ~VideoEncoder() {};
+  virtual ~CodecPluginID() {}
+
+  virtual uint64_t PluginID() const = 0;
 };
 
-class VideoDecoder
+class VideoEncoder : public CodecPluginID
 {
 public:
-  virtual ~VideoDecoder() {};
+  virtual ~VideoEncoder() {}
+};
+
+class VideoDecoder : public CodecPluginID
+{
+public:
+  virtual ~VideoDecoder() {}
 };
 
 /**
@@ -219,7 +266,7 @@ public:
    * return: Concrete VideoSessionConduitObject or nullptr in the case
    *         of failure
    */
-  static RefPtr<VideoSessionConduit> Create(VideoSessionConduit *aOther);
+  static RefPtr<VideoSessionConduit> Create();
 
   enum FrameRequestType
   {
@@ -230,7 +277,9 @@ public:
   };
 
   VideoSessionConduit() : mFrameRequestMethod(FrameRequestNone),
-                          mUsingNackBasic(false) {}
+                          mUsingNackBasic(false),
+                          mUsingTmmbr(false),
+                          mUsingFEC(false) {}
 
   virtual ~VideoSessionConduit() {}
 
@@ -262,7 +311,9 @@ public:
                                                unsigned short height,
                                                VideoType video_type,
                                                uint64_t capture_time) = 0;
+  virtual MediaConduitErrorCode SendVideoFrame(webrtc::I420VideoFrame& frame) = 0;
 
+  virtual MediaConduitErrorCode ConfigureCodecMode(webrtc::VideoCodecMode) = 0;
   /**
    * Function to configure send codec for the video session
    * @param sendSessionConfig: CodecConfiguration
@@ -301,6 +352,14 @@ public:
                                                      VideoDecoder* decoder) = 0;
 
   /**
+   * Function to enable the RTP Stream ID (RID) extension
+   * @param enabled: enable extension
+   * @param id: id to be used for this rtp header extension
+   * NOTE: See VideoConduit for more information
+   */
+  virtual MediaConduitErrorCode EnableRTPStreamIdExtension(bool enabled, uint8_t id) = 0;
+
+  /**
    * These methods allow unit tests to double-check that the
    * max-fs and max-fr related settings are as expected.
    */
@@ -324,10 +383,20 @@ public:
       return mUsingNackBasic;
     }
 
+    bool UsingTmmbr() const {
+      return mUsingTmmbr;
+    }
+
+    bool UsingFEC() const {
+      return mUsingFEC;
+    }
+
    protected:
      /* RTCP feedback settings, for unit testing purposes */
      FrameRequestType mFrameRequestMethod;
      bool mUsingNackBasic;
+     bool mUsingTmmbr;
+     bool mUsingFEC;
 };
 
 /**
@@ -344,7 +413,7 @@ public:
     * return: Concrete AudioSessionConduitObject or nullptr in the case
     *         of failure
     */
-  static mozilla::RefPtr<AudioSessionConduit> Create(AudioSessionConduit *aOther);
+  static RefPtr<AudioSessionConduit> Create();
 
   virtual ~AudioSessionConduit() {}
 
@@ -415,6 +484,11 @@ public:
     * NOTE: See AudioConduit for more information
     */
   virtual MediaConduitErrorCode EnableAudioLevelExtension(bool enabled, uint8_t id) = 0;
+
+  virtual bool SetDtmfPayloadType(unsigned char type) = 0;
+
+  virtual bool InsertDTMFTone(int channel, int eventCode, bool outOfBand,
+                              int lengthMs, int attenuationDb) = 0;
 
 };
 }

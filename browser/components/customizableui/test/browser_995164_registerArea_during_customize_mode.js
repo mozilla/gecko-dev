@@ -6,32 +6,36 @@
 
 const TOOLBARID = "test-toolbar-added-during-customize-mode";
 
+// The ID of a button that is not placed (ie, is in the palette) by default
+const kNonPlacedWidgetId = "open-file-button";
+
 add_task(function*() {
   yield startCustomizing();
   let toolbar = createToolbarWithPlacements(TOOLBARID, []);
-  CustomizableUI.addWidgetToArea("sync-button", TOOLBARID);
-  let syncButton = document.getElementById("sync-button");
-  ok(syncButton, "Sync button should exist.");
-  is(syncButton.parentNode.localName, "toolbarpaletteitem", "Sync button's parent node should be a wrapper.");
+  CustomizableUI.addWidgetToArea(kNonPlacedWidgetId, TOOLBARID);
+  let button = document.getElementById(kNonPlacedWidgetId);
+  ok(button, "Button should exist.");
+  is(button.parentNode.localName, "toolbarpaletteitem", "Button's parent node should be a wrapper.");
 
-  simulateItemDrag(syncButton, gNavToolbox.palette);
-  ok(!CustomizableUI.getPlacementOfWidget("sync-button"), "Button moved to the palette");
-  ok(gNavToolbox.palette.querySelector("#sync-button"), "Sync button really is in palette.");
+  simulateItemDrag(button, gNavToolbox.palette);
+  ok(!CustomizableUI.getPlacementOfWidget(kNonPlacedWidgetId), "Button moved to the palette");
+  ok(gNavToolbox.palette.querySelector(`#${kNonPlacedWidgetId}`), "Button really is in palette.");
 
-  simulateItemDrag(syncButton, toolbar);
-  ok(CustomizableUI.getPlacementOfWidget("sync-button"), "Button moved out of palette");
-  is(CustomizableUI.getPlacementOfWidget("sync-button").area, TOOLBARID, "Button's back on toolbar");
-  ok(toolbar.querySelector("#sync-button"), "Sync button really is on toolbar.");
+  button.scrollIntoView();
+  simulateItemDrag(button, toolbar);
+  ok(CustomizableUI.getPlacementOfWidget(kNonPlacedWidgetId), "Button moved out of palette");
+  is(CustomizableUI.getPlacementOfWidget(kNonPlacedWidgetId).area, TOOLBARID, "Button's back on toolbar");
+  ok(toolbar.querySelector(`#${kNonPlacedWidgetId}`), "Button really is on toolbar.");
 
   yield endCustomizing();
-  isnot(syncButton.parentNode.localName, "toolbarpaletteitem", "Sync button's parent node should not be a wrapper outside customize mode.");
+  isnot(button.parentNode.localName, "toolbarpaletteitem", "Button's parent node should not be a wrapper outside customize mode.");
   yield startCustomizing();
 
-  is(syncButton.parentNode.localName, "toolbarpaletteitem", "Sync button's parent node should be a wrapper back in customize mode.");
+  is(button.parentNode.localName, "toolbarpaletteitem", "Button's parent node should be a wrapper back in customize mode.");
 
-  simulateItemDrag(syncButton, gNavToolbox.palette);
-  ok(!CustomizableUI.getPlacementOfWidget("sync-button"), "Button moved to the palette");
-  ok(gNavToolbox.palette.querySelector("#sync-button"), "Sync button really is in palette.");
+  simulateItemDrag(button, gNavToolbox.palette);
+  ok(!CustomizableUI.getPlacementOfWidget(kNonPlacedWidgetId), "Button moved to the palette");
+  ok(gNavToolbox.palette.querySelector(`#${kNonPlacedWidgetId}`), "Button really is in palette.");
 
   ok(!CustomizableUI.inDefaultState, "Not in default state while toolbar is not collapsed yet.");
   setToolbarVisibility(toolbar, false);
@@ -42,17 +46,18 @@ add_task(function*() {
   info("Check that removing the area registration from within customize mode works");
   CustomizableUI.unregisterArea(TOOLBARID);
   ok(CustomizableUI.inDefaultState, "Now that the toolbar is no longer registered, should be in default state.");
-  ok(!(new Set(gCustomizeMode.areas)).has(toolbar), "Toolbar shouldn't be known to customize mode.");
+  ok(!gCustomizeMode.areas.has(toolbar), "Toolbar shouldn't be known to customize mode.");
 
   CustomizableUI.registerArea(TOOLBARID, {legacy: true, defaultPlacements: []});
   CustomizableUI.registerToolbarNode(toolbar, []);
   ok(!CustomizableUI.inDefaultState, "Now that the toolbar is registered again, should no longer be in default state.");
-  ok((new Set(gCustomizeMode.areas)).has(toolbar), "Toolbar should be known to customize mode again.");
+  ok(gCustomizeMode.areas.has(toolbar), "Toolbar should be known to customize mode again.");
 
-  simulateItemDrag(syncButton, toolbar);
-  ok(CustomizableUI.getPlacementOfWidget("sync-button"), "Button moved out of palette");
-  is(CustomizableUI.getPlacementOfWidget("sync-button").area, TOOLBARID, "Button's back on toolbar");
-  ok(toolbar.querySelector("#sync-button"), "Sync button really is on toolbar.");
+  button.scrollIntoView();
+  simulateItemDrag(button, toolbar);
+  ok(CustomizableUI.getPlacementOfWidget(kNonPlacedWidgetId), "Button moved out of palette");
+  is(CustomizableUI.getPlacementOfWidget(kNonPlacedWidgetId).area, TOOLBARID, "Button's back on toolbar");
+  ok(toolbar.querySelector(`#${kNonPlacedWidgetId}`), "Button really is on toolbar.");
 
   let otherWin = yield openAndLoadWindow({}, true);
   let otherTB = otherWin.document.createElementNS(kNSXUL, "toolbar");
@@ -71,21 +76,22 @@ add_task(function*() {
   ok(wasInformedCorrectlyOfAreaAppearing, "Should have been told area was registered.");
   CustomizableUI.removeListener(listener);
 
-  ok(otherTB.querySelector("#sync-button"), "Sync button is on other toolbar, too.");
+  ok(otherTB.querySelector(`#${kNonPlacedWidgetId}`), "Button is on other toolbar, too.");
 
-  simulateItemDrag(syncButton, gNavToolbox.palette);
-  ok(!CustomizableUI.getPlacementOfWidget("sync-button"), "Button moved to the palette");
-  ok(gNavToolbox.palette.querySelector("#sync-button"), "Sync button really is in palette.");
-  ok(!otherTB.querySelector("#sync-button"), "Sync button is in palette in other window, too.");
+  simulateItemDrag(button, gNavToolbox.palette);
+  ok(!CustomizableUI.getPlacementOfWidget(kNonPlacedWidgetId), "Button moved to the palette");
+  ok(gNavToolbox.palette.querySelector(`#${kNonPlacedWidgetId}`), "Button really is in palette.");
+  ok(!otherTB.querySelector(`#${kNonPlacedWidgetId}`), "Button is in palette in other window, too.");
 
-  simulateItemDrag(syncButton, toolbar);
-  ok(CustomizableUI.getPlacementOfWidget("sync-button"), "Button moved out of palette");
-  is(CustomizableUI.getPlacementOfWidget("sync-button").area, TOOLBARID, "Button's back on toolbar");
-  ok(toolbar.querySelector("#sync-button"), "Sync button really is on toolbar.");
-  ok(otherTB.querySelector("#sync-button"), "Sync button is on other toolbar, too.");
+  button.scrollIntoView();
+  simulateItemDrag(button, toolbar);
+  ok(CustomizableUI.getPlacementOfWidget(kNonPlacedWidgetId), "Button moved out of palette");
+  is(CustomizableUI.getPlacementOfWidget(kNonPlacedWidgetId).area, TOOLBARID, "Button's back on toolbar");
+  ok(toolbar.querySelector(`#${kNonPlacedWidgetId}`), "Button really is on toolbar.");
+  ok(otherTB.querySelector(`#${kNonPlacedWidgetId}`), "Button is on other toolbar, too.");
 
   let wasInformedCorrectlyOfAreaDisappearing = false;
-  //XXXgijs So we could be using promiseWindowClosed here. However, after
+  // XXXgijs So we could be using promiseWindowClosed here. However, after
   // repeated random oranges, I'm instead relying on onWindowClosed below to
   // fire appropriately - it is linked to an unload event as well, and so
   // reusing it prevents a potential race between unload handlers where the
@@ -117,8 +123,8 @@ add_task(function*() {
   is(windowClosed, otherWin, "Window should have sent onWindowClosed notification.");
   ok(wasInformedCorrectlyOfAreaDisappearing, "Should be told about window closing.");
   // Closing the other window should not be counted against this window's customize mode:
-  is(syncButton.parentNode.localName, "toolbarpaletteitem", "Sync button's parent node should still be a wrapper.");
-  isnot(gCustomizeMode.areas.indexOf(toolbar), -1, "Toolbar should still be a customizable area for this customize mode instance.");
+  is(button.parentNode.localName, "toolbarpaletteitem", "Button's parent node should still be a wrapper.");
+  ok(gCustomizeMode.areas.has(toolbar), "Toolbar should still be a customizable area for this customize mode instance.");
 
   yield gCustomizeMode.reset();
 

@@ -25,7 +25,7 @@ menupopup {
 
 menupopup > menu > menupopup {
  /* align submenus */
-  -moz-margin-start: -3px;
+  margin-inline-start: -3px;
   margin-top: -3px;
 }
 
@@ -48,29 +48,31 @@ panel[type="arrow"][side="right"] {
 }
 
 .panel-arrowcontent {
-  padding: 10px;
-  color: -moz-FieldText;
-  background: -moz-field;
+  padding: var(--arrowpanel-padding);
+  color: var(--arrowpanel-color);
+  background: var(--arrowpanel-background);
   background-clip: padding-box;
-  border: 1px solid ThreeDShadow;
+  border: 1px solid var(--arrowpanel-border-color);
+  box-shadow: 0 0 4px hsla(0,0%,0%,.2);
   margin: 4px;
 }
 
-%ifdef WINDOWS_AERO
-@media (-moz-os-version: windows-vista),
+%ifdef XP_WIN
+@media (-moz-os-version: windows-xp),
+       (-moz-os-version: windows-vista),
        (-moz-os-version: windows-win7) {
 %endif
-/* < Win8 */
 .panel-arrowcontent {
   border-radius: 4px;
 }
-%ifdef WINDOWS_AERO
+%ifdef XP_WIN
 }
 %endif
 
 .panel-arrow[side="top"],
 .panel-arrow[side="bottom"] {
-  list-style-image: url("chrome://global/skin/arrow/panelarrow-vertical-themed.svg");
+  list-style-image: var(--panel-arrow-image-vertical,
+                        url("chrome://global/skin/arrow/panelarrow-vertical-themed.svg"));
   position: relative;
   margin-left: 10px;
   margin-right: 10px;
@@ -105,13 +107,14 @@ panel[type="arrow"][side="right"] {
 %ifdef XP_WIN
 @media (-moz-windows-default-theme) {
   .panel-arrowcontent {
-    border-color: hsla(210,4%,10%,.2);
+    --arrowpanel-border-color: hsla(210,4%,10%,.2);
     box-shadow: 0 0 4px hsla(210,4%,10%,.2);
   }
 
   .panel-arrow[side="top"],
   .panel-arrow[side="bottom"] {
-    list-style-image: url("chrome://global/skin/arrow/panelarrow-vertical.svg");
+    list-style-image: var(--panel-arrow-image-vertical,
+                          url("chrome://global/skin/arrow/panelarrow-vertical.svg"));
   }
 
   .panel-arrow[side="left"],
@@ -143,8 +146,7 @@ tooltip[titletip="true"] {
 
 /* rules for popups associated with menulists */
 
-menulist > menupopup,
-.menulist-menupopup {
+menulist > menupopup {
   -moz-appearance: none;
   border-width: 1px;
   -moz-border-top-colors: -moz-FieldText;

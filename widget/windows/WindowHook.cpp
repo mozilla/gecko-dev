@@ -94,7 +94,7 @@ WindowHook::DeleteIfEmpty(MessageData *data) {
 
   MessageDataArray::index_type idx;
   idx = data - mMessageData.Elements();
-  NS_ASSERTION(idx >= 0 && idx < mMessageData.Length(), "Attempted to delete MessageData that doesn't belong to this array!");
+  NS_ASSERTION(idx < mMessageData.Length(), "Attempted to delete MessageData that doesn't belong to this array!");
   mMessageData.RemoveElementAt(idx);
 }
 
@@ -123,6 +123,7 @@ WindowHook::CallbackData::Invoke(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
     return false;
   return cb(context, hWnd, msg, wParam, lParam, aResult);
 }
+
 } // namespace widget
 } // namespace mozilla
 

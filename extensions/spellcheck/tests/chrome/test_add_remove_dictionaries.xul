@@ -8,6 +8,10 @@
   <script type="application/javascript"
           src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"/>
 
+  <!-- test results are displayed in the html:body -->
+  <body xmlns="http://www.w3.org/1999/xhtml">
+  </body>
+
   <script type="application/javascript">
   <![CDATA[
 SimpleTest.waitForExplicitFinish();
@@ -68,36 +72,44 @@ function RunTest() {
 
     // test that base and map dictionaries are available
     var dicts = getDictionaryList(editor);
-    isnot(dicts.indexOf("base_utf"), -1, "base is available");
+    isnot(dicts.indexOf("base-utf"), -1, "base is available");
     isnot(dicts.indexOf("maputf"), -1, "map is available");
 
     // select base dictionary
-    setCurrentDictionary(editor, "base_utf");
+    setCurrentDictionary(editor, "base-utf");
 
     onSpellCheck(textbox, function () {
       // test that base dictionary is in use
       is(getMisspelledWords(editor), "Frühstück" + "qwertyu", "base misspellings");
-      is(getCurrentDictionary(editor), "base_utf", "current dictionary");
+      is(getCurrentDictionary(editor), "base-utf", "current dictionary");
 
       // select map dictionary
       setCurrentDictionary(editor, "maputf");
 
+      // Focus again, so the spelling gets updated.
+      textbox.blur();
+      textbox.focus();
+
       onSpellCheck(textbox, function () {
         // test that map dictionary is in use
-        is(getMisspelledWords(editor), "created" + "imply" + "tomorrow" + "qwertyu", "map misspellings");
+        is(getMisspelledWords(editor), "created" + "imply" + "tomorrow" + "qwertyu", "map misspellings (1)");
         is(getCurrentDictionary(editor), "maputf", "current dictionary");
 
         // uninstall map dictionary
         hunspell.removeDirectory(map);
 
+        // Focus again, so the spelling gets updated.
+        textbox.blur();
+        textbox.focus();
+
         onSpellCheck(textbox, function () {
           // test that map dictionary is not in use
-          isnot(getMisspelledWords(editor), "created" + "imply" + "tomorrow" + "qwertyu", "map misspellings");
+          isnot(getMisspelledWords(editor), "created" + "imply" + "tomorrow" + "qwertyu", "map misspellings (2)");
           isnot(getCurrentDictionary(editor), "maputf", "current dictionary");
 
           // test that base dictionary is available and map dictionary is unavailable
           var dicts = getDictionaryList(editor);
-          isnot(dicts.indexOf("base_utf"), -1, "base is available");
+          isnot(dicts.indexOf("base-utf"), -1, "base is available");
           is(dicts.indexOf("maputf"), -1, "map is unavailable");
 
           // uninstall base dictionary

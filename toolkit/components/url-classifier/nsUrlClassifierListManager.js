@@ -14,7 +14,12 @@ function Init() {
   // Pull the library in.
   var jslib = Cc["@mozilla.org/url-classifier/jslib;1"]
               .getService().wrappedJSObject;
-  Function.prototype.inherits = jslib.Function.prototype.inherits;
+  Function.prototype.inherits = function(parentCtor) {
+    var tempCtor = function(){};
+    tempCtor.prototype = parentCtor.prototype;
+    this.superClass_ = parentCtor.prototype;
+    this.prototype = new tempCtor();
+  },
   modScope.G_Preferences = jslib.G_Preferences;
   modScope.G_PreferenceObserver = jslib.G_PreferenceObserver;
   modScope.G_ObserverServiceObserver = jslib.G_ObserverServiceObserver;
@@ -24,7 +29,7 @@ function Init() {
   modScope.G_Alarm = jslib.G_Alarm;
   modScope.BindToObject = jslib.BindToObject;
   modScope.PROT_XMLFetcher = jslib.PROT_XMLFetcher;
-  modScope.RequestBackoff = jslib.RequestBackoff;
+  modScope.RequestBackoffV4 = jslib.RequestBackoffV4;
 
   // We only need to call Init once.
   modScope.Init = function() {};

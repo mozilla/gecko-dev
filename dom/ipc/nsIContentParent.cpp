@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,28 +8,40 @@
 
 #include "mozilla/AppProcessChecker.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/dom/File.h"
 #include "mozilla/dom/ContentParent.h"
+#include "mozilla/dom/ContentBridgeParent.h"
 #include "mozilla/dom/PTabContext.h"
 #include "mozilla/dom/PermissionMessageUtils.h"
-#include "mozilla/dom/StructuredCloneUtils.h"
 #include "mozilla/dom/TabParent.h"
-#include "mozilla/dom/ipc/nsIRemoteBlob.h"
-#include "mozilla/unused.h"
+#include "mozilla/dom/ipc/BlobParent.h"
+#include "mozilla/dom/ipc/StructuredCloneData.h"
+#include "mozilla/jsipc/CrossProcessObjectWrappers.h"
+#include "mozilla/ipc/FileDescriptorSetParent.h"
+#include "mozilla/ipc/PFileDescriptorSetParent.h"
+#include "mozilla/ipc/SendStreamAlloc.h"
+#include "mozilla/Unused.h"
 
-#include "JavaScriptParent.h"
-#include "nsDOMFile.h"
 #include "nsFrameMessageManager.h"
-#include "nsIJSRuntimeService.h"
+#include "nsIWebBrowserChrome.h"
 #include "nsPrintfCString.h"
+#include "xpcpublic.h"
 
 using namespace mozilla::jsipc;
+
+// XXX need another bug to move this to a common header.
+#ifdef DISABLE_ASSERTS_FOR_FUZZING
+#define ASSERT_UNLESS_FUZZING(...) do { } while (0)
+#else
+#define ASSERT_UNLESS_FUZZING(...) MOZ_ASSERT(false, __VA_ARGS__)
+#endif
 
 namespace mozilla {
 namespace dom {
 
 nsIContentParent::nsIContentParent()
 {
-  mMessageManager = nsFrameMessageManager::NewProcessMessageManager(this);
+  mMessageManager = nsFrameMessageManager::NewProcessMessageManager(true);
 }
 
 ContentParent*
@@ -39,58 +51,59 @@ nsIContentParent::AsContentParent()
   return static_cast<ContentParent*>(this);
 }
 
+ContentBridgeParent*
+nsIContentParent::AsContentBridgeParent()
+{
+  MOZ_ASSERT(IsContentBridgeParent());
+  return static_cast<ContentBridgeParent*>(this);
+}
+
 PJavaScriptParent*
 nsIContentParent::AllocPJavaScriptParent()
 {
-  nsCOMPtr<nsIJSRuntimeService> svc =
-    do_GetService("@mozilla.org/js/xpc/RuntimeService;1");
-  NS_ENSURE_TRUE(svc, nullptr);
-
-  JSRuntime *rt;
-  svc->GetRuntime(&rt);
-  NS_ENSURE_TRUE(svc, nullptr);
-
-  nsAutoPtr<JavaScriptParent> parent(new JavaScriptParent(rt));
-  if (!parent->init()) {
-    return nullptr;
-  }
-  return parent.forget();
+  return NewJavaScriptParent();
 }
 
 bool
 nsIContentParent::DeallocPJavaScriptParent(PJavaScriptParent* aParent)
 {
-  static_cast<JavaScriptParent*>(aParent)->decref();
+  ReleaseJavaScriptParent(aParent);
   return true;
 }
 
 bool
 nsIContentParent::CanOpenBrowser(const IPCTabContext& aContext)
 {
-  const IPCTabAppBrowserContext& appBrowser = aContext.appBrowserContext();
-
-  // We don't trust the IPCTabContext we receive from the child, so we'll bail
-  // if we receive an IPCTabContext that's not a PopupIPCTabContext.
   // (PopupIPCTabContext lets the child process prove that it has access to
   // the app it's trying to open.)
-  if (appBrowser.type() != IPCTabAppBrowserContext::TPopupIPCTabContext) {
-    NS_ERROR("Unexpected IPCTabContext type.  Aborting AllocPBrowserParent.");
+  // On e10s we also allow UnsafeTabContext to allow service workers to open
+  // windows. This is enforced in MaybeInvalidTabContext.
+  if (aContext.type() != IPCTabContext::TPopupIPCTabContext &&
+      aContext.type() != IPCTabContext::TUnsafeIPCTabContext) {
+    ASSERT_UNLESS_FUZZING("Unexpected IPCTabContext type.  Aborting AllocPBrowserParent.");
     return false;
   }
 
-  const PopupIPCTabContext& popupContext = appBrowser.get_PopupIPCTabContext();
-  TabParent* opener = static_cast<TabParent*>(popupContext.openerParent());
-  if (!opener) {
-    NS_ERROR("Got null opener from child; aborting AllocPBrowserParent.");
-    return false;
-  }
+  if (aContext.type() == IPCTabContext::TPopupIPCTabContext) {
+    const PopupIPCTabContext& popupContext = aContext.get_PopupIPCTabContext();
+    if (popupContext.opener().type() != PBrowserOrId::TPBrowserParent) {
+      ASSERT_UNLESS_FUZZING("Unexpected PopupIPCTabContext type.  Aborting AllocPBrowserParent.");
+      return false;
+    }
 
-  // Popup windows of isBrowser frames must be isBrowser if the parent
-  // isBrowser.  Allocating a !isBrowser frame with same app ID would allow
-  // the content to access data it's not supposed to.
-  if (!popupContext.isBrowserElement() && opener->IsBrowserElement()) {
-    NS_ERROR("Child trying to escalate privileges!  Aborting AllocPBrowserParent.");
-    return false;
+    auto opener = TabParent::GetFrom(popupContext.opener().get_PBrowserParent());
+    if (!opener) {
+      ASSERT_UNLESS_FUZZING("Got null opener from child; aborting AllocPBrowserParent.");
+      return false;
+    }
+
+    // Popup windows of isMozBrowserElement frames must be isMozBrowserElement if
+    // the parent isMozBrowserElement.  Allocating a !isMozBrowserElement frame with
+    // same app ID would allow the content to access data it's not supposed to.
+    if (!popupContext.isMozBrowserElement() && opener->IsMozBrowserElement()) {
+      ASSERT_UNLESS_FUZZING("Child trying to escalate privileges!  Aborting AllocPBrowserParent.");
+      return false;
+    }
   }
 
   MaybeInvalidTabContext tc(aContext);
@@ -105,24 +118,49 @@ nsIContentParent::CanOpenBrowser(const IPCTabContext& aContext)
 }
 
 PBrowserParent*
-nsIContentParent::AllocPBrowserParent(const IPCTabContext& aContext,
+nsIContentParent::AllocPBrowserParent(const TabId& aTabId,
+                                      const IPCTabContext& aContext,
                                       const uint32_t& aChromeFlags,
-                                      const uint64_t& aId,
+                                      const ContentParentId& aCpId,
                                       const bool& aIsForApp,
                                       const bool& aIsForBrowser)
 {
-  unused << aChromeFlags;
-  unused << aId;
-  unused << aIsForApp;
-  unused << aIsForBrowser;
+  Unused << aCpId;
+  Unused << aIsForApp;
+  Unused << aIsForBrowser;
 
   if (!CanOpenBrowser(aContext)) {
     return nullptr;
   }
 
+  uint32_t chromeFlags = aChromeFlags;
+  if (aContext.type() == IPCTabContext::TPopupIPCTabContext) {
+    // CanOpenBrowser has ensured that the IPCTabContext is of
+    // type PopupIPCTabContext, and that the opener TabParent is
+    // reachable.
+    const PopupIPCTabContext& popupContext = aContext.get_PopupIPCTabContext();
+    auto opener = TabParent::GetFrom(popupContext.opener().get_PBrowserParent());
+    // We must ensure that the private browsing and remoteness flags
+    // match those of the opener.
+    nsCOMPtr<nsILoadContext> loadContext = opener->GetLoadContext();
+    if (!loadContext) {
+      return nullptr;
+    }
+
+    bool isPrivate;
+    loadContext->GetUsePrivateBrowsing(&isPrivate);
+    if (isPrivate) {
+      chromeFlags |= nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW;
+    }
+  }
+
+  // And because we're allocating a remote browser, of course the
+  // window is remote.
+  chromeFlags |= nsIWebBrowserChrome::CHROME_REMOTE_WINDOW;
+
   MaybeInvalidTabContext tc(aContext);
   MOZ_ASSERT(tc.IsValid());
-  TabParent* parent = new TabParent(this, tc.GetTabContext(), aChromeFlags);
+  TabParent* parent = new TabParent(this, aTabId, tc.GetTabContext(), chromeFlags);
 
   // We release this ref in DeallocPBrowserParent()
   NS_ADDREF(parent);
@@ -132,7 +170,7 @@ nsIContentParent::AllocPBrowserParent(const IPCTabContext& aContext,
 bool
 nsIContentParent::DeallocPBrowserParent(PBrowserParent* aFrame)
 {
-  TabParent* parent = static_cast<TabParent*>(aFrame);
+  TabParent* parent = TabParent::GetFrom(aFrame);
   NS_RELEASE(parent);
   return true;
 }
@@ -146,93 +184,40 @@ nsIContentParent::AllocPBlobParent(const BlobConstructorParams& aParams)
 bool
 nsIContentParent::DeallocPBlobParent(PBlobParent* aActor)
 {
-  delete aActor;
+  BlobParent::Destroy(aActor);
   return true;
 }
 
 BlobParent*
-nsIContentParent::GetOrCreateActorForBlob(nsIDOMBlob* aBlob)
+nsIContentParent::GetOrCreateActorForBlob(Blob* aBlob)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aBlob);
 
-  // If the blob represents a remote blob for this ContentParent then we can
-  // simply pass its actor back here.
-  if (nsCOMPtr<nsIRemoteBlob> remoteBlob = do_QueryInterface(aBlob)) {
-    if (BlobParent* actor = static_cast<BlobParent*>(
-          static_cast<PBlobParent*>(remoteBlob->GetPBlob()))) {
-      MOZ_ASSERT(actor);
+  RefPtr<BlobImpl> blobImpl = aBlob->Impl();
+  MOZ_ASSERT(blobImpl);
 
-      if (actor->Manager() == this) {
-        return actor;
-      }
-    }
-  }
+  return GetOrCreateActorForBlobImpl(blobImpl);
+}
 
-  // All blobs shared between processes must be immutable.
-  nsCOMPtr<nsIMutable> mutableBlob = do_QueryInterface(aBlob);
-  if (!mutableBlob || NS_FAILED(mutableBlob->SetMutable(false))) {
-    NS_WARNING("Failed to make blob immutable!");
-    return nullptr;
-  }
+BlobParent*
+nsIContentParent::GetOrCreateActorForBlobImpl(BlobImpl* aImpl)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aImpl);
 
-  // XXX This is only safe so long as all blob implementations in our tree
-  //     inherit nsDOMFileBase. If that ever changes then this will need to grow
-  //     a real interface or something.
-  const auto* blob = static_cast<nsDOMFileBase*>(aBlob);
-
-  ChildBlobConstructorParams params;
-
-  if (blob->IsSizeUnknown() || blob->IsDateUnknown()) {
-    // We don't want to call GetSize or GetLastModifiedDate
-    // yet since that may stat a file on the main thread
-    // here. Instead we'll learn the size lazily from the
-    // other process.
-    params = MysteryBlobConstructorParams();
-  }
-  else {
-    nsString contentType;
-    nsresult rv = aBlob->GetType(contentType);
-    NS_ENSURE_SUCCESS(rv, nullptr);
-
-    uint64_t length;
-    rv = aBlob->GetSize(&length);
-    NS_ENSURE_SUCCESS(rv, nullptr);
-
-    nsCOMPtr<nsIDOMFile> file = do_QueryInterface(aBlob);
-    if (file) {
-      FileBlobConstructorParams fileParams;
-
-      rv = file->GetMozLastModifiedDate(&fileParams.modDate());
-      NS_ENSURE_SUCCESS(rv, nullptr);
-
-      rv = file->GetName(fileParams.name());
-      NS_ENSURE_SUCCESS(rv, nullptr);
-
-      fileParams.contentType() = contentType;
-      fileParams.length() = length;
-
-      params = fileParams;
-    } else {
-      NormalBlobConstructorParams blobParams;
-      blobParams.contentType() = contentType;
-      blobParams.length() = length;
-      params = blobParams;
-    }
-  }
-
-  BlobParent* actor = BlobParent::Create(this, aBlob);
+  BlobParent* actor = BlobParent::GetOrCreate(this, aImpl);
   NS_ENSURE_TRUE(actor, nullptr);
 
-  return SendPBlobConstructor(actor, params) ? actor : nullptr;
+  return actor;
 }
 
 bool
 nsIContentParent::RecvSyncMessage(const nsString& aMsg,
                                   const ClonedMessageData& aData,
-                                  const InfallibleTArray<CpowEntry>& aCpows,
+                                  InfallibleTArray<CpowEntry>&& aCpows,
                                   const IPC::Principal& aPrincipal,
-                                  InfallibleTArray<nsString>* aRetvals)
+                                  nsTArray<ipc::StructuredCloneData>* aRetvals)
 {
   // FIXME Permission check in Content process
   nsIPrincipal* principal = aPrincipal;
@@ -244,23 +229,24 @@ nsIContentParent::RecvSyncMessage(const nsString& aMsg,
     }
   }
 
-  nsRefPtr<nsFrameMessageManager> ppm = mMessageManager;
+  RefPtr<nsFrameMessageManager> ppm = mMessageManager;
   if (ppm) {
-    StructuredCloneData cloneData = ipc::UnpackClonedMessageDataForParent(aData);
-    CpowIdHolder cpows(GetCPOWManager(), aCpows);
+    ipc::StructuredCloneData data;
+    ipc::UnpackClonedMessageDataForParent(aData, data);
 
-    ppm->ReceiveMessage(static_cast<nsIContentFrameMessageManager*>(ppm.get()),
-                        aMsg, true, &cloneData, &cpows, aPrincipal, aRetvals);
+    CrossProcessCpowHolder cpows(this, aCpows);
+    ppm->ReceiveMessage(static_cast<nsIContentFrameMessageManager*>(ppm.get()), nullptr,
+                        aMsg, true, &data, &cpows, aPrincipal, aRetvals);
   }
   return true;
 }
 
 bool
-nsIContentParent::AnswerRpcMessage(const nsString& aMsg,
-                                   const ClonedMessageData& aData,
-                                   const InfallibleTArray<CpowEntry>& aCpows,
-                                   const IPC::Principal& aPrincipal,
-                                   InfallibleTArray<nsString>* aRetvals)
+nsIContentParent::RecvRpcMessage(const nsString& aMsg,
+                                 const ClonedMessageData& aData,
+                                 InfallibleTArray<CpowEntry>&& aCpows,
+                                 const IPC::Principal& aPrincipal,
+                                 nsTArray<ipc::StructuredCloneData>* aRetvals)
 {
   // FIXME Permission check in Content process
   nsIPrincipal* principal = aPrincipal;
@@ -272,21 +258,49 @@ nsIContentParent::AnswerRpcMessage(const nsString& aMsg,
     }
   }
 
-  nsRefPtr<nsFrameMessageManager> ppm = mMessageManager;
+  RefPtr<nsFrameMessageManager> ppm = mMessageManager;
   if (ppm) {
-    StructuredCloneData cloneData = ipc::UnpackClonedMessageDataForParent(aData);
-    CpowIdHolder cpows(GetCPOWManager(), aCpows);
-    ppm->ReceiveMessage(static_cast<nsIContentFrameMessageManager*>(ppm.get()),
-                        aMsg, true, &cloneData, &cpows, aPrincipal, aRetvals);
+    ipc::StructuredCloneData data;
+    ipc::UnpackClonedMessageDataForParent(aData, data);
+
+    CrossProcessCpowHolder cpows(this, aCpows);
+    ppm->ReceiveMessage(static_cast<nsIContentFrameMessageManager*>(ppm.get()), nullptr,
+                        aMsg, true, &data, &cpows, aPrincipal, aRetvals);
   }
+  return true;
+}
+
+PFileDescriptorSetParent*
+nsIContentParent::AllocPFileDescriptorSetParent(const FileDescriptor& aFD)
+{
+  return new FileDescriptorSetParent(aFD);
+}
+
+bool
+nsIContentParent::DeallocPFileDescriptorSetParent(PFileDescriptorSetParent* aActor)
+{
+  delete static_cast<FileDescriptorSetParent*>(aActor);
+  return true;
+}
+
+PSendStreamParent*
+nsIContentParent::AllocPSendStreamParent()
+{
+  return mozilla::ipc::AllocPSendStreamParent();
+}
+
+bool
+nsIContentParent::DeallocPSendStreamParent(PSendStreamParent* aActor)
+{
+  delete aActor;
   return true;
 }
 
 bool
 nsIContentParent::RecvAsyncMessage(const nsString& aMsg,
-                                   const ClonedMessageData& aData,
-                                   const InfallibleTArray<CpowEntry>& aCpows,
-                                   const IPC::Principal& aPrincipal)
+                                   InfallibleTArray<CpowEntry>&& aCpows,
+                                   const IPC::Principal& aPrincipal,
+                                   const ClonedMessageData& aData)
 {
   // FIXME Permission check in Content process
   nsIPrincipal* principal = aPrincipal;
@@ -298,12 +312,14 @@ nsIContentParent::RecvAsyncMessage(const nsString& aMsg,
     }
   }
 
-  nsRefPtr<nsFrameMessageManager> ppm = mMessageManager;
+  RefPtr<nsFrameMessageManager> ppm = mMessageManager;
   if (ppm) {
-    StructuredCloneData cloneData = ipc::UnpackClonedMessageDataForParent(aData);
-    CpowIdHolder cpows(GetCPOWManager(), aCpows);
-    ppm->ReceiveMessage(static_cast<nsIContentFrameMessageManager*>(ppm.get()),
-                        aMsg, false, &cloneData, &cpows, aPrincipal, nullptr);
+    ipc::StructuredCloneData data;
+    ipc::UnpackClonedMessageDataForParent(aData, data);
+
+    CrossProcessCpowHolder cpows(this, aCpows);
+    ppm->ReceiveMessage(static_cast<nsIContentFrameMessageManager*>(ppm.get()), nullptr,
+                        aMsg, false, &data, &cpows, aPrincipal, nullptr);
   }
   return true;
 }

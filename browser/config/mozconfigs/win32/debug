@@ -1,26 +1,27 @@
+. "$topsrcdir/build/mozconfig.win-common"
+MOZ_AUTOMATION_L10N_CHECK=0
 . "$topsrcdir/browser/config/mozconfigs/common"
 
 ac_add_options --enable-debug
 ac_add_options --enable-dmd
 ac_add_options --enable-profiling  # needed for --enable-dmd to work on Windows
-ac_add_options --enable-signmar
+ac_add_options --enable-verify-mar
 ac_add_options --enable-require-all-d3dc-versions
 
 # Needed to enable breakpad in application.ini
 export MOZILLA_OFFICIAL=1
 
-if test "$PROCESSOR_ARCHITECTURE" = "AMD64" -o "$PROCESSOR_ARCHITEW6432" = "AMD64"; then
-  . $topsrcdir/build/win32/mozconfig.vs2010-win64
-else
-  . $topsrcdir/build/win32/mozconfig.vs2010
-fi
+# Enable Telemetry
+export MOZ_TELEMETRY_REPORTING=1
 
-# Treat warnings as errors in directories with FAIL_ON_WARNINGS.
-ac_add_options --enable-warnings-as-errors
+. $topsrcdir/build/win32/mozconfig.vs-latest
 
 # Package js shell.
 export MOZ_PACKAGE_JSSHELL=1
 
-. "$topsrcdir/build/mozconfig.cache"
+ac_add_options --with-branding=browser/branding/nightly
+
+. "$topsrcdir/build/mozconfig.rust"
 
 . "$topsrcdir/build/mozconfig.common.override"
+. "$topsrcdir/build/mozconfig.cache"

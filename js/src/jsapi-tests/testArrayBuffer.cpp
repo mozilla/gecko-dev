@@ -23,7 +23,7 @@ BEGIN_TEST(testArrayBuffer_bug720949_steal)
     CHECK(buf_len1 = JS_NewArrayBuffer(cx, sizes[0]));
     CHECK(tarray_len1 = JS_NewInt32ArrayWithBuffer(cx, testBuf[0], 0, -1));
 
-    JS_SetElement(cx, testArray[0], 0, MAGIC_VALUE_1);
+    CHECK(JS_SetElement(cx, testArray[0], 0, MAGIC_VALUE_1));
 
     // Many-element ArrayBuffer (uses dynamic storage)
     CHECK(buf_len200 = JS_NewArrayBuffer(cx, 200 * sizeof(uint32_t)));
@@ -38,59 +38,57 @@ BEGIN_TEST(testArrayBuffer_bug720949_steal)
         // Byte lengths should all agree
         CHECK(JS_IsArrayBufferObject(obj));
         CHECK_EQUAL(JS_GetArrayBufferByteLength(obj), size);
-        JS_GetProperty(cx, obj, "byteLength", &v);
-        CHECK_SAME(v, INT_TO_JSVAL(size));
-        JS_GetProperty(cx, view, "byteLength", &v);
-        CHECK_SAME(v, INT_TO_JSVAL(size));
+        CHECK(JS_GetProperty(cx, obj, "byteLength", &v));
+        CHECK(v.isInt32(size));
+        CHECK(JS_GetProperty(cx, view, "byteLength", &v));
+        CHECK(v.isInt32(size));
 
         // Modifying the underlying data should update the value returned through the view
-        uint8_t *data = JS_GetStableArrayBufferData(cx, obj);
-        CHECK(data != nullptr);
-        *reinterpret_cast<uint32_t*>(data) = MAGIC_VALUE_2;
+        {
+            JS::AutoCheckCannotGC nogc;
+            bool sharedDummy;
+            uint8_t* data = JS_GetArrayBufferData(obj, &sharedDummy, nogc);
+            CHECK(data != nullptr);
+            *reinterpret_cast<uint32_t*>(data) = MAGIC_VALUE_2;
+        }
         CHECK(JS_GetElement(cx, view, 0, &v));
-        CHECK_SAME(v, INT_TO_JSVAL(MAGIC_VALUE_2));
+        CHECK(v.isInt32(MAGIC_VALUE_2));
 
         // Steal the contents
-        void *contents = JS_StealArrayBufferContents(cx, obj);
+        void* contents = JS_StealArrayBufferContents(cx, obj);
         CHECK(contents != nullptr);
-        CHECK(data != nullptr);
 
-        // Check that the original ArrayBuffer is neutered
-        CHECK_EQUAL(JS_GetArrayBufferByteLength(obj), 0);
-        CHECK(JS_GetProperty(cx, obj, "byteLength", &v));
-        CHECK_SAME(v, INT_TO_JSVAL(0));
-        CHECK(JS_GetProperty(cx, view, "byteLength", &v));
-        CHECK_SAME(v, INT_TO_JSVAL(0));
-        CHECK(JS_GetProperty(cx, view, "byteOffset", &v));
-        CHECK_SAME(v, INT_TO_JSVAL(0));
-        CHECK(JS_GetProperty(cx, view, "length", &v));
-        CHECK_SAME(v, INT_TO_JSVAL(0));
-        CHECK_EQUAL(JS_GetArrayBufferByteLength(obj), 0);
-        v = JSVAL_VOID;
-        JS_GetElement(cx, obj, 0, &v);
-        CHECK_SAME(v, JSVAL_VOID);
+        CHECK(JS_IsDetachedArrayBufferObject(obj));
 
         // Transfer to a new ArrayBuffer
         JS::RootedObject dst(cx, JS_NewArrayBufferWithContents(cx, size, contents));
         CHECK(JS_IsArrayBufferObject(dst));
-        data = JS_GetStableArrayBufferData(cx, obj);
+        {
+            JS::AutoCheckCannotGC nogc;
+            bool sharedDummy;
+            (void) JS_GetArrayBufferData(obj, &sharedDummy, nogc);
+        }
 
         JS::RootedObject dstview(cx, JS_NewInt32ArrayWithBuffer(cx, dst, 0, -1));
         CHECK(dstview != nullptr);
 
         CHECK_EQUAL(JS_GetArrayBufferByteLength(dst), size);
-        data = JS_GetStableArrayBufferData(cx, dst);
-        CHECK(data != nullptr);
-        CHECK_EQUAL(*reinterpret_cast<uint32_t*>(data), MAGIC_VALUE_2);
+        {
+            JS::AutoCheckCannotGC nogc;
+            bool sharedDummy;
+            uint8_t* data = JS_GetArrayBufferData(dst, &sharedDummy, nogc);
+            CHECK(data != nullptr);
+            CHECK_EQUAL(*reinterpret_cast<uint32_t*>(data), MAGIC_VALUE_2);
+        }
         CHECK(JS_GetElement(cx, dstview, 0, &v));
-        CHECK_SAME(v, INT_TO_JSVAL(MAGIC_VALUE_2));
+        CHECK(v.isInt32(MAGIC_VALUE_2));
     }
 
     return true;
 }
 END_TEST(testArrayBuffer_bug720949_steal)
 
-// Varying number of views of a buffer, to test the neutering weak pointers
+// Varying number of views of a buffer, to test the detachment weak pointers
 BEGIN_TEST(testArrayBuffer_bug720949_viewList)
 {
     JS::RootedObject buffer(cx);
@@ -104,12 +102,12 @@ BEGIN_TEST(testArrayBuffer_bug720949_viewList)
     {
         buffer = JS_NewArrayBuffer(cx, 2000);
         JS::RootedObject view(cx, JS_NewUint8ArrayWithBuffer(cx, buffer, 0, -1));
-        void *contents = JS_StealArrayBufferContents(cx, buffer);
+        void* contents = JS_StealArrayBufferContents(cx, buffer);
         CHECK(contents != nullptr);
         JS_free(nullptr, contents);
         GC(cx);
-        CHECK(isNeutered(view));
-        CHECK(isNeutered(buffer));
+        CHECK(hasDetachedBuffer(view));
+        CHECK(JS_IsDetachedArrayBufferObject(buffer));
         view = nullptr;
         GC(cx);
         buffer = nullptr;
@@ -128,14 +126,14 @@ BEGIN_TEST(testArrayBuffer_bug720949_viewList)
         GC(cx);
         view2 = JS_NewUint8ArrayWithBuffer(cx, buffer, 1, 200);
 
-        // Neuter
-        void *contents = JS_StealArrayBufferContents(cx, buffer);
+        // Detach
+        void* contents = JS_StealArrayBufferContents(cx, buffer);
         CHECK(contents != nullptr);
         JS_free(nullptr, contents);
 
-        CHECK(isNeutered(view1));
-        CHECK(isNeutered(view2));
-        CHECK(isNeutered(buffer));
+        CHECK(hasDetachedBuffer(view1));
+        CHECK(hasDetachedBuffer(view2));
+        CHECK(JS_IsDetachedArrayBufferObject(buffer));
 
         view1 = nullptr;
         GC(cx);
@@ -148,15 +146,82 @@ BEGIN_TEST(testArrayBuffer_bug720949_viewList)
     return true;
 }
 
-static void GC(JSContext *cx)
+static void GC(JSContext* cx)
 {
-    JS_GC(JS_GetRuntime(cx));
-    JS_GC(JS_GetRuntime(cx)); // Trigger another to wait for background finalization to end
+    JS_GC(cx);
+    JS_GC(cx); // Trigger another to wait for background finalization to end
 }
 
-bool isNeutered(JS::HandleObject obj) {
+bool hasDetachedBuffer(JS::HandleObject obj) {
     JS::RootedValue v(cx);
     return JS_GetProperty(cx, obj, "byteLength", &v) && v.toInt32() == 0;
 }
 
 END_TEST(testArrayBuffer_bug720949_viewList)
+
+BEGIN_TEST(testArrayBuffer_externalize)
+{
+    if (!testWithSize(cx, 2))    // ArrayBuffer data stored inline in the object.
+        return false;
+    if (!testWithSize(cx, 2000)) // ArrayBuffer data stored out-of-line in a separate heap allocation.
+        return false;
+
+    return true;
+}
+
+bool testWithSize(JSContext* cx, size_t n)
+{
+    JS::RootedObject buffer(cx, JS_NewArrayBuffer(cx, n));
+    CHECK(buffer != nullptr);
+
+    JS::RootedObject view(cx, JS_NewUint8ArrayWithBuffer(cx, buffer, 0, -1));
+    CHECK(view != nullptr);
+
+    void* contents = JS_ExternalizeArrayBufferContents(cx, buffer);
+    CHECK(contents != nullptr);
+    uint32_t actualLength;
+    CHECK(hasExpectedLength(cx, view, &actualLength));
+    CHECK(actualLength == n);
+    CHECK(!JS_IsDetachedArrayBufferObject(buffer));
+    CHECK(JS_GetArrayBufferByteLength(buffer) == uint32_t(n));
+
+    uint8_t* uint8Contents = static_cast<uint8_t*>(contents);
+    CHECK(*uint8Contents == 0);
+    uint8_t randomByte(rand() % UINT8_MAX);
+    *uint8Contents = randomByte;
+
+    JS::RootedValue v(cx);
+    CHECK(JS_GetElement(cx, view, 0, &v));
+    CHECK(v.toInt32() == randomByte);
+
+    view = nullptr;
+    GC(cx);
+
+    CHECK(JS_DetachArrayBuffer(cx, buffer));
+    GC(cx);
+    CHECK(*uint8Contents == randomByte);
+    JS_free(cx, contents);
+    GC(cx);
+    buffer = nullptr;
+    GC(cx);
+
+    return true;
+}
+
+static void GC(JSContext* cx)
+{
+    JS_GC(cx);
+    JS_GC(cx); // Trigger another to wait for background finalization to end
+}
+
+static bool
+hasExpectedLength(JSContext* cx, JS::HandleObject obj, uint32_t* len)
+{
+    JS::RootedValue v(cx);
+    if (!JS_GetProperty(cx, obj, "byteLength", &v))
+        return false;
+    *len = v.toInt32();
+    return true;
+}
+
+END_TEST(testArrayBuffer_externalize)

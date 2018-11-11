@@ -7,8 +7,11 @@
 %{C++
 
 namespace mozilla {
-// Simple C++ getter for nsIXULRuntime::browserTabsRemote
-bool BrowserTabsRemote();
+// Simple C++ getter for nsIXULRuntime::browserTabsRemoteAutostart
+// This getter is a temporary function that checks for special
+// conditions in which e10s support is not great yet, and should
+// therefore be disabled. Bug 1065561 tracks its removal.
+bool BrowserTabsRemoteAutostart();
 }
 
 %}
@@ -20,7 +23,7 @@ bool BrowserTabsRemote();
  *                    stable/frozen, please contact Benjamin Smedberg.
  */
 
-[scriptable, uuid(e080b1f6-8452-4bde-9368-c795808b86d1)]
+[scriptable, uuid(a1b2e167-b748-42bf-ba85-996ec39062b9)]
 interface nsIXULRuntime : nsISupports
 {
   /**
@@ -71,6 +74,7 @@ interface nsIXULRuntime : nsISupports
   const unsigned long PROCESS_TYPE_CONTENT = 2;
   const unsigned long PROCESS_TYPE_IPDLUNITTEST = 3;
   const unsigned long PROCESS_TYPE_GMPLUGIN = 4;
+  const unsigned long PROCESS_TYPE_GPU = 5;
 
   /**
    * The type of the caller's process.  Returns one of the values above.
@@ -83,10 +87,32 @@ interface nsIXULRuntime : nsISupports
   readonly attribute unsigned long processID;
 
   /**
-   * If true, browser tabs may be opened in a different process from the main
-   * browser UI.
+   * A globally unique and non-recycled ID of the caller's process.
    */
-  readonly attribute boolean browserTabsRemote;
+  readonly attribute uint64_t uniqueProcessID;
+
+  /**
+   * If true, browser tabs may be opened by default in a different process
+   * from the main browser UI.
+   */
+  readonly attribute boolean browserTabsRemoteAutostart;
+
+  /**
+   * A numeric value indicating whether multiprocess might be blocked.
+   * Possible values can be found at nsAppRunner.cpp. A value of 0
+   * represents not blocking.
+   */
+   readonly attribute unsigned long multiprocessBlockPolicy;
+
+  /**
+   * If true, the accessibility service is running.
+   */
+  readonly attribute boolean accessibilityEnabled;
+
+  /**
+   * Indicates whether the current Firefox build is 64-bit.
+   */
+  readonly attribute boolean is64Bit;
 
   /**
    * Signal the apprunner to invalidate caches on the next restart.
@@ -118,9 +144,9 @@ interface nsIXULRuntime : nsISupports
   readonly attribute DOMString lastRunCrashID;
 
   /**
-   * True if this is a RELEASE_BUILD.
+   * True if this is RELEASE_OR_BETA.
    */
-  readonly attribute boolean isReleaseBuild;
+  readonly attribute boolean isReleaseOrBeta;
 
   /**
    * True if this build uses official branding (MOZ_OFFICIAL_BRANDING).
@@ -136,4 +162,15 @@ interface nsIXULRuntime : nsISupports
    * The distribution ID for this build (MOZ_DISTRIBUTION_ID).
    */
   readonly attribute AUTF8String distributionID;
+
+  /**
+   * True if this is an official build (MOZILLA_OFFICIAL).
+   */
+  readonly attribute boolean isOfficial;
+
+  /**
+   * True if Windows DLL blocklist initialized correctly. This is
+   * primarily for automated testing purposes.
+   */
+  readonly attribute boolean windowsDLLBlocklistStatus;
 };

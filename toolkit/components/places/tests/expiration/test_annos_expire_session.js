@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  * vim: sw=2 ts=2 et lcs=trail\:.,tab\:>~ :
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,16 +10,14 @@
  * Session annotations should be expired when browsing session ends.
  */
 
-let bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-         getService(Ci.nsINavBookmarksService);
-let as = Cc["@mozilla.org/browser/annotation-service;1"].
+var as = Cc["@mozilla.org/browser/annotation-service;1"].
          getService(Ci.nsIAnnotationService);
 
 function run_test() {
   run_next_test();
 }
 
-add_task(function test_annos_expire_session() {
+add_task(function* test_annos_expire_session() {
   // Set interval to a large value so we don't expire on it.
   setInterval(3600); // 1h
 
@@ -27,7 +25,7 @@ add_task(function test_annos_expire_session() {
   let now = Date.now() * 1000;
   for (let i = 0; i < 10; i++) {
     let pageURI = uri("http://session_page_anno." + i + ".mozilla.org/");
-    yield promiseAddVisits({ uri: pageURI, visitDate: now++ });
+    yield PlacesTestUtils.addVisits({ uri: pageURI, visitDate: now++ });
     as.setPageAnnotation(pageURI, "test1", "test", 0, as.EXPIRE_SESSION);
     as.setPageAnnotation(pageURI, "test2", "test", 0, as.EXPIRE_SESSION);
   }
@@ -35,8 +33,12 @@ add_task(function test_annos_expire_session() {
   // Add some bookmarked page and a couple session annotations for each.
   for (let i = 0; i < 10; i++) {
     let pageURI = uri("http://session_item_anno." + i + ".mozilla.org/");
-    let id = bs.insertBookmark(bs.unfiledBookmarksFolder, pageURI,
-                               bs.DEFAULT_INDEX, null);
+    let bm = yield PlacesUtils.bookmarks.insert({
+      parentGuid: PlacesUtils.bookmarks.unfiledGuid,
+      url: pageURI,
+      title: null
+    });
+    let id = yield PlacesUtils.promiseItemId(bm.guid);
     as.setItemAnnotation(id, "test1", "test", 0, as.EXPIRE_SESSION);
     as.setItemAnnotation(id, "test2", "test", 0, as.EXPIRE_SESSION);
   }
@@ -54,10 +56,12 @@ add_task(function test_annos_expire_session() {
   let deferred = Promise.defer();
   waitForConnectionClosed(function() {
     let stmt = DBConn(true).createAsyncStatement(
-      "SELECT id FROM moz_annos "
-    + "UNION ALL "
-    + "SELECT id FROM moz_items_annos "
+      `SELECT id FROM moz_annos
+       UNION ALL
+       SELECT id FROM moz_items_annos
+       WHERE expiration = :expiration`
     );
+    stmt.params.expiration = as.EXPIRE_SESSION;
     stmt.executeAsync({
       handleResult: function(aResultSet) {
         dump_table("moz_annos");

@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*-
  * vim: sw=4 ts=4 sts=4 et
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,6 +8,7 @@
  * This file tests the methods on XPCOMUtils.jsm.
  */
 
+Components.utils.import("resource://gre/modules/Preferences.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const Cc = Components.classes;
@@ -116,6 +117,44 @@ add_test(function test_defineLazyServiceGetter()
 });
 
 
+add_test(function test_defineLazyPreferenceGetter()
+{
+    const PREF = "xpcomutils.test.pref";
+
+    let obj = {};
+    XPCOMUtils.defineLazyPreferenceGetter(obj, "pref", PREF, "defaultValue");
+
+
+    equal(obj.pref, "defaultValue", "Should return the default value before pref is set");
+
+    Preferences.set(PREF, "currentValue");
+
+
+    do_print("Create second getter on new object");
+
+    obj = {};
+    XPCOMUtils.defineLazyPreferenceGetter(obj, "pref", PREF, "defaultValue");
+
+
+    equal(obj.pref, "currentValue", "Should return the current value on initial read when pref is already set");
+
+    Preferences.set(PREF, "newValue");
+
+    equal(obj.pref, "newValue", "Should return new value after preference change");
+
+    Preferences.set(PREF, "currentValue");
+
+    equal(obj.pref, "currentValue", "Should return new value after second preference change");
+
+
+    Preferences.reset(PREF);
+
+    equal(obj.pref, "defaultValue", "Should return default value after pref is reset");
+
+    run_next_test();
+});
+
+
 add_test(function test_categoryRegistration()
 {
   const CATEGORY_NAME = "test-cat";
@@ -123,23 +162,14 @@ add_test(function test_categoryRegistration()
   const XULAPPINFO_CID = Components.ID("{fc937916-656b-4fb3-a395-8c63569e27a8}");
 
   // Create a fake app entry for our category registration apps filter.
-  let XULAppInfo = {
-    vendor: "Mozilla",
+  let tmp = {};
+  Components.utils.import("resource://testing-common/AppInfo.jsm", tmp);
+  let XULAppInfo = tmp.newAppInfo({
     name: "catRegTest",
     ID: "{adb42a9a-0d19-4849-bf4d-627614ca19be}",
     version: "1",
-    appBuildID: "2007010101",
     platformVersion: "",
-    platformBuildID: "2007010101",
-    inSafeMode: false,
-    logConsoleErrors: true,
-    OS: "XPCShell",
-    XPCOMABI: "noarch-spidermonkey",
-    QueryInterface: XPCOMUtils.generateQI([
-      Ci.nsIXULAppInfo,
-      Ci.nsIXULRuntime,
-    ])
-  };
+  });
   let XULAppInfoFactory = {
     createInstance: function (outer, iid) {
       if (outer != null)
@@ -158,22 +188,20 @@ add_test(function test_categoryRegistration()
   // Load test components.
   do_load_manifest("CatRegistrationComponents.manifest");
 
-  const EXPECTED_ENTRIES = ["CatAppRegisteredComponent",
-                            "CatRegisteredComponent"];
+  const EXPECTED_ENTRIES = new Map([
+    ["CatRegisteredComponent", "@unit.test.com/cat-registered-component;1"],
+    ["CatAppRegisteredComponent", "@unit.test.com/cat-app-registered-component;1"],
+  ]);
 
-  // Check who is registered in "test-cat" category.
-  let foundEntriesCount = 0;
-  let catMan = Cc["@mozilla.org/categorymanager;1"].
-               getService(Ci.nsICategoryManager);
-  let entries = catMan.enumerateCategory(CATEGORY_NAME);
-  while (entries.hasMoreElements()) {
-    foundEntriesCount++;
-    let entry = entries.getNext().QueryInterface(Ci.nsISupportsCString).data;
-    print("Check the found category entry (" + entry + ") is expected.");  
-    do_check_true(EXPECTED_ENTRIES.indexOf(entry) != -1);
+  // Verify the correct entries are registered in the "test-cat" category.
+  for (let [name, value] of XPCOMUtils.enumerateCategoryEntries(CATEGORY_NAME)) {
+    print("Verify that the name/value pair exists in the expected entries.");
+    ok(EXPECTED_ENTRIES.has(name));
+    do_check_eq(EXPECTED_ENTRIES.get(name), value);
+    EXPECTED_ENTRIES.delete(name);
   }
-  print("Check there are no more or less than expected entries.");
-  do_check_eq(foundEntriesCount, EXPECTED_ENTRIES.length);
+  print("Check that all of the expected entries have been deleted.");
+  do_check_eq(EXPECTED_ENTRIES.size, 0);
   run_next_test();
 });
 

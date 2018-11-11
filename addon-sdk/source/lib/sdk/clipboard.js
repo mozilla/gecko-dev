@@ -8,13 +8,14 @@ module.metadata = {
   "stability": "stable",
   "engines": {
     // TODO Fennec Support 789757
-    "Firefox": "*"
+    "Firefox": "*",
+    "SeaMonkey": "*",
+    "Thunderbird": "*"
   }
 };
 
 const { Cc, Ci } = require("chrome");
 const { DataURL } = require("./url");
-const errors = require("./deprecated/errors");
 const apiUtils = require("./deprecated/api-utils");
 /*
 While these data flavors resemble Internet media types, they do
@@ -56,13 +57,13 @@ const kFlavorMap = [
   { short: "image", long: "image/png" }
 ];
 
-let clipboardService = Cc["@mozilla.org/widget/clipboard;1"].
+var clipboardService = Cc["@mozilla.org/widget/clipboard;1"].
                        getService(Ci.nsIClipboard);
 
-let clipboardHelper = Cc["@mozilla.org/widget/clipboardhelper;1"].
+var clipboardHelper = Cc["@mozilla.org/widget/clipboardhelper;1"].
                       getService(Ci.nsIClipboardHelper);
 
-let imageTools = Cc["@mozilla.org/image/tools;1"].
+var imageTools = Cc["@mozilla.org/image/tools;1"].
                getService(Ci.imgITools);
 
 exports.set = function(aData, aDataType) {
@@ -123,26 +124,24 @@ exports.set = function(aData, aDataType) {
   switch (flavor) {
     case "text/html":
       // add text/html flavor
-      let (str = Cc["@mozilla.org/supports-string;1"].
-                 createInstance(Ci.nsISupportsString))
-      {
-        str.data = options.data;
-        xferable.addDataFlavor(flavor);
-        xferable.setTransferData(flavor, str, str.data.length * 2);
-      }
+      let str = Cc["@mozilla.org/supports-string;1"].
+                 createInstance(Ci.nsISupportsString);
+
+      str.data = options.data;
+      xferable.addDataFlavor(flavor);
+      xferable.setTransferData(flavor, str, str.data.length * 2);
 
       // add a text/unicode flavor (html converted to plain text)
-      let (str = Cc["@mozilla.org/supports-string;1"].
-                 createInstance(Ci.nsISupportsString),
-           converter = Cc["@mozilla.org/feed-textconstruct;1"].
-                       createInstance(Ci.nsIFeedTextConstruct))
-      {
-        converter.type = "html";
-        converter.text = options.data;
-        str.data = converter.plainText();
-        xferable.addDataFlavor("text/unicode");
-        xferable.setTransferData("text/unicode", str, str.data.length * 2);
-      }
+      str = Cc["@mozilla.org/supports-string;1"].
+               createInstance(Ci.nsISupportsString);
+      let converter = Cc["@mozilla.org/feed-textconstruct;1"].
+                     createInstance(Ci.nsIFeedTextConstruct);
+
+      converter.type = "html";
+      converter.text = options.data;
+      str.data = converter.plainText();
+      xferable.addDataFlavor("text/unicode");
+      xferable.setTransferData("text/unicode", str, str.data.length * 2);
       break;
 
     // Set images to the clipboard is not straightforward, to have an idea how
@@ -304,7 +303,7 @@ function currentFlavors() {
   // confirmation for specific flavors any other way. This is supposed to be
   // an inexpensive call, so performance shouldn't be impacted (much).
   var currentFlavors = [];
-  for each (var flavor in kAllowableFlavors) {
+  for (var flavor of kAllowableFlavors) {
     var matches = clipboardService.hasDataMatchingFlavors(
       [flavor],
       1,
@@ -321,7 +320,7 @@ Object.defineProperty(exports, "currentFlavors", { get : currentFlavors });
 // SUPPORT FUNCTIONS ////////////////////////////////////////////////////////
 
 function toJetpackFlavor(aFlavor) {
-  for each (let flavorMap in kFlavorMap)
+  for (let flavorMap of kFlavorMap)
     if (flavorMap.long == aFlavor)
       return flavorMap.short;
   // Return null in the case where we don't match
@@ -330,7 +329,7 @@ function toJetpackFlavor(aFlavor) {
 
 function fromJetpackFlavor(aJetpackFlavor) {
   // TODO: Handle proper flavors better
-  for each (let flavorMap in kFlavorMap)
+  for (let flavorMap of kFlavorMap)
     if (flavorMap.short == aJetpackFlavor || flavorMap.long == aJetpackFlavor)
       return flavorMap.long;
   // Return null in the case where we don't match.

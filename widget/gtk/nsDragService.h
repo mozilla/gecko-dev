@@ -7,7 +7,7 @@
 #ifndef nsDragService_h__
 #define nsDragService_h__
 
-#include "nsAutoPtr.h"
+#include "mozilla/RefPtr.h"
 #include "nsBaseDragService.h"
 #include "nsIObserver.h"
 #include "nsAutoRef.h"
@@ -48,32 +48,39 @@ class nsAutoRefTraits<GdkDragContext> :
  * Native GTK DragService wrapper
  */
 
-class nsDragService : public nsBaseDragService,
-                      public nsIObserver
+class nsDragService final : public nsBaseDragService,
+                            public nsIObserver
 {
 public:
     nsDragService();
-    virtual ~nsDragService();
 
     NS_DECL_ISUPPORTS_INHERITED
 
     NS_DECL_NSIOBSERVER
 
+    // nsBaseDragService
+    virtual nsresult InvokeDragSessionImpl(nsIArray* anArrayTransferables,
+                                           nsIScriptableRegion* aRegion,
+                                           uint32_t aActionType) override;
     // nsIDragService
     NS_IMETHOD InvokeDragSession (nsIDOMNode *aDOMNode,
-                                  nsISupportsArray * anArrayTransferables,
+                                  nsIArray * anArrayTransferables,
                                   nsIScriptableRegion * aRegion,
-                                  uint32_t aActionType);
-    NS_IMETHOD StartDragSession();
-    NS_IMETHOD EndDragSession(bool aDoneDrag);
+                                  uint32_t aActionType,
+                                  nsContentPolicyType aContentPolicyType) override;
+    NS_IMETHOD StartDragSession() override;
+    NS_IMETHOD EndDragSession(bool aDoneDrag) override;
 
     // nsIDragSession
-    NS_IMETHOD SetCanDrop            (bool             aCanDrop);
-    NS_IMETHOD GetCanDrop            (bool            *aCanDrop);
-    NS_IMETHOD GetNumDropItems       (uint32_t * aNumItems);
+    NS_IMETHOD SetCanDrop            (bool             aCanDrop) override;
+    NS_IMETHOD GetCanDrop            (bool            *aCanDrop) override;
+    NS_IMETHOD GetNumDropItems       (uint32_t * aNumItems) override;
     NS_IMETHOD GetData               (nsITransferable * aTransferable,
-                                      uint32_t aItemIndex);
-    NS_IMETHOD IsDataFlavorSupported (const char *aDataFlavor, bool *_retval);
+                                      uint32_t aItemIndex) override;
+    NS_IMETHOD IsDataFlavorSupported (const char *aDataFlavor,
+                                      bool *_retval) override;
+
+     NS_IMETHOD UpdateDragEffect() override;
 
     // Methods called from nsWindow to handle responding to GTK drag
     // destination signals
@@ -90,12 +97,12 @@ public:
 
     gboolean ScheduleMotionEvent(nsWindow *aWindow,
                                  GdkDragContext *aDragContext,
-                                 nsIntPoint aWindowPoint,
+                                 mozilla::LayoutDeviceIntPoint aWindowPoint,
                                  guint aTime);
     void ScheduleLeaveEvent();
     gboolean ScheduleDropEvent(nsWindow *aWindow,
                                GdkDragContext *aDragContext,
-                               nsIntPoint aWindowPoint,
+                               mozilla::LayoutDeviceIntPoint aWindowPoint,
                                guint aTime);
 
     nsWindow* GetMostRecentDestWindow()
@@ -118,6 +125,9 @@ public:
 
     // set the drag icon during drag-begin
     void SetDragIcon(GdkDragContext* aContext);
+
+protected:
+    virtual ~nsDragService();
 
 private:
 
@@ -144,20 +154,23 @@ private:
     // mPendingTime, carry information from the GTK signal that will be used
     // when the scheduled task is run.  mPendingWindow and mPendingDragContext
     // will be nullptr if the scheduled task is eDragTaskLeave.
-    nsRefPtr<nsWindow> mPendingWindow;
-    nsIntPoint mPendingWindowPoint;
+    RefPtr<nsWindow> mPendingWindow;
+    mozilla::LayoutDeviceIntPoint mPendingWindowPoint;
     nsCountedRef<GdkDragContext> mPendingDragContext;
     guint mPendingTime;
 
     // mTargetWindow and mTargetWindowPoint record the position of the last
     // eDragTaskMotion or eDragTaskDrop task that was run or is still running.
     // mTargetWindow is cleared once the drag has completed or left.
-    nsRefPtr<nsWindow> mTargetWindow;
-    nsIntPoint mTargetWindowPoint;
+    RefPtr<nsWindow> mTargetWindow;
+    mozilla::LayoutDeviceIntPoint mTargetWindowPoint;
     // mTargetWidget and mTargetDragContext are set only while dispatching
     // motion or drop events.  mTime records the corresponding timestamp.
     nsCountedRef<GtkWidget> mTargetWidget;
     nsCountedRef<GdkDragContext> mTargetDragContext;
+    // mTargetDragContextForRemote is set while waiting for a reply from
+    // a child process.
+    nsCountedRef<GdkDragContext> mTargetDragContextForRemote;
     guint           mTargetTime;
 
     // is it OK to drop on us?
@@ -181,7 +194,7 @@ private:
     // the source of our drags
     GtkWidget     *mHiddenWidget;
     // our source data items
-    nsCOMPtr<nsISupportsArray> mSourceDataItems;
+    nsCOMPtr<nsIArray> mSourceDataItems;
 
     nsCOMPtr<nsIScriptableRegion> mSourceRegion;
 
@@ -194,18 +207,18 @@ private:
                         GdkDragContext  *aContext,
                         int32_t          aXOffset,
                         int32_t          aYOffset,
-                        const nsIntRect &dragRect);
+                        const mozilla::LayoutDeviceIntRect &dragRect);
 
     gboolean Schedule(DragTask aTask, nsWindow *aWindow,
                       GdkDragContext *aDragContext,
-                      nsIntPoint aWindowPoint, guint aTime);
+                      mozilla::LayoutDeviceIntPoint aWindowPoint, guint aTime);
 
     // Callback for g_idle_add_full() to run mScheduledTask.
     static gboolean TaskDispatchCallback(gpointer data);
     gboolean RunScheduledTask();
     void UpdateDragAction();
     void DispatchMotionEvents();
-    void ReplyToDragMotion();
+    void ReplyToDragMotion(GdkDragContext* aDragContext);
     gboolean DispatchDropEvent();
 };
 

@@ -3,8 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /*
- *  Test that channels with different
- *  AppIds/inBrowserElements/usePrivateBrowsing (from nsILoadContext callback)
+ *  Test that channels with different LoadInfo
  *  are stored in separate namespaces ("cookie jars")
  */ 
 
@@ -14,6 +13,8 @@ XPCOMUtils.defineLazyGetter(this, "URL", function() {
 
 Cu.import("resource://testing-common/httpd.js");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
+
 var httpserver = new HttpServer();
 
 var cookieSetPath = "/setcookie";
@@ -27,20 +28,20 @@ function inChildProcess() {
 
 // Test array:
 //  - element 0: name for cookie, used both to set and later to check 
-//  - element 1: loadContext (determines cookie namespace)
+//  - element 1: loadInfo (determines cookie namespace)
 //
 // TODO: bug 722850: make private browsing work per-app, and add tests.  For now
 // all values are 'false' for PB.
 
 var tests = [
   { cookieName: 'LCC_App0_BrowF_PrivF', 
-    loadContext: new LoadContextCallback(0, false, false, 1) }, 
+    originAttributes: new OriginAttributes(0, false, 0) },
   { cookieName: 'LCC_App0_BrowT_PrivF', 
-    loadContext: new LoadContextCallback(0, true,  false, 1) }, 
+    originAttributes: new OriginAttributes(0, true, 0) },
   { cookieName: 'LCC_App1_BrowF_PrivF', 
-    loadContext: new LoadContextCallback(1, false, false, 1) }, 
+    originAttributes: new OriginAttributes(1, false, 0) },
   { cookieName: 'LCC_App1_BrowT_PrivF', 
-    loadContext: new LoadContextCallback(1, true,  false, 1) }, 
+    originAttributes: new OriginAttributes(1, true, 0) },
 ];
 
 // test number: index into 'tests' array
@@ -48,9 +49,8 @@ var i = 0;
 
 function setupChannel(path)
 {
-  var ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
-  var chan = ios.newChannel(URL + path, "", null);
-  chan.notificationCallbacks = tests[i].loadContext;
+  var chan = NetUtil.newChannel({uri: URL + path, loadUsingSystemPrincipal: true});
+  chan.loadInfo.originAttributes = tests[i].originAttributes;
   chan.QueryInterface(Ci.nsIHttpChannel);
   return chan;
 }
@@ -58,7 +58,7 @@ function setupChannel(path)
 function setCookie() {
   var channel = setupChannel(cookieSetPath);
   channel.setRequestHeader("foo-set-cookie", tests[i].cookieName, false);
-  channel.asyncOpen(new ChannelListener(setNextCookie, null), null);
+  channel.asyncOpen2(new ChannelListener(setNextCookie, null));
 }
 
 function setNextCookie(request, data, context) 
@@ -78,7 +78,7 @@ function setNextCookie(request, data, context)
 function checkCookie()
 {
   var channel = setupChannel(cookieCheckPath);
-  channel.asyncOpen(new ChannelListener(completeCheckCookie, null), null);
+  channel.asyncOpen2(new ChannelListener(completeCheckCookie, null));
 }
 
 function completeCheckCookie(request, data, context) {

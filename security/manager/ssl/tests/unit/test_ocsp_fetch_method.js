@@ -1,4 +1,4 @@
-// -*- Mode: javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+// -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -13,49 +13,37 @@ do_get_profile(); // must be called before getting nsIX509CertDB
 const certdb = Cc["@mozilla.org/security/x509certdb;1"]
                  .getService(Ci.nsIX509CertDB);
 
-const SERVER_PORT = 8080;
+const SERVER_PORT = 8888;
 
 function start_ocsp_responder(expectedCertNames, expectedPaths,
                               expectedMethods) {
-  return startOCSPResponder(SERVER_PORT, "www.example.com", [],
+  return startOCSPResponder(SERVER_PORT, "www.example.com",
                             "test_ocsp_fetch_method", expectedCertNames,
                             expectedPaths, expectedMethods);
 }
 
 function check_cert_err(cert_name, expected_error) {
-  let cert = constructCertFromFile("test_ocsp_fetch_method/" + cert_name + ".der");
+  let cert = constructCertFromFile("test_ocsp_fetch_method/" + cert_name + ".pem");
   return checkCertErrorGeneric(certdb, cert, expected_error,
                                certificateUsageSSLServer);
 }
 
 function run_test() {
-  addCertFromFile(certdb, "test_ocsp_fetch_method/ca.der", 'CTu,CTu,CTu');
-  addCertFromFile(certdb, "test_ocsp_fetch_method/int.der", ',,');
+  addCertFromFile(certdb, "test_ocsp_fetch_method/ca.pem", 'CTu,CTu,CTu');
+  addCertFromFile(certdb, "test_ocsp_fetch_method/int.pem", ',,');
 
   // Enabled so that we can force ocsp failure responses.
   Services.prefs.setBoolPref("security.OCSP.require", true);
 
   Services.prefs.setCharPref("network.dns.localDomains",
                              "www.example.com");
-
-  add_tests_in_mode(true);
-  add_tests_in_mode(false);
-  run_next_test();
-}
-
-function add_tests_in_mode(useMozillaPKIX)
-{
-  add_test(function() {
-    Services.prefs.setBoolPref("security.use_mozillapkix_verification",
-                               useMozillaPKIX);
-    run_next_test();
-  });
+  Services.prefs.setIntPref("security.OCSP.enabled", 1);
 
   add_test(function() {
     clearOCSPCache();
     Services.prefs.setBoolPref("security.OCSP.GET.enabled", false);
     let ocspResponder = start_ocsp_responder(["a"], [], ["POST"]);
-    check_cert_err("a", 0);
+    check_cert_err("a", PRErrorCodeSuccess);
     ocspResponder.stop(run_next_test);
   });
 
@@ -63,22 +51,9 @@ function add_tests_in_mode(useMozillaPKIX)
     clearOCSPCache();
     Services.prefs.setBoolPref("security.OCSP.GET.enabled", true);
     let ocspResponder = start_ocsp_responder(["a"], [], ["GET"]);
-    check_cert_err("a", 0);
+    check_cert_err("a", PRErrorCodeSuccess);
     ocspResponder.stop(run_next_test);
   });
 
-  // GET does fallback on bad entry
-  add_test(function() {
-    clearOCSPCache();
-    Services.prefs.setBoolPref("security.OCSP.GET.enabled", true);
-    // Bug 1016681 mozilla::pkix does not support fallback yet.
-    if (!useMozillaPKIX) {
-      let ocspResponder = start_ocsp_responder(["b", "a"], [], ["GET", "POST"]);
-      check_cert_err("a", 0);
-      ocspResponder.stop(run_next_test);
-    } else {
-      run_next_test();
-    }
-  });
-
+  run_next_test();
 }

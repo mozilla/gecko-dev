@@ -17,9 +17,11 @@
 class Spinner : public AsyncStatementSpinner
 {
 public:
-  NS_DECL_ISUPPORTS
+  NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_ASYNCSTATEMENTSPINNER
   Spinner() {}
+protected:
+  virtual ~Spinner() {}
 };
 
 NS_IMPL_ISUPPORTS_INHERITED0(Spinner,
@@ -108,7 +110,7 @@ test_asyncNULLFallback()
   do_check_true(NS_SUCCEEDED(stmt->ExecuteAsync(nullptr, getter_AddRefs(pendingStmt))));
   do_check_true(pendingStmt);
   stmt->Finalize();
-  nsRefPtr<Spinner> asyncSpin(new Spinner());
+  RefPtr<Spinner> asyncSpin(new Spinner());
   db->AsyncClose(asyncSpin);
   asyncSpin->SpinUntilCompleted();
 

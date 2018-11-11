@@ -8,7 +8,7 @@
 
 interface nsIDocShellTreeOwner;
 interface nsIDocument;
-interface nsPIDOMWindow;
+interface nsPIDOMWindowOuter;
 
 
 /**
@@ -17,7 +17,7 @@ interface nsPIDOMWindow;
  * node or a leaf. 
  */
 
-[scriptable, uuid(edb99640-8378-4106-8673-e701a086eb1c)]
+[scriptable, uuid(9b7c586f-9214-480c-a2c4-49b526fff1a6)]
 interface nsIDocShellTreeItem : nsISupports
 {
 	/*
@@ -32,7 +32,7 @@ interface nsIDocShellTreeItem : nsISupports
          * @return <CODE>PR_TRUE</CODE> if names match;
          *         <CODE>PR_FALSE</CODE> otherwise.
          */
-        boolean nameEquals(in wstring name);
+        boolean nameEquals(in AString name);
 
 	/*
 	Definitions for the item types.
@@ -104,7 +104,7 @@ interface nsIDocShellTreeItem : nsISupports
 	aOriginalRequestor - The original treeitem that made the request, if any.
 		This is used to ensure that we don't run into cross-site issues.
 	*/
-	nsIDocShellTreeItem findItemWithName(in wstring name,
+	nsIDocShellTreeItem findItemWithName(in AString name,
 	                                     in nsISupports aRequestor,
 	                                     in nsIDocShellTreeItem aOriginalRequestor);
 
@@ -172,13 +172,13 @@ interface nsIDocShellTreeItem : nsISupports
 
 	Note the search is depth first when recursing.
 	*/
-	nsIDocShellTreeItem findChildWithName(in wstring aName,
+	nsIDocShellTreeItem findChildWithName(in AString aName,
 	                                      in boolean aRecurse,
 	                                      in boolean aSameType,
 	                                      in nsIDocShellTreeItem aRequestor,
 	                                      in nsIDocShellTreeItem aOriginalRequestor);
 
   [noscript,nostdcall,notxpcom] nsIDocument getDocument();
-  [noscript,nostdcall,notxpcom] nsPIDOMWindow getWindow();
+  [noscript,nostdcall,notxpcom] nsPIDOMWindowOuter getWindow();
 };
 

@@ -2,6 +2,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 #include "nsImageFrame.h"
 #include "nsIFormControlFrame.h"
 #include "nsPresContext.h"
@@ -10,57 +11,57 @@
 #include "nsFormControlFrame.h"
 #include "nsLayoutUtils.h"
 #include "mozilla/MouseEvents.h"
+#include "nsIContent.h"
 
 using namespace mozilla;
 
-typedef nsImageFrame nsImageControlFrameSuper;
-class nsImageControlFrame : public nsImageControlFrameSuper,
+class nsImageControlFrame : public nsImageFrame,
                             public nsIFormControlFrame
 {
 public:
-  nsImageControlFrame(nsStyleContext* aContext);
+  explicit nsImageControlFrame(nsStyleContext* aContext);
   ~nsImageControlFrame();
 
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
+                    nsIFrame*         aPrevInFlow) override;
 
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
   virtual void Reflow(nsPresContext*           aPresContext,
-                          nsHTMLReflowMetrics&     aDesiredSize,
-                          const nsHTMLReflowState& aReflowState,
-                          nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+                          ReflowOutput&     aDesiredSize,
+                          const ReflowInput& aReflowInput,
+                          nsReflowStatus&          aStatus) override;
 
   virtual nsresult HandleEvent(nsPresContext* aPresContext,
                                WidgetGUIEvent* aEvent,
-                               nsEventStatus* aEventStatus) MOZ_OVERRIDE;
+                               nsEventStatus* aEventStatus) override;
 
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
 #ifdef ACCESSIBILITY
-  virtual mozilla::a11y::AccType AccessibleType() MOZ_OVERRIDE;
+  virtual mozilla::a11y::AccType AccessibleType() override;
 #endif
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE {
+  virtual nsresult GetFrameName(nsAString& aResult) const override {
     return MakeFrameName(NS_LITERAL_STRING("ImageControl"), aResult);
   }
 #endif
 
   virtual nsresult GetCursor(const nsPoint&    aPoint,
-                             nsIFrame::Cursor& aCursor) MOZ_OVERRIDE;
+                             nsIFrame::Cursor& aCursor) override;
   // nsIFormContromFrame
-  virtual void SetFocus(bool aOn, bool aRepaint) MOZ_OVERRIDE;
-  virtual nsresult SetFormProperty(nsIAtom* aName, 
-                                   const nsAString& aValue) MOZ_OVERRIDE;
+  virtual void SetFocus(bool aOn, bool aRepaint) override;
+  virtual nsresult SetFormProperty(nsIAtom* aName,
+                                   const nsAString& aValue) override;
 };
 
 
-nsImageControlFrame::nsImageControlFrame(nsStyleContext* aContext):
-  nsImageControlFrameSuper(aContext)
+nsImageControlFrame::nsImageControlFrame(nsStyleContext* aContext)
+  : nsImageFrame(aContext)
 {
 }
 
@@ -74,7 +75,7 @@ nsImageControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
   if (!GetPrevInFlow()) {
     nsFormControlFrame::RegUnRegAccessKey(this, false);
   }
-  nsImageControlFrameSuper::DestroyFrom(aDestructRoot);
+  nsImageFrame::DestroyFrom(aDestructRoot);
 }
 
 nsIFrame*
@@ -90,12 +91,12 @@ nsImageControlFrame::Init(nsIContent*       aContent,
                           nsContainerFrame* aParent,
                           nsIFrame*         aPrevInFlow)
 {
-  nsImageControlFrameSuper::Init(aContent, aParent, aPrevInFlow);
+  nsImageFrame::Init(aContent, aParent, aPrevInFlow);
 
   if (aPrevInFlow) {
     return;
   }
-  
+
   mContent->SetProperty(nsGkAtoms::imageClickedPoint,
                         new nsIntPoint(0, 0),
                         nsINode::DeleteProperty<nsIntPoint>);
@@ -103,14 +104,13 @@ nsImageControlFrame::Init(nsIContent*       aContent,
 
 NS_QUERYFRAME_HEAD(nsImageControlFrame)
   NS_QUERYFRAME_ENTRY(nsIFormControlFrame)
-NS_QUERYFRAME_TAIL_INHERITING(nsImageControlFrameSuper)
+NS_QUERYFRAME_TAIL_INHERITING(nsImageFrame)
 
 #ifdef ACCESSIBILITY
 a11y::AccType
 nsImageControlFrame::AccessibleType()
 {
-  if (mContent->Tag() == nsGkAtoms::button ||
-      mContent->Tag() == nsGkAtoms::input) {
+  if (mContent->IsAnyOfHTMLElements(nsGkAtoms::button, nsGkAtoms::input)) {
     return a11y::eHTMLButtonType;
   }
 
@@ -121,24 +121,24 @@ nsImageControlFrame::AccessibleType()
 nsIAtom*
 nsImageControlFrame::GetType() const
 {
-  return nsGkAtoms::imageControlFrame; 
+  return nsGkAtoms::imageControlFrame;
 }
 
 void
-nsImageControlFrame::Reflow(nsPresContext*         aPresContext,
-                           nsHTMLReflowMetrics&     aDesiredSize,
-                           const nsHTMLReflowState& aReflowState,
-                           nsReflowStatus&          aStatus)
+nsImageControlFrame::Reflow(nsPresContext*           aPresContext,
+                            ReflowOutput&     aDesiredSize,
+                            const ReflowInput& aReflowInput,
+                            nsReflowStatus&          aStatus)
 {
   DO_GLOBAL_REFLOW_COUNT("nsImageControlFrame");
-  DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
+  DISPLAY_REFLOW(aPresContext, this, aReflowInput, aDesiredSize, aStatus);
   if (!GetPrevInFlow() && (mState & NS_FRAME_FIRST_REFLOW)) {
     nsFormControlFrame::RegUnRegAccessKey(this, true);
   }
-  return nsImageControlFrameSuper::Reflow(aPresContext, aDesiredSize, aReflowState, aStatus);
+  return nsImageFrame::Reflow(aPresContext, aDesiredSize, aReflowInput, aStatus);
 }
 
-nsresult 
+nsresult
 nsImageControlFrame::HandleEvent(nsPresContext* aPresContext,
                                  WidgetGUIEvent* aEvent,
                                  nsEventStatus* aEventStatus)
@@ -152,16 +152,17 @@ nsImageControlFrame::HandleEvent(nsPresContext* aPresContext,
 
   // do we have user-input style?
   const nsStyleUserInterface* uiStyle = StyleUserInterface();
-  if (uiStyle->mUserInput == NS_STYLE_USER_INPUT_NONE || uiStyle->mUserInput == NS_STYLE_USER_INPUT_DISABLED)
+  if (uiStyle->mUserInput == StyleUserInput::None ||
+      uiStyle->mUserInput == StyleUserInput::Disabled) {
     return nsFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
-
+  }
   if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::disabled)) { // XXX cache disabled
     return NS_OK;
   }
 
   *aEventStatus = nsEventStatus_eIgnore;
 
-  if (aEvent->message == NS_MOUSE_BUTTON_UP &&
+  if (aEvent->mMessage == eMouseUp &&
       aEvent->AsMouseEvent()->button == WidgetMouseEvent::eLeftButton) {
     // Store click point for HTMLInputElement::SubmitNamesValues
     // Do this on MouseUp because the specs don't say and that's what IE does
@@ -174,11 +175,10 @@ nsImageControlFrame::HandleEvent(nsPresContext* aPresContext,
       TranslateEventCoords(pt, *lastClickPoint);
     }
   }
-  return nsImageControlFrameSuper::HandleEvent(aPresContext, aEvent,
-                                               aEventStatus);
+  return nsImageFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
 }
 
-void 
+void
 nsImageControlFrame::SetFocus(bool aOn, bool aRepaint)
 {
 }

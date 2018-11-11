@@ -1,18 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
 "use strict";
 
 module.metadata = {
   "stability": "experimental",
   "engines": {
-    "Firefox": "*"
+    "Firefox": "*",
+    "SeaMonkey": "*"
   }
 };
 
 const { Cc, Ci } = require('chrome');
-const { defer, all, resolve } = require('../../core/promise');
+const { all } = require('../../core/promise');
 const { safeMerge, omit } = require('../../util/object');
 const historyService = Cc['@mozilla.org/browser/nav-history-service;1']
                      .getService(Ci.nsINavHistoryService);
@@ -44,23 +44,35 @@ const PLACES_PROPERTIES = [
 ];
 
 function execute (queries, options) {
-  let deferred = defer();
-  let root = historyService
-    .executeQueries(queries, queries.length, options).root;
-
-  let items = collect([], root);
-  deferred.resolve(items);
-  return deferred.promise;
+  return new Promise(resolve => {
+    let root = historyService
+        .executeQueries(queries, queries.length, options).root;
+    // Let's extract an eventual uri wildcard, if both domain and uri are set.
+    // See utils.js::urlQueryParser() for more details.
+    // In case of multiple queries, we only retain the first found wildcard.
+    let uriWildcard = queries.reduce((prev, query) => {
+      if (query.uri && query.domain) {
+        if (!prev)
+          prev = query.uri.spec;
+        query.uri = null;
+      }
+      return prev;
+    }, "");
+    resolve(collect([], root, uriWildcard));
+  });
 }
 
-function collect (acc, node) {
+function collect (acc, node, uriWildcard) {
   node.containerOpen = true;
   for (let i = 0; i < node.childCount; i++) {
     let child = node.getChild(i);
-    acc.push(child);
+
+    if (!uriWildcard || child.uri.startsWith(uriWildcard)) {
+      acc.push(child);
+    }
     if (child.type === child.RESULT_TYPE_FOLDER) {
       let container = child.QueryInterface(Ci.nsINavHistoryContainerResultNode);
-      collect(acc, container);
+      collect(acc, container, uriWildcard);
     }
   }
   node.containerOpen = false;
@@ -68,40 +80,35 @@ function collect (acc, node) {
 }
 
 function query (queries, options) {
-  queries = queries || [];
-  options = options || {}; 
-  let deferred = defer();
-  let optionsObj, queryObjs;
+  return new Promise((resolve, reject) => {
+    queries = queries || [];
+    options = options || {};
+    let optionsObj, queryObjs;
 
-  try {
     optionsObj = historyService.getNewQueryOptions();
     queryObjs = [].concat(queries).map(createQuery);
     if (!queryObjs.length) {
       queryObjs = [historyService.getNewQuery()];
     }
     safeMerge(optionsObj, options);
-  } catch (e) {
-    deferred.reject(e);
-    return deferred.promise;
-  }
 
-  /*
-   * Currently `places:` queries are not supported
-   */
-  optionsObj.excludeQueries = true;
+    /*
+     * Currently `places:` queries are not supported
+     */
+    optionsObj.excludeQueries = true;
 
-  execute(queryObjs, optionsObj).then(function (results) {
-    if (optionsObj.queryType === 0) {
-      return results.map(normalize);
-    } else if (optionsObj.queryType === 1) {
-      // Formats query results into more standard
-      // data structures for returning
-      return all(results.map(({itemId}) =>
-        send('sdk-places-bookmarks-get', { id: itemId })));
-    }
-  }).then(deferred.resolve, deferred.reject);
-  
-  return deferred.promise;
+    execute(queryObjs, optionsObj).then((results) => {
+      if (optionsObj.queryType === 0) {
+        return results.map(normalize);
+      }
+      else if (optionsObj.queryType === 1) {
+        // Formats query results into more standard
+        // data structures for returning
+        return all(results.map(({itemId}) =>
+          send('sdk-places-bookmarks-get', { id: itemId })));
+      }
+    }).then(resolve, reject);
+  });
 }
 exports.query = query;
 
@@ -139,7 +146,7 @@ function queryReceiver (message) {
 
 /*
  * Converts a nsINavHistoryResultNode into a plain object
- * 
+ *
  * https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsINavHistoryResultNode
  */
 function normalize (historyObj) {
@@ -149,7 +156,8 @@ function normalize (historyObj) {
     else if (prop === 'time') {
       // Cast from microseconds to milliseconds
       obj.time = Math.floor(historyObj.time / 1000)
-    } else if (prop === 'accessCount')
+    }
+    else if (prop === 'accessCount')
       obj.visitCount = historyObj[prop];
     else
       obj[prop] = historyObj[prop];
@@ -161,7 +169,7 @@ function normalize (historyObj) {
  * Hook into host
  */
 
-let reqStream = filter(request, function (data) /sdk-places-query/.test(data.event));
+var reqStream = filter(request, data => /sdk-places-query/.test(data.event));
 on(reqStream, 'data', function (e) {
   if (EVENT_MAP[e.event]) EVENT_MAP[e.event](e);
 });

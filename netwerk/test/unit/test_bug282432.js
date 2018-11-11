@@ -1,3 +1,5 @@
+Cu.import("resource://gre/modules/NetUtil.jsm");
+
 function run_test() {
   do_test_pending();
 
@@ -32,7 +34,9 @@ function run_test() {
   // This file does not exist.
   let file = do_get_file("_NOT_EXIST_.txt", true);
   do_check_false(file.exists());
-
-  let channel = ios.newChannelFromURI(ios.newFileURI(file));
-  channel.asyncOpen(listener, null);
+  let channel = NetUtil.newChannel({
+    uri: ios.newFileURI(file),
+    loadUsingSystemPrincipal: true
+  });
+  channel.asyncOpen2(listener);
 }

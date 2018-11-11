@@ -336,6 +336,7 @@ NS_IMETHODIMP nsEUCJPToUnicodeV2::Convert(
               break;
             }
             // else fall through to error handler
+            MOZ_FALLTHROUGH;
           }
           case 5: // two bytes undefined
           {
@@ -370,8 +371,6 @@ error1:
    *aSrcLen = src - (const unsigned char*)aSrc;
    return NS_OK_UDEC_MOREOUTPUT;
 }
-
-
 
 NS_IMETHODIMP nsISO2022JPToUnicodeV2::Convert(
    const char * aSrc, int32_t * aSrcLen,
@@ -764,7 +763,7 @@ NS_IMETHODIMP nsISO2022JPToUnicodeV2::Convert(
               if (!mGB2312Decoder) {
                 // creating a delegate converter (GB2312)
                 mGB2312Decoder =
-                  EncodingUtils::DecoderForEncoding(NS_LITERAL_CSTRING("GB2312"));
+                  EncodingUtils::DecoderForEncoding("gb18030");
               }
               if (!mGB2312Decoder) {// failed creating a delegate converter
                 goto error2;

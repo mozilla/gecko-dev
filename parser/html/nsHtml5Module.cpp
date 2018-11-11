@@ -30,7 +30,6 @@ void
 nsHtml5Module::InitializeStatics()
 {
   Preferences::AddBoolVarCache(&sOffMainThread, "html5.offmainthread");
-  nsHtml5Atoms::AddRefAtoms();
   nsHtml5AttributeName::initializeStatics();
   nsHtml5ElementName::initializeStatics();
   nsHtml5HtmlAttributes::initializeStatics();
@@ -71,7 +70,7 @@ nsHtml5Module::ReleaseStatics()
 already_AddRefed<nsIParser>
 nsHtml5Module::NewHtml5Parser()
 {
-  NS_ABORT_IF_FALSE(sNsHtml5ModuleInitialized, "nsHtml5Module not initialized.");
+  MOZ_ASSERT(sNsHtml5ModuleInitialized, "nsHtml5Module not initialized.");
   nsCOMPtr<nsIParser> rv = new nsHtml5Parser();
   return rv.forget();
 }
@@ -80,19 +79,19 @@ nsHtml5Module::NewHtml5Parser()
 nsresult
 nsHtml5Module::Initialize(nsIParser* aParser, nsIDocument* aDoc, nsIURI* aURI, nsISupports* aContainer, nsIChannel* aChannel)
 {
-  NS_ABORT_IF_FALSE(sNsHtml5ModuleInitialized, "nsHtml5Module not initialized.");
+  MOZ_ASSERT(sNsHtml5ModuleInitialized, "nsHtml5Module not initialized.");
   nsHtml5Parser* parser = static_cast<nsHtml5Parser*> (aParser);
   return parser->Initialize(aDoc, aURI, aContainer, aChannel);
 }
 
-class nsHtml5ParserThreadTerminator MOZ_FINAL : public nsIObserver
+class nsHtml5ParserThreadTerminator final : public nsIObserver
 {
   public:
     NS_DECL_ISUPPORTS
-    nsHtml5ParserThreadTerminator(nsIThread* aThread)
+    explicit nsHtml5ParserThreadTerminator(nsIThread* aThread)
       : mThread(aThread)
     {}
-    NS_IMETHODIMP Observe(nsISupports *, const char *topic, const char16_t *)
+    NS_IMETHOD Observe(nsISupports *, const char *topic, const char16_t *) override
     {
       NS_ASSERTION(!strcmp(topic, "xpcom-shutdown-threads"), 
                    "Unexpected topic");
@@ -103,6 +102,8 @@ class nsHtml5ParserThreadTerminator MOZ_FINAL : public nsIObserver
       return NS_OK;
     }
   private:
+    ~nsHtml5ParserThreadTerminator() {}
+
     nsCOMPtr<nsIThread> mThread;
 };
 

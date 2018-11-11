@@ -1,0 +1,87 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <script type="application/javascript" src="mediaStreamPlayback.js"></script>
+</head>
+<body>
+<pre id="test">
+<script type="application/javascript">
+  createHTML({
+    title: "getUserMedia Basic Screenshare Test",
+    bug: "1211656"
+  });
+
+  var pushPrefs = (...p) => new Promise(r => SpecialPowers.pushPrefEnv({set: p}, r));
+
+  /**
+   * Run a test to verify that we can complete a start and stop media playback
+   * cycle for a screenshare LocalMediaStream on a video HTMLMediaElement.
+   */
+  runTest(function () {
+    const isWinXP = navigator.userAgent.indexOf("Windows NT 5.1") != -1;
+    if (IsMacOSX10_6orOlder() || isWinXP) {
+        ok(true, "Screensharing disabled for OSX10.6 and WinXP");
+        return;
+    }
+    var testVideo = createMediaElement('video', 'testVideo');
+
+    var constraints = {
+      video: {
+         mozMediaSource: "screen",
+         mediaSource: "screen"
+      },
+      fake: false
+    };
+    var videoConstraints = [
+      {
+        mediaSource: 'screen',
+        width: {
+          min: '10',
+          max: '100'
+        },
+        height: {
+          min: '10',
+          max: '100'
+        },
+        frameRate: {
+          min: '10',
+          max: '15'
+        }
+      },
+      {
+        mediaSource: 'screen',
+        width: 200,
+        height: 200,
+        frameRate: {
+          min: '5',
+          max: '10'
+        }
+      }
+    ];
+    return Promise.resolve()
+      // Screensharing must work even without "mochi.test," in allowed_domains
+      .then(() => pushPrefs(["media.getusermedia.screensharing.allowed_domains",
+                             "mozilla.github.io,*.bugzilla.mozilla.org"]))
+      .then(() => getUserMedia(constraints).then(stream => {
+        var playback = new LocalMediaStreamPlayback(testVideo, stream);
+        return playback.playMediaWithDeprecatedStreamStop(false);
+      }))
+      .then(() => getUserMedia({video: videoConstraints[0], fake: false}))
+      .then(stream => {
+        var playback = new LocalMediaStreamPlayback(testVideo, stream);
+        playback.startMedia(false);
+        return playback.verifyPlaying()
+          .then(() => Promise.all([
+            () => testVideo.srcObject.getVideoTracks()[0].applyConstraints(videoConstraints[1]),
+            () => listenUntil(testVideo, "resize", () => true)
+          ]))
+          .then(() => playback.verifyPlaying()) // still playing
+          .then(() => playback.deprecatedStopStreamInMediaPlayback())
+          .then(() => playback.detachFromMediaElement());
+      });
+  });
+
+</script>
+</pre>
+</body>
+</html>

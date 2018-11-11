@@ -23,18 +23,7 @@ const SCHEMES = {
   "javascript:": false,
 };
 
-const TRANSITIONS = [
-  TRANSITION_LINK,
-  TRANSITION_TYPED,
-  TRANSITION_BOOKMARK,
-  TRANSITION_EMBED,
-  TRANSITION_FRAMED_LINK,
-  TRANSITION_REDIRECT_PERMANENT,
-  TRANSITION_REDIRECT_TEMPORARY,
-  TRANSITION_DOWNLOAD,
-];
-
-let gRunner;
+var gRunner;
 function run_test()
 {
   do_test_pending();
@@ -42,16 +31,16 @@ function run_test()
   gRunner.next();
 }
 
-function step()
+function* step()
 {
   let history = Cc["@mozilla.org/browser/history;1"]
                   .getService(Ci.mozIAsyncHistory);
 
   for (let scheme in SCHEMES) {
-    do_log_info("Testing scheme " + scheme);
-    for (let i = 0; i < TRANSITIONS.length; i++) {
-      let transition = TRANSITIONS[i];
-      do_log_info("With transition " + transition);
+    do_print("Testing scheme " + scheme);
+    for (let t in PlacesUtils.history.TRANSITIONS) {
+      do_print("With transition " + t);
+      let transition = PlacesUtils.history.TRANSITIONS[t];
 
       let uri = NetUtil.newURI(scheme + "mozilla.org/");
 
@@ -63,17 +52,17 @@ function step()
           handleError:  function () {},
           handleResult: function () {},
           handleCompletion: function () {
-            do_log_info("Added visit to " + uri.spec);
+            do_print("Added visit to " + uri.spec);
 
-            history.isURIVisited(uri, function (aURI, aIsVisited) {
-              do_check_true(uri.equals(aURI));
+            history.isURIVisited(uri, function (aURI2, aIsVisited2) {
+              do_check_true(uri.equals(aURI2));
               let checker = SCHEMES[scheme] ? do_check_true : do_check_false;
-              checker(aIsVisited);
+              checker(aIsVisited2);
 
-              promiseClearHistory().then(function () {
-                history.isURIVisited(uri, function(aURI, aIsVisited) {
-                  do_check_true(uri.equals(aURI));
-                  do_check_false(aIsVisited);
+              PlacesTestUtils.clearHistory().then(function () {
+                history.isURIVisited(uri, function(aURI3, aIsVisited3) {
+                  do_check_true(uri.equals(aURI3));
+                  do_check_false(aIsVisited3);
                   gRunner.next();
                 });
               });

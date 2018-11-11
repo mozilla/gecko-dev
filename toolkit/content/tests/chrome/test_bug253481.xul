@@ -69,9 +69,9 @@ var expectedResults = {
 SimpleTest.waitForClipboard(testString, function() {
   var clip = Components.classes["@mozilla.org/widget/clipboardhelper;1"]
                        .getService(Components.interfaces.nsIClipboardHelper);
-  clip.copyString(testString, document);
+  clip.copyString(testString);
 }, function() {
-  for (let [item, expected] in Iterator(expectedResults)) {
+  for (let [item, expected] of Object.entries(expectedResults)) {
      testPaste(item, $(item), expected);
   }
 

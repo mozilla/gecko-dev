@@ -62,10 +62,10 @@ class DesktopFrameWithCursor : public DesktopFrame {
   virtual ~DesktopFrameWithCursor();
 
  private:
-  scoped_ptr<DesktopFrame> original_frame_;
+  rtc::scoped_ptr<DesktopFrame> original_frame_;
 
   DesktopVector restore_position_;
-  scoped_ptr<DesktopFrame> restore_frame_;
+  rtc::scoped_ptr<DesktopFrame> restore_frame_;
 
   DISALLOW_COPY_AND_ASSIGN(DesktopFrameWithCursor);
 };
@@ -132,14 +132,25 @@ DesktopAndCursorComposer::~DesktopAndCursorComposer() {}
 void DesktopAndCursorComposer::Start(DesktopCapturer::Callback* callback) {
   callback_ = callback;
   if (mouse_monitor_.get())
-    mouse_monitor_->Init(this, MouseCursorMonitor::SHAPE_AND_POSITION);
+    mouse_monitor_->Start(this, MouseCursorMonitor::SHAPE_AND_POSITION);
   desktop_capturer_->Start(this);
+}
+
+void DesktopAndCursorComposer::Stop() {
+  desktop_capturer_->Stop();
+  if (mouse_monitor_.get())
+    mouse_monitor_->Stop();
+  callback_ = NULL;
 }
 
 void DesktopAndCursorComposer::Capture(const DesktopRegion& region) {
   if (mouse_monitor_.get())
     mouse_monitor_->Capture();
   desktop_capturer_->Capture(region);
+}
+
+void DesktopAndCursorComposer::SetExcludedWindow(WindowId window) {
+  desktop_capturer_->SetExcludedWindow(window);
 }
 
 SharedMemory* DesktopAndCursorComposer::CreateSharedMemory(size_t size) {

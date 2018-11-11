@@ -10,10 +10,19 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
         'uachelper.cpp',
         'updatehelper.cpp',
     ]
+    if CONFIG['MOZ_MAINTENANCE_SERVICE']:
+        sources += [
+            'certificatecheck.cpp',
+            'registrycertificates.cpp',
+        ]
+        OS_LIBS += [
+            'crypt32',
+            'wintrust',
+        ]
 
 sources += [
     'readstrings.cpp',
-    'updatelogging.cpp',
+    'updatecommon.cpp',
 ]
 
 SOURCES += sorted(['%s/%s' % (srcdir, s) for s in sources])

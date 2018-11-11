@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -15,7 +16,7 @@
 #define NS_SCRIPTABLEBASE64ENCODER_CONTRACTID \
   "@mozilla.org/scriptablebase64encoder;1"
 
-class nsScriptableBase64Encoder MOZ_FINAL : public nsIScriptableBase64Encoder
+class nsScriptableBase64Encoder final : public nsIScriptableBase64Encoder
 {
 public:
   NS_DECL_ISUPPORTS

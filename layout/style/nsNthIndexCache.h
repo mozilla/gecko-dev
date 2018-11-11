@@ -61,10 +61,21 @@ private:
   class SystemAllocPolicy {
   public:
     void *malloc_(size_t bytes) { return ::malloc(bytes); }
-    void *calloc_(size_t bytes) { return ::calloc(bytes, 1); }
+
+    template <typename T>
+    T *maybe_pod_calloc(size_t numElems) {
+      return static_cast<T *>(::calloc(numElems, sizeof(T)));
+    }
+
+    template <typename T>
+    T *pod_calloc(size_t numElems) {
+      return maybe_pod_calloc<T>(numElems);
+    }
+
     void *realloc_(void *p, size_t bytes) { return ::realloc(p, bytes); }
     void free_(void *p) { ::free(p); }
     void reportAllocOverflow() const {}
+    bool checkSimulatedOOM() const { return true; }
   };
 
   typedef js::HashMap<nsIContent*, CacheEntry, js::DefaultHasher<nsIContent*>,

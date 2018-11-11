@@ -18,6 +18,8 @@
 
     <link rel="icon" type="image/png" id="favicon"
           href="chrome://branding/content/icon32.png"/>
+    <link rel="stylesheet" href="chrome://global/skin/in-content/common.css"
+          type="text/css"/>
     <link rel="stylesheet" href="chrome://global/skin/aboutSupport.css"
           type="text/css"/>
 
@@ -29,14 +31,21 @@
 
   <body dir="&locale.dir;">
 
-    <div id="reset-box">
-      <h3>&resetProfile.title;</h3>
-      <p>&resetProfile.description;</p>
-      <button id="reset-box-button">
-        &resetProfile.button.label2;
-      </button>
-    </div>
+    <div id="action-box">
+      <div id="reset-box">
+        <h3>&refreshProfile.title;</h3>
+        <button id="reset-box-button">
+          &refreshProfile.button.label;
+        </button>
+      </div>
+      <div id="safe-mode-box">
+        <h3>&aboutSupport.safeModeTitle;</h3>
+        <button id="restart-in-safe-mode-button">
+          &aboutSupport.restartInSafeMode.label;
+        </button>
+      </div>
 
+    </div>
     <h1>
       &aboutSupport.pageTitle;
     </h1>
@@ -82,6 +91,13 @@
             </td>
           </tr>
 
+          <tr>
+            <th class="column">
+              &aboutSupport.appBasicsBuildID;
+              </th>
+            <td id="buildid-box"></td>
+          </tr>
+
 #ifndef ANDROID
           <tr class="no-copy">
             <th class="column">
@@ -96,12 +112,30 @@
           </tr>
 #endif
 
+#ifdef MOZ_UPDATER
+          <tr>
+            <th class="column">
+              &aboutSupport.appBasicsUpdateChannel;
+            </th>
+            <td id="updatechannel-box"></td>
+          </tr>
+#endif
+
           <tr>
             <th class="column">
               &aboutSupport.appBasicsUserAgent;
             </th>
 
             <td id="useragent-box">
+            </td>
+          </tr>
+
+          <tr>
+            <th class="column">
+              &aboutSupport.appBasicsOS;
+            </th>
+
+            <td id="os-box">
             </td>
           </tr>
 
@@ -121,7 +155,7 @@
             <td>
               <button id="profile-dir-button">
 #ifdef XP_WIN
-                &aboutSupport.showWin.label;
+                &aboutSupport.showWin2.label;
 #else
 #ifdef XP_MACOSX
                 &aboutSupport.showMac.label;
@@ -162,6 +196,56 @@
               <a href="about:memory">about:memory</a>
             </td>
           </tr>
+
+          <tr class="no-copy">
+            <th class="column">
+              &aboutSupport.appBasicsPerformance;
+            </th>
+
+            <td>
+              <a href="about:performance">about:performance</a>
+            </td>
+          </tr>
+
+          <tr class="no-copy">
+            <th class="column">
+              &aboutSupport.appBasicsServiceWorkers;
+            </th>
+
+            <td>
+              <a href="about:serviceworkers">about:serviceworkers</a>
+            </td>
+          </tr>
+
+          <tr>
+            <th class="column">
+              &aboutSupport.appBasicsMultiProcessSupport;
+            </th>
+
+            <td id="multiprocess-box">
+            </td>
+          </tr>
+
+          <tr>
+            <th class="column">
+              &aboutSupport.appBasicsSafeMode;
+            </th>
+
+            <td id="safemode-box">
+            </td>
+          </tr>
+
+#ifndef ANDROID
+          <tr class="no-copy">
+            <th class="column">
+              &aboutSupport.appBasicsProfiles;
+            </th>
+
+            <td>
+              <a href="about:profiles">about:profiles</a>
+            </td>
+          </tr>
+#endif
 
         </tbody>
       </table>
@@ -227,13 +311,71 @@
       </h2>
 
       <table>
+        <tbody id="graphics-features-tbody">
+          <tr>
+            <th colspan="2" class="title-column">
+              &aboutSupport.graphicsFeaturesTitle;
+            </th>
+          </tr>
+        </tbody>
+
         <tbody id="graphics-tbody">
         </tbody>
 
-        <tbody id="graphics-info-properties">
+        <tbody id="graphics-gpu-1-tbody">
+          <tr>
+            <th colspan="2" class="title-column">
+              &aboutSupport.graphicsGPU1Title;
+            </th>
+          </tr>
+        </tbody>
+
+        <tbody id="graphics-gpu-2-tbody">
+          <tr>
+            <th colspan="2" class="title-column">
+              &aboutSupport.graphicsGPU2Title;
+            </th>
+          </tr>
+        </tbody>
+
+        <tbody id="graphics-diagnostics-tbody">
+          <tr>
+            <th colspan="2" class="title-column">
+              &aboutSupport.graphicsDiagnosticsTitle;
+            </th>
+          </tr>
+        </tbody>
+
+        <tbody id="graphics-decisions-tbody">
+          <tr>
+            <th colspan="2" class="title-column">
+              &aboutSupport.graphicsDecisionLogTitle;
+            </th>
+          </tr>
+        </tbody>
+
+        <tbody id="graphics-crashguards-tbody">
+          <tr>
+            <th colspan="2" class="title-column">
+              &aboutSupport.graphicsCrashGuardsTitle;
+            </th>
+          </tr>
+        </tbody>
+
+        <tbody id="graphics-workarounds-tbody">
+          <tr>
+            <th colspan="2" class="title-column">
+              &aboutSupport.graphicsWorkaroundsTitle;
+            </th>
+          </tr>
         </tbody>
 
         <tbody id="graphics-failures-tbody">
+          <tr>
+            <th colspan="2" class="title-column">
+              &aboutSupport.graphicsFailureLogTitle;
+            </th>
+          </tr>
         </tbody>
       </table>
 
@@ -282,6 +424,27 @@
 
         <tbody id="locked-prefs-tbody">
         </tbody>
+      </table>
+
+      <!-- - - - - - - - - - - - - - - - - - - - - -->
+
+      <h2 class="major-section">
+        &aboutSupport.placeDatabaseTitle;
+      </h2>
+
+      <table>
+        <tr class="no-copy">
+          <th class="column">
+            &aboutSupport.placeDatabaseIntegrity;
+          </th>
+
+          <td>
+            <button id="verify-place-integrity-button">
+              &aboutSupport.placeDatabaseVerifyIntegrity;
+            </button>
+            <pre id="verify-place-result" class="hidden no-copy"></pre>
+          </td>
+        </tr>
       </table>
 
       <!-- - - - - - - - - - - - - - - - - - - - - -->
@@ -364,12 +527,26 @@
             <th>
               &aboutSupport.experimentHomepage;
             </th>
+            <th>
+              &aboutSupport.experimentBranch;
+            </th>
           </tr>
         </thead>
         <tbody id="experiments-tbody">
         </tbody>
       </table>
       <!-- - - - - - - - - - - - - - - - - - - - - -->
+
+#if defined(MOZ_SANDBOX)
+      <h2 class="major-section" id="sandbox">
+	&aboutSupport.sandboxTitle;
+      </h2>
+
+      <table>
+	<tbody id="sandbox-tbody">
+	</tbody>
+      </table>
+#endif
 
     </div>
 

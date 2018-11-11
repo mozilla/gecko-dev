@@ -4,13 +4,12 @@
 // found in the LICENSE file.
 //
 
-#ifndef COMPILER_PREPROCESSOR_DIRECTIVE_PARSER_H_
-#define COMPILER_PREPROCESSOR_DIRECTIVE_PARSER_H_
+#ifndef COMPILER_PREPROCESSOR_DIRECTIVEPARSER_H_
+#define COMPILER_PREPROCESSOR_DIRECTIVEPARSER_H_
 
-#include "Lexer.h"
-#include "Macro.h"
-#include "pp_utils.h"
-#include "SourceLocation.h"
+#include "compiler/preprocessor/Lexer.h"
+#include "compiler/preprocessor/Macro.h"
+#include "compiler/preprocessor/SourceLocation.h"
 
 namespace pp
 {
@@ -22,35 +21,34 @@ class Tokenizer;
 class DirectiveParser : public Lexer
 {
   public:
-    DirectiveParser(Tokenizer* tokenizer,
-                    MacroSet* macroSet,
-                    Diagnostics* diagnostics,
-                    DirectiveHandler* directiveHandler);
+    DirectiveParser(Tokenizer *tokenizer,
+                    MacroSet *macroSet,
+                    Diagnostics *diagnostics,
+                    DirectiveHandler *directiveHandler);
 
-    virtual void lex(Token* token);
+    void lex(Token *token) override;
 
   private:
-    PP_DISALLOW_COPY_AND_ASSIGN(DirectiveParser);
 
-    void parseDirective(Token* token);
-    void parseDefine(Token* token);
-    void parseUndef(Token* token);
-    void parseIf(Token* token);
-    void parseIfdef(Token* token);
-    void parseIfndef(Token* token);
-    void parseElse(Token* token);
-    void parseElif(Token* token);
-    void parseEndif(Token* token);
-    void parseError(Token* token);
-    void parsePragma(Token* token);
-    void parseExtension(Token* token);
-    void parseVersion(Token* token);
-    void parseLine(Token* token);
+    void parseDirective(Token *token);
+    void parseDefine(Token *token);
+    void parseUndef(Token *token);
+    void parseIf(Token *token);
+    void parseIfdef(Token *token);
+    void parseIfndef(Token *token);
+    void parseElse(Token *token);
+    void parseElif(Token *token);
+    void parseEndif(Token *token);
+    void parseError(Token *token);
+    void parsePragma(Token *token);
+    void parseExtension(Token *token);
+    void parseVersion(Token *token);
+    void parseLine(Token *token);
 
     bool skipping() const;
-    void parseConditionalIf(Token* token);
-    int parseExpressionIf(Token* token);
-    int parseExpressionIfdef(Token* token);
+    void parseConditionalIf(Token *token);
+    int parseExpressionIf(Token *token);
+    int parseExpressionIfdef(Token *token);
 
     struct ConditionalBlock
     {
@@ -61,22 +59,25 @@ class DirectiveParser : public Lexer
         bool foundValidGroup;
         bool foundElseGroup;
 
-        ConditionalBlock() :
-            skipBlock(false),
-            skipGroup(false),
-            foundValidGroup(false),
-            foundElseGroup(false)
+        ConditionalBlock()
+            : skipBlock(false),
+              skipGroup(false),
+              foundValidGroup(false),
+              foundElseGroup(false)
         {
         }
     };
     bool mPastFirstStatement;
+    bool mSeenNonPreprocessorToken; // Tracks if a non-preprocessor token has been seen yet.  Some macros, such as
+                                    // #extension must be declared before all shader code.
     std::vector<ConditionalBlock> mConditionalStack;
-    Tokenizer* mTokenizer;
-    MacroSet* mMacroSet;
-    Diagnostics* mDiagnostics;
-    DirectiveHandler* mDirectiveHandler;
+    Tokenizer *mTokenizer;
+    MacroSet *mMacroSet;
+    Diagnostics *mDiagnostics;
+    DirectiveHandler *mDirectiveHandler;
+    int mShaderVersion;
 };
 
 }  // namespace pp
-#endif  // COMPILER_PREPROCESSOR_DIRECTIVE_PARSER_H_
 
+#endif  // COMPILER_PREPROCESSOR_DIRECTIVEPARSER_H_

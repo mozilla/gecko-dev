@@ -8,7 +8,7 @@
 # verify the tests work
 include reftest-sanity/reftest.list
 
-# images (if libpr0n is busted, could result in weird failures in other tests)
+# images (if ImageLib is busted, could result in weird failures in other tests)
 include ../../image/test/reftest/reftest.list
 
 # CSSWG tests
@@ -17,6 +17,10 @@ include w3c-css/received/reftest.list
 
 # relative and absolute positioning
 include abs-pos/reftest.list
+include position-relative/reftest.list
+
+# apng-mime
+include apng-mime/reftest.list
 
 include async-scrolling/reftest.list
 
@@ -25,6 +29,9 @@ include backgrounds/reftest.list
 
 # bidi/
 include bidi/reftest.list
+
+# border with dashed/dotted
+include border-dotted/reftest.list
 
 # border-image
 include border-image/reftest.list
@@ -47,8 +54,9 @@ include box-shadow/reftest.list
 # bugs/
 include bugs/reftest.list
 
-# canvas 2D
+# canvas
 include canvas/reftest.list
+include ../../dom/canvas/test/reftest/reftest.list
 
 # css animations
 include css-animations/reftest.list
@@ -67,6 +75,9 @@ include css-charset/reftest.list
 
 # css default pseudo class tests
 include css-default/reftest.list
+
+# css-display spec tests
+include css-display/reftest.list
 
 # css :disable tests
 include css-disabled/reftest.list
@@ -89,6 +100,9 @@ include css-parsing/reftest.list
 # css placeholder
 include css-placeholder/reftest.list
 
+# css ruby
+include css-ruby/reftest.list
+
 # css required
 include css-required/reftest.list
 
@@ -109,6 +123,9 @@ include text-overflow/reftest.list
 
 # css selectors
 include css-selectors/reftest.list
+
+# css sizing
+include css-sizing/reftest.list
 
 # css transitions
 include css-transitions/reftest.list
@@ -135,7 +152,7 @@ include cssom/reftest.list
 include columns/reftest.list
 
 # content/
-include ../../content/test/reftest/reftest.list
+include ../../dom/tests/reftest/reftest.list
 
 # counters/
 include counters/reftest.list
@@ -145,6 +162,9 @@ include counter-style/reftest.list
 
 # datalist
 include datalist/reftest.list
+
+# details and summary
+include details-summary/reftest.list
 
 # dom/
 include dom/reftest.list
@@ -174,7 +194,10 @@ include font-face/reftest.list
 include font-features/reftest.list
 
 # mobile font size inflation
-skip-if(B2G&&browserIsRemote) include font-inflation/reftest.list # Bug 972697
+include font-inflation/reftest.list
+
+# CSS Font Loading API
+include font-loading-api/reftest.list
 
 # font matching
 include font-matching/reftest.list
@@ -228,8 +251,8 @@ include margin-collapsing/reftest.list
 include marquee/reftest.list
 
 # native-theme/
-# skipping for B2G since something around radio-nonnative.html makes the whole suite hang
-skip-if(B2G) include native-theme/reftest.list
+# (no XUL theme on Android)
+skip-if(Android) include native-theme/reftest.list
 
 # netwerk/
 include ../../netwerk/test/reftest/reftest.list
@@ -240,10 +263,13 @@ include outline/reftest.list
 include object/reftest.list
 
 # ogg-video/
-include ogg-video/reftest.list
+skip-if(browserIsRemote) include ogg-video/reftest.list
 
 # webm-video/
-include webm-video/reftest.list
+skip-if(browserIsRemote) include webm-video/reftest.list
+
+# mp4-video/
+skip-if(browserIsRemote) include mp4-video/reftest.list
 
 # parser/
 include ../../parser/htmlparser/tests/reftest/reftest.list
@@ -267,11 +293,11 @@ include pagination/reftest.list
 # <style scoped>
 include scoped-style/reftest.list
 
-# scrolling 
+# scrolling
 include scrolling/reftest.list
 
 # selection
-skip-if(B2G&&browserIsRemote) include selection/reftest.list
+include selection/reftest.list
 
 # sticky positioning
 include position-sticky/reftest.list
@@ -294,13 +320,21 @@ include table-bordercollapse/reftest.list
 # table-dom/
 include table-dom/reftest.list
 
+# table-html/
+include table-html/reftest.list
+
 include table-overflow/reftest.list
 
 # table-width/
 include table-width/reftest.list
 
+include ../tables/reftests/reftest.list
+
 # text/
 include text/reftest.list
+
+# text-stroke
+include text-stroke/reftest.list
 
 # text-decoration/
 include text-decoration/reftest.list
@@ -333,6 +367,9 @@ include unicode/reftest.list
 
 include view-source/reftest.list
 
+# web-animations
+include web-animations/reftest.list
+
 # webcomponents/
 include webcomponents/reftest.list
 
@@ -340,27 +377,34 @@ include webcomponents/reftest.list
 include ../../widget/reftests/reftest.list
 
 # xml-stylesheet/
-include ../../content/test/reftest/xml-stylesheet/reftest.list
+include ../../dom/tests/reftest/xml-stylesheet/reftest.list
 
-# xul-document-load/
-include xul-document-load/reftest.list
+# xul-document-load/ (no XUL theme on Android)
+skip-if(Android) include xul-document-load/reftest.list
 
-# xul/
-include xul/reftest.list
+# xul/ (no XUL theme on Android)
+skip-if(Android) include xul/reftest.list
 
-# xul
-include ../xul/reftest/reftest.list
+# xul (no XUL theme on Android)
+skip-if(Android) include ../xul/reftest/reftest.list
 
-# xul grid
-include ../xul/grid/reftests/reftest.list
+# xul grid (no XUL theme on Android)
+skip-if(Android) include ../xul/grid/reftests/reftest.list
+
+# -webkit-box & associated properties (mapped to modern flexbox)
+include webkit-box/reftest.list
+
+# -webkit-gradient expressions
+include webkit-gradient/reftest.list
+
+# writing-mode
+include writing-mode/reftest.list
 
 # z-index/
 include z-index/reftest.list
 
 # reftest(s) to verify content bugfixes
-include ../../content/html/document/reftests/reftests.list
-include ../../content/html/content/reftests/reftest.list
-include ../../dom/imptests/reftest.list
+include ../../dom/html/reftests/reftest.list
 
 # editor/
 include ../../editor/reftests/reftest.list
@@ -373,3 +417,6 @@ include invalidation/reftest.list
 
 # encodings
 include ../../dom/encoding/test/reftest/reftest.list
+
+# APZ/async positioning tests
+include ../../gfx/layers/apz/test/reftest/reftest.list

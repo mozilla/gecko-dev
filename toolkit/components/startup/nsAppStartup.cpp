@@ -12,9 +12,11 @@
 #include "nsIObserverService.h"
 #include "nsIPrefBranch.h"
 #include "nsIPrefService.h"
+#include "nsIProcess.h"
 #include "nsIPromptService.h"
 #include "nsIStringBundle.h"
 #include "nsISupportsPrimitives.h"
+#include "nsIToolkitProfile.h"
 #include "nsIWebBrowserChrome.h"
 #include "nsIWindowMediator.h"
 #include "nsIWindowWatcher.h"
@@ -30,11 +32,13 @@
 #include "prprf.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsWidgetsCID.h"
+#include "nsAppRunner.h"
 #include "nsAppShellCID.h"
 #include "nsXPCOMCIDInternal.h"
 #include "mozilla/Services.h"
 #include "nsIXPConnect.h"
 #include "jsapi.h"
+#include "js/Date.h"
 #include "prenv.h"
 #include "nsAppDirectoryServiceDefs.h"
 
@@ -94,16 +98,14 @@ static NS_DEFINE_CID(kXPCOMShutdownCID,
 
 using namespace mozilla;
 
-uint32_t gRestartMode = 0;
-
-class nsAppExitEvent : public nsRunnable {
+class nsAppExitEvent : public mozilla::Runnable {
 private:
-  nsRefPtr<nsAppStartup> mService;
+  RefPtr<nsAppStartup> mService;
 
 public:
-  nsAppExitEvent(nsAppStartup *service) : mService(service) {}
+  explicit nsAppExitEvent(nsAppStartup *service) : mService(service) {}
 
-  NS_IMETHOD Run() {
+  NS_IMETHOD Run() override {
     // Tell the appshell to exit
     mService->mAppShell->Exit();
 
@@ -143,7 +145,7 @@ nsAppStartup::nsAppStartup() :
   mInterrupted(false),
   mIsSafeModeNecessary(false),
   mStartupCrashTrackingEnded(false),
-  mRestartTouchEnvironment(false)
+  mRestartNotSameProfile(false)
 { }
 
 
@@ -161,12 +163,14 @@ nsAppStartup::Init()
   if (!os)
     return NS_ERROR_FAILURE;
 
+  os->AddObserver(this, "quit-application", true);
   os->AddObserver(this, "quit-application-forced", true);
   os->AddObserver(this, "sessionstore-init-started", true);
   os->AddObserver(this, "sessionstore-windows-restored", true);
   os->AddObserver(this, "profile-change-teardown", true);
   os->AddObserver(this, "xul-window-registered", true);
   os->AddObserver(this, "xul-window-destroyed", true);
+  os->AddObserver(this, "profile-before-change", true);
   os->AddObserver(this, "xpcom-shutdown", true);
 
 #if defined(XP_WIN)
@@ -186,26 +190,27 @@ nsAppStartup::Init()
       mProbesManager->
       GetProbe(kPlacesInitCompleteCID,
                NS_LITERAL_CSTRING("places-init-complete"));
-    NS_WARN_IF_FALSE(mPlacesInitCompleteProbe,
-                     "Cannot initialize probe 'places-init-complete'");
+    NS_WARNING_ASSERTION(mPlacesInitCompleteProbe,
+                         "Cannot initialize probe 'places-init-complete'");
 
     mSessionWindowRestoredProbe =
       mProbesManager->
       GetProbe(kSessionStoreWindowRestoredCID,
                NS_LITERAL_CSTRING("sessionstore-windows-restored"));
-    NS_WARN_IF_FALSE(mSessionWindowRestoredProbe,
-                     "Cannot initialize probe 'sessionstore-windows-restored'");
-                     
+    NS_WARNING_ASSERTION(
+      mSessionWindowRestoredProbe,
+      "Cannot initialize probe 'sessionstore-windows-restored'");
+
     mXPCOMShutdownProbe =
       mProbesManager->
       GetProbe(kXPCOMShutdownCID,
                NS_LITERAL_CSTRING("xpcom-shutdown"));
-    NS_WARN_IF_FALSE(mXPCOMShutdownProbe,
-                     "Cannot initialize probe 'xpcom-shutdown'");
+    NS_WARNING_ASSERTION(mXPCOMShutdownProbe,
+                         "Cannot initialize probe 'xpcom-shutdown'");
 
     rv = mProbesManager->StartSession();
-    NS_WARN_IF_FALSE(NS_SUCCEEDED(rv),
-                     "Cannot initialize system probe manager");
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                         "Cannot initialize system probe manager");
   }
 #endif //defined(XP_WIN)
 
@@ -232,7 +237,7 @@ NS_IMPL_ISUPPORTS(nsAppStartup,
 NS_IMETHODIMP
 nsAppStartup::CreateHiddenWindow()
 {
-#ifdef MOZ_WIDGET_GONK
+#if defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_UIKIT)
   return NS_OK;
 #else
   nsCOMPtr<nsIAppShellService> appShellService
@@ -247,7 +252,7 @@ nsAppStartup::CreateHiddenWindow()
 NS_IMETHODIMP
 nsAppStartup::DestroyHiddenWindow()
 {
-#ifdef MOZ_WIDGET_GONK
+#if defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_UIKIT)
   return NS_OK;
 #else
   nsCOMPtr<nsIAppShellService> appShellService
@@ -281,10 +286,10 @@ nsAppStartup::Run(void)
   }
 
   nsresult retval = NS_OK;
-  if (mRestartTouchEnvironment) {
-    retval = NS_SUCCESS_RESTART_METRO_APP;
-  } else if (mRestart) {
+  if (mRestart) {
     retval = NS_SUCCESS_RESTART_APP;
+  } else if (mRestartNotSameProfile) {
+    retval = NS_SUCCESS_RESTART_APP_NOT_SAME_PROFILE;
   }
 
   return retval;
@@ -358,15 +363,21 @@ nsAppStartup::Quit(uint32_t aMode)
       mediator->GetEnumerator(nullptr, getter_AddRefs(windowEnumerator));
       if (windowEnumerator) {
         bool more;
-        while (windowEnumerator->HasMoreElements(&more), more) {
+        windowEnumerator->HasMoreElements(&more);
+        // If we reported no windows, we definitely shouldn't be
+        // iterating any here.
+        MOZ_ASSERT_IF(!mConsiderQuitStopper, !more);
+
+        while (more) {
           nsCOMPtr<nsISupports> window;
           windowEnumerator->GetNext(getter_AddRefs(window));
-          nsCOMPtr<nsPIDOMWindow> domWindow(do_QueryInterface(window));
+          nsCOMPtr<nsPIDOMWindowOuter> domWindow(do_QueryInterface(window));
           if (domWindow) {
             MOZ_ASSERT(domWindow->IsOuterWindow());
             if (!domWindow->CanClose())
               return NS_OK;
           }
+          windowEnumerator->HasMoreElements(&more);
         }
       }
     }
@@ -376,15 +387,13 @@ nsAppStartup::Quit(uint32_t aMode)
     mShuttingDown = true;
     if (!mRestart) {
       mRestart = (aMode & eRestart) != 0;
-      gRestartMode = (aMode & 0xF0);
     }
 
-    if (!mRestartTouchEnvironment) {
-      mRestartTouchEnvironment = (aMode & eRestartTouchEnvironment) != 0;
-      gRestartMode = (aMode & 0xF0);
+    if (!mRestartNotSameProfile) {
+      mRestartNotSameProfile = (aMode & eRestartNotSameProfile) != 0;
     }
 
-    if (mRestart || mRestartTouchEnvironment) {
+    if (mRestart || mRestartNotSameProfile) {
       // Mark the next startup as a restart.
       PR_SetEnv("MOZ_APP_RESTART=1");
 
@@ -430,11 +439,9 @@ nsAppStartup::Quit(uint32_t aMode)
             ferocity = eAttemptQuit;
             nsCOMPtr<nsISupports> window;
             windowEnumerator->GetNext(getter_AddRefs(window));
-            nsCOMPtr<nsIDOMWindow> domWindow = do_QueryInterface(window);
+            nsCOMPtr<nsPIDOMWindowOuter> domWindow = do_QueryInterface(window);
             if (domWindow) {
-              bool closed = false;
-              domWindow->GetClosed(&closed);
-              if (!closed) {
+              if (!domWindow->Closed()) {
                 rv = NS_ERROR_FAILURE;
                 break;
               }
@@ -454,7 +461,7 @@ nsAppStartup::Quit(uint32_t aMode)
       NS_NAMED_LITERAL_STRING(shutdownStr, "shutdown");
       NS_NAMED_LITERAL_STRING(restartStr, "restart");
       obsService->NotifyObservers(nullptr, "quit-application",
-        (mRestart || mRestartTouchEnvironment) ?
+        (mRestart || mRestartNotSameProfile) ?
          restartStr.get() : shutdownStr.get());
     }
 
@@ -503,7 +510,7 @@ nsAppStartup::CloseAllWindows()
     if (NS_FAILED(windowEnumerator->GetNext(getter_AddRefs(isupports))))
       break;
 
-    nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(isupports);
+    nsCOMPtr<nsPIDOMWindowOuter> window = do_QueryInterface(isupports);
     NS_ASSERTION(window, "not an nsPIDOMWindow");
     if (window) {
       MOZ_ASSERT(window->IsOuterWindow());
@@ -581,14 +588,6 @@ nsAppStartup::GetWasRestarted(bool *aResult)
 }
 
 NS_IMETHODIMP
-nsAppStartup::GetRestartingTouchEnvironment(bool *aResult)
-{
-  NS_ENSURE_ARG_POINTER(aResult);
-  *aResult = mRestartTouchEnvironment;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsAppStartup::SetInterrupted(bool aInterrupted)
 {
   mInterrupted = aInterrupted;
@@ -612,7 +611,7 @@ nsAppStartup::CreateChromeWindow(nsIWebBrowserChrome *aParent,
                                  nsIWebBrowserChrome **_retval)
 {
   bool cancel;
-  return CreateChromeWindow2(aParent, aChromeFlags, 0, 0, nullptr, &cancel, _retval);
+  return CreateChromeWindow2(aParent, aChromeFlags, 0, nullptr, nullptr, &cancel, _retval);
 }
 
 
@@ -621,11 +620,22 @@ nsAppStartup::CreateChromeWindow(nsIWebBrowserChrome *aParent,
 //
 
 NS_IMETHODIMP
+nsAppStartup::SetScreenId(uint32_t aScreenId)
+{
+  nsCOMPtr<nsIAppShellService> appShell(do_GetService(NS_APPSHELLSERVICE_CONTRACTID));
+  if (!appShell) {
+    return NS_ERROR_FAILURE;
+  }
+
+  return appShell->SetScreenId(aScreenId);
+}
+
+NS_IMETHODIMP
 nsAppStartup::CreateChromeWindow2(nsIWebBrowserChrome *aParent,
                                   uint32_t aChromeFlags,
                                   uint32_t aContextFlags,
-                                  nsIURI *aURI,
                                   nsITabParent *aOpeningTab,
+                                  mozIDOMWindowProxy* aOpener,
                                   bool *aCancel,
                                   nsIWebBrowserChrome **_retval)
 {
@@ -645,7 +655,7 @@ nsAppStartup::CreateChromeWindow2(nsIWebBrowserChrome *aParent,
     NS_ASSERTION(xulParent, "window created using non-XUL parent. that's unexpected, but may work.");
 
     if (xulParent)
-      xulParent->CreateNewWindow(aChromeFlags, aOpeningTab, getter_AddRefs(newWindow));
+      xulParent->CreateNewWindow(aChromeFlags, aOpeningTab, aOpener, getter_AddRefs(newWindow));
     // And if it fails, don't try again without a parent. It could fail
     // intentionally (bug 115969).
   } else { // try using basic methods:
@@ -662,7 +672,7 @@ nsAppStartup::CreateChromeWindow2(nsIWebBrowserChrome *aParent,
     appShell->CreateTopLevelWindow(0, 0, aChromeFlags,
                                    nsIAppShellService::SIZE_TO_CONTENT,
                                    nsIAppShellService::SIZE_TO_CONTENT,
-                                   aOpeningTab,
+                                   aOpeningTab, aOpener,
                                    getter_AddRefs(newWindow));
   }
 
@@ -721,6 +731,10 @@ nsAppStartup::Observe(nsISupports *aSubject,
       mXPCOMShutdownProbe->Trigger();
     }
 #endif // defined(XP_WIN)
+  } else if (!strcmp(aTopic, "quit-application")) {
+    StartupTimeline::Record(StartupTimeline::QUIT_APPLICATION);
+  } else if (!strcmp(aTopic, "profile-before-change")) {
+    StartupTimeline::Record(StartupTimeline::PROFILE_BEFORE_CHANGE);
   } else {
     NS_ERROR("Unexpected observer topic.");
   }
@@ -731,7 +745,7 @@ nsAppStartup::Observe(nsISupports *aSubject,
 NS_IMETHODIMP
 nsAppStartup::GetStartupInfo(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval)
 {
-  JS::Rooted<JSObject*> obj(aCx, JS_NewObject(aCx, nullptr, JS::NullPtr(), JS::NullPtr()));
+  JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
 
   aRetval.setObject(*obj);
 
@@ -771,7 +785,7 @@ nsAppStartup::GetStartupInfo(JSContext* aCx, JS::MutableHandle<JS::Value> aRetva
       if (stamp >= procTime) {
         PRTime prStamp = ComputeAbsoluteTimestamp(absNow, now, stamp)
           / PR_USEC_PER_MSEC;
-        JS::Rooted<JSObject*> date(aCx, JS_NewDateObjectMsec(aCx, prStamp));
+        JS::Rooted<JSObject*> date(aCx, JS::NewDateObject(aCx, JS::TimeClip(prStamp)));
         JS_DefineProperty(aCx, obj, StartupTimeline::Describe(ev), date, JSPROP_ENUMERATE);
       } else {
         Telemetry::Accumulate(Telemetry::STARTUP_MEASUREMENT_ERRORS, ev);
@@ -968,6 +982,49 @@ nsAppStartup::RestartInSafeMode(uint32_t aQuitMode)
 {
   PR_SetEnv("MOZ_SAFE_MODE_RESTART=1");
   this->Quit(aQuitMode | nsIAppStartup::eRestart);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsAppStartup::CreateInstanceWithProfile(nsIToolkitProfile* aProfile)
+{
+  if (NS_WARN_IF(!aProfile)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (NS_WARN_IF(gAbsoluteArgv0Path.IsEmpty())) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<nsIFile> execPath;
+  nsresult rv = NS_NewNativeLocalFile(NS_ConvertUTF16toUTF8(gAbsoluteArgv0Path),
+                                      true, getter_AddRefs(execPath));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  nsCOMPtr<nsIProcess> process = do_CreateInstance(NS_PROCESS_CONTRACTID, &rv);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  rv = process->Init(execPath);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  nsAutoCString profileName;
+  rv = aProfile->GetName(profileName);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  const char *args[] = { "-P", profileName.get() };
+  rv = process->Run(false, args, 2);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
 
   return NS_OK;
 }

@@ -1,4 +1,4 @@
-// -*- Mode: js2; tab-width: 2; indent-tabs-mode: nil; js2-basic-offset: 2; js2-skip-preprocessor-directives: t; -*-
+// -*- tab-width: 2; indent-tabs-mode: nil; js-indent-level: 2 -*-
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -20,7 +20,7 @@ function bind(f, thisObj) {
 }
 
 function bindSome(instance, methodNames) {
-  for each (let methodName in methodNames)
+  for (let methodName of methodNames)
     if (methodName in instance)
       instance[methodName] = bind(instance[methodName], instance);
 }
@@ -67,7 +67,7 @@ function TileManager(appendTile, removeTile, browserView) {
 
   // if we have an outstanding paint timeout, its value is stored here
   // for cancelling when we end page loads
-  //this._drawTimeout = 0;
+  // this._drawTimeout = 0;
   this._pageLoadResizerTimeout = 0;
 
   // timeout of the non-visible-tiles-crawler to cache renders from the browser
@@ -124,7 +124,7 @@ TileManager.prototype = {
     let criticalIsDirty = false;
     let criticalRect = this._criticalRect;
 
-    for each (let rect in rects) {
+    for (let rect of rects) {
       this._tileCache.forEachIntersectingRect(rect, false, this._dirtyTile, this);
 
       if (criticalRect && rect.intersects(criticalRect))
@@ -197,17 +197,17 @@ TileManager.prototype = {
 
 	  // 'this' for getTile needs to be tc
 
-	  //tile = this.getTile(i, j, create, evictGuard);
-	  //if (!tc.inBounds(i, j)) {
+	  // tile = this.getTile(i, j, create, evictGuard);
+	  // if (!tc.inBounds(i, j)) {
 	  if (0 <= i && 0 <= j && i <= tc.iBound && j <= tc.jBound) {
-	    //return null;
+	    // return null;
 	    break;
 	  }
 
 	  tile = null;
 
-	  //if (tc._isOccupied(i, j)) {
-	  if (!!(tc._tiles[i] && tc._tiles[i][j])) {
+	  // if (tc._isOccupied(i, j)) {
+	  if (tc._tiles[i] && tc._tiles[i][j]) {
 	    tile = tc._tiles[i][j];
 	  } else if (create) {
 	    // NOTE: create is false here
@@ -217,11 +217,11 @@ TileManager.prototype = {
 
 	  if (tile) {
 	    visited[tile.toString()] = true;
-	    //fn.call(thisObj, tile);
-	    //function appendNonDirtyTile(tile) {
-	    //if (!tile.isDirty())
+	    // fn.call(thisObj, tile);
+	    // function appendNonDirtyTile(tile) {
+	    // if (!tile.isDirty())
 	    if (!tile._dirtyTileCanvas) {
-	      //this._appendTileSafe(tile);
+	      // this._appendTileSafe(tile);
 	      if (!tile._appended) {
 		let astart = Date.now();
 		this._appendTile(tile);
@@ -230,7 +230,7 @@ TileManager.prototype = {
 		dump("append: " + (aend - astart) + "\n");
 	      }
 	    }
-	    //}
+	    // }
 	  }
 	}
       }
@@ -715,7 +715,7 @@ TileManager.Tile = function Tile(i, j) {
   this._canvas.setAttribute("width", String(kTileWidth));
   this._canvas.setAttribute("height", String(kTileHeight));
   this._canvas.setAttribute("moz-opaque", "true");
-  //this._canvas.style.border = "1px solid red";
+  // this._canvas.style.border = "1px solid red";
 
   this.init(i, j);  // defines more properties, cf below
 };
@@ -785,13 +785,10 @@ TileManager.Tile.prototype = {
       else
         this._dirtyTileCanvasRect.copyFrom(this.boundRect);
 
-    } else {
-
-      if (!this._dirtyTileCanvasRect)
-        this._dirtyTileCanvasRect = dirtyRect.intersect(this.boundRect);
-      else if (dirtyRect.intersects(this.boundRect))
-        this._dirtyTileCanvasRect.expandToContain(dirtyRect.intersect(this.boundRect));
-
+    } else if (!this._dirtyTileCanvasRect) {
+      this._dirtyTileCanvasRect = dirtyRect.intersect(this.boundRect);
+    } else if (dirtyRect.intersects(this.boundRect)) {
+      this._dirtyTileCanvasRect.expandToContain(dirtyRect.intersect(this.boundRect));
     }
 
     // TODO if after the above, the dirty rectangle is large enough,
@@ -821,8 +818,8 @@ TileManager.Tile.prototype = {
     let y = rect.top - this.boundRect.top;
 
     // content process is not being scaled, so don't scale our rect either
-    //browserView.viewportToBrowserRect(rect);
-    //rect.round(); // snap outward to get whole "pixel" (in browser coords)
+    // browserView.viewportToBrowserRect(rect);
+    // rect.round(); // snap outward to get whole "pixel" (in browser coords)
 
     let ctx = this._canvas.getContext("2d");
     ctx.save();
@@ -832,7 +829,7 @@ TileManager.Tile.prototype = {
     ctx.translate(x, y);
 
     let cw = browserView._contentWindow;
-    //let cw = browser.contentWindow;
+    // let cw = browser.contentWindow;
     ctx.asyncDrawXULElement(browserView._browser,
                    rect.left, rect.top,
                    rect.right - rect.left, rect.bottom - rect.top,
@@ -909,7 +906,7 @@ TileManager.CrawlIterator = function CrawlIterator(tileCache, startRect) {
       outOfBounds = true;
 
       // top, bottom borders
-      for each (let y in [rect.top, rect.bottom]) {
+      for (let y of [rect.top, rect.bottom]) {
         for (let x = rect.left; x <= rect.right - dx; x += kTileWidth) {
           let i = x >> kTileExponentWidth;
           let j = y >> kTileExponentHeight;
@@ -921,7 +918,7 @@ TileManager.CrawlIterator = function CrawlIterator(tileCache, startRect) {
       }
 
       // left, right borders
-      for each (let x in [rect.left, rect.right]) {
+      for (let x of [rect.left, rect.right]) {
         for (let y = rect.top; y <= rect.bottom - dy; y += kTileHeight) {
           let i = x >> kTileExponentWidth;
           let j = y >> kTileExponentHeight;
@@ -944,7 +941,7 @@ TileManager.CrawlIterator = function CrawlIterator(tileCache, startRect) {
 };
 
 TileManager.CrawlIterator.prototype = {
-  __iterator__: function() {
+  __iterator__: function*() {
     while (true) {
       let tile = this.next();
       if (!tile) break;

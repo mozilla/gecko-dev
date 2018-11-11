@@ -256,17 +256,17 @@ nsAuthSambaNTLM::GetNextToken(const void *inToken,
     nsCString line;
     if (!ReadLine(mFromChildFD, line))
         return NS_ERROR_FAILURE;
-    if (!StringBeginsWith(line, NS_LITERAL_CSTRING("KK "))) {
+    if (!StringBeginsWith(line, NS_LITERAL_CSTRING("KK ")) &&
+        !StringBeginsWith(line, NS_LITERAL_CSTRING("AF "))) {
         // Something went wrong. Perhaps no credentials are accessible.
         return NS_ERROR_FAILURE;
     }
     uint8_t* buf = ExtractMessage(line, outTokenLen);
     if (!buf)
         return NS_ERROR_FAILURE;
-    // *outToken has to be freed by nsMemory::Free, which may not be free() 
     *outToken = nsMemory::Clone(buf, *outTokenLen);
+    free(buf);
     if (!*outToken) {
-        free(buf);
         return NS_ERROR_OUT_OF_MEMORY;
     }
     

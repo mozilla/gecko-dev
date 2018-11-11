@@ -9,6 +9,9 @@ the moment, we have:
 - `js/src/doc/Debugger`, SpiderMonkey's JavaScript debugging API, commonly
   known as `Debugger`.
 
+- `js/src/doc/SavedFrame`, SpiderMonkey's compact representation for captured
+  call stacks.
+
 and that's it.
 
 To format the documentation, you'll need to install [Pandoc][], a
@@ -152,6 +155,6 @@ invoke the following commands:
 This ought to be integrated with mach
 -------------------------------------
 
-Indeed. It should somehow be unified with 'mach build-docs', which seems to
+Indeed. It should somehow be unified with 'mach doc', which seems to
 format in-tree docs of a different kind, and use a different markup
 language (ReStructuredText) and a different formatter (Sphinx).

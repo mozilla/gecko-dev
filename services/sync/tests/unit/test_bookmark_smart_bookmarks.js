@@ -16,8 +16,8 @@ var IOService = Cc["@mozilla.org/network/io-service;1"]
 
 
 Service.engineManager.register(BookmarksEngine);
-let engine = Service.engineManager.get("bookmarks");
-let store = engine._store;
+var engine = Service.engineManager.get("bookmarks");
+var store = engine._store;
 
 // Clean up after other tests. Only necessary in XULRunner.
 store.wipe();
@@ -57,7 +57,7 @@ function serverForFoo(engine) {
 
 // Verify that Places smart bookmarks have their annotation uploaded and
 // handled locally.
-add_test(function test_annotation_uploaded() {
+add_task(function *test_annotation_uploaded() {
   let server = serverForFoo(engine);
   new SyncTestingInfrastructure(server.server);
 
@@ -110,9 +110,9 @@ add_test(function test_annotation_uploaded() {
   let collection = server.user("foo").collection("bookmarks");
 
   try {
-    engine.sync();
+    yield sync_engine_and_validate_telem(engine, false);
     let wbos = collection.keys(function (id) {
-                 return ["menu", "toolbar", "mobile"].indexOf(id) == -1;
+                 return ["menu", "toolbar", "mobile", "unfiled"].indexOf(id) == -1;
                });
     do_check_eq(wbos.length, 1);
 
@@ -141,7 +141,7 @@ add_test(function test_annotation_uploaded() {
     do_check_eq(smartBookmarkCount(), startCount);
 
     _("Sync. Verify that the downloaded record carries the annotation.");
-    engine.sync();
+    yield sync_engine_and_validate_telem(engine, false);
 
     _("Verify that the Places DB now has an annotated bookmark.");
     _("Our count has increased again.");

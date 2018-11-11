@@ -1,0 +1,106 @@
+<!DOCTYPE HTML>
+<html>
+<!--
+Bug 1038811: Push tests.
+
+Any copyright is dedicated to the Public Domain.
+http://creativecommons.org/licenses/publicdomain/
+
+-->
+<head>
+  <title>Test for Bug 1038811</title>
+  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="text/javascript" src="/tests/SimpleTest/SpawnTask.js"></script>
+  <script type="text/javascript" src="/tests/dom/push/test/test_utils.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+</head>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1038811">Mozilla Bug 1038811</a>
+<p id="display"></p>
+<div id="content" style="display: none">
+
+</div>
+<pre id="test">
+</pre>
+
+<script class="testbody" type="text/javascript">
+
+  function debug(str) {
+  //  console.log(str + "\n");
+  }
+
+  var registration;
+  add_task(function* start() {
+    yield setupPrefsAndMockSocket(new MockWebSocket());
+    yield setPushPermission(false);
+
+    var url = "worker.js" + "?" + Math.random();
+    registration = yield navigator.serviceWorker.register(url, {scope: "."});
+    yield waitForActive(registration);
+  });
+
+  add_task(function* denySubscribe() {
+    try {
+      yield registration.pushManager.subscribe();
+      ok(false, "subscribe() should fail because no permission for push");
+    } catch (error) {
+      ok(error instanceof DOMException, "Wrong exception type");
+      is(error.name, "NotAllowedError", "Wrong exception name");
+    }
+  });
+
+  add_task(function* denySubscribeInWorker() {
+    // If permission is revoked, `getSubscription()` should return `null`, and
+    // `subscribe()` should reject immediately. Calling these from the worker
+    // should not deadlock the main thread (see bug 1228723).
+    var errorInfo = yield sendRequestToWorker({
+      type: "denySubscribe",
+    });
+    ok(errorInfo.isDOMException, "Wrong exception type");
+    is(errorInfo.name, "NotAllowedError", "Wrong exception name");
+  });
+
+  add_task(function* getEndpoint() {
+    var pushSubscription = yield registration.pushManager.getSubscription();
+    is(pushSubscription, null, "getSubscription() should return null because no permission for push");
+  });
+
+  add_task(function* checkPermissionState() {
+    var permissionManager = SpecialPowers.Ci.nsIPermissionManager;
+    var tests = [{
+      action: permissionManager.ALLOW_ACTION,
+      state: "granted",
+    }, {
+      action: permissionManager.DENY_ACTION,
+      state: "denied",
+    }, {
+      action: permissionManager.PROMPT_ACTION,
+      state: "prompt",
+    }, {
+      action: permissionManager.UNKNOWN_ACTION,
+      state: "prompt",
+    }];
+    for (var test of tests) {
+      yield setPushPermission(test.action);
+      var state = yield registration.pushManager.permissionState();
+      is(state, test.state, JSON.stringify(test));
+      try {
+        yield SpecialPowers.pushPrefEnv({ set: [
+          ["dom.push.testing.ignorePermission", true]] });
+        state = yield registration.pushManager.permissionState();
+        is(state, "granted", `Should ignore ${
+          test.action} if the override pref is set`);
+      } finally {
+        yield SpecialPowers.flushPrefEnv();
+      }
+    }
+  });
+
+  add_task(function* unregister() {
+    var result = yield registration.unregister();
+    ok(result, "Unregister should return true.");
+  });
+
+</script>
+</body>
+</html>

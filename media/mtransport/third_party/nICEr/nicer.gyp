@@ -66,10 +66,16 @@
                 # Net
                 "./src/net/nr_resolver.c",
                 "./src/net/nr_resolver.h",
+                "./src/net/nr_socket_wrapper.c",
+                "./src/net/nr_socket_wrapper.h",
+                "./src/net/nr_proxy_tunnel.c",
+                "./src/net/nr_proxy_tunnel.h",
                 "./src/net/nr_socket.c",
                 "./src/net/nr_socket.h",
                 #"./src/net/nr_socket_local.c",
                 "./src/net/nr_socket_local.h",
+                "./src/net/nr_socket_multi_tcp.c",
+                "./src/net/nr_socket_multi_tcp.h",
                 "./src/net/transport_addr.c",
                 "./src/net/transport_addr.h",
                 "./src/net/transport_addr_reg.c",
@@ -82,6 +88,8 @@
                 # STUN
                 "./src/stun/addrs.c",
                 "./src/stun/addrs.h",
+                "./src/stun/ifaddrs-android.c",
+                "./src/stun/ifaddrs-android.h",
                 "./src/stun/nr_socket_turn.c",
                 "./src/stun/nr_socket_turn.h",
                 "./src/stun/nr_socket_buffered_stun.c",
@@ -117,7 +125,7 @@
 
 
           ],
-          
+
           'defines' : [
               'SANITY_CHECKS',
               'USE_TURN',
@@ -136,13 +144,12 @@
 	      'R_DEFINED_INT8=int64_t',
 	      'R_DEFINED_UINT8=uint64_t',
           ],
-          
+
           'conditions' : [
               ## Mac and BSDs
-              [ 'OS == "mac"', {
+              [ 'OS == "mac" or OS == "ios"', {
                 'defines' : [
                     'DARWIN',
-                    'HAVE_XLOCALE',
                 ],
               }],
               [ 'os_bsd == 1', {
@@ -150,7 +157,7 @@
                     'BSD',
                 ],
               }],
-              [ 'OS == "mac" or os_bsd == 1', {
+              [ 'OS == "mac" or OS == "ios" or os_bsd == 1', {
                 'cflags_mozilla': [
                     '-Wall',
                     '-Wno-parentheses',
@@ -172,11 +179,11 @@
 		 'include_dirs': [
 		     '../nrappkit/src/port/darwin/include'
 		 ],
-		 
+
 		 'sources': [
 		 ],
               }],
-              
+
               ## Win
               [ 'OS == "win"', {
                 'defines' : [
@@ -220,7 +227,7 @@
 		 'include_dirs': [
 		     '../nrappkit/src/port/linux/include'
 		 ],
-		 
+
 		 'sources': [
 		 ],
               }],

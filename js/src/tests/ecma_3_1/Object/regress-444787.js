@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -99,23 +99,6 @@ function test()
     expect   = type.prototype;
     actual   = Object.getPrototypeOf(instance);
     reportCompare(expect, actual, summary + ' instance: ' + instance + ', type: ' + type.name);
-  }
-
-  var non_objects = [ true, false, 1.0, Infinity, NaN, Math.PI, "bar" ];
-
-  for (i = 0; i < non_objects.length; i++)
-  {
-    instance = non_objects[i];
-    expect = 'TypeError: instance is not an object';
-    try
-    {
-      actual = Object.getPrototypeOf(instance);
-    }
-    catch(ex)
-    {
-      actual = ex + '';
-    }
-    reportCompare(expect, actual, summary + ' non-object: ' + actual);
   }
 
   exitFunc ('test');

@@ -16,29 +16,28 @@ static uint32_t psize = 0;
 static uint32_t max_stack = 0;
 
 static void
-reset(JSContext *cx)
+reset(JSContext* cx)
 {
     psize = max_stack = 0;
     memset(pstack, 0, sizeof(pstack));
-    cx->runtime()->spsProfiler.stringsReset();
-    cx->runtime()->spsProfiler.enableSlowAssertions(true);
-    js::EnableRuntimeProfilingStack(cx->runtime(), true);
+    cx->spsProfiler.stringsReset();
+    cx->spsProfiler.enableSlowAssertions(true);
+    js::EnableContextProfilingStack(cx, true);
 }
 
 static const JSClass ptestClass = {
-    "Prof", 0, JS_PropertyStub, JS_DeletePropertyStub, JS_PropertyStub,
-    JS_StrictPropertyStub, JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub
+    "Prof", 0
 };
 
 static bool
-test_fn(JSContext *cx, unsigned argc, jsval *vp)
+test_fn(JSContext* cx, unsigned argc, JS::Value* vp)
 {
     max_stack = psize;
     return true;
 }
 
 static bool
-test_fn2(JSContext *cx, unsigned argc, jsval *vp)
+test_fn2(JSContext* cx, unsigned argc, JS::Value* vp)
 {
     JS::RootedValue r(cx);
     JS::RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
@@ -46,24 +45,24 @@ test_fn2(JSContext *cx, unsigned argc, jsval *vp)
 }
 
 static bool
-enable(JSContext *cx, unsigned argc, jsval *vp)
+enable(JSContext* cx, unsigned argc, JS::Value* vp)
 {
-    js::EnableRuntimeProfilingStack(cx->runtime(), true);
+    js::EnableContextProfilingStack(cx, true);
     return true;
 }
 
 static bool
-disable(JSContext *cx, unsigned argc, jsval *vp)
+disable(JSContext* cx, unsigned argc, JS::Value* vp)
 {
-    js::EnableRuntimeProfilingStack(cx->runtime(), false);
+    js::EnableContextProfilingStack(cx, false);
     return true;
 }
 
 static bool
-Prof(JSContext* cx, unsigned argc, jsval *vp)
+Prof(JSContext* cx, unsigned argc, JS::Value* vp)
 {
     JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-    JSObject *obj = JS_NewObjectForConstructor(cx, &ptestClass, args);
+    JSObject* obj = JS_NewObjectForConstructor(cx, &ptestClass, args);
     if (!obj)
         return false;
     args.rval().setObject(*obj);
@@ -79,11 +78,11 @@ static const JSFunctionSpec ptestFunctions[] = {
 };
 
 static JSObject*
-initialize(JSContext *cx)
+initialize(JSContext* cx)
 {
-    js::SetRuntimeProfilingStack(cx->runtime(), pstack, &psize, 10);
+    js::SetContextProfilingStack(cx, pstack, &psize, 10);
     JS::RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
-    return JS_InitClass(cx, global, js::NullPtr(), &ptestClass, Prof, 0,
+    return JS_InitClass(cx, global, nullptr, &ptestClass, Prof, 0,
                         nullptr, ptestFunctions, nullptr, nullptr);
 }
 
@@ -127,8 +126,8 @@ BEGIN_TEST(testProfileStrings_isCalledWithInterpreter)
         CHECK(max_stack >= 6);
         CHECK(psize == 0);
     }
-    js::EnableRuntimeProfilingStack(cx->runtime(), false);
-    js::SetRuntimeProfilingStack(cx->runtime(), pstack, &psize, 3);
+    js::EnableContextProfilingStack(cx, false);
+    js::SetContextProfilingStack(cx, pstack, &psize, 3);
     reset(cx);
     {
         JS::RootedValue rval(cx);
@@ -146,7 +145,7 @@ END_TEST(testProfileStrings_isCalledWithInterpreter)
 BEGIN_TEST(testProfileStrings_isCalledWithJIT)
 {
     CHECK(initialize(cx));
-    JS::RuntimeOptionsRef(cx).setBaseline(true)
+    JS::ContextOptionsRef(cx).setBaseline(true)
                              .setIon(true);
 
     EXEC("function g() { var p = new Prof(); p.test_fn(); }");
@@ -178,8 +177,8 @@ BEGIN_TEST(testProfileStrings_isCalledWithJIT)
         CHECK(max_stack >= 8);
     }
 
-    js::EnableRuntimeProfilingStack(cx->runtime(), false);
-    js::SetRuntimeProfilingStack(cx->runtime(), pstack, &psize, 3);
+    js::EnableContextProfilingStack(cx, false);
+    js::SetContextProfilingStack(cx, pstack, &psize, 3);
     reset(cx);
     {
         /* Limit the size of the stack and make sure we don't overflow */
@@ -198,13 +197,12 @@ END_TEST(testProfileStrings_isCalledWithJIT)
 BEGIN_TEST(testProfileStrings_isCalledWhenError)
 {
     CHECK(initialize(cx));
-    JS::RuntimeOptionsRef(cx).setBaseline(true)
+    JS::ContextOptionsRef(cx).setBaseline(true)
                              .setIon(true);
 
     EXEC("function check2() { throw 'a'; }");
 
     reset(cx);
-    JS::ContextOptionsRef(cx).setDontReportUncaught(true);
     {
         JS::RootedValue rval(cx);
         /* Make sure the stack resets and we have an entry for each stack */
@@ -223,13 +221,13 @@ END_TEST(testProfileStrings_isCalledWhenError)
 BEGIN_TEST(testProfileStrings_worksWhenEnabledOnTheFly)
 {
     CHECK(initialize(cx));
-    JS::RuntimeOptionsRef(cx).setBaseline(true)
+    JS::ContextOptionsRef(cx).setBaseline(true)
                              .setIon(true);
 
     EXEC("function b(p) { p.test_fn(); }");
     EXEC("function a() { var p = new Prof(); p.enable(); b(p); }");
     reset(cx);
-    js::EnableRuntimeProfilingStack(cx->runtime(), false);
+    js::EnableContextProfilingStack(cx, false);
     {
         /* enable it in the middle of JS and make sure things check out */
         JS::RootedValue rval(cx);

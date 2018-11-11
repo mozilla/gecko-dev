@@ -10,6 +10,9 @@ const Cc = Components.classes;
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "EnableDelayHelper",
+                                  "resource://gre/modules/SharedPromptUtils.jsm");
 
 
 this.CommonDialog = function CommonDialog(args, ui) {
@@ -125,8 +128,11 @@ CommonDialog.prototype = {
             this.setLabelForNode(this.ui.button0, this.args.button0Label);
 
         // display the main text
-        // Bug 317334 - crop string length as a workaround.
-        let croppedMessage = this.args.text.substr(0, 10000);
+        let croppedMessage = "";
+        if (this.args.text) {
+            // Bug 317334 - crop string length as a workaround.
+            croppedMessage = this.args.text.substr(0, 10000);
+        }
         let infoBody = this.ui.infoBody;
         infoBody.appendChild(infoBody.ownerDocument.createTextNode(croppedMessage));
 
@@ -141,7 +147,7 @@ CommonDialog.prototype = {
         // set the icon
         let icon = this.ui.infoIcon;
         if (icon)
-            this.iconClass.forEach(function(el,idx,arr) icon.classList.add(el));
+            this.iconClass.forEach((el, idx, arr) => icon.classList.add(el));
 
         // set default result to cancelled
         this.args.ok = false;
@@ -161,13 +167,11 @@ CommonDialog.prototype = {
         this.setDefaultFocus(true);
 
         if (this.args.enableDelay) {
-            this.setButtonsEnabledState(false);
-            // Use a longer, pref-controlled delay when the dialog is first opened.
-            let delayTime = Services.prefs.getIntPref("security.dialog_enable_delay");
-            this.startOnFocusDelay(delayTime);
-            let self = this;
-            this.ui.focusTarget.addEventListener("blur",  function(e) { self.onBlur(e);  }, false);
-            this.ui.focusTarget.addEventListener("focus", function(e) { self.onFocus(e); }, false);
+            this.delayHelper = new EnableDelayHelper({
+                disableDialog: () => this.setButtonsEnabledState(false),
+                enableDialog: () => this.setButtonsEnabledState(true),
+                focusTarget: this.ui.focusTarget
+            });
         }
 
         // Play a sound (unless we're tab-modal -- don't want those to feel like OS prompts).
@@ -198,10 +202,10 @@ CommonDialog.prototype = {
         // Note that if you change the following code, see the comment of
         // nsTextBoxFrame::UpdateAccessTitle.
         var accessKey = null;
-        if (/ *\(\&([^&])\)(:)?$/.test(aLabel)) {
+        if (/ *\(\&([^&])\)(:?)$/.test(aLabel)) {
             aLabel = RegExp.leftContext + RegExp.$2;
             accessKey = RegExp.$1;
-        } else if (/^(.*[^&])?\&(([^&]).*$)/.test(aLabel)) {
+        } else if (/^([^&]*)\&(([^&]).*$)/.test(aLabel)) {
             aLabel = RegExp.$1 + RegExp.$2;
             accessKey = RegExp.$3;
         }
@@ -230,44 +234,6 @@ CommonDialog.prototype = {
         this.ui.button3.disabled = !enabled;
     },
 
-    onBlur : function (aEvent) {
-        if (aEvent.target != this.ui.focusTarget)
-            return;
-        this.setButtonsEnabledState(false);
-
-        // If we blur while waiting to enable the buttons, just cancel the
-        // timer to ensure the delay doesn't fire while not focused.
-        if (this.focusTimer) {
-            this.focusTimer.cancel();
-            this.focusTimer = null;
-        }
-    },
-
-    onFocus : function (aEvent) {
-        if (aEvent.target != this.ui.focusTarget)
-            return;
-        this.startOnFocusDelay();
-    },
-
-    startOnFocusDelay : function(delayTime) {
-        // Shouldn't already have a timer, but just in case...
-        if (this.focusTimer)
-            return;
-        // If no delay specified, use 250ms. (This is the normal case for when
-        // after the dialog has been opened and focus shifts.)
-        if (!delayTime)
-            delayTime = 250;
-        let self = this;
-        this.focusTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-        this.focusTimer.initWithCallback(function() { self.onFocusTimeout(); },
-                                         delayTime, Ci.nsITimer.TYPE_ONE_SHOT);
-    },
-
-    onFocusTimeout : function() {
-        this.focusTimer = null;
-        this.setButtonsEnabledState(true);
-    },
-
     setDefaultFocus : function(isInitialLoad) {
         let b = (this.args.defaultButtonNum || 0);
         let button = this.ui["button" + b];
@@ -278,20 +244,17 @@ CommonDialog.prototype = {
                 this.ui.infoBody.focus();
             else
                 button.focus();
-        } else {
+        } else if (this.args.promptType == "promptPassword") {
             // When the prompt is initialized, focus and select the textbox
             // contents. Afterwards, only focus the textbox.
-            if (this.args.promptType == "promptPassword") {
-                if (isInitialLoad)
-                    this.ui.password1Textbox.select();
-                else
-                    this.ui.password1Textbox.focus();
-            } else {
-                if (isInitialLoad)
-                    this.ui.loginTextbox.select();
-                else
-                    this.ui.loginTextbox.focus();
-            }
+            if (isInitialLoad)
+                this.ui.password1Textbox.select();
+            else
+                this.ui.password1Textbox.focus();
+        } else if (isInitialLoad) {
+                this.ui.loginTextbox.select();
+        } else {
+                this.ui.loginTextbox.focus();
         }
     },
 

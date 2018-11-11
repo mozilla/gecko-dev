@@ -13,46 +13,26 @@
 
 importScripts("resource://gre/modules/osfile.jsm");
 
-let File = OS.File;
-let Type = OS.Shared.Type;
+var PromiseWorker = require("resource://gre/modules/workers/PromiseWorker.js");
 
-/**
- * Communications with the controller.
- *
- * Accepts messages:
- * {fun:function_name, args:array_of_arguments_or_null}
- *
- * Sends messages:
- * {ok: result} / {fail: serialized_form_of_OS.File.Error}
- */
-self.onmessage = function onmessage(msg) {
-  let data = msg.data;
-  let id = data.id;
-  let result;
-  if (!(data.fun in Agent)) {
-    throw new Error("Cannot find method " + data.fun);
-  }
-  try {
-    result = Agent[data.fun].apply(Agent, data.args);
-  } catch (ex if ex instanceof StopIteration) {
-    // StopIteration cannot be serialized automatically
-    self.postMessage({StopIteration: true, id: id});
-    return;
-  } catch (ex if ex instanceof OS.File.Error) {
-    // Instances of OS.File.Error know how to serialize themselves
-    // (deserialization ensures that we end up with OS-specific
-    // instances of |OS.File.Error|)
-    self.postMessage({fail: OS.File.Error.toMsg(ex), id:id});
-    return;
-  }
-  // Other exceptions do not, and should be propagated through DOM's
-  // built-in mechanism for uncaught errors, although this mechanism
-  // may lose interesting information.
-  self.postMessage({ok: result, id:id});
+var File = OS.File;
+var Type = OS.Shared.Type;
+
+var worker = new PromiseWorker.AbstractWorker();
+worker.dispatch = function(method, args = []) {
+  return Agent[method](...args);
+};
+worker.postMessage = function(message, ...transfers) {
+  self.postMessage(message, ...transfers);
+};
+worker.close = function() {
+  self.close();
 };
 
+self.addEventListener("message", msg => worker.handleMessage(msg));
 
-let Agent = {
+
+var Agent = {
   // Checks if the specified file exists and has an age less than as
   // specifed (in seconds).
   isFileRecent: function Agent_isFileRecent(path, maxAge) {
@@ -61,7 +41,10 @@ let Agent = {
       let maxDate = new Date();
       maxDate.setSeconds(maxDate.getSeconds() - maxAge);
       return stat.lastModificationDate > maxDate;
-    } catch (ex if ex instanceof OS.File.Error) {
+    } catch (ex) {
+      if (!(ex instanceof OS.File.Error)) {
+        throw ex;
+      }
       // file doesn't exist (or can't be stat'd) - must be stale.
       return false;
     }
@@ -96,15 +79,23 @@ let Agent = {
   getFileEntriesInDirectory:
   function Agent_getFileEntriesInDirectory(path, skipFiles) {
     let iter = new OS.File.DirectoryIterator(path);
-    if (!iter.exists()) {
-      return [];
+    try {
+      if (!iter.exists()) {
+        return [];
+      }
+
+      let skip = new Set(skipFiles);
+
+      let entries = [];
+      for (let entry in iter) {
+        if (!entry.isDir && !entry.isSymLink && !skip.has(entry.name)) {
+          entries.push(entry);
+        }
+      }
+      return entries;
+    } finally {
+      iter.close();
     }
-
-    let skip = new Set(skipFiles);
-
-    return [entry
-            for (entry in iter)
-            if (!entry.isDir && !entry.isSymLink && !skip.has(entry.name))];
   },
 
   moveOrDeleteAllThumbnails:

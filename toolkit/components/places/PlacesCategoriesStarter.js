@@ -1,24 +1,22 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  * vim: sw=2 ts=2 sts=2 expandtab
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-////////////////////////////////////////////////////////////////////////////////
-//// Constants
+// Constants
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
-// Fired by TelemetryPing when async telemetry data should be collected.
+// Fired by TelemetryController when async telemetry data should be collected.
 const TOPIC_GATHER_TELEMETRY = "gather-telemetry";
 
 // Seconds between maintenance runs.
 const MAINTENANCE_INTERVAL_SECONDS = 7 * 86400;
 
-////////////////////////////////////////////////////////////////////////////////
-//// Imports
+// Imports
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
@@ -36,27 +34,29 @@ function PlacesCategoriesStarter()
   Services.obs.addObserver(this, PlacesUtils.TOPIC_SHUTDOWN, false);
 
   // nsINavBookmarkObserver implementation.
-  let notify = (function () {
+  let notify = () => {
     if (!this._notifiedBookmarksSvcReady) {
+      // TODO (bug 1145424): for whatever reason, even if we remove this
+      // component from the category (and thus from the category cache we use
+      // to notify), we keep being notified.
+      this._notifiedBookmarksSvcReady = true;
       // For perf reasons unregister from the category, since no further
       // notifications are needed.
       Cc["@mozilla.org/categorymanager;1"]
         .getService(Ci.nsICategoryManager)
-        .deleteCategoryEntry("bookmarks-observer", this, false);
+        .deleteCategoryEntry("bookmark-observers", "PlacesCategoriesStarter", false);
       // Directly notify PlacesUtils, to ensure it catches the notification.
       PlacesUtils.observe(null, "bookmarks-service-ready", null);
     }
-  }).bind(this);
+  };
+
   [ "onItemAdded", "onItemRemoved", "onItemChanged", "onBeginUpdateBatch",
-    "onEndUpdateBatch", "onItemVisited",
-    "onItemMoved" ].forEach(function(aMethod) {
-      this[aMethod] = notify;
-    }, this);
+    "onEndUpdateBatch", "onItemVisited", "onItemMoved"
+  ].forEach(aMethod => this[aMethod] = notify);
 }
 
 PlacesCategoriesStarter.prototype = {
-  //////////////////////////////////////////////////////////////////////////////
-  //// nsIObserver
+  // nsIObserver
 
   observe: function PCS_observe(aSubject, aTopic, aData)
   {
@@ -92,8 +92,7 @@ PlacesCategoriesStarter.prototype = {
     }
   },
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// nsISupports
+  // nsISupports
 
   classID: Components.ID("803938d5-e26d-4453-bf46-ad4b26e41114"),
 
@@ -105,8 +104,7 @@ PlacesCategoriesStarter.prototype = {
   ])
 };
 
-////////////////////////////////////////////////////////////////////////////////
-//// Module Registration
+// Module Registration
 
-let components = [PlacesCategoriesStarter];
+var components = [PlacesCategoriesStarter];
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory(components);

@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
@@ -11,23 +11,21 @@
 
 "use strict";
 
-////////////////////////////////////////////////////////////////////////////////
-//// Globals
+// Globals
 
-function reloadAndCheckLogins(aExpectedLogins)
+function* reloadAndCheckLoginsGen(aExpectedLogins)
 {
-  yield LoginTest.reloadData();
-  LoginTest.checkLogins(aExpectedLogins);
-  LoginTest.clearData();
+  yield LoginTestUtils.reloadData();
+  LoginTestUtils.checkLogins(aExpectedLogins);
+  LoginTestUtils.clearData();
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//// Tests
+// Tests
 
 /**
  * Tests addLogin with valid non-ASCII characters.
  */
-add_task(function test_storage_addLogin_nonascii()
+add_task(function* test_storage_addLogin_nonascii()
 {
   let hostname = "http://" + String.fromCharCode(355) + ".example.com";
 
@@ -41,27 +39,27 @@ add_task(function test_storage_addLogin_nonascii()
     passwordField: "field_" + String.fromCharCode(421, 259, 349, 537),
   });
   Services.logins.addLogin(loginInfo);
-  yield reloadAndCheckLogins([loginInfo]);
+  yield* reloadAndCheckLoginsGen([loginInfo]);
 
   // Store the string "test" using similarly looking glyphs.
-  let loginInfo = TestData.authLogin({
+  loginInfo = TestData.authLogin({
     httpRealm: String.fromCharCode(355, 277, 349, 357),
   });
   Services.logins.addLogin(loginInfo);
-  yield reloadAndCheckLogins([loginInfo]);
+  yield* reloadAndCheckLoginsGen([loginInfo]);
 });
 
 /**
  * Tests addLogin with newline characters in the username and password.
  */
-add_task(function test_storage_addLogin_newlines()
+add_task(function* test_storage_addLogin_newlines()
 {
   let loginInfo = TestData.formLogin({
     username: "user\r\nname",
     password: "password\r\n",
   });
   Services.logins.addLogin(loginInfo);
-  yield reloadAndCheckLogins([loginInfo]);
+  yield* reloadAndCheckLoginsGen([loginInfo]);
 });
 
 /**
@@ -69,15 +67,15 @@ add_task(function test_storage_addLogin_newlines()
  *
  * These tests exist to verify the legacy "signons.txt" storage format.
  */
-add_task(function test_storage_addLogin_dot()
+add_task(function* test_storage_addLogin_dot()
 {
   let loginInfo = TestData.formLogin({ hostname: ".", passwordField: "." });
   Services.logins.addLogin(loginInfo);
-  yield reloadAndCheckLogins([loginInfo]);
+  yield* reloadAndCheckLoginsGen([loginInfo]);
 
   loginInfo = TestData.authLogin({ httpRealm: "." });
   Services.logins.addLogin(loginInfo);
-  yield reloadAndCheckLogins([loginInfo]);
+  yield* reloadAndCheckLoginsGen([loginInfo]);
 });
 
 /**
@@ -85,7 +83,7 @@ add_task(function test_storage_addLogin_dot()
  *
  * These tests exist to verify the legacy "signons.txt" storage format.
  */
-add_task(function test_storage_addLogin_parentheses()
+add_task(function* test_storage_addLogin_parentheses()
 {
   let loginList = [
     TestData.authLogin({ httpRealm: "(realm" }),
@@ -100,5 +98,5 @@ add_task(function test_storage_addLogin_parentheses()
   for (let loginInfo of loginList) {
     Services.logins.addLogin(loginInfo);
   }
-  yield reloadAndCheckLogins(loginList);
+  yield* reloadAndCheckLoginsGen(loginList);
 });

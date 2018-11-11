@@ -1,43 +1,35 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-TEST_DIRS += ['test']
-
 EXPORTS.mozilla.dom += [
-    'AesKeyAlgorithm.h',
     'CryptoBuffer.h',
-    'HmacKeyAlgorithm.h',
-    'Key.h',
-    'KeyAlgorithm.h',
-    'KeyPair.h',
-    'RsaHashedKeyAlgorithm.h',
-    'RsaKeyAlgorithm.h',
+    'CryptoKey.h',
+    'KeyAlgorithmProxy.h',
     'WebCryptoCommon.h',
     'WebCryptoTask.h',
+    'WebCryptoThreadPool.h'
 ]
 
 UNIFIED_SOURCES += [
-    'AesKeyAlgorithm.cpp',
     'CryptoBuffer.cpp',
-    'HmacKeyAlgorithm.cpp',
-    'Key.cpp',
-    'KeyAlgorithm.cpp',
-    'KeyPair.cpp',
-    'RsaHashedKeyAlgorithm.cpp',
-    'RsaKeyAlgorithm.cpp',
+    'CryptoKey.cpp',
+    'KeyAlgorithmProxy.cpp',
     'WebCryptoTask.cpp',
+    'WebCryptoThreadPool.cpp',
 ]
-
-FAIL_ON_WARNINGS = True
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
-FINAL_LIBRARY = 'gklayout'
+FINAL_LIBRARY = 'xul'
 
 LOCAL_INCLUDES += [
-    '/security/manager/ssl/src',
+    '/dom/workers',
+    '/security/manager/ssl',
+    '/security/pkix/include',
+    '/xpcom/build',
 ]
 
+MOCHITEST_MANIFESTS += ['test/mochitest.ini']

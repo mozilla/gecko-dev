@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,20 +9,28 @@ CONFIGURE_SUBST_FILES += ['installer/Makefile']
 DIRS += [
     '../locales',
     'locales',
+]
+
+if CONFIG['MOZ_ANDROID_MLS_STUMBLER']:
+    DIRS += ['stumbler']
+
+DIRS += [
+    'javaaddons', # Must be built before base.
     'base',
     'chrome',
     'components',
+    'extensions',
     'modules',
     'themes/core',
     'app',
     'fonts',
-    'geckoview_library',
-    'extensions',
 ]
 
-if not CONFIG['LIBXUL_SDK']:
-    PARALLEL_DIRS += ['../../xulrunner/tools/redit']
+if CONFIG['MOZ_ANDROID_PACKAGE_INSTALL_BOUNCER']:
+    DIRS += ['bouncer'] # No ordering implied with respect to base.
 
 TEST_DIRS += [
     'tests',
 ]
+
+SPHINX_TREES['fennec'] = 'docs'

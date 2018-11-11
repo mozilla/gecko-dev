@@ -15,10 +15,10 @@
   %restorepageDTD;
 ]>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
   <head>
     <title>&restorepage.tabtitle;</title>
-    <link rel="stylesheet" href="chrome://global/skin/netError.css" type="text/css" media="all"/>
+    <link rel="stylesheet" href="chrome://global/skin/in-content/info-pages.css" type="text/css" media="all"/>
     <link rel="stylesheet" href="chrome://browser/skin/aboutSessionRestore.css" type="text/css" media="all"/>
     <link rel="icon" type="image/png" href="chrome://global/skin/icons/warning-16.png"/>
 
@@ -27,23 +27,14 @@
 
   <body dir="&locale.dir;">
 
-    <!-- PAGE CONTAINER (for styling purposes only) -->
-    <div id="errorPageContainer">
+    <div class="container restore-chosen">
 
-      <!-- Error Title -->
-      <div id="errorTitle">
-        <h1 id="errorTitleText">&restorepage.errorTitle;</h1>
+      <div class="title">
+        <h1 class="title-text">&restorepage.errorTitle;</h1>
       </div>
+      <div class="description">
+        <p>&restorepage.problemDesc;</p>
 
-      <!-- LONG CONTENT (the section most likely to require scrolling) -->
-      <div id="errorLongContent">
-
-        <!-- Short Description -->
-        <div id="errorShortDesc">
-          <p id="errorShortDescText">&restorepage.problemDesc;</p>
-        </div>
-
-        <!-- Long Description (Note: See netError.dtd for used XHTML tags) -->
         <div id="errorLongDesc">
           <p>&restorepage.tryThis;</p>
           <ul>
@@ -51,41 +42,42 @@
             <li>&restorepage.startNew;</li>
           </ul>
         </div>
-
-        <!-- Short Description -->
-        <div id="errorTrailerDesc">
-          <tree xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
-                id="tabList" flex="1" seltype="single" hidecolumnpicker="true"
-                onclick="onListClick(event);" onkeydown="onListKeyDown(event);"
-                _window_label="&restorepage.windowLabel;">
-            <treecols>
-              <treecol cycler="true" id="restore" type="checkbox" label="&restorepage.restoreHeader;"/>
-              <splitter class="tree-splitter"/>
-              <treecol primary="true" id="title" label="&restorepage.listHeader;" flex="1"/>
-            </treecols>
-            <treechildren flex="1"/>
-          </tree>
-        </div>
       </div>
-
-      <!-- Buttons -->
-      <hbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" id="buttons">
+      <div class="tree-container" available="true">
+        <xul:tree id="tabList" seltype="single" hidecolumnpicker="true"
+              onclick="onListClick(event);" onkeydown="onListKeyDown(event);"
+              _window_label="&restorepage.windowLabel;">
+          <xul:treecols>
+            <xul:treecol cycler="true" id="restore" type="checkbox" label="&restorepage.restoreHeader;"/>
+            <xul:splitter class="tree-splitter"/>
+            <xul:treecol primary="true" id="title" label="&restorepage.listHeader;" flex="1"/>
+          </xul:treecols>
+          <xul:treechildren flex="1"/>
+        </xul:tree>
+      </div>
+      <div class="button-container">
 #ifdef XP_UNIX
-        <button id="errorCancel" label="&restorepage.closeButton;"
+        <xul:button id="errorCancel"
+                label="&restorepage.closeButton;"
                 accesskey="&restorepage.close.access;"
                 oncommand="startNewSession();"/>
-        <button id="errorTryAgain" label="&restorepage.tryagainButton;"
+        <xul:button class="primary"
+                id="errorTryAgain"
+                label="&restorepage.tryagainButton;"
                 accesskey="&restorepage.restore.access;"
                 oncommand="restoreSession();"/>
 #else
-        <button id="errorTryAgain" label="&restorepage.tryagainButton;"
+        <xul:button class="primary"
+                id="errorTryAgain"
+                label="&restorepage.tryagainButton;"
                 accesskey="&restorepage.restore.access;"
                 oncommand="restoreSession();"/>
-        <button id="errorCancel" label="&restorepage.closeButton;"
+        <xul:button id="errorCancel"
+                label="&restorepage.closeButton;"
                 accesskey="&restorepage.close.access;"
                 oncommand="startNewSession();"/>
 #endif
-      </hbox>
+      </div>
       <!-- holds the session data for when the tab is closed -->
       <input type="text" id="sessionData" style="display: none;"/>
     </div>

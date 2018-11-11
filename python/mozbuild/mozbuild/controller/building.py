@@ -2,14 +2,17 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
 import getpass
 import json
 import logging
 import os
+import platform
+import subprocess
 import sys
 import time
+import which
 
 from collections import (
     namedtuple,
@@ -23,7 +26,11 @@ except Exception:
 
 from mozsystemmonitor.resourcemonitor import SystemResourceMonitor
 
+import mozpack.path as mozpath
+
 from ..base import MozbuildObject
+
+from ..testing import install_test_files
 
 from ..compilation.warnings import (
     WarningsCollector,
@@ -65,7 +72,7 @@ class TierStatus(object):
     def __init__(self, resources):
         """Accepts a SystemResourceMonitor to record results against."""
         self.tiers = OrderedDict()
-        self.active_tiers = set()
+        self.tier_status = OrderedDict()
         self.resources = resources
 
     def set_tiers(self, tiers):
@@ -76,29 +83,23 @@ class TierStatus(object):
                 finish_time=None,
                 duration=None,
             )
+            self.tier_status[tier] = None
 
     def begin_tier(self, tier):
         """Record that execution of a tier has begun."""
+        self.tier_status[tier] = 'active'
         t = self.tiers[tier]
         # We should ideally use a monotonic clock here. Unfortunately, we won't
         # have one until Python 3.
         t['begin_time'] = time.time()
         self.resources.begin_phase(tier)
-        self.active_tiers.add(tier)
 
     def finish_tier(self, tier):
         """Record that execution of a tier has finished."""
+        self.tier_status[tier] = 'finished'
         t = self.tiers[tier]
         t['finish_time'] = time.time()
         t['duration'] = self.resources.finish_phase(tier)
-        self.active_tiers.remove(tier)
-
-    def tier_status(self):
-        for tier, state in self.tiers.items():
-            active = tier in self.active_tiers
-            finished = state['finish_time'] is not None
-
-            yield tier, active, finished
 
     def tiered_resource_usage(self):
         """Obtains an object containing resource usage for tiers.
@@ -174,6 +175,8 @@ class BuildMonitor(MozbuildObject):
         self._warnings_collector = WarningsCollector(
             database=self.warnings_database, objdir=self.topobjdir)
 
+        self.build_objects = []
+
     def start(self):
         """Record the start of the build."""
         self.start_time = time.time()
@@ -181,12 +184,6 @@ class BuildMonitor(MozbuildObject):
 
     def start_resource_recording(self):
         # This should be merged into start() once bug 892342 lands.
-
-        # Resource monitoring on Windows is currently busted because of
-        # multiprocessing issues. Bug 914563.
-        if self._is_windows():
-            return
-
         self.resources.start()
         self._resources_started = True
 
@@ -224,6 +221,9 @@ class BuildMonitor(MozbuildObject):
             elif action == 'TIER_FINISH':
                 tier, = args
                 self.tiers.finish_tier(tier)
+            elif action == 'OBJECT_FILE':
+                self.build_objects.append(args[0])
+                update_needed = False
             else:
                 raise Exception('Unknown build status: %s' % action)
 
@@ -238,13 +238,16 @@ class BuildMonitor(MozbuildObject):
 
         return BuildOutputResult(warning, False, True)
 
-    def finish(self, record_usage=True):
-        """Record the end of the build."""
-        self.end_time = time.time()
-
+    def stop_resource_recording(self):
         if self._resources_started:
             self.resources.stop()
 
+        self._resources_started = False
+
+    def finish(self, record_usage=True):
+        """Record the end of the build."""
+        self.stop_resource_recording()
+        self.end_time = time.time()
         self._finder_end_cpu = self._get_finder_cpu_usage()
         self.elapsed = self.end_time - self.start_time
 
@@ -255,12 +258,13 @@ class BuildMonitor(MozbuildObject):
             return
 
         try:
-            usage = self.record_resource_usage()
+            usage = self.get_resource_usage()
             if not usage:
                 return
 
+            self.log_resource_usage(usage)
             with open(self._get_state_filename('build_resources.json'), 'w') as fh:
-                json.dump(usage, fh, indent=2)
+                json.dump(self.resources.as_dict(), fh, indent=2)
         except Exception as e:
             self.log(logging.WARNING, 'build_resources_error',
                 {'msg': str(e)},
@@ -350,11 +354,9 @@ class BuildMonitor(MozbuildObject):
         """Whether resource usage is available."""
         return self.resources.start_time is not None
 
-    def record_resource_usage(self):
-        """Record the resource usage of this build.
+    def get_resource_usage(self):
+        """ Produce a data structure containing the low-level resource usage information.
 
-        We write a log message containing a high-level summary. We also produce
-        a data structure containing the low-level resource usage information.
         This data structure can e.g. be serialized into JSON and saved for
         subsequent analysis.
 
@@ -369,19 +371,9 @@ class BuildMonitor(MozbuildObject):
             per_cpu=False)
         io = self.resources.aggregate_io(phase=None)
 
-        self._log_resource_usage('Overall system resources', 'resource_usage',
-            self.end_time - self.start_time, cpu_percent, cpu_times, io)
-
-        excessive, sin, sout = self.have_excessive_swapping()
-        if excessive is not None and (sin or sout):
-            sin /= 1048576
-            sout /= 1048576
-            self.log(logging.WARNING, 'swap_activity',
-                {'sin': sin, 'sout': sout},
-                'Swap in/out (MB): {sin}/{sout}')
-
         o = dict(
-            version=1,
+            version=3,
+            argv=sys.argv,
             start=self.start_time,
             end=self.end_time,
             duration=self.end_time - self.start_time,
@@ -389,6 +381,7 @@ class BuildMonitor(MozbuildObject):
             cpu_percent=cpu_percent,
             cpu_times=cpu_times,
             io=io,
+            objects=self.build_objects
         )
 
         o['tiers'] = self.tiers.tiered_resource_usage()
@@ -413,46 +406,275 @@ class BuildMonitor(MozbuildObject):
 
             o['resources'].append(entry)
 
+
+        # If the imports for this file ran before the in-tree virtualenv
+        # was bootstrapped (for instance, for a clobber build in automation),
+        # psutil might not be available.
+        #
+        # Treat psutil as optional to avoid an outright failure to log resources
+        # TODO: it would be nice to collect data on the storage device as well
+        # in this case.
+        o['system'] = {}
+        if psutil:
+            o['system'].update(dict(
+                logical_cpu_count=psutil.cpu_count(),
+                physical_cpu_count=psutil.cpu_count(logical=False),
+                swap_total=psutil.swap_memory()[0],
+                vmem_total=psutil.virtual_memory()[0],
+            ))
+
         return o
 
-    def _log_resource_usage(self, prefix, m_type, duration, cpu_percent,
-        cpu_times, io, extra_params={}):
+    def log_resource_usage(self, usage):
+        """Summarize the resource usage of this build in a log message."""
+
+        if not usage:
+            return
 
         params = dict(
-            duration=duration,
-            cpu_percent=cpu_percent,
-            io_reads=io.read_count,
-            io_writes=io.write_count,
-            io_read_bytes=io.read_bytes,
-            io_write_bytes=io.write_bytes,
-            io_read_time=io.read_time,
-            io_write_time=io.write_time,
+            duration=self.end_time - self.start_time,
+            cpu_percent=usage['cpu_percent'],
+            io_read_bytes=usage['io'].read_bytes,
+            io_write_bytes=usage['io'].write_bytes,
+            io_read_time=usage['io'].read_time,
+            io_write_time=usage['io'].write_time,
         )
 
-        params.update(extra_params)
-
-        message = prefix + ' - Wall time: {duration:.0f}s; ' \
+        message = 'Overall system resources - Wall time: {duration:.0f}s; ' \
             'CPU: {cpu_percent:.0f}%; ' \
             'Read bytes: {io_read_bytes}; Write bytes: {io_write_bytes}; ' \
             'Read time: {io_read_time}; Write time: {io_write_time}'
 
-        self.log(logging.WARNING, m_type, params, message)
+        self.log(logging.WARNING, 'resource_usage', params, message)
+
+        excessive, sin, sout = self.have_excessive_swapping()
+        if excessive is not None and (sin or sout):
+            sin /= 1048576
+            sout /= 1048576
+            self.log(logging.WARNING, 'swap_activity',
+                {'sin': sin, 'sout': sout},
+                'Swap in/out (MB): {sin}/{sout}')
+
+    def ccache_stats(self):
+        ccache_stats = None
+
+        try:
+            ccache = which.which('ccache')
+            output = subprocess.check_output([ccache, '-s'])
+            ccache_stats = CCacheStats(output)
+        except which.WhichError:
+            pass
+        except ValueError as e:
+            self.log(logging.WARNING, 'ccache', {'msg': str(e)}, '{msg}')
+
+        return ccache_stats
+
+
+class CCacheStats(object):
+    """Holds statistics from ccache.
+
+    Instances can be subtracted from each other to obtain differences.
+    print() or str() the object to show a ``ccache -s`` like output
+    of the captured stats.
+
+    """
+    STATS_KEYS = [
+        # (key, description)
+        # Refer to stats.c in ccache project for all the descriptions.
+        ('cache_hit_direct', 'cache hit (direct)'),
+        ('cache_hit_preprocessed', 'cache hit (preprocessed)'),
+        ('cache_hit_rate', 'cache hit rate'),
+        ('cache_miss', 'cache miss'),
+        ('link', 'called for link'),
+        ('preprocessing', 'called for preprocessing'),
+        ('multiple', 'multiple source files'),
+        ('stdout', 'compiler produced stdout'),
+        ('no_output', 'compiler produced no output'),
+        ('empty_output', 'compiler produced empty output'),
+        ('failed', 'compile failed'),
+        ('error', 'ccache internal error'),
+        ('preprocessor_error', 'preprocessor error'),
+        ('cant_use_pch', "can't use precompiled header"),
+        ('compiler_missing', "couldn't find the compiler"),
+        ('cache_file_missing', 'cache file missing'),
+        ('bad_args', 'bad compiler arguments'),
+        ('unsupported_lang', 'unsupported source language'),
+        ('compiler_check_failed', 'compiler check failed'),
+        ('autoconf', 'autoconf compile/link'),
+        ('unsupported_compiler_option', 'unsupported compiler option'),
+        ('out_stdout', 'output to stdout'),
+        ('out_device', 'output to a non-regular file'),
+        ('no_input', 'no input file'),
+        ('bad_extra_file', 'error hashing extra file'),
+        ('num_cleanups', 'cleanups performed'),
+        ('cache_files', 'files in cache'),
+        ('cache_size', 'cache size'),
+        ('cache_max_size', 'max cache size'),
+    ]
+
+    DIRECTORY_DESCRIPTION = "cache directory"
+    PRIMARY_CONFIG_DESCRIPTION = "primary config"
+    SECONDARY_CONFIG_DESCRIPTION = "secondary config      (readonly)"
+    ABSOLUTE_KEYS = {'cache_files', 'cache_size', 'cache_max_size'}
+    FORMAT_KEYS = {'cache_size', 'cache_max_size'}
+
+    GiB = 1024 ** 3
+    MiB = 1024 ** 2
+    KiB = 1024
+
+    def __init__(self, output=None):
+        """Construct an instance from the output of ccache -s."""
+        self._values = {}
+        self.cache_dir = ""
+        self.primary_config = ""
+        self.secondary_config = ""
+
+        if not output:
+            return
+
+        for line in output.splitlines():
+            line = line.strip()
+            if line:
+                self._parse_line(line)
+
+    def _parse_line(self, line):
+        if line.startswith(self.DIRECTORY_DESCRIPTION):
+            self.cache_dir = self._strip_prefix(line, self.DIRECTORY_DESCRIPTION)
+        elif line.startswith(self.PRIMARY_CONFIG_DESCRIPTION):
+            self.primary_config = self._strip_prefix(
+                line, self.PRIMARY_CONFIG_DESCRIPTION)
+        elif line.startswith(self.SECONDARY_CONFIG_DESCRIPTION):
+            self.secondary_config = self._strip_prefix(
+                line, self.SECONDARY_CONFIG_DESCRIPTION)
+        else:
+            for stat_key, stat_description in self.STATS_KEYS:
+                if line.startswith(stat_description):
+                    raw_value = self._strip_prefix(line, stat_description)
+                    self._values[stat_key] = self._parse_value(raw_value)
+                    break
+            else:
+                raise ValueError('Failed to parse ccache stats output: %s' % line)
+
+    @staticmethod
+    def _strip_prefix(line, prefix):
+        return line[len(prefix):].strip() if line.startswith(prefix) else line
+
+    @staticmethod
+    def _parse_value(raw_value):
+        value = raw_value.split()
+        unit = ''
+        if len(value) == 1:
+            numeric = value[0]
+        elif len(value) == 2:
+            numeric, unit = value
+        else:
+            raise ValueError('Failed to parse ccache stats value: %s' % raw_value)
+
+        if '.' in numeric:
+            numeric = float(numeric)
+        else:
+            numeric = int(numeric)
+
+        if unit in ('GB', 'Gbytes'):
+            unit = CCacheStats.GiB
+        elif unit in ('MB', 'Mbytes'):
+            unit = CCacheStats.MiB
+        elif unit in ('KB', 'Kbytes'):
+            unit = CCacheStats.KiB
+        else:
+            unit = 1
+
+        return int(numeric * unit)
+
+    def hit_rate_message(self):
+        return 'ccache (direct) hit rate: {:.1%}; (preprocessed) hit rate: {:.1%}; miss rate: {:.1%}'.format(*self.hit_rates())
+
+    def hit_rates(self):
+        direct = self._values['cache_hit_direct']
+        preprocessed = self._values['cache_hit_preprocessed']
+        miss = self._values['cache_miss']
+        total = float(direct + preprocessed + miss)
+
+        if total > 0:
+            direct /= total
+            preprocessed /= total
+            miss /= total
+
+        return (direct, preprocessed, miss)
+
+    def __sub__(self, other):
+        result = CCacheStats()
+        result.cache_dir = self.cache_dir
+
+        for k, prefix in self.STATS_KEYS:
+            if k not in self._values and k not in other._values:
+                continue
+
+            our_value = self._values.get(k, 0)
+            other_value = other._values.get(k, 0)
+
+            if k in self.ABSOLUTE_KEYS:
+                result._values[k] = our_value
+            else:
+                result._values[k] = our_value - other_value
+
+        return result
+
+    def __str__(self):
+        LEFT_ALIGN = 34
+        lines = []
+
+        if self.cache_dir:
+            lines.append('%s%s' % (self.DIRECTORY_DESCRIPTION.ljust(LEFT_ALIGN),
+                                   self.cache_dir))
+
+        for stat_key, stat_description in self.STATS_KEYS:
+            if stat_key not in self._values:
+                continue
+
+            value = self._values[stat_key]
+
+            if stat_key in self.FORMAT_KEYS:
+                value = '%15s' % self._format_value(value)
+            else:
+                value = '%8u' % value
+
+            lines.append('%s%s' % (stat_description.ljust(LEFT_ALIGN), value))
+
+        return '\n'.join(lines)
+
+    def __nonzero__(self):
+        relative_values = [v for k, v in self._values.items()
+                           if k not in self.ABSOLUTE_KEYS]
+        return (all(v >= 0 for v in relative_values) and
+                any(v > 0 for v in relative_values))
+
+    @staticmethod
+    def _format_value(v):
+        if v > CCacheStats.GiB:
+            return '%.1f Gbytes' % (float(v) / CCacheStats.GiB)
+        elif v > CCacheStats.MiB:
+            return '%.1f Mbytes' % (float(v) / CCacheStats.MiB)
+        else:
+            return '%.1f Kbytes' % (float(v) / CCacheStats.KiB)
 
 
 class BuildDriver(MozbuildObject):
     """Provides a high-level API for build actions."""
 
-    def install_tests(self, remove=True):
-        """Install test files (through manifest)."""
+    def install_tests(self, test_objs):
+        """Install test files."""
 
         if self.is_clobber_needed():
             print(INSTALL_TESTS_CLOBBER.format(
                   clobber_file=os.path.join(self.topobjdir, 'CLOBBER')))
             sys.exit(1)
 
-        env = {}
-        if not remove:
-            env[b'NO_REMOVE'] = b'1'
-
-        self._run_make(target='install-tests', append_env=env, pass_thru=True,
-            print_directory=False)
+        if not test_objs:
+            # If we don't actually have a list of tests to install we install
+            # test and support files wholesale.
+            self._run_make(target='install-test-files', pass_thru=True,
+                           print_directory=False)
+        else:
+            install_test_files(mozpath.normpath(self.topsrcdir), self.topobjdir,
+                               '_tests', test_objs)

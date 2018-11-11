@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -13,7 +13,7 @@ function run_test() {
 
   // If this test is not running on the Windows platform, stop now, before
   // calling XPCOMUtils.generateQI during the MockWindowsRegKey declaration.
-  if (!("@mozilla.org/windows-registry-key;1" in Components.classes))
+  if (mozinfo.os != "win")
     return;
 
   // --- Modified nsIWindowsRegKey implementation ---

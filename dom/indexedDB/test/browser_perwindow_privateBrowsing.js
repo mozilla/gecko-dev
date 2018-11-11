@@ -10,6 +10,8 @@ const notificationID = "indexedDB-permissions-prompt";
 function test()
 {
   waitForExplicitFinish();
+  // Avoids the actual prompt
+  setPermission(testPageURL, "indexedDB");
   executeSoon(test1);
 }
 
@@ -23,8 +25,8 @@ function test1()
     }
     gBrowser.selectedBrowser.removeEventListener("load", arguments.callee, true);
 
-    setFinishedCallback(function(result, exception) {
-      ok(result instanceof IDBDatabase,
+    setFinishedCallback(function(isIDBDatabase, exception) {
+      ok(isIDBDatabase,
          "First database creation was successful");
       ok(!exception, "No exception");
       gBrowser.removeCurrentTab();
@@ -40,9 +42,9 @@ function test2()
   var win = OpenBrowserWindow({private: true});
   win.addEventListener("load", function onLoad() {
     win.removeEventListener("load", onLoad, false);
-    executeSoon(function() test3(win));
+    executeSoon(() => test3(win));
   }, false);
-  registerCleanupFunction(function() win.close());
+  registerCleanupFunction(() => win.close());
 }
 
 function test3(win)
@@ -55,8 +57,8 @@ function test3(win)
     }
     win.gBrowser.selectedBrowser.removeEventListener("load", arguments.callee, true);
 
-    setFinishedCallback(function(result, exception) {
-      ok(!result, "No database");
+    setFinishedCallback(function(isIDBDatabase, exception) {
+      ok(!isIDBDatabase, "No database");
       is(exception, "InvalidStateError", "Correct exception");
       win.gBrowser.removeCurrentTab();
 

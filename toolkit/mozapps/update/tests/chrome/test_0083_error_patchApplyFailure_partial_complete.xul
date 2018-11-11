@@ -23,14 +23,18 @@ const TESTS = [ {
   pageid: PAGEID_ERROR_PATCHING,
   buttonClick: "next"
 }, {
-  pageid: PAGEID_DOWNLOADING
+  pageid: PAGEID_DOWNLOADING,
+  extraStartFunction: createContinueFile
 }, {
   pageid: PAGEID_FINISHED,
-  buttonClick: "extra1"
+  buttonClick: "extra1",
+  extraStartFunction: removeContinueFile
 } ];
 
 function runTest() {
   debugDump("entering");
+
+  removeContinueFile();
 
   // Specify the url to update.sjs with a slowDownloadMar param so the ui can
   // load before the download completes.
@@ -40,18 +44,16 @@ function runTest() {
                 getLocalPatchString("complete", slowDownloadURL, null, null,
                                     null, "false");
   let updates = getLocalUpdateString(patches, null, null, null,
-                                     Services.appinfo.version,
-                                     Services.appinfo.platformVersion, null,
-                                     null, null, null, null, null, null,
-                                     "false");
+                                     Services.appinfo.version, null,
+                                     null, null, null, null, "false");
 
   writeUpdatesToXMLFile(getLocalUpdatesXMLString(updates), true);
 
   writeUpdatesToXMLFile(getLocalUpdatesXMLString(""), false);
-  writeStatusFile(STATE_FAILED + ": " + CRC_ERROR);
+  writeStatusFile(STATE_FAILED_CRC_ERROR);
   reloadUpdateManagerData();
 
-  initUpdateServiceStub();
+  testPostUpdateProcessing();
 }
 
 ]]>

@@ -7,10 +7,7 @@
 #ifndef XPC_WRAPPER_H
 #define XPC_WRAPPER_H 1
 
-#include "xpcprivate.h"
-#include "jswrapper.h"
-
-class nsIScriptSecurityManager;
+#include "js/TypeDecls.h"
 
 namespace XPCNativeWrapper {
 
@@ -23,7 +20,7 @@ namespace XPCNativeWrapper {
    (_wn)->GetScriptableInfo()->GetFlags()._flag())
 
 bool
-AttachNewConstructorObject(JSContext *aCx, JS::HandleObject aGlobalObject);
+AttachNewConstructorObject(JSContext* aCx, JS::HandleObject aGlobalObject);
 
 } // namespace XPCNativeWrapper
 
@@ -34,14 +31,8 @@ AttachNewConstructorObject(JSContext *aCx, JS::HandleObject aGlobalObject);
 // objects).
 namespace XPCWrapper {
 
-inline bool
-IsSecurityWrapper(JSObject *wrapper)
-{
-  return js::IsWrapper(wrapper);
-}
-
-JSObject *
-UnsafeUnwrapSecurityWrapper(JSObject *obj);
+JSObject*
+UnsafeUnwrapSecurityWrapper(JSObject* obj);
 
 } // namespace XPCWrapper
 

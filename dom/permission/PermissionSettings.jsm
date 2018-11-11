@@ -67,9 +67,23 @@ this.PermissionSettingsModule = {
 
 
   _internalAddPermission: function _internalAddPermission(aData, aAllowAllChanges, aCallbacks) {
-    let uri = Services.io.newURI(aData.origin, null, null);
-    let appID = appsService.getAppLocalIdByManifestURL(aData.manifestURL);
-    let principal = Services.scriptSecurityManager.getAppCodebasePrincipal(uri, appID, aData.browserFlag);
+    // TODO: Bug 1196644 - Add signPKg parameter into PermissionSettings.jsm.
+    let app;
+    let principal;
+    // Test if app is cached (signed streamable package) or installed via DOMApplicationRegistry
+    if (aData.isCachedPackage) {
+      // If the app is from packaged web app, the origin includes origin attributes already.
+      principal =
+        Services.scriptSecurityManager.createCodebasePrincipalFromOrigin(aData.origin);
+      app = {localId: principal.appId};
+    } else {
+      app = appsService.getAppByManifestURL(aData.manifestURL);
+      let uri = Services.io.newURI(aData.origin, null, null);
+      principal =
+        Services.scriptSecurityManager.createCodebasePrincipal(uri,
+                                                               {appId: app.localId,
+                                                                inIsolatedMozBrowser: aData.browserFlag});
+    }
 
     let action;
     switch (aData.value)
@@ -93,22 +107,33 @@ this.PermissionSettingsModule = {
 
     if (aAllowAllChanges ||
         this._isChangeAllowed(principal, aData.type, aData.value)) {
-      debug("add: " + aData.origin + " " + appID + " " + action);
+      debug("add: " + aData.origin + " " + app.localId + " " + action);
       Services.perms.addFromPrincipal(principal, aData.type, action);
       return true;
     } else {
-      debug("add Failure: " + aData.origin + " " + appID + " " + action);
+      debug("add Failure: " + aData.origin + " " + app.localId + " " + action);
       return false; // This isn't currently used, see comment on setPermission
     }
   },
 
-  getPermission: function getPermission(aPermName, aManifestURL, aOrigin, aBrowserFlag) {
+  getPermission: function getPermission(aPermName, aManifestURL, aOrigin, aBrowserFlag, aIsCachedPackage) {
+    // TODO: Bug 1196644 - Add signPKg parameter into PermissionSettings.jsm
     debug("getPermission: " + aPermName + ", " + aManifestURL + ", " + aOrigin);
-    let uri = Services.io.newURI(aOrigin, null, null);
-    let appID = appsService.getAppLocalIdByManifestURL(aManifestURL);
-    let principal = Services.scriptSecurityManager.getAppCodebasePrincipal(uri, appID, aBrowserFlag);
+    let principal;
+    // Test if app is cached (signed streamable package) or installed via DOMApplicationRegistry
+    if (aIsCachedPackage) {
+      // If the app is from packaged web app, the origin includes origin attributes already.
+      principal =
+        Services.scriptSecurityManager.createCodebasePrincipalFromOrigin(aOrigin);
+    } else {
+      let uri = Services.io.newURI(aOrigin, null, null);
+      let appID = appsService.getAppLocalIdByManifestURL(aManifestURL);
+      principal =
+        Services.scriptSecurityManager.createCodebasePrincipal(uri,
+                                                               {appId: appID,
+                                                                inIsolatedMozBrowser: aBrowserFlag});
+    }
     let result = Services.perms.testExactPermissionFromPrincipal(principal, aPermName);
-
     switch (result)
     {
       case Ci.nsIPermissionManager.UNKNOWN_ACTION:
@@ -125,13 +150,14 @@ this.PermissionSettingsModule = {
     }
   },
 
-  removePermission: function removePermission(aPermName, aManifestURL, aOrigin, aBrowserFlag) {
+  removePermission: function removePermission(aPermName, aManifestURL, aOrigin, aBrowserFlag, aIsCachedPackage) {
     let data = {
       type: aPermName,
       origin: aOrigin,
       manifestURL: aManifestURL,
       value: "unknown",
-      browserFlag: aBrowserFlag
+      browserFlag: aBrowserFlag,
+      isCachedPackage: aIsCachedPackage
     };
     this._internalAddPermission(data, true);
   },

@@ -5,9 +5,8 @@
 
 #include "CanvasLayerComposite.h"
 #include "composite/CompositableHost.h"  // for CompositableHost
-#include "gfx2DGlue.h"                  // for ToFilter, ToMatrix4x4
-#include "GraphicsFilter.h"             // for GraphicsFilter
-#include "gfxUtils.h"                   // for gfxUtils, etc
+#include "gfx2DGlue.h"                  // for ToFilter
+#include "gfxEnv.h"                     // for gfxEnv, etc
 #include "mozilla/gfx/Matrix.h"         // for Matrix4x4
 #include "mozilla/gfx/Point.h"          // for Point
 #include "mozilla/gfx/Rect.h"           // for Rect
@@ -15,9 +14,8 @@
 #include "mozilla/layers/Effects.h"     // for EffectChain
 #include "mozilla/mozalloc.h"           // for operator delete
 #include "nsAString.h"
-#include "nsAutoPtr.h"                  // for nsRefPtr
+#include "mozilla/RefPtr.h"                   // for nsRefPtr
 #include "nsISupportsImpl.h"            // for MOZ_COUNT_CTOR, etc
-#include "nsPoint.h"                    // for nsIntPoint
 #include "nsString.h"                   // for nsAutoCString
 
 namespace mozilla {
@@ -28,7 +26,7 @@ using namespace mozilla::gfx;
 CanvasLayerComposite::CanvasLayerComposite(LayerManagerComposite* aManager)
   : CanvasLayer(aManager, nullptr)
   , LayerComposite(aManager)
-  , mImageHost(nullptr)
+  , mCompositableHost(nullptr)
 {
   MOZ_COUNT_CTOR(CanvasLayerComposite);
   mImplData = static_cast<LayerComposite*>(this);
@@ -45,10 +43,8 @@ bool
 CanvasLayerComposite::SetCompositableHost(CompositableHost* aHost)
 {
   switch (aHost->GetType()) {
-    case CompositableType::BUFFER_IMAGE_SINGLE:
-    case CompositableType::BUFFER_IMAGE_BUFFERED:
     case CompositableType::IMAGE:
-      mImageHost = aHost;
+      mCompositableHost = aHost;
       return true;
     default:
       return false;
@@ -62,62 +58,60 @@ CanvasLayerComposite::GetLayer()
   return this;
 }
 
+void
+CanvasLayerComposite::SetLayerManager(LayerManagerComposite* aManager)
+{
+  LayerComposite::SetLayerManager(aManager);
+  mManager = aManager;
+  if (mCompositableHost && mCompositor) {
+    mCompositableHost->SetCompositor(mCompositor);
+  }
+}
+
 LayerRenderState
 CanvasLayerComposite::GetRenderState()
 {
-  if (mDestroyed || !mImageHost || !mImageHost->IsAttached()) {
+  if (mDestroyed || !mCompositableHost || !mCompositableHost->IsAttached()) {
     return LayerRenderState();
   }
-  return mImageHost->GetRenderState();
+  return mCompositableHost->GetRenderState();
 }
 
 void
-CanvasLayerComposite::RenderLayer(const nsIntRect& aClipRect)
+CanvasLayerComposite::RenderLayer(const IntRect& aClipRect)
 {
-  if (!mImageHost || !mImageHost->IsAttached()) {
+  if (!mCompositableHost || !mCompositableHost->IsAttached()) {
     return;
   }
 
   mCompositor->MakeCurrent();
 
 #ifdef MOZ_DUMP_PAINTING
-  if (gfxUtils::sDumpPainting) {
-    RefPtr<gfx::DataSourceSurface> surf = mImageHost->GetAsSurface();
-    WriteSnapshotToDumpFile(this, surf);
+  if (gfxEnv::DumpCompositorTextures()) {
+    RefPtr<gfx::DataSourceSurface> surf = mCompositableHost->GetAsSurface();
+    if (surf) {
+      WriteSnapshotToDumpFile(this, surf);
+    }
   }
 #endif
 
-  GraphicsFilter filter = mFilter;
-#ifdef ANDROID
-  // Bug 691354
-  // Using the LINEAR filter we get unexplained artifacts.
-  // Use NEAREST when no scaling is required.
-  Matrix matrix;
-  bool is2D = GetEffectiveTransform().Is2D(&matrix);
-  if (is2D && !ThebesMatrix(matrix).HasNonTranslationOrFlip()) {
-    filter = GraphicsFilter::FILTER_NEAREST;
-  }
-#endif
+  RenderWithAllMasks(this, mCompositor, aClipRect,
+                     [&](EffectChain& effectChain, const IntRect& clipRect) {
+    mCompositableHost->Composite(this, effectChain,
+                          GetEffectiveOpacity(),
+                          GetEffectiveTransform(),
+                          GetSamplingFilter(),
+                          clipRect);
+  });
 
-  EffectChain effectChain(this);
-  AddBlendModeEffect(effectChain);
-
-  LayerManagerComposite::AutoAddMaskEffect autoMaskEffect(mMaskLayer, effectChain);
-  gfx::Rect clipRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height);
-
-  mImageHost->Composite(effectChain,
-                        GetEffectiveOpacity(),
-                        GetEffectiveTransform(),
-                        gfx::ToFilter(filter),
-                        clipRect);
-  mImageHost->BumpFlashCounter();
+  mCompositableHost->BumpFlashCounter();
 }
 
 CompositableHost*
 CanvasLayerComposite::GetCompositableHost()
 {
-  if ( mImageHost && mImageHost->IsAttached()) {
-    return mImageHost.get();
+  if (mCompositableHost && mCompositableHost->IsAttached()) {
+    return mCompositableHost.get();
   }
 
   return nullptr;
@@ -126,24 +120,47 @@ CanvasLayerComposite::GetCompositableHost()
 void
 CanvasLayerComposite::CleanupResources()
 {
-  if (mImageHost) {
-    mImageHost->Detach(this);
+  if (mCompositableHost) {
+    mCompositableHost->Detach(this);
   }
-  mImageHost = nullptr;
+  mCompositableHost = nullptr;
 }
 
-nsACString&
-CanvasLayerComposite::PrintInfo(nsACString& aTo, const char* aPrefix)
+gfx::SamplingFilter
+CanvasLayerComposite::GetSamplingFilter()
 {
-  CanvasLayer::PrintInfo(aTo, aPrefix);
-  aTo += "\n";
-  if (mImageHost && mImageHost->IsAttached()) {
+  gfx::SamplingFilter filter = mSamplingFilter;
+#ifdef ANDROID
+  // Bug 691354
+  // Using the LINEAR filter we get unexplained artifacts.
+  // Use NEAREST when no scaling is required.
+  Matrix matrix;
+  bool is2D = GetEffectiveTransform().Is2D(&matrix);
+  if (is2D && !ThebesMatrix(matrix).HasNonTranslationOrFlip()) {
+    filter = SamplingFilter::POINT;
+  }
+#endif
+  return filter;
+}
+
+void
+CanvasLayerComposite::GenEffectChain(EffectChain& aEffect)
+{
+  aEffect.mLayerRef = this;
+  aEffect.mPrimaryEffect = mCompositableHost->GenEffect(GetSamplingFilter());
+}
+
+void
+CanvasLayerComposite::PrintInfo(std::stringstream& aStream, const char* aPrefix)
+{
+  CanvasLayer::PrintInfo(aStream, aPrefix);
+  aStream << "\n";
+  if (mCompositableHost && mCompositableHost->IsAttached()) {
     nsAutoCString pfx(aPrefix);
     pfx += "  ";
-    mImageHost->PrintInfo(aTo, pfx.get());
+    mCompositableHost->PrintInfo(aStream, pfx.get());
   }
-  return aTo;
 }
 
-}
-}
+} // namespace layers
+} // namespace mozilla

@@ -4,24 +4,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/net/CookieServiceChild.h"
+#include "mozilla/LoadInfo.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/ipc/URIUtils.h"
 #include "mozilla/net/NeckoChild.h"
+#include "nsIChannel.h"
 #include "nsIURI.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
-#include "nsNetUtil.h"
-#include "SerializedLoadContext.h"
+#include "nsServiceManagerUtils.h"
 
 using namespace mozilla::ipc;
 
 namespace mozilla {
 namespace net {
-
-// Behavior pref constants
-static const int32_t BEHAVIOR_ACCEPT = 0;
-static const int32_t BEHAVIOR_REJECTFOREIGN = 1;
-// static const int32_t BEHAVIOR_REJECT = 2;
-static const int32_t BEHAVIOR_LIMITFOREIGN = 3;
 
 // Pref string constants
 static const char kPrefCookieBehavior[] = "network.cookie.cookieBehavior";
@@ -46,7 +42,7 @@ NS_IMPL_ISUPPORTS(CookieServiceChild,
                   nsISupportsWeakReference)
 
 CookieServiceChild::CookieServiceChild()
-  : mCookieBehavior(BEHAVIOR_ACCEPT)
+  : mCookieBehavior(nsICookieService::BEHAVIOR_ACCEPT)
   , mThirdPartySession(false)
 {
   NS_ASSERTION(IsNeckoChild(), "not a child process");
@@ -61,7 +57,7 @@ CookieServiceChild::CookieServiceChild()
   // Init our prefs and observer.
   nsCOMPtr<nsIPrefBranch> prefBranch =
     do_GetService(NS_PREFSERVICE_CONTRACTID);
-  NS_WARN_IF_FALSE(prefBranch, "no prefservice");
+  NS_WARNING_ASSERTION(prefBranch, "no prefservice");
   if (prefBranch) {
     prefBranch->AddObserver(kPrefCookieBehavior, this, true);
     prefBranch->AddObserver(kPrefThirdPartySession, this, true);
@@ -80,7 +76,9 @@ CookieServiceChild::PrefChanged(nsIPrefBranch *aPrefBranch)
   int32_t val;
   if (NS_SUCCEEDED(aPrefBranch->GetIntPref(kPrefCookieBehavior, &val)))
     mCookieBehavior =
-      val >= BEHAVIOR_ACCEPT && val <= BEHAVIOR_LIMITFOREIGN ? val : BEHAVIOR_ACCEPT;
+      val >= nsICookieService::BEHAVIOR_ACCEPT &&
+      val <= nsICookieService::BEHAVIOR_LIMIT_FOREIGN
+        ? val : nsICookieService::BEHAVIOR_ACCEPT;
 
   bool boolval;
   if (NS_SUCCEEDED(aPrefBranch->GetBoolPref(kPrefThirdPartySession, &boolval)))
@@ -95,7 +93,9 @@ CookieServiceChild::PrefChanged(nsIPrefBranch *aPrefBranch)
 bool
 CookieServiceChild::RequireThirdPartyCheck()
 {
-  return mCookieBehavior == BEHAVIOR_REJECTFOREIGN || mCookieBehavior == BEHAVIOR_LIMITFOREIGN || mThirdPartySession;
+  return mCookieBehavior == nsICookieService::BEHAVIOR_REJECT_FOREIGN ||
+    mCookieBehavior == nsICookieService::BEHAVIOR_LIMIT_FOREIGN ||
+    mThirdPartySession;
 }
 
 nsresult
@@ -109,6 +109,13 @@ CookieServiceChild::GetCookieStringInternal(nsIURI *aHostURI,
 
   *aCookieString = nullptr;
 
+  // Fast past: don't bother sending IPC messages about nullprincipal'd
+  // documents.
+  nsAutoCString scheme;
+  aHostURI->GetScheme(scheme);
+  if (scheme.EqualsLiteral("moz-nullprincipal"))
+    return NS_OK;
+
   // Determine whether the request is foreign. Failure is acceptable.
   bool isForeign = true;
   if (RequireThirdPartyCheck())
@@ -117,10 +124,17 @@ CookieServiceChild::GetCookieStringInternal(nsIURI *aHostURI,
   URIParams uriParams;
   SerializeURI(aHostURI, uriParams);
 
+  mozilla::NeckoOriginAttributes attrs;
+  if (aChannel) {
+    nsCOMPtr<nsILoadInfo> loadInfo = aChannel->GetLoadInfo();
+    if (loadInfo) {
+      attrs = loadInfo->GetOriginAttributes();
+    }
+  }
+
   // Synchronously call the parent.
   nsAutoCString result;
-  SendGetCookieString(uriParams, !!isForeign, aFromHttp,
-                      IPC::SerializedLoadContext(aChannel), &result);
+  SendGetCookieString(uriParams, !!isForeign, aFromHttp, attrs, &result);
   if (!result.IsEmpty())
     *aCookieString = ToNewCString(result);
 
@@ -137,6 +151,13 @@ CookieServiceChild::SetCookieStringInternal(nsIURI *aHostURI,
   NS_ENSURE_ARG(aHostURI);
   NS_ENSURE_ARG_POINTER(aCookieString);
 
+  // Fast past: don't bother sending IPC messages about nullprincipal'd
+  // documents.
+  nsAutoCString scheme;
+  aHostURI->GetScheme(scheme);
+  if (scheme.EqualsLiteral("moz-nullprincipal"))
+    return NS_OK;
+
   // Determine whether the request is foreign. Failure is acceptable.
   bool isForeign = true;
   if (RequireThirdPartyCheck())
@@ -150,9 +171,17 @@ CookieServiceChild::SetCookieStringInternal(nsIURI *aHostURI,
   URIParams uriParams;
   SerializeURI(aHostURI, uriParams);
 
+  mozilla::NeckoOriginAttributes attrs;
+  if (aChannel) {
+    nsCOMPtr<nsILoadInfo> loadInfo = aChannel->GetLoadInfo();
+    if (loadInfo) {
+      attrs = loadInfo->GetOriginAttributes();
+    }
+  }
+
   // Synchronously call the parent.
   SendSetCookieString(uriParams, !!isForeign, cookieString, serverTime,
-                      aFromHttp, IPC::SerializedLoadContext(aChannel));
+                      aFromHttp, attrs);
   return NS_OK;
 }
 
@@ -209,6 +238,6 @@ CookieServiceChild::SetCookieStringFromHttp(nsIURI     *aHostURI,
                                  aServerTime, true);
 }
 
-}
-}
+} // namespace net
+} // namespace mozilla
 

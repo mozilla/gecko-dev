@@ -9,6 +9,9 @@
 
 // JS lexical scanner interface.
 
+#include "mozilla/ArrayUtils.h"
+#include "mozilla/Assertions.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/PodOperations.h"
 
@@ -19,6 +22,8 @@
 #include "jscntxt.h"
 #include "jspubtd.h"
 
+#include "frontend/TokenKind.h"
+#include "js/UniquePtr.h"
 #include "js/Vector.h"
 #include "vm/RegExpObject.h"
 
@@ -27,166 +32,7 @@ struct KeywordInfo;
 namespace js {
 namespace frontend {
 
-// Values of this type are used to index into arrays such as isExprEnding[],
-// so the first value must be zero.
-enum TokenKind {
-    TOK_ERROR = 0,                 // well-known as the only code < EOF
-    TOK_EOF,                       // end of file
-    TOK_EOL,                       // end of line; only returned by peekTokenSameLine()
-    TOK_SEMI,                      // semicolon
-    TOK_COMMA,                     // comma operator
-    TOK_HOOK, TOK_COLON,           // conditional (?:)
-    TOK_INC, TOK_DEC,              // increment/decrement (++ --)
-    TOK_DOT,                       // member operator (.)
-    TOK_TRIPLEDOT,                 // for rest arguments (...)
-    TOK_LB, TOK_RB,                // left and right brackets
-    TOK_LC, TOK_RC,                // left and right curlies (braces)
-    TOK_LP, TOK_RP,                // left and right parentheses
-    TOK_NAME,                      // identifier
-    TOK_NUMBER,                    // numeric constant
-    TOK_STRING,                    // string constant
-    TOK_TEMPLATE_STRING,           // template string
-    TOK_REGEXP,                    // RegExp constant
-    TOK_TRUE,                      // true
-    TOK_FALSE,                     // false
-    TOK_NULL,                      // null
-    TOK_THIS,                      // this
-    TOK_FUNCTION,                  // function keyword
-    TOK_IF,                        // if keyword
-    TOK_ELSE,                      // else keyword
-    TOK_SWITCH,                    // switch keyword
-    TOK_CASE,                      // case keyword
-    TOK_DEFAULT,                   // default keyword
-    TOK_WHILE,                     // while keyword
-    TOK_DO,                        // do keyword
-    TOK_FOR,                       // for keyword
-    TOK_BREAK,                     // break keyword
-    TOK_CONTINUE,                  // continue keyword
-    TOK_VAR,                       // var keyword
-    TOK_CONST,                     // const keyword
-    TOK_WITH,                      // with keyword
-    TOK_RETURN,                    // return keyword
-    TOK_NEW,                       // new keyword
-    TOK_DELETE,                    // delete keyword
-    TOK_TRY,                       // try keyword
-    TOK_CATCH,                     // catch keyword
-    TOK_FINALLY,                   // finally keyword
-    TOK_THROW,                     // throw keyword
-    TOK_DEBUGGER,                  // debugger keyword
-    TOK_YIELD,                     // yield from generator function
-    TOK_LET,                       // let keyword
-    TOK_EXPORT,                    // export keyword
-    TOK_IMPORT,                    // import keyword
-    TOK_RESERVED,                  // reserved keywords
-    TOK_STRICT_RESERVED,           // reserved keywords in strict mode
-
-    // The following token types occupy contiguous ranges to enable easy
-    // range-testing.
-
-    // Binary operators tokens, TOK_OR thru TOK_MOD. These must be in the same
-    // order as F(OR) and friends in FOR_EACH_PARSE_NODE_KIND in ParseNode.h.
-    TOK_OR,                        // logical or (||)
-    TOK_BINOP_FIRST = TOK_OR,
-    TOK_AND,                       // logical and (&&)
-    TOK_BITOR,                     // bitwise-or (|)
-    TOK_BITXOR,                    // bitwise-xor (^)
-    TOK_BITAND,                    // bitwise-and (&)
-
-    // Equality operation tokens, per TokenKindIsEquality.
-    TOK_STRICTEQ,
-    TOK_EQUALITY_START = TOK_STRICTEQ,
-    TOK_EQ,
-    TOK_STRICTNE,
-    TOK_NE,
-    TOK_EQUALITY_LAST = TOK_NE,
-
-    // Relational ops (< <= > >=), per TokenKindIsRelational.
-    TOK_LT,
-    TOK_RELOP_START = TOK_LT,
-    TOK_LE,
-    TOK_GT,
-    TOK_GE,
-    TOK_RELOP_LAST = TOK_GE,
-
-    TOK_INSTANCEOF,                // |instanceof| keyword
-    TOK_IN,                        // |in| keyword
-
-    // Shift ops (<< >> >>>), per TokenKindIsShift.
-    TOK_LSH,
-    TOK_SHIFTOP_START = TOK_LSH,
-    TOK_RSH,
-    TOK_URSH,
-    TOK_SHIFTOP_LAST = TOK_URSH,
-
-    TOK_ADD,
-    TOK_SUB,
-    TOK_MUL,
-    TOK_DIV,
-    TOK_MOD,
-    TOK_BINOP_LAST = TOK_MOD,
-
-    // Unary operation tokens.
-    TOK_TYPEOF,
-    TOK_VOID,
-    TOK_NOT,
-    TOK_BITNOT,
-
-    TOK_ARROW,                     // function arrow (=>)
-
-    // Assignment ops (= += -= etc.), per TokenKindIsAssignment
-    TOK_ASSIGN,
-    TOK_ASSIGNMENT_START = TOK_ASSIGN,
-    TOK_ADDASSIGN,
-    TOK_SUBASSIGN,
-    TOK_BITORASSIGN,
-    TOK_BITXORASSIGN,
-    TOK_BITANDASSIGN,
-    TOK_LSHASSIGN,
-    TOK_RSHASSIGN,
-    TOK_URSHASSIGN,
-    TOK_MULASSIGN,
-    TOK_DIVASSIGN,
-    TOK_MODASSIGN,
-    TOK_ASSIGNMENT_LAST = TOK_MODASSIGN,
-
-    TOK_LIMIT                      // domain size
-};
-
-inline bool
-TokenKindIsBinaryOp(TokenKind tt)
-{
-    return TOK_BINOP_FIRST <= tt && tt <= TOK_BINOP_LAST;
-}
-
-inline bool
-TokenKindIsEquality(TokenKind tt)
-{
-    return TOK_EQUALITY_START <= tt && tt <= TOK_EQUALITY_LAST;
-}
-
-inline bool
-TokenKindIsRelational(TokenKind tt)
-{
-    return TOK_RELOP_START <= tt && tt <= TOK_RELOP_LAST;
-}
-
-inline bool
-TokenKindIsShift(TokenKind tt)
-{
-    return TOK_SHIFTOP_START <= tt && tt <= TOK_SHIFTOP_LAST;
-}
-
-inline bool
-TokenKindIsAssignment(TokenKind tt)
-{
-    return TOK_ASSIGNMENT_START <= tt && tt <= TOK_ASSIGNMENT_LAST;
-}
-
-inline bool
-TokenKindIsDecl(TokenKind tt)
-{
-    return tt == TOK_VAR || tt == TOK_LET;
-}
+class AutoAwaitIsKeyword;
 
 struct TokenPos {
     uint32_t    begin;  // Offset of the token's first char.
@@ -196,10 +42,10 @@ struct TokenPos {
     TokenPos(uint32_t begin, uint32_t end) : begin(begin), end(end) {}
 
     // Return a TokenPos that covers left, right, and anything in between.
-    static TokenPos box(const TokenPos &left, const TokenPos &right) {
-        JS_ASSERT(left.begin <= left.end);
-        JS_ASSERT(left.end <= right.begin);
-        JS_ASSERT(right.begin <= right.end);
+    static TokenPos box(const TokenPos& left, const TokenPos& right) {
+        MOZ_ASSERT(left.begin <= left.end);
+        MOZ_ASSERT(left.end <= right.begin);
+        MOZ_ASSERT(right.begin <= right.end);
         return TokenPos(left.begin, right.end);
     }
 
@@ -234,15 +80,91 @@ struct TokenPos {
 
 enum DecimalPoint { NoDecimal = false, HasDecimal = true };
 
+class TokenStream;
+
 struct Token
 {
+  private:
+    // Sometimes the parser needs to inform the tokenizer to interpret
+    // subsequent text in a particular manner: for example, to tokenize a
+    // keyword as an identifier, not as the actual keyword, on the right-hand
+    // side of a dotted property access.  Such information is communicated to
+    // the tokenizer as a Modifier when getting the next token.
+    //
+    // Ideally this definition would reside in TokenStream as that's the real
+    // user, but the debugging-use of it here causes a cyclic dependency (and
+    // C++ provides no way to forward-declare an enum inside a class).  So
+    // define it here, then typedef it into TokenStream with static consts to
+    // bring the initializers into scope.
+    enum Modifier
+    {
+        // Normal operation.
+        None,
+
+        // Looking for an operand, not an operator.  In practice, this means
+        // that when '/' is seen, we look for a regexp instead of just returning
+        // TOK_DIV.
+        Operand,
+
+        // Treat keywords as names by returning TOK_NAME.
+        KeywordIsName,
+
+        // Treat subsequent characters as the tail of a template literal, after
+        // a template substitution, beginning with a "}", continuing with zero
+        // or more template literal characters, and ending with either "${" or
+        // the end of the template literal.  For example:
+        //
+        //   var entity = "world";
+        //   var s = `Hello ${entity}!`;
+        //                          ^ TemplateTail context
+        TemplateTail,
+    };
+    enum ModifierException
+    {
+        NoException,
+
+        // Used in following 2 cases:
+        // a) After |yield| we look for a token on the same line that starts an
+        // expression (Operand): |yield <expr>|.  If no token is found, the
+        // |yield| stands alone, and the next token on a subsequent line must
+        // be: a comma continuing a comma expression, a semicolon terminating
+        // the statement that ended with |yield|, or the start of another
+        // statement (possibly an expression statement).  The comma/semicolon
+        // cases are gotten as operators (None), contrasting with Operand
+        // earlier.
+        // b) After an arrow function with a block body in an expression
+        // statement, the next token must be: a colon in a conditional
+        // expression, a comma continuing a comma expression, a semicolon
+        // terminating the statement, or the token on a subsequent line that is
+        // the start of another statement (possibly an expression statement).
+        // Colon is gotten as operator (None), and it should only be gotten in
+        // conditional expression and missing it results in SyntaxError.
+        // Comma/semicolon cases are also gotten as operators (None), and 4th
+        // case is gotten after them.  If no comma/semicolon found but EOL,
+        // the next token should be gotten as operand in 4th case (especially if
+        // '/' is the first character).  So we should peek the token as
+        // operand before try getting colon/comma/semicolon.
+        // See also the comment in Parser::assignExpr().
+        NoneIsOperand,
+
+        // If a semicolon is inserted automatically, the next token is already
+        // gotten with None, but we expect Operand.
+        OperandIsNone,
+
+        // If name of method definition is `get` or `set`, the next token is
+        // already gotten with KeywordIsName, but we expect None.
+        NoneIsKeywordIsName,
+    };
+    friend class TokenStream;
+
+  public:
     TokenKind           type;           // char value or above enumerator
     TokenPos            pos;            // token position in file
     union {
       private:
         friend struct Token;
-        PropertyName    *name;          // non-numeric atom
-        JSAtom          *atom;          // potentially-numeric atom
+        PropertyName*   name;          // non-numeric atom
+        JSAtom*         atom;          // potentially-numeric atom
         struct {
             double      value;          // floating point number
             DecimalPoint decimalPoint;  // literal contains '.'
@@ -250,97 +172,76 @@ struct Token
         RegExpFlag      reflags;        // regexp flags; use tokenbuf to access
                                         //   regexp chars
     } u;
-
-    // This constructor is necessary only for MSVC 2013 and how it compiles the
-    // initialization of TokenStream::tokens.  That field is initialized as
-    // tokens() in the constructor init-list.  This *should* zero the entire
-    // array, then (because Token has a non-trivial constructor, because
-    // TokenPos has a user-provided constructor) call the implicit Token
-    // constructor on each element, which would call the TokenPos constructor
-    // for Token::pos and do nothing.  (All of which is equivalent to just
-    // zeroing TokenStream::tokens.)  But MSVC 2013 (2010/2012 don't have this
-    // bug) doesn't zero out each element, so we need this extra constructor to
-    // make it do the right thing.  (Token is used primarily by reference or
-    // pointer, and it's only initialized a very few places, so having a
-    // user-defined constructor won't hurt perf.)  See also bug 920318.
-    Token()
-      : type(TOK_ERROR),
-        pos(0, 0)
-    {
-    }
+#ifdef DEBUG
+    Modifier modifier;                  // Modifier used to get this token
+    ModifierException modifierException; // Exception for this modifier
+#endif
 
     // Mutators
 
-    void setName(PropertyName *name) {
-        JS_ASSERT(type == TOK_NAME);
-        JS_ASSERT(!IsPoisonedPtr(name));
+    void setName(PropertyName* name) {
+        MOZ_ASSERT(type == TOK_NAME);
         u.name = name;
     }
 
-    void setAtom(JSAtom *atom) {
-        JS_ASSERT (type == TOK_STRING || type == TOK_TEMPLATE_STRING);
-        JS_ASSERT(!IsPoisonedPtr(atom));
+    void setAtom(JSAtom* atom) {
+        MOZ_ASSERT(type == TOK_STRING ||
+                   type == TOK_TEMPLATE_HEAD ||
+                   type == TOK_NO_SUBS_TEMPLATE);
         u.atom = atom;
     }
 
     void setRegExpFlags(js::RegExpFlag flags) {
-        JS_ASSERT(type == TOK_REGEXP);
-        JS_ASSERT((flags & AllFlags) == flags);
+        MOZ_ASSERT(type == TOK_REGEXP);
+        MOZ_ASSERT((flags & AllFlags) == flags);
         u.reflags = flags;
     }
 
     void setNumber(double n, DecimalPoint decimalPoint) {
-        JS_ASSERT(type == TOK_NUMBER);
+        MOZ_ASSERT(type == TOK_NUMBER);
         u.number.value = n;
         u.number.decimalPoint = decimalPoint;
     }
 
     // Type-safe accessors
 
-    PropertyName *name() const {
-        JS_ASSERT(type == TOK_NAME);
-        return u.name->asPropertyName(); // poor-man's type verification
+    PropertyName* name() const {
+        MOZ_ASSERT(type == TOK_NAME);
+        return u.name->JSAtom::asPropertyName(); // poor-man's type verification
     }
 
-    JSAtom *atom() const {
-        JS_ASSERT (type == TOK_STRING || type == TOK_TEMPLATE_STRING);
+    bool nameContainsEscape() const {
+        PropertyName* n = name();
+        return pos.begin + n->length() != pos.end;
+    }
+
+    JSAtom* atom() const {
+        MOZ_ASSERT(type == TOK_STRING ||
+                   type == TOK_TEMPLATE_HEAD ||
+                   type == TOK_NO_SUBS_TEMPLATE);
         return u.atom;
     }
 
     js::RegExpFlag regExpFlags() const {
-        JS_ASSERT(type == TOK_REGEXP);
-        JS_ASSERT((u.reflags & AllFlags) == u.reflags);
+        MOZ_ASSERT(type == TOK_REGEXP);
+        MOZ_ASSERT((u.reflags & AllFlags) == u.reflags);
         return u.reflags;
     }
 
     double number() const {
-        JS_ASSERT(type == TOK_NUMBER);
+        MOZ_ASSERT(type == TOK_NUMBER);
         return u.number.value;
     }
 
     DecimalPoint decimalPoint() const {
-        JS_ASSERT(type == TOK_NUMBER);
+        MOZ_ASSERT(type == TOK_NUMBER);
         return u.number.decimalPoint;
     }
 };
 
-struct CompileError {
-    JSErrorReport report;
-    char *message;
-    ErrorArgumentsType argumentsType;
-    CompileError()
-      : message(nullptr), argumentsType(ArgumentsAreUnicode)
-    {
-        mozilla::PodZero(&report);
-    }
-    ~CompileError();
-    void throwError(JSContext *cx);
-
-  private:
-    // CompileError owns raw allocated memory, so disable assignment and copying
-    // for safety.
-    void operator=(const CompileError &) MOZ_DELETE;
-    CompileError(const CompileError &) MOZ_DELETE;
+class CompileError : public JSErrorReport {
+public:
+    void throwError(JSContext* cx);
 };
 
 // Ideally, tokenizing would be entirely independent of context.  But the
@@ -357,7 +258,7 @@ class StrictModeGetter {
 
 // TokenStream is the lexical scanner for Javascript source text.
 //
-// It takes a buffer of jschars and linearly scans it into |Token|s.
+// It takes a buffer of char16_t characters and linearly scans it into |Token|s.
 // Internally the class uses a four element circular buffer |tokens| of
 // |Token|s. As an index for |tokens|, the member |cursor| points to the
 // current token.
@@ -409,31 +310,45 @@ class MOZ_STACK_CLASS TokenStream
     static const unsigned ntokensMask = ntokens - 1;
 
   public:
-    typedef Vector<jschar, 32> CharBuffer;
+    typedef Vector<char16_t, 32> CharBuffer;
 
-    TokenStream(ExclusiveContext *cx, const ReadOnlyCompileOptions &options,
-                const jschar *base, size_t length, StrictModeGetter *smg);
+    TokenStream(ExclusiveContext* cx, const ReadOnlyCompileOptions& options,
+                const char16_t* base, size_t length, StrictModeGetter* smg);
 
     ~TokenStream();
 
+    MOZ_MUST_USE bool checkOptions();
+
     // Accessors.
-    const Token &currentToken() const { return tokens[cursor]; }
+    const Token& currentToken() const { return tokens[cursor]; }
     bool isCurrentTokenType(TokenKind type) const {
         return currentToken().type == type;
     }
-    const CharBuffer &getTokenbuf() const { return tokenbuf; }
-    const char *getFilename() const { return filename; }
-    unsigned getLineno() const { return lineno; }
-    unsigned getColumn() const { return userbuf.addressOfNextRawChar() - linebase - 1; }
-    JSPrincipals *getOriginPrincipals() const { return originPrincipals; }
+    const CharBuffer& getTokenbuf() const { return tokenbuf; }
+    const char* getFilename() const { return filename; }
+    bool getMutedErrors() const { return mutedErrors; }
     JSVersion versionNumber() const { return VersionNumber(options().version); }
     JSVersion versionWithFlags() const { return options().version; }
 
-    PropertyName *currentName() const {
+    PropertyName* currentName() const {
         if (isCurrentTokenType(TOK_YIELD))
             return cx->names().yield;
-        JS_ASSERT(isCurrentTokenType(TOK_NAME));
+        MOZ_ASSERT(isCurrentTokenType(TOK_NAME));
         return currentToken().name();
+    }
+
+    PropertyName* nextName() const {
+        if (nextToken().type == TOK_YIELD)
+            return cx->names().yield;
+        MOZ_ASSERT(nextToken().type == TOK_NAME);
+        return nextToken().name();
+    }
+
+    bool nextNameContainsEscape() const {
+        if (nextToken().type == TOK_YIELD)
+            return false;
+        MOZ_ASSERT(nextToken().type == TOK_NAME);
+        return nextToken().nameContainsEscape();
     }
 
     bool isCurrentTokenAssignment() const {
@@ -444,9 +359,11 @@ class MOZ_STACK_CLASS TokenStream
     bool isEOF() const { return flags.isEOF; }
     bool sawOctalEscape() const { return flags.sawOctalEscape; }
     bool hadError() const { return flags.hadError; }
+    void clearSawOctalEscape() { flags.sawOctalEscape = false; }
 
     // TokenStream-specific error reporters.
     bool reportError(unsigned errorNumber, ...);
+    bool reportErrorNoOffset(unsigned errorNumber, ...);
     bool reportWarning(unsigned errorNumber, ...);
 
     static const uint32_t NoOffset = UINT32_MAX;
@@ -464,94 +381,221 @@ class MOZ_STACK_CLASS TokenStream
     // asm.js reporter
     void reportAsmJSError(uint32_t offset, unsigned errorNumber, ...);
 
+    JSAtom* getRawTemplateStringAtom() {
+        MOZ_ASSERT(currentToken().type == TOK_TEMPLATE_HEAD ||
+                   currentToken().type == TOK_NO_SUBS_TEMPLATE);
+        const char16_t* cur = userbuf.rawCharPtrAt(currentToken().pos.begin + 1);
+        const char16_t* end;
+        if (currentToken().type == TOK_TEMPLATE_HEAD) {
+            // Of the form    |`...${|   or   |}...${|
+            end = userbuf.rawCharPtrAt(currentToken().pos.end - 2);
+        } else {
+            // NO_SUBS_TEMPLATE is of the form   |`...`|   or   |}...`|
+            end = userbuf.rawCharPtrAt(currentToken().pos.end - 1);
+        }
+
+        CharBuffer charbuf(cx);
+        while (cur < end) {
+            int32_t ch = *cur;
+            if (ch == '\r') {
+                ch = '\n';
+                if ((cur + 1 < end) && (*(cur + 1) == '\n'))
+                    cur++;
+            }
+            if (!charbuf.append(ch))
+                return nullptr;
+            cur++;
+        }
+        return AtomizeChars(cx, charbuf.begin(), charbuf.length());
+    }
+
   private:
     // These are private because they should only be called by the tokenizer
     // while tokenizing not by, for example, BytecodeEmitter.
     bool reportStrictModeError(unsigned errorNumber, ...);
     bool strictMode() const { return strictModeGetter && strictModeGetter->strictMode(); }
 
-    void onError();
-    static JSAtom *atomize(ExclusiveContext *cx, CharBuffer &cb);
-    bool putIdentInTokenbuf(const jschar *identStart);
+    static JSAtom* atomize(ExclusiveContext* cx, CharBuffer& cb);
+    MOZ_MUST_USE bool putIdentInTokenbuf(const char16_t* identStart);
 
     struct Flags
     {
         bool isEOF:1;           // Hit end of file.
         bool isDirtyLine:1;     // Non-whitespace since start of line.
         bool sawOctalEscape:1;  // Saw an octal character escape.
-        bool hadError:1;        // Returned TOK_ERROR from getToken.
+        bool hadError:1;        // Hit a syntax error, at start or during a
+                                // token.
+        bool hitOOM:1;          // Hit OOM.
 
         Flags()
-          : isEOF(), isDirtyLine(), sawOctalEscape(), hadError()
+          : isEOF(), isDirtyLine(), sawOctalEscape(), hadError(), hitOOM()
         {}
     };
 
-  public:
-    // Sometimes the parser needs to modify how tokens are created.
-    enum Modifier
-    {
-        None,           // Normal operation.
-        Operand,        // Looking for an operand, not an operator.  In
-                        //   practice, this means that when '/' is seen,
-                        //   we look for a regexp instead of just returning
-                        //   TOK_DIV.
-        KeywordIsName,  // Treat keywords as names by returning TOK_NAME.
-    };
+    bool awaitIsKeyword = false;
+    friend class AutoAwaitIsKeyword;
 
-    // Get the next token from the stream, make it the current token, and
-    // return its kind.
-    TokenKind getToken(Modifier modifier = None) {
+  public:
+    typedef Token::Modifier Modifier;
+    static constexpr Modifier None = Token::None;
+    static constexpr Modifier Operand = Token::Operand;
+    static constexpr Modifier KeywordIsName = Token::KeywordIsName;
+    static constexpr Modifier TemplateTail = Token::TemplateTail;
+
+    typedef Token::ModifierException ModifierException;
+    static constexpr ModifierException NoException = Token::NoException;
+    static constexpr ModifierException NoneIsOperand = Token::NoneIsOperand;
+    static constexpr ModifierException OperandIsNone = Token::OperandIsNone;
+    static constexpr ModifierException NoneIsKeywordIsName = Token::NoneIsKeywordIsName;
+
+    void addModifierException(ModifierException modifierException) {
+#ifdef DEBUG
+        const Token& next = nextToken();
+        if (next.modifierException == NoneIsOperand)
+        {
+            // Token after yield expression without operand already has
+            // NoneIsOperand exception.
+            MOZ_ASSERT(modifierException == OperandIsNone);
+            MOZ_ASSERT(next.type != TOK_DIV,
+                       "next token requires contextual specifier to be parsed unambiguously");
+
+            // Do not update modifierException.
+            return;
+        }
+
+        MOZ_ASSERT(next.modifierException == NoException);
+        switch (modifierException) {
+          case NoneIsOperand:
+            MOZ_ASSERT(next.modifier == Operand);
+            MOZ_ASSERT(next.type != TOK_DIV,
+                       "next token requires contextual specifier to be parsed unambiguously");
+            break;
+          case OperandIsNone:
+            MOZ_ASSERT(next.modifier == None);
+            MOZ_ASSERT(next.type != TOK_DIV && next.type != TOK_REGEXP,
+                       "next token requires contextual specifier to be parsed unambiguously");
+            break;
+          case NoneIsKeywordIsName:
+            MOZ_ASSERT(next.modifier == KeywordIsName);
+            MOZ_ASSERT(next.type != TOK_NAME);
+            break;
+          default:
+            MOZ_CRASH("unexpected modifier exception");
+        }
+        tokens[(cursor + 1) & ntokensMask].modifierException = modifierException;
+#endif
+    }
+
+    void
+    verifyConsistentModifier(Modifier modifier, Token lookaheadToken) {
+#ifdef DEBUG
+        // Easy case: modifiers match.
+        if (modifier == lookaheadToken.modifier)
+            return;
+
+        if (lookaheadToken.modifierException == OperandIsNone) {
+            // getToken(Operand) permissibly following getToken().
+            if (modifier == Operand && lookaheadToken.modifier == None)
+                return;
+        }
+
+        if (lookaheadToken.modifierException == NoneIsOperand) {
+            // getToken() permissibly following getToken(Operand).
+            if (modifier == None && lookaheadToken.modifier == Operand)
+                return;
+        }
+
+        if (lookaheadToken.modifierException == NoneIsKeywordIsName) {
+            // getToken() permissibly following getToken(KeywordIsName).
+            if (modifier == None && lookaheadToken.modifier == KeywordIsName)
+                return;
+        }
+
+        MOZ_ASSERT_UNREACHABLE("this token was previously looked up with a "
+                               "different modifier, potentially making "
+                               "tokenization non-deterministic");
+#endif
+    }
+
+    // Advance to the next token.  If the token stream encountered an error,
+    // return false.  Otherwise return true and store the token kind in |*ttp|.
+    MOZ_MUST_USE bool getToken(TokenKind* ttp, Modifier modifier = None) {
         // Check for a pushed-back token resulting from mismatching lookahead.
         if (lookahead != 0) {
+            MOZ_ASSERT(!flags.hadError);
             lookahead--;
             cursor = (cursor + 1) & ntokensMask;
             TokenKind tt = currentToken().type;
-            JS_ASSERT(tt != TOK_EOL);
-            return tt;
+            MOZ_ASSERT(tt != TOK_EOL);
+            verifyConsistentModifier(modifier, currentToken());
+            *ttp = tt;
+            return true;
         }
 
-        return getTokenInternal(modifier);
+        return getTokenInternal(ttp, modifier);
     }
 
     // Push the last scanned token back into the stream.
     void ungetToken() {
-        JS_ASSERT(lookahead < maxLookahead);
+        MOZ_ASSERT(lookahead < maxLookahead);
         lookahead++;
         cursor = (cursor - 1) & ntokensMask;
     }
 
-    TokenKind peekToken(Modifier modifier = None) {
-        if (lookahead != 0)
-            return tokens[(cursor + 1) & ntokensMask].type;
-        TokenKind tt = getTokenInternal(modifier);
+    MOZ_MUST_USE bool peekToken(TokenKind* ttp, Modifier modifier = None) {
+        if (lookahead > 0) {
+            MOZ_ASSERT(!flags.hadError);
+            verifyConsistentModifier(modifier, nextToken());
+            *ttp = nextToken().type;
+            return true;
+        }
+        if (!getTokenInternal(ttp, modifier))
+            return false;
         ungetToken();
-        return tt;
+        return true;
     }
 
-    TokenPos peekTokenPos(Modifier modifier = None) {
-        if (lookahead != 0)
-            return tokens[(cursor + 1) & ntokensMask].pos;
-        getTokenInternal(modifier);
-        ungetToken();
-        JS_ASSERT(lookahead != 0);
-        return tokens[(cursor + 1) & ntokensMask].pos;
+    MOZ_MUST_USE bool peekTokenPos(TokenPos* posp, Modifier modifier = None) {
+        if (lookahead == 0) {
+            TokenKind tt;
+            if (!getTokenInternal(&tt, modifier))
+                return false;
+            ungetToken();
+            MOZ_ASSERT(hasLookahead());
+        } else {
+            MOZ_ASSERT(!flags.hadError);
+            verifyConsistentModifier(modifier, nextToken());
+        }
+        *posp = nextToken().pos;
+        return true;
     }
 
     // This is like peekToken(), with one exception:  if there is an EOL
     // between the end of the current token and the start of the next token, it
-    // returns TOK_EOL.  In that case, no token with TOK_EOL is actually
-    // created, just a TOK_EOL TokenKind is returned, and currentToken()
-    // shouldn't be consulted.  (This is the only place TOK_EOL is produced.)
-    MOZ_ALWAYS_INLINE TokenKind peekTokenSameLine(Modifier modifier = None) {
-       const Token &curr = currentToken();
+    // return true and store TOK_EOL in |*ttp|.  In that case, no token with
+    // TOK_EOL is actually created, just a TOK_EOL TokenKind is returned, and
+    // currentToken() shouldn't be consulted.  (This is the only place TOK_EOL
+    // is produced.)
+    MOZ_ALWAYS_INLINE MOZ_MUST_USE bool
+    peekTokenSameLine(TokenKind* ttp, Modifier modifier = None) {
+        const Token& curr = currentToken();
 
         // If lookahead != 0, we have scanned ahead at least one token, and
         // |lineno| is the line that the furthest-scanned token ends on.  If
         // it's the same as the line that the current token ends on, that's a
         // stronger condition than what we are looking for, and we don't need
         // to return TOK_EOL.
-        if (lookahead != 0 && srcCoords.isOnThisLine(curr.pos.end, lineno))
-            return tokens[(cursor + 1) & ntokensMask].type;
+        if (lookahead != 0) {
+            bool onThisLine;
+            if (!srcCoords.isOnThisLine(curr.pos.end, lineno, &onThisLine))
+                return reportError(JSMSG_OUT_OF_MEMORY);
+            if (onThisLine) {
+                MOZ_ASSERT(!flags.hadError);
+                verifyConsistentModifier(modifier, nextToken());
+                *ttp = nextToken().type;
+                return true;
+            }
+        }
 
         // The above check misses two cases where we don't have to return
         // TOK_EOL.
@@ -560,35 +604,75 @@ class MOZ_STACK_CLASS TokenStream
         //   is a newline between the next token and the one after that.
         // The following test is somewhat expensive but gets these cases (and
         // all others) right.
-        (void)getToken(modifier);
-        const Token &next = currentToken();
+        TokenKind tmp;
+        if (!getToken(&tmp, modifier))
+            return false;
+        const Token& next = currentToken();
         ungetToken();
-        return srcCoords.lineNum(curr.pos.end) == srcCoords.lineNum(next.pos.begin)
-               ? next.type
-               : TOK_EOL;
+
+        *ttp = srcCoords.lineNum(curr.pos.end) == srcCoords.lineNum(next.pos.begin)
+             ? next.type
+             : TOK_EOL;
+        return true;
     }
 
     // Get the next token from the stream if its kind is |tt|.
-    bool matchToken(TokenKind tt, Modifier modifier = None) {
-        if (getToken(modifier) == tt)
-            return true;
-        ungetToken();
-        return false;
+    MOZ_MUST_USE bool matchToken(bool* matchedp, TokenKind tt, Modifier modifier = None) {
+        TokenKind token;
+        if (!getToken(&token, modifier))
+            return false;
+        if (token == tt) {
+            *matchedp = true;
+        } else {
+            ungetToken();
+            *matchedp = false;
+        }
+        return true;
     }
 
-    void consumeKnownToken(TokenKind tt) {
-        JS_ALWAYS_TRUE(matchToken(tt));
+    void consumeKnownToken(TokenKind tt, Modifier modifier = None) {
+        bool matched;
+        MOZ_ASSERT(hasLookahead());
+        MOZ_ALWAYS_TRUE(matchToken(&matched, tt, modifier));
+        MOZ_ALWAYS_TRUE(matched);
     }
 
-    bool matchContextualKeyword(Handle<PropertyName*> keyword) {
-        if (getToken() == TOK_NAME && currentToken().name() == keyword)
-            return true;
-        ungetToken();
-        return false;
+    // Like matchToken(..., TOK_NAME) but further matching the name token only
+    // if it has the given characters, without containing escape sequences.
+    // If the name token has the given characters yet *does* contain an escape,
+    // a syntax error will be reported.
+    //
+    // This latter behavior makes this method unsuitable for use in any context
+    // where ASI might occur.  In such places, an escaped "contextual keyword"
+    // on a new line is the start of an ExpressionStatement, not a continuation
+    // of a StatementListItem (or ImportDeclaration or ExportDeclaration, in
+    // modules).
+    MOZ_MUST_USE bool matchContextualKeyword(bool* matchedp, Handle<PropertyName*> keyword,
+                                             Modifier modifier = None)
+    {
+        TokenKind token;
+        if (!getToken(&token, modifier))
+            return false;
+        if (token == TOK_NAME && currentToken().name() == keyword) {
+            if (currentToken().nameContainsEscape()) {
+                reportError(JSMSG_ESCAPED_KEYWORD);
+                return false;
+            }
+
+            *matchedp = true;
+        } else {
+            *matchedp = false;
+            ungetToken();
+        }
+        return true;
     }
 
-    bool nextTokenEndsExpr() {
-        return isExprEnding[peekToken()];
+    MOZ_MUST_USE bool nextTokenEndsExpr(bool* endsExpr) {
+        TokenKind tt;
+        if (!peekToken(&tt))
+            return false;
+        *endsExpr = isExprEnding[tt];
+        return true;
     }
 
     class MOZ_STACK_CLASS Position {
@@ -602,32 +686,33 @@ class MOZ_STACK_CLASS TokenStream
         // more pointers to GC things here!
         explicit Position(AutoKeepAtoms&) { }
       private:
-        Position(const Position&) MOZ_DELETE;
+        Position(const Position&) = delete;
         friend class TokenStream;
-        const jschar *buf;
+        const char16_t* buf;
         Flags flags;
         unsigned lineno;
-        const jschar *linebase;
-        const jschar *prevLinebase;
+        size_t linebase;
+        size_t prevLinebase;
         Token currentToken;
         unsigned lookahead;
         Token lookaheadTokens[maxLookahead];
     };
 
-    void advance(size_t position);
-    void tell(Position *);
-    void seek(const Position &pos);
-    bool seek(const Position &pos, const TokenStream &other);
+    MOZ_MUST_USE bool advance(size_t position);
+    void tell(Position*);
+    void seek(const Position& pos);
+    MOZ_MUST_USE bool seek(const Position& pos, const TokenStream& other);
+#ifdef DEBUG
+    inline bool debugHasNoLookahead() const {
+        return lookahead == 0;
+    }
+#endif
 
-    size_t positionToOffset(const Position &pos) const {
-        return pos.buf - userbuf.base();
+    const char16_t* rawCharPtrAt(size_t offset) const {
+        return userbuf.rawCharPtrAt(offset);
     }
 
-    const jschar *rawBase() const {
-        return userbuf.base();
-    }
-
-    const jschar *rawLimit() const {
+    const char16_t* rawLimit() const {
         return userbuf.limit();
     }
 
@@ -635,31 +720,30 @@ class MOZ_STACK_CLASS TokenStream
         return displayURL_ != nullptr;
     }
 
-    jschar *displayURL() {
-        return displayURL_;
+    char16_t* displayURL() {
+        return displayURL_.get();
     }
 
     bool hasSourceMapURL() const {
         return sourceMapURL_ != nullptr;
     }
 
-    jschar *sourceMapURL() {
-        return sourceMapURL_;
+    char16_t* sourceMapURL() {
+        return sourceMapURL_.get();
     }
 
-    // If the name at s[0:length] is not a keyword in this version, return
-    // true with *ttp unchanged.
+    // If |atom| is not a keyword in this version, return true with *ttp
+    // unchanged.
     //
     // If it is a reserved word in this version and strictness mode, and thus
     // can't be present in correct code, report a SyntaxError and return false.
     //
-    // If it is a keyword, like "if", the behavior depends on ttp. If ttp is
-    // null, report a SyntaxError ("if is a reserved identifier") and return
-    // false. If ttp is non-null, return true with the keyword's TokenKind in
-    // *ttp.
-    bool checkForKeyword(const KeywordInfo *kw, TokenKind *ttp);
-    bool checkForKeyword(const jschar *s, size_t length, TokenKind *ttp);
-    bool checkForKeyword(JSAtom *atom, TokenKind *ttp);
+    // If it is a keyword, like "if", return true with the keyword's TokenKind
+    // in *ttp.
+    MOZ_MUST_USE bool checkForKeyword(JSAtom* atom, TokenKind* ttp);
+
+    // Same semantics as above, but for the provided keyword.
+    MOZ_MUST_USE bool checkForKeyword(const KeywordInfo* kw, TokenKind* ttp);
 
     // This class maps a userbuf offset (which is 0-indexed) to a line number
     // (which is 1-indexed) and a column index (which is 0-indexed).
@@ -712,34 +796,36 @@ class MOZ_STACK_CLASS TokenStream
         uint32_t lineNumToIndex(uint32_t lineNum)   const { return lineNum   - initialLineNum_; }
 
       public:
-        SourceCoords(ExclusiveContext *cx, uint32_t ln);
+        SourceCoords(ExclusiveContext* cx, uint32_t ln);
 
-        void add(uint32_t lineNum, uint32_t lineStartOffset);
-        bool fill(const SourceCoords &other);
+        MOZ_MUST_USE bool add(uint32_t lineNum, uint32_t lineStartOffset);
+        MOZ_MUST_USE bool fill(const SourceCoords& other);
 
-        bool isOnThisLine(uint32_t offset, uint32_t lineNum) const {
+        bool isOnThisLine(uint32_t offset, uint32_t lineNum, bool* onThisLine) const {
             uint32_t lineIndex = lineNumToIndex(lineNum);
-            JS_ASSERT(lineIndex + 1 < lineStartOffsets_.length());  // +1 due to sentinel
-            return lineStartOffsets_[lineIndex] <= offset &&
-                   offset < lineStartOffsets_[lineIndex + 1];
+            if (lineIndex + 1 >= lineStartOffsets_.length()) // +1 due to sentinel
+                return false;
+            *onThisLine = lineStartOffsets_[lineIndex] <= offset &&
+                          offset < lineStartOffsets_[lineIndex + 1];
+            return true;
         }
 
         uint32_t lineNum(uint32_t offset) const;
         uint32_t columnIndex(uint32_t offset) const;
-        void lineNumAndColumnIndex(uint32_t offset, uint32_t *lineNum, uint32_t *columnIndex) const;
+        void lineNumAndColumnIndex(uint32_t offset, uint32_t* lineNum, uint32_t* columnIndex) const;
     };
 
     SourceCoords srcCoords;
 
-    JSAtomState &names() const {
+    JSAtomState& names() const {
         return cx->names();
     }
 
-    ExclusiveContext *context() const {
+    ExclusiveContext* context() const {
         return cx;
     }
 
-    const ReadOnlyCompileOptions &options() const {
+    const ReadOnlyCompileOptions& options() const {
         return options_;
     }
 
@@ -749,10 +835,18 @@ class MOZ_STACK_CLASS TokenStream
     // and do some extra stuff like converting all EOL sequences to '\n',
     // tracking the line number, and setting |flags.isEOF|.  (The "raw" in "raw
     // chars" refers to the lack of EOL sequence normalization.)
+    //
+    // buf[0..length-1] often represents a substring of some larger source,
+    // where we have only the substring in memory. The |startOffset| argument
+    // indicates the offset within this larger string at which our string
+    // begins, the offset of |buf[0]|.
     class TokenBuf {
       public:
-        TokenBuf(ExclusiveContext *cx, const jschar *buf, size_t length)
-          : base_(buf), limit_(buf + length), ptr(buf)
+        TokenBuf(ExclusiveContext* cx, const char16_t* buf, size_t length, size_t startOffset)
+          : base_(buf),
+            startOffset_(startOffset),
+            limit_(buf + length),
+            ptr(buf)
         { }
 
         bool hasRawChars() const {
@@ -760,26 +854,36 @@ class MOZ_STACK_CLASS TokenStream
         }
 
         bool atStart() const {
-            return ptr == base_;
+            return offset() == 0;
         }
 
-        const jschar *base() const {
-            return base_;
+        size_t startOffset() const {
+            return startOffset_;
         }
 
-        const jschar *limit() const {
+        size_t offset() const {
+            return startOffset_ + mozilla::PointerRangeSize(base_, ptr);
+        }
+
+        const char16_t* rawCharPtrAt(size_t offset) const {
+            MOZ_ASSERT(startOffset_ <= offset);
+            MOZ_ASSERT(offset - startOffset_ <= mozilla::PointerRangeSize(base_, limit_));
+            return base_ + (offset - startOffset_);
+        }
+
+        const char16_t* limit() const {
             return limit_;
         }
 
-        jschar getRawChar() {
+        char16_t getRawChar() {
             return *ptr++;      // this will nullptr-crash if poisoned
         }
 
-        jschar peekRawChar() const {
+        char16_t peekRawChar() const {
             return *ptr;        // this will nullptr-crash if poisoned
         }
 
-        bool matchRawChar(jschar c) {
+        bool matchRawChar(char16_t c) {
             if (*ptr == c) {    // this will nullptr-crash if poisoned
                 ptr++;
                 return true;
@@ -787,8 +891,8 @@ class MOZ_STACK_CLASS TokenStream
             return false;
         }
 
-        bool matchRawCharBackwards(jschar c) {
-            JS_ASSERT(ptr);     // make sure it hasn't been poisoned
+        bool matchRawCharBackwards(char16_t c) {
+            MOZ_ASSERT(ptr);     // make sure it hasn't been poisoned
             if (*(ptr - 1) == c) {
                 ptr--;
                 return true;
@@ -797,18 +901,18 @@ class MOZ_STACK_CLASS TokenStream
         }
 
         void ungetRawChar() {
-            JS_ASSERT(ptr);     // make sure it hasn't been poisoned
+            MOZ_ASSERT(ptr);     // make sure it hasn't been poisoned
             ptr--;
         }
 
-        const jschar *addressOfNextRawChar(bool allowPoisoned = false) const {
-            JS_ASSERT_IF(!allowPoisoned, ptr);     // make sure it hasn't been poisoned
+        const char16_t* addressOfNextRawChar(bool allowPoisoned = false) const {
+            MOZ_ASSERT_IF(!allowPoisoned, ptr);     // make sure it hasn't been poisoned
             return ptr;
         }
 
         // Use this with caution!
-        void setAddressOfNextRawChar(const jschar *a, bool allowPoisoned = false) {
-            JS_ASSERT_IF(!allowPoisoned, a);
+        void setAddressOfNextRawChar(const char16_t* a, bool allowPoisoned = false) {
+            MOZ_ASSERT_IF(!allowPoisoned, a);
             ptr = a;
         }
 
@@ -823,34 +927,40 @@ class MOZ_STACK_CLASS TokenStream
             return c == '\n' || c == '\r' || c == LINE_SEPARATOR || c == PARA_SEPARATOR;
         }
 
-        // Finds the next EOL, but stops once 'max' jschars have been scanned
-        // (*including* the starting jschar).
-        const jschar *findEOLMax(const jschar *p, size_t max);
+        // Returns the offset of the next EOL, but stops once 'max' characters
+        // have been scanned (*including* the char at startOffset_).
+        size_t findEOLMax(size_t start, size_t max);
 
       private:
-        const jschar *base_;            // base of buffer
-        const jschar *limit_;           // limit for quick bounds check
-        const jschar *ptr;              // next char to get
+        const char16_t* base_;          // base of buffer
+        uint32_t startOffset_;          // offset of base_[0]
+        const char16_t* limit_;         // limit for quick bounds check
+        const char16_t* ptr;            // next char to get
     };
 
-    TokenKind getTokenInternal(Modifier modifier);
+    MOZ_MUST_USE bool getTokenInternal(TokenKind* ttp, Modifier modifier);
+
+    MOZ_MUST_USE bool getBracedUnicode(uint32_t* code);
+    MOZ_MUST_USE bool getStringOrTemplateToken(int untilChar, Token** tp);
 
     int32_t getChar();
     int32_t getCharIgnoreEOL();
     void ungetChar(int32_t c);
     void ungetCharIgnoreEOL(int32_t c);
-    Token *newToken(ptrdiff_t adjust);
-    bool peekUnicodeEscape(int32_t *c);
-    bool matchUnicodeEscapeIdStart(int32_t *c);
-    bool matchUnicodeEscapeIdent(int32_t *c);
-    bool peekChars(int n, jschar *cp);
+    Token* newToken(ptrdiff_t adjust);
+    uint32_t peekUnicodeEscape(uint32_t* codePoint);
+    uint32_t peekExtendedUnicodeEscape(uint32_t* codePoint);
+    uint32_t matchUnicodeEscapeIdStart(uint32_t* codePoint);
+    bool matchUnicodeEscapeIdent(uint32_t* codePoint);
+    bool peekChars(int n, char16_t* cp);
 
-    bool getDirectives(bool isMultiline, bool shouldWarnDeprecated);
-    bool getDirective(bool isMultiline, bool shouldWarnDeprecated,
-                      const char *directive, int directiveLength,
-                      const char *errorMsgPragma, jschar **destination);
-    bool getDisplayURL(bool isMultiline, bool shouldWarnDeprecated);
-    bool getSourceMappingURL(bool isMultiline, bool shouldWarnDeprecated);
+    MOZ_MUST_USE bool getDirectives(bool isMultiline, bool shouldWarnDeprecated);
+    MOZ_MUST_USE bool getDirective(bool isMultiline, bool shouldWarnDeprecated,
+                                   const char* directive, int directiveLength,
+                                   const char* errorMsgPragma,
+                                   UniquePtr<char16_t[], JS::FreePolicy>* destination);
+    MOZ_MUST_USE bool getDisplayURL(bool isMultiline, bool shouldWarnDeprecated);
+    MOZ_MUST_USE bool getSourceMappingURL(bool isMultiline, bool shouldWarnDeprecated);
 
     // |expect| cannot be an EOL char.
     bool matchChar(int32_t expect) {
@@ -861,7 +971,7 @@ class MOZ_STACK_CLASS TokenStream
 
     void consumeKnownChar(int32_t expect) {
         mozilla::DebugOnly<int32_t> c = getChar();
-        JS_ASSERT(c == expect);
+        MOZ_ASSERT(c == expect);
     }
 
     int32_t peekChar() {
@@ -875,44 +985,72 @@ class MOZ_STACK_CLASS TokenStream
             getChar();
     }
 
+    void skipCharsIgnoreEOL(int n) {
+        while (--n >= 0)
+            getCharIgnoreEOL();
+    }
+
     void updateLineInfoForEOL();
     void updateFlagsForEOL();
 
+    const Token& nextToken() const {
+        MOZ_ASSERT(hasLookahead());
+        return tokens[(cursor + 1) & ntokensMask];
+    }
+
+    bool hasLookahead() const { return lookahead > 0; }
+
     // Options used for parsing/tokenizing.
-    const ReadOnlyCompileOptions &options_;
+    const ReadOnlyCompileOptions& options_;
 
     Token               tokens[ntokens];    // circular token buffer
     unsigned            cursor;             // index of last parsed token
     unsigned            lookahead;          // count of lookahead tokens
     unsigned            lineno;             // current line number
     Flags               flags;              // flags -- see above
-    const jschar        *linebase;          // start of current line;  points into userbuf
-    const jschar        *prevLinebase;      // start of previous line;  nullptr if on the first line
+    size_t              linebase;           // start of current line
+    size_t              prevLinebase;       // start of previous line;  size_t(-1) if on the first line
     TokenBuf            userbuf;            // user input buffer
-    const char          *filename;          // input filename or null
-    jschar              *displayURL_;       // the user's requested source URL or null
-    jschar              *sourceMapURL_;     // source map's filename or null
+    const char*         filename;           // input filename or null
+    UniqueTwoByteChars  displayURL_;        // the user's requested source URL or null
+    UniqueTwoByteChars  sourceMapURL_;      // source map's filename or null
     CharBuffer          tokenbuf;           // current token string buffer
-    bool                maybeEOL[256];      // probabilistic EOL lookup table
-    bool                maybeStrSpecial[256];   // speeds up string scanning
     uint8_t             isExprEnding[TOK_LIMIT];// which tokens definitely terminate exprs?
-    ExclusiveContext    *const cx;
-    JSPrincipals        *const originPrincipals;
-    StrictModeGetter    *strictModeGetter;  // used to test for strict mode
+    ExclusiveContext*   const cx;
+    bool                mutedErrors;
+    StrictModeGetter*   strictModeGetter;  // used to test for strict mode
 };
 
-// Steal one JSREPORT_* bit (see jsapi.h) to tell that arguments to the error
-// message have const jschar* type, not const char*.
-#define JSREPORT_UC 0x100
+class MOZ_STACK_CLASS AutoAwaitIsKeyword
+{
+private:
+    TokenStream* ts_;
+    bool oldAwaitIsKeyword_;
+
+public:
+    AutoAwaitIsKeyword(TokenStream* ts, bool awaitIsKeyword) {
+        ts_ = ts;
+        oldAwaitIsKeyword_ = ts_->awaitIsKeyword;
+        ts_->awaitIsKeyword = awaitIsKeyword;
+    }
+
+    ~AutoAwaitIsKeyword() {
+        ts_->awaitIsKeyword = oldAwaitIsKeyword_;
+        ts_ = nullptr;
+    }
+};
+
+extern const char*
+TokenKindToDesc(TokenKind tt);
 
 } // namespace frontend
 } // namespace js
 
 extern JS_FRIEND_API(int)
-js_fgets(char *buf, int size, FILE *file);
+js_fgets(char* buf, int size, FILE* file);
 
 #ifdef DEBUG
-extern const char *
+extern const char*
 TokenKindToString(js::frontend::TokenKind tt);
 #endif
 

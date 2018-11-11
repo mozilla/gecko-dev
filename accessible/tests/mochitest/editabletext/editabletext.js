@@ -56,19 +56,23 @@ function editableTextTest(aID)
   /**
    * setTextContents test.
    */
-  this.setTextContents = function setTextContents(aValue)
+  this.setTextContents = function setTextContents(aValue, aSkipStartOffset)
   {
     var testID = "setTextContents '" + aValue + "' for " + prettyName(aID);
 
     function setTextContentsInvoke()
     {
+      dump(`\nsetTextContents '${aValue}'\n`);
       var acc = getAccessible(aID, nsIAccessibleEditableText);
       acc.setTextContents(aValue);
     }
 
-    var insertTripple = aValue ? [0, aValue.length, aValue] : null;
+    aSkipStartOffset = aSkipStartOffset || 0;
+    var insertTripple = aValue ?
+      [ aSkipStartOffset, aSkipStartOffset + aValue.length, aValue ] : null;
     var oldValue = getValue(aID);
-    var removeTripple = oldValue ? [0, oldValue.length, oldValue] : null;
+    var removeTripple = oldValue ?
+      [ aSkipStartOffset, aSkipStartOffset + oldValue.length, oldValue ] : null;
 
     this.generateTest(aID, removeTripple, insertTripple, setTextContentsInvoke,
                       getValueChecker(aID, aValue), testID);
@@ -84,6 +88,7 @@ function editableTextTest(aID)
 
     function insertTextInvoke()
     {
+      dump(`\ninsertText '${aStr}' at ${aPos} pos\n`);
       var acc = getAccessible(aID, nsIAccessibleEditableText);
       acc.insertText(aStr, aPos);
     }
@@ -291,6 +296,8 @@ function editableTextTest(aID)
       invoke: aInvokeFunc,
       finalCheck: function finalCheck()
       {
+        //dumpTree(aID, `'${aID}' tree:`);
+
         aChecker.check();
         et.unwrapNextTest(); // replace dummy invoker on real invoker object.
       },

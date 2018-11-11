@@ -1,6 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: sw=2 ts=8 et :
- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,10 +21,10 @@ namespace ipc {
 
 class ProcessChild : public ChildProcess {
 protected:
-  typedef base::ProcessHandle ProcessHandle;
+  typedef base::ProcessId ProcessId;
 
 public:
-  ProcessChild(ProcessHandle parentHandle);
+  explicit ProcessChild(ProcessId aParentPid);
   virtual ~ProcessChild();
 
   virtual bool Init() = 0;
@@ -36,20 +35,26 @@ public:
     return gProcessChild->mUILoop;
   }
 
+    /**
+   * Exit *now*.  Do not shut down XPCOM, do not pass Go, do not run
+   * static destructors, do not collect $200.
+   */
+  static void QuickExit();
+
 protected:
   static ProcessChild* current() {
     return gProcessChild;
   }
 
-  ProcessHandle ParentHandle() {
-    return mParentHandle;
+  ProcessId ParentPid() {
+    return mParentPid;
   }
 
 private:
   static ProcessChild* gProcessChild;
 
   MessageLoop* mUILoop;
-  ProcessHandle mParentHandle;
+  ProcessId mParentPid;
 
   DISALLOW_EVIL_CONSTRUCTORS(ProcessChild);
 };

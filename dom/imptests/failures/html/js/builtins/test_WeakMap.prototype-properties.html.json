@@ -1,4 +1,0 @@
-{
-  "WeakMap.prototype.get.length": true,
-  "WeakMap.prototype.get: return undefined": true
-}

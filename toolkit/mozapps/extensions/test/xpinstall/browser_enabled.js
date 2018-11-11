@@ -4,17 +4,26 @@ function test() {
   waitForExplicitFinish();
 
   gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function() {
-    gBrowser.selectedBrowser.removeEventListener("load", arguments.callee, true);
-    // Allow the in-page load handler to run first
-    executeSoon(page_loaded);
-  }, true);
-  gBrowser.loadURI(TESTROOT + "enabled.html");
-}
 
-function page_loaded() {
-  var doc = gBrowser.contentDocument;
-  is(doc.getElementById("enabled").textContent, "true", "installTrigger should have been enabled");
-  gBrowser.removeCurrentTab();
-  finish();
+  ContentTask.spawn(gBrowser.selectedBrowser, TESTROOT + "enabled.html", function (url) {
+    return new Promise(resolve => {
+      function page_loaded() {
+        content.removeEventListener("PageLoaded", page_loaded, false);
+        resolve(content.document.getElementById("enabled").textContent);
+      }
+
+      function load_listener() {
+        removeEventListener("load", load_listener, true);
+        content.addEventListener("PageLoaded", page_loaded, false);
+      }
+
+      addEventListener("load", load_listener, true);
+
+      content.location.href = url;
+    });
+  }).then(text => {
+    is(text, "true", "installTrigger should have been enabled");
+    gBrowser.removeCurrentTab();
+    finish();
+  });
 }

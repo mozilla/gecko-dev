@@ -1,16 +1,10 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/root.xml
-// *
-// ***************************************************************************
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 /**
  * ICU <specials> source: <path>/common/main/root.xml
  */
 root{
-    Version{"2.0.93.8"}
+    Version{"2.1.30.58"}
     zoneStrings{
         "Africa:Asmera"{
             ec{"Asmara"}
@@ -46,7 +40,7 @@ root{
             ec{"Monticello, Kentucky"}
         }
         "America:Lower_Princes"{
-            ec{"Lower Prince's Quarter"}
+            ec{"Lower Prince’s Quarter"}
         }
         "America:North_Dakota:Beulah"{
             ec{"Beulah, North Dakota"}

@@ -1,10 +1,5 @@
 load(libdir + "asserts.js");
 
-// Throw a TypeError if the trap reports the same property twice
-assertThrowsInstanceOf(function () {
-    Object.getOwnPropertyNames(new Proxy({}, {
-        getOwnPropertyNames: function (target) {
-            return [ 'foo', 'foo' ];
-        }
-    }));
-}, TypeError);
+var handler = { ownKeys : () => [ 'foo', 'foo' ] };
+for (let p of [new Proxy({}, handler), Proxy.revocable({}, handler).proxy])
+    assertDeepEq(Object.getOwnPropertyNames(p), ['foo', 'foo']);

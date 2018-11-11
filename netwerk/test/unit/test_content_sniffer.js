@@ -1,6 +1,7 @@
 // This file tests nsIContentSniffer, introduced in bug 324985
 
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 const unknownType = "application/x-unknown-content-type";
 const sniffedType = "application/x-sniffed";
@@ -70,9 +71,7 @@ var listener = {
 };
 
 function makeChan(url) {
-  var ios = Components.classes["@mozilla.org/network/io-service;1"]
-                      .getService(Components.interfaces.nsIIOService);
-  var chan = ios.newChannel(url, null, null);
+  var chan = NetUtil.newChannel({ uri: url, loadUsingSystemPrincipal: true});
   if (sniffing_enabled)
     chan.loadFlags |= Components.interfaces.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS;
 
@@ -125,7 +124,7 @@ function run_test_iteration(index) {
   var chan = makeChan(urls[index - 1]);
 
   listener._iteration++;
-  chan.asyncOpen(listener, null);
+  chan.asyncOpen2(listener);
 
   do_test_pending();
 }

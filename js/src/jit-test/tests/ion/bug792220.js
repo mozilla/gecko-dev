@@ -1,7 +1,7 @@
-var p = Proxy.create({
+var p = new Proxy({}, {
   has : function(id) {}
 });
-Object.prototype.__proto__ = p;
+RegExp.prototype.__proto__ = p;
 function f() {
   if (/a/.exec("a"))
     return 1;

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
@@ -19,11 +20,17 @@ function PlacesViewBase(aPlace, aOptions) {
 PlacesViewBase.prototype = {
   // The xul element that holds the entire view.
   _viewElt: null,
-  get viewElt() this._viewElt,
+  get viewElt() {
+    return this._viewElt;
+  },
 
-  get associatedElement() this._viewElt,
+  get associatedElement() {
+    return this._viewElt;
+  },
 
-  get controllers() this._viewElt.controllers,
+  get controllers() {
+    return this._viewElt.controllers;
+  },
 
   // The xul element that represents the root container.
   _rootElt: null,
@@ -37,7 +44,9 @@ PlacesViewBase.prototype = {
      Components.interfaces.nsISupportsWeakReference]),
 
   _place: "",
-  get place() this._place,
+  get place() {
+    return this._place;
+  },
   set place(val) {
     this._place = val;
 
@@ -54,7 +63,9 @@ PlacesViewBase.prototype = {
   },
 
   _result: null,
-  get result() this._result,
+  get result() {
+    return this._result;
+  },
   set result(val) {
     if (this._result == val)
       return val;
@@ -86,7 +97,9 @@ PlacesViewBase.prototype = {
   },
 
   _options: null,
-  get options() this._options,
+  get options() {
+    return this._options;
+  },
   set options(val) {
     if (!val)
       val = {};
@@ -115,21 +128,34 @@ PlacesViewBase.prototype = {
     return node;
   },
 
-  get controller() this._controller,
+  get controller() {
+    return this._controller;
+  },
 
-  get selType() "single",
+  get selType() {
+    return "single";
+  },
   selectItems: function() { },
   selectAll: function() { },
 
   get selectedNode() {
     if (this._contextMenuShown) {
-      let popup = document.popupNode;
-      return popup._placesNode || popup.parentNode._placesNode || null;
+      let anchor = this._contextMenuShown.triggerNode;
+      if (!anchor)
+        return null;
+
+      if (anchor._placesNode)
+        return this._rootElt == anchor ? null : anchor._placesNode;
+
+      anchor = anchor.parentNode;
+      return this._rootElt == anchor ? null : (anchor._placesNode || null);
     }
     return null;
   },
 
-  get hasSelection() this.selectedNode != null,
+  get hasSelection() {
+    return this.selectedNode != null;
+  },
 
   get selectedNodes() {
     let selectedNode = this.selectedNode;
@@ -147,7 +173,9 @@ PlacesViewBase.prototype = {
     return [this.selectedNodes];
   },
 
-  get draggableSelection() [this._draggedElt],
+  get draggableSelection() {
+    return [this._draggedElt];
+  },
 
   get insertionPoint() {
     // There is no insertion point for history queries, so bail out now and
@@ -162,13 +190,13 @@ PlacesViewBase.prototype = {
     let index = PlacesUtils.bookmarks.DEFAULT_INDEX;
     let container = this._resultNode;
     let orientation = Ci.nsITreeView.DROP_BEFORE;
-    let isTag = false;
+    let tagName = null;
 
     let selectedNode = this.selectedNode;
     if (selectedNode) {
       let popup = document.popupNode;
       if (!popup._placesNode || popup._placesNode == this._resultNode ||
-          popup._placesNode.itemId == -1) {
+          popup._placesNode.itemId == -1 || !selectedNode.parent) {
         // If a static menuitem is selected, or if the root node is selected,
         // the insertion point is inside the folder, at the end.
         container = selectedNode;
@@ -178,7 +206,12 @@ PlacesViewBase.prototype = {
         // In all other cases the insertion point is before that node.
         container = selectedNode.parent;
         index = container.getChildIndex(selectedNode);
-        isTag = PlacesUtils.nodeIsTagQuery(container);
+        if (PlacesUtils.nodeIsTagQuery(container)) {
+          tagName = container.title;
+          // TODO (Bug 1160193): properly support dropping on a tag root.
+          if (!tagName)
+            return null;
+        }
       }
     }
 
@@ -186,17 +219,17 @@ PlacesViewBase.prototype = {
       return null;
 
     return new InsertionPoint(PlacesUtils.getConcreteItemId(container),
-                              index, orientation, isTag);
+                              index, orientation, tagName);
   },
 
   buildContextMenu: function PVB_buildContextMenu(aPopup) {
-    this._contextMenuShown = true;
+    this._contextMenuShown = aPopup;
     window.updateCommands("places");
     return this.controller.buildContextMenu(aPopup);
   },
 
   destroyContextMenu: function PVB_destroyContextMenu(aPopup) {
-    this._contextMenuShown = false;
+    this._contextMenuShown = null;
   },
 
   _cleanPopup: function PVB_cleanPopup(aPopup, aDelay) {
@@ -306,7 +339,7 @@ PlacesViewBase.prototype = {
         element.setAttribute("scheme",
                              PlacesUIUtils.guessUrlSchemeForUI(aPlacesNode.uri));
       }
-      else if (PlacesUtils.containerTypes.indexOf(type) != -1) {
+      else if (PlacesUtils.containerTypes.includes(type)) {
         element = document.createElement("menu");
         element.setAttribute("container", "true");
 
@@ -323,12 +356,12 @@ PlacesViewBase.prototype = {
           PlacesUtils.livemarks.getLivemark({ id: itemId })
             .then(aLivemark => {
               element.setAttribute("livemark", "true");
-#ifdef XP_MACOSX
-              // OS X native menubar doesn't track list-style-images since
-              // it doesn't have a frame (bug 733415).  Thus enforce updating.
-              element.setAttribute("image", "");
-              element.removeAttribute("image");
-#endif
+              if (AppConstants.platform === "macosx") {
+                // OS X native menubar doesn't track list-style-images since
+                // it doesn't have a frame (bug 733415).  Thus enforce updating.
+                element.setAttribute("image", "");
+                element.removeAttribute("image");
+              }
               this.controller.cacheLivemarkInfo(aPlacesNode, aLivemark);
             }, () => undefined);
         }
@@ -448,10 +481,9 @@ PlacesViewBase.prototype = {
       if (aPopup._startMarker.nextSibling != statusMenuitem)
         aPopup.insertBefore(statusMenuitem, aPopup._startMarker.nextSibling);
     }
-    else {
+    else if (aPopup._statusMenuitem.parentNode == aPopup) {
       // The livemark has finished loading.
-      if (aPopup._statusMenuitem.parentNode == aPopup)
-        aPopup.removeChild(aPopup._statusMenuitem);
+      aPopup.removeChild(aPopup._statusMenuitem);
     }
   },
 
@@ -506,12 +538,12 @@ PlacesViewBase.prototype = {
       let menu = elt.parentNode;
       if (!menu.hasAttribute("livemark")) {
         menu.setAttribute("livemark", "true");
-#ifdef XP_MACOSX
-        // OS X native menubar doesn't track list-style-images since
-        // it doesn't have a frame (bug 733415).  Thus enforce updating.
-        menu.setAttribute("image", "");
-        menu.removeAttribute("image");
-#endif
+        if (AppConstants.platform === "macosx") {
+          // OS X native menubar doesn't track list-style-images since
+          // it doesn't have a frame (bug 733415).  Thus enforce updating.
+          menu.setAttribute("image", "");
+          menu.removeAttribute("image");
+        }
       }
 
       PlacesUtils.livemarks.getLivemark({ id: aPlacesNode.itemId })
@@ -600,7 +632,7 @@ PlacesViewBase.prototype = {
     if (!parentElt._built)
       return;
 
-    let index = Array.indexOf(parentElt.childNodes, parentElt._startMarker) +
+    let index = Array.prototype.indexOf.call(parentElt.childNodes, parentElt._startMarker) +
                 aIndex + 1;
     this._insertNewItemToPopup(aPlacesNode, parentElt,
                                parentElt.childNodes[index]);
@@ -630,7 +662,7 @@ PlacesViewBase.prototype = {
     if (parentElt._built) {
       // Move the node.
       parentElt.removeChild(elt);
-      let index = Array.indexOf(parentElt.childNodes, parentElt._startMarker) +
+      let index = Array.prototype.indexOf.call(parentElt.childNodes, parentElt._startMarker) +
                   aNewIndex + 1;
       parentElt.insertBefore(elt, parentElt.childNodes[index]);
     }
@@ -742,7 +774,9 @@ PlacesViewBase.prototype = {
                                  .direction == "rtl";
   },
 
-  get ownerWindow() window,
+  get ownerWindow() {
+    return window;
+  },
 
   /**
    * Adds an "Open All in Tabs" menuitem to the bottom of the popup.
@@ -770,6 +804,12 @@ PlacesViewBase.prototype = {
         currentChild = currentChild.nextSibling;
       }
       hasMultipleURIs = numURINodes > 1;
+    }
+
+    let isLiveMark = false;
+    if (this.controller.hasCachedLivemarkInfo(aPopup._placesNode)) {
+      hasMultipleURIs = true;
+      isLiveMark = true;
     }
 
     if (!hasMultipleURIs) {
@@ -803,9 +843,15 @@ PlacesViewBase.prototype = {
       if (typeof this.options.extraClasses.footer == "string")
         aPopup._endOptOpenAllInTabs.classList.add(this.options.extraClasses.footer);
 
-      aPopup._endOptOpenAllInTabs.setAttribute("oncommand",
-        "PlacesUIUtils.openContainerNodeInTabs(this.parentNode._placesNode, event, " +
-                                               "PlacesUIUtils.getViewForNode(this));");
+      if (isLiveMark) {
+        aPopup._endOptOpenAllInTabs.setAttribute("oncommand",
+          "PlacesUIUtils.openLiveMarkNodesInTabs(this.parentNode._placesNode, event, " +
+                                                 "PlacesUIUtils.getViewForNode(this));");
+      } else {
+        aPopup._endOptOpenAllInTabs.setAttribute("oncommand",
+          "PlacesUIUtils.openContainerNodeInTabs(this.parentNode._placesNode, event, " +
+                                                 "PlacesUIUtils.getViewForNode(this));");
+      }
       aPopup._endOptOpenAllInTabs.setAttribute("onclick",
         "checkForMiddleClick(this, event); event.stopPropagation();");
       aPopup._endOptOpenAllInTabs.setAttribute("label",
@@ -847,7 +893,8 @@ PlacesViewBase.prototype = {
         break;
       }
 
-      if (child._placesNode && !firstNonStaticNodeFound) {
+      if (child._placesNode && !child.hasAttribute("simulated-places-node") &&
+          !firstNonStaticNodeFound) {
         firstNonStaticNodeFound = true;
         aPopup.insertBefore(aPopup._startMarker, child);
       }
@@ -1006,12 +1053,12 @@ PlacesToolbar.prototype = {
     else {
       button = document.createElement("toolbarbutton");
       button.className = "bookmark-item";
-      button.setAttribute("label", aChild.title);
+      button.setAttribute("label", aChild.title || "");
       let icon = aChild.icon;
       if (icon)
         button.setAttribute("image", icon);
 
-      if (PlacesUtils.containerTypes.indexOf(type) != -1) {
+      if (PlacesUtils.containerTypes.includes(type)) {
         button.setAttribute("type", "menu");
         button.setAttribute("container", "true");
 
@@ -1134,7 +1181,7 @@ PlacesToolbar.prototype = {
   },
 
   updateOverflowStatus: function() {
-    if (this._rootElt.scrollLeftMax > 0) {
+    if (this._rootElt.scrollLeftMin != this._rootElt.scrollLeftMax) {
       this._onOverflow();
     } else {
       this._onUnderflow();
@@ -1185,7 +1232,7 @@ PlacesToolbar.prototype = {
         let childRect = child.getBoundingClientRect();
         childOverflowed = this.isRTL ? (childRect.left < scrollRect.left)
                                      : (childRect.right > scrollRect.right);
-                                      
+
       }
       child.style.visibility = childOverflowed ? "hidden" : "visible";
     }
@@ -1355,7 +1402,6 @@ PlacesToolbar.prototype = {
    * - folderElt: the folder to drop into, if applicable.
    */
   _getDropPoint: function PT__getDropPoint(aEvent) {
-    let result = this.result;
     if (!PlacesUtils.nodeIsFolder(this._resultNode))
       return null;
 
@@ -1364,9 +1410,9 @@ PlacesToolbar.prototype = {
     if (elt._placesNode && elt != this._rootElt &&
         elt.localName != "menupopup") {
       let eltRect = elt.getBoundingClientRect();
-      let eltIndex = Array.indexOf(this._rootElt.childNodes, elt);
+      let eltIndex = Array.prototype.indexOf.call(this._rootElt.childNodes, elt);
       if (PlacesUtils.nodeIsFolder(elt._placesNode) &&
-          !PlacesUtils.nodeIsReadOnly(elt._placesNode)) {
+          !PlacesUIUtils.isContentsReadOnly(elt._placesNode)) {
         // This is a folder.
         // If we are in the middle of it, drop inside it.
         // Otherwise, drop before it, with regards to RTL mode.
@@ -1382,10 +1428,12 @@ PlacesToolbar.prototype = {
         else if (this.isRTL ? (aEvent.clientX > eltRect.left + threshold)
                             : (aEvent.clientX < eltRect.right - threshold)) {
           // Drop inside this folder.
+          let tagName = PlacesUtils.nodeIsTagQuery(elt._placesNode) ?
+                        elt._placesNode.title : null;
           dropPoint.ip =
             new InsertionPoint(PlacesUtils.getConcreteItemId(elt._placesNode),
                                -1, Ci.nsITreeView.DROP_ON,
-                               PlacesUtils.nodeIsTagQuery(elt._placesNode));
+                               tagName);
           dropPoint.beforeIndex = eltIndex;
           dropPoint.folderElt = elt;
         }
@@ -1610,7 +1658,7 @@ PlacesToolbar.prototype = {
       }
 
       ind.style.transform = "translate(" + Math.round(translateX) + "px)";
-      ind.style.MozMarginStart = (-ind.clientWidth) + "px";
+      ind.style.marginInlineStart = (-ind.clientWidth) + "px";
       ind.collapsed = false;
 
       // Clear out old folder information.
@@ -1627,6 +1675,7 @@ PlacesToolbar.prototype = {
     let dropPoint = this._getDropPoint(aEvent);
     if (dropPoint && dropPoint.ip) {
       PlacesControllerDragHelper.onDrop(dropPoint.ip, aEvent.dataTransfer)
+                                .then(null, Components.utils.reportError);
       aEvent.preventDefault();
     }
 
@@ -1722,15 +1771,15 @@ function PlacesMenu(aPopupShowingEvent, aPlace, aOptions) {
   this._addEventListeners(this._rootElt, ["popupshowing", "popuphidden"], true);
   this._addEventListeners(window, ["unload"], false);
 
-#ifdef XP_MACOSX
-  // Must walk up to support views in sub-menus, like Bookmarks Toolbar menu.
-  for (let elt = this._viewElt.parentNode; elt; elt = elt.parentNode) {
-    if (elt.localName == "menubar") {
-      this._nativeView = true;
-      break;
+  if (AppConstants.platform === "macosx") {
+    // Must walk up to support views in sub-menus, like Bookmarks Toolbar menu.
+    for (let elt = this._viewElt.parentNode; elt; elt = elt.parentNode) {
+      if (elt.localName == "menubar") {
+        this._nativeView = true;
+        break;
+      }
     }
   }
-#endif
 
   PlacesViewBase.call(this, aPlace, aOptions);
   this._onPopupShowing(aPopupShowingEvent);
@@ -1830,12 +1879,12 @@ PlacesPanelMenuView.prototype = {
       button.className = "bookmark-item";
       if (typeof this.options.extraClasses.entry == "string")
         button.classList.add(this.options.extraClasses.entry);
-      button.setAttribute("label", aChild.title);
+      button.setAttribute("label", aChild.title || "");
       let icon = aChild.icon;
       if (icon)
         button.setAttribute("image", icon);
 
-      if (PlacesUtils.containerTypes.indexOf(type) != -1) {
+      if (PlacesUtils.containerTypes.includes(type)) {
         button.setAttribute("container", "true");
 
         if (PlacesUtils.nodeIsQuery(aChild)) {

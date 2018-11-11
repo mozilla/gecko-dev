@@ -1,4 +1,4 @@
-// -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+// -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
 
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,9 +11,8 @@ const nsICookiePromptService = Components.interfaces.nsICookiePromptService;
 
 Components.utils.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 
-var params; 
+var params;
 var cookieBundle;
-var gDateService = null;
 
 var showDetails = "";
 var hideDetails = "";
@@ -35,20 +34,13 @@ function onload()
   document.getElementById("cancel").accessKey = dialog.getAttribute("cancelKey");
 
   // hook up button icons where implemented
-  document.getElementById("ok").setAttribute("icon","accept");
-  document.getElementById("cancel").setAttribute("icon","cancel");
-  document.getElementById("disclosureButton").setAttribute("icon","properties");
-
-  if (!gDateService) {
-    const nsScriptableDateFormat_CONTRACTID = "@mozilla.org/intl/scriptabledateformat;1";
-    const nsIScriptableDateFormat = Components.interfaces.nsIScriptableDateFormat;
-    gDateService = Components.classes[nsScriptableDateFormat_CONTRACTID]
-                             .getService(nsIScriptableDateFormat);
-  }
+  document.getElementById("ok").setAttribute("icon", "accept");
+  document.getElementById("cancel").setAttribute("icon", "cancel");
+  document.getElementById("disclosureButton").setAttribute("icon", "properties");
 
   cookieBundle = document.getElementById("cookieBundle");
 
-  //cache strings
+  // cache strings
   if (!showDetails) {
     showDetails = cookieBundle.getString('showDetails');
   }
@@ -58,17 +50,16 @@ function onload()
   detailsAccessKey = cookieBundle.getString('detailsAccessKey');
 
   if (document.getElementById('infobox').hidden) {
-    document.getElementById('disclosureButton').setAttribute("label",showDetails);
+    document.getElementById('disclosureButton').setAttribute("label", showDetails);
   } else {
-    document.getElementById('disclosureButton').setAttribute("label",hideDetails);
+    document.getElementById('disclosureButton').setAttribute("label", hideDetails);
   }
-  document.getElementById('disclosureButton').setAttribute("accesskey",detailsAccessKey);
+  document.getElementById('disclosureButton').setAttribute("accesskey", detailsAccessKey);
 
   if ("arguments" in window && window.arguments.length >= 1 && window.arguments[0]) {
     try {
       params = window.arguments[0].QueryInterface(nsIDialogParamBlock);
-      var objects = params.objects;
-      var cookie = params.objects.queryElementAt(0,nsICookie);
+      var cookie = params.objects.queryElementAt(0, nsICookie);
       var cookiesFromHost = params.GetInt(nsICookieAcceptDialog.COOKIESFROMHOST);
 
       var messageFormat;
@@ -85,18 +76,18 @@ function onload()
 
       var messageText;
       if (cookie)
-        messageText = cookieBundle.getFormattedString(messageFormat,[hostname, cookiesFromHost]);
+        messageText = cookieBundle.getFormattedString(messageFormat, [hostname, cookiesFromHost]);
       else
         // No cookies means something went wrong. Bring up the dialog anyway
         // to not make the mess worse.
-        messageText = cookieBundle.getFormattedString(messageFormat,["",cookiesFromHost]);
+        messageText = cookieBundle.getFormattedString(messageFormat, ["", cookiesFromHost]);
 
       var messageParent = document.getElementById("dialogtextbox");
       var messageParagraphs = messageText.split("\n");
 
       // use value for the header, so it doesn't wrap.
       var headerNode = document.getElementById("dialog-header");
-      headerNode.setAttribute("value",messageParagraphs[0]);
+      headerNode.setAttribute("value", messageParagraphs[0]);
 
       // use childnodes here, the text can wrap
       for (var i = 1; i < messageParagraphs.length; i++) {
@@ -107,15 +98,15 @@ function onload()
       }
 
       if (cookie) {
-        document.getElementById('ifl_name').setAttribute("value",cookie.name);
-        document.getElementById('ifl_value').setAttribute("value",cookie.value);
-        document.getElementById('ifl_host').setAttribute("value",cookie.host);
-        document.getElementById('ifl_path').setAttribute("value",cookie.path);
+        document.getElementById('ifl_name').setAttribute("value", cookie.name);
+        document.getElementById('ifl_value').setAttribute("value", cookie.value);
+        document.getElementById('ifl_host').setAttribute("value", cookie.host);
+        document.getElementById('ifl_path').setAttribute("value", cookie.path);
         document.getElementById('ifl_isSecure').setAttribute("value",
                                                                  cookie.isSecure ?
                                                                     cookieBundle.getString("forSecureOnly") : cookieBundle.getString("forAnyConnection")
                                                           );
-        document.getElementById('ifl_expires').setAttribute("value",GetExpiresString(cookie.expires));
+        document.getElementById('ifl_expires').setAttribute("value", GetExpiresString(cookie.expires));
         document.getElementById('ifl_isDomain').setAttribute("value",
                                                                  cookie.isDomain ?
                                                                     cookieBundle.getString("domainColon") : cookieBundle.getString("hostColon")
@@ -144,11 +135,11 @@ function showhideinfo()
   var infobox=document.getElementById('infobox');
 
   if (infobox.hidden) {
-    infobox.setAttribute("hidden","false");
-    document.getElementById('disclosureButton').setAttribute("label",hideDetails);
+    infobox.setAttribute("hidden", "false");
+    document.getElementById('disclosureButton').setAttribute("label", hideDetails);
   } else {
-    infobox.setAttribute("hidden","true");
-    document.getElementById('disclosureButton').setAttribute("label",showDetails);
+    infobox.setAttribute("hidden", "true");
+    document.getElementById('disclosureButton').setAttribute("label", showDetails);
   }
   sizeToContent();
 }
@@ -156,7 +147,7 @@ function showhideinfo()
 function cookieAcceptNormal()
 {
   // accept the cookie normally
-  params.SetInt(nsICookieAcceptDialog.ACCEPT_COOKIE, nsICookiePromptService.ACCEPT_COOKIE); 
+  params.SetInt(nsICookieAcceptDialog.ACCEPT_COOKIE, nsICookiePromptService.ACCEPT_COOKIE);
   // And remember that when needed
   params.SetInt(nsICookieAcceptDialog.REMEMBER_DECISION, document.getElementById('persistDomainAcceptance').checked);
   window.close();
@@ -174,7 +165,7 @@ function cookieAcceptSession()
 function cookieDeny()
 {
   // say that the cookie was rejected
-  params.SetInt(nsICookieAcceptDialog.ACCEPT_COOKIE, nsICookiePromptService.DENY_COOKIE); 
+  params.SetInt(nsICookieAcceptDialog.ACCEPT_COOKIE, nsICookiePromptService.DENY_COOKIE);
   // And remember that when needed
   params.SetInt(nsICookieAcceptDialog.REMEMBER_DECISION, document.getElementById('persistDomainAcceptance').checked);
   window.close();
@@ -183,21 +174,12 @@ function cookieDeny()
 function GetExpiresString(secondsUntilExpires) {
   if (secondsUntilExpires) {
     var date = new Date(1000*secondsUntilExpires);
-
-    // if a server manages to set a really long-lived cookie, the dateservice
-    // can't cope with it properly, so we'll just return a blank string
-    // see bug 238045 for details
-    var expiry = "";
-    try {
-      expiry = gDateService.FormatDateTime("", gDateService.dateFormatLong,
-                                           gDateService.timeFormatSeconds, 
-                                           date.getFullYear(), date.getMonth()+1, 
-                                           date.getDate(), date.getHours(),
-                                           date.getMinutes(), date.getSeconds());
-    } catch(ex) {
-      // do nothing
-    }
-    return expiry;
+    const locale = Components.classes["@mozilla.org/chrome/chrome-registry;1"]
+                   .getService(Components.interfaces.nsIXULChromeRegistry)
+                   .getSelectedLocale("global", true);
+    const dtOptions = { year: 'numeric', month: 'long', day: 'numeric',
+                        hour: 'numeric', minute: 'numeric', second: 'numeric' };
+    return date.toLocaleString(locale, dtOptions);
   }
   return cookieBundle.getString("expireAtEndOfSession");
 }

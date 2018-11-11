@@ -1,17 +1,18 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const Ci = Components.interfaces;
-const Cc = Components.classes;
-const Cr = Components.results;
-const Cu = Components.utils;
+var Ci = Components.interfaces;
+var Cc = Components.classes;
+var Cr = Components.results;
+var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
 
 // Import common head.
-let (commonFile = do_get_file("../head_common.js", false)) {
+{
+  let commonFile = do_get_file("../head_common.js", false);
   let uri = Services.io.newFileURI(commonFile);
   Services.scriptloader.loadSubScript(uri.spec, this);
 }
@@ -93,4 +94,12 @@ function checkFaviconMissingForPage(aPageURI, aCallback) {
       do_check_true(aURI === null);
       aCallback();
     });
+}
+
+function promiseFaviconMissingForPage(aPageURI) {
+  return new Promise(resolve => checkFaviconMissingForPage(aPageURI, resolve));
+}
+
+function promiseFaviconChanged(aExpectedPageURI, aExpectedFaviconURI) {
+  return new Promise(resolve => waitForFaviconChanged(aExpectedPageURI, aExpectedFaviconURI, resolve));
 }

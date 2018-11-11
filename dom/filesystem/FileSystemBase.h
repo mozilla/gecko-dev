@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,53 +7,55 @@
 #ifndef mozilla_dom_FileSystemBase_h
 #define mozilla_dom_FileSystemBase_h
 
-#include "nsAutoPtr.h"
 #include "nsString.h"
-
-class nsIDOMFile;
-class nsPIDOMWindow;
+#include "Directory.h"
 
 namespace mozilla {
 namespace dom {
 
-class Directory;
+class BlobImpl;
 
 class FileSystemBase
 {
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(FileSystemBase)
 public:
-
-  // Create file system object from its string representation.
-  static already_AddRefed<FileSystemBase>
-  FromString(const nsAString& aString);
+  NS_INLINE_DECL_REFCOUNTING(FileSystemBase)
 
   FileSystemBase();
 
   virtual void
   Shutdown();
 
-  // Get the string representation of the file system.
-  const nsString&
-  ToString() const
+  // SerializeDOMPath the FileSystem to string.
+  virtual void
+  SerializeDOMPath(nsAString& aOutput) const = 0;
+
+  virtual already_AddRefed<FileSystemBase>
+  Clone() = 0;
+
+  virtual bool
+  ShouldCreateDirectory() = 0;
+
+  virtual nsISupports*
+  GetParentObject() const;
+
+  virtual void
+  GetDirectoryName(nsIFile* aFile, nsAString& aRetval,
+                   ErrorResult& aRv) const;
+
+  void
+  GetDOMPath(nsIFile* aFile, nsAString& aRetval, ErrorResult& aRv) const;
+
+  /*
+   * Return the local root path of the FileSystem implementation.
+   * For OSFileSystem, this is equal to the path of the root Directory;
+   * For DeviceStorageFileSystem, this is the path of the SDCard, parent
+   * directory of the exposed root Directory (per type).
+   */
+  const nsAString&
+  LocalRootPath() const
   {
-    return mString;
+    return mLocalRootPath;
   }
-
-  virtual nsPIDOMWindow*
-  GetWindow() const;
-
-  /*
-   * Create nsIFile object with the given real path (absolute DOM path).
-   */
-  virtual already_AddRefed<nsIFile>
-  GetLocalFile(const nsAString& aRealPath) const = 0;
-
-  /*
-   * Get the virtual name of the root directory. This name will be exposed to
-   * the content page.
-   */
-  virtual const nsAString&
-  GetRootName() const = 0;
 
   bool
   IsShutdown() const
@@ -67,40 +69,47 @@ public:
   virtual bool
   IsSafeDirectory(Directory* aDir) const;
 
-  /*
-   * Get the real path (absolute DOM path) of the DOM file in the file system.
-   * If succeeded, returns true. Otherwise, returns false and set aRealPath to
-   * empty string.
-   */
-  virtual bool
-  GetRealPath(nsIDOMFile* aFile, nsAString& aRealPath) const = 0;
-
-  /*
-   * Get the permission name required to access this file system.
-   */
-  const nsCString&
-  GetPermission() const
-  {
-    return mPermission;
-  }
-
   bool
-  IsTesting() const
-  {
-    return mIsTesting;
-  }
+  GetRealPath(BlobImpl* aFile, nsIFile** aPath) const;
+
+  // IPC initialization
+  // See how these 2 methods are used in FileSystemTaskChildBase.
+
+  virtual bool
+  NeedToGoToMainThread() const { return false; }
+
+  virtual nsresult
+  MainThreadWork() { return NS_ERROR_FAILURE; }
+
+  virtual bool
+  ClonableToDifferentThreadOrProcess() const { return false; }
+
+  // CC methods
+  virtual void Unlink() {}
+  virtual void Traverse(nsCycleCollectionTraversalCallback &cb) {}
+
+  void
+  AssertIsOnOwningThread() const;
+
 protected:
   virtual ~FileSystemBase();
 
-  // The string representation of the file system.
-  nsString mString;
+  // The local path of the root (i.e. the OS path, with OS path separators, of
+  // the OS directory that acts as the root of this OSFileSystem).
+  // This path must be set by the FileSystem implementation immediately
+  // because it will be used for the validation of any FileSystemTaskChildBase.
+  // The concept of this path is that, any task will never go out of it and this
+  // must be considered the OS 'root' of the current FileSystem. Different
+  // Directory object can have different OS 'root' path.
+  // To be more clear, any path managed by this FileSystem implementation must
+  // be discendant of this local root path.
+  nsString mLocalRootPath;
 
   bool mShutdown;
 
-  // The permission name required to access the file system.
-  nsCString mPermission;
-
-  bool mIsTesting;
+#ifdef DEBUG
+  PRThread* mOwningThread;
+#endif
 };
 
 } // namespace dom

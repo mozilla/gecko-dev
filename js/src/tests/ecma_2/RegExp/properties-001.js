@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- tab-width: 2; indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -19,7 +19,7 @@ var BUGNUMBER ="";
 
 startTest();
 
-AddRegExpCases( new RegExp, "",   false, false, false, 0 );
+AddRegExpCases( new RegExp, "(?:)",   false, false, false, 0 );
 AddRegExpCases( /.*/,       ".*", false, false, false, 0 );
 AddRegExpCases( /[\d]{5}/g, "[\\d]{5}", true, false, false, 0 );
 AddRegExpCases( /[\S]?$/i,  "[\\S]?$", false, true, false, 0 );

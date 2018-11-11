@@ -2,6 +2,7 @@
 // https://bugzilla.mozilla.org/show_bug.cgi?id=760955
 
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 var httpServer = null;
 const testFileName = "test_nsHttpChannel_CacheForOfflineUse-no-store";
@@ -19,10 +20,8 @@ var cacheUpdateObserver = null;
 var appCache = null;
 
 function make_channel_for_offline_use(url, callback, ctx) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].
-            getService(Ci.nsIIOService);
-  var chan = ios.newChannel(url, "", null);
-  
+  var chan = NetUtil.newChannel({uri: url, loadUsingSystemPrincipal: true});
+
   var cacheService = Components.classes["@mozilla.org/network/application-cache-service;1"].
                      getService(Components.interfaces.nsIApplicationCacheService);
   appCache = cacheService.getApplicationCache(cacheClientID);
@@ -37,17 +36,6 @@ function make_uri(url) {
             getService(Ci.nsIIOService);
   return ios.newURI(url, null, null);
 }
-
-function CacheListener() { }
-CacheListener.prototype = {
-  QueryInterface : function(iid)
-  {
-    if (iid.equals(Components.interfaces.nsICacheListener))
-      return this;
-    throw Components.results.NS_NOINTERFACE;
-  },
-};
-
 
 const responseBody = "response body";
 
@@ -65,7 +53,7 @@ function checkNormal(request, buffer)
 }
 add_test(function test_normal() {
   var chan = make_channel_for_offline_use(baseURI + normalEntry);
-  chan.asyncOpen(new ChannelListener(checkNormal, chan), null);
+  chan.asyncOpen2(new ChannelListener(checkNormal, chan));
 });
 
 // An HTTP channel for updating the offline cache should fail when it gets a
@@ -85,8 +73,7 @@ function checkNoStore(request, buffer)
 add_test(function test_noStore() {
   var chan = make_channel_for_offline_use(baseURI + noStoreEntry);
   // The no-store should cause the channel to fail to load.
-  chan.asyncOpen(new ChannelListener(checkNoStore, chan, CL_EXPECT_FAILURE),
-                 null);
+  chan.asyncOpen2(new ChannelListener(checkNoStore, chan, CL_EXPECT_FAILURE));
 });
 
 function run_test()

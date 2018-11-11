@@ -9,12 +9,14 @@
 #include "nscore.h"
 #include "npapi.h"
 #include "npruntime.h"
-#include "pldhash.h"
+#include "PLDHashTable.h"
+#include "js/RootingAPI.h"
 
 class nsJSNPRuntime
 {
 public:
   static void OnPluginDestroy(NPP npp);
+  static void OnPluginDestroyPending(NPP npp);
 };
 
 class nsJSObjWrapperKey
@@ -32,23 +34,39 @@ public:
     return !(*this == other);
   }
 
-  JSObject * mJSObj;
-  const NPP mNpp;
-};
+  void trace(JSTracer* trc) {
+      JS::TraceEdge(trc, &mJSObj, "nsJSObjWrapperKey");
+  }
 
-extern const JSClass sNPObjectJSWrapperClass;
+  nsJSObjWrapperKey(const nsJSObjWrapperKey& other)
+    : mJSObj(other.mJSObj),
+      mNpp(other.mNpp)
+  {}
+  void operator=(const nsJSObjWrapperKey& other) {
+    mJSObj = other.mJSObj;
+    mNpp = other.mNpp;
+  }
+
+  JS::Heap<JSObject*> mJSObj;
+  NPP mNpp;
+};
 
 class nsJSObjWrapper : public NPObject
 {
 public:
-  JS::PersistentRooted<JSObject *> mJSObj;
+  JS::Heap<JSObject *> mJSObj;
   const NPP mNpp;
+  bool mDestroyPending;
 
-  static NPObject *GetNewOrUsed(NPP npp, JSContext *cx,
-                                JS::Handle<JSObject*> obj);
+  static NPObject* GetNewOrUsed(NPP npp, JS::Handle<JSObject*> obj);
+  static bool HasOwnProperty(NPObject* npobj, NPIdentifier npid);
+
+  void trace(JSTracer* trc) {
+      JS::TraceEdge(trc, &mJSObj, "nsJSObjWrapper");
+  }
 
 protected:
-  nsJSObjWrapper(NPP npp);
+  explicit nsJSObjWrapper(NPP npp);
   ~nsJSObjWrapper();
 
   static NPObject * NP_Allocate(NPP npp, NPClass *aClass);
@@ -78,12 +96,13 @@ public:
 class nsNPObjWrapper
 {
 public:
+  static bool IsWrapper(JSObject *obj);
   static void OnDestroy(NPObject *npobj);
   static JSObject *GetNewOrUsed(NPP npp, JSContext *cx, NPObject *npobj);
 };
 
 bool
-JSValToNPVariant(NPP npp, JSContext *cx, JS::Value val, NPVariant *variant);
+JSValToNPVariant(NPP npp, JSContext *cx, const JS::Value& val, NPVariant *variant);
 
 
 #endif // nsJSNPRuntime_h_

@@ -13,9 +13,10 @@
 
 #include <map>
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/modules/video_capture/include/video_capture.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/typedefs.h"
+#include "webrtc/common_video/rotation.h"
 #include "webrtc/video_engine/include/vie_capture.h"
 #include "webrtc/video_engine/vie_defines.h"
 #include "webrtc/video_engine/vie_frame_provider_base.h"
@@ -31,7 +32,8 @@ class ViECapturer;
 class ViEExternalCapture;
 class VoiceEngine;
 
-class ViEInputManager : private ViEManagerBase {
+class ViEInputManager : private ViEManagerBase,
+                        protected VideoInputFeedBack {
   friend class ViEInputManagerScoped;
  public:
   ViEInputManager(int engine_id, const Config& config);
@@ -47,7 +49,8 @@ class ViEInputManager : private ViEManagerBase {
                     char* device_nameUTF8,
                     uint32_t device_name_length,
                     char* device_unique_idUTF8,
-                    uint32_t device_unique_idUTF8Length);
+                    uint32_t device_unique_idUTF8Length,
+                    pid_t* pid);
 
   // Returns the number of capture capabilities for a specified device.
   int NumberOfCaptureCapabilities(const char* device_unique_idUTF8);
@@ -64,7 +67,7 @@ class ViEInputManager : private ViEManagerBase {
                                       uint32_t positionX,
                                       uint32_t positionY);
   int GetOrientation(const char* device_unique_idUTF8,
-                     RotateCapturedFrame& orientation);
+                     VideoRotation& orientation);
 
   // Creates a capture module for the specified capture device and assigns
   // a capture device id for the device.
@@ -77,7 +80,12 @@ class ViEInputManager : private ViEManagerBase {
   int CreateExternalCaptureDevice(ViEExternalCapture*& external_capture,
                                   int& capture_id);
   int DestroyCaptureDevice(int capture_id);
-
+  int32_t RegisterObserver(ViEInputObserver* observer);
+  int32_t DeRegisterObserver();
+ protected:
+  VideoCaptureModule::DeviceInfo* GetDeviceInfo();
+  // Implements VideoInputFeedBack.
+  virtual void OnDeviceChange();
  private:
   // Gets and allocates a free capture device id. Assumed protected by caller.
   bool GetFreeCaptureId(int* freecapture_id);
@@ -97,8 +105,10 @@ class ViEInputManager : private ViEManagerBase {
 
   const Config& config_;
   int engine_id_;
-  scoped_ptr<CriticalSectionWrapper> map_cs_;
-  scoped_ptr<CriticalSectionWrapper> device_info_cs_;
+  rtc::scoped_ptr<CriticalSectionWrapper> map_cs_;
+  rtc::scoped_ptr<CriticalSectionWrapper> device_info_cs_;
+  rtc::scoped_ptr<CriticalSectionWrapper> observer_cs_;
+  ViEInputObserver* observer_ GUARDED_BY(observer_cs_.get());
 
   typedef std::map<int, ViEFrameProviderBase*> FrameProviderMap;
   FrameProviderMap vie_frame_provider_map_;

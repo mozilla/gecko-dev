@@ -9,8 +9,7 @@
 #define MOZILLA_LAYERS_COMPOSITABLETRANSACTIONPARENT_H
 
 #include <vector>                       // for vector
-#include "mozilla/Attributes.h"         // for MOZ_OVERRIDE
-#include "mozilla/layers/AsyncTransactionTracker.h" // for AsyncTransactionTracker
+#include "mozilla/Attributes.h"         // for override
 #include "mozilla/layers/ISurfaceAllocator.h"  // for ISurfaceAllocator
 #include "mozilla/layers/LayersMessages.h"  // for EditReply, etc
 
@@ -18,7 +17,6 @@ namespace mozilla {
 namespace layers {
 
 class CompositableHost;
-class PTextureChild;
 
 typedef std::vector<mozilla::layers::EditReply> EditReplyVector;
 
@@ -26,20 +24,20 @@ typedef std::vector<mozilla::layers::EditReply> EditReplyVector;
 // the Manager() method usually generated when there's one manager protocol,
 // so both manager protocols implement this and we keep a reference to them
 // through this interface.
-class CompositableParentManager : public ISurfaceAllocator
-                                , public AsyncTransactionTrackersHolder
+class CompositableParentManager : public HostIPCAllocator
 {
 public:
-  virtual void SendFenceHandle(AsyncTransactionTracker* aTracker,
-                               PTextureParent* aTexture,
-                               const FenceHandle& aFence) = 0;
+  CompositableParentManager() {}
 
-  virtual void SendAsyncMessage(const InfallibleTArray<AsyncParentMessageData>& aMessage) = 0;
+  void DestroyActor(const OpDestroy& aOp);
 
-  /**
-   * Get child side's process Id.
-   */
-  virtual base::ProcessId GetChildProcessId() = 0;
+  void UpdateFwdTransactionId(uint64_t aTransactionId)
+  {
+    MOZ_ASSERT(mFwdTransactionId < aTransactionId);
+    mFwdTransactionId = aTransactionId;
+  }
+
+  uint64_t GetFwdTransactionId() { return mFwdTransactionId; }
 
 protected:
   /**
@@ -47,19 +45,11 @@ protected:
    */
   bool ReceiveCompositableUpdate(const CompositableOperation& aEdit,
                                  EditReplyVector& replyv);
-  bool IsOnCompositorSide() const MOZ_OVERRIDE { return true; }
 
-  /**
-   * Return true if this protocol is asynchronous with respect to the content
-   * thread (ImageBridge for instance).
-   */
-  virtual bool IsAsync() const { return false; }
-
-  virtual void ReplyRemoveTexture(const OpReplyRemoveTexture& aReply) {}
-
+  uint64_t mFwdTransactionId = 0;
 };
 
-} // namespace
-} // namespace
+} // namespace layers
+} // namespace mozilla
 
 #endif

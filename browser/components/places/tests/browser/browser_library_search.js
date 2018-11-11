@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -28,9 +28,9 @@
 const TEST_URL = "http://dummy.mozilla.org/";
 const TEST_DOWNLOAD_URL = "http://dummy.mozilla.org/dummy.pdf";
 
-let gLibrary;
+var gLibrary;
 
-let testCases = [
+var testCases = [
   function allBookmarksScope() {
     let defScope = getDefaultScope(PlacesUIUtils.allBookmarksFolderId);
     search(PlacesUIUtils.allBookmarksFolderId, "dummy", defScope);
@@ -46,8 +46,6 @@ let testCases = [
     search(PlacesUIUtils.leftPaneQueries["Downloads"], "dummy", defScope);
   },
 ];
-
-///////////////////////////////////////////////////////////////////////////////
 
 /**
  * Returns the default search scope for a given folder.
@@ -149,7 +147,7 @@ function search(aFolderId, aSearchStr, aExpectedScopeButtonId) {
  * things off.  Add functions to the testCases array, and this will call them.
  */
 function onLibraryAvailable() {
-  testCases.forEach(function (aTest) aTest());
+  testCases.forEach(aTest => aTest());
 
   gLibrary.close();
   gLibrary = null;
@@ -157,10 +155,8 @@ function onLibraryAvailable() {
   // Cleanup.
   PlacesUtils.tagging.untagURI(PlacesUtils._uri(TEST_URL), ["dummyTag"]);
   PlacesUtils.bookmarks.removeFolderChildren(PlacesUtils.unfiledBookmarksFolderId);
-  waitForClearHistory(finish);
+  PlacesTestUtils.clearHistory().then(finish);
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 function test() {
   waitForExplicitFinish();
@@ -169,13 +165,12 @@ function test() {
   ok(PlacesUtils, "PlacesUtils in context");
 
   // Add visits, a bookmark and a tag.
-  addVisits(
+  PlacesTestUtils.addVisits(
     [{ uri: PlacesUtils._uri(TEST_URL), visitDate: Date.now() * 1000,
        transition: PlacesUtils.history.TRANSITION_TYPED },
      { uri: PlacesUtils._uri(TEST_DOWNLOAD_URL), visitDate: Date.now() * 1000,
-       transition: PlacesUtils.history.TRANSITION_DOWNLOAD }],
-    window,
-    function() {
+       transition: PlacesUtils.history.TRANSITION_DOWNLOAD }]
+    ).then(() => {
       PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
                                            PlacesUtils._uri(TEST_URL),
                                            PlacesUtils.bookmarks.DEFAULT_INDEX,

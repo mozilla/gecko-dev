@@ -12,8 +12,6 @@
 #include "nss.h"
 #include "ssl.h"
 
-#include "mozilla/Scoped.h"
-
 extern "C" {
 #include "nr_api.h"
 #include "nr_socket.h"
@@ -23,7 +21,7 @@ extern "C" {
 }
 
 #include "databuffer.h"
-#include "mtransport_test_utils.h"
+#include "dummysocket.h"
 
 #include "nr_socket_prsock.h"
 
@@ -32,7 +30,6 @@ extern "C" {
 #include "gtest_utils.h"
 
 using namespace mozilla;
-MtransportTestUtils *test_utils;
 
 static uint8_t kStunMessage[] = {
   0x00, 0x01, 0x00, 0x08, 0x21, 0x12, 0xa4, 0x42,
@@ -42,192 +39,31 @@ static uint8_t kStunMessage[] = {
 };
 static size_t kStunMessageLen = sizeof(kStunMessage);
 
-class DummySocket : public NrSocketBase {
- public:
-  DummySocket()
-      : writable_(UINT_MAX),
-        write_buffer_(nullptr),
-        readable_(UINT_MAX),
-        read_buffer_(nullptr),
-        cb_(nullptr),
-        cb_arg_(nullptr),
-        self_(nullptr) {}
-
-  // the nr_socket APIs
-  virtual int create(nr_transport_addr *addr) {
-    return 0;
-  }
-
-  virtual int sendto(const void *msg, size_t len,
-                     int flags, nr_transport_addr *to) {
-    MOZ_CRASH();
-    return 0;
-  }
-
-  virtual int recvfrom(void * buf, size_t maxlen,
-                       size_t *len, int flags,
-                       nr_transport_addr *from) {
-    MOZ_CRASH();
-    return 0;
-  }
-
-  virtual int getaddr(nr_transport_addr *addrp) {
-    MOZ_CRASH();
-    return 0;
-  }
-
-  virtual void close() {
-  }
-
-  virtual int connect(nr_transport_addr *addr) {
-    return 0;
-  }
-
-  virtual int write(const void *msg, size_t len, size_t *written) {
-    // Shouldn't be anything here.
-    EXPECT_EQ(nullptr, write_buffer_.get());
-
-    size_t to_write = std::min(len, writable_);
-
-    if (to_write) {
-      write_buffer_ = new DataBuffer(
-          static_cast<const uint8_t *>(msg), to_write);
-      *written = to_write;
-    }
-
-    return 0;
-  }
-
-  virtual int read(void* buf, size_t maxlen, size_t *len) {
-    if (!read_buffer_.get()) {
-      return R_WOULDBLOCK;
-    }
-
-    size_t to_read = std::min(read_buffer_->len(),
-                              std::min(maxlen, readable_));
-
-    memcpy(buf, read_buffer_->data(), to_read);
-    *len = to_read;
-
-    if (to_read < read_buffer_->len()) {
-      read_buffer_ = new DataBuffer(read_buffer_->data() + to_read,
-                                    read_buffer_->len() - to_read);
-    } else {
-      read_buffer_ = nullptr;
-    }
-
-    return 0;
-  }
-
-  // Implementations of the async_event APIs.
-  // These are no-ops because we handle scheduling manually
-  // for test purposes.
-  virtual int async_wait(int how, NR_async_cb cb, void *cb_arg,
-                         char *function, int line) {
-    EXPECT_EQ(nullptr, cb_);
-    cb_ = cb;
-    cb_arg_ = cb_arg;
-
-    return 0;
-  }
-
-  virtual int cancel(int how) {
-    cb_ = nullptr;
-    cb_arg_ = nullptr;
-
-    return 0;
-  }
-
-
-  // Read/Manipulate the current state.
-  void CheckWriteBuffer(uint8_t *data, size_t len) {
-    if (!len) {
-      EXPECT_EQ(nullptr, write_buffer_.get());
-    } else {
-      EXPECT_NE(nullptr, write_buffer_.get());
-      ASSERT_EQ(len, write_buffer_->len());
-      ASSERT_EQ(0, memcmp(data, write_buffer_->data(), len));
-    }
-  }
-
-  void ClearWriteBuffer() {
-    write_buffer_ = nullptr;
-  }
-
-  void SetWritable(size_t val) {
-    writable_ = val;
-  }
-
-  void FireWritableCb() {
-    NR_async_cb cb = cb_;
-    void *cb_arg = cb_arg_;
-
-    cb_ = nullptr;
-    cb_arg_ = nullptr;
-
-    cb(this, NR_ASYNC_WAIT_WRITE, cb_arg);
-  }
-
-  void SetReadBuffer(uint8_t *data, size_t len) {
-    EXPECT_EQ(nullptr, write_buffer_.get());
-    read_buffer_ = new DataBuffer(data, len);
-  }
-
-  void ClearReadBuffer() {
-    read_buffer_ = nullptr;
-  }
-
-  void SetReadable(size_t val) {
-    readable_ = val;
-  }
-
-  nr_socket *get_nr_socket() {
-    if (!self_) {
-      int r = nr_socket_create_int(this, vtbl(), &self_);
-      AddRef();
-      if (r)
-        return nullptr;
-    }
-
-    return self_;
-  }
-
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DummySocket);
-
- private:
-  DISALLOW_COPY_ASSIGN(DummySocket);
-
-  size_t writable_;  // Amount we allow someone to write.
-  ScopedDeletePtr<DataBuffer> write_buffer_;
-  size_t readable_;   // Amount we allow someone to read.
-  ScopedDeletePtr<DataBuffer> read_buffer_;
-
-  NR_async_cb cb_;
-  void *cb_arg_;
-  nr_socket *self_;
-};
-
-class BufferedStunSocketTest : public ::testing::Test {
+class BufferedStunSocketTest : public MtransportTest {
  public:
   BufferedStunSocketTest()
-      : dummy_(nullptr),
-        test_socket_(nullptr) {}
+      : MtransportTest(),
+        dummy_(nullptr),
+        test_socket_(nullptr) { }
 
   ~BufferedStunSocketTest() {
     nr_socket_destroy(&test_socket_);
   }
 
   void SetUp() {
-    ScopedDeletePtr<DummySocket> dummy(new DummySocket());
+    MtransportTest::SetUp();
+
+    RefPtr<DummySocket> dummy(new DummySocket());
 
     int r = nr_socket_buffered_stun_create(
         dummy->get_nr_socket(),
         kStunMessageLen,
+        TURN_TCP_FRAMING,
         &test_socket_);
     ASSERT_EQ(0, r);
     dummy_ = dummy.forget();  // Now owned by test_socket_.
 
-    r = nr_ip4_str_port_to_transport_addr(
+    r = nr_str_port_to_transport_addr(
         (char *)"192.0.2.133", 3333, IPPROTO_TCP, &remote_addr_);
     ASSERT_EQ(0, r);
 
@@ -239,7 +75,7 @@ class BufferedStunSocketTest : public ::testing::Test {
   nr_socket *socket() { return test_socket_; }
 
  protected:
-  DummySocket *dummy_;
+  RefPtr<DummySocket> dummy_;
   nr_socket *test_socket_;
   nr_transport_addr remote_addr_;
 };
@@ -347,7 +183,7 @@ TEST_F(BufferedStunSocketTest, TestSendToReject) {
 TEST_F(BufferedStunSocketTest, TestSendToWrongAddr) {
   nr_transport_addr addr;
 
-  int r = nr_ip4_str_port_to_transport_addr(
+  int r = nr_str_port_to_transport_addr(
       (char *)"192.0.2.134", 3333, IPPROTO_TCP, &addr);
   ASSERT_EQ(0, r);
 
@@ -457,21 +293,4 @@ TEST_F(BufferedStunSocketTest, TestReceiveRecvFromReallyLong) {
                              tmp, kStunMessageLen - 1, &len, 0,
                              &addr);
   ASSERT_EQ(R_BAD_DATA, r);
-}
-
-
-
-int main(int argc, char **argv)
-{
-  test_utils = new MtransportTestUtils();
-  NSS_NoDB_Init(nullptr);
-  NSS_SetDomesticPolicy();
-
-  // Start the tests
-  ::testing::InitGoogleTest(&argc, argv);
-
-  int rv = RUN_ALL_TESTS();
-
-  delete test_utils;
-  return rv;
 }

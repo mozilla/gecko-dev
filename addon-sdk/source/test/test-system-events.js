@@ -10,7 +10,7 @@ const { Loader, LoaderWithHookedConsole2 } = require("sdk/test/loader");
 const nsIObserverService = Cc["@mozilla.org/observer-service;1"].
                            getService(Ci.nsIObserverService);
 
-let isConsoleEvent = (topic) =>
+var isConsoleEvent = (topic) =>
   !!~["console-api-log-event", "console-storage-cache-event"].indexOf(topic)
 
 exports["test basic"] = function(assert) {
@@ -127,7 +127,7 @@ exports["test alive listeners are removed on unload"] = function(assert) {
 
   let type = 'test-alive-listeners-are-removed';
   const handler = (event) => receivedFromStrong.push(event);
-  const weakHandler = (event) => receivedFromWeak.push(event); 
+  const weakHandler = (event) => receivedFromWeak.push(event);
 
   events.on(type, handler, true);
   events.on(type, weakHandler);
@@ -275,4 +275,4 @@ exports["test emit to nsIObserverService observers"] = function(assert) {
   assert.equal(timesCalled, 3, "removed observers no longer invoked");
 }
 
-require("test").run(exports);
+require("sdk/test").run(exports);

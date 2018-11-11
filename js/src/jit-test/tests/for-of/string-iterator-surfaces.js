@@ -31,43 +31,50 @@ function assertBuiltinFunction(o, name, arity) {
 
     assertEq(typeof fn, "function");
     assertEq(Object.getPrototypeOf(fn), Function.prototype);
-    // FIXME: Proxy should only have [[Construct]] if target has [[Construct]] (bug 929467)
-    // assertEq(isConstructor(fn), false);
+    assertEq(isConstructor(fn), false);
 
-    arraysEqual(Object.getOwnPropertyNames(fn).sort(), ["length", "name", "arguments", "caller"].sort());
+    assertEq(arraysEqual(Object.getOwnPropertyNames(fn).sort(), ["length", "name"].sort()), true);
 
-    // Also test "name", "arguments" and "caller" in addition to "length"?
     assertDataDescriptor(Object.getOwnPropertyDescriptor(fn, "length"), {
         value: arity,
         writable: false,
         enumerable: false,
-        configurable: false,
+        configurable: true
+    });
+
+    var functionName = typeof name === "symbol"
+                       ? String(name).replace(/^Symbol\((.+)\)$/, "[$1]")
+                       : name;
+    assertDataDescriptor(Object.getOwnPropertyDescriptor(fn, "name"), {
+        value: functionName,
+        writable: false,
+        enumerable: false,
+        configurable: true
     });
 }
 
 
 // String.prototype[@@iterator] is a built-in function
-assertBuiltinFunction(String.prototype, std_iterator, 0);
+assertBuiltinFunction(String.prototype, Symbol.iterator, 0);
 
 // Test StringIterator.prototype surface
-var iter = ""[std_iterator]();
+var iter = ""[Symbol.iterator]();
 var iterProto = Object.getPrototypeOf(iter);
 
-// StringIterator.prototype inherits from Object.prototype
-assertEq(Object.getPrototypeOf(iterProto), Object.prototype);
+// StringIterator.prototype inherits from %IteratorPrototype%. Check it's the
+// same object as %ArrayIteratorPrototype%'s proto.
+assertEq(Object.getPrototypeOf(iterProto),
+         Object.getPrototypeOf(Object.getPrototypeOf([][Symbol.iterator]())));
 
-// Own properties for StringIterator.prototype: "next" and @@iterator
-arraysEqual(Object.getOwnPropertyNames(iterProto).sort(), ["next", std_iterator].sort());
-
-// StringIterator.prototype[@@iterator] is a built-in function
-assertBuiltinFunction(iterProto, std_iterator, 0);
+// Own properties for StringIterator.prototype: "next"
+assertEq(arraysEqual(Object.getOwnPropertyNames(iterProto).sort(), ["next"]), true);
 
 // StringIterator.prototype.next is a built-in function
 assertBuiltinFunction(iterProto, "next", 0);
 
 // StringIterator.prototype[@@iterator] is generic and returns |this|
 for (var v of [void 0, null, true, false, "", 0, 1, {}, [], iter, iterProto]) {
-    assertEq(iterProto[std_iterator].call(v), v);
+    assertEq(iterProto[Symbol.iterator].call(v), v);
 }
 
 // StringIterator.prototype.next is not generic

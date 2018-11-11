@@ -25,7 +25,7 @@
 
 #include <sys/stat.h>
 
-class nsLocalFile MOZ_FINAL
+class nsLocalFile final
   : public nsILocalFileWin
   , public nsIHashable
 {
@@ -56,6 +56,9 @@ public:
 public:
   static void GlobalInit();
   static void GlobalShutdown();
+
+  // Removes registry command handler parameters, quotes, and expands environment strings.
+  static bool CleanupCmdHandlerPath(nsAString& aCommandHandler);
 
 private:
   // CopyMove and CopySingleFile constants for |options| parameter:
@@ -110,6 +113,11 @@ private:
   nsresult HasFileAttribute(DWORD aFileAttrib, bool* aResult);
   nsresult AppendInternal(const nsAFlatString& aNode,
                           bool aMultipleComponents);
+
+  nsresult OpenNSPRFileDescMaybeShareDelete(int32_t aFlags,
+                                            int32_t aMode,
+                                            bool aShareDelete,
+                                            PRFileDesc** aResult);
 };
 
 #endif

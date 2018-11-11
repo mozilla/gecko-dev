@@ -2,7 +2,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-let tabs = [];
+var tabs = [];
 
 function addTab(aURL) {
   tabs.push(gBrowser.addTab(aURL, {skipAnimation: true}));
@@ -14,6 +14,7 @@ function testAttrib(elem, attrib, attribValue, msg) {
 
 function test() {
   waitForExplicitFinish();
+
   is(gBrowser.tabs.length, 1, "one tab is open initially");
 
   // Add several new tabs in sequence, hiding some, to ensure that the
@@ -100,7 +101,7 @@ function test_hoverOne() {
 }
 
 function test_hoverStatePersistence() {
-  // Test that the afterhovered and beforehovered attributes are still there when 
+  // Test that the afterhovered and beforehovered attributes are still there when
   // a tab is selected and then unselected again. See bug 856107.
 
   function assertState() {

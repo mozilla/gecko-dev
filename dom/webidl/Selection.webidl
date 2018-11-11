@@ -42,14 +42,14 @@ interface Selection {
   [Throws]
   void               removeAllRanges();
 
+  [Throws]
+  boolean            containsNode(Node node, boolean allowPartialContainment);
+
   stringifier;
 };
 
 // Additional methods not currently in the spec
 partial interface Selection {
-  [Throws]
-  boolean containsNode(Node? node, boolean partlyContained);
-
   [Throws]
   void modify(DOMString alter, DOMString direction,
               DOMString granularity);
@@ -66,6 +66,9 @@ partial interface Selection {
   [ChromeOnly,Throws]
   attribute boolean interlinePosition;
 
+  [Throws]
+  attribute short? caretBidiLevel;
+
   [ChromeOnly,Throws]
   DOMString  toStringWithFormat(DOMString formatType, unsigned long flags, long wrapColumn);
   [ChromeOnly,Throws]
@@ -73,7 +76,7 @@ partial interface Selection {
   [ChromeOnly,Throws]
   void  removeSelectionListener(nsISelectionListener listenerToRemove);
 
-  [ChromeOnly]
+  [ChromeOnly,BinaryName="rawType"]
   readonly attribute short type;
 
   [ChromeOnly,Throws,Pref="dom.testing.selection.GetRangesForInterval"]

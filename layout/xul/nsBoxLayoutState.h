@@ -18,20 +18,21 @@
 #include "nsIPresShell.h"
 
 class nsRenderingContext;
-class nsCalculatedBoxInfo;
-struct nsHTMLReflowMetrics;
-struct nsHTMLReflowState;
-class nsString;
-class nsHTMLReflowCommand;
+namespace mozilla {
+struct ReflowInput;
+} // namespace mozilla
+
 
 class MOZ_STACK_CLASS nsBoxLayoutState
 {
+  using ReflowInput = mozilla::ReflowInput;
+
 public:
-  nsBoxLayoutState(nsPresContext* aPresContext,
-                   nsRenderingContext* aRenderingContext = nullptr,
-                   // see OuterReflowState() below
-                   const nsHTMLReflowState* aOuterReflowState = nullptr,
-                   uint16_t aReflowDepth = 0);
+  explicit nsBoxLayoutState(nsPresContext* aPresContext,
+                            nsRenderingContext* aRenderingContext = nullptr,
+                            // see OuterReflowInput() below
+                            const ReflowInput* aOuterReflowInput = nullptr,
+                            uint16_t aReflowDepth = 0);
   nsBoxLayoutState(const nsBoxLayoutState& aState);
 
   nsPresContext* PresContext() const { return mPresContext; }
@@ -51,7 +52,7 @@ public:
   nsRenderingContext* GetRenderingContext() const { return mRenderingContext; }
 
   struct AutoReflowDepth {
-    AutoReflowDepth(nsBoxLayoutState& aState)
+    explicit AutoReflowDepth(nsBoxLayoutState& aState)
       : mState(aState) { ++mState.mReflowDepth; }
     ~AutoReflowDepth() { --mState.mReflowDepth; }
     nsBoxLayoutState& mState;
@@ -59,14 +60,14 @@ public:
 
   // The HTML reflow state that lives outside the box-block boundary.
   // May not be set reliably yet.
-  const nsHTMLReflowState* OuterReflowState() { return mOuterReflowState; }
+  const ReflowInput* OuterReflowInput() { return mOuterReflowInput; }
 
   uint16_t GetReflowDepth() { return mReflowDepth; }
   
 private:
-  nsRefPtr<nsPresContext> mPresContext;
+  RefPtr<nsPresContext> mPresContext;
   nsRenderingContext *mRenderingContext;
-  const nsHTMLReflowState *mOuterReflowState;
+  const ReflowInput *mOuterReflowInput;
   uint32_t mLayoutFlags;
   uint16_t mReflowDepth; 
   bool mPaintingDisabled;

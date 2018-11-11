@@ -9,12 +9,11 @@
 <script type="application/javascript">
   "use strict";
 
-  Components.utils.import("resource://gre/modules/AddonManager.jsm");
+  Components.utils.import("resource://gre/modules/Services.jsm");
 
   var Ci = Components.interfaces;
   var strBundleService = Components.classes["@mozilla.org/intl/stringbundle;1"].getService(Ci.nsIStringBundleService);
   var pluginsbundle = strBundleService.createBundle("chrome://global/locale/plugins.properties");
-  var regionbundle = strBundleService.createBundle("chrome://global-region/locale/region.properties");
 
   document.writeln("<title>" + pluginsbundle.GetStringFromName("title_label") + "<\/title>");
 </script>
@@ -58,7 +57,7 @@
    */
   navigator.plugins.refresh(false);
 
-  AddonManager.getAddonsByTypes(["plugin"], function (aPlugins) {
+  addMessageListener("PluginList", function({ data: aPlugins }) {
     var fragment = document.createDocumentFragment();
 
     // "Installed plugins"
@@ -75,19 +74,14 @@
     enabledplugins.appendChild(document.createTextNode(pluginsbundle.GetStringFromName(label)));
     fragment.appendChild(enabledplugins);
 
-    // "Find updates for installed plugins at " ...
-    var findpluginupdates = document.createElement("div");
-    findpluginupdates.setAttribute("id", "findpluginupdates");
-    findpluginupdates.appendChild(document.createTextNode(pluginsbundle.GetStringFromName("findpluginupdates_label") + " "));
-    fragment.appendChild(findpluginupdates);
-
-    // ... "mozilla.com/plugincheck"
-    var pluginupdates = document.createElement("a");
-    pluginupdates.setAttribute("href", regionbundle.GetStringFromName("pluginupdates_url"));
-    pluginupdates.appendChild(document.createTextNode(regionbundle.GetStringFromName("pluginupdates_label")));
-    findpluginupdates.appendChild(pluginupdates);
-
-    fragment.appendChild(document.createElement("hr"));
+    var deprecation = document.createElement("p");
+    deprecation.setAttribute("class", "notice");
+    deprecation.textContent = pluginsbundle.GetStringFromName("deprecation_description") + " \u00A0 ";
+    var deprecationLink = document.createElement("a");
+    deprecationLink.textContent = pluginsbundle.GetStringFromName("deprecation_learn_more");
+    deprecationLink.href = Services.urlFormatter.formatURLPref("app.support.baseURL") + "npapi";
+    deprecation.appendChild(deprecationLink);
+    fragment.appendChild(deprecation);
 
     var stateNames = {};
     ["STATE_SOFTBLOCKED",
@@ -143,7 +137,7 @@
         state.setAttribute("label", "state");
         state.appendChild(document.createTextNode(pluginsbundle.GetStringFromName("state_label") + " "));
         stateDd.appendChild(state);
-        status = plugin.isActive ? pluginsbundle.GetStringFromName("state_enabled") : pluginsbundle.GetStringFromName("state_disabled");
+        var status = plugin.isActive ? pluginsbundle.GetStringFromName("state_enabled") : pluginsbundle.GetStringFromName("state_disabled");
         if (plugin.blocklistState in stateNames) {
           status += " (" + stateNames[plugin.blocklistState] + ")";
         }
@@ -215,6 +209,8 @@
 
     document.getElementById("outside").appendChild(fragment);
   });
+
+  sendAsyncMessage("RequestPlugins");
 </script>
 </div>
 </body>

@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #icon {
-  list-style-image: url("chrome://mozapps/skin/extensions/extensionGeneric.png");
+  list-style-image: url("chrome://mozapps/skin/extensions/extensionGeneric.svg");
   max-width: 48px;
   max-height: 48px;
-  -moz-margin-end: 6px;
+  margin-inline-end: 6px;
 }
 
 #eula-dialog[addontype="theme"] #icon {

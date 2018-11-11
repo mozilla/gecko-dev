@@ -38,39 +38,36 @@
             "if pointer-lock pref is set to FALSE");
         }
 
-        document.addEventListener("mozpointerlockchange", function (e) {
-          if (document.mozPointerLockElement === div) {
+        document.addEventListener("pointerlockchange", function (e) {
+          if (document.pointerLockElement === div) {
             prefEnabled = true;
-            document.mozExitPointerLock();
+            document.exitPointerLock();
           }
           else {
             SpecialPowers.setBoolPref("full-screen-api.pointer-lock.enabled",
                                       false );
-            div.mozRequestPointerLock();
+            div.requestPointerLock();
           }
         }, false);
 
-        document.addEventListener("mozpointerlockerror", function (e) {
+        document.addEventListener("pointerlockerror", function (e) {
           prefDisabled = true;
-          document.mozCancelFullScreen();
-        }, false);
-
-        document.addEventListener("mozfullscreenchange", function (e) {
-          if (document.mozFullScreenElement === div) {
-            SpecialPowers.setBoolPref("full-screen-api.pointer-lock.enabled",
-                                      true );
-            div.mozRequestPointerLock();
-          }
-          else {
+          addFullscreenChangeContinuation("exit", function() {
             SpecialPowers.setBoolPref("full-screen-api.pointer-lock.enabled",
                                        true );
             runTests();
             SimpleTest.finish();
-          }
+          });
+          document.exitFullscreen();
         }, false);
 
         function start() {
-          div.mozRequestFullScreen();
+          addFullscreenChangeContinuation("enter", function() {
+            SpecialPowers.setBoolPref("full-screen-api.pointer-lock.enabled",
+                                      true );
+            div.requestPointerLock();
+          });
+          div.requestFullscreen();
         }
       </script>
     </pre>

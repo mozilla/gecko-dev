@@ -16,6 +16,8 @@
    (0xf900u <= (u) && (u) <= 0xfaffu) || \
    (0xff00u <= (u) && (u) <= 0xffefu) )
 
+#define IS_ZERO_WIDTH_SPACE(u) ((u) == 0x200B)
+
 void ToLowerCase(nsAString&);
 void ToUpperCase(nsAString&);
 
@@ -45,7 +47,7 @@ public:
   virtual int32_t operator() (const char16_t*,
                               const char16_t*,
                               uint32_t,
-                              uint32_t) const;
+                              uint32_t) const override;
 };
 
 class nsCaseInsensitiveUTF8StringComparator : public nsCStringComparator
@@ -54,7 +56,7 @@ public:
   virtual int32_t operator() (const char*,
                               const char*,
                               uint32_t,
-                              uint32_t) const;
+                              uint32_t) const override;
 };
 
 class nsCaseInsensitiveStringArrayComparator
@@ -73,7 +75,7 @@ public:
   virtual int operator() (const char16_t*,
                           const char16_t*,
                           uint32_t,
-                          uint32_t) const;
+                          uint32_t) const override;
 };
 
 inline bool
@@ -141,6 +143,9 @@ namespace mozilla {
  */
 uint32_t
 HashUTF8AsUTF16(const char* aUTF8, uint32_t aLength, bool* aErr);
+
+bool
+IsSegmentBreakSkipChar(uint32_t u);
 
 } // namespace mozilla
 

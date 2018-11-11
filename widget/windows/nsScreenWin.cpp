@@ -5,17 +5,21 @@
 
 #include "nsScreenWin.h"
 #include "nsCoord.h"
-#include "gfxWindowsPlatform.h"
 #include "nsIWidget.h"
+#include "WinUtils.h"
 
+using namespace mozilla;
 
-nsScreenWin :: nsScreenWin ( HMONITOR inScreen )
+static uint32_t sScreenId;
+
+nsScreenWin::nsScreenWin(HMONITOR inScreen)
   : mScreen(inScreen)
+  , mId(++sScreenId)
 {
 #ifdef DEBUG
   HDC hDCScreen = ::GetDC(nullptr);
   NS_ASSERTION(hDCScreen,"GetDC Failure");
-  NS_ASSERTION ( ::GetDeviceCaps(hDCScreen, TECHNOLOGY) == DT_RASDISPLAY, "Not a display screen");
+  NS_ASSERTION(::GetDeviceCaps(hDCScreen, TECHNOLOGY) == DT_RASDISPLAY, "Not a display screen");
   ::ReleaseDC(nullptr,hDCScreen);
 #endif
 
@@ -25,21 +29,29 @@ nsScreenWin :: nsScreenWin ( HMONITOR inScreen )
 }
 
 
-nsScreenWin :: ~nsScreenWin()
+nsScreenWin::~nsScreenWin()
 {
   // nothing to see here.
 }
 
 
 NS_IMETHODIMP
-nsScreenWin :: GetRect(int32_t *outLeft, int32_t *outTop, int32_t *outWidth, int32_t *outHeight)
+nsScreenWin::GetId(uint32_t *outId)
+{
+  *outId = mId;
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsScreenWin::GetRect(int32_t *outLeft, int32_t *outTop, int32_t *outWidth, int32_t *outHeight)
 {
   BOOL success = FALSE;
-  if ( mScreen ) {
+  if (mScreen) {
     MONITORINFO info;
     info.cbSize = sizeof(MONITORINFO);
-    success = ::GetMonitorInfoW( mScreen, &info );
-    if ( success ) {
+    success = ::GetMonitorInfoW(mScreen, &info);
+    if (success) {
       *outLeft = info.rcMonitor.left;
       *outTop = info.rcMonitor.top;
       *outWidth = info.rcMonitor.right - info.rcMonitor.left;
@@ -62,15 +74,15 @@ nsScreenWin :: GetRect(int32_t *outLeft, int32_t *outTop, int32_t *outWidth, int
 
 
 NS_IMETHODIMP
-nsScreenWin :: GetAvailRect(int32_t *outLeft, int32_t *outTop, int32_t *outWidth, int32_t *outHeight)
+nsScreenWin::GetAvailRect(int32_t *outLeft, int32_t *outTop, int32_t *outWidth, int32_t *outHeight)
 {
   BOOL success = FALSE;
 
-  if ( mScreen ) {
+  if (mScreen) {
     MONITORINFO info;
     info.cbSize = sizeof(MONITORINFO);
-    success = ::GetMonitorInfoW( mScreen, &info );
-    if ( success ) {
+    success = ::GetMonitorInfoW(mScreen, &info);
+    if (success) {
       *outLeft = info.rcWork.left;
       *outTop = info.rcWork.top;
       *outWidth = info.rcWork.right - info.rcWork.left;
@@ -90,26 +102,20 @@ nsScreenWin :: GetAvailRect(int32_t *outLeft, int32_t *outTop, int32_t *outWidth
   
 } // GetAvailRect
 
-static double
-GetDPIScale()
-{
-  double dpiScale= nsIWidget::DefaultScaleOverride();
-  if (dpiScale <= 0.0) {
-    dpiScale = gfxWindowsPlatform::GetPlatform()->GetDPIScale(); 
-  }
-  return dpiScale;
-}
-
 NS_IMETHODIMP
 nsScreenWin::GetRectDisplayPix(int32_t *outLeft,  int32_t *outTop,
                                int32_t *outWidth, int32_t *outHeight)
 {
+  if (widget::WinUtils::IsPerMonitorDPIAware()) {
+    // on per-monitor-dpi config, display pixels are device pixels
+    return GetRect(outLeft, outTop, outWidth, outHeight);
+  }
   int32_t left, top, width, height;
   nsresult rv = GetRect(&left, &top, &width, &height);
   if (NS_FAILED(rv)) {
     return rv;
   }
-  double scaleFactor = 1.0 / GetDPIScale();
+  double scaleFactor = 1.0 / widget::WinUtils::LogToPhysFactor(mScreen);
   *outLeft = NSToIntRound(left * scaleFactor);
   *outTop = NSToIntRound(top * scaleFactor);
   *outWidth = NSToIntRound(width * scaleFactor);
@@ -121,12 +127,16 @@ NS_IMETHODIMP
 nsScreenWin::GetAvailRectDisplayPix(int32_t *outLeft,  int32_t *outTop,
                                     int32_t *outWidth, int32_t *outHeight)
 {
+  if (widget::WinUtils::IsPerMonitorDPIAware()) {
+    // on per-monitor-dpi config, display pixels are device pixels
+    return GetAvailRect(outLeft, outTop, outWidth, outHeight);
+  }
   int32_t left, top, width, height;
   nsresult rv = GetAvailRect(&left, &top, &width, &height);
   if (NS_FAILED(rv)) {
     return rv;
   }
-  double scaleFactor = 1.0 / GetDPIScale();
+  double scaleFactor = 1.0 / widget::WinUtils::LogToPhysFactor(mScreen);
   *outLeft = NSToIntRound(left * scaleFactor);
   *outTop = NSToIntRound(top * scaleFactor);
   *outWidth = NSToIntRound(width * scaleFactor);
@@ -158,10 +168,32 @@ nsScreenWin :: GetPixelDepth(int32_t *aPixelDepth)
 
 
 NS_IMETHODIMP 
-nsScreenWin :: GetColorDepth(int32_t *aColorDepth)
+nsScreenWin::GetColorDepth(int32_t *aColorDepth)
 {
   return GetPixelDepth(aColorDepth);
 
 } // GetColorDepth
 
 
+NS_IMETHODIMP
+nsScreenWin::GetContentsScaleFactor(double *aContentsScaleFactor)
+{
+  if (widget::WinUtils::IsPerMonitorDPIAware()) {
+    *aContentsScaleFactor = 1.0;
+  } else {
+    *aContentsScaleFactor = widget::WinUtils::LogToPhysFactor(mScreen);
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsScreenWin::GetDefaultCSSScaleFactor(double* aScaleFactor)
+{
+  double scale = nsIWidget::DefaultScaleOverride();
+  if (scale > 0.0) {
+    *aScaleFactor = scale;
+  } else {
+    *aScaleFactor = widget::WinUtils::LogToPhysFactor(mScreen);
+  }
+  return NS_OK;
+}

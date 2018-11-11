@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 // Copyright (c) 2006-2008 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -14,9 +16,6 @@
 #elif defined(OS_LINUX)
 #include <sys/syscall.h>
 #include <sys/prctl.h>
-#elif defined(OS_FREEBSD) && !defined(__GLIBC__)
-#include <sys/param.h>
-#include <sys/thr.h>
 #endif
 
 #if !defined(OS_MACOSX)
@@ -61,13 +60,7 @@ PlatformThreadId PlatformThread::CurrentId() {
 #elif defined(OS_DRAGONFLY)
   return lwp_gettid();
 #elif defined(OS_FREEBSD)
-#  if __FreeBSD_version > 900030
-    return pthread_getthreadid_np();
-#  else
-    long lwpid;
-    thr_self(&lwpid);
-    return lwpid;
-#  endif
+  return pthread_getthreadid_np();
 #endif
 }
 

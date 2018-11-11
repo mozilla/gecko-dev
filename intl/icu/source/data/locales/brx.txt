@@ -1,14 +1,5 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/brx.xml
-// *
-// ***************************************************************************
-/**
- * ICU <specials> source: <path>/common/main/brx.xml
- */
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 brx{
     AuxExemplarCharacters{"[\u200C\u200D]"}
     ExemplarCharacters{
@@ -19,9 +10,6 @@ brx{
     ExemplarCharactersIndex{
         "[अ आ इ ई उ ऊ ऍ ए ऐ ऑ ओ औ क ख ग घ च छ ज झ ञ ट ठ ड {ड\u093C} ढ ण त थ द ध न प फ"
         " ब भ म य र ल ळ व श ष स ह]"
-    }
-    LocaleScript{
-        "Deva",
     }
     NumberElements{
         default{"latn"}
@@ -47,7 +35,7 @@ brx{
         }
         native{"deva"}
     }
-    Version{"2.0.92.87"}
+    Version{"2.1.28.76"}
     calendar{
         generic{
             DateTimePatterns{
@@ -66,7 +54,10 @@ brx{
                 "{1} {0}",
             }
             availableFormats{
-                GGGGyMMMMEEEEdd{"EEEE,dd MMMM GGGGy"}
+                Gy{"y G"}
+                GyMMM{"MMM, y G"}
+                GyMMMEd{"E, MMM d, y G"}
+                GyMMMd{"MMM d, y G"}
                 Hm{"HH:mm"}
                 Hms{"HH:mm:ss"}
                 M{"L"}
@@ -95,6 +86,10 @@ brx{
                 "फुं",
                 "बेलासे",
             }
+            AmPmMarkersAbbr{
+                "फुं",
+                "बेलासे",
+            }
             DateTimePatterns{
                 "h:mm:ss a zzzz",
                 "h:mm:ss a z",
@@ -111,7 +106,10 @@ brx{
                 "{1} {0}",
             }
             availableFormats{
-                GGGGyMMMMEEEEdd{"EEEE,dd MMMM GGGGy"}
+                Gy{"y G"}
+                GyMMM{"MMM, y G"}
+                GyMMMEd{"E, MMM d, y G"}
+                GyMMMd{"MMM d, y G"}
                 Hm{"HH:mm"}
                 Hms{"HH:mm:ss"}
                 M{"L"}
@@ -288,37 +286,5 @@ brx{
     measurementSystemNames{
         US{"यु.एस"}
         metric{"मिथार खिलमिथार"}
-    }
-    units{
-        duration{
-            day{
-                one{"{0} सान"}
-                other{"{0} सान"}
-            }
-            hour{
-                one{"{0} रिंगा"}
-                other{"{0} घंटे"}
-            }
-            minute{
-                one{"{0} मिन."}
-                other{"{0} मिन."}
-            }
-            month{
-                one{"{0} महीना"}
-                other{"{0} महीने"}
-            }
-            second{
-                one{"{0} सेकं."}
-                other{"{0} सेकं."}
-            }
-            week{
-                one{"{0} सप्ताह"}
-                other{"{0} सप्ताह"}
-            }
-            year{
-                one{"{0} साल"}
-                other{"{0} साल"}
-            }
-        }
     }
 }

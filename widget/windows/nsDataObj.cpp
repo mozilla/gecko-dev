@@ -9,6 +9,7 @@
 #include <shlobj.h>
 
 #include "nsDataObj.h"
+#include "nsArrayUtils.h"
 #include "nsClipboard.h"
 #include "nsReadableUtils.h"
 #include "nsITransferable.h"
@@ -23,12 +24,17 @@
 #include "nsEscape.h"
 #include "nsIURL.h"
 #include "nsNetUtil.h"
+#include "mozilla/Services.h"
+#include "nsIOutputStream.h"
 #include "nsXPCOMStrings.h"
 #include "nscore.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsITimer.h"
 #include "nsThreadUtils.h"
 #include "mozilla/Preferences.h"
+#include "nsIContentPolicy.h"
+#include "nsContentUtils.h"
+#include "nsIPrincipal.h"
 
 #include "WinUtils.h"
 #include "mozilla/LazyIdleThread.h"
@@ -58,14 +64,26 @@ nsDataObj::CStream::~CStream()
 
 //-----------------------------------------------------------------------------
 // helper - initializes the stream
-nsresult nsDataObj::CStream::Init(nsIURI *pSourceURI)
+nsresult nsDataObj::CStream::Init(nsIURI *pSourceURI,
+                                  uint32_t aContentPolicyType,
+                                  nsIPrincipal* aRequestingPrincipal)
 {
+  // we can not create a channel without a requestingPrincipal
+  if (!aRequestingPrincipal) {
+    return NS_ERROR_FAILURE;
+  }
   nsresult rv;
-  rv = NS_NewChannel(getter_AddRefs(mChannel), pSourceURI,
-                     nullptr, nullptr, nullptr,
+  rv = NS_NewChannel(getter_AddRefs(mChannel),
+                     pSourceURI,
+                     aRequestingPrincipal,
+                     nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS,
+                     aContentPolicyType,
+                     nullptr,   // loadGroup
+                     nullptr,   // aCallbacks
                      nsIRequest::LOAD_FROM_CACHE);
+
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = mChannel->AsyncOpen(this, nullptr);
+  rv = mChannel->AsyncOpen2(this);
   NS_ENSURE_SUCCESS(rv, rv);
   return NS_OK;
 }
@@ -101,9 +119,10 @@ nsDataObj::CStream::OnDataAvailable(nsIRequest *aRequest,
                                     uint32_t aCount) // bytes available on this call
 {
     // Extend the write buffer for the incoming data.
-    uint8_t* buffer = mChannelData.AppendElements(aCount);
-    if (buffer == nullptr)
+    uint8_t* buffer = mChannelData.AppendElements(aCount, fallible);
+    if (!buffer) {
       return NS_ERROR_OUT_OF_MEMORY;
+    }
     NS_ASSERTION((mChannelData.Length() == (aOffset + aCount)),
       "stream length mismatch w/write buffer");
 
@@ -324,7 +343,14 @@ HRESULT nsDataObj::CreateStream(IStream **outStream)
 
   pStream->AddRef();
 
-  rv = pStream->Init(sourceURI);
+  // query the requestingPrincipal from the transferable and add it to the new channel
+  nsCOMPtr<nsIPrincipal> requestingPrincipal;
+  mTransferable->GetRequestingPrincipal(getter_AddRefs(requestingPrincipal));
+  MOZ_ASSERT(requestingPrincipal, "can not create channel without a principal");
+  // default transferable content policy is nsIContentPolicy::TYPE_OTHER
+  uint32_t contentPolicyType = nsIContentPolicy::TYPE_OTHER;
+  mTransferable->GetContentPolicyType(&contentPolicyType);
+  rv = pStream->Init(sourceURI, contentPolicyType, requestingPrincipal);
   if (NS_FAILED(rv))
   {
     pStream->Release();
@@ -526,7 +552,7 @@ STDMETHODIMP nsDataObj::GetData(LPFORMATETC aFormat, LPSTGMEDIUM pSTM)
           return GetFileContents ( *aFormat, *pSTM );
         if ( format == PreferredDropEffect )
           return GetPreferredDropEffect( *aFormat, *pSTM );
-        //PR_LOG(gWindowsLog, PR_LOG_ALWAYS, 
+        //MOZ_LOG(gWindowsLog, LogLevel::Info, 
         //       ("***** nsDataObj::GetData - Unknown format %u\n", format));
         return GetText(df, *aFormat, *pSTM);
       } //switch
@@ -573,7 +599,7 @@ STDMETHODIMP nsDataObj::QueryGetData(LPFORMATETC pFE)
 STDMETHODIMP nsDataObj::GetCanonicalFormatEtc
 	 (LPFORMATETC pFEIn, LPFORMATETC pFEOut)
 {
-  return E_FAIL;
+  return E_NOTIMPL;
 }
 
 //-----------------------------------------------------
@@ -726,20 +752,20 @@ STDMETHODIMP nsDataObj::EnumFormatEtc(DWORD dwDir, LPENUMFORMATETC *ppEnum)
 STDMETHODIMP nsDataObj::DAdvise(LPFORMATETC pFE, DWORD dwFlags,
 										            LPADVISESINK pIAdviseSink, DWORD* pdwConn)
 {
-  return E_FAIL;
+  return OLE_E_ADVISENOTSUPPORTED;
 }
 
 
 //-----------------------------------------------------
 STDMETHODIMP nsDataObj::DUnadvise(DWORD dwConn)
 {
-  return E_FAIL;
+  return OLE_E_ADVISENOTSUPPORTED;
 }
 
 //-----------------------------------------------------
 STDMETHODIMP nsDataObj::EnumDAdvise(LPENUMSTATDATA *ppEnum)
 {
-  return E_FAIL;
+  return OLE_E_ADVISENOTSUPPORTED;
 }
 
 // IAsyncOperation methods
@@ -1033,7 +1059,7 @@ nsDataObj :: GetFileDescriptorInternetShortcutA ( FORMATETC& aFE, STGMEDIUM& aST
   if (!CreateFilenameFromTextA(title, ".URL", 
                                fileGroupDescA->fgd[0].cFileName, NS_MAX_FILEDESCRIPTOR)) {
     nsXPIDLString untitled;
-    if (!GetLocalizedString(MOZ_UTF16("noPageTitle"), untitled) ||
+    if (!GetLocalizedString(u"noPageTitle", untitled) ||
         !CreateFilenameFromTextA(untitled, ".URL", 
                                  fileGroupDescA->fgd[0].cFileName, NS_MAX_FILEDESCRIPTOR)) {
       strcpy(fileGroupDescA->fgd[0].cFileName, "Untitled.URL");
@@ -1074,7 +1100,7 @@ nsDataObj :: GetFileDescriptorInternetShortcutW ( FORMATETC& aFE, STGMEDIUM& aST
   if (!CreateFilenameFromTextW(title, L".URL",
                                fileGroupDescW->fgd[0].cFileName, NS_MAX_FILEDESCRIPTOR)) {
     nsXPIDLString untitled;
-    if (!GetLocalizedString(MOZ_UTF16("noPageTitle"), untitled) ||
+    if (!GetLocalizedString(u"noPageTitle", untitled) ||
         !CreateFilenameFromTextW(untitled, L".URL",
                                  fileGroupDescW->fgd[0].cFileName, NS_MAX_FILEDESCRIPTOR)) {
       wcscpy(fileGroupDescW->fgd[0].cFileName, L"Untitled.URL");
@@ -1107,13 +1133,17 @@ nsDataObj :: GetFileContentsInternetShortcut ( FORMATETC& aFE, STGMEDIUM& aSTG )
   if ( NS_FAILED(ExtractShortcutURL(url)) )
     return E_OUTOFMEMORY;
 
-  // will need to change if we ever support iDNS
-  nsAutoCString asciiUrl;
-  LossyCopyUTF16toASCII(url, asciiUrl);
-
-  nsCOMPtr<nsIFile> icoFile;
   nsCOMPtr<nsIURI> aUri;
-  NS_NewURI(getter_AddRefs(aUri), url);
+  nsresult rv = NS_NewURI(getter_AddRefs(aUri), url);
+  if (NS_FAILED(rv)) {
+    return E_FAIL;
+  }
+
+  nsAutoCString asciiUrl;
+  rv = aUri->GetAsciiSpec(asciiUrl);
+  if (NS_FAILED(rv)) {
+    return E_FAIL;
+  }
 
   const char *shortcutFormatStr;
   int totalLen;
@@ -1125,14 +1155,12 @@ nsDataObj :: GetFileContentsInternetShortcut ( FORMATETC& aFE, STGMEDIUM& aSTG )
     totalLen = formatLen + asciiUrl.Length();  // don't include null character
   } else {
     nsCOMPtr<nsIFile> icoFile;
-    nsCOMPtr<nsIURI> aUri;
-    NS_NewURI(getter_AddRefs(aUri), url);
 
     nsAutoString aUriHash;
 
     mozilla::widget::FaviconHelper::ObtainCachedIconFile(aUri, aUriHash, mIOThread, true);
 
-    nsresult rv = mozilla::widget::FaviconHelper::GetOutputIconPath(aUri, icoFile, true);
+    rv = mozilla::widget::FaviconHelper::GetOutputIconPath(aUri, icoFile, true);
     NS_ENSURE_SUCCESS(rv, E_FAIL);
     rv = icoFile->GetNativePath(path);
     NS_ENSURE_SUCCESS(rv, E_FAIL);
@@ -1181,17 +1209,15 @@ bool nsDataObj :: IsFlavourPresent(const char *inFlavour)
   NS_ENSURE_TRUE(mTransferable, false);
   
   // get the list of flavors available in the transferable
-  nsCOMPtr<nsISupportsArray> flavorList;
+  nsCOMPtr<nsIArray> flavorList;
   mTransferable->FlavorsTransferableCanExport(getter_AddRefs(flavorList));
   NS_ENSURE_TRUE(flavorList, false);
 
   // try to find requested flavour
   uint32_t cnt;
-  flavorList->Count(&cnt);
+  flavorList->GetLength(&cnt);
   for (uint32_t i = 0; i < cnt; ++i) {
-    nsCOMPtr<nsISupports> genericFlavor;
-    flavorList->GetElementAt (i, getter_AddRefs(genericFlavor));
-    nsCOMPtr<nsISupportsCString> currentFlavor (do_QueryInterface(genericFlavor));
+    nsCOMPtr<nsISupportsCString> currentFlavor = do_QueryElementAt(flavorList, i);
     if (currentFlavor) {
       nsAutoCString flavorStr;
       currentFlavor->GetData(flavorStr);
@@ -1271,19 +1297,19 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
   if ( aFE.cfFormat == CF_TEXT ) {
     // Someone is asking for text/plain; convert the unicode (assuming it's present)
     // to text with the correct platform encoding.
-    char* plainTextData = nullptr;
+    size_t bufferSize = sizeof(char)*(len + 2);
+    char* plainTextData = static_cast<char*>(moz_xmalloc(bufferSize));
     char16_t* castedUnicode = reinterpret_cast<char16_t*>(data);
-    int32_t plainTextLen = 0;
-    nsPrimitiveHelpers::ConvertUnicodeToPlatformPlainText ( castedUnicode, len / 2, &plainTextData, &plainTextLen );
-   
+    int32_t plainTextLen = WideCharToMultiByte(CP_ACP, 0, (LPCWSTR)castedUnicode, len / 2 + 1, plainTextData, bufferSize, NULL, NULL);
     // replace the unicode data with our plaintext data. Recall that |plainTextLen| doesn't include
     // the null in the length.
-    nsMemory::Free(data);
-    if ( plainTextData ) {
+    free(data);
+    if ( plainTextLen ) {
       data = plainTextData;
-      allocLen = plainTextLen + sizeof(char);
+      allocLen = plainTextLen;
     }
     else {
+      free(plainTextData);
       NS_WARNING ( "Oh no, couldn't convert unicode to plain text" );
       return S_OK;
     }
@@ -1295,7 +1321,7 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
     char* utf8HTML = nullptr;
     nsresult rv = BuildPlatformHTML ( converter.get(), &utf8HTML );      // null terminates
     
-    nsMemory::Free(data);
+    free(data);
     if ( NS_SUCCEEDED(rv) && utf8HTML ) {
       // replace the unicode data with our HTML data. Don't forget the null.
       data = utf8HTML;
@@ -1306,7 +1332,7 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
       return S_OK;
     }
   }
-  else {
+  else if ( aFE.cfFormat != nsClipboard::CF_CUSTOMTYPES ) {
     // we assume that any data that isn't caught above is unicode. This may
     // be an erroneous assumption, but is true so far.
     allocLen += sizeof(char16_t);
@@ -1324,7 +1350,7 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
   aSTG.hGlobal = hGlobalMemory;
 
   // Now, delete the memory that was created by CreateDataFromPrimitive (or our text/plain data)
-  nsMemory::Free(data);
+  free(data);
 
   return S_OK;
 }

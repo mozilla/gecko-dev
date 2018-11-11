@@ -4,14 +4,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsScreenManagerWin.h"
+#include "mozilla/gfx/2D.h"
 #include "nsScreenWin.h"
 #include "gfxWindowsPlatform.h"
 #include "nsIWidget.h"
+#include "WinUtils.h"
 
+using namespace mozilla;
 
-BOOL CALLBACK CountMonitors ( HMONITOR, HDC, LPRECT, LPARAM ioCount ) ;
+BOOL CALLBACK CountMonitors(HMONITOR, HDC, LPRECT, LPARAM ioCount);
 
-nsScreenManagerWin :: nsScreenManagerWin ( )
+nsScreenManagerWin::nsScreenManagerWin()
   : mNumberOfScreens(0)
 {
   // nothing to do. I guess we could cache a bunch of information
@@ -20,7 +23,7 @@ nsScreenManagerWin :: nsScreenManagerWin ( )
 }
 
 
-nsScreenManagerWin :: ~nsScreenManagerWin()
+nsScreenManagerWin::~nsScreenManagerWin()
 {
 }
 
@@ -38,27 +41,44 @@ NS_IMPL_ISUPPORTS(nsScreenManagerWin, nsIScreenManager)
 //        screen. This should change when a multi-monitor impl is done.
 //
 nsIScreen* 
-nsScreenManagerWin :: CreateNewScreenObject ( HMONITOR inScreen )
+nsScreenManagerWin::CreateNewScreenObject(HMONITOR inScreen)
 {
   nsIScreen* retScreen = nullptr;
   
   // look through our screen list, hoping to find it. If it's not there,
   // add it and return the new one.
-  for ( unsigned i = 0; i < mScreenList.Length(); ++i ) {
+  for (unsigned i = 0; i < mScreenList.Length(); ++i) {
     ScreenListItem& curr = mScreenList[i];
-    if ( inScreen == curr.mMon ) {
+    if (inScreen == curr.mMon) {
       NS_IF_ADDREF(retScreen = curr.mScreen.get());
       return retScreen;
     }
   } // for each screen.
  
   retScreen = new nsScreenWin(inScreen);
-  mScreenList.AppendElement ( ScreenListItem ( inScreen, retScreen ) );
+  mScreenList.AppendElement(ScreenListItem(inScreen, retScreen));
 
   NS_IF_ADDREF(retScreen);
   return retScreen;
 }
 
+NS_IMETHODIMP
+nsScreenManagerWin::ScreenForId(uint32_t aId, nsIScreen **outScreen)
+{
+  *outScreen = nullptr;
+
+  for (unsigned i = 0; i < mScreenList.Length(); ++i) {
+    ScreenListItem& curr = mScreenList[i];
+    uint32_t id;
+    nsresult rv = curr.mScreen->GetId(&id);
+    if (NS_SUCCEEDED(rv) && id == aId) {
+      NS_IF_ADDREF(*outScreen = curr.mScreen.get());
+      return NS_OK;
+    }
+  }
+
+  return NS_ERROR_FAILURE;
+}
 
 //
 // ScreenForRect 
@@ -69,31 +89,21 @@ nsScreenManagerWin :: CreateNewScreenObject ( HMONITOR inScreen )
 // The coordinates are in pixels (not twips) and in logical screen coordinates.
 //
 NS_IMETHODIMP
-nsScreenManagerWin :: ScreenForRect ( int32_t inLeft, int32_t inTop, int32_t inWidth, int32_t inHeight,
-                                        nsIScreen **outScreen )
+nsScreenManagerWin::ScreenForRect(int32_t inLeft, int32_t inTop,
+                                  int32_t inWidth, int32_t inHeight,
+                                  nsIScreen **outScreen)
 {
-  if ( !(inWidth || inHeight) ) {
-    NS_WARNING ( "trying to find screen for sizeless window, using primary monitor" );
-    *outScreen = CreateNewScreenObject ( nullptr );    // addrefs
+  if (!(inWidth || inHeight)) {
+    NS_WARNING("trying to find screen for sizeless window, using primary monitor");
+    *outScreen = CreateNewScreenObject(nullptr);    // addrefs
     return NS_OK;
   }
 
-  // convert coordinates from logical to device pixels for MonitorFromRect
-  double dpiScale = nsIWidget::DefaultScaleOverride();
-  if (dpiScale <= 0.0) {
-    dpiScale = gfxWindowsPlatform::GetPlatform()->GetDPIScale(); 
-  }
-  RECT globalWindowBounds = {
-    NSToIntRound(dpiScale * inLeft),
-    NSToIntRound(dpiScale * inTop),
-    NSToIntRound(dpiScale * (inLeft + inWidth)),
-    NSToIntRound(dpiScale * (inTop + inHeight))
-  };
-
-  HMONITOR genScreen = ::MonitorFromRect( &globalWindowBounds, MONITOR_DEFAULTTOPRIMARY );
-
-  *outScreen = CreateNewScreenObject ( genScreen );    // addrefs
-  
+  gfx::Rect logicalBounds(inLeft, inTop, inWidth, inHeight);
+  HMONITOR genScreen = widget::WinUtils::MonitorFromRect(logicalBounds);
+ 
+  *outScreen = CreateNewScreenObject(genScreen);    // addrefs
+ 
   return NS_OK;
     
 } // ScreenForRect
@@ -106,9 +116,9 @@ nsScreenManagerWin :: ScreenForRect ( int32_t inLeft, int32_t inTop, int32_t inW
 // often.
 //
 NS_IMETHODIMP 
-nsScreenManagerWin :: GetPrimaryScreen(nsIScreen** aPrimaryScreen) 
+nsScreenManagerWin::GetPrimaryScreen(nsIScreen** aPrimaryScreen) 
 {
-  *aPrimaryScreen = CreateNewScreenObject ( nullptr );    // addrefs  
+  *aPrimaryScreen = CreateNewScreenObject(nullptr);    // addrefs  
   return NS_OK;
   
 } // GetPrimaryScreen
@@ -122,7 +132,7 @@ nsScreenManagerWin :: GetPrimaryScreen(nsIScreen** aPrimaryScreen)
 // count up to this point.
 //
 BOOL CALLBACK
-CountMonitors ( HMONITOR, HDC, LPRECT, LPARAM ioParam )
+CountMonitors(HMONITOR, HDC, LPRECT, LPARAM ioParam)
 {
   uint32_t* countPtr = reinterpret_cast<uint32_t*>(ioParam);
   ++(*countPtr);
@@ -138,9 +148,9 @@ CountMonitors ( HMONITOR, HDC, LPRECT, LPARAM ioParam )
 // Returns how many physical screens are available.
 //
 NS_IMETHODIMP
-nsScreenManagerWin :: GetNumberOfScreens(uint32_t *aNumberOfScreens)
+nsScreenManagerWin::GetNumberOfScreens(uint32_t *aNumberOfScreens)
 {
-  if ( mNumberOfScreens )
+  if (mNumberOfScreens)
     *aNumberOfScreens = mNumberOfScreens;
   else {
     uint32_t count = 0;
@@ -157,14 +167,15 @@ nsScreenManagerWin :: GetNumberOfScreens(uint32_t *aNumberOfScreens)
 NS_IMETHODIMP
 nsScreenManagerWin::GetSystemDefaultScale(float *aDefaultScale)
 {
-  *aDefaultScale = float(gfxWindowsPlatform::GetPlatform()->GetDPIScale());
+  HMONITOR primary = widget::WinUtils::GetPrimaryMonitor();
+  *aDefaultScale = float(widget::WinUtils::LogToPhysFactor(primary));
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsScreenManagerWin :: ScreenForNativeWidget(void *aWidget, nsIScreen **outScreen)
+nsScreenManagerWin::ScreenForNativeWidget(void *aWidget, nsIScreen **outScreen)
 {
-  HMONITOR mon = MonitorFromWindow ((HWND) aWidget, MONITOR_DEFAULTTOPRIMARY);
-  *outScreen = CreateNewScreenObject (mon);
+  HMONITOR mon = MonitorFromWindow((HWND) aWidget, MONITOR_DEFAULTTOPRIMARY);
+  *outScreen = CreateNewScreenObject(mon);
   return NS_OK;
 }

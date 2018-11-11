@@ -12,6 +12,7 @@
 #include "imgIContainer.h"
 #include "npapi.h"
 #include "nsTArray.h"
+#include "Units.h"
 
 // This must be the last include:
 #include "nsObjCExceptions.h"
@@ -24,37 +25,24 @@
 - (CGFloat)backingScaleFactor;
 @end
 
-// When building with a pre-10.7 SDK, NSEventPhase is not defined.
-#if !defined(MAC_OS_X_VERSION_10_7) || MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_7
-enum {
-  NSEventPhaseNone        = 0,
-  NSEventPhaseBegan       = 0x1 << 0,
-  NSEventPhaseStationary  = 0x1 << 1,
-  NSEventPhaseChanged     = 0x1 << 2,
-  NSEventPhaseEnded       = 0x1 << 3,
-  NSEventPhaseCancelled   = 0x1 << 4,
-};
-typedef NSUInteger NSEventPhase;
-#endif // #if !defined(MAC_OS_X_VERSION_10_7) || MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_7
-
 #if !defined(MAC_OS_X_VERSION_10_8) || MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_8
 enum {
   NSEventPhaseMayBegin    = 0x1 << 5
 };
-#endif // #if !defined(MAC_OS_X_VERSION_10_8) || MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_8
+#endif
 
 class nsIWidget;
 
 namespace mozilla {
 namespace gfx {
 class SourceSurface;
-}
-}
+} // namespace gfx
+} // namespace mozilla
 
 // Used to retain a Cocoa object for the remainder of a method's execution.
 class nsAutoRetainCocoaObject {
 public:
-nsAutoRetainCocoaObject(id anObject)
+explicit nsAutoRetainCocoaObject(id anObject)
 {
   mObject = NS_OBJC_TRY_EXPR_ABORT([anObject retain]);
 }
@@ -98,11 +86,6 @@ private:
 // versions of OS X from (at least) 10.2.8 through 10.5.
 - (void)_modalSession:(NSModalSession)aSession sendEvent:(NSEvent *)theEvent;
 
-// Present (and documented) on OS X 10.6 and above.  Not present before 10.6.
-// This declaration needed to avoid compiler warnings when compiling on 10.5
-// and below (or using the 10.5 SDK and below).
-- (void)setHelpMenu:(NSMenu *)helpMenu;
-
 @end
 
 struct KeyBindingsCommand
@@ -128,6 +111,8 @@ struct KeyBindingsCommand
 class nsCocoaUtils
 {
   typedef mozilla::gfx::SourceSurface SourceSurface;
+  typedef mozilla::LayoutDeviceIntPoint LayoutDeviceIntPoint;
+  typedef mozilla::LayoutDeviceIntRect LayoutDeviceIntRect;
 
 public:
 
@@ -151,20 +136,27 @@ public:
     return NSToIntRound(aPts * aBackingScale);
   }
 
-  static nsIntPoint
+  static LayoutDeviceIntPoint
   CocoaPointsToDevPixels(const NSPoint& aPt, CGFloat aBackingScale)
   {
-    return nsIntPoint(NSToIntRound(aPt.x * aBackingScale),
-                      NSToIntRound(aPt.y * aBackingScale));
+    return LayoutDeviceIntPoint(NSToIntRound(aPt.x * aBackingScale),
+                                NSToIntRound(aPt.y * aBackingScale));
   }
 
-  static nsIntRect
+  static LayoutDeviceIntPoint
+  CocoaPointsToDevPixelsRoundDown(const NSPoint& aPt, CGFloat aBackingScale)
+  {
+    return LayoutDeviceIntPoint(NSToIntFloor(aPt.x * aBackingScale),
+                                NSToIntFloor(aPt.y * aBackingScale));
+  }
+
+  static LayoutDeviceIntRect
   CocoaPointsToDevPixels(const NSRect& aRect, CGFloat aBackingScale)
   {
-    return nsIntRect(NSToIntRound(aRect.origin.x * aBackingScale),
-                     NSToIntRound(aRect.origin.y * aBackingScale),
-                     NSToIntRound(aRect.size.width * aBackingScale),
-                     NSToIntRound(aRect.size.height * aBackingScale));
+    return LayoutDeviceIntRect(NSToIntRound(aRect.origin.x * aBackingScale),
+                               NSToIntRound(aRect.origin.y * aBackingScale),
+                               NSToIntRound(aRect.size.width * aBackingScale),
+                               NSToIntRound(aRect.size.height * aBackingScale));
   }
 
   static CGFloat
@@ -174,14 +166,30 @@ public:
   }
 
   static NSPoint
-  DevPixelsToCocoaPoints(const nsIntPoint& aPt, CGFloat aBackingScale)
+  DevPixelsToCocoaPoints(const mozilla::LayoutDeviceIntPoint& aPt,
+                         CGFloat aBackingScale)
   {
     return NSMakePoint((CGFloat)aPt.x / aBackingScale,
                        (CGFloat)aPt.y / aBackingScale);
   }
 
+  // Implements an NSPoint equivalent of -[NSWindow convertRectFromScreen:].
+  static NSPoint
+  ConvertPointFromScreen(NSWindow* aWindow, const NSPoint& aPt)
+  {
+    return [aWindow convertRectFromScreen:NSMakeRect(aPt.x, aPt.y, 0, 0)].origin;
+  }
+
+  // Implements an NSPoint equivalent of -[NSWindow convertRectToScreen:].
+  static NSPoint
+  ConvertPointToScreen(NSWindow* aWindow, const NSPoint& aPt)
+  {
+    return [aWindow convertRectToScreen:NSMakeRect(aPt.x, aPt.y, 0, 0)].origin;
+  }
+
   static NSRect
-  DevPixelsToCocoaPoints(const nsIntRect& aRect, CGFloat aBackingScale)
+  DevPixelsToCocoaPoints(const LayoutDeviceIntRect& aRect,
+                         CGFloat aBackingScale)
   {
     return NSMakeRect((CGFloat)aRect.x / aBackingScale,
                       (CGFloat)aRect.y / aBackingScale,
@@ -205,18 +213,20 @@ public:
   // in the bottom-left of the primary screen. Both nsRect and NSRect
   // contain width/height info, with no difference in their use.
   // This function does no scaling, so the Gecko coordinates are
-  // expected to be CSS pixels, which we treat as equal to Cocoa points.
-  static NSRect GeckoRectToCocoaRect(const nsIntRect &geckoRect);
+  // expected to be desktop pixels, which are equal to Cocoa points
+  // (by definition).
+  static NSRect GeckoRectToCocoaRect(const mozilla::DesktopIntRect &geckoRect);
 
   // Converts aGeckoRect in dev pixels to points in Cocoa coordinates
-  static NSRect GeckoRectToCocoaRectDevPix(const nsIntRect &aGeckoRect,
-                                           CGFloat aBackingScale);
+  static NSRect
+  GeckoRectToCocoaRectDevPix(const mozilla::LayoutDeviceIntRect &aGeckoRect,
+                             CGFloat aBackingScale);
 
   // See explanation for geckoRectToCocoaRect, guess what this does...
-  static nsIntRect CocoaRectToGeckoRect(const NSRect &cocoaRect);
+  static mozilla::DesktopIntRect CocoaRectToGeckoRect(const NSRect &cocoaRect);
 
-  static nsIntRect CocoaRectToGeckoRectDevPix(const NSRect &aCocoaRect,
-                                              CGFloat aBackingScale);
+  static mozilla::LayoutDeviceIntRect CocoaRectToGeckoRectDevPix(
+    const NSRect& aCocoaRect, CGFloat aBackingScale);
 
   // Gives the location for the event in screen coordinates. Do not call this
   // unless the window the event was originally targeted at is still alive!
@@ -242,9 +252,10 @@ public:
   static BOOL IsMomentumScrollEvent(NSEvent* aEvent);
   static BOOL HasPreciseScrollingDeltas(NSEvent* aEvent);
   static void GetScrollingDeltas(NSEvent* aEvent, CGFloat* aOutDeltaX, CGFloat* aOutDeltaY);
+  static BOOL EventHasPhaseInformation(NSEvent* aEvent);
 
   // Hides the Menu bar and the Dock. Multiple hide/show requests can be nested.
-  static void HideOSChromeOnScreen(bool aShouldHide, NSScreen* aScreen);
+  static void HideOSChromeOnScreen(bool aShouldHide);
 
   static nsIWidget* GetHiddenWindowWidget();
 
@@ -321,17 +332,16 @@ public:
   static void InitNPCocoaEvent(NPCocoaEvent* aNPCocoaEvent);
 
   /**
-   * Initializes aPluginEvent for aCocoaEvent.
-   */
-  static void InitPluginEvent(mozilla::WidgetPluginEvent &aPluginEvent,
-                              NPCocoaEvent &aCocoaEvent);
-  /**
    * Initializes WidgetInputEvent for aNativeEvent or aModifiers.
    */
   static void InitInputEvent(mozilla::WidgetInputEvent &aInputEvent,
                              NSEvent* aNativeEvent);
-  static void InitInputEvent(mozilla::WidgetInputEvent &aInputEvent,
-                             NSUInteger aModifiers);
+
+  /**
+   * Converts the native modifiers from aNativeEvent into WidgetMouseEvent
+   * Modifiers. aNativeEvent can be null.
+   */
+  static mozilla::Modifiers ModifiersForEvent(NSEvent* aNativeEvent);
 
   /**
    * ConvertToCarbonModifier() returns carbon modifier flags for the cocoa
@@ -365,6 +375,15 @@ public:
    * Unicode character.
    */
   static uint32_t ConvertGeckoKeyCodeToMacCharCode(uint32_t aKeyCode);
+
+  /**
+   * Convert string with font attribute to NSMutableAttributedString
+   */
+  static NSMutableAttributedString* GetNSMutableAttributedString(
+           const nsAString& aText,
+           const nsTArray<mozilla::FontRange>& aFontRanges,
+           const bool aIsVertical,
+           const CGFloat aBackingScaleFactor);
 };
 
 #endif // nsCocoaUtils_h_

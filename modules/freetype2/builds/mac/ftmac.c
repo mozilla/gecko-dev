@@ -5,7 +5,7 @@
 /*    Mac FOND support.  Written by just@letterror.com.                    */
 /*  Heavily Fixed by mpsuzuki, George Williams and Sean McBride            */
 /*                                                                         */
-/*  Copyright 1996-2008, 2013 by                                           */
+/*  Copyright 1996-2016 by                                                 */
 /*  Just van Rossum, David Turner, Robert Wilhelm, and Werner Lemberg.     */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -204,6 +204,9 @@ typedef short ResourceIndex;
     FMFontFamily          family   = 0;
 
 
+    if ( !fontName || !face_index )
+      return FT_THROW( Invalid_Argument );
+
     *face_index = 0;
     while ( status == 0 && !the_font )
     {
@@ -381,7 +384,7 @@ typedef short ResourceIndex;
 
 
     err = FT_GetFileRef_From_Mac_ATS_Name( fontName, &ref, face_index );
-    if ( FT_Err_Ok != err )
+    if ( err )
       return err;
 
     if ( noErr != FSRefMakePath( &ref, path, maxPathSize ) )
@@ -420,7 +423,7 @@ typedef short ResourceIndex;
 
 
     err = FT_GetFileRef_From_Mac_ATS_Name( fontName, &ref, face_index );
-    if ( FT_Err_Ok != err )
+    if ( err )
       return err;
 
     if ( noErr != FSGetCatalogInfo( &ref, kFSCatInfoNone, NULL, NULL,
@@ -937,7 +940,7 @@ typedef short ResourceIndex;
     {
       err = lookup_lwfn_by_fond( pathname, lwfn_file_name,
                                  buff, sizeof ( buff )  );
-      if ( FT_Err_Ok == err )
+      if ( !err )
         have_lwfn = 1;
     }
 
@@ -1214,7 +1217,7 @@ typedef short ResourceIndex;
     }
 
     CloseResFile( res_ref );
-    if ( FT_Err_Ok == error && NULL != aface )
+    if ( !error && aface )
       (*aface)->num_faces = num_faces_in_res;
     return error;
   }
@@ -1237,6 +1240,9 @@ typedef short ResourceIndex;
     OSErr     err;
     FT_Error  error = FT_Err_Ok;
 
+
+    /* test for valid `aface' and `library' delayed to */
+    /* `FT_New_Face_From_XXX'                          */
 
     GetResInfo( fond, &fond_id, &fond_type, fond_name );
     if ( ResError() != noErr || fond_type != TTAG_FOND )
@@ -1273,7 +1279,7 @@ typedef short ResourceIndex;
 
         error = lookup_lwfn_by_fond( path_fond, lwfn_file_name,
                                      path_lwfn, sizeof ( path_lwfn ) );
-        if ( FT_Err_Ok == error )
+        if ( !error )
           have_lwfn = 1;
       }
 
@@ -1309,7 +1315,7 @@ typedef short ResourceIndex;
 
         error = lookup_lwfn_by_fond( path_fond, lwfn_file_name,
                                      path_lwfn, sizeof ( path_lwfn ) );
-        if ( FT_Err_Ok == error )
+        if ( !error )
           have_lwfn = 1;
       }
 
@@ -1326,7 +1332,7 @@ typedef short ResourceIndex;
       error = FT_ERR( Unknown_File_Format );
 
   found_no_lwfn_file:
-    if ( have_sfnt && FT_Err_Ok != error )
+    if ( have_sfnt && error )
       error = FT_New_Face_From_SFNT( library,
                                      sfnt_id,
                                      face_index,
@@ -1357,7 +1363,7 @@ typedef short ResourceIndex;
     /* if it works, fine.                                           */
 
     error = FT_New_Face_From_Suitcase( library, pathname, face_index, aface );
-    if ( error == 0 )
+    if ( !error )
       return error;
 
     /* let it fall through to normal loader (.ttf, .otf, etc.); */
@@ -1397,7 +1403,7 @@ typedef short ResourceIndex;
     /* try resourcefork based font: LWFN, FFIL */
     error = FT_New_Face_From_Resource( library, (UInt8 *)pathname,
                                        face_index, aface );
-    if ( error != 0 || *aface != NULL )
+    if ( error || *aface )
       return error;
 
     /* let it fall through to normal loader (.ttf, .otf, etc.) */
@@ -1442,6 +1448,8 @@ typedef short ResourceIndex;
     UInt8   pathname[PATH_MAX];
 
 
+    /* test for valid `library' and `aface' delayed to `FT_Open_Face' */
+
     if ( !ref )
       return FT_THROW( Invalid_Argument );
 
@@ -1450,7 +1458,7 @@ typedef short ResourceIndex;
       error = FT_ERR( Cannot_Open_Resource );
 
     error = FT_New_Face_From_Resource( library, pathname, face_index, aface );
-    if ( error != 0 || *aface != NULL )
+    if ( error || *aface )
       return error;
 
     /* fallback to datafork font */
@@ -1507,7 +1515,7 @@ typedef short ResourceIndex;
       error = FT_ERR( Cannot_Open_Resource );
 
     error = FT_New_Face_From_Resource( library, pathname, face_index, aface );
-    if ( error != 0 || *aface != NULL )
+    if ( error || *aface )
       return error;
 
     /* fallback to datafork font */

@@ -1,4 +1,4 @@
-/* -*-  Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; -*- */
+/* -*-  indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -18,17 +18,31 @@ var Components = {
 };
 
 function do_throw(message, stack) {
+  do_print("error: " + message);
+  do_print("stack: " + (stack ? stack : new Error().stack));
   throw message;
 }
 
 function do_check_neq(left, right, stack) {
-  if (left == right)
+  if (left == right) {
+    var text = "do_check_neq failed";
+    try {
+      text += ": " + left + " == " + right;
+    } catch (e) {
+    }
     do_throw(text, stack);
+  }
 }
 
 function do_check_eq(left, right, stack) {
-  if (left != right)
+  if (left != right) {
+    var text = "do_check_eq failed";
+    try {
+      text += ": " + left + " != " + right;
+    } catch (e) {
+    }
     do_throw(text, stack);
+  }
 }
 
 function do_check_true(condition, stack) {

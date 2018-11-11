@@ -1,0 +1,107 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+:root{
+  -moz-user-select: none;
+}
+
+#options-panel-container {
+  overflow: auto;
+}
+
+#options-panel {
+  display: block;
+}
+
+.options-vertical-pane {
+  display: inline;
+  float: left;
+}
+
+.options-vertical-pane {
+  margin: 5px;
+  width: calc(100%/3 - 10px);
+  min-width: 320px;
+  padding-inline-start: 5px;
+  box-sizing: border-box;
+}
+
+/* Snap to 50% width once there is not room for 3 columns anymore.
+   This prevents having 2 columns showing in a row, but taking up
+   only ~66% of the available space. */
+@media (max-width: 1000px) {
+  .options-vertical-pane {
+    width: calc(100%/2 - 10px);
+  }
+}
+
+.options-vertical-pane fieldset {
+  border: none;
+}
+
+.options-vertical-pane fieldset legend {
+  font-size: 1.4rem;
+  margin-inline-start: -15px;
+  margin-bottom: 3px;
+  cursor: default;
+}
+
+.options-vertical-pane fieldset + fieldset {
+  margin-top: 1rem;
+}
+
+.options-groupbox {
+  margin-inline-start: 15px;
+  padding: 2px;
+}
+
+.options-groupbox label {
+  display: flex;
+  padding: 4px 0;
+  align-items: center;
+}
+
+/* Add padding for label of select inputs in order to
+   align it with surrounding checkboxes */
+.options-groupbox label span:first-child {
+  padding-inline-start: 5px;
+}
+
+.options-groupbox label span + select {
+  margin-inline-start: 4px;
+}
+
+.options-groupbox.horizontal-options-groupbox label {
+  display: inline-flex;
+  align-items: flex-end;
+}
+
+.options-groupbox.horizontal-options-groupbox label + label {
+  margin-inline-start: 4px;
+}
+
+.options-groupbox > *,
+.options-groupbox > .hidden-labels-box > checkbox {
+  padding: 2px;
+}
+
+.options-groupbox > .hidden-labels-box {
+  padding: 0;
+}
+
+.options-citation-label {
+  display: inline-block;
+  font-size: 1rem;
+  font-style: italic;
+   /* To align it with the checkbox */
+  padding: 4px 0 0;
+  padding-inline-end: 4px;
+}
+
+#devtools-sourceeditor-keybinding-select {
+  min-width: 130px;
+}
+
+#devtools-sourceeditor-tabsize-select {
+  min-width: 80px;
+}

@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const Ci = Components.interfaces;
-const Cu = Components.utils;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
 
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 const PATH = "/file.meh";
 var httpserver = new HttpServer();
@@ -19,23 +20,26 @@ var testRan = 0;
 // should not be changed.
 const tests = [
   // Those three first case are the case of a media loaded in a media element.
-  // The first two should be sniffeed.
+  // All three should be sniffed.
   { contentType: "",
     expectedContentType: "application/ogg",
-    flags: Ci.nsIChannel.LOAD_TREAT_APPLICATION_OCTET_STREAM_AS_UNKNOWN },
+    flags: Ci.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS | Ci.nsIChannel.LOAD_MEDIA_SNIFFER_OVERRIDES_CONTENT_TYPE },
   { contentType: "application/octet-stream",
     expectedContentType: "application/ogg",
-    flags: Ci.nsIChannel.LOAD_TREAT_APPLICATION_OCTET_STREAM_AS_UNKNOWN },
+    flags: Ci.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS | Ci.nsIChannel.LOAD_MEDIA_SNIFFER_OVERRIDES_CONTENT_TYPE },
   { contentType: "application/something",
-    expectedContentType: "application/something",
-    flags: Ci.nsIChannel.LOAD_TREAT_APPLICATION_OCTET_STREAM_AS_UNKNOWN },
-  // This last case tests the case of a channel opened while allowing content
+    expectedContentType: "application/ogg",
+    flags: Ci.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS | Ci.nsIChannel.LOAD_MEDIA_SNIFFER_OVERRIDES_CONTENT_TYPE },
+  // This last cases test the case of a channel opened while allowing content
   // sniffers to override the content-type, like in the docshell.
   { contentType: "application/octet-stream",
     expectedContentType: "application/ogg",
     flags: Ci.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS },
   { contentType: "",
     expectedContentType: "application/ogg",
+    flags: Ci.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS },
+  { contentType: "application/something",
+    expectedContentType: "application/something",
     flags: Ci.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS },
 ];
 
@@ -65,10 +69,13 @@ var listener = {
 
 function setupChannel(url, flags)
 {
-  var ios = Components.classes["@mozilla.org/network/io-service;1"].
-                       getService(Ci.nsIIOService);
-  var chan = ios.newChannel("http://localhost:" +
-                           httpserver.identity.primaryPort + url, "", null);
+  let uri = "http://localhost:" +
+             httpserver.identity.primaryPort + url;
+  var chan = NetUtil.newChannel({
+    uri: uri,
+    loadUsingSystemPrincipal: true,
+    contentPolicyType: Ci.nsIContentPolicy.TYPE_MEDIA
+  });
   chan.loadFlags |= flags;
   var httpChan = chan.QueryInterface(Components.interfaces.nsIHttpChannel);
   return httpChan;
@@ -84,7 +91,7 @@ function runNext() {
     response.setHeader("Content-Type", tests[testRan].contentType, false);
     response.bodyOutputStream.write(data, data.length);
   });
-  channel.asyncOpen(listener, channel, null);
+  channel.asyncOpen2(listener);
 }
 
 function run_test() {

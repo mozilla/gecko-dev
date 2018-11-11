@@ -48,15 +48,15 @@ function testSteps()
   let uri = Components.classes["@mozilla.org/network/io-service;1"]
                       .getService(Components.interfaces.nsIIOService)
                       .newURI("http://appdata.example.com", null, null);
-  let principal = Components.classes["@mozilla.org/scriptsecuritymanager;1"]
-                     .getService(Components.interfaces.nsIScriptSecurityManager)
-                     .getNoAppCodebasePrincipal(uri);
+  let ssm = Components.classes["@mozilla.org/scriptsecuritymanager;1"]
+                      .getService(Components.interfaces.nsIScriptSecurityManager);
+  let principal = ssm.createCodebasePrincipal(uri, {});
 
   request = indexedDB.openForPrincipal(principal, name, 1);
   request.onerror = errorHandler;
   request.onupgradeneeded = grabEventAndContinueHandler;
   request.onsuccess = grabEventAndContinueHandler;
-  let event = yield undefined;
+  event = yield undefined;
 
   is(event.type, "upgradeneeded", "Got correct event type");
 

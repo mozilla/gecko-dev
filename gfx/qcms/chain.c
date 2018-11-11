@@ -134,6 +134,8 @@ static void qcms_transform_module_clut_only(struct qcms_modular_transform *trans
 	float* b_table = transform->b_clut;
 
 	for (i = 0; i < length; i++) {
+		assert(transform->grid_size >= 1);
+
 		float linear_r = *src++;
 		float linear_g = *src++;
 		float linear_b = *src++;
@@ -188,6 +190,8 @@ static void qcms_transform_module_clut(struct qcms_modular_transform *transform,
 	float* g_table = transform->g_clut;
 	float* b_table = transform->b_clut;
 	for (i = 0; i < length; i++) {
+		assert(transform->grid_size >= 1);
+
 		float device_r = *src++;
 		float device_g = *src++;
 		float device_b = *src++;
@@ -966,6 +970,12 @@ static float* qcms_modular_transform_data(struct qcms_modular_transform *transfo
 		    transform_fn != qcms_transform_module_LAB_to_XYZ &&
 		    transform_fn != qcms_transform_module_XYZ_to_LAB) {
 			assert(0 && "Unsupported transform module");
+			return NULL;
+		}
+		if (transform->grid_size <= 0 &&
+			(transform_fn == qcms_transform_module_clut ||
+			 transform_fn == qcms_transform_module_clut_only)) {
+			assert(0 && "Invalid transform");
 			return NULL;
 		}
                 transform->transform_module_fn(transform,src,dest,len);

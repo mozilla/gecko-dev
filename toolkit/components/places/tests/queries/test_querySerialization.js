@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -165,18 +165,13 @@ const querySwitches = [
   // hasUri
   {
     flag:        "hasUri",
-    subswitches: ["uri", "uriIsPrefix"],
+    subswitches: ["uri"],
     desc:        "nsINavHistoryQuery.hasUri",
     matches:     flagSwitchMatches,
     runs:        [
       function (aQuery, aQueryOptions) {
         aQuery.uri = uri("http://mozilla.com");
-        aQuery.uriIsPrefix = false;
       },
-      function (aQuery, aQueryOptions) {
-        aQuery.uri = uri("http://mozilla.com");
-        aQuery.uriIsPrefix = true;
-      }
     ]
   },
   // hasAnnotation
@@ -361,7 +356,6 @@ const queryOptionSwitches = [
           case aOptions1.SORT_BY_ANNOTATION_ASCENDING:
           case aOptions1.SORT_BY_ANNOTATION_DESCENDING:
             return aOptions1.sortingAnnotation === aOptions2.sortingAnnotation;
-            break;
         }
         return true;
       }
@@ -414,17 +408,6 @@ const queryOptionSwitches = [
       }
     ]
   },
-  // excludeReadOnlyFolders
-  {
-    property: "excludeReadOnlyFolders",
-    desc:     "nsINavHistoryQueryOptions.excludeReadOnlyFolders",
-    matches:  simplePropertyMatches,
-    runs:     [
-      function (aQuery, aQueryOptions) {
-        aQueryOptions.excludeReadOnlyFolders = true;
-      }
-    ]
-  },
   // expandQueries
   {
     property: "expandQueries",
@@ -474,8 +457,6 @@ const queryOptionSwitches = [
   },
 ];
 
-///////////////////////////////////////////////////////////////////////////////
-
 /**
  * Enumerates all the sequences of the cartesian product of the arrays contained
  * in aSequences.  Examples:
@@ -514,7 +495,7 @@ function cartProd(aSequences, aCallback)
 
   // For each sequence in aSequences, we maintain a pointer (an array index,
   // really) to the element we're currently enumerating in that sequence
-  var seqEltPtrs = aSequences.map(function (i) 0);
+  var seqEltPtrs = aSequences.map(i => 0);
 
   var numProds = 0;
   var done = false;
@@ -585,7 +566,7 @@ function choose(aSet, aHowMany, aCallback)
   var done = false;
   while (!done) {
     numFound++;
-    aCallback(ptrs.map(function (p) aSet[p]));
+    aCallback(ptrs.map(p => aSet[p]));
 
     // The next subset to be chosen differs from the current one by just a
     // single element.  Determine which element that is.  Advance the "rightmost"
@@ -809,8 +790,6 @@ function simplePropertyMatches(aObj1, aObj2)
 {
   return aObj1[this.property] === aObj2[this.property];
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 function run_test()
 {

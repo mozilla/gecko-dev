@@ -1,0 +1,44 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+include protocol PCrashReporter;
+include protocol PGMPContent;
+include protocol PGMPTimer;
+include protocol PGMPStorage;
+
+using mozilla::dom::NativeThreadId from "mozilla/dom/TabMessageUtils.h";
+
+namespace mozilla {
+namespace gmp {
+
+intr protocol PGMP
+{
+  parent opens PGMPContent;
+
+  manages PCrashReporter;
+  manages PGMPTimer;
+  manages PGMPStorage;
+
+parent:
+  async PCrashReporter(NativeThreadId tid);
+  async PGMPTimer();
+  async PGMPStorage();
+
+  async PGMPContentChildDestroyed();
+
+  async AsyncShutdownComplete();
+  async AsyncShutdownRequired();
+
+child:
+  async BeginAsyncShutdown();
+  async CrashPluginNow();
+  intr StartPlugin(nsString adapter);
+  async SetNodeId(nsCString nodeId);
+  async PreloadLibs(nsCString libs);
+  async CloseActive();
+};
+
+} // namespace gmp
+} // namespace mozilla

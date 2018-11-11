@@ -1,26 +1,17 @@
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
+Cu.import("resource://testing-common/MockRegistrar.jsm");
 
 var httpserv = null;
 
 const CID = Components.ID("{5645d2c1-d6d8-4091-b117-fe7ee4027db7}");
-const contractID = "@mozilla.org/system-proxy-settings;1"
-
 XPCOMUtils.defineLazyGetter(this, "systemSettings", function() {
   return {
     QueryInterface: function (iid) {
       if (iid.equals(Components.interfaces.nsISupports) ||
-          iid.equals(Components.interfaces.nsIFactory) ||
           iid.equals(Components.interfaces.nsISystemProxySettings))
         return this;
       throw Components.results.NS_ERROR_NO_INTERFACE;
-    },
-    createInstance: function (outer, iid) {
-      if (outer)
-        throw Components.results.NS_ERROR_NO_AGGREGATION;
-      return this.QueryInterface(iid);
-    },
-    lockFactory: function (lock) {
-      throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
     },
 
     mainThreadOnly: true,
@@ -38,12 +29,8 @@ function checkValue(request, data, ctx) {
 }
 
 function makeChan(url) {
-  var ios = Components.classes["@mozilla.org/network/io-service;1"]
-                      .getService(Components.interfaces.nsIIOService);
-  var chan = ios.newChannel(url, null, null)
+  return NetUtil.newChannel({uri: url, loadUsingSystemPrincipal: true})
                 .QueryInterface(Components.interfaces.nsIHttpChannel);
-
-  return chan;
 }
 
 function run_test() {
@@ -53,10 +40,8 @@ function run_test() {
   httpserv.registerPathHandler("/target", target);
   httpserv.start(-1);
 
-  Components.manager.nsIComponentRegistrar.registerFactory(
-    CID,
-    "Fake system proxy-settings",
-    contractID, systemSettings);
+  MockRegistrar.register("@mozilla.org/system-proxy-settings;1",
+                         systemSettings);
 
   // Ensure we're using system-properties
   const prefs = Cc["@mozilla.org/preferences-service;1"]
@@ -70,7 +55,7 @@ function run_test() {
 
   var chan = makeChan("http://localhost:" + httpserv.identity.primaryPort +
                       "/target");
-  chan.asyncOpen(new ChannelListener(checkValue, null), null);
+  chan.asyncOpen2(new ChannelListener(checkValue, null));
 
   do_test_pending();
 }

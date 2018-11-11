@@ -6,7 +6,7 @@
 const prefs = require("sdk/preferences/service");
 const { Loader } = require('sdk/test/loader');
 const { resolveURI } = require('toolkit/loader');
-const { rootURI } = require("@loader/options");
+const { rootURI, isNative } = require("@loader/options");
 const { usingJSON } = require('sdk/l10n/json/core');
 
 const PREF_MATCH_OS_LOCALE  = "intl.locale.matchOS";
@@ -36,8 +36,12 @@ function createTest(locale, testFunction) {
     // Initialize main l10n module in order to load new locale files
     loader.require("sdk/l10n/loader").
       load(rootURI).
+      then(null, function failure(error) {
+        if (!isNative)
+          assert.fail("Unable to load locales: " + error);
+      }).
       then(function success(data) {
-             definePseudo(loader, '@l10n/data', data);
+             definePseudo(loader, '@l10n/data', data ? data : null);
              // Execute the given test function
              try {
                testFunction(assert, loader, function onDone() {
@@ -86,8 +90,7 @@ exports.testExactMatching = createTest("fr-FR", function(assert, loader, done) {
   done();
 });
 
-exports.testHtmlLocalization = createTest("en-GB", function(assert, loader, done) {
-
+exports.testHtmlLocalizationPageWorker = createTest("en-GB", function(assert, loader, done) {
   // Ensure initing html component that watch document creations
   // Note that this module is automatically initialized in
   // cuddlefish.js:Loader.main in regular addons. But it isn't for unit tests.
@@ -102,7 +105,15 @@ exports.testHtmlLocalization = createTest("en-GB", function(assert, loader, done
       self.postMessage([nodes[0].innerHTML,
                         nodes[1].innerHTML,
                         nodes[2].innerHTML,
-                        nodes[3].innerHTML]);
+                        nodes[3].innerHTML,
+                        nodes[4].title,
+                        nodes[4].getAttribute("alt"),
+                        nodes[4].getAttribute("accesskey"),
+                        nodes[4].getAttribute("aria-label"),
+                        nodes[4].getAttribute("aria-valuetext"),
+                        nodes[4].getAttribute("aria-moz-hint"),
+                        nodes[5].placeholder,
+                        nodes[6].label]);
     },
     onMessage: function (data) {
       assert.equal(
@@ -117,11 +128,85 @@ exports.testHtmlLocalization = createTest("en-GB", function(assert, loader, done
         "Content from .properties is text content; HTML can't be injected."
       );
       assert.equal(data[3], "Yes", "Multiple elements with same data-l10n-id are accepted.");
+      
+      // Attribute translation tests
+      assert.equal(data[4], "Yes", "Title attributes gets translated.");
+      assert.equal(data[5], "Yes", "Alt attributes gets translated.");
+      assert.equal(data[6], "B", "Accesskey gets translated.");
+      
+      assert.equal(data[7], "Yes", "Aria-Label gets translated.");
+      assert.equal(data[8], "Value", "Aria-valuetext gets translated.");
+      assert.equal(data[9], "Hint", "Aria-moz-hint gets translated.");
+      
+      assert.equal(data[10], "Yes", "Form placeholders are translateable.");
+      
+      assert.equal(data[11], "Yes", "Labels of select options and context menus are translateable.");
 
       done();
     }
   });
+});
 
+exports.testHtmlLocalization = createTest("en-GB", function(assert, loader, done) {
+  // Ensure initing html component that watch document creations
+  // Note that this module is automatically initialized in
+  // cuddlefish.js:Loader.main in regular addons. But it isn't for unit tests.
+  let loaderHtmlL10n = loader.require("sdk/l10n/html");
+  loaderHtmlL10n.enable();
+
+  let uri = require("sdk/self").data.url("test-localization.html");
+  loader.require("sdk/tabs").open({
+    url: uri,
+    onReady: function(tab) {
+      tab.attach({
+        contentURL: uri,
+        contentScript: "new " + function ContentScriptScope() {
+          let nodes = document.body.querySelectorAll("*[data-l10n-id]");
+          self.postMessage([nodes[0].innerHTML,
+                            nodes[1].innerHTML,
+                            nodes[2].innerHTML,
+                            nodes[3].innerHTML,
+                            nodes[4].title,
+                            nodes[4].getAttribute("alt"),
+                            nodes[4].getAttribute("accesskey"),
+                            nodes[4].getAttribute("aria-label"),
+                            nodes[4].getAttribute("aria-valuetext"),
+                            nodes[4].getAttribute("aria-moz-hint"),
+                            nodes[5].placeholder,
+                            nodes[6].label]);
+        },
+        onMessage: function (data) {
+          assert.equal(
+            data[0],
+            "Kept as-is",
+            "Nodes with unknown id in .properties are kept 'as-is'"
+          );
+          assert.equal(data[1], "Yes", "HTML is translated");
+          assert.equal(
+            data[2],
+            "no &lt;b&gt;HTML&lt;/b&gt; injection",
+            "Content from .properties is text content; HTML can't be injected."
+          );
+          assert.equal(data[3], "Yes", "Multiple elements with same data-l10n-id are accepted.");
+
+          // Attribute translation tests
+          assert.equal(data[4], "Yes", "Title attributes gets translated.");
+          assert.equal(data[5], "Yes", "Alt attributes gets translated.");
+          assert.equal(data[6], "B", "Accesskey gets translated.");
+          
+          assert.equal(data[7], "Yes", "Aria-Label gets translated.");
+          assert.equal(data[8], "Value", "Aria-valuetext gets translated.");
+          assert.equal(data[9], "Hint", "Aria-moz-hint gets translated.");
+          
+          assert.equal(data[10], "Yes", "Form placeholders are translateable.");
+          
+          assert.equal(data[11], "Yes", "Labels of select options and context menus are translateable.");
+
+          tab.close(done);
+        }
+      });
+    }
+  });
 });
 
 exports.testEnUsLocaleName = createTest("en-US", function(assert, loader, done) {
@@ -165,11 +250,25 @@ exports.testEnUsLocaleName = createTest("en-US", function(assert, loader, done) 
                    "other",
                    "PluralForm form can be omitting generic key [i.e. without ...[other] at end of key)");
 
+  assert.equal(_("first_identifier", "ONE", "TWO"), "the entries are ONE and TWO.", "first_identifier no count");
+  assert.equal(_("first_identifier", 0, "ONE", "TWO"), "the entries are ONE and TWO.", "first_identifier with count = 0");
+  assert.equal(_("first_identifier", 1, "ONE", "TWO"), "first entry is ONE and the second one is TWO.", "first_identifier with count = 1");
+  assert.equal(_("first_identifier", 2, "ONE", "TWO"), "the entries are ONE and TWO.", "first_identifier with count = 2");
+
+  assert.equal(_("second_identifier", "ONE", "TWO"), "first entry is ONE and the second one is TWO.", "second_identifier with no count");
+  assert.equal(_("second_identifier", 0, "ONE", "TWO"), "first entry is ONE and the second one is TWO.", "second_identifier with count = 0");
+  assert.equal(_("second_identifier", 1, "ONE", "TWO"), "first entry is ONE and the second one is TWO.", "second_identifier with count = 1");
+  assert.equal(_("second_identifier", 2, "ONE", "TWO"), "first entry is ONE and the second one is TWO.", "second_identifier with count = 2");
+
+  assert.equal(_("third_identifier", "ONE", "TWO"), "first entry is ONE and the second one is TWO.", "third_identifier with no count");
+  assert.equal(_("third_identifier", 0, "ONE", "TWO"), "first entry is ONE and the second one is TWO.", "third_identifier with count = 0");
+  assert.equal(_("third_identifier", 2, "ONE", "TWO"), "first entry is ONE and the second one is TWO.", "third_identifier with count = 2");
+
   done();
 });
 
 exports.testUsingJSON = function(assert) {
-  assert.equal(usingJSON, true, 'using json');
+  assert.equal(usingJSON, !isNative, 'using json');
 }
 
 exports.testShortLocaleName = createTest("eo", function(assert, loader, done) {

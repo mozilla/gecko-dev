@@ -1,6 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: sw=2 ts=8 et :
- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -40,21 +39,24 @@ SharedMemoryBasic::SharedMemoryBasic()
   , mMemory(nullptr)
 { }
 
-SharedMemoryBasic::SharedMemoryBasic(const Handle& aHandle)
-  : mShmFd(aHandle.fd)
-  , mMemory(nullptr)
-{ }
-
 SharedMemoryBasic::~SharedMemoryBasic()
 {
   Unmap();
-  Destroy();
+  CloseHandle();
+}
+
+bool
+SharedMemoryBasic::SetHandle(const Handle& aHandle)
+{
+  MOZ_ASSERT(-1 == mShmFd, "Already Create()d");
+  mShmFd = aHandle.fd;
+  return true;
 }
 
 bool
 SharedMemoryBasic::Create(size_t aNbytes)
 {
-  NS_ABORT_IF_FALSE(-1 == mShmFd, "Already Create()d");
+  MOZ_ASSERT(-1 == mShmFd, "Already Create()d");
 
   // Carve a new instance off of /dev/ashmem
   int shmfd = open("/" ASHMEM_NAME_DEF, O_RDWR, 0600);
@@ -77,7 +79,7 @@ SharedMemoryBasic::Create(size_t aNbytes)
 bool
 SharedMemoryBasic::Map(size_t nBytes)
 {
-  NS_ABORT_IF_FALSE(nullptr == mMemory, "Already Map()d");
+  MOZ_ASSERT(nullptr == mMemory, "Already Map()d");
 
   mMemory = mmap(nullptr, nBytes,
                  PROT_READ | PROT_WRITE,
@@ -95,10 +97,10 @@ SharedMemoryBasic::Map(size_t nBytes)
 }
 
 bool
-SharedMemoryBasic::ShareToProcess(base::ProcessHandle/*unused*/,
+SharedMemoryBasic::ShareToProcess(base::ProcessId/*unused*/,
                                   Handle* aNewHandle)
 {
-  NS_ABORT_IF_FALSE(mShmFd >= 0, "Should have been Create()d by now");
+  MOZ_ASSERT(mShmFd >= 0, "Should have been Create()d by now");
 
   int shmfdDup = dup(mShmFd);
   if (-1 == shmfdDup) {
@@ -125,10 +127,11 @@ SharedMemoryBasic::Unmap()
 }
 
 void
-SharedMemoryBasic::Destroy()
+SharedMemoryBasic::CloseHandle()
 {
-  if (mShmFd > 0) {
+  if (mShmFd != -1) {
     close(mShmFd);
+    mShmFd = -1;
   }
 }
 

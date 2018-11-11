@@ -16,12 +16,26 @@ class ScaledFontWin : public ScaledFontBase
 {
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(ScaledFontWin)
-  ScaledFontWin(LOGFONT* aFont, Float aSize);
+  ScaledFontWin(const LOGFONT* aFont, Float aSize);
 
   virtual FontType GetType() const { return FontType::GDI; }
+
+  bool GetFontFileData(FontFileDataOutput aDataCallback, void *aBaton) override;
+
+  bool GetFontInstanceData(FontInstanceDataOutput aCb, void* aBaton) override;
+
+  virtual bool GetFontDescriptor(FontDescriptorOutput aCb, void* aBaton) override;
+  virtual AntialiasMode GetDefaultAAMode() override;
+
 #ifdef USE_SKIA
   virtual SkTypeface* GetSkTypeface();
 #endif
+
+protected:
+#ifdef USE_CAIRO_SCALED_FONT
+  cairo_font_face_t* GetCairoFontFace() override;
+#endif
+
 private:
 #ifdef USE_SKIA
   friend class DrawTargetSkia;

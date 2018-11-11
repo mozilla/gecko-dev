@@ -4,10 +4,6 @@
 
 #include "mozilla/DebugOnly.h"
 
-#if defined(MOZ_WIDGET_QT)
-#include "nsQAppInstance.h"
-#endif
-
 #include "base/basictypes.h"
 
 #include "nsXULAppAPI.h"
@@ -54,8 +50,8 @@
 #include "base/message_loop.h"
 #include "base/process_util.h"
 #include "chrome/common/child_process.h"
-#include "chrome/common/notification_service.h"
 
+#include "mozilla/FilePreferences.h"
 #include "mozilla/ipc/BrowserProcessSubThread.h"
 #include "mozilla/ipc/GeckoChildProcessHost.h"
 #include "mozilla/ipc/IOThreadChild.h"
@@ -69,10 +65,24 @@
 
 #include "mozilla/ipc/TestShellParent.h"
 #include "mozilla/ipc/XPCShellEnvironment.h"
+#include "mozilla/WindowsDllBlocklist.h"
 
 #include "GMPProcessChild.h"
+#include "GMPLoader.h"
+#include "mozilla/gfx/GPUProcessImpl.h"
 
 #include "GeckoProfiler.h"
+
+#include "mozilla/Telemetry.h"
+
+#if defined(MOZ_SANDBOX) && defined(XP_WIN)
+#include "mozilla/sandboxTarget.h"
+#include "mozilla/sandboxing/loggingCallbacks.h"
+#endif
+
+#if defined(MOZ_CONTENT_SANDBOX) && !defined(MOZ_WIDGET_GONK)
+#include "mozilla/Preferences.h"
+#endif
 
 #ifdef MOZ_IPDL_TESTS
 #include "mozilla/_ipdltest/IPDLUnitTests.h"
@@ -80,6 +90,10 @@
 
 using mozilla::_ipdltest::IPDLUnitTestProcessChild;
 #endif  // ifdef MOZ_IPDL_TESTS
+
+#ifdef MOZ_JPROF
+#include "jprof.h"
+#endif
 
 using namespace mozilla;
 
@@ -93,6 +107,10 @@ using mozilla::plugins::PluginProcessChild;
 using mozilla::dom::ContentProcess;
 using mozilla::dom::ContentParent;
 using mozilla::dom::ContentChild;
+
+using mozilla::gmp::GMPLoader;
+using mozilla::gmp::CreateGMPLoader;
+using mozilla::gmp::GMPProcessChild;
 
 using mozilla::ipc::TestShellParent;
 using mozilla::ipc::TestShellCommandParent;
@@ -124,8 +142,8 @@ static int32_t sInitCounter;
 
 nsresult
 XRE_InitEmbedding2(nsIFile *aLibXULDirectory,
-		   nsIFile *aAppDirectory,
-		   nsIDirectoryServiceProvider *aAppDirProvider)
+                   nsIFile *aAppDirectory,
+                   nsIDirectoryServiceProvider *aAppDirProvider)
 {
   // Initialize some globals to make nsXREDirProvider happy
   static char* kNullCommandLine[] = { nullptr };
@@ -196,26 +214,33 @@ const char*
 XRE_ChildProcessTypeToString(GeckoProcessType aProcessType)
 {
   return (aProcessType < GeckoProcessType_End) ?
-    kGeckoProcessTypeString[aProcessType] : nullptr;
-}
-
-GeckoProcessType
-XRE_StringToChildProcessType(const char* aProcessTypeString)
-{
-  for (int i = 0;
-       i < (int) ArrayLength(kGeckoProcessTypeString);
-       ++i) {
-    if (!strcmp(kGeckoProcessTypeString[i], aProcessTypeString)) {
-      return static_cast<GeckoProcessType>(i);
-    }
-  }
-  return GeckoProcessType_Invalid;
+    kGeckoProcessTypeString[aProcessType] : "invalid";
 }
 
 namespace mozilla {
 namespace startup {
 GeckoProcessType sChildProcessType = GeckoProcessType_Default;
-}
+} // namespace startup
+} // namespace mozilla
+
+void
+XRE_SetProcessType(const char* aProcessTypeString)
+{
+  static bool called = false;
+  if (called) {
+    MOZ_CRASH();
+  }
+  called = true;
+
+  sChildProcessType = GeckoProcessType_Invalid;
+  for (int i = 0;
+       i < (int) ArrayLength(kGeckoProcessTypeString);
+       ++i) {
+    if (!strcmp(kGeckoProcessTypeString[i], aProcessTypeString)) {
+      sChildProcessType = static_cast<GeckoProcessType>(i);
+      return;
+    }
+  }
 }
 
 #if defined(MOZ_CRASHREPORTER)
@@ -269,14 +294,48 @@ SetTaskbarGroupId(const nsString& aId)
 }
 #endif
 
+#if defined(MOZ_CRASHREPORTER)
+#if defined(MOZ_CONTENT_SANDBOX) && !defined(MOZ_WIDGET_GONK)
+void
+AddContentSandboxLevelAnnotation()
+{
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    int level = Preferences::GetInt("security.sandbox.content.level");
+    nsAutoCString levelString;
+    levelString.AppendInt(level);
+    CrashReporter::AnnotateCrashReport(
+      NS_LITERAL_CSTRING("ContentSandboxLevel"), levelString);
+  }
+}
+#endif /* MOZ_CONTENT_SANDBOX && !MOZ_WIDGET_GONK */
+#endif /* MOZ_CRASHREPORTER */
+
 nsresult
 XRE_InitChildProcess(int aArgc,
                      char* aArgv[],
-                     GeckoProcessType aProcess)
+                     const XREChildData* aChildData)
 {
   NS_ENSURE_ARG_MIN(aArgc, 2);
   NS_ENSURE_ARG_POINTER(aArgv);
   NS_ENSURE_ARG_POINTER(aArgv[0]);
+  MOZ_ASSERT(aChildData);
+
+#ifdef MOZ_JPROF
+  // Call the code to install our handler
+  setupProfilingStuff();
+#endif
+
+#if !defined(MOZ_WIDGET_ANDROID) && !defined(MOZ_WIDGET_GONK)
+  // On non-Fennec Gecko, the GMPLoader code resides in plugin-container,
+  // and we must forward it through to the GMP code here.
+  GMPProcessChild::SetGMPLoader(aChildData->gmpLoader.get());
+#else
+  // On Fennec, the GMPLoader's code resides inside XUL (because for the time
+  // being GMPLoader relies upon NSPR, which we can't use in plugin-container
+  // on Android), so we create it here inside XUL and pass it to the GMP code.
+  UniquePtr<GMPLoader> loader = CreateGMPLoader(nullptr);
+  GMPProcessChild::SetGMPLoader(loader.get());
+#endif
 
 #if defined(XP_WIN)
   // From the --attach-console support in nsNativeAppSupportWin.cpp, but
@@ -300,15 +359,32 @@ XRE_InitChildProcess(int aArgc,
     if (_fileno(stdin) == -1 || _get_osfhandle(fileno(stdin)) == -1)
         freopen("CONIN$", "r", stdin);
   }
+
+#if defined(MOZ_SANDBOX)
+  if (aChildData->sandboxTargetServices) {
+    SandboxTarget::Instance()->SetTargetServices(aChildData->sandboxTargetServices);
+  }
+#endif
 #endif
 
+  // NB: This must be called before profiler_init
+  ScopedLogging logger;
+
+  // This is needed by Telemetry to initialize histogram collection.
+  // NB: This must be called after NS_LogInit().
+  // NS_LogInit must be called before Telemetry::CreateStatisticsRecorder
+  // so as to avoid many log messages of the form
+  //   WARNING: XPCOM objects created/destroyed from static ctor/dtor: [..]
+  // See bug 1279614.
+  Telemetry::CreateStatisticsRecorder();
+
+  mozilla::LogModule::Init();
+
   char aLocal;
-  profiler_init(&aLocal);
+  GeckoProfilerInitRAII profiler(&aLocal);
 
   PROFILER_LABEL("Startup", "XRE_InitChildProcess",
     js::ProfileEntry::Category::OTHER);
-
-  sChildProcessType = aProcess;
 
   // Complete 'task_t' exchange for Mac OS X. This structure has the same size
   // regardless of architecture so we don't have any cross-arch issues here.
@@ -320,14 +396,26 @@ XRE_InitChildProcess(int aArgc,
   const int kTimeoutMs = 1000;
 
   MachSendMessage child_message(0);
-  if (!child_message.AddDescriptor(mach_task_self())) {
+  if (!child_message.AddDescriptor(MachMsgPortDescriptor(mach_task_self()))) {
     NS_WARNING("child AddDescriptor(mach_task_self()) failed.");
     return NS_ERROR_FAILURE;
   }
 
   ReceivePort child_recv_port;
   mach_port_t raw_child_recv_port = child_recv_port.GetPort();
-  if (!child_message.AddDescriptor(raw_child_recv_port)) {
+  if (!child_message.AddDescriptor(MachMsgPortDescriptor(raw_child_recv_port))) {
+    NS_WARNING("Adding descriptor to message failed");
+    return NS_ERROR_FAILURE;
+  }
+
+  ReceivePort* ports_out_receiver = new ReceivePort();
+  if (!child_message.AddDescriptor(MachMsgPortDescriptor(ports_out_receiver->GetPort()))) {
+    NS_WARNING("Adding descriptor to message failed");
+    return NS_ERROR_FAILURE;
+  }
+
+  ReceivePort* ports_in_receiver = new ReceivePort();
+  if (!child_message.AddDescriptor(MachMsgPortDescriptor(ports_in_receiver->GetPort()))) {
     NS_WARNING("Adding descriptor to message failed");
     return NS_ERROR_FAILURE;
   }
@@ -350,12 +438,27 @@ XRE_InitChildProcess(int aArgc,
     NS_WARNING("child GetTranslatedPort(0) failed");
     return NS_ERROR_FAILURE;
   }
+
   err = task_set_bootstrap_port(mach_task_self(),
                                 parent_message.GetTranslatedPort(0));
+
+  if (parent_message.GetTranslatedPort(1) == MACH_PORT_NULL) {
+    NS_WARNING("child GetTranslatedPort(1) failed");
+    return NS_ERROR_FAILURE;
+  }
+  MachPortSender* ports_out_sender = new MachPortSender(parent_message.GetTranslatedPort(1));
+
+  if (parent_message.GetTranslatedPort(2) == MACH_PORT_NULL) {
+    NS_WARNING("child GetTranslatedPort(2) failed");
+    return NS_ERROR_FAILURE;
+  }
+  MachPortSender* ports_in_sender = new MachPortSender(parent_message.GetTranslatedPort(2));
+
   if (err != KERN_SUCCESS) {
     NS_WARNING("child task_set_bootstrap_port() failed");
     return NS_ERROR_FAILURE;
   }
+
 #endif
 
   SetupErrorHandling(aArgv[0]);  
@@ -390,40 +493,50 @@ XRE_InitChildProcess(int aArgc,
   gArgv = aArgv;
   gArgc = aArgc;
 
-#if defined(MOZ_WIDGET_GTK)
-  g_thread_init(nullptr);
+#ifdef MOZ_X11
+  XInitThreads();
+#endif
+#if MOZ_WIDGET_GTK == 2
+  XRE_GlibInit();
+#endif
+#ifdef MOZ_WIDGET_GTK
+  // Setting the name here avoids the need to pass this through to gtk_init().
+  g_set_prgname(aArgv[0]);
 #endif
 
-#if defined(MOZ_WIDGET_QT)
-  nsQAppInstance::AddRef();
-#endif
-
-  if (PR_GetEnv("MOZ_DEBUG_CHILD_PROCESS")) {
 #ifdef OS_POSIX
-      printf("\n\nCHILDCHILDCHILDCHILD\n  debug me @ %d\n\n", getpid());
-      sleep(30);
-#elif defined(OS_WIN)
-      // Windows has a decent JIT debugging story, so NS_DebugBreak does the
-      // right thing.
-      NS_DebugBreak(NS_DEBUG_BREAK,
-                    "Invoking NS_DebugBreak() to debug child process",
-                    nullptr, __FILE__, __LINE__);
-#endif
+  if (PR_GetEnv("MOZ_DEBUG_CHILD_PROCESS") ||
+      PR_GetEnv("MOZ_DEBUG_CHILD_PAUSE")) {
+    printf_stderr("\n\nCHILDCHILDCHILDCHILD\n  debug me @ %d\n\n",
+                  base::GetCurrentProcId());
+    sleep(30);
   }
+#elif defined(OS_WIN)
+  if (PR_GetEnv("MOZ_DEBUG_CHILD_PROCESS")) {
+    NS_DebugBreak(NS_DEBUG_BREAK,
+                  "Invoking NS_DebugBreak() to debug child process",
+                  nullptr, __FILE__, __LINE__);
+  } else if (PR_GetEnv("MOZ_DEBUG_CHILD_PAUSE")) {
+    printf_stderr("\n\nCHILDCHILDCHILDCHILD\n  debug me @ %d\n\n",
+                  base::GetCurrentProcId());
+    ::Sleep(10000);
+  }
+#endif
 
   // child processes launched by GeckoChildProcessHost get this magic
   // argument appended to their command lines
   const char* const parentPIDString = aArgv[aArgc-1];
-  NS_ABORT_IF_FALSE(parentPIDString, "NULL parent PID");
+  MOZ_ASSERT(parentPIDString, "NULL parent PID");
   --aArgc;
 
   char* end = 0;
   base::ProcessId parentPID = strtol(parentPIDString, &end, 10);
-  NS_ABORT_IF_FALSE(!*end, "invalid parent PID");
+  MOZ_ASSERT(!*end, "invalid parent PID");
 
-  base::ProcessHandle parentHandle;
-  mozilla::DebugOnly<bool> ok = base::OpenProcessHandle(parentPID, &parentHandle);
-  NS_ABORT_IF_FALSE(ok, "can't open handle to parent");
+#ifdef XP_MACOSX
+  mozilla::ipc::SharedMemoryBasic::SetupMachMemory(parentPID, ports_in_receiver, ports_in_sender,
+                                                   ports_out_sender, ports_out_receiver, true);
+#endif
 
 #if defined(XP_WIN)
   // On Win7+, register the application user model id passed in by
@@ -444,22 +557,21 @@ XRE_InitChildProcess(int aArgc,
 #endif
 
   base::AtExitManager exitManager;
-  NotificationService notificationService;
-
-  NS_LogInit();
 
   nsresult rv = XRE_InitCommandLine(aArgc, aArgv);
   if (NS_FAILED(rv)) {
-    profiler_shutdown();
-    NS_LogTerm();
     return NS_ERROR_FAILURE;
   }
 
   MessageLoop::Type uiLoopType;
-  switch (aProcess) {
+  switch (XRE_GetProcessType()) {
   case GeckoProcessType_Content:
+  case GeckoProcessType_GPU:
       // Content processes need the XPCOM/chromium frankenventloop
       uiLoopType = MessageLoop::TYPE_MOZILLA_CHILD;
+      break;
+  case GeckoProcessType_GMPlugin:
+      uiLoopType = MessageLoop::TYPE_DEFAULT;
       break;
   default:
       uiLoopType = MessageLoop::TYPE_UI;
@@ -481,39 +593,71 @@ XRE_InitChildProcess(int aArgc,
       mozilla::ipc::windows::InitUIThread();
 #endif
 
-      switch (aProcess) {
+      switch (XRE_GetProcessType()) {
       case GeckoProcessType_Default:
         NS_RUNTIMEABORT("This makes no sense");
         break;
 
       case GeckoProcessType_Plugin:
-        process = new PluginProcessChild(parentHandle);
+        process = new PluginProcessChild(parentPID);
         break;
 
       case GeckoProcessType_Content: {
-          process = new ContentProcess(parentHandle);
+          process = new ContentProcess(parentPID);
           // If passed in grab the application path for xpcom init
-          nsCString appDir;
+          bool foundAppdir = false;
+
+#if defined(XP_MACOSX) && defined(MOZ_CONTENT_SANDBOX)
+          // If passed in grab the profile path for sandboxing
+          bool foundProfile = false;
+#endif
+
           for (int idx = aArgc; idx > 0; idx--) {
             if (aArgv[idx] && !strcmp(aArgv[idx], "-appdir")) {
+              MOZ_ASSERT(!foundAppdir);
+              if (foundAppdir) {
+                  continue;
+              }
+              nsCString appDir;
               appDir.Assign(nsDependentCString(aArgv[idx+1]));
               static_cast<ContentProcess*>(process.get())->SetAppDir(appDir);
-              break;
+              foundAppdir = true;
             }
+
+            if (aArgv[idx] && !strcmp(aArgv[idx], "-safeMode")) {
+              gSafeMode = true;
+            }
+
+#if defined(XP_MACOSX) && defined(MOZ_CONTENT_SANDBOX)
+            if (aArgv[idx] && !strcmp(aArgv[idx], "-profile")) {
+              MOZ_ASSERT(!foundProfile);
+              if (foundProfile) {
+                continue;
+              }
+              nsCString profile;
+              profile.Assign(nsDependentCString(aArgv[idx+1]));
+              static_cast<ContentProcess*>(process.get())->SetProfile(profile);
+              foundProfile = true;
+            }
+#endif /* XP_MACOSX && MOZ_CONTENT_SANDBOX */
           }
         }
         break;
 
       case GeckoProcessType_IPDLUnitTest:
 #ifdef MOZ_IPDL_TESTS
-        process = new IPDLUnitTestProcessChild(parentHandle);
+        process = new IPDLUnitTestProcessChild(parentPID);
 #else 
         NS_RUNTIMEABORT("rebuild with --enable-ipdl-tests");
 #endif
         break;
 
       case GeckoProcessType_GMPlugin:
-        process = new gmp::GMPProcessChild(parentHandle);
+        process = new gmp::GMPProcessChild(parentPID);
+        break;
+
+      case GeckoProcessType_GPU:
+        process = new gfx::GPUProcessImpl(parentPID);
         break;
 
       default:
@@ -521,10 +665,37 @@ XRE_InitChildProcess(int aArgc,
       }
 
       if (!process->Init()) {
-        profiler_shutdown();
-        NS_LogTerm();
         return NS_ERROR_FAILURE;
       }
+
+#ifdef MOZ_CRASHREPORTER
+#if defined(XP_WIN) || defined(XP_MACOSX)
+      CrashReporter::InitChildProcessTmpDir();
+#endif
+#endif
+
+#if defined(XP_WIN)
+      // Set child processes up such that they will get killed after the
+      // chrome process is killed in cases where the user shuts the system
+      // down or logs off.
+      ::SetProcessShutdownParameters(0x280 - 1, SHUTDOWN_NORETRY);
+#endif
+
+#if defined(MOZ_SANDBOX) && defined(XP_WIN)
+      // We need to do this after the process has been initialised, as
+      // InitLoggingIfRequired may need access to prefs.
+      mozilla::sandboxing::InitLoggingIfRequired(aChildData->ProvideLogFunction);
+#endif
+      mozilla::FilePreferences::InitDirectoriesWhitelist();
+      mozilla::FilePreferences::InitPrefs();
+
+      OverrideDefaultLocaleIfNeeded();
+
+#if defined(MOZ_CRASHREPORTER)
+#if defined(MOZ_CONTENT_SANDBOX) && !defined(MOZ_WIDGET_GONK)
+      AddContentSandboxLevelAnnotation();
+#endif
+#endif
 
       // Run the UI event loop on the main thread.
       uiMessageLoop.MessageLoop::Run();
@@ -533,11 +704,15 @@ XRE_InitChildProcess(int aArgc,
       // scope and being deleted
       process->CleanUp();
       mozilla::Omnijar::CleanUp();
+
+#if defined(XP_MACOSX)
+      // Everybody should be done using shared memory by now.
+      mozilla::ipc::SharedMemoryBasic::Shutdown();
+#endif
     }
   }
 
-  profiler_shutdown();
-  NS_LogTerm();
+  Telemetry::DestroyStatisticsRecorder();
   return XRE_DeinitCommandLine();
 }
 
@@ -552,7 +727,7 @@ XRE_GetIOMessageLoop()
 
 namespace {
 
-class MainFunctionRunnable : public nsRunnable
+class MainFunctionRunnable : public Runnable
 {
 public:
   NS_DECL_NSIRUNNABLE
@@ -684,7 +859,8 @@ XRE_RunAppShell()
       bool couldNest = loop->NestableTasksAllowed();
 
       loop->SetNestableTasksAllowed(true);
-      loop->PostTask(FROM_HERE, new MessageLoop::QuitTask());
+      RefPtr<Runnable> task = new MessageLoop::QuitTask();
+      loop->PostTask(task.forget());
       loop->Run();
 
       loop->SetNestableTasksAllowed(couldNest);
@@ -693,20 +869,13 @@ XRE_RunAppShell()
     return appShell->Run();
 }
 
-template<>
-struct RunnableMethodTraits<ContentChild>
-{
-    static void RetainCallee(ContentChild* obj) { }
-    static void ReleaseCallee(ContentChild* obj) { }
-};
-
 void
 XRE_ShutdownChildProcess()
 {
-  NS_ABORT_IF_FALSE(MessageLoopForUI::current(), "Wrong thread!");
+  MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
 
   mozilla::DebugOnly<MessageLoop*> ioLoop = XRE_GetIOMessageLoop();
-  NS_ABORT_IF_FALSE(!!ioLoop, "Bad shutdown order");
+  MOZ_ASSERT(!!ioLoop, "Bad shutdown order");
 
   // Quit() sets off the following chain of events
   //  (1) UI loop starts quitting
@@ -732,7 +901,7 @@ ContentParent* gContentParent; //long-lived, manually refcounted
 TestShellParent* GetOrCreateTestShellParent()
 {
     if (!gContentParent) {
-        nsRefPtr<ContentParent> parent = ContentParent::GetNewOrUsed();
+        RefPtr<ContentParent> parent = ContentParent::GetNewOrUsedBrowserProcess();
         parent.forget(&gContentParent);
     } else if (!gContentParent->IsAlive()) {
         return nullptr;
@@ -743,7 +912,8 @@ TestShellParent* GetOrCreateTestShellParent()
     }
     return tsp;
 }
-}
+
+} // namespace
 
 bool
 XRE_SendTestShellCommand(JSContext* aCx,
@@ -754,7 +924,7 @@ XRE_SendTestShellCommand(JSContext* aCx,
     TestShellParent* tsp = GetOrCreateTestShellParent();
     NS_ENSURE_TRUE(tsp, false);
 
-    nsDependentJSString command;
+    nsAutoJSString command;
     NS_ENSURE_TRUE(command.init(aCx, cmd), false);
 
     if (!aCallback) {
@@ -797,21 +967,3 @@ XRE_InstallX11ErrorHandler()
 #endif
 }
 #endif
-
-#ifdef XP_WIN
-static WindowsEnvironmentType
-sWindowsEnvironmentType = WindowsEnvironmentType_Desktop;
-
-void
-SetWindowsEnvironment(WindowsEnvironmentType aEnvID)
-{
-  sWindowsEnvironmentType = aEnvID;
-}
-
-WindowsEnvironmentType
-XRE_GetWindowsEnvironment()
-{
-  return sWindowsEnvironmentType;
-}
-#endif // XP_WIN
-

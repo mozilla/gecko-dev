@@ -16,7 +16,6 @@ import os
 import sys
 import traceback
 import uuid
-import sys
 
 from .base import (
     CommandContext,
@@ -78,21 +77,18 @@ Run |mach help| to show a list of commands.
 
 UNKNOWN_COMMAND_ERROR = r'''
 It looks like you are trying to %s an unknown mach command: %s
-
+%s
 Run |mach help| to show a list of commands.
 '''.lstrip()
+
+SUGGESTED_COMMANDS_MESSAGE = r'''
+Did you want to %s any of these commands instead: %s?
+'''
 
 UNRECOGNIZED_ARGUMENT_ERROR = r'''
 It looks like you passed an unrecognized argument into mach.
 
 The %s command does not accept the arguments: %s
-'''.lstrip()
-
-INVALID_COMMAND_CONTEXT = r'''
-It looks like you tried to run a mach command from an invalid context. The %s
-command failed to meet the following conditions: %s
-
-Run |mach help| to show a list of all commands available to the current context.
 '''.lstrip()
 
 INVALID_ENTRY_POINT = r'''
@@ -143,6 +139,28 @@ class ArgumentParser(argparse.ArgumentParser):
         return text
 
 
+class ContextWrapper(object):
+    def __init__(self, context, handler):
+        object.__setattr__(self, '_context', context)
+        object.__setattr__(self, '_handler', handler)
+
+    def __getattribute__(self, key):
+        try:
+            return getattr(object.__getattribute__(self, '_context'), key)
+        except AttributeError as e:
+            try:
+                ret = object.__getattribute__(self, '_handler')(self, key)
+            except (AttributeError, TypeError):
+                # TypeError is in case the handler comes from old code not
+                # taking a key argument.
+                raise e
+            setattr(self, key, ret)
+            return ret
+
+    def __setattr__(self, key, value):
+        setattr(object.__getattribute__(self, '_context'), key, value)
+
+
 @CommandProvider
 class Mach(object):
     """Main mach driver type.
@@ -154,13 +172,21 @@ class Mach(object):
     behavior:
 
         populate_context_handler -- If defined, it must be a callable. The
-            callable will be called with the mach.base.CommandContext instance
-            as its single argument right before command dispatch. This allows
-            modification of the context instance and thus passing of
-            arbitrary data to command handlers.
+            callable signature is the following:
+                populate_context_handler(context, key=None)
+            It acts as a fallback getter for the mach.base.CommandContext
+            instance.
+            This allows to augment the context instance with arbitrary data
+            for use in command handlers.
+            For backwards compatibility, it is also called before command
+            dispatch without a key, allowing the context handler to add
+            attributes to the context instance.
 
         require_conditions -- If True, commands that do not have any condition
             functions applied will be skipped. Defaults to False.
+
+        settings_paths -- A list of files or directories in which to search
+            for settings files to load.
 
     """
 
@@ -188,6 +214,10 @@ To see more help for a specific command, run:
         self.log_manager = LoggingManager()
         self.logger = logging.getLogger(__name__)
         self.settings = ConfigSettings()
+        self.settings_paths = []
+
+        if 'MACHRC' in os.environ:
+            self.settings_paths.append(os.environ['MACHRC'])
 
         self.log_manager.register_structured_logger(self.logger)
         self.global_arguments = []
@@ -300,6 +330,8 @@ To see more help for a specific command, run:
         sys.stdout = stdout
         sys.stderr = stderr
 
+        orig_env = dict(os.environ)
+
         try:
             if stdin.encoding is None:
                 sys.stdin = codecs.getreader('utf-8')(stdin)
@@ -309,6 +341,13 @@ To see more help for a specific command, run:
 
             if stderr.encoding is None:
                 sys.stderr = codecs.getwriter('utf-8')(stderr)
+
+            # Allow invoked processes (which may not have a handle on the
+            # original stdout file descriptor) to know if the original stdout
+            # is a TTY. This provides a mechanism to allow said processes to
+            # enable emitting code codes, for example.
+            if os.isatty(orig_stdout.fileno()):
+                os.environ[b'MACH_STDOUT_ISATTY'] = b'1'
 
             return self._run(argv)
         except KeyboardInterrupt:
@@ -332,17 +371,27 @@ To see more help for a specific command, run:
             return 1
 
         finally:
+            os.environ.clear()
+            os.environ.update(orig_env)
+
             sys.stdin = orig_stdin
             sys.stdout = orig_stdout
             sys.stderr = orig_stderr
 
     def _run(self, argv):
+        # Load settings as early as possible so things in dispatcher.py
+        # can use them.
+        for provider in Registrar.settings_providers:
+            self.settings.register_provider(provider)
+        self.load_settings(self.settings_paths)
+
         context = CommandContext(cwd=self.cwd,
             settings=self.settings, log_manager=self.log_manager,
             commands=Registrar)
 
         if self.populate_context_handler:
             self.populate_context_handler(context)
+            context = ContextWrapper(context, self.populate_context_handler)
 
         parser = self.get_argument_parser(context)
 
@@ -360,7 +409,8 @@ To see more help for a specific command, run:
             print(NO_COMMAND_ERROR)
             return 1
         except UnknownCommandError as e:
-            print(UNKNOWN_COMMAND_ERROR % (e.verb, e.command))
+            suggestion_message = SUGGESTED_COMMANDS_MESSAGE % (e.verb, ', '.join(e.suggested_commands)) if e.suggested_commands else ''
+            print(UNKNOWN_COMMAND_ERROR % (e.verb, e.command, suggestion_message))
             return 1
         except UnrecognizedArgumentError as e:
             print(UNRECOGNIZED_ARGUMENT_ERROR % (e.command,
@@ -387,47 +437,26 @@ To see more help for a specific command, run:
         self.log_manager.add_terminal_logging(level=log_level,
             write_interval=args.log_interval, write_times=write_times)
 
-        self.load_settings(args)
+        if args.settings_file:
+            # Argument parsing has already happened, so settings that apply
+            # to command line handling (e.g alias, defaults) will be ignored.
+            self.load_settings(args.settings_file)
 
         if not hasattr(args, 'mach_handler'):
             raise MachError('ArgumentParser result missing mach handler info.')
 
         handler = getattr(args, 'mach_handler')
-        cls = handler.cls
-
-        if handler.pass_context:
-            instance = cls(context)
-        else:
-            instance = cls()
-
-        if handler.conditions:
-            fail_conditions = []
-            for c in handler.conditions:
-                if not c(instance):
-                    fail_conditions.append(c)
-
-            if fail_conditions:
-                print(self._condition_failed_message(handler.name, fail_conditions))
-                return 1
-
-        fn = getattr(instance, handler.method)
 
         try:
-            result = fn(**vars(args.command_args))
-
-            if not result:
-                result = 0
-
-            assert isinstance(result, (int, long))
-
-            return result
+            return Registrar._run_command_handler(handler, context=context,
+                debug_command=args.debug_command, **vars(args.command_args))
         except KeyboardInterrupt as ki:
             raise ki
         except Exception as e:
             exc_type, exc_value, exc_tb = sys.exc_info()
 
-            # The first frame is us and is never used.
-            stack = traceback.extract_tb(exc_tb)[1:]
+            # The first two frames are us and are never used.
+            stack = traceback.extract_tb(exc_tb)[2:]
 
             # If we have nothing on the stack, the exception was raised as part
             # of calling the @Command method itself. This likely means a
@@ -474,16 +503,6 @@ To see more help for a specific command, run:
         self.logger.log(level, format_str,
             extra={'action': action, 'params': params})
 
-    @classmethod
-    def _condition_failed_message(cls, name, conditions):
-        msg = ['\n']
-        for c in conditions:
-            part = ['  %s' % c.__name__]
-            if c.__doc__ is not None:
-                part.append(c.__doc__)
-            msg.append(' - '.join(part))
-        return INVALID_COMMAND_CONTEXT % (name, '\n'.join(msg))
-
     def _print_error_header(self, argv, fh):
         fh.write('Error running mach:\n\n')
         fh.write('    ')
@@ -501,43 +520,31 @@ To see more help for a specific command, run:
         for l in traceback.format_list(stack):
             fh.write(l)
 
-    def load_settings(self, args):
-        """Determine which settings files apply and load them.
+    def load_settings(self, paths):
+        """Load the specified settings files.
 
-        Currently, we only support loading settings from a single file.
-        Ideally, we support loading from multiple files. This is supported by
-        the ConfigSettings API. However, that API currently doesn't track where
-        individual values come from, so if we load from multiple sources then
-        save, we effectively do a full copy. We don't want this. Until
-        ConfigSettings does the right thing, we shouldn't expose multi-file
-        loading.
+        If a directory is specified, the following basenames will be
+        searched for in this order:
 
-        We look for a settings file in the following locations. The first one
-        found wins:
-
-          1) Command line argument
-          2) Environment variable
-          3) Default path
+            machrc, .machrc
         """
-        # Settings are disabled until integration with command providers is
-        # worked out.
-        self.settings = None
-        return False
+        if isinstance(paths, basestring):
+            paths = [paths]
 
-        for provider in Registrar.settings_providers:
-            provider.register_settings()
-            self.settings.register_provider(provider)
+        valid_names = ('machrc', '.machrc')
+        def find_in_dir(base):
+            if os.path.isfile(base):
+                return base
 
-        p = os.path.join(self.cwd, 'mach.ini')
+            for name in valid_names:
+                path = os.path.join(base, name)
+                if os.path.isfile(path):
+                    return path
 
-        if args.settings_file:
-            p = args.settings_file
-        elif 'MACH_SETTINGS_FILE' in os.environ:
-            p = os.environ['MACH_SETTINGS_FILE']
+        files = map(find_in_dir, self.settings_paths)
+        files = filter(bool, files)
 
-        self.settings.load_file(p)
-
-        return os.path.exists(p)
+        self.settings.load_files(files)
 
     def get_argument_parser(self, context):
         """Returns an argument parser for the command-line interface."""
@@ -548,9 +555,6 @@ To see more help for a specific command, run:
         # Order is important here as it dictates the order the auto-generated
         # help messages are printed.
         global_group = parser.add_argument_group('Global Arguments')
-
-        #global_group.add_argument('--settings', dest='settings_file',
-        #    metavar='FILENAME', help='Path to settings file.')
 
         global_group.add_argument('-v', '--verbose', dest='verbose',
             action='store_true', default=False,
@@ -563,13 +567,21 @@ To see more help for a specific command, run:
             help='Prefix log line with interval from last message rather '
                 'than relative time. Note that this is NOT execution time '
                 'if there are parallel operations.')
+        suppress_log_by_default = False
+        if 'INSIDE_EMACS' in os.environ:
+            suppress_log_by_default = True
         global_group.add_argument('--log-no-times', dest='log_no_times',
-            action='store_true', default=False,
+            action='store_true', default=suppress_log_by_default,
             help='Do not prefix log lines with times. By default, mach will '
                 'prefix each output line with the time since command start.')
         global_group.add_argument('-h', '--help', dest='help',
             action='store_true', default=False,
             help='Show this help message.')
+        global_group.add_argument('--debug-command', action='store_true',
+            help='Start a Python debugger when command is dispatched.')
+        global_group.add_argument('--settings', dest='settings_file',
+            metavar='FILENAME', default=None,
+            help='Path to settings file.')
 
         for args, kwargs in self.global_arguments:
             global_group.add_argument(*args, **kwargs)

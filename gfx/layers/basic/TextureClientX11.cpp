@@ -8,6 +8,7 @@
 #include "mozilla/layers/ISurfaceAllocator.h"
 #include "mozilla/layers/ShadowLayerUtilsX11.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/Logging.h"
 #include "gfxXlibSurface.h"
 #include "gfx2DGlue.h"
 
@@ -16,110 +17,140 @@
 
 using namespace mozilla;
 using namespace mozilla::gfx;
-using namespace mozilla::layers;
 
-TextureClientX11::TextureClientX11(ISurfaceAllocator* aAllocator, SurfaceFormat aFormat, TextureFlags aFlags)
-  : TextureClient(aFlags),
-    mFormat(aFormat),
-    mAllocator(aAllocator),
-    mLocked(false)
-{
-  MOZ_COUNT_CTOR(TextureClientX11);
-}
+namespace mozilla {
+namespace layers {
 
-TextureClientX11::~TextureClientX11()
+X11TextureData::X11TextureData(gfx::IntSize aSize, gfx::SurfaceFormat aFormat,
+                               bool aClientDeallocation, bool aIsCrossProcess,
+                               gfxXlibSurface* aSurface)
+: mSize(aSize)
+, mFormat(aFormat)
+, mSurface(aSurface)
+, mClientDeallocation(aClientDeallocation)
+, mIsCrossProcess(aIsCrossProcess)
 {
-  MOZ_COUNT_DTOR(TextureClientX11);
-}
-
-bool
-TextureClientX11::IsAllocated() const
-{
-  return !!mSurface;
+  MOZ_ASSERT(mSurface);
 }
 
 bool
-TextureClientX11::Lock(OpenMode aMode)
+X11TextureData::Lock(OpenMode aMode)
 {
-  MOZ_ASSERT(!mLocked, "The TextureClient is already Locked!");
-  mLocked = IsValid() && IsAllocated();
-  return mLocked;
+  return true;
 }
 
 void
-TextureClientX11::Unlock()
+X11TextureData::Unlock()
 {
-  MOZ_ASSERT(mLocked, "The TextureClient is already Unlocked!");
-  mLocked = false;
-
-  if (mDrawTarget) {
-    // see the comment on TextureClient::BorrowDrawTarget.
-    // This DrawTarget is internal to the TextureClient and is only exposed to the
-    // outside world between Lock() and Unlock(). This assertion checks that no outside
-    // reference remains by the time Unlock() is called.
-    MOZ_ASSERT(mDrawTarget->refCount() == 1);
-
-    mDrawTarget->Flush();
-    mDrawTarget = nullptr;
-  }
-
-  if (mSurface && !mAllocator->IsSameProcess()) {
+  if (mSurface && mIsCrossProcess) {
     FinishX(DefaultXDisplay());
   }
 }
 
-bool
-TextureClientX11::ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor)
+void
+X11TextureData::FillInfo(TextureData::Info& aInfo) const
 {
-  MOZ_ASSERT(IsValid());
+  aInfo.size = mSize;
+  aInfo.format = mFormat;
+  aInfo.supportsMoz2D = true;
+  aInfo.hasIntermediateBuffer = false;
+  aInfo.hasSynchronization = false;
+  aInfo.canExposeMappedData = false;
+}
+
+bool
+X11TextureData::Serialize(SurfaceDescriptor& aOutDescriptor)
+{
+  MOZ_ASSERT(mSurface);
   if (!mSurface) {
     return false;
+  }
+
+  if (!mClientDeallocation) {
+    // Pass to the host the responsibility of freeing the pixmap. ReleasePixmap means
+    // the underlying pixmap will not be deallocated in mSurface's destructor.
+    // ToSurfaceDescriptor is at most called once per TextureClient.
+    mSurface->ReleasePixmap();
   }
 
   aOutDescriptor = SurfaceDescriptorX11(mSurface);
   return true;
 }
 
-bool
-TextureClientX11::AllocateForSurface(IntSize aSize, TextureAllocationFlags aTextureFlags)
+already_AddRefed<gfx::DrawTarget>
+X11TextureData::BorrowDrawTarget()
 {
-  MOZ_ASSERT(IsValid());
-  //MOZ_ASSERT(mFormat != gfx::FORMAT_YUV, "This TextureClient cannot use YCbCr data");
-
-  gfxContentType contentType = ContentForFormat(mFormat);
-  nsRefPtr<gfxASurface> surface = gfxPlatform::GetPlatform()->CreateOffscreenSurface(aSize, contentType);
-  if (!surface || surface->GetType() != gfxSurfaceType::Xlib) {
-    NS_ERROR("creating Xlib surface failed!");
-    return false;
-  }
-
-  mSize = aSize;
-  mSurface = static_cast<gfxXlibSurface*>(surface.get());
-
-  // The host is always responsible for freeing the pixmap.
-  mSurface->ReleasePixmap();
-
-  if (!mAllocator->IsSameProcess()) {
-    FinishX(DefaultXDisplay());
-  }
-
-  return true;
-}
-
-DrawTarget*
-TextureClientX11::BorrowDrawTarget()
-{
-  MOZ_ASSERT(IsValid());
-  MOZ_ASSERT(mLocked);
-
+  MOZ_ASSERT(mSurface);
   if (!mSurface) {
     return nullptr;
   }
 
-  if (!mDrawTarget) {
-    IntSize size = ToIntSize(mSurface->GetSize());
-    mDrawTarget = Factory::CreateDrawTargetForCairoSurface(mSurface->CairoSurface(), size);
+  IntSize size = mSurface->GetSize();
+  RefPtr<gfx::DrawTarget> dt = Factory::CreateDrawTargetForCairoSurface(mSurface->CairoSurface(), size);
+
+  return dt.forget();
+}
+
+bool
+X11TextureData::UpdateFromSurface(gfx::SourceSurface* aSurface)
+{
+  RefPtr<DrawTarget> dt = BorrowDrawTarget();
+
+  if (!dt) {
+    return false;
   }
 
-  return mDrawTarget;
+  dt->CopySurface(aSurface, IntRect(IntPoint(), aSurface->GetSize()), IntPoint());
+
+  return true;
 }
+
+void
+X11TextureData::Deallocate(LayersIPCChannel*)
+{
+  mSurface = nullptr;
+}
+
+TextureData*
+X11TextureData::CreateSimilar(LayersIPCChannel* aAllocator,
+                              LayersBackend aLayersBackend,
+                              TextureFlags aFlags,
+                              TextureAllocationFlags aAllocFlags) const
+{
+  return X11TextureData::Create(mSize, mFormat, aFlags, aAllocator);
+}
+
+X11TextureData*
+X11TextureData::Create(gfx::IntSize aSize, gfx::SurfaceFormat aFormat,
+                       TextureFlags aFlags, LayersIPCChannel* aAllocator)
+{
+  MOZ_ASSERT(aSize.width >= 0 && aSize.height >= 0);
+  if (aSize.width <= 0 || aSize.height <= 0 ||
+      aSize.width > XLIB_IMAGE_SIDE_SIZE_LIMIT ||
+      aSize.height > XLIB_IMAGE_SIDE_SIZE_LIMIT) {
+    gfxDebug() << "Asking for X11 surface of invalid size " << aSize.width << "x" << aSize.height;
+    return nullptr;
+  }
+  gfxImageFormat imageFormat = SurfaceFormatToImageFormat(aFormat);
+  RefPtr<gfxASurface> surface = gfxPlatform::GetPlatform()->CreateOffscreenSurface(aSize, imageFormat);
+  if (!surface || surface->GetType() != gfxSurfaceType::Xlib) {
+    NS_ERROR("creating Xlib surface failed!");
+    return nullptr;
+  }
+
+  gfxXlibSurface* xlibSurface = static_cast<gfxXlibSurface*>(surface.get());
+
+  bool crossProcess = !aAllocator->IsSameProcess();
+  X11TextureData* texture = new X11TextureData(aSize, aFormat,
+                                               !!(aFlags & TextureFlags::DEALLOCATE_CLIENT),
+                                               crossProcess,
+                                               xlibSurface);
+  if (crossProcess) {
+    FinishX(DefaultXDisplay());
+  }
+
+  return texture;
+}
+
+} // namespace
+} // namespace

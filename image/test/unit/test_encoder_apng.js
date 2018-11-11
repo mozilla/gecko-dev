@@ -1,11 +1,11 @@
 /*
- * Test for APNG encoding in libpr0n
+ * Test for APNG encoding in ImageLib
  *
  */
 
 
-const Ci = Components.interfaces;
-const Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cc = Components.classes;
 
   // dispose=[none|background|previous]
   // blend=[source|over]

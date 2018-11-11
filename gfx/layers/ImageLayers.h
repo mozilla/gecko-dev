@@ -7,7 +7,6 @@
 #define GFX_IMAGELAYER_H
 
 #include "Layers.h"                     // for Layer, etc
-#include "GraphicsFilter.h"             // for GraphicsFilter
 #include "mozilla/gfx/BaseSize.h"       // for BaseSize
 #include "mozilla/gfx/Point.h"          // for IntSize
 #include "mozilla/layers/LayersTypes.h"
@@ -18,6 +17,10 @@ namespace mozilla {
 namespace layers {
 
 class ImageContainer;
+
+namespace layerscope {
+class LayersPacket;
+} // namespace layerscope
 
 /**
  * A Layer which renders an Image.
@@ -35,11 +38,11 @@ public:
    * CONSTRUCTION PHASE ONLY
    * Set the filter used to resample this image if necessary.
    */
-  void SetFilter(GraphicsFilter aFilter)
+  void SetSamplingFilter(gfx::SamplingFilter aSamplingFilter)
   {
-    if (mFilter != aFilter) {
+    if (mSamplingFilter != aSamplingFilter) {
       MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) Filter", this));
-      mFilter = aFilter;
+      mSamplingFilter = aSamplingFilter;
       Mutated();
     }
   }
@@ -59,40 +62,33 @@ public:
 
 
   ImageContainer* GetContainer() { return mContainer; }
-  GraphicsFilter GetFilter() { return mFilter; }
+  gfx::SamplingFilter GetSamplingFilter() { return mSamplingFilter; }
   const gfx::IntSize& GetScaleToSize() { return mScaleToSize; }
   ScaleMode GetScaleMode() { return mScaleMode; }
 
   MOZ_LAYER_DECL_NAME("ImageLayer", TYPE_IMAGE)
 
-  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface);
+  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface) override;
 
-  /**
-   * if true, the image will only be backed by a single tile texture
-   */
-  void SetDisallowBigImage(bool aDisallowBigImage)
+  virtual const gfx::Matrix4x4& GetEffectiveTransformForBuffer() const override
   {
-    if (mDisallowBigImage != aDisallowBigImage) {
-      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) DisallowBigImage", this));
-      mDisallowBigImage = aDisallowBigImage;
-      Mutated();
-    }
+    return mEffectiveTransformForBuffer;
   }
 
 protected:
   ImageLayer(LayerManager* aManager, void* aImplData);
   ~ImageLayer();
-  virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
+  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix) override;
+  virtual void DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent) override;
 
-
-  nsRefPtr<ImageContainer> mContainer;
-  GraphicsFilter mFilter;
+  RefPtr<ImageContainer> mContainer;
+  gfx::SamplingFilter mSamplingFilter;
   gfx::IntSize mScaleToSize;
   ScaleMode mScaleMode;
-  bool mDisallowBigImage;
+  gfx::Matrix4x4 mEffectiveTransformForBuffer;
 };
 
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 #endif /* GFX_IMAGELAYER_H */

@@ -4,12 +4,12 @@ function test() {
   waitForExplicitFinish();
 
   gBrowser.selectedTab = gBrowser.addTab();
-  
+
   gBrowser.selectedBrowser.addEventListener("load", function () {
     gBrowser.selectedBrowser.removeEventListener("load", arguments.callee, true);
 
-    var doc = gBrowser.contentDocument;
-    var pageInfo = BrowserPageInfo(doc, "mediaTab");
+    var pageInfo = BrowserPageInfo(gBrowser.selectedBrowser.currentURI.spec,
+                                   "mediaTab");
 
     pageInfo.addEventListener("load", function () {
       pageInfo.removeEventListener("load", arguments.callee, true);

@@ -28,14 +28,19 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
+#include "HalLog.h"
 #include "nsDebug.h"
 #include "base/message_loop.h"
+#include "base/task.h"
+#include "mozilla/ClearOnShutdown.h"
 #include "mozilla/FileUtils.h"
-#include "nsAutoPtr.h"
+#include "mozilla/Monitor.h"
 #include "nsThreadUtils.h"
 #include "nsXULAppAPI.h"
 
 #include "UeventPoller.h"
+
+using namespace mozilla;
 
 namespace mozilla {
 namespace hal_impl {
@@ -71,8 +76,9 @@ public:
   void UnregisterObserver(IUeventObserver *aObserver)
   {
     mUeventObserverList.RemoveObserver(aObserver);
-    if (mUeventObserverList.Length() == 0)
+    if (mUeventObserverList.Length() == 0) {
       ShutdownUevent();  // this will destroy self
+    }
   }
 
 private:
@@ -91,13 +97,16 @@ bool
 NetlinkPoller::OpenSocket()
 {
   mSocket.rwget() = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_KOBJECT_UEVENT);
-  if (mSocket.get() < 0)
+  if (mSocket.get() < 0) {
     return false;
+  }
 
   int sz = kBuffsize;
 
-  if (setsockopt(mSocket.get(), SOL_SOCKET, SO_RCVBUFFORCE, &sz, sizeof(sz)) < 0)
+  if (setsockopt(mSocket.get(), SOL_SOCKET, SO_RCVBUFFORCE, &sz,
+                 sizeof(sz)) < 0) {
     return false;
+  }
 
   // add FD_CLOEXEC flag
   int flags = fcntl(mSocket.get(), F_GETFD);
@@ -105,12 +114,14 @@ NetlinkPoller::OpenSocket()
       return false;
   }
   flags |= FD_CLOEXEC;
-  if (fcntl(mSocket.get(), F_SETFD, flags) == -1)
+  if (fcntl(mSocket.get(), F_SETFD, flags) == -1) {
     return false;
+  }
 
   // set non-blocking
-  if (fcntl(mSocket.get(), F_SETFL, O_NONBLOCK) == -1)
+  if (fcntl(mSocket.get(), F_SETFL, O_NONBLOCK) == -1) {
     return false;
+  }
 
   struct sockaddr_nl saddr;
   bzero(&saddr, sizeof(saddr));
@@ -133,7 +144,8 @@ NetlinkPoller::OpenSocket()
 
     // Once there was any other place in the same process assigning saddr.nl_pid by
     // gettid(), we can detect it and print warning message.
-    printf_stderr("The netlink socket address saddr.nl_pid=%u is in use. Let the kernel re-assign.\n", saddr.nl_pid);
+    HAL_LOG("The netlink socket address saddr.nl_pid=%u is in use. "
+            "Let the kernel re-assign.\n", saddr.nl_pid);
     saddr.nl_pid = 0;
   } while (true);
 
@@ -148,19 +160,21 @@ NetlinkPoller::OpenSocket()
   return true;
 }
 
-static nsAutoPtr<NetlinkPoller> sPoller;
+static StaticAutoPtr<NetlinkPoller> sPoller;
 
-class UeventInitTask : public Task
+class UeventInitTask : public Runnable
 {
-  virtual void Run()
+  NS_IMETHOD Run() override
   {
     if (!sPoller) {
-      return;
+      return NS_OK;
     }
     if (sPoller->OpenSocket()) {
-      return;
+      return NS_OK;
     }
-    sPoller->GetIOLoop()->PostDelayedTask(FROM_HERE, new UeventInitTask(), 1000);
+    sPoller->GetIOLoop()->PostDelayedTask(MakeAndAddRef<UeventInitTask>(),
+                                          1000);
+    return NS_OK;
   }
 };
 
@@ -188,13 +202,76 @@ NetlinkPoller::OnFileCanReadWithoutBlocking(int fd)
   }
 }
 
+static bool sShutdown = false;
+
+class ShutdownNetlinkPoller;
+static StaticAutoPtr<ShutdownNetlinkPoller> sShutdownPoller;
+static Monitor* sMonitor = nullptr;
+
+class ShutdownNetlinkPoller {
+public:
+  ~ShutdownNetlinkPoller()
+  {
+    // This is called from KillClearOnShutdown() on the main thread.
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(XRE_GetIOMessageLoop());
+
+    {
+      MonitorAutoLock lock(*sMonitor);
+
+      XRE_GetIOMessageLoop()->PostTask(
+          NewRunnableFunction(ShutdownUeventIOThread));
+
+      while (!sShutdown) {
+        lock.Wait();
+      }
+    }
+
+    sShutdown = true;
+    delete sMonitor;
+  }
+
+  static void MaybeInit()
+  {
+    MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
+    if (sShutdown || sMonitor) {
+      // Don't init twice or init after shutdown.
+      return;
+    }
+
+    sMonitor = new Monitor("ShutdownNetlinkPoller.monitor");
+    {
+      ShutdownNetlinkPoller* shutdownPoller = new ShutdownNetlinkPoller();
+
+      nsCOMPtr<nsIRunnable> runnable = NS_NewRunnableFunction([=] () -> void
+      {
+        sShutdownPoller = shutdownPoller;
+        ClearOnShutdown(&sShutdownPoller); // Must run on the main thread.
+      });
+      MOZ_ASSERT(runnable);
+      MOZ_ALWAYS_SUCCEEDS(
+        NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL));
+    }
+  }
+private:
+  ShutdownNetlinkPoller() = default;
+  static void ShutdownUeventIOThread()
+  {
+    MonitorAutoLock l(*sMonitor);
+    ShutdownUevent(); // Must run on the IO thread.
+    sShutdown = true;
+    l.NotifyAll();
+  }
+};
+
 static void
 InitializeUevent()
 {
   MOZ_ASSERT(!sPoller);
   sPoller = new NetlinkPoller();
-  sPoller->GetIOLoop()->PostTask(FROM_HERE, new UeventInitTask());
+  sPoller->GetIOLoop()->PostTask(MakeAndAddRef<UeventInitTask>());
 
+  ShutdownNetlinkPoller::MaybeInit();
 }
 
 static void
@@ -208,8 +285,13 @@ RegisterUeventListener(IUeventObserver *aObserver)
 {
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
-  if (!sPoller)
+  if (sShutdown) {
+    return;
+  }
+
+  if (!sPoller) {
     InitializeUevent();
+  }
   sPoller->RegisterObserver(aObserver);
 }
 
@@ -217,6 +299,10 @@ void
 UnregisterUeventListener(IUeventObserver *aObserver)
 {
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
+
+  if (sShutdown) {
+    return;
+  }
 
   sPoller->UnregisterObserver(aObserver);
 }

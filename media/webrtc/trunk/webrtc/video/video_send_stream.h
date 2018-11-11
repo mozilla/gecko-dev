@@ -11,7 +11,12 @@
 #ifndef WEBRTC_VIDEO_VIDEO_SEND_STREAM_H_
 #define WEBRTC_VIDEO_VIDEO_SEND_STREAM_H_
 
+#include <map>
+#include <vector>
+
+#include "webrtc/call.h"
 #include "webrtc/common_video/libyuv/include/webrtc_libyuv.h"
+#include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
 #include "webrtc/video/encoded_frame_callback_adapter.h"
 #include "webrtc/video/send_statistics_proxy.h"
 #include "webrtc/video/transport_adapter.h"
@@ -35,46 +40,49 @@ class ViERTP_RTCP;
 namespace internal {
 
 class VideoSendStream : public webrtc::VideoSendStream,
-                        public VideoSendStreamInput,
-                        public SendStatisticsProxy::StatsProvider {
+                        public VideoSendStreamInput {
  public:
   VideoSendStream(newapi::Transport* transport,
                   CpuOveruseObserver* overuse_observer,
                   webrtc::VideoEngine* video_engine,
                   const VideoSendStream::Config& config,
+                  const VideoEncoderConfig& encoder_config,
+                  const std::map<uint32_t, RtpState>& suspended_ssrcs,
                   int base_channel);
 
   virtual ~VideoSendStream();
 
-  virtual void StartSending() OVERRIDE;
+  void Start() override;
+  void Stop() override;
 
-  virtual void StopSending() OVERRIDE;
+  bool ReconfigureVideoEncoder(const VideoEncoderConfig& config) override;
 
-  virtual bool SetCodec(const VideoCodec& codec) OVERRIDE;
-  virtual VideoCodec GetCodec() OVERRIDE;
-
-  virtual Stats GetStats() const OVERRIDE;
+  Stats GetStats() override;
 
   bool DeliverRtcp(const uint8_t* packet, size_t length);
 
   // From VideoSendStreamInput.
-  virtual void PutFrame(const I420VideoFrame& frame) OVERRIDE;
-  virtual void SwapFrame(I420VideoFrame* frame) OVERRIDE;
+  void IncomingCapturedFrame(const I420VideoFrame& frame) override;
 
   // From webrtc::VideoSendStream.
-  virtual VideoSendStreamInput* Input() OVERRIDE;
+  VideoSendStreamInput* Input() override;
 
- protected:
-  // From SendStatisticsProxy::StreamStatsProvider.
-  virtual bool GetSendSideDelay(VideoSendStream::Stats* stats) OVERRIDE;
-  virtual std::string GetCName() OVERRIDE;
+  typedef std::map<uint32_t, RtpState> RtpStateMap;
+  RtpStateMap GetRtpStates() const;
+
+  void SignalNetworkState(Call::NetworkState state);
+
+  int64_t GetPacerQueuingDelayMs() const;
+
+  int64_t GetRtt() const;
 
  private:
-  I420VideoFrame input_frame_;
+  void ConfigureSsrcs();
   TransportAdapter transport_adapter_;
   EncodedFrameCallbackAdapter encoded_frame_proxy_;
-  scoped_ptr<CriticalSectionWrapper> codec_lock_;
-  VideoSendStream::Config config_;
+  const VideoSendStream::Config config_;
+  VideoEncoderConfig encoder_config_;
+  std::map<uint32_t, RtpState> suspended_ssrcs_;
 
   ViEBase* video_engine_base_;
   ViECapture* capture_;
@@ -88,7 +96,12 @@ class VideoSendStream : public webrtc::VideoSendStream,
   int channel_;
   int capture_id_;
 
-  scoped_ptr<SendStatisticsProxy> stats_proxy_;
+  // Used as a workaround to indicate that we should be using the configured
+  // start bitrate initially, instead of the one reported by VideoEngine (which
+  // defaults to too high).
+  bool use_config_bitrate_;
+
+  SendStatisticsProxy stats_proxy_;
 };
 }  // namespace internal
 }  // namespace webrtc

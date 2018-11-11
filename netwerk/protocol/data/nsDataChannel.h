@@ -12,15 +12,17 @@
 
 class nsIInputStream;
 
-class nsDataChannel : public nsBaseChannel {
+class nsDataChannel : public nsBaseChannel
+{
 public:
-    nsDataChannel(nsIURI *uri) {
+    explicit nsDataChannel(nsIURI *uri) {
         SetURI(uri);
     }
 
 protected:
-    virtual nsresult OpenContentStream(bool async, nsIInputStream **result,
-                                       nsIChannel** channel);
+    virtual MOZ_MUST_USE nsresult OpenContentStream(bool async,
+                                                    nsIInputStream **result,
+                                                    nsIChannel** channel);
 };
 
 #endif /* nsDataChannel_h___ */

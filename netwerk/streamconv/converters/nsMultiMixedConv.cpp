@@ -6,14 +6,20 @@
 #include "nsMultiMixedConv.h"
 #include "plstr.h"
 #include "nsIHttpChannel.h"
-#include "nsNetUtil.h"
+#include "nsNetCID.h"
 #include "nsMimeTypes.h"
 #include "nsIStringStream.h"
 #include "nsCRT.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsURLHelper.h"
 #include "nsIStreamConverterService.h"
+#include "nsICacheInfoChannel.h"
 #include <algorithm>
+#include "nsContentSecurityManager.h"
+#include "nsHttp.h"
+#include "nsNetUtil.h"
+#include "nsIURI.h"
+#include "nsHttpHeaderArray.h"
 
 //
 // Helper function for determining the length of data bytes up to
@@ -45,8 +51,6 @@ nsPartChannel::nsPartChannel(nsIChannel *aMultipartChannel, uint32_t aPartID,
   mPartID(aPartID),
   mIsLastPart(false)
 {
-    mMultipartChannel = aMultipartChannel;
-
     // Inherit the load flags from the original channel...
     mMultipartChannel->GetLoadFlags(&mLoadFlags);
 
@@ -202,10 +206,28 @@ nsPartChannel::Open(nsIInputStream **result)
 }
 
 NS_IMETHODIMP
+nsPartChannel::Open2(nsIInputStream** aStream)
+{
+    nsCOMPtr<nsIStreamListener> listener;
+    nsresult rv = nsContentSecurityManager::doContentSecurityCheck(this, listener);
+    NS_ENSURE_SUCCESS(rv, rv);
+    return Open(aStream);
+}
+
+NS_IMETHODIMP
 nsPartChannel::AsyncOpen(nsIStreamListener *aListener, nsISupports *aContext)
 {
     // This channel cannot be opened!
     return NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+nsPartChannel::AsyncOpen2(nsIStreamListener *aListener)
+{
+  nsCOMPtr<nsIStreamListener> listener = aListener;
+  nsresult rv = nsContentSecurityManager::doContentSecurityCheck(this, listener);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return AsyncOpen(listener, nullptr);
 }
 
 NS_IMETHODIMP
@@ -249,6 +271,18 @@ NS_IMETHODIMP
 nsPartChannel::SetOwner(nsISupports* aOwner)
 {
     return mMultipartChannel->SetOwner(aOwner);
+}
+
+NS_IMETHODIMP
+nsPartChannel::GetLoadInfo(nsILoadInfo* *aLoadInfo)
+{
+    return mMultipartChannel->GetLoadInfo(aLoadInfo);
+}
+
+NS_IMETHODIMP
+nsPartChannel::SetLoadInfo(nsILoadInfo* aLoadInfo)
+{
+    return mMultipartChannel->SetLoadInfo(aLoadInfo);
 }
 
 NS_IMETHODIMP
@@ -407,7 +441,6 @@ nsPartChannel::GetBaseChannel(nsIChannel ** aReturn)
     return NS_OK;
 }
 
-
 // nsISupports implementation
 NS_IMPL_ISUPPORTS(nsMultiMixedConv,
                   nsIStreamConverter,
@@ -439,6 +472,7 @@ nsMultiMixedConv::AsyncConvertData(const char *aFromType, const char *aToType,
     //  and OnStopRequest() call combinations. We call of series of these for each sub-part
     //  in the raw stream.
     mFinalListener = aListener;
+
     return NS_OK;
 }
 
@@ -448,7 +482,7 @@ class AutoFree
 public:
   AutoFree() : mBuffer(nullptr) {}
 
-  AutoFree(char *buffer) : mBuffer(buffer) {}
+  explicit AutoFree(char *buffer) : mBuffer(buffer) {}
 
   ~AutoFree() {
     free(mBuffer);
@@ -471,12 +505,8 @@ NS_IMETHODIMP
 nsMultiMixedConv::OnDataAvailable(nsIRequest *request, nsISupports *context,
                                   nsIInputStream *inStr, uint64_t sourceOffset,
                                   uint32_t count) {
-
-    if (mToken.IsEmpty()) // no token, no love.
-        return NS_ERROR_FAILURE;
-
     nsresult rv = NS_OK;
-    AutoFree buffer = nullptr;
+    AutoFree buffer(nullptr);
     uint32_t bufLen = 0, read = 0;
 
     NS_ASSERTION(request, "multimixed converter needs a request");
@@ -517,19 +547,23 @@ nsMultiMixedConv::OnDataAvailable(nsIRequest *request, nsISupports *context,
         mFirstOnData = false;
         NS_ASSERTION(!mBufLen, "this is our first time through, we can't have buffered data");
         const char * token = mToken.get();
-           
+
         PushOverLine(cursor, bufLen);
 
-        if (bufLen < mTokenLen+2) {
+        bool needMoreChars = bufLen < mTokenLen + 2;
+        nsAutoCString firstBuffer(buffer, bufLen);
+        int32_t posCR = firstBuffer.Find("\r");
+
+        if (needMoreChars || (posCR == kNotFound)) {
             // we don't have enough data yet to make this comparison.
             // skip this check, and try again the next time OnData()
             // is called.
             mFirstOnData = true;
-        }
-        else if (!PL_strnstr(cursor, token, mTokenLen+2)) {
-            buffer = (char *) realloc(buffer, bufLen + mTokenLen + 1);
-            if (!buffer)
+        } else if (!PL_strnstr(cursor, token, mTokenLen + 2)) {
+            char *newBuffer = (char *) realloc(buffer, bufLen + mTokenLen + 1);
+            if (!newBuffer)
                 return NS_ERROR_OUT_OF_MEMORY;
+            buffer = newBuffer;
 
             memmove(buffer + mTokenLen + 1, buffer, bufLen);
             memcpy(buffer, token, mTokenLen);
@@ -562,11 +596,14 @@ nsMultiMixedConv::OnDataAvailable(nsIRequest *request, nsISupports *context,
     int32_t tokenLinefeed = 1;
     while ( (token = FindToken(cursor, bufLen)) ) {
 
-        if (((token + mTokenLen) < (cursor + bufLen)) &&
+        if (((token + mTokenLen + 1) < (cursor + bufLen)) &&
             (*(token + mTokenLen + 1) == '-')) {
             // This was the last delimiter so we can stop processing
             rv = SendData(cursor, LengthToToken(cursor, token));
             if (NS_FAILED(rv)) return rv;
+            if (mPartChannel) {
+                mPartChannel->SetIsLastPart();
+            }
             return SendStop(NS_OK);
         }
 
@@ -586,9 +623,10 @@ nsMultiMixedConv::OnDataAvailable(nsIRequest *request, nsISupports *context,
             // parse headers
             mNewPart = false;
             cursor = token;
-            bool done = false; 
+            bool done = false;
             rv = ParseHeaders(channel, cursor, bufLen, &done);
             if (NS_FAILED(rv)) return rv;
+
             if (done) {
                 rv = SendStart(channel);
                 if (NS_FAILED(rv)) return rv;
@@ -669,20 +707,27 @@ nsMultiMixedConv::OnStartRequest(nsIRequest *request, nsISupports *ctxt) {
 
     nsCOMPtr<nsIChannel> channel = do_QueryInterface(request, &rv);
     if (NS_FAILED(rv)) return rv;
-    
+
     // ask the HTTP channel for the content-type and extract the boundary from it.
     nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(channel, &rv);
     if (NS_SUCCEEDED(rv)) {
         rv = httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("content-type"), delimiter);
-        if (NS_FAILED(rv)) return rv;
+        if (NS_FAILED(rv)) {
+            return rv;
+        }
     } else {
         // try asking the channel directly
         rv = channel->GetContentType(delimiter);
-        if (NS_FAILED(rv)) return NS_ERROR_FAILURE;
+        if (NS_FAILED(rv)) {
+            return NS_ERROR_FAILURE;
+        }
     }
 
     bndry = strstr(delimiter.BeginWriting(), "boundary");
-    if (!bndry) return NS_ERROR_FAILURE;
+
+    if (!bndry) {
+        return NS_ERROR_FAILURE;
+    }
 
     bndry = strchr(bndry, '=');
     if (!bndry) return NS_ERROR_FAILURE;
@@ -699,19 +744,21 @@ nsMultiMixedConv::OnStartRequest(nsIRequest *request, nsISupports *ctxt) {
 
     mToken = boundaryString;
     mTokenLen = boundaryString.Length();
-    
-    if (mTokenLen == 0)
+
+    if (mTokenLen == 0) {
         return NS_ERROR_FAILURE;
+    }
 
     return NS_OK;
 }
 
 NS_IMETHODIMP
 nsMultiMixedConv::OnStopRequest(nsIRequest *request, nsISupports *ctxt,
-                                nsresult aStatus) {
-
-    if (mToken.IsEmpty())  // no token, no love.
+                                nsresult aStatus)
+{
+    if (mToken.IsEmpty()) { // no token, no love.
         return NS_ERROR_FAILURE;
+    }
 
     if (mPartChannel) {
         mPartChannel->SetIsLastPart();
@@ -731,12 +778,12 @@ nsMultiMixedConv::OnStopRequest(nsIRequest *request, nsISupports *ctxt,
         // underlying data production problem. we should not be in
         // the middle of sending data. if we were, mPartChannel,
         // above, would have been true.
-        
+
         // if we send the start, the URI Loader's m_targetStreamListener, may
         // be pointing at us causing a nice stack overflow.  So, don't call 
         // OnStartRequest!  -  This breaks necko's semantecs. 
         //(void) mFinalListener->OnStartRequest(request, ctxt);
-        
+
         (void) mFinalListener->OnStopRequest(request, ctxt, aStatus);
     }
 
@@ -866,7 +913,7 @@ nsMultiMixedConv::SendStop(nsresult aStatus) {
             (void) loadGroup->RemoveRequest(mPartChannel, mContext, aStatus);
     }
 
-    mPartChannel = 0;
+    mPartChannel = nullptr;
     return rv;
 }
 
@@ -928,7 +975,7 @@ nsMultiMixedConv::ParseHeaders(nsIChannel *aChannel, char *&aPtr,
     uint32_t cursorLen = aLen;
     bool done = false;
     uint32_t lineFeedIncrement = 1;
-    
+
     mContentLength = UINT64_MAX; // XXX what if we were already called?
     while (cursorLen && (newLine = (char *) memchr(cursor, nsCRT::LF, cursorLen))) {
         // adjust for linefeeds
@@ -952,6 +999,7 @@ nsMultiMixedConv::ParseHeaders(nsIChannel *aChannel, char *&aPtr,
 
         char tmpChar = *newLine;
         *newLine = '\0'; // cursor is now null terminated
+
         char *colon = (char *) strchr(cursor, ':');
         if (colon) {
             *colon = '\0';
@@ -1071,4 +1119,3 @@ NS_NewMultiMixedConv(nsMultiMixedConv** aMultiMixedConv)
     NS_ADDREF(*aMultiMixedConv);
     return NS_OK;
 }
-

@@ -17,7 +17,7 @@
 namespace mozilla {
 namespace browser {
 
-class DirectoryProvider MOZ_FINAL : public nsIDirectoryServiceProvider2
+class DirectoryProvider final : public nsIDirectoryServiceProvider2
 {
 public:
   NS_DECL_ISUPPORTS
@@ -25,7 +25,9 @@ public:
   NS_DECL_NSIDIRECTORYSERVICEPROVIDER2
 
 private:
-  class AppendingEnumerator MOZ_FINAL : public nsISimpleEnumerator
+  ~DirectoryProvider() {}
+
+  class AppendingEnumerator final : public nsISimpleEnumerator
   {
   public:
     NS_DECL_ISUPPORTS
@@ -35,6 +37,8 @@ private:
                         char const *const *aAppendList);
 
   private:
+    ~AppendingEnumerator() {}
+
     nsCOMPtr<nsISimpleEnumerator> mBase;
     char const *const *const      mAppendList;
     nsCOMPtr<nsIFile>             mNext;

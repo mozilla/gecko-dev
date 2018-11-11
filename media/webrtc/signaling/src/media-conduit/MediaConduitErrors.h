@@ -36,7 +36,10 @@ kMediaConduitPlayoutError,             // Runtime playout error
 kMediaConduitMTUError,                 // Can't set MTU
 kMediaConduitRTCPStatusError,          // Can't set RTCP mode
 kMediaConduitKeyFrameRequestError,     // Can't set KeyFrameRequest mode
-kMediaConduitNACKStatusError           // Can't set NACK mode
+kMediaConduitNACKStatusError,          // Can't set NACK mode
+kMediaConduitTMMBRStatusError,         // Can't set TMMBR mode
+kMediaConduitFECStatusError,           // Can't set FEC mode
+kMediaConduitHybridNACKFECStatusError  // Can't set Hybrid NACK / FEC mode
 };
 
 }

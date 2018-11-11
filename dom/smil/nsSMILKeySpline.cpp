@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -75,6 +76,10 @@ nsSMILKeySpline::GetSlope(double aT,
 double
 nsSMILKeySpline::GetTForX(double aX) const
 {
+  // Early return when aX == 1.0 to avoid floating-point inaccuracies.
+  if (aX == 1.0) {
+    return 1.0;
+  }
   // Find interval where t lies
   double intervalStart = 0.0;
   const double* currentSample = &mSampleValues[1];

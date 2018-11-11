@@ -16,9 +16,12 @@ Cu.import("resource://services-crypto/utils.js");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
 Cu.import("resource://gre/modules/Credentials.jsm");
 
-const HOST = Services.prefs.getCharPref("identity.fxaccounts.auth.uri");
+const HOST_PREF = "identity.fxaccounts.auth.uri";
 
-this.FxAccountsClient = function(host = HOST) {
+const SIGNIN = "/account/login";
+const SIGNUP = "/account/create";
+
+this.FxAccountsClient = function(host = Services.prefs.getCharPref(HOST_PREF)) {
   this.host = host;
 
   // The FxA auth server expects requests to certain endpoints to be authorized
@@ -57,33 +60,10 @@ this.FxAccountsClient.prototype = {
   },
 
   /**
-   * Create a new Firefox Account and authenticate
+   * Common code from signIn and signUp.
    *
-   * @param email
-   *        The email address for the account (utf8)
-   * @param password
-   *        The user's password
-   * @return Promise
-   *        Returns a promise that resolves to an object:
-   *        {
-   *          uid: the user's unique ID (hex)
-   *          sessionToken: a session token (hex)
-   *          keyFetchToken: a key fetch token (hex)
-   *        }
-   */
-  signUp: function(email, password) {
-    return Credentials.setup(email, password).then((creds) => {
-      let data = {
-        email: creds.emailUTF8,
-        authPW: CommonUtils.bytesAsHex(creds.authPW),
-      };
-      return this._request("/account/create", "POST", null, data);
-    });
-  },
-
-  /**
-   * Authenticate and create a new session with the Firefox Account API server
-   *
+   * @param path
+   *        Request URL path. Can be /account/create or /account/login
    * @param email
    *        The email address for the account (utf8)
    * @param password
@@ -103,18 +83,20 @@ this.FxAccountsClient.prototype = {
    *          uid: the user's unique ID (hex)
    *          unwrapBKey: used to unwrap kB, derived locally from the
    *                      password (not revealed to the FxA server)
-   *          verified: flag indicating verification status of the email
+   *          verified (optional): flag indicating verification status of the
+   *                               email
    *        }
    */
-  signIn: function signIn(email, password, getKeys=false, retryOK=true) {
+  _createSession: function(path, email, password, getKeys=false,
+                           retryOK=true) {
     return Credentials.setup(email, password).then((creds) => {
       let data = {
         authPW: CommonUtils.bytesAsHex(creds.authPW),
-        email: creds.emailUTF8,
+        email: email,
       };
       let keys = getKeys ? "?keys=true" : "";
 
-      return this._request("/account/login" + keys, "POST", null, data).then(
+      return this._request(path + keys, "POST", null, data).then(
         // Include the canonical capitalization of the email in the response so
         // the caller can set its signed-in user state accordingly.
         result => {
@@ -124,7 +106,7 @@ this.FxAccountsClient.prototype = {
           return result;
         },
         error => {
-          log.debug("signIn error: " + JSON.stringify(error));
+          log.debug("Session creation failed", error);
           // If the user entered an email with different capitalization from
           // what's stored in the database (e.g., Greta.Garbo@gmail.COM as
           // opposed to greta.garbo@gmail.com), the server will respond with a
@@ -141,12 +123,85 @@ this.FxAccountsClient.prototype = {
               log.error("Server returned errno 120 but did not provide email");
               throw error;
             }
-            return this.signIn(error.email, password, getKeys, false);
+            return this._createSession(path, error.email, password, getKeys,
+                                       false);
           }
           throw error;
         }
       );
     });
+  },
+
+  /**
+   * Create a new Firefox Account and authenticate
+   *
+   * @param email
+   *        The email address for the account (utf8)
+   * @param password
+   *        The user's password
+   * @param [getKeys=false]
+   *        If set to true the keyFetchToken will be retrieved
+   * @return Promise
+   *        Returns a promise that resolves to an object:
+   *        {
+   *          uid: the user's unique ID (hex)
+   *          sessionToken: a session token (hex)
+   *          keyFetchToken: a key fetch token (hex),
+   *          unwrapBKey: used to unwrap kB, derived locally from the
+   *                      password (not revealed to the FxA server)
+   *        }
+   */
+  signUp: function(email, password, getKeys=false) {
+    return this._createSession(SIGNUP, email, password, getKeys,
+                               false /* no retry */);
+  },
+
+  /**
+   * Authenticate and create a new session with the Firefox Account API server
+   *
+   * @param email
+   *        The email address for the account (utf8)
+   * @param password
+   *        The user's password
+   * @param [getKeys=false]
+   *        If set to true the keyFetchToken will be retrieved
+   * @return Promise
+   *        Returns a promise that resolves to an object:
+   *        {
+   *          authAt: authentication time for the session (seconds since epoch)
+   *          email: the primary email for this account
+   *          keyFetchToken: a key fetch token (hex)
+   *          sessionToken: a session token (hex)
+   *          uid: the user's unique ID (hex)
+   *          unwrapBKey: used to unwrap kB, derived locally from the
+   *                      password (not revealed to the FxA server)
+   *          verified: flag indicating verification status of the email
+   *        }
+   */
+  signIn: function signIn(email, password, getKeys=false) {
+    return this._createSession(SIGNIN, email, password, getKeys,
+                               true /* retry */);
+  },
+
+  /**
+   * Check the status of a session given a session token
+   *
+   * @param sessionTokenHex
+   *        The session token encoded in hex
+   * @return Promise
+   *        Resolves with a boolean indicating if the session is still valid
+   */
+  sessionStatus: function (sessionTokenHex) {
+    return this._request("/session/status", "GET",
+      deriveHawkCredentials(sessionTokenHex, "sessionToken")).then(
+        () => Promise.resolve(true),
+        error => {
+          if (isInvalidTokenError(error)) {
+            return Promise.resolve(false);
+          }
+          throw error;
+        }
+      );
   },
 
   /**
@@ -156,8 +211,12 @@ this.FxAccountsClient.prototype = {
    *        The session token encoded in hex
    * @return Promise
    */
-  signOut: function (sessionTokenHex) {
-    return this._request("/session/destroy", "POST",
+  signOut: function (sessionTokenHex, options = {}) {
+    let path = "/session/destroy";
+    if (options.service) {
+      path += "?service=" + encodeURIComponent(options.service);
+    }
+    return this._request(path, "POST",
       deriveHawkCredentials(sessionTokenHex, "sessionToken"));
   },
 
@@ -168,8 +227,13 @@ this.FxAccountsClient.prototype = {
    *        The current session token encoded in hex
    * @return Promise
    */
-  recoveryEmailStatus: function (sessionTokenHex) {
-    return this._request("/recovery_email/status", "GET",
+  recoveryEmailStatus: function (sessionTokenHex, options = {}) {
+    let path = "/recovery_email/status";
+    if (options.reason) {
+      path += "?reason=" + encodeURIComponent(options.reason);
+    }
+
+    return this._request(path, "GET",
       deriveHawkCredentials(sessionTokenHex, "sessionToken"));
   },
 
@@ -310,6 +374,172 @@ this.FxAccountsClient.prototype = {
     );
   },
 
+  /**
+   * Register a new device
+   *
+   * @method registerDevice
+   * @param  sessionTokenHex
+   *         Session token obtained from signIn
+   * @param  name
+   *         Device name
+   * @param  type
+   *         Device type (mobile|desktop)
+   * @param  [options]
+   *         Extra device options
+   * @param  [options.pushCallback]
+   *         `pushCallback` push endpoint callback
+   * @param  [options.pushPublicKey]
+   *         `pushPublicKey` push public key (URLSafe Base64 string)
+   * @param  [options.pushAuthKey]
+   *         `pushAuthKey` push auth secret (URLSafe Base64 string)
+   * @return Promise
+   *         Resolves to an object:
+   *         {
+   *           id: Device identifier
+   *           createdAt: Creation time (milliseconds since epoch)
+   *           name: Name of device
+   *           type: Type of device (mobile|desktop)
+   *         }
+   */
+  registerDevice(sessionTokenHex, name, type, options = {}) {
+    let path = "/account/device";
+
+    let creds = deriveHawkCredentials(sessionTokenHex, "sessionToken");
+    let body = { name, type };
+
+    if (options.pushCallback) {
+      body.pushCallback = options.pushCallback;
+    }
+    if (options.pushPublicKey && options.pushAuthKey) {
+      body.pushPublicKey = options.pushPublicKey;
+      body.pushAuthKey = options.pushAuthKey;
+    }
+
+    return this._request(path, "POST", creds, body);
+  },
+
+  /**
+   * Sends a message to other devices. Must conform with the push payload schema:
+   * https://github.com/mozilla/fxa-auth-server/blob/master/docs/pushpayloads.schema.json
+   *
+   * @method notifyDevice
+   * @param  sessionTokenHex
+   *         Session token obtained from signIn
+   * @param  deviceIds
+   *         Devices to send the message to
+   * @param  payload
+   *         Data to send with the message
+   * @return Promise
+   *         Resolves to an empty object:
+   *         {}
+   */
+  notifyDevices(sessionTokenHex, deviceIds, payload, TTL = 0) {
+    const body = {
+      to: deviceIds,
+      payload,
+      TTL
+    };
+    return this._request("/account/devices/notify", "POST",
+      deriveHawkCredentials(sessionTokenHex, "sessionToken"), body);
+  },
+
+  /**
+   * Update the session or name for an existing device
+   *
+   * @method updateDevice
+   * @param  sessionTokenHex
+   *         Session token obtained from signIn
+   * @param  id
+   *         Device identifier
+   * @param  name
+   *         Device name
+   * @param  [options]
+   *         Extra device options
+   * @param  [options.pushCallback]
+   *         `pushCallback` push endpoint callback
+   * @param  [options.pushPublicKey]
+   *         `pushPublicKey` push public key (URLSafe Base64 string)
+   * @param  [options.pushAuthKey]
+   *         `pushAuthKey` push auth secret (URLSafe Base64 string)
+   * @return Promise
+   *         Resolves to an object:
+   *         {
+   *           id: Device identifier
+   *           name: Device name
+   *         }
+   */
+  updateDevice(sessionTokenHex, id, name, options = {}) {
+    let path = "/account/device";
+
+    let creds = deriveHawkCredentials(sessionTokenHex, "sessionToken");
+    let body = { id, name };
+    if (options.pushCallback) {
+      body.pushCallback = options.pushCallback;
+    }
+    if (options.pushPublicKey && options.pushAuthKey) {
+      body.pushPublicKey = options.pushPublicKey;
+      body.pushAuthKey = options.pushAuthKey;
+    }
+
+    return this._request(path, "POST", creds, body);
+  },
+
+  /**
+   * Delete a device and its associated session token, signing the user
+   * out of the server.
+   *
+   * @method signOutAndDestroyDevice
+   * @param  sessionTokenHex
+   *         Session token obtained from signIn
+   * @param  id
+   *         Device identifier
+   * @param  [options]
+   *         Options object
+   * @param  [options.service]
+   *         `service` query parameter
+   * @return Promise
+   *         Resolves to an empty object:
+   *         {}
+   */
+  signOutAndDestroyDevice(sessionTokenHex, id, options = {}) {
+    let path = "/account/device/destroy";
+
+    if (options.service) {
+      path += "?service=" + encodeURIComponent(options.service);
+    }
+
+    let creds = deriveHawkCredentials(sessionTokenHex, "sessionToken");
+    let body = { id };
+
+    return this._request(path, "POST", creds, body);
+  },
+
+  /**
+   * Get a list of currently registered devices
+   *
+   * @method getDeviceList
+   * @param  sessionTokenHex
+   *         Session token obtained from signIn
+   * @return Promise
+   *         Resolves to an array of objects:
+   *         [
+   *           {
+   *             id: Device id
+   *             isCurrentDevice: Boolean indicating whether the item
+   *                              represents the current device
+   *             name: Device name
+   *             type: Device type (mobile|desktop)
+   *           },
+   *           ...
+   *         ]
+   */
+  getDeviceList(sessionTokenHex) {
+    let path = "/account/devices";
+    let creds = deriveHawkCredentials(sessionTokenHex, "sessionToken");
+
+    return this._request(path, "GET", creds, {});
+  },
+
   _clearBackoff: function() {
       this.backoffError = null;
   },
@@ -370,7 +600,7 @@ this.FxAccountsClient.prototype = {
             this,
             "fxaBackoffTimer"
            );
-	}
+        }
         deferred.reject(error);
       }
     );
@@ -379,3 +609,15 @@ this.FxAccountsClient.prototype = {
   },
 };
 
+function isInvalidTokenError(error) {
+  if (error.code != 401) {
+    return false;
+  }
+  switch (error.errno) {
+    case ERRNO_INVALID_AUTH_TOKEN:
+    case ERRNO_INVALID_AUTH_TIMESTAMP:
+    case ERRNO_INVALID_AUTH_NONCE:
+      return true;
+  }
+  return false;
+}

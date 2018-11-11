@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 // Added noise to test AST walker
 for (var i = 0; i < 5; i++) {
   square(i);
@@ -19,8 +23,9 @@ exports.promise = require('sdk/core/promise');
 
 exports.localJSM  = require('./dir/test.jsm');
 exports.promisejsm = require('modules/Promise.jsm').Promise;
+exports.require = require;
 
-let math = require('test-math');
+var math = require('test-math');
 exports.areModulesCached = (math === exports.math);
 
 // Added noise to test AST walker

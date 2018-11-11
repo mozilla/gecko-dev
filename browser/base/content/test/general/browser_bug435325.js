@@ -3,12 +3,10 @@
 
 /* Ensure that clicking the button in the Offline mode neterror page makes the browser go online. See bug 435325. */
 
-let proxyPrefValue;
+var proxyPrefValue;
 
 function test() {
   waitForExplicitFinish();
-
-  let tab = gBrowser.selectedTab = gBrowser.addTab();
 
   // Go offline and disable the proxy and cache, then try to load the test URL.
   Services.io.offline = true;
@@ -20,48 +18,47 @@ function test() {
 
   Services.prefs.setBoolPref("browser.cache.disk.enable", false);
   Services.prefs.setBoolPref("browser.cache.memory.enable", false);
-  content.location = "http://example.com/";
 
-  window.addEventListener("DOMContentLoaded", function load() {
-    if (content.location == "about:blank") {
-      info("got about:blank, which is expected once, so return");
-      return;
-    }
-    window.removeEventListener("DOMContentLoaded", load, false);
+  gBrowser.selectedTab = gBrowser.addTab("http://example.com/");
 
-    let observer = new MutationObserver(function (mutations) {
-      for (let mutation of mutations) {
-        if (mutation.attributeName == "hasBrowserHandlers") {
-          observer.disconnect();
-          checkPage();
-          return;
-        }
-      }
-    });
-    let docElt = tab.linkedBrowser.contentDocument.documentElement;
-    observer.observe(docElt, { attributes: true });
-  }, false);
+  let contentScript = `
+    let listener = function () {
+      removeEventListener("DOMContentLoaded", listener);
+      sendAsyncMessage("Test:DOMContentLoaded", { uri: content.document.documentURI });
+    };
+    addEventListener("DOMContentLoaded", listener);
+  `;
+
+  function pageloaded({ data }) {
+    mm.removeMessageListener("Test:DOMContentLoaded", pageloaded);
+    checkPage(data);
+  }
+
+  let mm = gBrowser.selectedBrowser.messageManager;
+  mm.addMessageListener("Test:DOMContentLoaded", pageloaded);
+  mm.loadFrameScript("data:," + contentScript, true);
 }
 
-function checkPage() {
+function checkPage(data) {
   ok(Services.io.offline, "Setting Services.io.offline to true.");
-  is(gBrowser.contentDocument.documentURI.substring(0,27),
-    "about:neterror?e=netOffline", "Loading the Offline mode neterror page.");
 
-  // Now press the "Try Again" button
-  ok(gBrowser.contentDocument.getElementById("errorTryAgain"),
-    "The error page has got a #errorTryAgain element");
+  is(data.uri.substring(0, 27),
+     "about:neterror?e=netOffline", "Loading the Offline mode neterror page.");
 
   // Re-enable the proxy so example.com is resolved to localhost, rather than
   // the actual example.com.
   Services.prefs.setIntPref("network.proxy.type", proxyPrefValue);
 
-  gBrowser.contentDocument.getElementById("errorTryAgain").click();
+  Services.obs.addObserver(function observer(aSubject, aTopic) {
+    ok(!Services.io.offline, "After clicking the Try Again button, we're back " +
+                             "online.");
+    Services.obs.removeObserver(observer, "network:offline-status-changed", false);
+    finish();
+  }, "network:offline-status-changed", false);
 
-  ok(!Services.io.offline, "After clicking the Try Again button, we're back " +
-                           "online.");
-
-  finish();
+  ContentTask.spawn(gBrowser.selectedBrowser, null, function* () {
+    content.document.getElementById("errorTryAgain").click();
+  });
 }
 
 registerCleanupFunction(function() {

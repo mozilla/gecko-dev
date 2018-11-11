@@ -102,16 +102,16 @@ public:
   }
 
   // nsContentSink methods
-  virtual void UpdateChildCounts();
-  virtual nsresult FlushTags();
+  virtual void UpdateChildCounts() override;
+  virtual nsresult FlushTags() override;
 
 protected:
 
-  nsHtml5DocumentBuilder(bool aRunsToCompletion);
+  explicit nsHtml5DocumentBuilder(bool aRunsToCompletion);
   virtual ~nsHtml5DocumentBuilder();
 
 protected:
-  nsAutoTArray<nsCOMPtr<nsIContent>, 32> mOwnedElements;
+  AutoTArray<nsCOMPtr<nsIContent>, 32> mOwnedElements;
   /**
    * Non-NS_OK if this parser should refuse to process any more input.
    * For example, the parser needs to be marked as broken if it drops some

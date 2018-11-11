@@ -35,7 +35,7 @@ unsigned int x86_disasm( unsigned char *buf, unsigned int buf_len,
 
         if ( offset >= buf_len ) {
                 /* another caller screwup ;) */
-                x86_report_error(report_disasm_bounds, (void*)(long)buf_rva+offset);
+                x86_report_error(report_disasm_bounds, (void*)(long)(buf_rva+offset));
                 return 0;
         }
 
@@ -53,13 +53,13 @@ unsigned int x86_disasm( unsigned char *buf, unsigned int buf_len,
 
         /* check and see if we had an invalid instruction */
         if (! size ) {
-                x86_report_error(report_invalid_insn, (void*)(long)buf_rva+offset );
+                x86_report_error(report_invalid_insn, (void*)(long)(buf_rva+offset));
                 return 0;
         }
 
         /* check if we overran the end of the buffer */
         if ( size > len ) {
-                x86_report_error( report_insn_bounds, (void*)(long)buf_rva + offset );
+                x86_report_error( report_insn_bounds, (void*)(long)(buf_rva + offset));
 		MAKE_INVALID( insn, bytes );
 		return 0;
 	}
@@ -165,7 +165,7 @@ unsigned int x86_disasm_forward( unsigned char *buf, unsigned int buf_len,
                         if (next_addr != -1 ) {
                                 next_offset = next_addr - buf_rva;
                                 /* if offset is in this buffer... */
-                                if ( next_addr >= buf_rva &&
+                                if ( (uint32_t)next_addr >= buf_rva &&
                                      next_offset < buf_len ) {
                                         /* go ahead and disassemble */
                                         count += x86_disasm_forward( buf,

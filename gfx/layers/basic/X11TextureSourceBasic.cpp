@@ -4,7 +4,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "X11TextureSourceBasic.h"
-#include "mozilla/layers/BasicCompositor.h"
 #include "gfxXlibSurface.h"
 #include "gfx2DGlue.h"
 
@@ -22,7 +21,7 @@ X11TextureSourceBasic::X11TextureSourceBasic(BasicCompositor* aCompositor, gfxXl
 IntSize
 X11TextureSourceBasic::GetSize() const
 {
-  return ToIntSize(mSurface->GetSize());
+  return mSurface->GetSize();
 }
 
 SurfaceFormat
@@ -36,12 +35,9 @@ SourceSurface*
 X11TextureSourceBasic::GetSurface(DrawTarget* aTarget)
 {
   if (!mSourceSurface) {
-    NativeSurface surf;
-    surf.mFormat = GetFormat();
-    surf.mType = NativeSurfaceType::CAIRO_SURFACE;
-    surf.mSurface = mSurface->CairoSurface();
-    surf.mSize = GetSize();
-    mSourceSurface = aTarget->CreateSourceSurfaceFromNativeSurface(surf);
+    mSourceSurface =
+        Factory::CreateSourceSurfaceForCairoSurface(mSurface->CairoSurface(),
+                                                    GetSize(), GetFormat());
   }
   return mSourceSurface;
 }
@@ -49,9 +45,7 @@ X11TextureSourceBasic::GetSurface(DrawTarget* aTarget)
 void
 X11TextureSourceBasic::SetCompositor(Compositor* aCompositor)
 {
-  MOZ_ASSERT(aCompositor->GetBackendType() == LayersBackend::LAYERS_BASIC);
-  BasicCompositor* compositor = static_cast<BasicCompositor*>(aCompositor);
-  mCompositor = compositor;
+  mCompositor = AssertBasicCompositor(aCompositor);
 }
 
 SurfaceFormat

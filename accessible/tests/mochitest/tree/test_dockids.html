@@ -16,19 +16,21 @@
           src="../states.js"></script>
 
   <script type="application/javascript">
+  //gA11yEventDumpToConsole = true;
+  //enableLogging("tree,verbose");
   function doTest()
   {
     var tree =
      { DOCUMENT: [
-       { PARAGRAPH: [ // head
-         { PARAGRAPH: [ // link
+       { TEXT_CONTAINER: [ // head
+         { TEXT_CONTAINER: [ // link
            { STATICTEXT: [] }, // generated content
            { STATICTEXT: [] } // generated content
          ] }
        ] },
        { TEXT_LEAF: [ ] }, // body text
        { ENTRY: [ ] }, // input under document element
-       { PARAGRAPH: [ // link under document element
+       { TEXT_CONTAINER: [ // link under document element
          { TEXT_LEAF: [ ] }, // link content
          { STATICTEXT: [ ] }, // generated content
          { STATICTEXT: [ ] } // generated content

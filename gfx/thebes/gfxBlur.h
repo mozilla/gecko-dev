@@ -8,23 +8,22 @@
 
 #include "gfxTypes.h"
 #include "nsSize.h"
-#include "nsAutoPtr.h"
 #include "gfxPoint.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/UniquePtr.h"
 
 class gfxContext;
 struct gfxRect;
-struct gfxRGBA;
-class gfxCornerSizes;
-class gfxMatrix;
 
 namespace mozilla {
   namespace gfx {
     class AlphaBoxBlur;
+    struct Color;
+    struct RectCornerRadii;
     class SourceSurface;
     class DrawTarget;
-  }
-}
+  } // namespace gfx
+} // namespace mozilla
 
 /**
  * Implementation of a triple box blur approximation of a Gaussian blur.
@@ -47,6 +46,10 @@ namespace mozilla {
  */
 class gfxAlphaBoxBlur
 {
+    typedef mozilla::gfx::Color Color;
+    typedef mozilla::gfx::DrawTarget DrawTarget;
+    typedef mozilla::gfx::RectCornerRadii RectCornerRadii;
+
 public:
     gfxAlphaBoxBlur();
 
@@ -71,8 +74,8 @@ public:
      *  for speed reasons. It is safe to pass nullptr here.
      */
     gfxContext* Init(const gfxRect& aRect,
-                     const gfxIntSize& aSpreadRadius,
-                     const gfxIntSize& aBlurRadius,
+                     const mozilla::gfx::IntSize& aSpreadRadius,
+                     const mozilla::gfx::IntSize& aBlurRadius,
                      const gfxRect* aDirtyRect,
                      const gfxRect* aSkipRect);
 
@@ -86,7 +89,8 @@ public:
         return mContext;
     }
 
-    mozilla::TemporaryRef<mozilla::gfx::SourceSurface> DoBlur(mozilla::gfx::DrawTarget* aDT, mozilla::gfx::IntPoint* aTopLeft);
+    already_AddRefed<mozilla::gfx::SourceSurface>
+    DoBlur(DrawTarget* aDT, mozilla::gfx::IntPoint* aTopLeft);
 
     /**
      * Does the actual blurring/spreading and mask applying. Users of this
@@ -104,7 +108,7 @@ public:
      * this function should be used as the aBlurRadius parameter to Init,
      * above.
      */
-    static gfxIntSize CalculateBlurRadius(const gfxPoint& aStandardDeviation);
+    static mozilla::gfx::IntSize CalculateBlurRadius(const gfxPoint& aStandardDeviation);
 
     /**
      * Blurs a coloured rectangle onto aDestinationCtx. This is equivalent
@@ -125,31 +129,66 @@ public:
      */
     static void BlurRectangle(gfxContext *aDestinationCtx,
                               const gfxRect& aRect,
-                              gfxCornerSizes* aCornerRadii,
+                              RectCornerRadii* aCornerRadii,
                               const gfxPoint& aBlurStdDev,
-                              const gfxRGBA& aShadowColor,
+                              const Color& aShadowColor,
                               const gfxRect& aDirtyRect,
                               const gfxRect& aSkipRect);
 
     static void ShutdownBlurCache();
 
-
+    /***
+     * Blurs an inset box shadow according to a given path.
+     * This is equivalent to calling Init(), drawing the inset path,
+     * and calling paint. Do not call Init() if using this method.
+     *
+     * @param aDestinationCtx     The destination to blur to.
+     * @param aDestinationRect    The destination rect in device pixels
+     * @param aShadowClipRect     The destiniation inner rect of the
+     *                            inset path in device pixels.
+     * @param aBlurRadius         The standard deviation of the blur.
+     * @param aSpreadRadius       The spread radius in device pixels.
+     * @param aShadowColor        The color of the blur.
+     * @param aHasBorderRadius    If this element also has a border radius
+     * @param aInnerClipRadii     Corner radii for the inside rect if it is a rounded rect.
+     * @param aSKipRect           An area in device pixels we don't have to paint in.
+     */
+    void BlurInsetBox(gfxContext* aDestinationCtx,
+                      const mozilla::gfx::Rect aDestinationRect,
+                      const mozilla::gfx::Rect aShadowClipRect,
+                      const mozilla::gfx::IntSize aBlurRadius,
+                      const mozilla::gfx::IntSize aSpreadRadius,
+                      const mozilla::gfx::Color& aShadowColor,
+                      const bool aHasBorderRadius,
+                      const RectCornerRadii& aInnerClipRadii,
+                      const mozilla::gfx::Rect aSkipRect,
+                      const mozilla::gfx::Point aShadowOffset);
 
 protected:
+    already_AddRefed<mozilla::gfx::SourceSurface>
+    GetInsetBlur(const mozilla::gfx::Rect aOuterRect,
+                 const mozilla::gfx::Rect aWhitespaceRect,
+                 const bool aIsDestRect,
+                 const mozilla::gfx::Color& aShadowColor,
+                 const mozilla::gfx::IntSize& aBlurRadius,
+                 const bool aHasBorderRadius,
+                 const RectCornerRadii& aInnerClipRadii,
+                 DrawTarget* aDestDrawTarget);
+
     /**
      * The context of the temporary alpha surface.
      */
-    nsRefPtr<gfxContext> mContext;
+    RefPtr<gfxContext> mContext;
 
     /**
      * The temporary alpha surface.
      */
-    nsAutoArrayPtr<unsigned char> mData;
+    mozilla::UniquePtr<unsigned char[]> mData;
 
      /**
       * The object that actually does the blurring for us.
       */
-    mozilla::gfx::AlphaBoxBlur *mBlur;
+    mozilla::UniquePtr<mozilla::gfx::AlphaBoxBlur> mBlur;
 };
 
 #endif /* GFX_BLUR_H */

@@ -8,8 +8,11 @@
 
 #include <stdint.h>
 
-#include "nsAutoPtr.h"
+#include "mozilla/EventForwards.h"
+
 #include "nsColor.h"
+#include "nsISelectionController.h"
+#include "nsITextInputProcessor.h"
 #include "nsStyleConsts.h"
 #include "nsTArray.h"
 
@@ -83,7 +86,7 @@ struct TextRangeStyle
            IsLineStyleDefined() && mLineStyle == LINESTYLE_NONE;
   }
 
-  bool Equals(const TextRangeStyle& aOther)
+  bool Equals(const TextRangeStyle& aOther) const
   {
     if (mDefinedStyles != aOther.mDefinedStyles)
       return false;
@@ -102,12 +105,12 @@ struct TextRangeStyle
     return true;
   }
 
-  bool operator !=(const TextRangeStyle &aOther)
+  bool operator !=(const TextRangeStyle &aOther) const
   {
     return !Equals(aOther);
   }
 
-  bool operator ==(const TextRangeStyle &aOther)
+  bool operator ==(const TextRangeStyle &aOther) const
   {
     return Equals(aOther);
   }
@@ -126,16 +129,33 @@ struct TextRangeStyle
  * mozilla::TextRange
  ******************************************************************************/
 
-#define NS_TEXTRANGE_CARETPOSITION         0x01
-#define NS_TEXTRANGE_RAWINPUT              0x02
-#define NS_TEXTRANGE_SELECTEDRAWTEXT       0x03
-#define NS_TEXTRANGE_CONVERTEDTEXT         0x04
-#define NS_TEXTRANGE_SELECTEDCONVERTEDTEXT 0x05
+enum class TextRangeType : RawTextRangeType
+{
+  eUninitialized     = 0x00,
+  eCaret             = 0x01,
+  eRawClause         = nsITextInputProcessor::ATTR_RAW_CLAUSE,
+  eSelectedRawClause = nsITextInputProcessor::ATTR_SELECTED_RAW_CLAUSE,
+  eConvertedClause   = nsITextInputProcessor::ATTR_CONVERTED_CLAUSE,
+  eSelectedClause    = nsITextInputProcessor::ATTR_SELECTED_CLAUSE
+};
+
+bool IsValidRawTextRangeValue(RawTextRangeType aRawTextRangeValue);
+RawTextRangeType ToRawTextRangeType(TextRangeType aTextRangeType);
+TextRangeType ToTextRangeType(RawTextRangeType aRawTextRangeType);
+const char* ToChar(TextRangeType aTextRangeType);
+SelectionType ToSelectionType(TextRangeType aTextRangeType);
+
+inline RawSelectionType ToRawSelectionType(TextRangeType aTextRangeType)
+{
+  return ToRawSelectionType(ToSelectionType(aTextRangeType));
+}
 
 struct TextRange
 {
-  TextRange() :
-    mStartOffset(0), mEndOffset(0), mRangeType(0)
+  TextRange()
+    : mStartOffset(0)
+    , mEndOffset(0)
+    , mRangeType(TextRangeType::eUninitialized)
   {
   }
 
@@ -143,27 +163,75 @@ struct TextRange
   // XXX Storing end offset makes the initializing code very complicated.
   //     We should replace it with mLength.
   uint32_t mEndOffset;
-  uint32_t mRangeType;
 
   TextRangeStyle mRangeStyle;
+
+  TextRangeType mRangeType;
 
   uint32_t Length() const { return mEndOffset - mStartOffset; }
 
   bool IsClause() const
   {
-    MOZ_ASSERT(mRangeType >= NS_TEXTRANGE_CARETPOSITION &&
-                 mRangeType <= NS_TEXTRANGE_SELECTEDCONVERTEDTEXT,
-               "Invalid range type");
-    return mRangeType != NS_TEXTRANGE_CARETPOSITION;
+    return mRangeType != TextRangeType::eCaret;
+  }
+
+  bool Equals(const TextRange& aOther) const
+  {
+    return mStartOffset == aOther.mStartOffset &&
+           mEndOffset == aOther.mEndOffset &&
+           mRangeType == aOther.mRangeType &&
+           mRangeStyle == aOther.mRangeStyle;
+  }
+
+  void RemoveCharacter(uint32_t aOffset)
+  {
+    if (mStartOffset > aOffset) {
+      --mStartOffset;
+      --mEndOffset;
+    } else if (mEndOffset > aOffset) {
+      --mEndOffset;
+    }
   }
 };
 
 /******************************************************************************
  * mozilla::TextRangeArray
  ******************************************************************************/
-class TextRangeArray MOZ_FINAL : public nsAutoTArray<TextRange, 10>
+class TextRangeArray final : public AutoTArray<TextRange, 10>
 {
+  friend class WidgetCompositionEvent;
+
+  ~TextRangeArray() {}
+
   NS_INLINE_DECL_REFCOUNTING(TextRangeArray)
+
+  const TextRange* GetTargetClause() const
+  {
+    for (uint32_t i = 0; i < Length(); ++i) {
+      const TextRange& range = ElementAt(i);
+      if (range.mRangeType == TextRangeType::eSelectedRawClause ||
+          range.mRangeType == TextRangeType::eSelectedClause) {
+        return &range;
+      }
+    }
+    return nullptr;
+  }
+
+  // Returns target clause offset.  If there are selected clauses, this returns
+  // the first selected clause offset.  Otherwise, 0.
+  uint32_t TargetClauseOffset() const
+  {
+    const TextRange* range = GetTargetClause();
+    return range ? range->mStartOffset : 0;
+  }
+
+  // Returns target clause length.  If there are selected clauses, this returns
+  // the first selected clause length.  Otherwise, UINT32_MAX.
+  uint32_t TargetClauseLength() const
+  {
+    const TextRange* range = GetTargetClause();
+    return range ? range->Length() : UINT32_MAX;
+  }
 
 public:
   bool IsComposing() const
@@ -176,18 +244,68 @@ public:
     return false;
   }
 
-  // Returns target clase offset.  If there are selected clauses, this returns
-  // the first selected clause offset.  Otherwise, 0.
-  uint32_t TargetClauseOffset() const
+  bool Equals(const TextRangeArray& aOther) const
   {
-    for (uint32_t i = 0; i < Length(); ++i) {
-      const TextRange& range = ElementAt(i);
-      if (range.mRangeType == NS_TEXTRANGE_SELECTEDRAWTEXT ||
-          range.mRangeType == NS_TEXTRANGE_SELECTEDCONVERTEDTEXT) {
+    size_t len = Length();
+    if (len != aOther.Length()) {
+      return false;
+    }
+    for (size_t i = 0; i < len; i++) {
+      if (!ElementAt(i).Equals(aOther.ElementAt(i))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void RemoveCharacter(uint32_t aOffset)
+  {
+    for (size_t i = 0, len = Length(); i < len; i++) {
+      ElementAt(i).RemoveCharacter(aOffset);
+    }
+  }
+
+  bool HasCaret() const
+  {
+    for (const TextRange& range : *this) {
+      if (range.mRangeType == TextRangeType::eCaret) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool HasClauses() const
+  {
+    for (const TextRange& range : *this) {
+      if (range.IsClause()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  uint32_t GetCaretPosition() const
+  {
+    for (const TextRange& range : *this) {
+      if (range.mRangeType == TextRangeType::eCaret) {
         return range.mStartOffset;
       }
     }
-    return 0;
+    return UINT32_MAX;
+  }
+
+  const TextRange* GetFirstClause() const
+  {
+    for (const TextRange& range : *this) {
+      // Look for the range of a clause whose start offset is 0 because the
+      // first clause's start offset is always 0.
+      if (range.IsClause() && !range.mStartOffset) {
+        return &range;
+      }
+    }
+    MOZ_ASSERT(!HasClauses());
+    return nullptr;
   }
 };
 

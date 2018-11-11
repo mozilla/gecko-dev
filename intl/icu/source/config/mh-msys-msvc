@@ -1,11 +1,18 @@
+## -*-makefile-*-
+## Copyright (C) 2016 and later: Unicode, Inc. and others.
+## License & terms of use: http://www.unicode.org/copyright.html
 ## MSYS with Microsoft Visual C++ compiler specific setup
-## Copyright (c) 2001-2013, International Business Machines Corporation and
+## Copyright (c) 2014, International Business Machines Corporation and
 ## others. All Rights Reserved.
 
 # We install sbin tools into the same bin directory because
 # pkgdata needs some of the tools in sbin, and we can't always depend on
 # icu-config working on Windows.
 sbindir=$(bindir)
+
+# Need this option to use / instead of - when specifying options for the
+# rc.exe command
+MSYS_RC_MODE=1
 
 ## Commands to generate dependency files
 GEN_DEPS.c=	:
@@ -118,7 +125,6 @@ LDFLAGSICUDT+=	-base:"0x4ad00000" -NOENTRY# The NOENTRY option is required for c
 LDFLAGSICUUC=	-base:"0x4a800000"# in-uc = 1MB
 LDFLAGSICUI18N=	-base:"0x4a900000"# io-in = 2MB
 LDFLAGSICUIO=	-base:"0x4ab00000"# le-io = 1MB
-LDFLAGSICULE=	-base:"0x4ac00000"# lx-le = 512KB
 LDFLAGSICULX=	-base:"0x4ac80000"
 LDFLAGSCTESTFW=# Unused for now.
 LDFLAGSICUTOOLUTIL=	-base:"0x4ac00000"# Same as layout. Layout and tools probably won't mix.
@@ -214,4 +220,3 @@ PKGDATA_INVOKE_OPTS = MAKEFLAGS=
 ENABLE_SO_VERSION_DATA=1
 
 ## End MSYS-specific setup
-

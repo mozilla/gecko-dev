@@ -21,24 +21,23 @@
 #ifndef BASE_CONTAINERS_HASH_TABLES_H_
 #define BASE_CONTAINERS_HASH_TABLES_H_
 
+#include <stddef.h>
+#include <stdint.h>
+
 #include <utility>
 
-#include "base/basictypes.h"
 #include "base/strings/string16.h"
 #include "build/build_config.h"
 
 #if defined(COMPILER_MSVC)
-#include <hash_map>
-#include <hash_set>
+#include <unordered_map>
+#include <unordered_set>
 
-#define BASE_HASH_NAMESPACE stdext
+#define BASE_HASH_NAMESPACE std
 
 #elif defined(COMPILER_GCC)
-#if defined(OS_ANDROID)
-#define BASE_HASH_NAMESPACE std
-#else
-#define BASE_HASH_NAMESPACE __gnu_cxx
-#endif
+
+#define BASE_HASH_NAMESPACE base_hash
 
 // This is a hack to disable the gcc 4.4 warning about hash_map and hash_set
 // being deprecated.  We can get rid of this when we upgrade to VS2008 and we
@@ -48,13 +47,9 @@
 #undef __DEPRECATED
 #endif
 
-#if defined(OS_ANDROID)
-#include <hash_map>
-#include <hash_set>
-#else
 #include <ext/hash_map>
 #include <ext/hash_set>
-#endif
+#define BASE_HASH_IMPL_NAMESPACE __gnu_cxx
 
 #include <string>
 
@@ -65,7 +60,26 @@
 
 namespace BASE_HASH_NAMESPACE {
 
-#if !defined(OS_ANDROID)
+// The pre-standard hash behaves like C++11's std::hash, except around pointers.
+// const char* is specialized to hash the C string and hash functions for
+// general T* are missing. Define a BASE_HASH_NAMESPACE::hash which aligns with
+// the C++11 behavior.
+
+template<typename T>
+struct hash {
+  std::size_t operator()(const T& value) const {
+    return BASE_HASH_IMPL_NAMESPACE::hash<T>()(value);
+  }
+};
+
+template<typename T>
+struct hash<T*> {
+  std::size_t operator()(T* value) const {
+    return BASE_HASH_IMPL_NAMESPACE::hash<uintptr_t>()(
+        reinterpret_cast<uintptr_t>(value));
+  }
+};
+
 // The GNU C++ library provides identity hash functions for many integral types,
 // but not for |long long|.  This hash function will truncate if |size_t| is
 // narrower than |long long|.  This is probably good enough for what we will
@@ -83,7 +97,6 @@ DEFINE_TRIVIAL_HASH(long long);
 DEFINE_TRIVIAL_HASH(unsigned long long);
 
 #undef DEFINE_TRIVIAL_HASH
-#endif  // !defined(OS_ANDROID)
 
 // Implement string hash functions so that strings of various flavors can
 // be used as keys in STL maps and sets.  The hash algorithm comes from the
@@ -103,7 +116,7 @@ DEFINE_TRIVIAL_HASH(unsigned long long);
     }
 
 DEFINE_STRING_HASH(std::string);
-DEFINE_STRING_HASH(string16);
+DEFINE_STRING_HASH(base::string16);
 
 #undef DEFINE_STRING_HASH
 
@@ -114,10 +127,67 @@ DEFINE_STRING_HASH(string16);
 #endif  // COMPILER
 
 namespace base {
-using BASE_HASH_NAMESPACE::hash_map;
-using BASE_HASH_NAMESPACE::hash_multimap;
-using BASE_HASH_NAMESPACE::hash_multiset;
-using BASE_HASH_NAMESPACE::hash_set;
+
+// On MSVC, use the C++11 containers.
+#if defined(COMPILER_MSVC)
+
+template<class Key, class T,
+         class Hash = std::hash<Key>,
+         class Pred = std::equal_to<Key>,
+         class Alloc = std::allocator<std::pair<const Key, T>>>
+using hash_map = std::unordered_map<Key, T, Hash, Pred, Alloc>;
+
+template<class Key, class T,
+         class Hash = std::hash<Key>,
+         class Pred = std::equal_to<Key>,
+         class Alloc = std::allocator<std::pair<const Key, T>>>
+using hash_multimap = std::unordered_multimap<Key, T, Hash, Pred, Alloc>;
+
+template<class Key,
+         class Hash = std::hash<Key>,
+         class Pred = std::equal_to<Key>,
+         class Alloc = std::allocator<Key>>
+using hash_multiset = std::unordered_multiset<Key, Hash, Pred, Alloc>;
+
+template<class Key,
+         class Hash = std::hash<Key>,
+         class Pred = std::equal_to<Key>,
+         class Alloc = std::allocator<Key>>
+using hash_set = std::unordered_set<Key, Hash, Pred, Alloc>;
+
+#else  // !COMPILER_MSVC
+
+// Otherwise, use the pre-standard ones, but override the default hash to match
+// C++11.
+template<class Key, class T,
+         class Hash = BASE_HASH_NAMESPACE::hash<Key>,
+         class Pred = std::equal_to<Key>,
+         class Alloc = std::allocator<std::pair<const Key, T>>>
+using hash_map = BASE_HASH_IMPL_NAMESPACE::hash_map<Key, T, Hash, Pred, Alloc>;
+
+template<class Key, class T,
+         class Hash = BASE_HASH_NAMESPACE::hash<Key>,
+         class Pred = std::equal_to<Key>,
+         class Alloc = std::allocator<std::pair<const Key, T>>>
+using hash_multimap =
+    BASE_HASH_IMPL_NAMESPACE::hash_multimap<Key, T, Hash, Pred, Alloc>;
+
+template<class Key,
+         class Hash = BASE_HASH_NAMESPACE::hash<Key>,
+         class Pred = std::equal_to<Key>,
+         class Alloc = std::allocator<Key>>
+using hash_multiset =
+    BASE_HASH_IMPL_NAMESPACE::hash_multiset<Key, Hash, Pred, Alloc>;
+
+template<class Key,
+         class Hash = BASE_HASH_NAMESPACE::hash<Key>,
+         class Pred = std::equal_to<Key>,
+         class Alloc = std::allocator<Key>>
+using hash_set = BASE_HASH_IMPL_NAMESPACE::hash_set<Key, Hash, Pred, Alloc>;
+
+#undef BASE_HASH_IMPL_NAMESPACE
+
+#endif  // COMPILER_MSVC
 
 // Implement hashing for pairs of at-most 32 bit integer values.
 // When size_t is 32 bits, we turn the 64-bit hash code into 32 bits by using
@@ -128,19 +198,19 @@ using BASE_HASH_NAMESPACE::hash_set;
 //   h32(x32, y32) = (h64(x32, y32) * rand_odd64 + rand16 * 2^16) % 2^64 / 2^32
 //
 // Contact danakj@chromium.org for any questions.
-inline std::size_t HashInts32(uint32 value1, uint32 value2) {
-  uint64 value1_64 = value1;
-  uint64 hash64 = (value1_64 << 32) | value2;
+inline std::size_t HashInts32(uint32_t value1, uint32_t value2) {
+  uint64_t value1_64 = value1;
+  uint64_t hash64 = (value1_64 << 32) | value2;
 
-  if (sizeof(std::size_t) >= sizeof(uint64))
+  if (sizeof(std::size_t) >= sizeof(uint64_t))
     return static_cast<std::size_t>(hash64);
 
-  uint64 odd_random = 481046412LL << 32 | 1025306955LL;
-  uint32 shift_random = 10121U << 16;
+  uint64_t odd_random = 481046412LL << 32 | 1025306955LL;
+  uint32_t shift_random = 10121U << 16;
 
   hash64 = hash64 * odd_random + shift_random;
   std::size_t high_bits = static_cast<std::size_t>(
-      hash64 >> (sizeof(uint64) - sizeof(std::size_t)));
+      hash64 >> (8 * (sizeof(uint64_t) - sizeof(std::size_t))));
   return high_bits;
 }
 
@@ -149,87 +219,46 @@ inline std::size_t HashInts32(uint32 value1, uint32 value2) {
 // breaking the two 64-bit inputs into 4 32-bit values:
 // http://opendatastructures.org/versions/edition-0.1d/ods-java/node33.html#SECTION00832000000000000000
 // Then we reduce our result to 32 bits if required, similar to above.
-inline std::size_t HashInts64(uint64 value1, uint64 value2) {
-  uint32 short_random1 = 842304669U;
-  uint32 short_random2 = 619063811U;
-  uint32 short_random3 = 937041849U;
-  uint32 short_random4 = 3309708029U;
+inline std::size_t HashInts64(uint64_t value1, uint64_t value2) {
+  uint32_t short_random1 = 842304669U;
+  uint32_t short_random2 = 619063811U;
+  uint32_t short_random3 = 937041849U;
+  uint32_t short_random4 = 3309708029U;
 
-  uint32 value1a = static_cast<uint32>(value1 & 0xffffffff);
-  uint32 value1b = static_cast<uint32>((value1 >> 32) & 0xffffffff);
-  uint32 value2a = static_cast<uint32>(value2 & 0xffffffff);
-  uint32 value2b = static_cast<uint32>((value2 >> 32) & 0xffffffff);
+  uint32_t value1a = static_cast<uint32_t>(value1 & 0xffffffff);
+  uint32_t value1b = static_cast<uint32_t>((value1 >> 32) & 0xffffffff);
+  uint32_t value2a = static_cast<uint32_t>(value2 & 0xffffffff);
+  uint32_t value2b = static_cast<uint32_t>((value2 >> 32) & 0xffffffff);
 
-  uint64 product1 = static_cast<uint64>(value1a) * short_random1;
-  uint64 product2 = static_cast<uint64>(value1b) * short_random2;
-  uint64 product3 = static_cast<uint64>(value2a) * short_random3;
-  uint64 product4 = static_cast<uint64>(value2b) * short_random4;
+  uint64_t product1 = static_cast<uint64_t>(value1a) * short_random1;
+  uint64_t product2 = static_cast<uint64_t>(value1b) * short_random2;
+  uint64_t product3 = static_cast<uint64_t>(value2a) * short_random3;
+  uint64_t product4 = static_cast<uint64_t>(value2b) * short_random4;
 
-  uint64 hash64 = product1 + product2 + product3 + product4;
+  uint64_t hash64 = product1 + product2 + product3 + product4;
 
-  if (sizeof(std::size_t) >= sizeof(uint64))
+  if (sizeof(std::size_t) >= sizeof(uint64_t))
     return static_cast<std::size_t>(hash64);
 
-  uint64 odd_random = 1578233944LL << 32 | 194370989LL;
-  uint32 shift_random = 20591U << 16;
+  uint64_t odd_random = 1578233944LL << 32 | 194370989LL;
+  uint32_t shift_random = 20591U << 16;
 
   hash64 = hash64 * odd_random + shift_random;
   std::size_t high_bits = static_cast<std::size_t>(
-      hash64 >> (sizeof(uint64) - sizeof(std::size_t)));
+      hash64 >> (8 * (sizeof(uint64_t) - sizeof(std::size_t))));
   return high_bits;
 }
 
-#define DEFINE_32BIT_PAIR_HASH(Type1, Type2) \
-inline std::size_t HashPair(Type1 value1, Type2 value2) { \
-  return HashInts32(value1, value2); \
+template<typename T1, typename T2>
+inline std::size_t HashPair(T1 value1, T2 value2) {
+  // This condition is expected to be compile-time evaluated and optimised away
+  // in release builds.
+  if (sizeof(T1) > sizeof(uint32_t) || (sizeof(T2) > sizeof(uint32_t)))
+    return HashInts64(value1, value2);
+
+  return HashInts32(value1, value2);
 }
 
-DEFINE_32BIT_PAIR_HASH(int16, int16);
-DEFINE_32BIT_PAIR_HASH(int16, uint16);
-DEFINE_32BIT_PAIR_HASH(int16, int32);
-DEFINE_32BIT_PAIR_HASH(int16, uint32);
-DEFINE_32BIT_PAIR_HASH(uint16, int16);
-DEFINE_32BIT_PAIR_HASH(uint16, uint16);
-DEFINE_32BIT_PAIR_HASH(uint16, int32);
-DEFINE_32BIT_PAIR_HASH(uint16, uint32);
-DEFINE_32BIT_PAIR_HASH(int32, int16);
-DEFINE_32BIT_PAIR_HASH(int32, uint16);
-DEFINE_32BIT_PAIR_HASH(int32, int32);
-DEFINE_32BIT_PAIR_HASH(int32, uint32);
-DEFINE_32BIT_PAIR_HASH(uint32, int16);
-DEFINE_32BIT_PAIR_HASH(uint32, uint16);
-DEFINE_32BIT_PAIR_HASH(uint32, int32);
-DEFINE_32BIT_PAIR_HASH(uint32, uint32);
-
-#undef DEFINE_32BIT_PAIR_HASH
-
-#define DEFINE_64BIT_PAIR_HASH(Type1, Type2) \
-inline std::size_t HashPair(Type1 value1, Type2 value2) { \
-  return HashInts64(value1, value2); \
-}
-
-DEFINE_64BIT_PAIR_HASH(int16, int64);
-DEFINE_64BIT_PAIR_HASH(int16, uint64);
-DEFINE_64BIT_PAIR_HASH(uint16, int64);
-DEFINE_64BIT_PAIR_HASH(uint16, uint64);
-DEFINE_64BIT_PAIR_HASH(int32, int64);
-DEFINE_64BIT_PAIR_HASH(int32, uint64);
-DEFINE_64BIT_PAIR_HASH(uint32, int64);
-DEFINE_64BIT_PAIR_HASH(uint32, uint64);
-DEFINE_64BIT_PAIR_HASH(int64, int16);
-DEFINE_64BIT_PAIR_HASH(int64, uint16);
-DEFINE_64BIT_PAIR_HASH(int64, int32);
-DEFINE_64BIT_PAIR_HASH(int64, uint32);
-DEFINE_64BIT_PAIR_HASH(int64, int64);
-DEFINE_64BIT_PAIR_HASH(int64, uint64);
-DEFINE_64BIT_PAIR_HASH(uint64, int16);
-DEFINE_64BIT_PAIR_HASH(uint64, uint16);
-DEFINE_64BIT_PAIR_HASH(uint64, int32);
-DEFINE_64BIT_PAIR_HASH(uint64, uint32);
-DEFINE_64BIT_PAIR_HASH(uint64, int64);
-DEFINE_64BIT_PAIR_HASH(uint64, uint64);
-
-#undef DEFINE_64BIT_PAIR_HASH
 }  // namespace base
 
 namespace BASE_HASH_NAMESPACE {
@@ -237,14 +266,6 @@ namespace BASE_HASH_NAMESPACE {
 // Implement methods for hashing a pair of integers, so they can be used as
 // keys in STL containers.
 
-#if defined(COMPILER_MSVC)
-
-template<typename Type1, typename Type2>
-inline std::size_t hash_value(const std::pair<Type1, Type2>& value) {
-  return base::HashPair(value.first, value.second);
-}
-
-#elif defined(COMPILER_GCC)
 template<typename Type1, typename Type2>
 struct hash<std::pair<Type1, Type2> > {
   std::size_t operator()(std::pair<Type1, Type2> value) const {
@@ -252,11 +273,7 @@ struct hash<std::pair<Type1, Type2> > {
   }
 };
 
-#else
-#error define hash<std::pair<Type1, Type2> > for your compiler
-#endif  // COMPILER
-
-}
+}  // namespace BASE_HASH_NAMESPACE
 
 #undef DEFINE_PAIR_HASH_FUNCTION_START
 #undef DEFINE_PAIR_HASH_FUNCTION_END

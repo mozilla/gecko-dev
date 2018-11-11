@@ -1,7 +1,9 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 *******************************************************************************
 *
-*   Copyright (C) 1999-2011, International Business Machines
+*   Copyright (C) 1999-2014, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *
 *******************************************************************************
@@ -100,11 +102,11 @@ UnicodeString::caseMap(const UCaseMap *csm,
   UChar *oldArray;
   int32_t oldLength;
 
-  if(fFlags&kUsingStackBuffer) {
+  if(fUnion.fFields.fLengthAndFlags&kUsingStackBuffer) {
     // copy the stack buffer contents because it will be overwritten
-    u_memcpy(oldStackBuffer, fUnion.fStackBuffer, fShortLength);
     oldArray = oldStackBuffer;
-    oldLength = fShortLength;
+    oldLength = getShortLength();
+    u_memcpy(oldStackBuffer, fUnion.fStackFields.fBuffer, oldLength);
   } else {
     oldArray = getArrayStart();
     oldLength = length();

@@ -1,9 +1,11 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "Gamepad.h"
-#include "nsAutoPtr.h"
+#include "nsPIDOMWindow.h"
 #include "nsTArray.h"
 #include "nsVariant.h"
 #include "mozilla/dom/GamepadBinding.h"
@@ -19,7 +21,19 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Gamepad)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(Gamepad, mParent, mButtons)
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(Gamepad, mParent, mButtons, mPose)
+
+void
+Gamepad::UpdateTimestamp()
+{
+  nsCOMPtr<nsPIDOMWindowInner> newWindow(do_QueryInterface(mParent));
+  if(newWindow) {
+    Performance* perf = newWindow->GetPerformance();
+    if (perf) {
+      mTimestamp =  perf->Now();
+    }
+  }
+}
 
 Gamepad::Gamepad(nsISupports* aParent,
                  const nsAString& aID, uint32_t aIndex,
@@ -31,13 +45,15 @@ Gamepad::Gamepad(nsISupports* aParent,
     mMapping(aMapping),
     mConnected(true),
     mButtons(aNumButtons),
-    mAxes(aNumAxes)
+    mAxes(aNumAxes),
+    mTimestamp(0)
 {
-  SetIsDOMBinding();
   for (unsigned i = 0; i < aNumButtons; i++) {
     mButtons.InsertElementAt(i, new GamepadButton(mParent));
   }
   mAxes.InsertElementsAt(0, aNumAxes, 0.0f);
+  mPose = new GamepadPose(aParent);
+  UpdateTimestamp();
 }
 
 void
@@ -58,6 +74,7 @@ Gamepad::SetButton(uint32_t aButton, bool aPressed, double aValue)
   MOZ_ASSERT(aButton < mButtons.Length());
   mButtons[aButton]->SetPressed(aPressed);
   mButtons[aButton]->SetValue(aValue);
+  UpdateTimestamp();
 }
 
 void
@@ -68,11 +85,20 @@ Gamepad::SetAxis(uint32_t aAxis, double aValue)
     mAxes[aAxis] = aValue;
     GamepadBinding::ClearCachedAxesValue(this);
   }
+  UpdateTimestamp();
+}
+
+void
+Gamepad::SetPose(const GamepadPoseState& aPose)
+{
+  mPose->SetPoseState(aPose);
 }
 
 void
 Gamepad::SyncState(Gamepad* aOther)
 {
+  const char* kGamepadExtEnabledPref = "dom.gamepad.extensions.enabled";
+
   if (mButtons.Length() != aOther->mButtons.Length() ||
       mAxes.Length() != aOther->mAxes.Length()) {
     return;
@@ -83,6 +109,7 @@ Gamepad::SyncState(Gamepad* aOther)
     mButtons[i]->SetPressed(aOther->mButtons[i]->Pressed());
     mButtons[i]->SetValue(aOther->mButtons[i]->Value());
   }
+
   bool changed = false;
   for (uint32_t i = 0; i < mAxes.Length(); ++i) {
     changed = changed || (mAxes[i] != aOther->mAxes[i]);
@@ -91,12 +118,19 @@ Gamepad::SyncState(Gamepad* aOther)
   if (changed) {
     GamepadBinding::ClearCachedAxesValue(this);
   }
+
+  if (Preferences::GetBool(kGamepadExtEnabledPref)) {
+    MOZ_ASSERT(aOther->GetPose());
+    mPose->SetPoseState(aOther->GetPose()->GetPoseState());
+  }
+
+  UpdateTimestamp();
 }
 
 already_AddRefed<Gamepad>
 Gamepad::Clone(nsISupports* aParent)
 {
-  nsRefPtr<Gamepad> out =
+  RefPtr<Gamepad> out =
     new Gamepad(aParent, mID, mIndex, mMapping,
                 mButtons.Length(), mAxes.Length());
   out->SyncState(this);
@@ -104,9 +138,9 @@ Gamepad::Clone(nsISupports* aParent)
 }
 
 /* virtual */ JSObject*
-Gamepad::WrapObject(JSContext* aCx)
+Gamepad::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return GamepadBinding::Wrap(aCx, this);
+  return GamepadBinding::Wrap(aCx, this, aGivenProto);
 }
 
 } // namespace dom

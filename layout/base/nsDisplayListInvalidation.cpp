@@ -6,6 +6,7 @@
 #include "nsDisplayListInvalidation.h"
 #include "nsDisplayList.h"
 #include "nsIFrame.h"
+#include "nsTableFrame.h"
 
 nsDisplayItemGeometry::nsDisplayItemGeometry(nsDisplayItem* aItem, nsDisplayListBuilder* aBuilder)
 {
@@ -24,10 +25,16 @@ nsDisplayItemGenericGeometry::nsDisplayItemGenericGeometry(nsDisplayItem* aItem,
   , mBorderRect(aItem->GetBorderRect())
 {}
 
+bool
+ShouldSyncDecodeImages(nsDisplayListBuilder* aBuilder)
+{
+  return aBuilder->ShouldSyncDecodeImages();
+}
+
 void
 nsDisplayItemGenericGeometry::MoveBy(const nsPoint& aOffset)
 {
-  mBounds.MoveBy(aOffset);
+  nsDisplayItemGeometry::MoveBy(aOffset);
   mBorderRect.MoveBy(aOffset);
 }
 
@@ -38,35 +45,33 @@ nsDisplayItemBoundsGeometry::nsDisplayItemBoundsGeometry(nsDisplayItem* aItem, n
   mHasRoundedCorners = aItem->Frame()->GetBorderRadii(radii);
 }
 
-void
-nsDisplayItemBoundsGeometry::MoveBy(const nsPoint& aOffset)
-{
-  mBounds.MoveBy(aOffset);
-}
-
 nsDisplayBorderGeometry::nsDisplayBorderGeometry(nsDisplayItem* aItem, nsDisplayListBuilder* aBuilder)
   : nsDisplayItemGeometry(aItem, aBuilder)
+  , nsImageGeometryMixin(aItem, aBuilder)
   , mContentRect(aItem->GetContentRect())
 {}
 
 void
 nsDisplayBorderGeometry::MoveBy(const nsPoint& aOffset)
 {
-  mBounds.MoveBy(aOffset);
+  nsDisplayItemGeometry::MoveBy(aOffset);
   mContentRect.MoveBy(aOffset);
 }
 
 nsDisplayBackgroundGeometry::nsDisplayBackgroundGeometry(nsDisplayBackgroundImage* aItem,
                                                          nsDisplayListBuilder* aBuilder)
   : nsDisplayItemGeometry(aItem, aBuilder)
+  , nsImageGeometryMixin(aItem, aBuilder)
   , mPositioningArea(aItem->GetPositioningArea())
+  , mDestRect(aItem->GetDestRect())
 {}
 
 void
 nsDisplayBackgroundGeometry::MoveBy(const nsPoint& aOffset)
 {
-  mBounds.MoveBy(aOffset);
+  nsDisplayItemGeometry::MoveBy(aOffset);
   mPositioningArea.MoveBy(aOffset);
+  mDestRect.MoveBy(aOffset);
 }
 
 nsDisplayThemedBackgroundGeometry::nsDisplayThemedBackgroundGeometry(nsDisplayThemedBackground* aItem,
@@ -79,7 +84,7 @@ nsDisplayThemedBackgroundGeometry::nsDisplayThemedBackgroundGeometry(nsDisplayTh
 void
 nsDisplayThemedBackgroundGeometry::MoveBy(const nsPoint& aOffset)
 {
-  mBounds.MoveBy(aOffset);
+  nsDisplayItemGeometry::MoveBy(aOffset);
   mPositioningArea.MoveBy(aOffset);
 }
 
@@ -91,7 +96,58 @@ nsDisplayBoxShadowInnerGeometry::nsDisplayBoxShadowInnerGeometry(nsDisplayItem* 
 void
 nsDisplayBoxShadowInnerGeometry::MoveBy(const nsPoint& aOffset)
 {
-  mBounds.MoveBy(aOffset);
+  nsDisplayItemGeometry::MoveBy(aOffset);
   mPaddingRect.MoveBy(aOffset);
 }
 
+nsDisplayBoxShadowOuterGeometry::nsDisplayBoxShadowOuterGeometry(nsDisplayItem* aItem,
+    nsDisplayListBuilder* aBuilder, float aOpacity)
+  : nsDisplayItemGenericGeometry(aItem, aBuilder)
+  , mOpacity(aOpacity)
+{}
+
+void
+nsDisplaySolidColorRegionGeometry::MoveBy(const nsPoint& aOffset)
+{
+  nsDisplayItemGeometry::MoveBy(aOffset);
+  mRegion.MoveBy(aOffset);
+}
+
+nsDisplaySVGEffectGeometry::nsDisplaySVGEffectGeometry(nsDisplaySVGEffects* aItem, nsDisplayListBuilder* aBuilder)
+  : nsDisplayItemGeometry(aItem, aBuilder)
+  , mBBox(aItem->BBoxInUserSpace())
+  , mUserSpaceOffset(aItem->UserSpaceOffset())
+  , mFrameOffsetToReferenceFrame(aItem->ToReferenceFrame())
+{}
+
+void
+nsDisplaySVGEffectGeometry::MoveBy(const nsPoint& aOffset)
+{
+  mBounds.MoveBy(aOffset);
+  mFrameOffsetToReferenceFrame += aOffset;
+}
+
+nsDisplayMaskGeometry::nsDisplayMaskGeometry(nsDisplayMask* aItem, nsDisplayListBuilder* aBuilder)
+  : nsDisplaySVGEffectGeometry(aItem, aBuilder)
+  , nsImageGeometryMixin(aItem, aBuilder)
+  , mDestRects(aItem->GetDestRects())
+{}
+
+nsDisplayFilterGeometry::nsDisplayFilterGeometry(nsDisplayFilter* aItem, nsDisplayListBuilder* aBuilder)
+  : nsDisplaySVGEffectGeometry(aItem, aBuilder)
+  , nsImageGeometryMixin(aItem, aBuilder)
+{}
+
+nsCharClipGeometry::nsCharClipGeometry(nsCharClipDisplayItem* aItem, nsDisplayListBuilder* aBuilder)
+  : nsDisplayItemGenericGeometry(aItem, aBuilder)
+  , mVisIStartEdge(aItem->mVisIStartEdge)
+  , mVisIEndEdge(aItem->mVisIEndEdge)
+{}
+
+nsDisplayTableItemGeometry::nsDisplayTableItemGeometry(nsDisplayTableItem* aItem,
+                                                       nsDisplayListBuilder* aBuilder,
+                                                       const nsPoint& aFrameOffsetToViewport)
+  : nsDisplayItemGenericGeometry(aItem, aBuilder)
+  , nsImageGeometryMixin(aItem, aBuilder)
+  , mFrameOffsetToViewport(aFrameOffsetToViewport)
+{}

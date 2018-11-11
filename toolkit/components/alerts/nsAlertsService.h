@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+// /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -28,19 +28,21 @@ typedef HRESULT (__stdcall *SHQueryUserNotificationStatePtr)(MOZ_QUERY_USER_NOTI
 #endif // defined(XP_WIN)
 
 class nsAlertsService : public nsIAlertsService,
-                        public nsIAlertsProgressListener
+                        public nsIAlertsDoNotDisturb
 {
 public:
-  NS_DECL_NSIALERTSPROGRESSLISTENER
+  NS_DECL_NSIALERTSDONOTDISTURB
   NS_DECL_NSIALERTSSERVICE
   NS_DECL_ISUPPORTS
 
   nsAlertsService();
-  virtual ~nsAlertsService();
 
 protected:
+  virtual ~nsAlertsService();
+
   bool ShouldShowAlert();
-  nsXULAlerts mXULAlerts;
+  already_AddRefed<nsIAlertsDoNotDisturb> GetDNDBackend();
+  nsCOMPtr<nsIAlertsService> mBackend;
 };
 
 #endif /* nsAlertsService_h__ */

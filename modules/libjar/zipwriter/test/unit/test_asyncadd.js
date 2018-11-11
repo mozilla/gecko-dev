@@ -3,6 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+var Cu = Components.utils;
+Cu.import("resource://gre/modules/NetUtil.jsm");
+
 // Values taken from using zipinfo to list the test.zip contents
 var TESTS = [
   {
@@ -68,13 +71,19 @@ var methods = {
   {
     zipW.addEntryChannel(entry, source.lastModifiedTime * PR_MSEC_PER_SEC,
                          Ci.nsIZipWriter.COMPRESSION_NONE,
-                         ioSvc.newChannelFromURI(ioSvc.newFileURI(source)), true);
+                         NetUtil.newChannel({
+                           uri: ioSvc.newFileURI(source),
+                           loadUsingSystemPrincipal: true
+                         }), true);
   },
   stream: function method_stream(entry, source)
   {
     zipW.addEntryStream(entry, source.lastModifiedTime * PR_MSEC_PER_SEC,
                         Ci.nsIZipWriter.COMPRESSION_NONE,
-                        ioSvc.newChannelFromURI(ioSvc.newFileURI(source)).open(), true);
+                        NetUtil.newChannel({
+                          uri: ioSvc.newFileURI(source),
+                          loadUsingSystemPrincipal: true
+                        }).open2(), true);
   }
 }
 

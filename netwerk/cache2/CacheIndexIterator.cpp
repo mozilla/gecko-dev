@@ -32,7 +32,7 @@ CacheIndexIterator::GetNextHash(SHA1Sum::Hash *aHash)
 {
   LOG(("CacheIndexIterator::GetNextHash() [this=%p]", this));
 
-  CacheIndexAutoLock lock(mIndex);
+  StaticMutexAutoLock lock(CacheIndex::sLock);
 
   if (NS_FAILED(mStatus)) {
     return mStatus;
@@ -54,7 +54,7 @@ CacheIndexIterator::Close()
 {
   LOG(("CacheIndexIterator::Close() [this=%p]", this));
 
-  CacheIndexAutoLock lock(mIndex);
+  StaticMutexAutoLock lock(CacheIndex::sLock);
 
   return CloseInternal(NS_ERROR_NOT_AVAILABLE);
 }
@@ -90,14 +90,6 @@ CacheIndexIterator::AddRecord(CacheIndexRecord *aRecord)
   mRecords.AppendElement(aRecord);
 }
 
-void
-CacheIndexIterator::AddRecords(const nsTArray<CacheIndexRecord *> &aRecords)
-{
-  LOG(("CacheIndexIterator::AddRecords() [this=%p]", this));
-
-  mRecords.AppendElements(aRecords);
-}
-
 bool
 CacheIndexIterator::RemoveRecord(CacheIndexRecord *aRecord)
 {
@@ -122,5 +114,5 @@ CacheIndexIterator::ReplaceRecord(CacheIndexRecord *aOldRecord,
   return false;
 }
 
-} // net
-} // mozilla
+} // namespace net
+} // namespace mozilla

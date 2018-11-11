@@ -1,0 +1,21 @@
+This is the woff2 library from
+https://github.com/google/woff2.
+
+Upstream code can be viewed at
+  https://github.com/google/woff2/tree/master/src
+
+and cloned by
+  git clone https://github.com/google/woff2
+
+The in-tree copy is updated by running
+  sh update.sh
+from within the modules/woff2 directory.
+
+Current version: [commit 63b8fb6d0d797f04e77ee825fd8fcf7ea6205aac].
+
+redefine-unique_ptr.patch redefines the class std::unique_ptr to workaround a
+build issue with missing C++11 features.
+See https://bugzilla.mozilla.org/show_bug.cgi?id=1227058
+
+missing-assert-header.patch contains the upstream change from commit
+07cd303dd2959cbf69a6840706c0896e49e42677 adding the missing assert.h header.

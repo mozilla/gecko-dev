@@ -2,16 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef MERGED_COMPARTMENT
-
 this.EXPORTED_SYMBOLS = ["Observers"];
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
-const Cu = Components.utils;
-
-#endif
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cr = Components.results;
+var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -62,9 +58,9 @@ this.Observers = {
     // we can make it.  We could index by topic, but we can't index by callback
     // or thisObject, as far as I know, since the keys to JavaScript hashes
     // (a.k.a. objects) can apparently only be primitive values.
-    let [observer] = this._cache.filter(function(v) v.topic      == topic    &&
-                                                    v.callback   == callback &&
-                                                    v.thisObject == thisObject);
+    let [observer] = this._cache.filter(v => v.topic      == topic    &&
+                                             v.callback   == callback &&
+                                             v.thisObject == thisObject);
     if (observer) {
       this._service.removeObserver(observer, topic);
       this._cache.splice(this._cache.indexOf(observer), 1);
@@ -149,6 +145,6 @@ function Subject(object) {
 
 Subject.prototype = {
   QueryInterface: XPCOMUtils.generateQI([]),
-  getHelperForLanguage: function() {},
+  getScriptableHelper: function() {},
   getInterfaces: function() {}
 };

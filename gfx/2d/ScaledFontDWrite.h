@@ -10,40 +10,54 @@
 #include "ScaledFontBase.h"
 
 struct ID2D1GeometrySink;
+struct gfxFontStyle;
 
 namespace mozilla {
 namespace gfx {
 
-class ScaledFontDWrite MOZ_FINAL : public ScaledFontBase
+class ScaledFontDWrite final : public ScaledFontBase
 {
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(ScaledFontDwrite)
   ScaledFontDWrite(IDWriteFontFace *aFont, Float aSize)
-    : mFontFace(aFont)
-    , ScaledFontBase(aSize)
+    : ScaledFontBase(aSize)
+    , mFontFace(aFont)
+    , mUseEmbeddedBitmap(false)
+    , mForceGDIMode(false)
   {}
-  ScaledFontDWrite(uint8_t *aData, uint32_t aSize, uint32_t aIndex, Float aGlyphSize);
+
+  ScaledFontDWrite(IDWriteFontFace *aFontFace, Float aSize, bool aUseEmbeddedBitmap,
+                   bool aForceGDIMode, const gfxFontStyle* aStyle);
 
   virtual FontType GetType() const { return FontType::DWRITE; }
 
-  virtual TemporaryRef<Path> GetPathForGlyphs(const GlyphBuffer &aBuffer, const DrawTarget *aTarget);
-  virtual void CopyGlyphsToBuilder(const GlyphBuffer &aBuffer, PathBuilder *aBuilder, BackendType aBackendType, const Matrix *aTransformHint);
+  virtual already_AddRefed<Path> GetPathForGlyphs(const GlyphBuffer &aBuffer, const DrawTarget *aTarget);
+  virtual void CopyGlyphsToBuilder(const GlyphBuffer &aBuffer, PathBuilder *aBuilder, const Matrix *aTransformHint);
 
   void CopyGlyphsToSink(const GlyphBuffer &aBuffer, ID2D1GeometrySink *aSink);
 
+  virtual void GetGlyphDesignMetrics(const uint16_t* aGlyphIndices, uint32_t aNumGlyphs, GlyphMetrics* aGlyphMetrics);
+
   virtual bool GetFontFileData(FontFileDataOutput aDataCallback, void *aBaton);
 
-  virtual AntialiasMode GetDefaultAAMode();
+  virtual AntialiasMode GetDefaultAAMode() override;
+
+  bool UseEmbeddedBitmaps() { return mUseEmbeddedBitmap; }
+  bool ForceGDIMode() { return mForceGDIMode; }
 
 #ifdef USE_SKIA
-  virtual SkTypeface* GetSkTypeface()
-  {
-    MOZ_ASSERT(false, "Skia and DirectWrite do not mix");
-    return nullptr;
-  }
+  virtual SkTypeface* GetSkTypeface();
+  SkFontStyle mStyle;
 #endif
 
   RefPtr<IDWriteFontFace> mFontFace;
+  bool mUseEmbeddedBitmap;
+  bool mForceGDIMode;
+
+protected:
+#ifdef USE_CAIRO_SCALED_FONT
+  cairo_font_face_t* GetCairoFontFace() override;
+#endif
 };
 
 class GlyphRenderingOptionsDWrite : public GlyphRenderingOptions

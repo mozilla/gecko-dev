@@ -18,7 +18,9 @@ class nsICancelable;
 namespace mozilla {
 namespace net {
 
-class DNSListenerProxy MOZ_FINAL : public nsIDNSListener
+class DNSListenerProxy final
+    : public nsIDNSListener
+    , public nsIDNSListenerProxy
 {
 public:
   DNSListenerProxy(nsIDNSListener* aListener, nsIEventTarget* aTargetThread)
@@ -32,8 +34,9 @@ public:
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIDNSLISTENER
+  NS_DECL_NSIDNSLISTENERPROXY
 
-  class OnLookupCompleteRunnable : public nsRunnable
+  class OnLookupCompleteRunnable : public Runnable
   {
   public:
     OnLookupCompleteRunnable(const nsMainThreadPtrHandle<nsIDNSListener>& aListener,
@@ -56,6 +59,8 @@ public:
   };
 
 private:
+  ~DNSListenerProxy() {}
+
   nsMainThreadPtrHandle<nsIDNSListener> mListener;
   nsCOMPtr<nsIEventTarget> mTargetThread;
 };
@@ -63,4 +68,5 @@ private:
 
 } // namespace net
 } // namespace mozilla
+
 #endif // DNSListenerProxy_h__

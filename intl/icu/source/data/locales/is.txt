@@ -1,16 +1,7 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/is.xml
-// *
-// ***************************************************************************
-/**
- * ICU <specials> source: <path>/common/main/is.xml
- */
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 is{
-    AuxExemplarCharacters{"[c q w x z]"}
+    AuxExemplarCharacters{"[c q w z]"}
     Ellipsis{
         final{"{0}…"}
         initial{"…{0}"}
@@ -19,17 +10,15 @@ is{
         word-initial{"… {0}"}
         word-medial{"{0} … {1}"}
     }
-    ExemplarCharacters{"[a á b d ð e é f g h i í j k l m n o ó p r s t u ú v y ý þ æ ö]"}
+    ExemplarCharacters{"[a á b d ð e é f g h i í j k l m n o ó p r s t u ú v x y ý þ æ ö]"}
     ExemplarCharactersIndex{"[A Á B C D Ð E É F G H I Í J K L M N O Ó P Q R S T U Ú V W X Y Ý Z Þ Æ Ö]"}
     ExemplarCharactersPunctuation{
         "[\\- ‐ – — , ; \\: ! ? . … ' ‘ ‚ \u0022 “ „ ( ) \\[ \\] § @ * / \\& # † ‡ ′ "
         "″]"
     }
-    LocaleScript{
-        "Latn",
-    }
     MoreInformation{"?"}
     NumberElements{
+        default{"latn"}
         latn{
             miscPatterns{
                 atLeast{"{0}+"}
@@ -61,7 +50,7 @@ is{
                         other{"0 milljónir"}
                     }
                     10000000{
-                        one{"00 milljónir"}
+                        one{"00 milljón"}
                         other{"00 milljónir"}
                     }
                     100000000{
@@ -73,11 +62,11 @@ is{
                         other{"0 milljarðar"}
                     }
                     10000000000{
-                        one{"00 milljarðar"}
+                        one{"00 milljarður"}
                         other{"00 milljarðar"}
                     }
                     100000000000{
-                        one{"000 milljarðar"}
+                        one{"000 milljarður"}
                         other{"000 milljarðar"}
                     }
                     1000000000000{
@@ -85,16 +74,54 @@ is{
                         other{"0 billjónir"}
                     }
                     10000000000000{
-                        one{"00 billjónir"}
+                        one{"00 billjón"}
                         other{"00 billjónir"}
                     }
                     100000000000000{
-                        one{"000 billjónir"}
+                        one{"000 billjón"}
                         other{"000 billjónir"}
                     }
                 }
             }
             patternsShort{
+                currencyFormat{
+                    1000{
+                        one{"0 þ'.' ¤"}
+                        other{"0 þ'.' ¤"}
+                    }
+                    10000{
+                        one{"00 þ'.' ¤"}
+                        other{"00 þ'.' ¤"}
+                    }
+                    100000{
+                        one{"000 þ'.' ¤"}
+                        other{"000 þ'.' ¤"}
+                    }
+                    1000000{
+                        one{"0 m'.' ¤"}
+                        other{"0 m'.' ¤"}
+                    }
+                    10000000{
+                        one{"00 m'.' ¤"}
+                        other{"00 m'.' ¤"}
+                    }
+                    100000000{
+                        one{"000 m'.' ¤"}
+                        other{"000 m'.' ¤"}
+                    }
+                    1000000000{
+                        one{"0 ma'.' ¤"}
+                        other{"0 ma'.' ¤"}
+                    }
+                    10000000000{
+                        one{"00 ma'.' ¤"}
+                        other{"00 ma'.' ¤"}
+                    }
+                    100000000000{
+                        one{"000 ma'.' ¤"}
+                        other{"000 ma'.' ¤"}
+                    }
+                }
                 decimalFormat{
                     1000{
                         one{"0 þ'.'"}
@@ -158,10 +185,13 @@ is{
                 percentSign{"%"}
                 plusSign{"+"}
                 superscriptingExponent{"×"}
+                timeSeparator{":"}
             }
         }
+        minimumGroupingDigits{"1"}
+        native{"latn"}
     }
-    Version{"2.0.92.87"}
+    Version{"2.1.29.65"}
     calendar{
         generic{
             DateTimePatterns{
@@ -174,12 +204,13 @@ is{
                 "d.M.y G",
                 "d.M.y GGGGG",
                 "{1}, {0}",
-                "{1} 'kl.' {0}",
-                "{1} 'kl.' {0}",
+                "{1} 'kl'. {0}",
+                "{1} 'kl'. {0}",
                 "{1}, {0}",
                 "{1}, {0}",
             }
             availableFormats{
+                E{"ccc"}
                 Ed{"E d."}
                 Gy{"y G"}
                 GyMMM{"MMM y G"}
@@ -317,9 +348,13 @@ is{
                 "f.h.",
                 "e.h.",
             }
-            AmPmMarkersNarrow{
+            AmPmMarkersAbbr{
                 "f.h.",
                 "e.h.",
+            }
+            AmPmMarkersNarrow{
+                "f.",
+                "e.",
             }
             DateTimePatterns{
                 "HH:mm:ss zzzz",
@@ -331,8 +366,8 @@ is{
                 "d. MMM y",
                 "d.M.y",
                 "{1}, {0}",
-                "{1} 'kl.' {0}",
-                "{1} 'kl.' {0}",
+                "{1} 'kl'. {0}",
+                "{1} 'kl'. {0}",
                 "{1}, {0}",
                 "{1}, {0}",
             }
@@ -340,6 +375,7 @@ is{
                 Timezone{"{0} {1}"}
             }
             availableFormats{
+                E{"ccc"}
                 EHm{"E, HH:mm"}
                 EHms{"E, HH:mm:ss"}
                 Ed{"E d."}
@@ -352,11 +388,17 @@ is{
                 H{"HH"}
                 Hm{"HH:mm"}
                 Hms{"HH:mm:ss"}
+                Hmsv{"HH:mm:ss v"}
+                Hmv{"HH:mm v"}
                 M{"L"}
                 MEd{"E, d.M."}
                 MMM{"LLL"}
                 MMMEd{"E, d. MMM"}
                 MMMMEd{"E, d. MMMM"}
+                MMMMW{
+                    one{"'viku' W 'í' MMM"}
+                    other{"'viku' W 'í' MMM"}
+                }
                 MMMMd{"d. MMMM"}
                 MMMd{"d. MMM"}
                 Md{"d.M."}
@@ -364,6 +406,8 @@ is{
                 h{"h a"}
                 hm{"h:mm a"}
                 hms{"h:mm:ss a"}
+                hmsv{"h:mm:ss a v"}
+                hmv{"h:mm a v"}
                 ms{"mm:ss"}
                 y{"y"}
                 yM{"M. y"}
@@ -375,6 +419,10 @@ is{
                 yMd{"d.M.y"}
                 yQQQ{"QQQ y"}
                 yQQQQ{"QQQQ y"}
+                yw{
+                    one{"'viku' w 'af' y"}
+                    other{"'viku' w 'af' y"}
+                }
             }
             dayNames{
                 format{
@@ -454,14 +502,86 @@ is{
                     }
                 }
             }
+            dayPeriod{
+                format{
+                    abbreviated{
+                        afternoon1{"síðd."}
+                        evening1{"að kv."}
+                        midnight{"miðn."}
+                        morning1{"að morgni"}
+                        night1{"að nóttu"}
+                        noon{"hád."}
+                    }
+                    narrow{
+                        afternoon1{"sd."}
+                        evening1{"kv."}
+                        midnight{"mn."}
+                        morning1{"mrg."}
+                        night1{"n."}
+                        noon{"h."}
+                    }
+                    wide{
+                        afternoon1{"síðdegis"}
+                        evening1{"að kvöldi"}
+                        midnight{"miðnætti"}
+                        morning1{"að morgni"}
+                        night1{"að nóttu"}
+                        noon{"hádegi"}
+                    }
+                }
+                stand-alone{
+                    abbreviated{
+                        afternoon1{"síðd."}
+                        am{"f.h."}
+                        evening1{"kv."}
+                        midnight{"miðn."}
+                        morning1{"morg."}
+                        night1{"nótt"}
+                        noon{"hád."}
+                        pm{"e.h."}
+                    }
+                    narrow{
+                        afternoon1{"sd."}
+                        am{"f.h."}
+                        evening1{"kv."}
+                        midnight{"mn."}
+                        morning1{"mrg."}
+                        night1{"n."}
+                        noon{"hd."}
+                        pm{"e.h."}
+                    }
+                    wide{
+                        afternoon1{"eftir hádegi"}
+                        am{"f.h."}
+                        evening1{"kvöld"}
+                        midnight{"miðnætti"}
+                        morning1{"morgunn"}
+                        night1{"nótt"}
+                        noon{"hádegi"}
+                        pm{"e.h."}
+                    }
+                }
+            }
             eras{
                 abbreviated{
                     "f.Kr.",
                     "e.Kr.",
                 }
+                abbreviated%variant{
+                    "f.l.t.",
+                    "l.t.",
+                }
                 narrow{
                     "f.k.",
                     "e.k.",
+                }
+                wide{
+                    "fyrir Krist",
+                    "eftir Krist",
+                }
+                wide%variant{
+                    "fyrir kristið tímatal",
+                    "kristið tímatal",
                 }
             }
             intervalFormats{
@@ -696,16 +816,99 @@ is{
             }
         }
     }
+    characterLabel{
+        activities{"virkni"}
+        african_scripts{"afrískt letur"}
+        american_scripts{"amerískt letur"}
+        animal{"dýr"}
+        animals_nature{"dýr eða náttúra"}
+        arrows{"ör"}
+        body{"líkami"}
+        box_drawing{"kassateikning"}
+        braille{"blindraletur"}
+        building{"bygging"}
+        bullets_stars{"punktur eða stjarna"}
+        consonantal_jamo{"samhljóðajamó"}
+        currency_symbols{"gjaldmiðilstákn"}
+        dash_connector{"skáastrik eða tengi"}
+        digits{"tala"}
+        dingbats{"dingbat"}
+        divination_symbols{"dýrðartákn"}
+        downwards_arrows{"niðurör"}
+        downwards_upwards_arrows{"ör niður og upp"}
+        east_asian_scripts{"austur-asískt letur"}
+        emoji{"emoji"}
+        european_scripts{"evrópskt letur"}
+        female{"kona"}
+        flag{"fáni"}
+        flags{"fánar"}
+        food_drink{"matur og drykkur"}
+        format{"snið"}
+        format_whitespace{"snið og bil"}
+        full_width_form_variant{"afbriði með fullri breidd"}
+        geometric_shapes{"form"}
+        half_width_form_variant{"afbrigði með hálfri lengd"}
+        han_characters{"han-stafur"}
+        han_radicals{"han-grunnmerki"}
+        hanja{"hanja"}
+        hanzi_simplified{"hanzi (einfaldað)"}
+        hanzi_traditional{"hanzi (hefðbundið)"}
+        heart{"hjarta"}
+        historic_scripts{"sögulegt letur"}
+        ideographic_desc_characters{"myndstafur"}
+        japanese_kana{"japanskt kana"}
+        kanbun{"kanbun"}
+        kanji{"kanji"}
+        keycap{"takki"}
+        leftwards_arrows{"ör til vinstri"}
+        leftwards_rightwards_arrows{"ör til vinstri og hægri"}
+        letterlike_symbols{"bókstafatákn"}
+        limited_use{"takmörkuð notkun"}
+        male{"karl"}
+        math_symbols{"stærðfræðimerki"}
+        middle_eastern_scripts{"mið-austurlenskt letur"}
+        miscellaneous{"ýmislegt"}
+        modern_scripts{"nútímaletur"}
+        modifier{"breytilykill"}
+        musical_symbols{"tónlistartákn"}
+        nature{"náttúra"}
+        nonspacing{"ekkert bil"}
+        numbers{"tölur"}
+        objects{"hlutur"}
+        other{"annað"}
+        paired{"parað"}
+        person{"manneskja"}
+        phonetic_alphabet{"hljóðfræðilegt stafróf"}
+        pictographs{"myndrit"}
+        place{"staður"}
+        plant{"planta"}
+        punctuation{"greinarmerki"}
+        rightwards_arrows{"ör niður"}
+        sign_standard_symbols{"merki eða tákn"}
+        small_form_variant{"lítil afbrigði"}
+        smiley{"broskarl"}
+        smileys_people{"broskarl eða persóna"}
+        south_asian_scripts{"suður-asískt letur"}
+        southeast_asian_scripts{"letur frá suðaustur-asíu"}
+        spacing{"stafabil"}
+        sport{"íþróttir"}
+        symbols{"tákn"}
+        technical_symbols{"tæknilegt tákn"}
+        tone_marks{"tónmerki"}
+        travel{"ferðalög"}
+        travel_places{"ferð eða staður"}
+        upwards_arrows{"ör upp"}
+        variant_forms{"afbrigði"}
+        vocalic_jamo{"sérhljóðajamó"}
+        weather{"veður"}
+        western_asian_scripts{"vestur-asískt letur"}
+        whitespace{"bil"}
+    }
     delimiters{
         alternateQuotationEnd{"‘"}
         alternateQuotationStart{"‚"}
         quotationEnd{"“"}
         quotationStart{"„"}
-    }
-    durationUnits{
-        hm{"h:mm"}
-        hms{"h:mm:ss"}
-        ms{"m:ss"}
     }
     fields{
         day{
@@ -728,6 +931,46 @@ is{
                 }
             }
         }
+        day-narrow{
+            dn{"d."}
+            relative{
+                "-1"{"í gær"}
+                "-2"{"í fyrradag"}
+                "0"{"í dag"}
+                "1"{"á morgun"}
+                "2"{"eftir tvo daga"}
+            }
+            relativeTime{
+                future{
+                    one{"+{0} dag"}
+                    other{"+{0} daga"}
+                }
+                past{
+                    one{"-{0} degi"}
+                    other{"-{0} dögum"}
+                }
+            }
+        }
+        day-short{
+            dn{"dagur"}
+            relative{
+                "-1"{"í gær"}
+                "-2"{"í fyrradag"}
+                "0"{"í dag"}
+                "1"{"á morgun"}
+                "2"{"eftir tvo daga"}
+            }
+            relativeTime{
+                future{
+                    one{"eftir {0} dag"}
+                    other{"eftir {0} daga"}
+                }
+                past{
+                    one{"fyrir {0} dögum"}
+                    other{"fyrir {0} dögum"}
+                }
+            }
+        }
         dayperiod{
             dn{"f.h./e.h."}
         }
@@ -736,9 +979,23 @@ is{
         }
         fri{
             relative{
-                "-1"{"föstudagur í síðustu viku"}
-                "0"{"föstudagur í þessari viku"}
-                "1"{"föstudagur í næstu viku"}
+                "-1"{"síðasta föstudag"}
+                "0"{"á föstudaginn"}
+                "1"{"næsta föstudag"}
+            }
+        }
+        fri-narrow{
+            relative{
+                "-1"{"síðasta fös."}
+                "0"{"á fös."}
+                "1"{"næsta fös."}
+            }
+        }
+        fri-short{
+            relative{
+                "-1"{"síðasta fös."}
+                "0"{"á fös."}
+                "1"{"næsta fös."}
             }
         }
         hour{
@@ -751,6 +1008,32 @@ is{
                 past{
                     one{"fyrir {0} klukkustund"}
                     other{"fyrir {0} klukkustundum"}
+                }
+            }
+        }
+        hour-narrow{
+            dn{"klst."}
+            relativeTime{
+                future{
+                    one{"+{0} klst."}
+                    other{"+{0} klst."}
+                }
+                past{
+                    one{"-{0} klst."}
+                    other{"-{0} klst."}
+                }
+            }
+        }
+        hour-short{
+            dn{"klst."}
+            relativeTime{
+                future{
+                    one{"eftir {0} klst."}
+                    other{"eftir {0} klst."}
+                }
+                past{
+                    one{"fyrir {0} klst."}
+                    other{"fyrir {0} klst."}
                 }
             }
         }
@@ -767,11 +1050,51 @@ is{
                 }
             }
         }
+        minute-narrow{
+            dn{"mín."}
+            relativeTime{
+                future{
+                    one{"+{0} mín."}
+                    other{"+{0} mín."}
+                }
+                past{
+                    one{"-{0} mín."}
+                    other{"-{0} mín."}
+                }
+            }
+        }
+        minute-short{
+            dn{"mín."}
+            relativeTime{
+                future{
+                    one{"eftir {0} mín."}
+                    other{"eftir {0} mín."}
+                }
+                past{
+                    one{"fyrir {0} mín."}
+                    other{"fyrir {0} mín."}
+                }
+            }
+        }
         mon{
             relative{
-                "-1"{"mánudagur í síðustu viku"}
+                "-1"{"síðasta mánudag"}
                 "0"{"mánudagur í þessari viku"}
-                "1"{"mánudagur í næstu viku"}
+                "1"{"næsta mánudag"}
+            }
+        }
+        mon-narrow{
+            relative{
+                "-1"{"síðasti mán."}
+                "0"{"þessi mán."}
+                "1"{"nk. mán."}
+            }
+        }
+        mon-short{
+            relative{
+                "-1"{"síðasta mán."}
+                "0"{"þessi mán."}
+                "1"{"næsta mán."}
             }
         }
         month{
@@ -792,11 +1115,115 @@ is{
                 }
             }
         }
+        month-narrow{
+            dn{"mán."}
+            relative{
+                "-1"{"í síðasta mán."}
+                "0"{"í þessum mán."}
+                "1"{"í næsta mán."}
+            }
+            relativeTime{
+                future{
+                    one{"eftir {0} mán."}
+                    other{"eftir {0} mán."}
+                }
+                past{
+                    one{"fyrir {0} mán."}
+                    other{"fyrir {0} mán."}
+                }
+            }
+        }
+        month-short{
+            dn{"mán."}
+            relative{
+                "-1"{"í síðasta mán."}
+                "0"{"í þessum mán."}
+                "1"{"í næsta mán."}
+            }
+            relativeTime{
+                future{
+                    one{"eftir {0} mán."}
+                    other{"eftir {0} mán."}
+                }
+                past{
+                    one{"fyrir {0} mán."}
+                    other{"fyrir {0} mán."}
+                }
+            }
+        }
+        quarter{
+            dn{"ársfjórðungur"}
+            relative{
+                "-1"{"síðasti ársfjórðungur"}
+                "0"{"þessi ársfjórðungur"}
+                "1"{"næsti ársfjórðungur"}
+            }
+            relativeTime{
+                future{
+                    one{"eftir {0} ársfjórðung"}
+                    other{"eftir {0} ársfjórðunga"}
+                }
+                past{
+                    one{"fyrir {0} ársfjórðungi"}
+                    other{"fyrir {0} ársfjórðungum"}
+                }
+            }
+        }
+        quarter-narrow{
+            dn{"ársfj."}
+            relative{
+                "-1"{"síðasti ársfj."}
+                "0"{"þessi ársfj."}
+                "1"{"næsti ársfj."}
+            }
+            relativeTime{
+                future{
+                    one{"eftir {0} ársfj."}
+                    other{"eftir {0} ársfj."}
+                }
+                past{
+                    one{"fyrir {0} ársfj."}
+                    other{"fyrir {0} ársfj."}
+                }
+            }
+        }
+        quarter-short{
+            dn{"ársfjórð."}
+            relative{
+                "-1"{"síðasti ársfj."}
+                "0"{"þessi ársfj."}
+                "1"{"næsti ársfj."}
+            }
+            relativeTime{
+                future{
+                    one{"eftir {0} ársfj."}
+                    other{"eftir {0} ársfj."}
+                }
+                past{
+                    one{"fyrir {0} ársfj."}
+                    other{"fyrir {0} ársfj."}
+                }
+            }
+        }
         sat{
             relative{
-                "-1"{"laugardagur í síðustu viku"}
-                "0"{"laugardagur í þessari viku"}
-                "1"{"laugardagur í næstu viku"}
+                "-1"{"síðasta laugardag"}
+                "0"{"á laugardaginn"}
+                "1"{"næsta laugardag"}
+            }
+        }
+        sat-narrow{
+            relative{
+                "-1"{"síðasta lau."}
+                "0"{"á lau."}
+                "1"{"næsta lau."}
+            }
+        }
+        sat-short{
+            relative{
+                "-1"{"síðasta lau."}
+                "0"{"á lau."}
+                "1"{"næsta lau."}
             }
         }
         second{
@@ -815,11 +1242,51 @@ is{
                 }
             }
         }
+        second-narrow{
+            dn{"sek."}
+            relativeTime{
+                future{
+                    one{"+{0} sek."}
+                    other{"+{0} sek."}
+                }
+                past{
+                    one{"-{0} sek."}
+                    other{"-{0} sek."}
+                }
+            }
+        }
+        second-short{
+            dn{"sek."}
+            relativeTime{
+                future{
+                    one{"eftir {0} sek."}
+                    other{"eftir {0} sek."}
+                }
+                past{
+                    one{"fyrir {0} sek."}
+                    other{"fyrir {0} sek."}
+                }
+            }
+        }
         sun{
             relative{
-                "-1"{"sunnudagur í síðustu viku"}
+                "-1"{"síðasta sunnudag"}
                 "0"{"sunnudagur í þessari viku"}
-                "1"{"sunnudagur í næstu viku"}
+                "1"{"næsta sunnudag"}
+            }
+        }
+        sun-narrow{
+            relative{
+                "-1"{"síðasti sun."}
+                "0"{"þessi sun."}
+                "1"{"nk. sun."}
+            }
+        }
+        sun-short{
+            relative{
+                "-1"{"síðasti sun."}
+                "0"{"þessi sun."}
+                "1"{"næsta sun."}
             }
         }
         thu{
@@ -829,11 +1296,39 @@ is{
                 "1"{"fimmtudagur í næstu viku"}
             }
         }
+        thu-narrow{
+            relative{
+                "-1"{"síðasti fim."}
+                "0"{"þessi fim."}
+                "1"{"nk. fim."}
+            }
+        }
+        thu-short{
+            relative{
+                "-1"{"síðasti fim."}
+                "0"{"þessi fim."}
+                "1"{"næstkomandi fim."}
+            }
+        }
         tue{
             relative{
-                "-1"{"þriðjudagur í síðustu viku"}
+                "-1"{"síðasta þriðjudag"}
                 "0"{"þriðjudagur í þessari viku"}
-                "1"{"þriðjudagur í næstu viku"}
+                "1"{"næsta þriðjudag"}
+            }
+        }
+        tue-narrow{
+            relative{
+                "-1"{"síðasti þri."}
+                "0"{"þessi þri."}
+                "1"{"nk. þri."}
+            }
+        }
+        tue-short{
+            relative{
+                "-1"{"síðasti þri."}
+                "0"{"þessi þri."}
+                "1"{"næstkomandi þri."}
             }
         }
         wed{
@@ -841,6 +1336,20 @@ is{
                 "-1"{"miðvikudagur í síðustu viku"}
                 "0"{"miðvikudagur í þessari viku"}
                 "1"{"miðvikudagur í næstu viku"}
+            }
+        }
+        wed-narrow{
+            relative{
+                "-1"{"síðasti mið."}
+                "0"{"þessi mið."}
+                "1"{"nk. mið."}
+            }
+        }
+        wed-short{
+            relative{
+                "-1"{"síðasti mið."}
+                "0"{"þessi mið."}
+                "1"{"næstkomandi mið."}
             }
         }
         week{
@@ -861,10 +1370,82 @@ is{
                 }
             }
         }
+        week-narrow{
+            dn{"v."}
+            relative{
+                "-1"{"í síðustu viku"}
+                "0"{"í þessari viku"}
+                "1"{"í næstu viku"}
+            }
+            relativeTime{
+                future{
+                    one{"+{0} viku"}
+                    other{"+{0} vikur"}
+                }
+                past{
+                    one{"-{0} viku"}
+                    other{"-{0} vikur"}
+                }
+            }
+        }
+        week-short{
+            dn{"vika"}
+            relative{
+                "-1"{"í síðustu viku"}
+                "0"{"í þessari viku"}
+                "1"{"í næstu viku"}
+            }
+            relativeTime{
+                future{
+                    one{"eftir {0} vikur"}
+                    other{"eftir {0} vikur"}
+                }
+                past{
+                    one{"fyrir {0} viku"}
+                    other{"fyrir {0} vikum"}
+                }
+            }
+        }
         weekday{
             dn{"vikudagur"}
         }
         year{
+            dn{"ár"}
+            relative{
+                "-1"{"á síðasta ári"}
+                "0"{"á þessu ári"}
+                "1"{"á næsta ári"}
+            }
+            relativeTime{
+                future{
+                    one{"eftir {0} ár"}
+                    other{"eftir {0} ár"}
+                }
+                past{
+                    one{"fyrir {0} ári"}
+                    other{"fyrir {0} árum"}
+                }
+            }
+        }
+        year-narrow{
+            dn{"ár"}
+            relative{
+                "-1"{"á síðasta ári"}
+                "0"{"á þessu ári"}
+                "1"{"á næsta ári"}
+            }
+            relativeTime{
+                future{
+                    one{"eftir {0} ár"}
+                    other{"eftir {0} ár"}
+                }
+                past{
+                    one{"fyrir {0} árum"}
+                    other{"fyrir {0} árum"}
+                }
+            }
+        }
+        year-short{
             dn{"ár"}
             relative{
                 "-1"{"á síðasta ári"}
@@ -916,626 +1497,5 @@ is{
         UK{"breskt"}
         US{"bandarískt"}
         metric{"metrakerfi"}
-    }
-    transformNames{
-        BGN{"BGN"}
-        Numeric{"Tölulegur"}
-        Tone{"Tónn"}
-        UNGEGN{"UNGEGN"}
-        x-Accents{"Áherslur"}
-        x-Fullwidth{"Full breidd"}
-        x-Halfwidth{"Hálf breidd"}
-        x-Jamo{"Jamo"}
-        x-Pinyin{"Pinyin"}
-        x-Publishing{"Birting"}
-    }
-    units{
-        acceleration{
-            g-force{
-                one{"{0} G"}
-                other{"{0} G"}
-            }
-        }
-        angle{
-            degree{
-                one{"{0} gráða"}
-                other{"{0} gráður"}
-            }
-        }
-        area{
-            acre{
-                one{"{0} ekra"}
-                other{"{0} ekrur"}
-            }
-            hectare{
-                one{"{0} hektari"}
-                other{"{0} hektarar"}
-            }
-            square-foot{
-                one{"{0} ferfet"}
-                other{"{0} ferfet"}
-            }
-            square-kilometer{
-                one{"{0} ferkílómetri"}
-                other{"{0} ferkílómetrar"}
-            }
-            square-meter{
-                one{"{0} fermetri"}
-                other{"{0} fermetrar"}
-            }
-            square-mile{
-                one{"{0} fermíla"}
-                other{"{0} fermílur"}
-            }
-        }
-        compound{
-            per{"{0} á {1}"}
-        }
-        duration{
-            day{
-                one{"{0} dagur"}
-                other{"{0} dagar"}
-            }
-            hour{
-                one{"{0} klukkustund"}
-                other{"{0} klukkustundir"}
-            }
-            millisecond{
-                one{"{0} millisekúnda"}
-                other{"{0} millisekúndur"}
-            }
-            minute{
-                one{"{0} mínúta"}
-                other{"{0} mínútur"}
-            }
-            month{
-                one{"{0} mánuður"}
-                other{"{0} mánuðir"}
-            }
-            second{
-                one{"{0} sekúnda"}
-                other{"{0} sekúndur"}
-            }
-            week{
-                one{"{0} vika"}
-                other{"{0} vikur"}
-            }
-            year{
-                one{"{0} ár"}
-                other{"{0} ár"}
-            }
-        }
-        length{
-            centimeter{
-                one{"{0} sentimetri"}
-                other{"{0} sentimetrar"}
-            }
-            foot{
-                one{"{0} fet"}
-                other{"{0} fet"}
-            }
-            inch{
-                one{"{0} tomma"}
-                other{"{0} tommu"}
-            }
-            kilometer{
-                one{"{0} kílómetri"}
-                other{"{0} kílómetrar"}
-            }
-            light-year{
-                one{"{0} ljósár"}
-                other{"{0} ljósár"}
-            }
-            meter{
-                one{"{0} metri"}
-                other{"{0} metrar"}
-            }
-            mile{
-                one{"{0} míla"}
-                other{"{0} mílur"}
-            }
-            millimeter{
-                one{"{0} millimetri"}
-                other{"{0} millimetrar"}
-            }
-            picometer{
-                one{"{0} píkómetri"}
-                other{"{0} píkómetrar"}
-            }
-            yard{
-                one{"{0} yard"}
-                other{"{0} yardar"}
-            }
-        }
-        mass{
-            gram{
-                one{"{0} gramm"}
-                other{"{0} grömm"}
-            }
-            kilogram{
-                one{"{0} kílógramm"}
-                other{"{0} kílógrömm"}
-            }
-            ounce{
-                one{"{0} únsa"}
-                other{"{0} únsur"}
-            }
-            pound{
-                one{"{0} pund"}
-                other{"{0} pund"}
-            }
-        }
-        power{
-            horsepower{
-                one{"{0} hestafl"}
-                other{"{0} hestöfl"}
-            }
-            kilowatt{
-                one{"{0} kílóvatt"}
-                other{"{0} kílóvött"}
-            }
-            watt{
-                one{"{0} vatt"}
-                other{"{0} vött"}
-            }
-        }
-        pressure{
-            hectopascal{
-                one{"{0} hektópaskal"}
-                other{"{0} hektópasköl"}
-            }
-            inch-hg{
-                one{"{0} tomma af kvikasilfri"}
-                other{"{0} tommur af kvikvasilfri"}
-            }
-            millibar{
-                one{"{0} millibar"}
-                other{"{0} millibör"}
-            }
-        }
-        speed{
-            kilometer-per-hour{
-                one{"{0} kílómetri á klukkustund"}
-                other{"{0} kílómetrar á klukkustund"}
-            }
-            meter-per-second{
-                one{"{0} metri á sekúndu"}
-                other{"{0} metrar á sekúndu"}
-            }
-            mile-per-hour{
-                one{"{0} míla á klukkustund"}
-                other{"{0} mílur á klukkustund"}
-            }
-        }
-        temperature{
-            celsius{
-                one{"{0} gráða á Celsíus"}
-                other{"{0} gráður á Celsíus"}
-            }
-            fahrenheit{
-                one{"{0} gráða á Fahrenheit"}
-                other{"{0} gráður á Fahrenheit"}
-            }
-        }
-        volume{
-            cubic-kilometer{
-                one{"{0} rúmkílómetri"}
-                other{"{0} rúmkílómetrar"}
-            }
-            cubic-mile{
-                one{"{0} rúmmíla"}
-                other{"{0} rúmmílur"}
-            }
-            liter{
-                one{"{0} lítri"}
-                other{"{0} lítrar"}
-            }
-        }
-    }
-    unitsNarrow{
-        acceleration{
-            g-force{
-                one{"{0}G"}
-                other{"{0}G"}
-            }
-        }
-        angle{
-            degree{
-                one{"{0}°"}
-                other{"{0}°"}
-            }
-        }
-        area{
-            acre{
-                one{"{0} ek."}
-                other{"{0} ek."}
-            }
-            hectare{
-                one{"{0} ha"}
-                other{"{0} ha"}
-            }
-            square-foot{
-                one{"{0} ferfet"}
-                other{"{0} ferfet"}
-            }
-            square-kilometer{
-                one{"{0} km²"}
-                other{"{0} km²"}
-            }
-            square-meter{
-                one{"{0} m²"}
-                other{"{0} m²"}
-            }
-            square-mile{
-                one{"{0}mí²"}
-                other{"{0}mí²"}
-            }
-        }
-        compound{
-            per{"{0}/{1}"}
-        }
-        duration{
-            day{
-                one{"{0} d."}
-                other{"{0} d."}
-            }
-            hour{
-                one{"{0} klst."}
-                other{"{0} klst."}
-            }
-            millisecond{
-                one{"{0}ms"}
-                other{"{0}ms"}
-            }
-            minute{
-                one{"{0} mín."}
-                other{"{0} mín."}
-            }
-            month{
-                one{"{0} mán."}
-                other{"{0} mán."}
-            }
-            second{
-                one{"{0} sek."}
-                other{"{0} sek."}
-            }
-            week{
-                one{"{0} v."}
-                other{"{0} v."}
-            }
-            year{
-                one{"{0}á"}
-                other{"{0}á"}
-            }
-        }
-        length{
-            centimeter{
-                one{"{0} cm"}
-                other{"{0} cm"}
-            }
-            foot{
-                one{"{0} fet"}
-                other{"{0} fet"}
-            }
-            inch{
-                one{"{0}″"}
-                other{"{0}″"}
-            }
-            kilometer{
-                one{"{0} km"}
-                other{"{0} km"}
-            }
-            light-year{
-                one{"{0} lj."}
-                other{"{0} lj."}
-            }
-            meter{
-                one{"{0} m"}
-                other{"{0} m"}
-            }
-            mile{
-                one{"{0} mí"}
-                other{"{0} mí"}
-            }
-            millimeter{
-                one{"{0} mm"}
-                other{"{0} mm"}
-            }
-            picometer{
-                one{"{0} pm"}
-                other{"{0} pm"}
-            }
-            yard{
-                one{"{0} yd"}
-                other{"{0} yd"}
-            }
-        }
-        mass{
-            gram{
-                one{"{0} g"}
-                other{"{0} g"}
-            }
-            kilogram{
-                one{"{0} kg"}
-                other{"{0} kg"}
-            }
-            ounce{
-                one{"{0} únsa"}
-                other{"{0} únsur"}
-            }
-            pound{
-                one{"{0} p."}
-                other{"{0} p."}
-            }
-        }
-        power{
-            horsepower{
-                one{"{0} ek"}
-                other{"{0} ek"}
-            }
-            kilowatt{
-                one{"{0} kW"}
-                other{"{0} kW"}
-            }
-            watt{
-                one{"{0} W"}
-                other{"{0} W"}
-            }
-        }
-        pressure{
-            hectopascal{
-                one{"{0} hPa"}
-                other{"{0} hPa"}
-            }
-            inch-hg{
-                one{"{0}\u0022 Hg"}
-                other{"{0}\u0022 Hg"}
-            }
-            millibar{
-                one{"{0} mbar"}
-                other{"{0} mbör"}
-            }
-        }
-        speed{
-            kilometer-per-hour{
-                one{"{0} km/klst."}
-                other{"{0} km/klst."}
-            }
-            meter-per-second{
-                one{"{0} m/sek."}
-                other{"{0} m/sek."}
-            }
-            mile-per-hour{
-                one{"{0} míla/klst."}
-                other{"{0} míl./klst."}
-            }
-        }
-        temperature{
-            celsius{
-                one{"{0}°"}
-                other{"{0}°"}
-            }
-            fahrenheit{
-                one{"{0}°F"}
-                other{"{0}°F"}
-            }
-        }
-        volume{
-            cubic-kilometer{
-                one{"{0} km³"}
-                other{"{0} km³"}
-            }
-            cubic-mile{
-                one{"{0}mi³"}
-                other{"{0}mi³"}
-            }
-            liter{
-                one{"{0} l"}
-                other{"{0} l"}
-            }
-        }
-    }
-    unitsShort{
-        acceleration{
-            g-force{
-                one{"{0} G"}
-                other{"{0} G"}
-            }
-        }
-        angle{
-            degree{
-                one{"{0}°"}
-                other{"{0}°"}
-            }
-        }
-        area{
-            acre{
-                one{"{0} ek."}
-                other{"{0} ek."}
-            }
-            hectare{
-                one{"{0} ha"}
-                other{"{0} ha"}
-            }
-            square-foot{
-                one{"{0} ferfet"}
-                other{"{0} ferfet"}
-            }
-            square-kilometer{
-                one{"{0} km²"}
-                other{"{0} km²"}
-            }
-            square-meter{
-                one{"{0} m²"}
-                other{"{0} m²"}
-            }
-            square-mile{
-                one{"{0} fermíla"}
-                other{"{0} fermílur"}
-            }
-        }
-        compound{
-            per{"{0}/{1}"}
-        }
-        duration{
-            day{
-                one{"{0} dagur"}
-                other{"{0} dagar"}
-            }
-            hour{
-                one{"{0} klst."}
-                other{"{0} klst."}
-            }
-            millisecond{
-                one{"{0} ms"}
-                other{"{0} ms"}
-            }
-            minute{
-                one{"{0} mín."}
-                other{"{0} mín."}
-            }
-            month{
-                one{"{0} mán."}
-                other{"{0} mán."}
-            }
-            second{
-                one{"{0} sek."}
-                other{"{0} sek."}
-            }
-            week{
-                one{"{0} vika"}
-                other{"{0} vikur"}
-            }
-            year{
-                one{"{0} ár"}
-                other{"{0} ár"}
-            }
-        }
-        length{
-            centimeter{
-                one{"{0} cm"}
-                other{"{0} cm"}
-            }
-            foot{
-                one{"{0} fet"}
-                other{"{0} fet"}
-            }
-            inch{
-                one{"{0} t."}
-                other{"{0} t."}
-            }
-            kilometer{
-                one{"{0} km"}
-                other{"{0} km"}
-            }
-            light-year{
-                one{"{0} ljósár"}
-                other{"{0} ljósár"}
-            }
-            meter{
-                one{"{0} m"}
-                other{"{0} m"}
-            }
-            mile{
-                one{"{0} mí"}
-                other{"{0} mí"}
-            }
-            millimeter{
-                one{"{0} mm"}
-                other{"{0} mm"}
-            }
-            picometer{
-                one{"{0} pm"}
-                other{"{0} pm"}
-            }
-            yard{
-                one{"{0} y."}
-                other{"{0} y."}
-            }
-        }
-        mass{
-            gram{
-                one{"{0} g"}
-                other{"{0} g"}
-            }
-            kilogram{
-                one{"{0} kg"}
-                other{"{0} kg"}
-            }
-            ounce{
-                one{"{0} únsa"}
-                other{"{0} únsur"}
-            }
-            pound{
-                one{"{0} p."}
-                other{"{0} p."}
-            }
-        }
-        power{
-            horsepower{
-                one{"{0} hestafl"}
-                other{"{0} hestöfl"}
-            }
-            kilowatt{
-                one{"{0} kW"}
-                other{"{0} kW"}
-            }
-            watt{
-                one{"{0} W"}
-                other{"{0} W"}
-            }
-        }
-        pressure{
-            hectopascal{
-                one{"{0} hPa"}
-                other{"{0} hPa"}
-            }
-            inch-hg{
-                one{"{0} tomma Hg"}
-                other{"{0} tommur Hg"}
-            }
-            millibar{
-                one{"{0} mbar"}
-                other{"{0} mbör"}
-            }
-        }
-        speed{
-            kilometer-per-hour{
-                one{"{0} km/klst."}
-                other{"{0} km/klst."}
-            }
-            meter-per-second{
-                one{"{0} m/sek."}
-                other{"{0} m/sek."}
-            }
-            mile-per-hour{
-                one{"{0} míla/klst."}
-                other{"{0} mílur/klst."}
-            }
-        }
-        temperature{
-            celsius{
-                one{"{0}°C"}
-                other{"{0}°C"}
-            }
-            fahrenheit{
-                one{"{0}°F"}
-                other{"{0}°F"}
-            }
-        }
-        volume{
-            cubic-kilometer{
-                one{"{0} km³"}
-                other{"{0} km³"}
-            }
-            cubic-mile{
-                one{"{0} rúmmíla"}
-                other{"{0} rúmmílur"}
-            }
-            liter{
-                one{"{0} l"}
-                other{"{0} l"}
-            }
-        }
     }
 }

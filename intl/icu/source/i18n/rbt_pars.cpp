@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
  **********************************************************************
- *   Copyright (C) 1999-2011, International Business Machines
+ *   Copyright (C) 1999-2016, International Business Machines
  *   Corporation and others.  All Rights Reserved.
  **********************************************************************
  *   Date        Name        Description
@@ -1102,11 +1104,11 @@ void TransliteratorParser::parseRules(const UnicodeString& rule,
 
             for (int32_t j = 0; j < data->variablesLength; j++) {
                 data->variables[j] =
-                    ((UnicodeSet*)variablesVector.elementAt(j));
+                    static_cast<UnicodeFunctor *>(variablesVector.elementAt(j));
             }
             
             data->variableNames.removeAll();
-            int32_t pos = -1;
+            int32_t pos = UHASH_FIRST;
             const UHashElement* he = variableNames.nextElement(pos);
             while (he != NULL) {
                 UnicodeString* tempus = (UnicodeString*)(((UnicodeString*)(he->value.pointer))->clone());
@@ -1674,11 +1676,18 @@ utrans_stripRules(const UChar *source, int32_t sourceLen, UChar *target, UErrorC
                     target--;
                 }
                 do {
+                    if (source == sourceLimit) {
+                        c = U_SENTINEL;
+                        break;
+                    }
                     c = *(source++);
                 }
                 while (c != CR && c != LF);
+                if (c < 0) {
+                    break;
+                }
             }
-            else if (c == ESCAPE) {
+            else if (c == ESCAPE && source < sourceLimit) {
                 UChar32   c2 = *source;
                 if (c2 == CR || c2 == LF) {
                     /* A backslash at the end of a line. */

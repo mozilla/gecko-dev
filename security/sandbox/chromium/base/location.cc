@@ -5,10 +5,7 @@
 #include "build/build_config.h"
 
 #if defined(COMPILER_MSVC)
-// MSDN says to #include <intrin.h>, but that breaks the VS2005 build.
-extern "C" {
-  void* _ReturnAddress();
-}
+#include <intrin.h>
 #endif
 
 #include "base/location.h"
@@ -32,6 +29,13 @@ Location::Location()
       file_name_("Unknown"),
       line_number_(-1),
       program_counter_(NULL) {
+}
+
+Location::Location(const Location& other)
+    : function_name_(other.function_name_),
+      file_name_(other.file_name_),
+      line_number_(other.line_number_),
+      program_counter_(other.program_counter_) {
 }
 
 std::string Location::ToString() const {
@@ -92,11 +96,11 @@ __declspec(noinline)
 BASE_EXPORT const void* GetProgramCounter() {
 #if defined(COMPILER_MSVC)
   return _ReturnAddress();
-#elif defined(COMPILER_GCC)
+#elif defined(COMPILER_GCC) && !defined(OS_NACL)
   return __builtin_extract_return_addr(__builtin_return_address(0));
-#endif  // COMPILER_GCC
-
+#else
   return NULL;
+#endif
 }
 
 }  // namespace tracked_objects

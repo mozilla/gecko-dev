@@ -7,10 +7,28 @@
 
 #include "nsISupports.h"
 #include "mozilla/net/ChannelEventQueue.h"
+#include "mozilla/Unused.h"
 #include "nsThreadUtils.h"
+#include "mozilla/Unused.h"
 
 namespace mozilla {
 namespace net {
+
+ChannelEvent*
+ChannelEventQueue::TakeEvent()
+{
+  MutexAutoLock lock(mMutex);
+  MOZ_ASSERT(mFlushing);
+
+  if (mSuspended || mEventQueue.IsEmpty()) {
+    return nullptr;
+  }
+
+  UniquePtr<ChannelEvent> event(Move(mEventQueue[0]));
+  mEventQueue.RemoveElementAt(0);
+
+  return event.release();
+}
 
 void
 ChannelEventQueue::FlushQueue()
@@ -19,32 +37,32 @@ ChannelEventQueue::FlushQueue()
   // destructor) unless we make sure its refcount doesn't drop to 0 while this
   // method is running.
   nsCOMPtr<nsISupports> kungFuDeathGrip(mOwner);
+  mozilla::Unused << kungFuDeathGrip; // Not used in this function
 
   // Prevent flushed events from flushing the queue recursively
-  mFlushing = true;
-
-  uint32_t i;
-  for (i = 0; i < mEventQueue.Length(); i++) {
-    mEventQueue[i]->Run();
-    if (mSuspended)
-      break;
+  {
+    MutexAutoLock lock(mMutex);
+    mFlushing = true;
   }
 
-  // We will always want to remove at least one finished callback.
-  if (i < mEventQueue.Length())
-    i++;
+  while (true) {
+    UniquePtr<ChannelEvent> event(TakeEvent());
+    if (!event) {
+      break;
+    }
 
-  // It is possible for new callbacks to be enqueued as we are
-  // flushing the queue, so the queue must not be cleared until
-  // all callbacks have run.
-  mEventQueue.RemoveElementsAt(0, i);
+    event->Run();
+  }
 
+  MutexAutoLock lock(mMutex);
   mFlushing = false;
 }
 
 void
 ChannelEventQueue::Resume()
 {
+  MutexAutoLock lock(mMutex);
+
   // Resuming w/o suspend: error in debug mode, ignore in build
   MOZ_ASSERT(mSuspendCount > 0);
   if (mSuspendCount <= 0) {
@@ -52,13 +70,13 @@ ChannelEventQueue::Resume()
   }
 
   if (!--mSuspendCount) {
-    nsRefPtr<nsRunnableMethod<ChannelEventQueue> > event =
-      NS_NewRunnableMethod(this, &ChannelEventQueue::CompleteResume);
+    RefPtr<Runnable> event =
+      NewRunnableMethod(this, &ChannelEventQueue::CompleteResume);
     if (mTargetThread) {
-      mTargetThread->Dispatch(event, NS_DISPATCH_NORMAL);
+      mTargetThread->Dispatch(event.forget(), NS_DISPATCH_NORMAL);
     } else {
       MOZ_RELEASE_ASSERT(NS_IsMainThread());
-      NS_DispatchToCurrentThread(event);
+      Unused << NS_WARN_IF(NS_FAILED(NS_DispatchToCurrentThread(event.forget())));
     }
   }
 }
@@ -76,5 +94,5 @@ ChannelEventQueue::RetargetDeliveryTo(nsIEventTarget* aTargetThread)
   return NS_OK;
 }
 
-}
-}
+} // namespace net
+} // namespace mozilla

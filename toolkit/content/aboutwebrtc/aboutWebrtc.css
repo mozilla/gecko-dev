@@ -1,0 +1,97 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+html {
+  background-color: #edeceb;
+  font: message-box;
+}
+
+.controls {
+  font-size: 1.1em;
+  display: inline-block;
+  margin: 0 0.5em;
+}
+
+.control {
+  margin: 0.5em 0;
+}
+
+.control > button {
+  margin: 0 0.25em;
+}
+
+.message > p {
+  margin: 0.5em 0.5em;
+}
+
+.log p {
+  font-family: monospace;
+  padding-left: 2em;
+  text-indent: -2em;
+  margin-top: 2px;
+  margin-bottom: 2px;
+}
+
+#content > div {
+  padding: 1em 2em;
+  margin: 1em 0;
+  border: 1px solid #afaca9;
+  border-radius: 10px;
+  background: none repeat scroll 0% 0% #fff;
+}
+
+.section-heading *
+{
+  display: inline-block;
+}
+
+.section-heading > button {
+  margin-left: 1em;
+  margin-right: 1em;
+}
+
+.peer-connection > h3
+{
+  background-color: #ddd;
+}
+
+.peer-connection table {
+  width: 100%;
+  text-align: center;
+  border: none;
+}
+
+.peer-connection table th,
+.peer-connection table td {
+  padding: 0.4em;
+}
+
+.peer-connection table tr:nth-child(even) {
+  background-color: #ddd;
+}
+
+.info-label {
+  font-weight: bold;
+}
+
+.section-ctrl {
+  margin: 1em 1.5em;
+}
+
+div.fold-trigger {
+  color: blue;
+  cursor: pointer;
+}
+
+@media screen {
+  .fold-closed {
+    display: none !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

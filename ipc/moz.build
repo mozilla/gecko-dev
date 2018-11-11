@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,19 +11,19 @@ DIRS += [
     'testshell',
 ]
 
-if CONFIG['MOZ_B2G_RIL']:
-    DIRS += ['ril']
-
-if CONFIG['MOZ_B2G_BT_BLUEZ']:
+if CONFIG['MOZ_ENABLE_DBUS']:
     DIRS += ['dbus']
 
-if CONFIG['MOZ_NFC']:
-    DIRS += ['nfc']
-
-if CONFIG['MOZ_B2G_RIL'] or CONFIG['MOZ_B2G_BT'] or CONFIG['MOZ_NFC'] or CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
     DIRS += ['unixfd', 'unixsocket']
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
-    DIRS += ['keystore', 'netd']
+    DIRS += ['hal', 'keystore', 'netd']
 
-TOOL_DIRS += ['app']
+if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'android':
+    DIRS += ['contentproc']
+
+if CONFIG['OS_ARCH'] == 'WINNT':
+    DIRS += ['mscom']
+
+DIRS += ['app']

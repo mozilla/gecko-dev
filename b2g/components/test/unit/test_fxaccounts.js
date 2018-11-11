@@ -3,7 +3,7 @@
 
 "use strict";
 
-const {utils: Cu} = Components;
+var {utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -11,23 +11,27 @@ Cu.import("resource://services-common/utils.js");
 Cu.import("resource://testing-common/httpd.js");
 
 XPCOMUtils.defineLazyModuleGetter(this, "FxAccountsMgmtService",
-                                  "resource://gre/modules/FxAccountsMgmtService.jsm",
-                                  "FxAccountsMgmtService");
+  "resource://gre/modules/FxAccountsMgmtService.jsm",
+  "FxAccountsMgmtService");
+
+XPCOMUtils.defineLazyModuleGetter(this, "FxAccountsManager",
+  "resource://gre/modules/FxAccountsManager.jsm");
 
 // At end of test, restore original state
 const ORIGINAL_AUTH_URI = Services.prefs.getCharPref("identity.fxaccounts.auth.uri");
-let { SystemAppProxy } = Cu.import("resource://gre/modules/FxAccountsMgmtService.jsm");
+var { SystemAppProxy } = Cu.import("resource://gre/modules/FxAccountsMgmtService.jsm");
 const ORIGINAL_SENDCUSTOM = SystemAppProxy._sendCustomEvent;
 do_register_cleanup(function() {
   Services.prefs.setCharPref("identity.fxaccounts.auth.uri", ORIGINAL_AUTH_URI);
   SystemAppProxy._sendCustomEvent = ORIGINAL_SENDCUSTOM;
+  Services.prefs.clearUserPref("identity.fxaccounts.skipDeviceRegistration");
 });
 
 // Make profile available so that fxaccounts can store user data
 do_get_profile();
 
 // Mock the system app proxy; make message passing possible
-let mockSendCustomEvent = function(aEventName, aMsg) {
+var mockSendCustomEvent = function(aEventName, aMsg) {
   Services.obs.notifyObservers({wrappedJSObject: aMsg}, aEventName, null);
 };
 
@@ -36,6 +40,9 @@ function run_test() {
 }
 
 add_task(function test_overall() {
+  // FxA device registration throws from this context
+  Services.prefs.setBoolPref("identity.fxaccounts.skipDeviceRegistration", true);
+
   do_check_neq(FxAccountsMgmtService, null);
 });
 
@@ -102,6 +109,9 @@ add_test(function test_invalidEmailCase_signIn() {
   // Point the FxAccountsClient's hawk rest request client to the mock server
   Services.prefs.setCharPref("identity.fxaccounts.auth.uri", server.baseURI);
 
+  // FxA device registration throws from this context
+  Services.prefs.setBoolPref("identity.fxaccounts.skipDeviceRegistration", true);
+
   // Receive a mozFxAccountsChromeEvent message
   function onMessage(subject, topic, data) {
     let message = subject.wrappedJSObject;
@@ -156,6 +166,25 @@ add_test(function test_invalidEmailCase_signIn() {
       },
     },
   });
+});
+
+add_test(function testHandleGetAssertionError_defaultCase() {
+  do_test_pending();
+
+  // FxA device registration throws from this context
+  Services.prefs.setBoolPref("identity.fxaccounts.skipDeviceRegistration", true);
+
+  FxAccountsManager.getAssertion(null).then(
+    success => {
+      // getAssertion should throw with invalid audience
+      ok(false);
+    },
+    reason => {
+      equal("INVALID_AUDIENCE", reason.error);
+      do_test_finished();
+      run_next_test();
+    }
+  )
 });
 
 // End of tests

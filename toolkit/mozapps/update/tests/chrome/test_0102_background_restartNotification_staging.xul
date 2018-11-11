@@ -24,6 +24,8 @@ const TESTS = [ {
   buttonClick: "extra1"
 } ];
 
+gUseTestUpdater = true;
+
 function runTest() {
   debugDump("entering");
 
@@ -31,7 +33,7 @@ function runTest() {
   Services.prefs.setIntPref(PREF_APP_UPDATE_PROMPTWAITTIME, 1);
 
   let url = URL_HTTP_UPDATE_XML + "?showDetails=1" + getVersionParams();
-  setUpdateURLOverride(url);
+  setUpdateURL(url);
 
   gAUS.notify(null);
 }

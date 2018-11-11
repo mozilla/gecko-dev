@@ -1,21 +1,18 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/en_CA.xml
-// *
-// ***************************************************************************
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 en_CA{
+    %%Parent{"en_001"}
     Currencies{
         CAD{
             "$",
             "Canadian Dollar",
         }
-        USD{
-            "US$",
-            "US Dollar",
+    }
+    CurrencyPlurals{
+        ILS{
+            one{"Israeli new sheqel"}
+            other{"Israeli new sheqels"}
         }
     }
-    Version{"2.0.90.61"}
+    Version{"2.1.29.54"}
 }

@@ -15,8 +15,8 @@
 # include "nsExceptionHandler.h"
 #endif
 #include "nsString.h"
+#include "nsXULAppAPI.h"
 #include "prprf.h"
-#include "prlog.h"
 #include "nsError.h"
 #include "prerror.h"
 #include "prerr.h"
@@ -40,9 +40,6 @@
 #if defined(XP_WIN)
 #include <tchar.h>
 #include "nsString.h"
-#ifdef MOZ_METRO
-#include "nsWindowsHelpers.h"
-#endif
 #endif
 
 #if defined(XP_MACOSX) || defined(__DragonFly__) || defined(__FreeBSD__) \
@@ -107,7 +104,7 @@ static const char* sMultiprocessDescription = nullptr;
 
 static Atomic<int32_t> gAssertionCount;
 
-NS_IMPL_QUERY_INTERFACE(nsDebugImpl, nsIDebug, nsIDebug2)
+NS_IMPL_QUERY_INTERFACE(nsDebugImpl, nsIDebug2)
 
 NS_IMETHODIMP_(MozExternalRefCountType)
 nsDebugImpl::AddRef()
@@ -219,17 +216,8 @@ nsDebugImpl::SetMultiprocessMode(const char* aDesc)
  * always compiled in, in case some other module that uses it is
  * compiled with debugging even if this library is not.
  */
-static PRLogModuleInfo* gDebugLog;
-
-static void
-InitLog()
+enum nsAssertBehavior
 {
-  if (0 == gDebugLog) {
-    gDebugLog = PR_NewLogModule("nsDebug");
-  }
-}
-
-enum nsAssertBehavior {
   NS_ASSERT_UNINITIALIZED,
   NS_ASSERT_WARN,
   NS_ASSERT_SUSPEND,
@@ -247,17 +235,7 @@ GetAssertBehavior()
     return gAssertBehavior;
   }
 
-#if defined(XP_WIN) && defined(MOZ_METRO)
-  if (IsRunningInWindowsMetro()) {
-    gAssertBehavior = NS_ASSERT_WARN;
-  } else {
-    gAssertBehavior = NS_ASSERT_TRAP;
-  }
-#elif defined(XP_WIN)
-  gAssertBehavior = NS_ASSERT_TRAP;
-#else
   gAssertBehavior = NS_ASSERT_WARN;
-#endif
 
   const char* assertString = PR_GetEnv("XPCOM_DEBUG_BREAK");
   if (!assertString || !*assertString) {
@@ -293,7 +271,7 @@ struct FixedBuffer
     buffer[0] = '\0';
   }
 
-  char buffer[1000];
+  char buffer[500];
   uint32_t curlen;
 };
 
@@ -328,65 +306,56 @@ EXPORT_XPCOM_API(void)
 NS_DebugBreak(uint32_t aSeverity, const char* aStr, const char* aExpr,
               const char* aFile, int32_t aLine)
 {
-  InitLog();
-
+  FixedBuffer nonPIDBuf;
   FixedBuffer buf;
-  PRLogModuleLevel ll = PR_LOG_WARNING;
   const char* sevString = "WARNING";
 
   switch (aSeverity) {
     case NS_DEBUG_ASSERTION:
       sevString = "###!!! ASSERTION";
-      ll = PR_LOG_ERROR;
       break;
 
     case NS_DEBUG_BREAK:
       sevString = "###!!! BREAK";
-      ll = PR_LOG_ALWAYS;
       break;
 
     case NS_DEBUG_ABORT:
       sevString = "###!!! ABORT";
-      ll = PR_LOG_ALWAYS;
       break;
 
     default:
       aSeverity = NS_DEBUG_WARNING;
-  };
-
-#  define PrintToBuffer(...) PR_sxprintf(StuffFixedBuffer, &buf, __VA_ARGS__)
-
-  // Print "[PID]" or "[Desc PID]" at the beginning of the message.
-  PrintToBuffer("[");
-  if (sMultiprocessDescription) {
-    PrintToBuffer("%s ", sMultiprocessDescription);
   }
-  PrintToBuffer("%d] ", base::GetCurrentProcId());
 
-  PrintToBuffer("%s: ", sevString);
-
+#define PRINT_TO_NONPID_BUFFER(...) PR_sxprintf(StuffFixedBuffer, &nonPIDBuf, __VA_ARGS__)
+  PRINT_TO_NONPID_BUFFER("%s: ", sevString);
   if (aStr) {
-    PrintToBuffer("%s: ", aStr);
+    PRINT_TO_NONPID_BUFFER("%s: ", aStr);
   }
   if (aExpr) {
-    PrintToBuffer("'%s', ", aExpr);
+    PRINT_TO_NONPID_BUFFER("'%s', ", aExpr);
   }
   if (aFile) {
-    PrintToBuffer("file %s, ", aFile);
+    PRINT_TO_NONPID_BUFFER("file %s, ", aFile);
   }
   if (aLine != -1) {
-    PrintToBuffer("line %d", aLine);
+    PRINT_TO_NONPID_BUFFER("line %d", aLine);
   }
+#undef PRINT_TO_NONPID_BUFFER
 
-#  undef PrintToBuffer
+  // Print "[PID]" or "[Desc PID]" at the beginning of the message.
+#define PRINT_TO_BUFFER(...) PR_sxprintf(StuffFixedBuffer, &buf, __VA_ARGS__)
+  PRINT_TO_BUFFER("[");
+  if (sMultiprocessDescription) {
+    PRINT_TO_BUFFER("%s ", sMultiprocessDescription);
+  }
+  PRINT_TO_BUFFER("%d] %s", base::GetCurrentProcId(), nonPIDBuf.buffer);
+#undef PRINT_TO_BUFFER
 
-  // Write out the message to the debug log
-  PR_LOG(gDebugLog, ll, ("%s", buf.buffer));
-  PR_LogFlush();
 
   // errors on platforms without a debugdlg ring a bell on stderr
 #if !defined(XP_WIN)
-  if (ll != PR_LOG_WARNING) {
+  if (aSeverity != NS_DEBUG_WARNING) {
     fprintf(stderr, "\07");
   }
 #endif
@@ -412,18 +381,25 @@ NS_DebugBreak(uint32_t aSeverity, const char* aStr, const char* aExpr,
 
     case NS_DEBUG_ABORT: {
 #if defined(MOZ_CRASHREPORTER)
-      nsCString note("xpcom_runtime_abort(");
-      note += buf.buffer;
-      note += ")";
-      CrashReporter::AppendAppNotesToCrashReport(note);
-      CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("AbortMessage"),
-                                         nsDependentCString(buf.buffer));
+      // Updating crash annotations in the child causes us to do IPC. This can
+      // really cause trouble if we're asserting from within IPC code. So we
+      // have to do without the annotations in that case.
+      if (XRE_IsParentProcess()) {
+        // Don't include the PID in the crash report annotation to
+        // allow faceting on crash-stats.mozilla.org.
+        nsCString note("xpcom_runtime_abort(");
+        note += nonPIDBuf.buffer;
+        note += ")";
+        CrashReporter::AppendAppNotesToCrashReport(note);
+        CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("AbortMessage"),
+                                           nsDependentCString(nonPIDBuf.buffer));
+      }
 #endif  // MOZ_CRASHREPORTER
 
 #if defined(DEBUG) && defined(_WIN32)
       RealBreak();
 #endif
-#ifdef DEBUG
+#if defined(DEBUG)
       nsTraceRefcnt::WalkTheStack(stderr);
 #endif
       Abort(buf.buffer);
@@ -454,6 +430,7 @@ NS_DebugBreak(uint32_t aSeverity, const char* aStr, const char* aExpr,
     case NS_ASSERT_STACK_AND_ABORT:
       nsTraceRefcnt::WalkTheStack(stderr);
       // Fall through to abort
+      MOZ_FALLTHROUGH;
 
     case NS_ASSERT_ABORT:
       Abort(buf.buffer);
@@ -511,7 +488,8 @@ Break(const char* aMsg)
   static int ignoreDebugger;
   if (!ignoreDebugger) {
     const char* shouldIgnoreDebugger = getenv("XPCOM_DEBUG_DLG");
-    ignoreDebugger = 1 + (shouldIgnoreDebugger && !strcmp(shouldIgnoreDebugger, "1"));
+    ignoreDebugger =
+      1 + (shouldIgnoreDebugger && !strcmp(shouldIgnoreDebugger, "1"));
   }
   if ((ignoreDebugger == 2) || !::IsDebuggerPresent()) {
     DWORD code = IDRETRY;
@@ -578,17 +556,20 @@ Break(const char* aMsg)
 #endif
 }
 
-static const nsDebugImpl kImpl;
-
 nsresult
 nsDebugImpl::Create(nsISupports* aOuter, const nsIID& aIID, void** aInstancePtr)
 {
+  static const nsDebugImpl* sImpl;
+
   if (NS_WARN_IF(aOuter)) {
     return NS_ERROR_NO_AGGREGATION;
   }
 
-  return const_cast<nsDebugImpl*>(&kImpl)->
-    QueryInterface(aIID, aInstancePtr);
+  if (!sImpl) {
+    sImpl = new nsDebugImpl();
+  }
+
+  return const_cast<nsDebugImpl*>(sImpl)->QueryInterface(aIID, aInstancePtr);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -619,9 +600,8 @@ NS_ErrorAccordingToNSPR()
 void
 NS_ABORT_OOM(size_t aSize)
 {
-#ifdef MOZ_CRASHREPORTER
+#if defined(MOZ_CRASHREPORTER)
   CrashReporter::AnnotateOOMAllocationSize(aSize);
 #endif
-  MOZ_CRASH();
+  MOZ_CRASH("OOM");
 }
-

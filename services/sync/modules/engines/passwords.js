@@ -2,17 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-this.EXPORTED_SYMBOLS = ['PasswordEngine', 'LoginRec'];
+this.EXPORTED_SYMBOLS = ['PasswordEngine', 'LoginRec', 'PasswordValidator'];
 
-const Cu = Components.utils;
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
+var {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/constants.js");
+Cu.import("resource://services-sync/collection_validator.js");
 Cu.import("resource://services-sync/engines.js");
 Cu.import("resource://services-sync/util.js");
+Cu.import("resource://services-common/async.js");
 
 this.LoginRec = function LoginRec(collection, id) {
   CryptoWrapper.call(this, collection, id);
@@ -22,8 +21,11 @@ LoginRec.prototype = {
   _logName: "Sync.Record.Login",
 };
 
-Utils.deferGetSet(LoginRec, "cleartext", ["hostname", "formSubmitURL",
-  "httpRealm", "username", "password", "usernameField", "passwordField"]);
+Utils.deferGetSet(LoginRec, "cleartext", [
+    "hostname", "formSubmitURL",
+    "httpRealm", "username", "password", "usernameField", "passwordField",
+    "timeCreated", "timePasswordChanged",
+    ]);
 
 
 this.PasswordEngine = function PasswordEngine(service) {
@@ -34,34 +36,15 @@ PasswordEngine.prototype = {
   _storeObj: PasswordStore,
   _trackerObj: PasswordTracker,
   _recordObj: LoginRec,
+
   applyIncomingBatchSize: PASSWORDS_STORE_BATCH_SIZE,
 
-  get isAllowed() {
-    return Cc["@mozilla.org/weave/service;1"]
-             .getService(Ci.nsISupports)
-             .wrappedJSObject
-             .allowPasswordsEngine;
-  },
+  syncPriority: 2,
 
-  get enabled() {
-    // If we are disabled due to !isAllowed(), we must take care to ensure the
-    // engine has actually had the enabled setter called which reflects this state.
-    let prefVal = SyncEngine.prototype.__lookupGetter__("enabled").call(this);
-    let newVal = this.isAllowed && prefVal;
-    if (newVal != prefVal) {
-      this.enabled = newVal;
-    }
-    return newVal;
-  },
-
-  set enabled(val) {
-    SyncEngine.prototype.__lookupSetter__("enabled").call(this, this.isAllowed && val);
-  },
-
-  _syncFinish: function _syncFinish() {
+  _syncFinish: function () {
     SyncEngine.prototype._syncFinish.call(this);
 
-    // Delete the weave credentials from the server once
+    // Delete the Weave credentials from the server once.
     if (!Svc.Prefs.get("deletePwdFxA", false)) {
       try {
         let ids = [];
@@ -86,49 +69,61 @@ PasswordEngine.prototype = {
         // record success.
         Svc.Prefs.set("deletePwdFxA", true);
         Svc.Prefs.reset("deletePwd"); // The old prefname we previously used.
-      }
-      catch(ex) {
-        this._log.debug("Password deletes failed: " + Utils.exceptionStr(ex));
+      } catch (ex) {
+        if (Async.isShutdownException(ex)) {
+          throw ex;
+        }
+        this._log.debug("Password deletes failed", ex);
       }
     }
   },
 
-  _findDupe: function _findDupe(item) {
+  _findDupe: function (item) {
     let login = this._store._nsLoginInfoFromRecord(item);
-    if (!login)
+    if (!login) {
       return;
+    }
 
-    let logins = Services.logins.findLogins(
-      {}, login.hostname, login.formSubmitURL, login.httpRealm);
+    let logins = Services.logins.findLogins({}, login.hostname, login.formSubmitURL, login.httpRealm);
+
     this._store._sleep(0); // Yield back to main thread after synchronous operation.
 
-    // Look for existing logins that match the hostname but ignore the password
-    for each (let local in logins)
-      if (login.matches(local, true) && local instanceof Ci.nsILoginMetaInfo)
+    // Look for existing logins that match the hostname, but ignore the password.
+    for (let local of logins) {
+      if (login.matches(local, true) && local instanceof Ci.nsILoginMetaInfo) {
         return local.guid;
-  }
+      }
+    }
+  },
 };
 
 function PasswordStore(name, engine) {
   Store.call(this, name, engine);
-  this._nsLoginInfo = new Components.Constructor(
-    "@mozilla.org/login-manager/loginInfo;1", Ci.nsILoginInfo, "init");
+  this._nsLoginInfo = new Components.Constructor("@mozilla.org/login-manager/loginInfo;1", Ci.nsILoginInfo, "init");
 }
 PasswordStore.prototype = {
   __proto__: Store.prototype,
 
-  _nsLoginInfoFromRecord: function PasswordStore__nsLoginInfoRec(record) {
-    if (record.formSubmitURL &&
-        record.httpRealm) {
-      this._log.warn("Record " + record.id +
-                     " has both formSubmitURL and httpRealm. Skipping.");
+  _newPropertyBag: function () {
+    return Cc["@mozilla.org/hash-property-bag;1"].createInstance(Ci.nsIWritablePropertyBag2);
+  },
+
+  /**
+   * Return an instance of nsILoginInfo (and, implicitly, nsILoginMetaInfo).
+   */
+  _nsLoginInfoFromRecord: function (record) {
+    function nullUndefined(x) {
+      return (x == undefined) ? null : x;
+    }
+
+    if (record.formSubmitURL && record.httpRealm) {
+      this._log.warn("Record " + record.id + " has both formSubmitURL and httpRealm. Skipping.");
       return null;
     }
-    
+
     // Passing in "undefined" results in an empty string, which later
     // counts as a value. Explicitly `|| null` these fields according to JS
     // truthiness. Records with empty strings or null will be unmolested.
-    function nullUndefined(x) (x == undefined) ? null : x;
     let info = new this._nsLoginInfo(record.hostname,
                                      nullUndefined(record.formSubmitURL),
                                      nullUndefined(record.httpRealm),
@@ -136,33 +131,41 @@ PasswordStore.prototype = {
                                      record.password,
                                      record.usernameField,
                                      record.passwordField);
+
     info.QueryInterface(Ci.nsILoginMetaInfo);
     info.guid = record.id;
+    if (record.timeCreated) {
+      info.timeCreated = record.timeCreated;
+    }
+    if (record.timePasswordChanged) {
+      info.timePasswordChanged = record.timePasswordChanged;
+    }
+
     return info;
   },
 
-  _getLoginFromGUID: function PasswordStore__getLoginFromGUID(id) {
-    let prop = Cc["@mozilla.org/hash-property-bag;1"].
-      createInstance(Ci.nsIWritablePropertyBag2);
+  _getLoginFromGUID: function (id) {
+    let prop = this._newPropertyBag();
     prop.setPropertyAsAUTF8String("guid", id);
 
     let logins = Services.logins.searchLogins({}, prop);
     this._sleep(0); // Yield back to main thread after synchronous operation.
+
     if (logins.length > 0) {
       this._log.trace(logins.length + " items matching " + id + " found.");
       return logins[0];
-    } else {
-      this._log.trace("No items matching " + id + " found. Ignoring");
     }
+
+    this._log.trace("No items matching " + id + " found. Ignoring");
     return null;
   },
 
-  getAllIDs: function PasswordStore__getAllIDs() {
+  getAllIDs: function () {
     let items = {};
     let logins = Services.logins.getAllLogins({});
 
     for (let i = 0; i < logins.length; i++) {
-      // Skip over Weave password/passphrase entries
+      // Skip over Weave password/passphrase entries.
       let metaInfo = logins[i].QueryInterface(Ci.nsILoginMetaInfo);
       if (Utils.getSyncCredentialsHosts().has(metaInfo.hostname)) {
         continue;
@@ -174,7 +177,7 @@ PasswordStore.prototype = {
     return items;
   },
 
-  changeItemID: function PasswordStore__changeItemID(oldID, newID) {
+  changeItemID: function (oldID, newID) {
     this._log.trace("Changing item ID: " + oldID + " to " + newID);
 
     let oldLogin = this._getLoginFromGUID(oldID);
@@ -187,53 +190,58 @@ PasswordStore.prototype = {
       return;
     }
 
-    let prop = Cc["@mozilla.org/hash-property-bag;1"].
-      createInstance(Ci.nsIWritablePropertyBag2);
+    let prop = this._newPropertyBag();
     prop.setPropertyAsAUTF8String("guid", newID);
 
     Services.logins.modifyLogin(oldLogin, prop);
   },
 
-  itemExists: function PasswordStore__itemExists(id) {
-    if (this._getLoginFromGUID(id))
-      return true;
-    return false;
+  itemExists: function (id) {
+    return !!this._getLoginFromGUID(id);
   },
 
-  createRecord: function createRecord(id, collection) {
+  createRecord: function (id, collection) {
     let record = new LoginRec(collection, id);
     let login = this._getLoginFromGUID(id);
 
-    if (login) {
-      record.hostname = login.hostname;
-      record.formSubmitURL = login.formSubmitURL;
-      record.httpRealm = login.httpRealm;
-      record.username = login.username;
-      record.password = login.password;
-      record.usernameField = login.usernameField;
-      record.passwordField = login.passwordField;
-    }
-    else
+    if (!login) {
       record.deleted = true;
+      return record;
+    }
+
+    record.hostname = login.hostname;
+    record.formSubmitURL = login.formSubmitURL;
+    record.httpRealm = login.httpRealm;
+    record.username = login.username;
+    record.password = login.password;
+    record.usernameField = login.usernameField;
+    record.passwordField = login.passwordField;
+
+    // Optional fields.
+    login.QueryInterface(Ci.nsILoginMetaInfo);
+    record.timeCreated = login.timeCreated;
+    record.timePasswordChanged = login.timePasswordChanged;
+
     return record;
   },
 
-  create: function PasswordStore__create(record) {
+  create: function (record) {
     let login = this._nsLoginInfoFromRecord(record);
-    if (!login)
+    if (!login) {
       return;
+    }
+
     this._log.debug("Adding login for " + record.hostname);
     this._log.trace("httpRealm: " + JSON.stringify(login.httpRealm) + "; " +
                     "formSubmitURL: " + JSON.stringify(login.formSubmitURL));
     try {
       Services.logins.addLogin(login);
     } catch(ex) {
-      this._log.debug("Adding record " + record.id +
-                      " resulted in exception " + Utils.exceptionStr(ex));
+      this._log.debug(`Adding record ${record.id} resulted in exception`, ex);
     }
   },
 
-  remove: function PasswordStore__remove(record) {
+  remove: function (record) {
     this._log.trace("Removing login " + record.id);
 
     let loginItem = this._getLoginFromGUID(record.id);
@@ -245,7 +253,7 @@ PasswordStore.prototype = {
     Services.logins.removeLogin(loginItem);
   },
 
-  update: function PasswordStore__update(record) {
+  update: function (record) {
     let loginItem = this._getLoginFromGUID(record.id);
     if (!loginItem) {
       this._log.debug("Skipping update for unknown item: " + record.hostname);
@@ -254,20 +262,20 @@ PasswordStore.prototype = {
 
     this._log.debug("Updating " + record.hostname);
     let newinfo = this._nsLoginInfoFromRecord(record);
-    if (!newinfo)
+    if (!newinfo) {
       return;
+    }
+
     try {
       Services.logins.modifyLogin(loginItem, newinfo);
     } catch(ex) {
-      this._log.debug("Modifying record " + record.id +
-                      " resulted in exception " + Utils.exceptionStr(ex) +
-                      ". Not modifying.");
+      this._log.debug(`Modifying record ${record.id} resulted in exception; not modifying`, ex);
     }
   },
 
-  wipe: function PasswordStore_wipe() {
+  wipe: function () {
     Services.logins.removeAllLogins();
-  }
+  },
 };
 
 function PasswordTracker(name, engine) {
@@ -278,15 +286,15 @@ function PasswordTracker(name, engine) {
 PasswordTracker.prototype = {
   __proto__: Tracker.prototype,
 
-  startTracking: function() {
+  startTracking: function () {
     Svc.Obs.add("passwordmgr-storage-changed", this);
   },
 
-  stopTracking: function() {
+  stopTracking: function () {
     Svc.Obs.remove("passwordmgr-storage-changed", this);
   },
 
-  observe: function(subject, topic, data) {
+  observe: function (subject, topic, data) {
     Tracker.prototype.observe.call(this, subject, topic, data);
 
     if (this.ignoreAll) {
@@ -298,7 +306,7 @@ PasswordTracker.prototype = {
     switch (data) {
       case "modifyLogin":
         subject = subject.QueryInterface(Ci.nsIArray).queryElementAt(1, Ci.nsILoginMetaInfo);
-        // fallthrough
+        // Fall through.
       case "addLogin":
       case "removeLogin":
         // Skip over Weave password/passphrase changes.
@@ -316,5 +324,48 @@ PasswordTracker.prototype = {
         this.score += SCORE_INCREMENT_XLARGE;
         break;
     }
-  }
+  },
 };
+
+class PasswordValidator extends CollectionValidator {
+  constructor() {
+    super("passwords", "id", [
+      "hostname",
+      "formSubmitURL",
+      "httpRealm",
+      "password",
+      "passwordField",
+      "username",
+      "usernameField",
+    ]);
+  }
+
+  getClientItems() {
+    let logins = Services.logins.getAllLogins({});
+    let syncHosts = Utils.getSyncCredentialsHosts()
+    let result = logins.map(l => l.QueryInterface(Ci.nsILoginMetaInfo))
+                       .filter(l => !syncHosts.has(l.hostname));
+    return Promise.resolve(result);
+  }
+
+  normalizeClientItem(item) {
+    return {
+      id: item.guid,
+      guid: item.guid,
+      hostname: item.hostname,
+      formSubmitURL: item.formSubmitURL,
+      httpRealm: item.httpRealm,
+      password: item.password,
+      passwordField: item.passwordField,
+      username: item.username,
+      usernameField: item.usernameField,
+      original: item,
+    }
+  }
+
+  normalizeServerItem(item) {
+    return Object.assign({ guid: item.id }, item);
+  }
+}
+
+

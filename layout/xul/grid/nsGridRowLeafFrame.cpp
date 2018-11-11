@@ -23,8 +23,7 @@ NS_NewGridRowLeafFrame(nsIPresShell* aPresShell,
                        nsStyleContext* aContext)
 {
   nsCOMPtr<nsBoxLayout> layout = NS_NewGridRowLeafLayout();
-  return new (aPresShell) nsGridRowLeafFrame(aPresShell, aContext, false,
-                                             layout);
+  return new (aPresShell) nsGridRowLeafFrame(aContext, false, layout);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsGridRowLeafFrame)
@@ -34,10 +33,10 @@ NS_IMPL_FRAMEARENA_HELPERS(nsGridRowLeafFrame)
  * Let's go check it out.
  */
 nsresult
-nsGridRowLeafFrame::GetBorderAndPadding(nsMargin& aBorderAndPadding)
+nsGridRowLeafFrame::GetXULBorderAndPadding(nsMargin& aBorderAndPadding)
 {
   // if our columns have made our padding larger add it in.
-  nsresult rv = nsBoxFrame::GetBorderAndPadding(aBorderAndPadding);
+  nsresult rv = nsBoxFrame::GetXULBorderAndPadding(aBorderAndPadding);
 
   nsIGridPart* part = nsGrid::GetPartFromBox(this);
   if (!part)
@@ -49,22 +48,20 @@ nsGridRowLeafFrame::GetBorderAndPadding(nsMargin& aBorderAndPadding)
   if (!grid) 
     return rv;
 
-  bool isHorizontal = IsHorizontal();
-
-  nsBoxLayoutState state(PresContext());
+  bool isHorizontal = IsXULHorizontal();
 
   int32_t firstIndex = 0;
   int32_t lastIndex = 0;
   nsGridRow* firstRow = nullptr;
   nsGridRow* lastRow = nullptr;
-  grid->GetFirstAndLastRow(state, firstIndex, lastIndex, firstRow, lastRow, isHorizontal);
+  grid->GetFirstAndLastRow(firstIndex, lastIndex, firstRow, lastRow, isHorizontal);
 
   // only the first and last rows can be affected.
   if (firstRow && firstRow->GetBox() == this) {
     
     nscoord top = 0;
     nscoord bottom = 0;
-    grid->GetRowOffsets(state, firstIndex, top, bottom, isHorizontal);
+    grid->GetRowOffsets(firstIndex, top, bottom, isHorizontal);
 
     if (isHorizontal) {
       if (top > aBorderAndPadding.top)
@@ -79,7 +76,7 @@ nsGridRowLeafFrame::GetBorderAndPadding(nsMargin& aBorderAndPadding)
     
     nscoord top = 0;
     nscoord bottom = 0;
-    grid->GetRowOffsets(state, lastIndex, top, bottom, isHorizontal);
+    grid->GetRowOffsets(lastIndex, top, bottom, isHorizontal);
 
     if (isHorizontal) {
       if (bottom > aBorderAndPadding.bottom)

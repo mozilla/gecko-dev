@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -6,7 +6,7 @@
 
 // Tests the interaction of includeHidden and searchTerms search options.
 
-let timeInMicroseconds = Date.now() * 1000;
+var timeInMicroseconds = Date.now() * 1000;
 
 const VISITS = [
   { isVisit: true,
@@ -53,12 +53,12 @@ function run_test()
   run_next_test();
 }
 
-add_task(function test_initalize()
+add_task(function* test_initalize()
 {
   yield task_populateDB(VISITS);
 });
 
-add_task(function test_searchTerms_includeHidden()
+add_task(function* test_searchTerms_includeHidden()
 {
   for (let data of TEST_DATA) {
     let query = PlacesUtils.history.getNewQuery();

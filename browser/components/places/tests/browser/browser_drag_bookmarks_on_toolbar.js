@@ -72,7 +72,7 @@ function synthesizeDragWithDirection(aElement, aExpectedDragData, aDirection, aC
     aCallback()
   }, false);
 
-  var prevent = function(aEvent) {aEvent.preventDefault();}
+  var prevent = function(aEvent) { aEvent.preventDefault(); }
 
   var xIncrement = 0;
   var yIncrement = 0;
@@ -140,7 +140,7 @@ function getExpectedDataForPlacesNode(aNode) {
 
 var gTests = [
 
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
   {
     desc: "Drag a folder on toolbar",
@@ -181,7 +181,7 @@ var gTests = [
     }
   },
 
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
   {
     desc: "Drag a bookmark on toolbar",
@@ -232,24 +232,25 @@ function nextTest() {
       test.run();
     });
   }
-  else {
+  else if (wasCollapsed) {
     // Collapse the personal toolbar if needed.
-    if (wasCollapsed)
-      setToolbarVisibility(toolbar, false);
+    promiseSetToolbarVisibility(toolbar, false).then(finish);
+  } else {
     finish();
   }
 }
 
-let toolbar = document.getElementById("PersonalToolbar");
-let wasCollapsed = toolbar.collapsed;
+var toolbar = document.getElementById("PersonalToolbar");
+var wasCollapsed = toolbar.collapsed;
 
 function test() {
   waitForExplicitFinish();
 
   // Uncollapse the personal toolbar if needed.
-  if (wasCollapsed)
-    setToolbarVisibility(toolbar, true);
-
-  nextTest();
+  if (wasCollapsed) {
+    promiseSetToolbarVisibility(toolbar, true).then(nextTest);
+  } else {
+    nextTest();
+  }
 }
 

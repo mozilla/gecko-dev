@@ -10,7 +10,8 @@
 
   <binding id="remote-browser" extends="chrome://global/content/bindings/browser.xml#browser">
 
-    <implementation type="application/javascript" implements="nsIObserver, nsIDOMEventListener, nsIMessageListener">
+    <implementation type="application/javascript"
+                    implements="nsIObserver, nsIDOMEventListener, nsIMessageListener, nsIRemoteBrowser">
 
       <field name="_securityUI">null</field>
 
@@ -18,26 +19,45 @@
                 readonly="true">
         <getter><![CDATA[
           if (!this._securityUI) {
+            // Don't attempt to create the remote web progress if the
+            // messageManager has already gone away
+            if (!this.messageManager)
+              return null;
+
             let jsm = "resource://gre/modules/RemoteSecurityUI.jsm";
             let RemoteSecurityUI = Components.utils.import(jsm, {}).RemoteSecurityUI;
             this._securityUI = new RemoteSecurityUI();
           }
 
           // We want to double-wrap the JS implemented interface, so that QI and instanceof works.
-          var ptr = Cc["@mozilla.org/supports-interface-pointer;1"].
-                        createInstance(Ci.nsISupportsInterfacePointer);
+          var ptr = Components.classes["@mozilla.org/supports-interface-pointer;1"]
+                              .createInstance(Components.interfaces.nsISupportsInterfacePointer);
           ptr.data = this._securityUI;
-          return ptr.data.QueryInterface(Ci.nsISecureBrowserUI);
+          return ptr.data.QueryInterface(Components.interfaces.nsISecureBrowserUI);
         ]]></getter>
       </property>
 
+      <!-- increases or decreases the browser's network priority -->
       <method name="adjustPriority">
         <parameter name="adjustment"/>
         <body><![CDATA[
           this.messageManager.sendAsyncMessage("NetworkPrioritizer:AdjustPriority",
-                                               {adjustment: adjustment});
+                                               {adjustment});
         ]]></body>
       </method>
+
+      <!-- sets the browser's network priority to a discrete value -->
+      <method name="setPriority">
+        <parameter name="priority"/>
+        <body><![CDATA[
+          this.messageManager.sendAsyncMessage("NetworkPrioritizer:SetPriority",
+                                               {priority});
+        ]]></body>
+      </method>
+
+      <field name="_controller">null</field>
+
+      <field name="_selectParentHelper">null</field>
 
       <field name="_remoteWebNavigation">null</field>
 
@@ -51,8 +71,13 @@
       	<getter>
       	  <![CDATA[
             if (!this._remoteWebProgress) {
+              // Don't attempt to create the remote web progress if the
+              // messageManager has already gone away
+              if (!this.messageManager)
+                return null;
+
               let jsm = "resource://gre/modules/RemoteWebProgress.jsm";
-              let RemoteWebProgressManager = Cu.import(jsm, {}).RemoteWebProgressManager;
+              let { RemoteWebProgressManager } = Components.utils.import(jsm, {});
               this._remoteWebProgressManager = new RemoteWebProgressManager(this);
               this._remoteWebProgress = this._remoteWebProgressManager.topLevelWebProgress;
             }
@@ -66,8 +91,13 @@
       <property name="finder" readonly="true">
         <getter><![CDATA[
           if (!this._remoteFinder) {
+            // Don't attempt to create the remote finder if the
+            // messageManager has already gone away
+            if (!this.messageManager)
+              return null;
+
             let jsm = "resource://gre/modules/RemoteFinder.jsm";
-            let RemoteFinder = Cu.import(jsm, {}).RemoteFinder;
+            let { RemoteFinder } = Components.utils.import(jsm, {});
             this._remoteFinder = new RemoteFinder(this);
           }
           return this._remoteFinder;
@@ -108,23 +138,41 @@
       <field name="_characterSet">""</field>
 
       <property name="characterSet"
-                onget="return this._characterSet"
+                onget="return this._characterSet">
+        <setter><![CDATA[
+          this.messageManager.sendAsyncMessage("UpdateCharacterSet", {value: val});
+          this._characterSet = val;
+        ]]></setter>
+      </property>
+
+      <field name="_mayEnableCharacterEncodingMenu">null</field>
+
+      <property name="mayEnableCharacterEncodingMenu"
+                onget="return this._mayEnableCharacterEncodingMenu;"
                 readonly="true"/>
 
       <field name="_contentWindow">null</field>
 
       <property name="contentWindow"
+                onget="return null"
+                readonly="true"/>
+
+      <property name="contentWindowAsCPOW"
                 onget="return this._contentWindow"
                 readonly="true"/>
 
       <property name="contentDocument"
-                onget="return this.contentWindow ? this.contentWindow.document : null"
+                onget="return null"
                 readonly="true"/>
 
-      <field name="_syncHandler">null</field>
+      <field name="_contentPrincipal">null</field>
 
-      <property name="syncHandler"
-                onget="return this._syncHandler"
+      <property name="contentPrincipal"
+                onget="return this._contentPrincipal"
+                readonly="true"/>
+
+      <property name="contentDocumentAsCPOW"
+                onget="return this.contentWindowAsCPOW ? this.contentWindowAsCPOW.document : null"
                 readonly="true"/>
 
       <field name="_imageDocument">null</field>
@@ -139,8 +187,15 @@
           return this._fullZoom;
         ]]></getter>
         <setter><![CDATA[
+          let changed = val.toFixed(2) != this._fullZoom.toFixed(2);
+
           this._fullZoom = val;
           this.messageManager.sendAsyncMessage("FullZoom", {value: val});
+
+          if (changed) {
+            let event = new Event("FullZoomChange", {bubbles: true});
+            this.dispatchEvent(event);
+          }
         ]]></setter>
       </property>
 
@@ -150,8 +205,15 @@
           return this._textZoom;
         ]]></getter>
         <setter><![CDATA[
+          let changed = val.toFixed(2) != this._textZoom.toFixed(2);
+
           this._textZoom = val;
           this.messageManager.sendAsyncMessage("TextZoom", {value: val});
+
+          if (changed) {
+            let event = new Event("TextZoomChange", {bubbles: true});
+            this.dispatchEvent(event);
+          }
         ]]></setter>
       </property>
 
@@ -162,24 +224,138 @@
         ]]></getter>
       </property>
 
-      <property name="autoCompletePopup"
-                onget="return document.getElementById(this.getAttribute('autocompletepopup'))"
+      <property name="hasContentOpener">
+        <getter><![CDATA[
+          let {frameLoader} = this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner);
+          return frameLoader.tabParent.hasContentOpener;
+        ]]></getter>
+      </property>
+
+      <field name="_outerWindowID">null</field>
+      <property name="outerWindowID"
+                onget="return this._outerWindowID"
                 readonly="true"/>
+
+      <field name="_innerWindowID">null</field>
+      <property name="innerWindowID">
+        <getter><![CDATA[
+          return this._innerWindowID;
+        ]]></getter>
+      </property>
 
       <property name="docShellIsActive">
         <getter>
           <![CDATA[
-            throw new Error("not supported");
+            let {frameLoader} = this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner);
+            return frameLoader.tabParent.docShellIsActive;
           ]]>
         </getter>
         <setter>
           <![CDATA[
-            let {frameLoader} = this.QueryInterface(Ci.nsIFrameLoaderOwner);
-            frameLoader.tabParent.setIsDocShellActive(val);
+            let {frameLoader} = this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner);
+            frameLoader.tabParent.docShellIsActive = val;
             return val;
           ]]>
         </setter>
       </property>
+
+      <method name="preserveLayers">
+        <parameter name="preserve"/>
+        <body><![CDATA[
+          let {frameLoader} = this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner);
+          if (frameLoader.tabParent) {
+            frameLoader.tabParent.preserveLayers(preserve);
+          }
+        ]]></body>
+      </method>
+
+      <field name="_manifestURI"/>
+      <property name="manifestURI"
+                onget="return this._manifestURI"
+                readonly="true"/>
+
+      <field name="mDestroyed">false</field>
+
+      <field name="_permitUnloadId">0</field>
+
+      <method name="getInPermitUnload">
+        <parameter name="aCallback"/>
+        <body>
+        <![CDATA[
+          let id = this._permitUnloadId++;
+          let mm = this.messageManager;
+          mm.sendAsyncMessage("InPermitUnload", {id});
+          mm.addMessageListener("InPermitUnload", function listener(msg) {
+            if (msg.data.id != id) {
+              return;
+            }
+	    aCallback(msg.data.inPermitUnload);
+          });
+        ]]>
+        </body>
+      </method>
+
+      <method name="permitUnload">
+        <body>
+        <![CDATA[
+          const kTimeout = 5000;
+
+          let finished = false;
+          let responded = false;
+          let permitUnload;
+          let id = this._permitUnloadId++;
+          let mm = this.messageManager;
+          let Services = Components.utils.import("resource://gre/modules/Services.jsm", {}).Services;
+
+          let msgListener = msg => {
+            if (msg.data.id != id) {
+              return;
+            }
+            if (msg.data.kind == "start") {
+              responded = true;
+              return;
+            }
+            done(msg.data.permitUnload);
+          };
+
+          let observer = subject => {
+            if (subject == mm) {
+              done(true);
+            }
+          };
+
+          function done(result) {
+            finished = true;
+            permitUnload = result;
+            mm.removeMessageListener("PermitUnload", msgListener);
+            Services.obs.removeObserver(observer, "message-manager-close");
+          }
+
+          mm.sendAsyncMessage("PermitUnload", {id});
+          mm.addMessageListener("PermitUnload", msgListener);
+          Services.obs.addObserver(observer, "message-manager-close", false);
+
+          let timedOut = false;
+          function timeout() {
+            if (!responded) {
+              timedOut = true;
+            }
+
+            // Dispatch something to ensure that the main thread wakes up.
+            Services.tm.mainThread.dispatch(function() {}, Components.interfaces.nsIThread.DISPATCH_NORMAL);
+          }
+
+          let timer = Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
+          timer.initWithCallback(timeout, kTimeout, timer.TYPE_ONE_SHOT);
+
+          while (!finished && !timedOut) {
+            Services.tm.currentThread.processNextEvent(true);
+          }
+
+          return {permitUnload, timedOut};
+        ]]>
+        </body>
+      </method>
 
       <constructor>
         <![CDATA[
@@ -188,35 +364,84 @@
            * the <browser> element may not be initialized yet.
            */
 
-          let jsm = "resource://gre/modules/RemoteWebNavigation.jsm";
-          let RemoteWebNavigation = Cu.import(jsm, {}).RemoteWebNavigation;
-          this._remoteWebNavigation = new RemoteWebNavigation(this);
+          this._remoteWebNavigation = Components.classes["@mozilla.org/remote-web-navigation;1"]
+                                                .createInstance(Components.interfaces.nsIWebNavigation);
+          this._remoteWebNavigationImpl = this._remoteWebNavigation.wrappedJSObject;
+          this._remoteWebNavigationImpl.swapBrowser(this);
+
+          // Initialize contentPrincipal to the about:blank principal for this loadcontext
+          let {Services} = Components.utils.import("resource://gre/modules/Services.jsm", {});
+          let aboutBlank = Services.io.newURI("about:blank", null, null);
+          let ssm = Services.scriptSecurityManager;
+          this._contentPrincipal = ssm.getLoadContextCodebasePrincipal(aboutBlank, this.loadContext);
 
           this.messageManager.addMessageListener("Browser:Init", this);
           this.messageManager.addMessageListener("DOMTitleChanged", this);
           this.messageManager.addMessageListener("ImageDocumentLoaded", this);
-          this.messageManager.addMessageListener("SetSyncHandler", this);
-          this.messageManager.addMessageListener("DocumentInserted", this);
           this.messageManager.addMessageListener("FullZoomChange", this);
           this.messageManager.addMessageListener("TextZoomChange", this);
+          this.messageManager.addMessageListener("ZoomChangeUsingMouseWheel", this);
+          this.messageManager.addMessageListener("DOMFullscreen:RequestExit", this);
+          this.messageManager.addMessageListener("DOMFullscreen:RequestRollback", this);
+          this.messageManager.addMessageListener("MozApplicationManifest", this);
           this.messageManager.loadFrameScript("chrome://global/content/browser-child.js", true);
 
-          if (this.hasAttribute("selectpopup")) {
+          if (this.hasAttribute("selectmenulist")) {
             this.messageManager.addMessageListener("Forms:ShowDropDown", this);
             this.messageManager.addMessageListener("Forms:HideDropDown", this);
             this.messageManager.loadFrameScript("chrome://global/content/select-child.js", true);
           }
 
-          jsm = "resource://gre/modules/RemoteController.jsm";
+          if (!this.hasAttribute("disablehistory")) {
+            Services.obs.addObserver(this, "browser:purge-session-history", true);
+          }
+
+          let jsm = "resource://gre/modules/RemoteController.jsm";
           let RemoteController = Components.utils.import(jsm, {}).RemoteController;
           this._controller = new RemoteController(this);
           this.controllers.appendController(this._controller);
-
-          jsm = "resource://gre/modules/RemoteAddonsParent.jsm";
-          let RemoteAddonsParent = Components.utils.import(jsm, {}).RemoteAddonsParent;
-          RemoteAddonsParent.init();
         ]]>
       </constructor>
+
+      <destructor>
+        <![CDATA[
+          this.destroy();
+        ]]>
+      </destructor>
+
+      <!-- This is necessary because the destructor doesn't always get called when
+           we are removed from a tabbrowser. This will be explicitly called by tabbrowser.
+
+           Note: This overrides the destroy() method from browser.xml. -->
+      <method name="destroy">
+        <body><![CDATA[
+          // Make sure that any open select is closed.
+          if (this._selectParentHelper) {
+            let menulist = document.getElementById(this.getAttribute("selectmenulist"));
+            this._selectParentHelper.hide(menulist, this);
+          }
+
+          if (this.mDestroyed)
+            return;
+          this.mDestroyed = true;
+
+          try {
+            this.controllers.removeController(this._controller);
+          } catch (ex) {
+            // This can fail when this browser element is not attached to a
+            // BrowserDOMWindow.
+          }
+
+          if (!this.hasAttribute("disablehistory")) {
+            let Services = Components.utils.import("resource://gre/modules/Services.jsm", {}).Services;
+            try {
+              Services.obs.removeObserver(this, "browser:purge-session-history");
+            } catch (ex) {
+              // It's not clear why this sometimes throws an exception.
+            }
+          }
+        ]]></body>
+      </method>
 
       <method name="receiveMessage">
         <parameter name="aMessage"/>
@@ -224,10 +449,7 @@
           let data = aMessage.data;
           switch (aMessage.name) {
             case "Browser:Init":
-              let result = {};
-              result.useGlobalHistory = !this.hasAttribute("disableglobalhistory");
-              result.initPopup = this.autoCompletePopup != null;
-              return result;
+              this._outerWindowID = data.outerWindowID;
               break;
             case "DOMTitleChanged":
               this._contentTitle = data.title;
@@ -239,67 +461,130 @@
               };
               break;
 
-            case "SetSyncHandler":
-              this._syncHandler = aMessage.objects.handler;
-              break;
-
             case "Forms:ShowDropDown": {
-              Cu.import("resource://gre/modules/SelectParentHelper.jsm");
-              let dropdown = document.getElementById(this.getAttribute("selectpopup"));
-              SelectParentHelper.populate(dropdown, data.options, data.selectedIndex);
-              SelectParentHelper.open(this, dropdown, data.rect);
+              if (!this._selectParentHelper) {
+                this._selectParentHelper =
+                  Cu.import("resource://gre/modules/SelectParentHelper.jsm", {}).SelectParentHelper;
+              }
+
+              let menulist = document.getElementById(this.getAttribute("selectmenulist"));
+              menulist.menupopup.style.direction = data.direction;
+
+              let zoom = Services.prefs.getBoolPref("browser.zoom.full") ||
+                         this.isSyntheticDocument ? this._fullZoom : this._textZoom;
+              this._selectParentHelper.populate(menulist, data.options, data.selectedIndex, zoom);
+              this._selectParentHelper.open(this, menulist, data.rect, data.isOpenedViaTouch);
               break;
             }
 
-            case "DocumentInserted":
-              this._isSyntheticDocument = data.synthetic;
-              break;
-
-            case "FullZoomChange":
+            case "FullZoomChange": {
               this._fullZoom = data.value;
+              let event = document.createEvent("Events");
+              event.initEvent("FullZoomChange", true, false);
+              this.dispatchEvent(event);
               break;
+            }
 
-            case "TextZoomChange":
+            case "TextZoomChange": {
               this._textZoom = data.value;
+              let event = document.createEvent("Events");
+              event.initEvent("TextZoomChange", true, false);
+              this.dispatchEvent(event);
               break;
+            }
+
+            case "ZoomChangeUsingMouseWheel": {
+              let event = document.createEvent("Events");
+              event.initEvent("ZoomChangeUsingMouseWheel", true, false);
+              this.dispatchEvent(event);
+              break;
+            }
 
             case "Forms:HideDropDown": {
-              Cu.import("resource://gre/modules/SelectParentHelper.jsm");
-              let dropdown = document.getElementById(this.getAttribute("selectpopup"));
-              SelectParentHelper.hide(dropdown);
+              if (this._selectParentHelper) {
+                let menulist = document.getElementById(this.getAttribute("selectmenulist"));
+                this._selectParentHelper.hide(menulist, this);
+              }
               break;
             }
+
+            case "DOMFullscreen:RequestExit": {
+              let windowUtils = window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                                      .getInterface(Components.interfaces.nsIDOMWindowUtils);
+              windowUtils.exitFullscreen();
+              break;
+            }
+
+            case "DOMFullscreen:RequestRollback": {
+              let windowUtils = window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                                      .getInterface(Components.interfaces.nsIDOMWindowUtils);
+              windowUtils.remoteFrameFullscreenReverted();
+              break;
+            }
+
+            case "MozApplicationManifest":
+              this._manifestURI = aMessage.data.manifest;
+              break;
 
             default:
               // Delegate to browser.xml.
               return this._receiveMessage(aMessage);
-              break;
           }
+          return undefined;
         ]]></body>
       </method>
 
-      <!--
-        For out-of-process code, event.screen[XY] is relative to the
-        left/top of the content view. For in-process code,
-        event.screen[XY] is relative to the left/top of the screen. We
-        use this method to map screen coordinates received from a
-        (possibly out-of-process) <browser> element to coordinates
-        that are relative to the screen. This code handles the
-        out-of-process case, where we need to translate by the screen
-        position of the <browser> element.
-      -->
-      <method name="mapScreenCoordinatesFromContent">
-        <parameter name="aScreenX"/>
-        <parameter name="aScreenY"/>
+      <method name="enableDisableCommands">
+        <parameter name="aAction"/>
+        <parameter name="aEnabledLength"/>
+        <parameter name="aEnabledCommands"/>
+        <parameter name="aDisabledLength"/>
+        <parameter name="aDisabledCommands"/>
         <body>
-        <![CDATA[
-          return { x: aScreenX + this.boxObject.screenX,
-                   y: aScreenY + this.boxObject.screenY };
-        ]]>
+          if (this._controller) {
+            this._controller.enableDisableCommands(aAction,
+                                                   aEnabledLength, aEnabledCommands,
+                                                   aDisabledLength, aDisabledCommands);
+          }
         </body>
       </method>
 
+      <method name="purgeSessionHistory">
+        <body>
+          <![CDATA[
+            try {
+              this.messageManager.sendAsyncMessage("Browser:PurgeSessionHistory");
+            } catch (ex) {
+              // This can throw if the browser has started to go away.
+              if (ex.result != Components.results.NS_ERROR_NOT_INITIALIZED) {
+                throw ex;
+              }
+            }
+            this._remoteWebNavigationImpl.canGoBack = false;
+            this._remoteWebNavigationImpl.canGoForward = false;
+          ]]>
+        </body>
+      </method>
+
+      <method name="createAboutBlankContentViewer">
+        <parameter name="aPrincipal"/>
+        <body>
+          <![CDATA[
+            this.messageManager.sendAsyncMessage("Browser:CreateAboutBlank", aPrincipal);
+          ]]>
+        </body>
+      </method>
     </implementation>
+    <handlers>
+      <handler event="dragstart">
+      <![CDATA[
+        // If we're a remote browser dealing with a dragstart, stop it
+        // from propagating up, since our content process should be dealing
+        // with the mouse movement.
+        event.stopPropagation();
+      ]]>
+      </handler>
+    </handlers>
 
   </binding>
 

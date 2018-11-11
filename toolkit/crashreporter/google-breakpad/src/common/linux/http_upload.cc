@@ -56,8 +56,7 @@ static const char kUserAgent[] = "Breakpad/1.0 (Linux)";
 // static
 bool HTTPUpload::SendRequest(const string &url,
                              const map<string, string> &parameters,
-                             const string &upload_file,
-                             const string &file_part_name,
+                             const map<string, string> &files,
                              const string &proxy,
                              const string &proxy_user_pwd,
                              const string &ca_certificate_file,
@@ -70,7 +69,19 @@ bool HTTPUpload::SendRequest(const string &url,
   if (!CheckParameters(parameters))
     return false;
 
-  void *curl_lib = dlopen("libcurl.so", RTLD_NOW);
+  // We may have been linked statically; if curl_easy_init is in the
+  // current binary, no need to search for a dynamic version.
+  void* curl_lib = dlopen(NULL, RTLD_NOW);
+  if (!CheckCurlLib(curl_lib)) {
+    fprintf(stderr,
+            "Failed to open curl lib from binary, use libcurl.so instead\n");
+    dlerror();  // Clear dlerror before attempting to open libraries.
+    dlclose(curl_lib);
+    curl_lib = NULL;
+  }
+  if (!curl_lib) {
+    curl_lib = dlopen("libcurl.so", RTLD_NOW);
+  }
   if (!curl_lib) {
     if (error_description != NULL)
       *error_description = dlerror();
@@ -104,6 +115,10 @@ bool HTTPUpload::SendRequest(const string &url,
   *(void**) (&curl_easy_setopt) = dlsym(curl_lib, "curl_easy_setopt");
   (*curl_easy_setopt)(curl, CURLOPT_URL, url.c_str());
   (*curl_easy_setopt)(curl, CURLOPT_USERAGENT, kUserAgent);
+  // Support multithread by disabling timeout handling, would get SIGSEGV with
+  // Curl_resolv_timeout in stack trace otherwise.
+  // See https://curl.haxx.se/libcurl/c/threadsafe.html
+  (*curl_easy_setopt)(curl, CURLOPT_NOSIGNAL, 1);
   // Set proxy information if necessary.
   if (!proxy.empty())
     (*curl_easy_setopt)(curl, CURLOPT_PROXY, proxy.c_str());
@@ -125,11 +140,13 @@ bool HTTPUpload::SendRequest(const string &url,
                  CURLFORM_COPYCONTENTS, iter->second.c_str(),
                  CURLFORM_END);
 
-  // Add form file.
-  (*curl_formadd)(&formpost, &lastptr,
-               CURLFORM_COPYNAME, file_part_name.c_str(),
-               CURLFORM_FILE, upload_file.c_str(),
-               CURLFORM_END);
+  // Add form files.
+  for (iter = files.begin(); iter != files.end(); ++iter) {
+    (*curl_formadd)(&formpost, &lastptr,
+                 CURLFORM_COPYNAME, iter->first.c_str(),
+                 CURLFORM_FILE, iter->second.c_str(),
+                 CURLFORM_END);
+  }
 
   (*curl_easy_setopt)(curl, CURLOPT_HTTPPOST, formpost);
 
@@ -184,6 +201,13 @@ bool HTTPUpload::SendRequest(const string &url,
   }
   dlclose(curl_lib);
   return err_code == CURLE_OK;
+}
+
+// static
+bool HTTPUpload::CheckCurlLib(void* curl_lib) {
+  return curl_lib &&
+      dlsym(curl_lib, "curl_easy_init") &&
+      dlsym(curl_lib, "curl_easy_setopt");
 }
 
 // static

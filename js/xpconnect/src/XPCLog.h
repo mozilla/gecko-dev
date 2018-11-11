@@ -9,15 +9,14 @@
 #ifndef xpclog_h___
 #define xpclog_h___
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 /*
- * This uses prlog.h See prlog.h for environment settings for output.
- * The module name used here is 'xpclog'. These environment settings
- * should work...
+ * This uses mozilla/Logging.h. The module name used here is 'xpclog'.
+ * These environment settings should work...
  *
- * SET NSPR_LOG_MODULES=xpclog:5
- * SET NSPR_LOG_FILE=logfile.txt
+ * SET MOZ_LOG=xpclog:5
+ * SET MOZ_LOG_FILE=logfile.txt
  *
  * usage:
  *   XPC_LOG_ERROR(("my comment number %d", 5))   // note the double parens
@@ -40,7 +39,7 @@
 
 extern "C" {
 
-void   XPC_Log_print(const char *fmt, ...);
+void   XPC_Log_print(const char* fmt, ...);
 bool   XPC_Log_Check(int i);
 void   XPC_Log_Indent();
 void   XPC_Log_Outdent();

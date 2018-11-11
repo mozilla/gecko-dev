@@ -8,49 +8,17 @@
                   android:title="@string/pref_category_vendor"
                   android:enabled="false">
 
-    <org.mozilla.gecko.preferences.LinkPreference android:title="@string/pref_about_firefox"
+    <org.mozilla.gecko.preferences.LinkPreference android:key="android.not_a_preference.about.link"
+                                                  android:title="@string/pref_about_firefox"
+                                                  android:persistent="false"
                                                   url="about:" />
 
-    <org.mozilla.gecko.preferences.LinkPreference android:title="@string/pref_vendor_faqs"
-                                                  url="https://support.mozilla.org/kb/firefox-android-faq"/>
+    <org.mozilla.gecko.preferences.LinkPreference android:key="android.not_a_preference.faq.link"
+                                                  android:title="@string/pref_vendor_faqs"
+                                                  android:persistent="false"/>
 
-    <org.mozilla.gecko.preferences.LinkPreference android:title="@string/pref_vendor_feedback"
-                                                  url="about:feedback" />
-
-    <CheckBoxPreference android:key="android.not_a_preference.privacy.announcements.enabled"
-                        android:title="@string/pref_show_product_announcements"
-                        android:defaultValue="true"
-                        android:persistent="true" />
-
-    <PreferenceCategory android:key="android.not_a_preference.datareporting.preferences"
-                        android:title="@string/pref_category_datareporting">
-
-        <CheckBoxPreference android:key="toolkit.telemetry.enabled"
-                            android:title="@string/datareporting_telemetry_title"
-                            android:summary="@string/datareporting_telemetry_summary" />
-
-        <CheckBoxPreference android:key="datareporting.crashreporter.submitEnabled"
-                            android:title="@string/datareporting_crashreporter_title_short"
-                            android:summary="@string/datareporting_crashreporter_summary"
-                            android:defaultValue="false" />
-
-        <CheckBoxPreference android:key="app.geo.reportdata"
-                            android:title="@string/datareporting_wifi_title"
-                            android:summary="@string/datareporting_wifi_geolocation_summary" />
-
-        <org.mozilla.gecko.preferences.AlignRightLinkPreference android:key="android.not_a_preference.geo.learn_more"
-                                                                android:title="@string/pref_learn_more"
-                                                                url="https://location.services.mozilla.com/" />
-
-        <CheckBoxPreference android:key="android.not_a_preference.healthreport.uploadEnabled"
-                            android:title="@string/datareporting_fhr_title"
-                            android:summary="@string/datareporting_fhr_summary2"
-                            android:defaultValue="true" />
-
-        <org.mozilla.gecko.preferences.AlignRightLinkPreference android:key="android.not_a_preference.healthreport.link"
-                                                                android:title="@string/datareporting_abouthr_title"
-                                                                url="about:healthreport" />
-
-    </PreferenceCategory>
+    <org.mozilla.gecko.preferences.LinkPreference android:key="android.not_a_preference.feedback.link"
+                                                  android:title="@string/pref_vendor_feedback"
+                                                  android:persistent="false"/>
 
 </PreferenceScreen>

@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,12 +14,14 @@
 #if defined(XP_UNIX)
 #include "unistd.h"
 #include "dirent.h"
+#include "poll.h"
 #include "sys/stat.h"
 #if defined(ANDROID)
 #include <sys/vfs.h>
 #define statvfs statfs
 #else
 #include "sys/statvfs.h"
+#include "sys/wait.h"
 #include <spawn.h>
 #endif // defined(ANDROID)
 #endif // defined(XP_UNIX)
@@ -138,6 +142,10 @@ struct Paths {
    * system.
    */
   nsString macLocalApplicationsDir;
+  /**
+   * The user's trash directory.
+   */
+  nsString macTrashDir;
 #endif // defined(XP_MACOSX)
 
   Paths()
@@ -158,6 +166,7 @@ struct Paths {
 #if defined(XP_MACOSX)
     macUserLibDir.SetIsVoid(true);
     macLocalApplicationsDir.SetIsVoid(true);
+    macTrashDir.SetIsVoid(true);
 #endif // defined(XP_MACOSX)
   }
 };
@@ -173,7 +182,7 @@ Paths* gPaths = nullptr;
  * on the main thread.
  */
 uint32_t gUserUmask = 0;
-}
+} // namespace
 
 /**
  * Return the path to one of the special directories.
@@ -203,8 +212,10 @@ nsresult GetPathToSpecialDir(const char *aKey, nsString& aOutPath)
  * For this purpose, we register an observer to set |gPaths->profileDir|
  * and |gPaths->localProfileDir| once the profile is setup.
  */
-class DelayedPathSetter MOZ_FINAL: public nsIObserver
+class DelayedPathSetter final: public nsIObserver
 {
+  ~DelayedPathSetter() {}
+
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
@@ -281,7 +292,7 @@ nsresult InitOSFileConstants()
     if (NS_FAILED(rv)) {
       return rv;
     }
-    nsRefPtr<DelayedPathSetter> pathSetter = new DelayedPathSetter();
+    RefPtr<DelayedPathSetter> pathSetter = new DelayedPathSetter();
     rv = obsService->AddObserver(pathSetter, "profile-do-change", false);
     if (NS_FAILED(rv)) {
       return rv;
@@ -304,6 +315,7 @@ nsresult InitOSFileConstants()
 #if defined(XP_MACOSX)
   GetPathToSpecialDir(NS_MAC_USER_LIB_DIR, paths->macUserLibDir);
   GetPathToSpecialDir(NS_OSX_LOCAL_APPLICATIONS_DIR, paths->macLocalApplicationsDir);
+  GetPathToSpecialDir(NS_MAC_TRASH_DIR, paths->macTrashDir);
 #endif // defined(XP_MACOSX)
 
   gPaths = paths.forget();
@@ -335,6 +347,7 @@ void CleanupOSFileConstants()
 
   gInitialized = false;
   delete gPaths;
+  gPaths = nullptr;
 }
 
 
@@ -347,7 +360,7 @@ void CleanupOSFileConstants()
  * Produces a |ConstantSpec|.
  */
 #define INT_CONSTANT(name)      \
-  { #name, INT_TO_JSVAL(name) }
+  { #name, JS::Int32Value(name) }
 
 /**
  * Define a simple read-only property holding an unsigned integer.
@@ -358,7 +371,7 @@ void CleanupOSFileConstants()
  * Produces a |ConstantSpec|.
  */
 #define UINT_CONSTANT(name)      \
-  { #name, UINT_TO_JSVAL((name)) }
+  { #name, JS::NumberValue(name) }
 
 /**
  * End marker for ConstantSpec
@@ -394,6 +407,9 @@ static const dom::ConstantSpec gLibcProperties[] =
 {
   // Arguments for open
   INT_CONSTANT(O_APPEND),
+#if defined(O_CLOEXEC)
+  INT_CONSTANT(O_CLOEXEC),
+#endif // defined(O_CLOEXEC)
   INT_CONSTANT(O_CREAT),
 #if defined(O_DIRECTORY)
   INT_CONSTANT(O_DIRECTORY),
@@ -430,6 +446,10 @@ static const dom::ConstantSpec gLibcProperties[] =
 #endif // defined(O_SYNC)
   INT_CONSTANT(O_TRUNC),
   INT_CONSTANT(O_WRONLY),
+
+#if defined(FD_CLOEXEC)
+  INT_CONSTANT(FD_CLOEXEC),
+#endif // defined(FD_CLOEXEC)
 
 #if defined(AT_EACCESS)
   INT_CONSTANT(AT_EACCESS),
@@ -472,6 +492,45 @@ static const dom::ConstantSpec gLibcProperties[] =
   INT_CONSTANT(SEEK_END),
   INT_CONSTANT(SEEK_SET),
 
+#if defined(XP_UNIX)
+  // poll
+  INT_CONSTANT(POLLERR),
+  INT_CONSTANT(POLLHUP),
+  INT_CONSTANT(POLLIN),
+  INT_CONSTANT(POLLNVAL),
+  INT_CONSTANT(POLLOUT),
+
+  // wait
+#if defined(WNOHANG)
+  INT_CONSTANT(WNOHANG),
+#endif // defined(WNOHANG)
+
+  // fcntl command values
+  INT_CONSTANT(F_GETLK),
+  INT_CONSTANT(F_SETFD),
+  INT_CONSTANT(F_SETFL),
+  INT_CONSTANT(F_SETLK),
+  INT_CONSTANT(F_SETLKW),
+
+  // flock type values
+  INT_CONSTANT(F_RDLCK),
+  INT_CONSTANT(F_WRLCK),
+  INT_CONSTANT(F_UNLCK),
+
+  // splice
+#if defined(SPLICE_F_MOVE)
+  INT_CONSTANT(SPLICE_F_MOVE),
+#endif // defined(SPLICE_F_MOVE)
+#if defined(SPLICE_F_NONBLOCK)
+  INT_CONSTANT(SPLICE_F_NONBLOCK),
+#endif // defined(SPLICE_F_NONBLOCK)
+#if defined(SPLICE_F_MORE)
+  INT_CONSTANT(SPLICE_F_MORE),
+#endif // defined(SPLICE_F_MORE)
+#if defined(SPLICE_F_GIFT)
+  INT_CONSTANT(SPLICE_F_GIFT),
+#endif // defined(SPLICE_F_GIFT)
+#endif // defined(XP_UNIX)
   // copyfile
 #if defined(COPYFILE_DATA)
   INT_CONSTANT(COPYFILE_DATA),
@@ -555,85 +614,94 @@ static const dom::ConstantSpec gLibcProperties[] =
 
 #if defined(XP_UNIX)
   // The size of |mode_t|.
-  { "OSFILE_SIZEOF_MODE_T", INT_TO_JSVAL(sizeof (mode_t)) },
+  { "OSFILE_SIZEOF_MODE_T", JS::Int32Value(sizeof (mode_t)) },
 
   // The size of |gid_t|.
-  { "OSFILE_SIZEOF_GID_T", INT_TO_JSVAL(sizeof (gid_t)) },
+  { "OSFILE_SIZEOF_GID_T", JS::Int32Value(sizeof (gid_t)) },
 
   // The size of |uid_t|.
-  { "OSFILE_SIZEOF_UID_T", INT_TO_JSVAL(sizeof (uid_t)) },
+  { "OSFILE_SIZEOF_UID_T", JS::Int32Value(sizeof (uid_t)) },
 
   // The size of |time_t|.
-  { "OSFILE_SIZEOF_TIME_T", INT_TO_JSVAL(sizeof (time_t)) },
+  { "OSFILE_SIZEOF_TIME_T", JS::Int32Value(sizeof (time_t)) },
 
   // The size of |fsblkcnt_t|.
-  { "OSFILE_SIZEOF_FSBLKCNT_T", INT_TO_JSVAL(sizeof (fsblkcnt_t)) },
+  { "OSFILE_SIZEOF_FSBLKCNT_T", JS::Int32Value(sizeof (fsblkcnt_t)) },
 
 #if !defined(ANDROID)
   // The size of |posix_spawn_file_actions_t|.
-  { "OSFILE_SIZEOF_POSIX_SPAWN_FILE_ACTIONS_T", INT_TO_JSVAL(sizeof (posix_spawn_file_actions_t)) },
+  { "OSFILE_SIZEOF_POSIX_SPAWN_FILE_ACTIONS_T", JS::Int32Value(sizeof (posix_spawn_file_actions_t)) },
 #endif // !defined(ANDROID)
 
   // Defining |dirent|.
   // Size
-  { "OSFILE_SIZEOF_DIRENT", INT_TO_JSVAL(sizeof (dirent)) },
+  { "OSFILE_SIZEOF_DIRENT", JS::Int32Value(sizeof (dirent)) },
 
+  // Defining |flock|.
+#if defined(XP_UNIX)
+  { "OSFILE_SIZEOF_FLOCK", JS::Int32Value(sizeof (struct flock)) },
+  { "OSFILE_OFFSETOF_FLOCK_L_START", JS::Int32Value(offsetof (struct flock, l_start)) },
+  { "OSFILE_OFFSETOF_FLOCK_L_LEN", JS::Int32Value(offsetof (struct flock, l_len)) },
+  { "OSFILE_OFFSETOF_FLOCK_L_PID", JS::Int32Value(offsetof (struct flock, l_pid)) },
+  { "OSFILE_OFFSETOF_FLOCK_L_TYPE", JS::Int32Value(offsetof (struct flock, l_type)) },
+  { "OSFILE_OFFSETOF_FLOCK_L_WHENCE", JS::Int32Value(offsetof (struct flock, l_whence)) },
+#endif // defined(XP_UNIX)
   // Offset of field |d_name|.
-  { "OSFILE_OFFSETOF_DIRENT_D_NAME", INT_TO_JSVAL(offsetof (struct dirent, d_name)) },
+  { "OSFILE_OFFSETOF_DIRENT_D_NAME", JS::Int32Value(offsetof (struct dirent, d_name)) },
   // An upper bound to the length of field |d_name| of struct |dirent|.
   // (may not be exact, depending on padding).
-  { "OSFILE_SIZEOF_DIRENT_D_NAME", INT_TO_JSVAL(sizeof (struct dirent) - offsetof (struct dirent, d_name)) },
+  { "OSFILE_SIZEOF_DIRENT_D_NAME", JS::Int32Value(sizeof (struct dirent) - offsetof (struct dirent, d_name)) },
 
   // Defining |timeval|.
-  { "OSFILE_SIZEOF_TIMEVAL", INT_TO_JSVAL(sizeof (struct timeval)) },
-  { "OSFILE_OFFSETOF_TIMEVAL_TV_SEC", INT_TO_JSVAL(offsetof (struct timeval, tv_sec)) },
-  { "OSFILE_OFFSETOF_TIMEVAL_TV_USEC", INT_TO_JSVAL(offsetof (struct timeval, tv_usec)) },
+  { "OSFILE_SIZEOF_TIMEVAL", JS::Int32Value(sizeof (struct timeval)) },
+  { "OSFILE_OFFSETOF_TIMEVAL_TV_SEC", JS::Int32Value(offsetof (struct timeval, tv_sec)) },
+  { "OSFILE_OFFSETOF_TIMEVAL_TV_USEC", JS::Int32Value(offsetof (struct timeval, tv_usec)) },
 
 #if defined(DT_UNKNOWN)
   // Position of field |d_type| in |dirent|
   // Not strictly posix, but seems defined on all platforms
   // except mingw32.
-  { "OSFILE_OFFSETOF_DIRENT_D_TYPE", INT_TO_JSVAL(offsetof (struct dirent, d_type)) },
+  { "OSFILE_OFFSETOF_DIRENT_D_TYPE", JS::Int32Value(offsetof (struct dirent, d_type)) },
 #endif // defined(DT_UNKNOWN)
 
   // Under MacOS X and BSDs, |dirfd| is a macro rather than a
   // function, so we need a little help to get it to work
 #if defined(dirfd)
-  { "OSFILE_SIZEOF_DIR", INT_TO_JSVAL(sizeof (DIR)) },
+  { "OSFILE_SIZEOF_DIR", JS::Int32Value(sizeof (DIR)) },
 
-  { "OSFILE_OFFSETOF_DIR_DD_FD", INT_TO_JSVAL(offsetof (DIR, __dd_fd)) },
+  { "OSFILE_OFFSETOF_DIR_DD_FD", JS::Int32Value(offsetof (DIR, __dd_fd)) },
 #endif
 
   // Defining |stat|
 
-  { "OSFILE_SIZEOF_STAT", INT_TO_JSVAL(sizeof (struct stat)) },
+  { "OSFILE_SIZEOF_STAT", JS::Int32Value(sizeof (struct stat)) },
 
-  { "OSFILE_OFFSETOF_STAT_ST_MODE", INT_TO_JSVAL(offsetof (struct stat, st_mode)) },
-  { "OSFILE_OFFSETOF_STAT_ST_UID", INT_TO_JSVAL(offsetof (struct stat, st_uid)) },
-  { "OSFILE_OFFSETOF_STAT_ST_GID", INT_TO_JSVAL(offsetof (struct stat, st_gid)) },
-  { "OSFILE_OFFSETOF_STAT_ST_SIZE", INT_TO_JSVAL(offsetof (struct stat, st_size)) },
+  { "OSFILE_OFFSETOF_STAT_ST_MODE", JS::Int32Value(offsetof (struct stat, st_mode)) },
+  { "OSFILE_OFFSETOF_STAT_ST_UID", JS::Int32Value(offsetof (struct stat, st_uid)) },
+  { "OSFILE_OFFSETOF_STAT_ST_GID", JS::Int32Value(offsetof (struct stat, st_gid)) },
+  { "OSFILE_OFFSETOF_STAT_ST_SIZE", JS::Int32Value(offsetof (struct stat, st_size)) },
 
 #if defined(HAVE_ST_ATIMESPEC)
-  { "OSFILE_OFFSETOF_STAT_ST_ATIME", INT_TO_JSVAL(offsetof (struct stat, st_atimespec)) },
-  { "OSFILE_OFFSETOF_STAT_ST_MTIME", INT_TO_JSVAL(offsetof (struct stat, st_mtimespec)) },
-  { "OSFILE_OFFSETOF_STAT_ST_CTIME", INT_TO_JSVAL(offsetof (struct stat, st_ctimespec)) },
+  { "OSFILE_OFFSETOF_STAT_ST_ATIME", JS::Int32Value(offsetof (struct stat, st_atimespec)) },
+  { "OSFILE_OFFSETOF_STAT_ST_MTIME", JS::Int32Value(offsetof (struct stat, st_mtimespec)) },
+  { "OSFILE_OFFSETOF_STAT_ST_CTIME", JS::Int32Value(offsetof (struct stat, st_ctimespec)) },
 #else
-  { "OSFILE_OFFSETOF_STAT_ST_ATIME", INT_TO_JSVAL(offsetof (struct stat, st_atime)) },
-  { "OSFILE_OFFSETOF_STAT_ST_MTIME", INT_TO_JSVAL(offsetof (struct stat, st_mtime)) },
-  { "OSFILE_OFFSETOF_STAT_ST_CTIME", INT_TO_JSVAL(offsetof (struct stat, st_ctime)) },
+  { "OSFILE_OFFSETOF_STAT_ST_ATIME", JS::Int32Value(offsetof (struct stat, st_atime)) },
+  { "OSFILE_OFFSETOF_STAT_ST_MTIME", JS::Int32Value(offsetof (struct stat, st_mtime)) },
+  { "OSFILE_OFFSETOF_STAT_ST_CTIME", JS::Int32Value(offsetof (struct stat, st_ctime)) },
 #endif // defined(HAVE_ST_ATIME)
 
   // Several OSes have a birthtime field. For the moment, supporting only Darwin.
 #if defined(_DARWIN_FEATURE_64_BIT_INODE)
-  { "OSFILE_OFFSETOF_STAT_ST_BIRTHTIME", INT_TO_JSVAL(offsetof (struct stat, st_birthtime)) },
+  { "OSFILE_OFFSETOF_STAT_ST_BIRTHTIME", JS::Int32Value(offsetof (struct stat, st_birthtime)) },
 #endif // defined(_DARWIN_FEATURE_64_BIT_INODE)
 
   // Defining |statvfs|
 
-  { "OSFILE_SIZEOF_STATVFS", INT_TO_JSVAL(sizeof (struct statvfs)) },
+  { "OSFILE_SIZEOF_STATVFS", JS::Int32Value(sizeof (struct statvfs)) },
 
-  { "OSFILE_OFFSETOF_STATVFS_F_BSIZE", INT_TO_JSVAL(offsetof (struct statvfs, f_bsize)) },
-  { "OSFILE_OFFSETOF_STATVFS_F_BAVAIL", INT_TO_JSVAL(offsetof (struct statvfs, f_bavail)) },
+  { "OSFILE_OFFSETOF_STATVFS_F_BSIZE", JS::Int32Value(offsetof (struct statvfs, f_bsize)) },
+  { "OSFILE_OFFSETOF_STATVFS_F_BAVAIL", JS::Int32Value(offsetof (struct statvfs, f_bavail)) },
 
 #endif // defined(XP_UNIX)
 
@@ -648,7 +716,7 @@ static const dom::ConstantSpec gLibcProperties[] =
   // whenever macro _DARWIN_FEATURE_64_BIT_INODE is set. We export
   // this value to be able to do so from JavaScript.
 #if defined(_DARWIN_FEATURE_64_BIT_INODE)
-   { "_DARWIN_FEATURE_64_BIT_INODE", INT_TO_JSVAL(1) },
+   { "_DARWIN_FEATURE_64_BIT_INODE", JS::Int32Value(1) },
 #endif // defined(_DARWIN_FEATURE_64_BIT_INODE)
 
   // Similar feature for Linux
@@ -699,14 +767,16 @@ static const dom::ConstantSpec gWinProperties[] =
   // CreateFile attributes
   INT_CONSTANT(FILE_ATTRIBUTE_ARCHIVE),
   INT_CONSTANT(FILE_ATTRIBUTE_DIRECTORY),
+  INT_CONSTANT(FILE_ATTRIBUTE_HIDDEN),
   INT_CONSTANT(FILE_ATTRIBUTE_NORMAL),
   INT_CONSTANT(FILE_ATTRIBUTE_READONLY),
   INT_CONSTANT(FILE_ATTRIBUTE_REPARSE_POINT),
+  INT_CONSTANT(FILE_ATTRIBUTE_SYSTEM),
   INT_CONSTANT(FILE_ATTRIBUTE_TEMPORARY),
   INT_CONSTANT(FILE_FLAG_BACKUP_SEMANTICS),
 
   // CreateFile error constant
-  { "INVALID_HANDLE_VALUE", INT_TO_JSVAL(INT_PTR(INVALID_HANDLE_VALUE)) },
+  { "INVALID_HANDLE_VALUE", JS::Int32Value(INT_PTR(INVALID_HANDLE_VALUE)) },
 
 
   // CreateFile flags
@@ -772,12 +842,12 @@ JSObject *GetOrCreateObjectProperty(JSContext *cx, JS::Handle<JSObject*> aObject
       return &val.toObject();
     }
 
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
-      JSMSG_UNEXPECTED_TYPE, aProperty, "not an object");
+    JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr,
+                              JSMSG_UNEXPECTED_TYPE,
+                              aProperty, "not an object");
     return nullptr;
   }
-  return JS_DefineObject(cx, aObject, aProperty, nullptr, JS::NullPtr(),
-                         JSPROP_ENUMERATE);
+  return JS_DefineObject(cx, aObject, aProperty, nullptr, JSPROP_ENUMERATE);
 }
 
 /**
@@ -793,7 +863,7 @@ bool SetStringProperty(JSContext *cx, JS::Handle<JSObject*> aObject, const char 
   }
   JSString* strValue = JS_NewUCStringCopyZ(cx, aValue.get());
   NS_ENSURE_TRUE(strValue, false);
-  JS::Rooted<JS::Value> valValue(cx, STRING_TO_JSVAL(strValue));
+  JS::Rooted<JS::Value> valValue(cx, JS::StringValue(strValue));
   return JS_SetProperty(cx, aObject, aProperty, valValue);
 }
 
@@ -805,15 +875,14 @@ bool SetStringProperty(JSContext *cx, JS::Handle<JSObject*> aObject, const char 
  */
 bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global)
 {
-  MOZ_ASSERT(gInitialized);
-
-  if (gPaths == nullptr) {
+  if (!gInitialized || gPaths == nullptr) {
     // If an initialization error was ignored, we may end up with
     // |gInitialized == true| but |gPaths == nullptr|. We cannot
     // |MOZ_ASSERT| this, as this would kill precompile_cache.js,
     // so we simply return an error.
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
-      JSMSG_CANT_OPEN, "OSFileConstants", "initialization has failed");
+    JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr,
+                              JSMSG_CANT_OPEN,
+                              "OSFileConstants", "initialization has failed");
     return false;
   }
 
@@ -855,6 +924,16 @@ bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global)
     return false;
   }
 
+#if defined(MOZ_WIDGET_GONK)
+    JSString* strVersion = JS_NewStringCopyZ(cx, "Gonk");
+    if (!strVersion){
+      return false;
+    }
+    JS::Rooted<JS::Value> valVersion(cx, JS::StringValue(strVersion));
+    if (!JS_SetProperty(cx, objSys, "Name", valVersion)) {
+      return false;
+  }
+#else
   nsCOMPtr<nsIXULRuntime> runtime = do_GetService(XULRUNTIME_SERVICE_CONTRACTID);
   if (runtime) {
     nsAutoCString os;
@@ -866,24 +945,31 @@ bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global)
       return false;
     }
 
-    JS::Rooted<JS::Value> valVersion(cx, STRING_TO_JSVAL(strVersion));
+    JS::Rooted<JS::Value> valVersion(cx, JS::StringValue(strVersion));
     if (!JS_SetProperty(cx, objSys, "Name", valVersion)) {
       return false;
     }
   }
+#endif // defined(MOZ_WIDGET_GONK)
 
 #if defined(DEBUG)
-  JS::Rooted<JS::Value> valDebug(cx, JSVAL_TRUE);
+  JS::Rooted<JS::Value> valDebug(cx, JS::TrueValue());
   if (!JS_SetProperty(cx, objSys, "DEBUG", valDebug)) {
     return false;
   }
 #endif
 
-  dom::ConstantSpec umask_cs[] = {
-    { "umask", UINT_TO_JSVAL(gUserUmask) },
-    PROP_END
-  };
-  if (!dom::DefineConstants(cx, objSys, umask_cs)) {
+#if defined(HAVE_64BIT_BUILD)
+  JS::Rooted<JS::Value> valBits(cx, JS::Int32Value(64));
+#else
+  JS::Rooted<JS::Value> valBits(cx, JS::Int32Value(32));
+#endif //defined (HAVE_64BIT_BUILD)
+  if (!JS_SetProperty(cx, objSys, "bits", valBits)) {
+    return false;
+  }
+
+  if (!JS_DefineProperty(cx, objSys, "umask", gUserUmask,
+                         JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT)) {
       return false;
   }
 
@@ -965,6 +1051,10 @@ bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global)
   }
 
   if (!SetStringProperty(cx, objPath, "macLocalApplicationsDir", gPaths->macLocalApplicationsDir)) {
+    return false;
+  }
+
+  if (!SetStringProperty(cx, objPath, "macTrashDir", gPaths->macTrashDir)) {
     return false;
   }
 #endif // defined(XP_MACOSX)

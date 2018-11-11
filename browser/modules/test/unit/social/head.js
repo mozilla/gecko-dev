@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
+var { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 var Social, SocialService;
 
-let manifests = [
+var manifests = [
   {
     name: "provider 1",
     origin: "https://example1.com",
@@ -28,52 +28,14 @@ const MANIFEST_PREFS = Services.prefs.getBranch("social.manifest.");
 // initApp below).
 const gProfD = do_get_profile();
 
-const XULAPPINFO_CONTRACTID = "@mozilla.org/xre/app-info;1";
-const XULAPPINFO_CID = Components.ID("{c763b610-9d49-455a-bbd2-ede71682a1ac}");
-
-function createAppInfo(id, name, version, platformVersion) {
-  gAppInfo = {
-    // nsIXULAppInfo
-    vendor: "Mozilla",
-    name: name,
-    ID: id,
-    version: version,
-    appBuildID: "2007010101",
-    platformVersion: platformVersion ? platformVersion : "1.0",
-    platformBuildID: "2007010101",
-
-    // nsIXULRuntime
-    inSafeMode: false,
-    logConsoleErrors: true,
-    OS: "XPCShell",
-    XPCOMABI: "noarch-spidermonkey",
-    invalidateCachesOnRestart: function invalidateCachesOnRestart() {
-      // Do nothing
-    },
-
-    // nsICrashReporter
-    annotations: {},
-
-    annotateCrashReport: function(key, data) {
-      this.annotations[key] = data;
-    },
-
-    QueryInterface: XPCOMUtils.generateQI([Ci.nsIXULAppInfo,
-                                           Ci.nsIXULRuntime,
-                                           Ci.nsICrashReporter,
-                                           Ci.nsISupports])
-  };
-
-  var XULAppInfoFactory = {
-    createInstance: function (outer, iid) {
-      if (outer != null)
-        throw Components.results.NS_ERROR_NO_AGGREGATION;
-      return gAppInfo.QueryInterface(iid);
-    }
-  };
-  var registrar = Components.manager.QueryInterface(Ci.nsIComponentRegistrar);
-  registrar.registerFactory(XULAPPINFO_CID, "XULAppInfo",
-                            XULAPPINFO_CONTRACTID, XULAppInfoFactory);
+function createAppInfo(ID, name, version, platformVersion="1.0") {
+  let tmp = {};
+  Cu.import("resource://testing-common/AppInfo.jsm", tmp);
+  tmp.updateAppInfo({
+    ID, name, version, platformVersion,
+    crashReporter: true,
+  });
+  gAppInfo = tmp.getAppInfo();
 }
 
 function initApp() {
@@ -85,6 +47,7 @@ function initApp() {
     blocklistFile.remove(false);
   var source = do_get_file("blocklist.xml");
   source.copyTo(gProfD, "blocklist.xml");
+  blocklistFile.lastModifiedTime = Date.now();
 
 
   let internalManager = Cc["@mozilla.org/addons/integration;1"].
@@ -101,12 +64,12 @@ function setManifestPref(manifest) {
   Services.prefs.setComplexValue("social.manifest." + manifest.origin, Ci.nsISupportsString, string);
 }
 
-function do_wait_observer(topic, cb) {
+function do_wait_observer(obsTopic, cb) {
   function observer(subject, topic, data) {
     Services.obs.removeObserver(observer, topic);
     cb();
   }
-  Services.obs.addObserver(observer, topic, false);
+  Services.obs.addObserver(observer, obsTopic, false);
 }
 
 function do_add_providers(cb) {
@@ -153,7 +116,7 @@ function do_initialize_social(enabledOnStartup, cb) {
   }
 
   // import and initialize everything
-  SocialService = Cu.import("resource://gre/modules/SocialService.jsm", {}).SocialService;
+  SocialService = Cu.import("resource:///modules/SocialService.jsm", {}).SocialService;
   do_check_eq(enabledOnStartup, SocialService.hasEnabledProviders, "Service has enabled providers");
   Social = Cu.import("resource:///modules/Social.jsm", {}).Social;
   do_check_false(Social.initialized, "Social is not initialized");
@@ -162,3 +125,86 @@ function do_initialize_social(enabledOnStartup, cb) {
   if (!enabledOnStartup)
     do_execute_soon(cb);
 }
+
+function AsyncRunner() {
+  do_test_pending();
+  do_register_cleanup(() => this.destroy());
+
+  this._callbacks = {
+    done: do_test_finished,
+    error: function (err) {
+      // xpcshell test functions like do_check_eq throw NS_ERROR_ABORT on
+      // failure.  Ignore those so they aren't rethrown here.
+      if (err !== Cr.NS_ERROR_ABORT) {
+        if (err.stack) {
+          err = err + " - See following stack:\n" + err.stack +
+                      "\nUseless do_throw stack";
+        }
+        do_throw(err);
+      }
+    },
+    consoleError: function (scriptErr) {
+      // Try to ensure the error is related to the test.
+      let filename = scriptErr.sourceName || scriptErr.toString() || "";
+      if (filename.indexOf("/toolkit/components/social/") >= 0)
+        do_throw(scriptErr);
+    },
+  };
+  this._iteratorQueue = [];
+
+  // This catches errors reported to the console, e.g., via Cu.reportError, but
+  // not on the runner's stack.
+  Cc["@mozilla.org/consoleservice;1"].
+    getService(Ci.nsIConsoleService).
+    registerListener(this);
+}
+
+AsyncRunner.prototype = {
+
+  appendIterator: function appendIterator(iter) {
+    this._iteratorQueue.push(iter);
+  },
+
+  next: function next(arg) {
+    if (!this._iteratorQueue.length) {
+      this.destroy();
+      this._callbacks.done();
+      return;
+    }
+
+    try {
+      var { done, value: val } = this._iteratorQueue[0].next(arg);
+      if (done) {
+        this._iteratorQueue.shift();
+        this.next();
+        return;
+      }
+    }
+    catch (err) {
+      this._callbacks.error(err);
+    }
+
+    // val is an iterator => prepend it to the queue and start on it
+    // val is otherwise truthy => call next
+    if (val) {
+      if (typeof(val) != "boolean")
+        this._iteratorQueue.unshift(val);
+      this.next();
+    }
+  },
+
+  destroy: function destroy() {
+    Cc["@mozilla.org/consoleservice;1"].
+      getService(Ci.nsIConsoleService).
+      unregisterListener(this);
+    this.destroy = function alreadyDestroyed() {};
+  },
+
+  observe: function observe(msg) {
+    if (msg instanceof Ci.nsIScriptError &&
+        !(msg.flags & Ci.nsIScriptError.warningFlag))
+    {
+      this._callbacks.consoleError(msg);
+    }
+  },
+};

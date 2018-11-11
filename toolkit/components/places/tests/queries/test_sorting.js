@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -6,18 +6,16 @@
 
 var tests = [];
 
-////////////////////////////////////////////////////////////////////////////////
-
 tests.push({
   _sortingMode: Ci.nsINavHistoryQueryOptions.SORT_BY_NONE,
 
-  setup: function() {
-    LOG("Sorting test 1: SORT BY NONE");
+  *setup() {
+    do_print("Sorting test 1: SORT BY NONE");
 
     this._unsortedData = [
       { isBookmark: true,
         uri: "http://example.com/b",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: PlacesUtils.bookmarks.DEFAULT_INDEX,
         title: "y",
         keyword: "b",
@@ -25,7 +23,7 @@ tests.push({
 
       { isBookmark: true,
         uri: "http://example.com/a",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: PlacesUtils.bookmarks.DEFAULT_INDEX,
         title: "z",
         keyword: "a",
@@ -33,7 +31,7 @@ tests.push({
 
       { isBookmark: true,
         uri: "http://example.com/c",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: PlacesUtils.bookmarks.DEFAULT_INDEX,
         title: "x",
         keyword: "c",
@@ -69,32 +67,30 @@ tests.push({
   }
 });
 
-////////////////////////////////////////////////////////////////////////////////
-
 tests.push({
   _sortingMode: Ci.nsINavHistoryQueryOptions.SORT_BY_TITLE_ASCENDING,
 
-  setup: function() {
-    LOG("Sorting test 2: SORT BY TITLE");
+  *setup() {
+    do_print("Sorting test 2: SORT BY TITLE");
 
     this._unsortedData = [
       { isBookmark: true,
         uri: "http://example.com/b1",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: PlacesUtils.bookmarks.DEFAULT_INDEX,
         title: "y",
         isInQuery: true },
 
       { isBookmark: true,
         uri: "http://example.com/a",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: PlacesUtils.bookmarks.DEFAULT_INDEX,
         title: "z",
         isInQuery: true },
 
       { isBookmark: true,
         uri: "http://example.com/c",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: PlacesUtils.bookmarks.DEFAULT_INDEX,
         title: "x",
         isInQuery: true },
@@ -102,7 +98,7 @@ tests.push({
       // if titles are equal, should fall back to URI
       { isBookmark: true,
         uri: "http://example.com/b2",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: PlacesUtils.bookmarks.DEFAULT_INDEX,
         title: "y",
         isInQuery: true },
@@ -144,43 +140,41 @@ tests.push({
   }
 });
 
-////////////////////////////////////////////////////////////////////////////////
-
 tests.push({
   _sortingMode: Ci.nsINavHistoryQueryOptions.SORT_BY_DATE_ASCENDING,
 
-  setup: function() {
-    LOG("Sorting test 3: SORT BY DATE");
+  *setup() {
+    do_print("Sorting test 3: SORT BY DATE");
 
     var timeInMicroseconds = Date.now() * 1000;
     this._unsortedData = [
       { isVisit: true,
         isDetails: true,
         isBookmark: true,
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 0,
         uri: "http://example.com/c1",
-        lastVisit: timeInMicroseconds - 2,
+        lastVisit: timeInMicroseconds - 2000,
         title: "x1",
         isInQuery: true },
 
       { isVisit: true,
         isDetails: true,
         isBookmark: true,
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 1,
         uri: "http://example.com/a",
-        lastVisit: timeInMicroseconds - 1,
+        lastVisit: timeInMicroseconds - 1000,
         title: "z",
         isInQuery: true },
 
       { isVisit: true,
         isDetails: true,
         isBookmark: true,
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 2,
         uri: "http://example.com/b",
-        lastVisit: timeInMicroseconds - 3,
+        lastVisit: timeInMicroseconds - 3000,
         title: "y",
         isInQuery: true },
 
@@ -188,10 +182,10 @@ tests.push({
       { isVisit: true,
         isDetails: true,
         isBookmark: true,
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 3,
         uri: "http://example.com/c2",
-        lastVisit: timeInMicroseconds - 2,
+        lastVisit: timeInMicroseconds - 2000,
         title: "x2",
         isInQuery: true },
 
@@ -199,10 +193,10 @@ tests.push({
       { isVisit: true,
         isDetails: true,
         isBookmark: true,
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 4,
         uri: "http://example.com/c2",
-        lastVisit: timeInMicroseconds - 2,
+        lastVisit: timeInMicroseconds - 2000,
         title: "x2",
         isInQuery: true },
     ];
@@ -244,13 +238,11 @@ tests.push({
   }
 });
 
-////////////////////////////////////////////////////////////////////////////////
-
 tests.push({
   _sortingMode: Ci.nsINavHistoryQueryOptions.SORT_BY_URI_ASCENDING,
 
-  setup: function() {
-    LOG("Sorting test 4: SORT BY URI");
+  *setup() {
+    do_print("Sorting test 4: SORT BY URI");
 
     var timeInMicroseconds = Date.now() * 1000;
     this._unsortedData = [
@@ -258,21 +250,21 @@ tests.push({
         isDetails: true,
         lastVisit: timeInMicroseconds,
         uri: "http://example.com/b",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 0,
         title: "y",
         isInQuery: true },
 
       { isBookmark: true,
         uri: "http://example.com/c",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 1,
         title: "x",
         isInQuery: true },
 
       { isBookmark: true,
         uri: "http://example.com/a",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 2,
         title: "z",
         isInQuery: true },
@@ -280,16 +272,16 @@ tests.push({
       // if URIs are equal, should fall back to date
       { isBookmark: true,
         isDetails: true,
-        lastVisit: timeInMicroseconds + 1,
+        lastVisit: timeInMicroseconds + 1000,
         uri: "http://example.com/c",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 3,
         title: "x",
         isInQuery: true },
 
       // if no URI (e.g., node is a folder), should fall back to title
       { isFolder: true,
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 4,
         title: "a",
         isInQuery: true },
@@ -297,16 +289,16 @@ tests.push({
       // if URIs and dates are equal, should fall back to bookmark index
       { isBookmark: true,
         isDetails: true,
-        lastVisit: timeInMicroseconds + 1,
+        lastVisit: timeInMicroseconds + 1000,
         uri: "http://example.com/c",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 5,
         title: "x",
         isInQuery: true },
 
       // if no URI and titles are equal, should fall back to bookmark index
       { isFolder: true,
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 6,
         title: "a",
         isInQuery: true },
@@ -350,13 +342,11 @@ tests.push({
   }
 });
 
-////////////////////////////////////////////////////////////////////////////////
-
 tests.push({
   _sortingMode: Ci.nsINavHistoryQueryOptions.SORT_BY_VISITCOUNT_ASCENDING,
 
-  setup: function() {
-    LOG("Sorting test 5: SORT BY VISITCOUNT");
+  *setup() {
+    do_print("Sorting test 5: SORT BY VISITCOUNT");
 
     var timeInMicroseconds = Date.now() * 1000;
     this._unsortedData = [
@@ -364,7 +354,7 @@ tests.push({
         uri: "http://example.com/a",
         lastVisit: timeInMicroseconds,
         title: "z",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 0,
         isInQuery: true },
 
@@ -372,7 +362,7 @@ tests.push({
         uri: "http://example.com/c",
         lastVisit: timeInMicroseconds,
         title: "x",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 1,
         isInQuery: true },
 
@@ -380,25 +370,25 @@ tests.push({
         uri: "http://example.com/b1",
         lastVisit: timeInMicroseconds,
         title: "y1",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 2,
         isInQuery: true },
 
       // if visitCounts are equal, should fall back to date
       { isBookmark: true,
         uri: "http://example.com/b2",
-        lastVisit: timeInMicroseconds + 1,
+        lastVisit: timeInMicroseconds + 1000,
         title: "y2a",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 3,
         isInQuery: true },
 
       // if visitCounts and dates are equal, should fall back to bookmark index
       { isBookmark: true,
         uri: "http://example.com/b2",
-        lastVisit: timeInMicroseconds + 1,
+        lastVisit: timeInMicroseconds + 1000,
         title: "y2b",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 4,
         isInQuery: true },
     ];
@@ -414,12 +404,12 @@ tests.push({
     // This function in head_queries.js creates our database with the above data
     yield task_populateDB(this._unsortedData);
     // add visits to increase visit count
-    yield promiseAddVisits([
+    yield PlacesTestUtils.addVisits([
       { uri: uri("http://example.com/a"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds },
       { uri: uri("http://example.com/b1"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds },
       { uri: uri("http://example.com/b1"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds },
-      { uri: uri("http://example.com/b2"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds + 1 },
-      { uri: uri("http://example.com/b2"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds + 1 },
+      { uri: uri("http://example.com/b2"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds + 1000 },
+      { uri: uri("http://example.com/b2"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds + 1000 },
       { uri: uri("http://example.com/c"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds },
       { uri: uri("http://example.com/c"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds },
       { uri: uri("http://example.com/c"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds },
@@ -451,18 +441,16 @@ tests.push({
   }
 });
 
-////////////////////////////////////////////////////////////////////////////////
-
 tests.push({
   _sortingMode: Ci.nsINavHistoryQueryOptions.SORT_BY_KEYWORD_ASCENDING,
 
-  setup: function() {
-    LOG("Sorting test 6: SORT BY KEYWORD");
+  *setup() {
+    do_print("Sorting test 6: SORT BY KEYWORD");
 
     this._unsortedData = [
       { isBookmark: true,
         uri: "http://example.com/a",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: PlacesUtils.bookmarks.DEFAULT_INDEX,
         title: "z",
         keyword: "a",
@@ -470,7 +458,7 @@ tests.push({
 
       { isBookmark: true,
         uri: "http://example.com/c",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: PlacesUtils.bookmarks.DEFAULT_INDEX,
         title: "x",
         keyword: "c",
@@ -478,7 +466,7 @@ tests.push({
 
       { isBookmark: true,
         uri: "http://example.com/b1",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: PlacesUtils.bookmarks.DEFAULT_INDEX,
         title: "y9",
         keyword: "b",
@@ -487,7 +475,7 @@ tests.push({
       // without a keyword, should fall back to title
       { isBookmark: true,
         uri: "http://example.com/null2",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: PlacesUtils.bookmarks.DEFAULT_INDEX,
         title: "null8",
         keyword: null,
@@ -496,7 +484,7 @@ tests.push({
       // without a keyword, should fall back to title
       { isBookmark: true,
         uri: "http://example.com/null1",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: PlacesUtils.bookmarks.DEFAULT_INDEX,
         title: "null9",
         keyword: null,
@@ -504,8 +492,8 @@ tests.push({
 
       // if keywords are equal, should fall back to title
       { isBookmark: true,
-        uri: "http://example.com/b2",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        uri: "http://example.com/b1",
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: PlacesUtils.bookmarks.DEFAULT_INDEX,
         title: "y8",
         keyword: "b",
@@ -550,35 +538,33 @@ tests.push({
   }
 });
 
-////////////////////////////////////////////////////////////////////////////////
-
 tests.push({
   _sortingMode: Ci.nsINavHistoryQueryOptions.SORT_BY_DATEADDED_ASCENDING,
 
-  setup: function() {
-    LOG("Sorting test 7: SORT BY DATEADDED");
+  *setup() {
+    do_print("Sorting test 7: SORT BY DATEADDED");
 
     var timeInMicroseconds = Date.now() * 1000;
     this._unsortedData = [
       { isBookmark: true,
         uri: "http://example.com/b1",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 0,
         title: "y1",
-        dateAdded: timeInMicroseconds -1,
+        dateAdded: timeInMicroseconds - 1000,
         isInQuery: true },
 
       { isBookmark: true,
         uri: "http://example.com/a",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 1,
         title: "z",
-        dateAdded: timeInMicroseconds - 2,
+        dateAdded: timeInMicroseconds - 2000,
         isInQuery: true },
 
       { isBookmark: true,
         uri: "http://example.com/c",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 2,
         title: "x",
         dateAdded: timeInMicroseconds,
@@ -587,19 +573,19 @@ tests.push({
       // if dateAddeds are equal, should fall back to title
       { isBookmark: true,
         uri: "http://example.com/b2",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 3,
         title: "y2",
-        dateAdded: timeInMicroseconds - 1,
+        dateAdded: timeInMicroseconds - 1000,
         isInQuery: true },
 
       // if dateAddeds and titles are equal, should fall back to bookmark index
       { isBookmark: true,
         uri: "http://example.com/b3",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 4,
         title: "y3",
-        dateAdded: timeInMicroseconds - 1,
+        dateAdded: timeInMicroseconds - 1000,
         isInQuery: true },
     ];
 
@@ -640,57 +626,62 @@ tests.push({
   }
 });
 
-////////////////////////////////////////////////////////////////////////////////
-
 tests.push({
   _sortingMode: Ci.nsINavHistoryQueryOptions.SORT_BY_LASTMODIFIED_ASCENDING,
 
-  setup: function() {
-    LOG("Sorting test 8: SORT BY LASTMODIFIED");
+  *setup() {
+    do_print("Sorting test 8: SORT BY LASTMODIFIED");
 
     var timeInMicroseconds = Date.now() * 1000;
+    var timeAddedInMicroseconds = timeInMicroseconds - 10000;
+
     this._unsortedData = [
       { isBookmark: true,
         uri: "http://example.com/b1",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 0,
         title: "y1",
-        lastModified: timeInMicroseconds -1,
+        dateAdded: timeAddedInMicroseconds,
+        lastModified: timeInMicroseconds - 1000,
         isInQuery: true },
 
       { isBookmark: true,
         uri: "http://example.com/a",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 1,
         title: "z",
-        lastModified: timeInMicroseconds - 2,
+        dateAdded: timeAddedInMicroseconds,
+        lastModified: timeInMicroseconds - 2000,
         isInQuery: true },
 
       { isBookmark: true,
         uri: "http://example.com/c",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 2,
         title: "x",
+        dateAdded: timeAddedInMicroseconds,
         lastModified: timeInMicroseconds,
         isInQuery: true },
 
       // if lastModifieds are equal, should fall back to title
       { isBookmark: true,
         uri: "http://example.com/b2",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 3,
         title: "y2",
-        lastModified: timeInMicroseconds - 1,
+        dateAdded: timeAddedInMicroseconds,
+        lastModified: timeInMicroseconds - 1000,
         isInQuery: true },
 
       // if lastModifieds and titles are equal, should fall back to bookmark
       // index
       { isBookmark: true,
         uri: "http://example.com/b3",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: 4,
         title: "y3",
-        lastModified: timeInMicroseconds - 1,
+        dateAdded: timeAddedInMicroseconds,
+        lastModified: timeInMicroseconds - 1000,
         isInQuery: true },
     ];
 
@@ -731,18 +722,16 @@ tests.push({
   }
 });
 
-////////////////////////////////////////////////////////////////////////////////
-
 tests.push({
   _sortingMode: Ci.nsINavHistoryQueryOptions.SORT_BY_TAGS_ASCENDING,
 
-  setup: function() {
-    LOG("Sorting test 9: SORT BY TAGS");
+  *setup() {
+    do_print("Sorting test 9: SORT BY TAGS");
 
     this._unsortedData = [
       { isBookmark: true,
         uri: "http://url2.com/",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: PlacesUtils.bookmarks.DEFAULT_INDEX,
         title: "title x",
         isTag: true,
@@ -751,7 +740,7 @@ tests.push({
 
       { isBookmark: true,
         uri: "http://url1a.com/",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: PlacesUtils.bookmarks.DEFAULT_INDEX,
         title: "title y1",
         isTag: true,
@@ -760,14 +749,14 @@ tests.push({
 
       { isBookmark: true,
         uri: "http://url3a.com/",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: PlacesUtils.bookmarks.DEFAULT_INDEX,
         title: "title w1",
         isInQuery: true },
 
       { isBookmark: true,
         uri: "http://url0.com/",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: PlacesUtils.bookmarks.DEFAULT_INDEX,
         title: "title z",
         isTag: true,
@@ -777,7 +766,7 @@ tests.push({
       // if tags are equal, should fall back to title
       { isBookmark: true,
         uri: "http://url1b.com/",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: PlacesUtils.bookmarks.DEFAULT_INDEX,
         title: "title y2",
         isTag: true,
@@ -787,7 +776,7 @@ tests.push({
       // if tags are equal, should fall back to title
       { isBookmark: true,
         uri: "http://url3b.com/",
-        parentFolder: PlacesUtils.bookmarks.toolbarFolder,
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
         index: PlacesUtils.bookmarks.DEFAULT_INDEX,
         title: "title w2",
         isInQuery: true },
@@ -831,14 +820,13 @@ tests.push({
   }
 });
 
-////////////////////////////////////////////////////////////////////////////////
 // SORT_BY_ANNOTATION_* (int32)
 
 tests.push({
   _sortingMode: Ci.nsINavHistoryQueryOptions.SORT_BY_ANNOTATION_ASCENDING,
 
-  setup: function() {
-    LOG("Sorting test 10: SORT BY ANNOTATION (int32)");
+  *setup() {
+    do_print("Sorting test 10: SORT BY ANNOTATION (int32)");
 
     var timeInMicroseconds = Date.now() * 1000;
     this._unsortedData = [
@@ -927,14 +915,13 @@ tests.push({
   }
 });
 
-////////////////////////////////////////////////////////////////////////////////
 // SORT_BY_ANNOTATION_* (int64)
 
 tests.push({
   _sortingMode: Ci.nsINavHistoryQueryOptions.SORT_BY_ANNOTATION_ASCENDING,
 
-  setup: function() {
-    LOG("Sorting test 11: SORT BY ANNOTATION (int64)");
+  *setup() {
+    do_print("Sorting test 11: SORT BY ANNOTATION (int64)");
 
     var timeInMicroseconds = Date.now() * 1000;
     this._unsortedData = [
@@ -1009,14 +996,13 @@ tests.push({
   }
 });
 
-////////////////////////////////////////////////////////////////////////////////
 // SORT_BY_ANNOTATION_* (string)
 
 tests.push({
   _sortingMode: Ci.nsINavHistoryQueryOptions.SORT_BY_ANNOTATION_ASCENDING,
 
-  setup: function() {
-    LOG("Sorting test 12: SORT BY ANNOTATION (string)");
+  *setup() {
+    do_print("Sorting test 12: SORT BY ANNOTATION (string)");
 
     var timeInMicroseconds = Date.now() * 1000;
     this._unsortedData = [
@@ -1091,14 +1077,13 @@ tests.push({
   }
 });
 
-////////////////////////////////////////////////////////////////////////////////
 // SORT_BY_ANNOTATION_* (double)
 
 tests.push({
   _sortingMode: Ci.nsINavHistoryQueryOptions.SORT_BY_ANNOTATION_ASCENDING,
 
-  setup: function() {
-    LOG("Sorting test 13: SORT BY ANNOTATION (double)");
+  *setup() {
+    do_print("Sorting test 13: SORT BY ANNOTATION (double)");
 
     var timeInMicroseconds = Date.now() * 1000;
     this._unsortedData = [
@@ -1173,56 +1158,61 @@ tests.push({
   }
 });
 
-////////////////////////////////////////////////////////////////////////////////
 // SORT_BY_FRECENCY_*
 
 tests.push({
   _sortingMode: Ci.nsINavHistoryQueryOptions.SORT_BY_FRECENCY_ASCENDING,
 
-  setup: function() {
-    LOG("Sorting test 13: SORT BY FRECENCY ");
+  *setup() {
+    do_print("Sorting test 13: SORT BY FRECENCY ");
 
-    var timeInMicroseconds = Date.now() * 1000;
+    let timeInMicroseconds = PlacesUtils.toPRTime(Date.now() - 10000);
+
+    function newTimeInMicroseconds() {
+      timeInMicroseconds = timeInMicroseconds + 1000;
+      return timeInMicroseconds;
+    }
+
     this._unsortedData = [
       { isVisit: true,
         isDetails: true,
         uri: "http://moz.com/",
-        lastVisit: timeInMicroseconds++,
+        lastVisit: newTimeInMicroseconds(),
         title: "I",
         isInQuery: true },
 
       { isVisit: true,
         isDetails: true,
         uri: "http://moz.com/",
-        lastVisit: timeInMicroseconds++,
+        lastVisit: newTimeInMicroseconds(),
         title: "I",
         isInQuery: true },
 
       { isVisit: true,
         isDetails: true,
         uri: "http://moz.com/",
-        lastVisit: timeInMicroseconds++,
+        lastVisit: newTimeInMicroseconds(),
         title: "I",
         isInQuery: true },
 
       { isVisit: true,
         isDetails: true,
         uri: "http://is.com/",
-        lastVisit: timeInMicroseconds++,
+        lastVisit: newTimeInMicroseconds(),
         title: "love",
         isInQuery: true },
 
       { isVisit: true,
         isDetails: true,
         uri: "http://best.com/",
-        lastVisit: timeInMicroseconds++,
+        lastVisit: newTimeInMicroseconds(),
         title: "moz",
         isInQuery: true },
 
       { isVisit: true,
         isDetails: true,
         uri: "http://best.com/",
-        lastVisit: timeInMicroseconds++,
+        lastVisit: newTimeInMicroseconds(),
         title: "moz",
         isInQuery: true },
     ];
@@ -1255,23 +1245,21 @@ tests.push({
   }
 });
 
-////////////////////////////////////////////////////////////////////////////////
-
 function run_test()
 {
   run_next_test();
 }
 
-add_task(function test_sorting()
+add_task(function* test_sorting()
 {
-  for (let [, test] in Iterator(tests)) {
+  for (let test of tests) {
     yield test.setup();
-    yield promiseAsyncUpdates();
+    yield PlacesTestUtils.promiseAsyncUpdates();
     test.check();
     // sorting reversed, usually SORT_BY have ASC and DESC
     test.check_reverse();
     // Execute cleanup tasks
-    remove_all_bookmarks();
-    yield promiseClearHistory();
+    yield PlacesUtils.bookmarks.eraseEverything();
+    yield PlacesTestUtils.clearHistory();
   }
 });

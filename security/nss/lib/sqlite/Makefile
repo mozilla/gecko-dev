@@ -14,6 +14,7 @@ include manifest.mn
 # (2) Include "global" configuration information. (OPTIONAL)          #
 #######################################################################
 
+USE_GCOV =
 include $(CORE_DEPTH)/coreconf/config.mk
 
 #######################################################################
@@ -45,4 +46,9 @@ include $(CORE_DEPTH)/coreconf/rules.mk
 #######################################################################
 
 export:: private_export
+
+ifeq (WINNT,$(OS_ARCH))
+# sqlite calls the deprecated GetVersionExA method
+OS_CFLAGS += -w44996
+endif
 

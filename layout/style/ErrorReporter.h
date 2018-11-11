@@ -14,11 +14,12 @@
 #include "nsString.h"
 
 struct nsCSSToken;
-class nsCSSStyleSheet;
 class nsCSSScanner;
 class nsIURI;
 
 namespace mozilla {
+class CSSStyleSheet;
+
 namespace css {
 
 class Loader;
@@ -28,7 +29,7 @@ class Loader;
 class MOZ_STACK_CLASS ErrorReporter {
 public:
   ErrorReporter(const nsCSSScanner &aScanner,
-                const nsCSSStyleSheet *aSheet,
+                const CSSStyleSheet *aSheet,
                 const Loader *aLoader,
                 nsIURI *aURI);
   ~ErrorReporter();
@@ -52,6 +53,9 @@ public:
   // two parameters, a token and a character, in that order
   void ReportUnexpected(const char *aMessage, const nsCSSToken& aToken,
                         char16_t aChar);
+  // two parameters, a param and a value
+  void ReportUnexpected(const char *aMessage, const nsString& aParam,
+                        const nsString& aValue);
 
   // for ReportUnexpectedEOF, aExpected can be either a stringbundle
   // name or a single character.  In the former case there may not be
@@ -67,7 +71,7 @@ private:
   nsString mErrorLine;
   nsString mFileName;
   const nsCSSScanner *mScanner;
-  const nsCSSStyleSheet *mSheet;
+  const CSSStyleSheet *mSheet;
   const Loader *mLoader;
   nsIURI *mURI;
   uint64_t mInnerWindowID;
@@ -79,7 +83,7 @@ private:
 
 #ifndef CSS_REPORT_PARSE_ERRORS
 inline ErrorReporter::ErrorReporter(const nsCSSScanner&,
-                                    const nsCSSStyleSheet*,
+                                    const CSSStyleSheet*,
                                     const Loader*,
                                     nsIURI*) {}
 inline ErrorReporter::~ErrorReporter() {}
@@ -94,6 +98,8 @@ inline void ErrorReporter::ReportUnexpected(const char *, const nsString &) {}
 inline void ErrorReporter::ReportUnexpected(const char *, const nsCSSToken &) {}
 inline void ErrorReporter::ReportUnexpected(const char *, const nsCSSToken &,
                                             char16_t) {}
+inline void ErrorReporter::ReportUnexpected(const char *, const nsString &,
+                                            const nsString &) {}
 
 inline void ErrorReporter::ReportUnexpectedEOF(const char *) {}
 inline void ErrorReporter::ReportUnexpectedEOF(char16_t) {}

@@ -8,12 +8,11 @@ module.metadata = {
   "stability": "unstable"
 };
 
-let { Cc, Ci, CC } = require('chrome');
-let { PlainTextConsole } = require('../console/plain-text');
-let { stdout } = require('../system');
-let ScriptError = CC('@mozilla.org/scripterror;1', 'nsIScriptError');
-let consoleService = Cc['@mozilla.org/consoleservice;1'].getService().
-                     QueryInterface(Ci.nsIConsoleService);
+var { Cc, Ci, CC } = require('chrome');
+var { PlainTextConsole } = require('../console/plain-text');
+var { stdout } = require('../system');
+var ScriptError = CC('@mozilla.org/scripterror;1', 'nsIScriptError');
+var consoleService = Cc['@mozilla.org/consoleservice;1'].getService(Ci.nsIConsoleService);
 
 // On windows dump does not writes into stdout so cfx can't read thous dumps.
 // To workaround this issue we write to a special file from which cfx will
@@ -36,5 +35,12 @@ Object.defineProperty(exports, 'define', {
       factory = Array.slice(arguments).pop();
       factory.call(sandbox, sandbox.require, sandbox.exports, sandbox.module);
     }
-  }
+  },
+  set: function(value) {
+    Object.defineProperty(this, 'define', {
+      configurable: true,
+      enumerable: true,
+      value,
+    });
+  },
 });

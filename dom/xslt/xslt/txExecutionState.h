@@ -21,13 +21,12 @@
 class txAOutputHandlerFactory;
 class txAXMLEventHandler;
 class txInstruction;
-class txIOutputHandlerFactory;
 
 class txLoadedDocumentEntry : public nsStringHashKey
 {
 public:
-    txLoadedDocumentEntry(KeyTypePointer aStr) : nsStringHashKey(aStr),
-                                                 mLoadResult(NS_OK)
+    explicit txLoadedDocumentEntry(KeyTypePointer aStr) : nsStringHashKey(aStr),
+                                                          mLoadResult(NS_OK)
     {
     }
     txLoadedDocumentEntry(const txLoadedDocumentEntry& aToCopy)
@@ -57,16 +56,15 @@ class txLoadedDocumentsHash : public nsTHashtable<txLoadedDocumentEntry>
 {
 public:
     txLoadedDocumentsHash()
-        : nsTHashtable<txLoadedDocumentEntry>(8),
-          mSourceDocument(nullptr)
+        : nsTHashtable<txLoadedDocumentEntry>(4)
     {
     }
     ~txLoadedDocumentsHash();
-    void init(txXPathNode* aSourceDocument);
+    MOZ_MUST_USE nsresult init(const txXPathNode& aSource);
 
 private:
     friend class txExecutionState;
-    txXPathNode* mSourceDocument;
+    nsAutoPtr<txXPathNode> mSourceDocument;
 };
 
 
@@ -95,6 +93,16 @@ public:
     // Stack functions
     nsresult pushEvalContext(txIEvalContext* aContext);
     txIEvalContext* popEvalContext();
+
+    void popAndDeleteEvalContext();
+
+    /**
+     * Helper that deletes all entries before |aContext| and then
+     * pops it off the stack. The caller must delete |aContext| if
+     * desired.
+     */
+    void popAndDeleteEvalContextUntil(txIEvalContext* aContext);
+
     nsresult pushBool(bool aBool);
     bool popBool();
     nsresult pushResultHandler(txAXMLEventHandler* aHandler);
@@ -140,7 +148,7 @@ public:
 
     nsAutoPtr<txVariableMap> mTemplateParams;
 
-    nsRefPtr<txStylesheet> mStylesheet;
+    RefPtr<txStylesheet> mStylesheet;
 
 private:
     txStack mReturnStack;
@@ -152,10 +160,10 @@ private:
     txInstruction* mNextInstruction;
     txVariableMap* mLocalVariables;
     txVariableMap mGlobalVariableValues;
-    nsRefPtr<txAExprResult> mGlobalVarPlaceholderValue;
+    RefPtr<txAExprResult> mGlobalVarPlaceholderValue;
     int32_t mRecursionDepth;
 
-    AutoInfallibleTArray<TemplateRule, 10> mTemplateRules;
+    AutoTArray<TemplateRule, 10> mTemplateRules;
 
     txIEvalContext* mEvalContext;
     txIEvalContext* mInitialEvalContext;
@@ -164,7 +172,7 @@ private:
 
     txLoadedDocumentsHash mLoadedDocuments;
     txKeyHash mKeyHash;
-    nsRefPtr<txResultRecycler> mRecycler;
+    RefPtr<txResultRecycler> mRecycler;
     bool mDisableLoads;
 
     static const int32_t kMaxRecursionDepth;

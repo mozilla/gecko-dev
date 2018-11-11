@@ -26,8 +26,8 @@ class PriorityQueue
 {
     Vector<T, MinInlineCapacity, AllocPolicy> heap;
 
-    PriorityQueue(const PriorityQueue &) MOZ_DELETE;
-    PriorityQueue &operator=(const PriorityQueue &) MOZ_DELETE;
+    PriorityQueue(const PriorityQueue&) = delete;
+    PriorityQueue& operator=(const PriorityQueue&) = delete;
 
   public:
 
@@ -35,7 +35,7 @@ class PriorityQueue
       : heap(ap)
     {}
 
-    bool reserve(size_t capacity) {
+    MOZ_MUST_USE bool reserve(size_t capacity) {
         return heap.reserve(capacity);
     }
 
@@ -57,14 +57,14 @@ class PriorityQueue
         return highest;
     }
 
-    bool insert(const T &v) {
+    MOZ_MUST_USE bool insert(const T& v) {
         if (!heap.append(v))
             return false;
         siftUp(heap.length() - 1);
         return true;
     }
 
-    void infallibleInsert(const T &v) {
+    void infallibleInsert(const T& v) {
         heap.infallibleAppend(v);
         siftUp(heap.length() - 1);
     }

@@ -1,9 +1,11 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 //
 //  file:  rbbistbl.cpp    Implementation of the ICU RBBISymbolTable class
 //
 /*
 ***************************************************************************
-*   Copyright (C) 2002-2011 International Business Machines Corporation
+*   Copyright (C) 2002-2014 International Business Machines Corporation
 *   and others. All rights reserved.
 ***************************************************************************
 */
@@ -17,10 +19,10 @@
 #include "unicode/uchar.h"
 #include "unicode/parsepos.h"
 
-#include "umutex.h"
-
-#include "rbbirb.h"
+#include "cstr.h"
 #include "rbbinode.h"
+#include "rbbirb.h"
+#include "umutex.h"
 
 
 //
@@ -226,11 +228,11 @@ RBBISymbolTableEntry::~RBBISymbolTableEntry() {
 //
 #ifdef RBBI_DEBUG
 void RBBISymbolTable::rbbiSymtablePrint() const {
-    RBBIDebugPrintf("Variable Definitions\n"
-           "Name               Node Val     String Val\n"
-           "----------------------------------------------------------------------\n");
+    RBBIDebugPrintf("Variable Definitions Symbol Table\n"
+           "Name                  Node         serial  String Val\n"
+           "-------------------------------------------------------------------\n");
 
-    int32_t pos = -1;
+    int32_t pos = UHASH_FIRST;
     const UHashElement  *e   = NULL;
     for (;;) {
         e = uhash_nextElement(fHashTable,  &pos);
@@ -239,10 +241,8 @@ void RBBISymbolTable::rbbiSymtablePrint() const {
         }
         RBBISymbolTableEntry  *s   = (RBBISymbolTableEntry *)e->value.pointer;
 
-        RBBI_DEBUG_printUnicodeString(s->key, 15);
-        RBBIDebugPrintf("   %8p   ", (void *)s->val);
-        RBBI_DEBUG_printUnicodeString(s->val->fLeftChild->fText);
-        RBBIDebugPrintf("\n");
+        RBBIDebugPrintf("%-19s   %8p %7d ", CStr(s->key)(), (void *)s->val, s->val->fSerialNum);
+        RBBIDebugPrintf(" %s\n", CStr(s->val->fLeftChild->fText)());
     }
 
     RBBIDebugPrintf("\nParsed Variable Definitions\n");
@@ -253,8 +253,9 @@ void RBBISymbolTable::rbbiSymtablePrint() const {
             break;
         }
         RBBISymbolTableEntry  *s   = (RBBISymbolTableEntry *)e->value.pointer;
-        RBBI_DEBUG_printUnicodeString(s->key);
-        s->val->fLeftChild->printTree(TRUE);
+        RBBIDebugPrintf("%s\n", CStr(s->key)());
+        RBBINode::printTree(s->val, TRUE);
+        RBBINode::printTree(s->val->fLeftChild, FALSE);
         RBBIDebugPrintf("\n");
     }
 }

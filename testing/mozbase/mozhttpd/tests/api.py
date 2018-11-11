@@ -4,15 +4,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import mozfile
 import mozhttpd
 import urllib2
 import os
 import unittest
-import re
 import json
 import tempfile
 
 here = os.path.dirname(os.path.abspath(__file__))
+
 
 class ApiTest(unittest.TestCase):
     resource_get_called = 0
@@ -22,23 +23,23 @@ class ApiTest(unittest.TestCase):
     @mozhttpd.handlers.json_response
     def resource_get(self, request, objid):
         self.resource_get_called += 1
-        return (200, { 'called': self.resource_get_called,
-                       'id': objid,
-                       'query': request.query })
+        return (200, {'called': self.resource_get_called,
+                      'id': objid,
+                      'query': request.query})
 
     @mozhttpd.handlers.json_response
     def resource_post(self, request):
         self.resource_post_called += 1
-        return (201, { 'called': self.resource_post_called,
-                       'data': json.loads(request.body),
-                       'query': request.query })
+        return (201, {'called': self.resource_post_called,
+                      'data': json.loads(request.body),
+                      'query': request.query})
 
     @mozhttpd.handlers.json_response
     def resource_del(self, request, objid):
         self.resource_del_called += 1
-        return (200, { 'called': self.resource_del_called,
-                       'id': objid,
-                       'query': request.query })
+        return (200, {'called': self.resource_del_called,
+                      'id': objid,
+                      'query': request.query})
 
     def get_url(self, path, server_port, querystr):
         url = "http://127.0.0.1:%s%s" % (server_port, path)
@@ -54,26 +55,26 @@ class ApiTest(unittest.TestCase):
             self.assertEqual(f.getcode(), 200)
         except AttributeError:
             pass  # python 2.4
-        self.assertEqual(json.loads(f.read()), { 'called': 1, 'id': str(1), 'query': querystr })
+        self.assertEqual(json.loads(f.read()), {'called': 1, 'id': str(1), 'query': querystr})
         self.assertEqual(self.resource_get_called, 1)
 
     def try_post(self, server_port, querystr):
         self.resource_post_called = 0
 
-        postdata = { 'hamburgers': '1234' }
+        postdata = {'hamburgers': '1234'}
         try:
             f = urllib2.urlopen(self.get_url('/api/resource/', server_port, querystr),
                                 data=json.dumps(postdata))
-        except urllib2.HTTPError, e:
+        except urllib2.HTTPError as e:
             # python 2.4
             self.assertEqual(e.code, 201)
             body = e.fp.read()
         else:
             self.assertEqual(f.getcode(), 201)
             body = f.read()
-        self.assertEqual(json.loads(body), { 'called': 1,
-                                             'data': postdata,
-                                             'query': querystr })
+        self.assertEqual(json.loads(body), {'called': 1,
+                                            'data': postdata,
+                                            'query': querystr})
         self.assertEqual(self.resource_post_called, 1)
 
     def try_del(self, server_port, querystr):
@@ -88,21 +89,21 @@ class ApiTest(unittest.TestCase):
             self.assertEqual(f.getcode(), 200)
         except AttributeError:
             pass  # python 2.4
-        self.assertEqual(json.loads(f.read()), { 'called': 1, 'id': str(1), 'query': querystr })
+        self.assertEqual(json.loads(f.read()), {'called': 1, 'id': str(1), 'query': querystr})
         self.assertEqual(self.resource_del_called, 1)
 
     def test_api(self):
         httpd = mozhttpd.MozHttpd(port=0,
-                                  urlhandlers = [ { 'method': 'GET',
-                                                    'path': '/api/resource/([^/]+)/?',
-                                                    'function': self.resource_get },
-                                                  { 'method': 'POST',
-                                                    'path': '/api/resource/?',
-                                                    'function': self.resource_post },
-                                                  { 'method': 'DEL',
-                                                    'path': '/api/resource/([^/]+)/?',
-                                                    'function': self.resource_del }
-                                                  ])
+                                  urlhandlers=[{'method': 'GET',
+                                                'path': '/api/resource/([^/]+)/?',
+                                                'function': self.resource_get},
+                                               {'method': 'POST',
+                                                'path': '/api/resource/?',
+                                                'function': self.resource_post},
+                                               {'method': 'DEL',
+                                                'path': '/api/resource/([^/]+)/?',
+                                                'function': self.resource_del}
+                                               ])
         httpd.start(block=False)
 
         server_port = httpd.httpd.server_port
@@ -120,11 +121,10 @@ class ApiTest(unittest.TestCase):
         self.try_del(server_port, '?foo=bar')
 
         # GET: By default we don't serve any files if we just define an API
-        f = None
         exception_thrown = False
         try:
-            f = urllib2.urlopen(self.get_url('/', server_port, None))
-        except urllib2.HTTPError, e:
+            urllib2.urlopen(self.get_url('/', server_port, None))
+        except urllib2.HTTPError as e:
             self.assertEqual(e.code, 404)
             exception_thrown = True
         self.assertTrue(exception_thrown)
@@ -137,45 +137,42 @@ class ApiTest(unittest.TestCase):
         server_port = httpd.httpd.server_port
 
         # GET: Return 404 for non-existent endpoint
-        f = None
         exception_thrown = False
         try:
-            f = urllib2.urlopen(self.get_url('/api/resource/', server_port, None))
-        except urllib2.HTTPError, e:
+            urllib2.urlopen(self.get_url('/api/resource/', server_port, None))
+        except urllib2.HTTPError as e:
             self.assertEqual(e.code, 404)
             exception_thrown = True
         self.assertTrue(exception_thrown)
 
         # POST: POST should also return 404
-        f = None
         exception_thrown = False
         try:
-            f = urllib2.urlopen(self.get_url('/api/resource/', server_port, None),
+            urllib2.urlopen(self.get_url('/api/resource/', server_port, None),
                             data=json.dumps({}))
-        except urllib2.HTTPError, e:
+        except urllib2.HTTPError as e:
             self.assertEqual(e.code, 404)
             exception_thrown = True
         self.assertTrue(exception_thrown)
 
         # DEL: DEL should also return 404
-        f = None
         exception_thrown = False
         try:
             opener = urllib2.build_opener(urllib2.HTTPHandler)
             request = urllib2.Request(self.get_url('/api/resource/', server_port,
                                                    None))
             request.get_method = lambda: 'DEL'
-            f = opener.open(request)
-        except urllib2.HTTPError, e:
+            opener.open(request)
+        except urllib2.HTTPError:
             self.assertEqual(e.code, 404)
             exception_thrown = True
         self.assertTrue(exception_thrown)
 
     def test_api_with_docroot(self):
         httpd = mozhttpd.MozHttpd(port=0, docroot=here,
-                                  urlhandlers = [ { 'method': 'GET',
-                                                    'path': '/api/resource/([^/]+)/?',
-                                                    'function': self.resource_get } ])
+                                  urlhandlers=[{'method': 'GET',
+                                                'path': '/api/resource/([^/]+)/?',
+                                                'function': self.resource_get}])
         httpd.start(block=False)
         server_port = httpd.httpd.server_port
 
@@ -191,6 +188,7 @@ class ApiTest(unittest.TestCase):
         self.try_get(server_port, '')
         self.try_get(server_port, '?foo=bar')
 
+
 class ProxyTest(unittest.TestCase):
 
     def tearDown(self):
@@ -199,11 +197,14 @@ class ProxyTest(unittest.TestCase):
 
     def test_proxy(self):
         docroot = tempfile.mkdtemp()
+        self.addCleanup(mozfile.remove, docroot)
         hosts = ('mozilla.com', 'mozilla.org')
         unproxied_host = 'notmozilla.org'
+
         def url(host): return 'http://%s/' % host
 
         index_filename = 'index.html'
+
         def index_contents(host): return '%s index' % host
 
         index = file(os.path.join(docroot, index_filename), 'w')
@@ -255,7 +256,7 @@ class ProxyTest(unittest.TestCase):
         exc = None
         try:
             urllib2.urlopen(url(unproxied_host))
-        except urllib2.HTTPError, e:
+        except urllib2.HTTPError as e:
             exc = e
         self.assertNotEqual(exc, None)
         self.assertEqual(exc.code, 404)

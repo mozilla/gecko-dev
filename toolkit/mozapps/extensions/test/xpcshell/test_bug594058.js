@@ -10,7 +10,9 @@ Services.prefs.setBoolPref("extensions.checkUpdateSecurity", false);
 // Allow the mismatch UI to show
 Services.prefs.setBoolPref("extensions.showMismatchUI", true);
 
-const Ci = Components.interfaces;
+Components.utils.import("resource://testing-common/MockRegistrar.jsm");
+
+var Ci = Components.interfaces;
 const extDir = gProfD.clone();
 extDir.append("extensions");
 
@@ -18,7 +20,7 @@ var gCachePurged = false;
 
 // Override the window watcher
 var WindowWatcher = {
-  openWindow: function(parent, url, name, features, arguments) {
+  openWindow: function(parent, url, name, features, args) {
     do_check_false(gCachePurged);
   },
 
@@ -31,18 +33,7 @@ var WindowWatcher = {
   }
 }
 
-var WindowWatcherFactory = {
-  createInstance: function createInstance(outer, iid) {
-    if (outer != null)
-      throw Components.results.NS_ERROR_NO_AGGREGATION;
-    return WindowWatcher.QueryInterface(iid);
-  }
-};
-
-var registrar = Components.manager.QueryInterface(AM_Ci.nsIComponentRegistrar);
-registrar.registerFactory(Components.ID("{1dfeb90a-2193-45d5-9cb8-864928b2af55}"),
-                          "Fake Window Watcher",
-                          "@mozilla.org/embedcomp/window-watcher;1", WindowWatcherFactory);
+MockRegistrar.register("@mozilla.org/embedcomp/window-watcher;1", WindowWatcher);
 
 /**
  * Start the test by installing extensions.
@@ -93,5 +84,5 @@ function run_test() {
     do_check_false(gCachePurged);
 
     do_test_finished();
-  });  
+  });
 }

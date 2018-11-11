@@ -39,40 +39,37 @@
 
       function runTests () {
         ok(parentDivLocked, "After requesting pointerlock on parentDiv " +
-          "document.mozPointerLockElement should be equal to " +
+          "document.pointerLockElement should be equal to " +
           " parentDiv element");
         isnot(pointerLocked, true, "Requesting fullscreen on " +
           "childDiv while parentDiv still in fullscreen should " +
           "unlock the pointer");
       }
 
-      document.addEventListener("mozpointerlockchange", function (e) {
-        if (document.mozPointerLockElement === parentDiv) {
+      document.addEventListener("pointerlockchange", function (e) {
+        if (document.pointerLockElement === parentDiv) {
           parentDivLocked = true;
-          childDiv.mozRequestFullScreen();
-        }
-      }, false);
-
-      document.addEventListener("mozfullscreenchange", function() {
-        if (document.mozFullScreenElement === parentDiv) {
-          if (parentDivFullScreen === true) {
-            document.mozCancelFullScreen();
-          }
-          parentDivFullScreen = true;
-          parentDiv.mozRequestPointerLock();
-        }
-        else if (document.mozFullScreenElement === childDiv) {
-          pointerLocked = !!document.mozPointerLockElement;
-          document.mozCancelFullScreen();
-        }
-        else {
-          runTests();
-          SimpleTest.finish();
+          addFullscreenChangeContinuation("enter", function() {
+            pointerLocked = !!document.pointerLockElement;
+            addFullscreenChangeContinuation("exit", function() {
+              addFullscreenChangeContinuation("exit", function() {
+                runTests();
+                SimpleTest.finish();
+              });
+              document.exitFullscreen();
+            });
+            document.exitFullscreen();
+          });
+          childDiv.requestFullscreen();
         }
       }, false);
 
       function start() {
-        parentDiv.mozRequestFullScreen();
+        addFullscreenChangeContinuation("enter", function() {
+          parentDivFullScreen = true;
+          parentDiv.requestPointerLock();
+        });
+        parentDiv.requestFullscreen();
       }
     </script>
   </body>

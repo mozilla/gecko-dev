@@ -6,24 +6,28 @@
 #ifndef __NS_SVGCLIPPATHFRAME_H__
 #define __NS_SVGCLIPPATHFRAME_H__
 
-#include "mozilla/Attributes.h"
+#include "AutoReferenceLimiter.h"
 #include "gfxMatrix.h"
+#include "mozilla/Attributes.h"
 #include "nsSVGContainerFrame.h"
 #include "nsSVGUtils.h"
 
-class nsRenderingContext;
+class gfxContext;
 class nsISVGChildFrame;
 
-typedef nsSVGContainerFrame nsSVGClipPathFrameBase;
-
-class nsSVGClipPathFrame : public nsSVGClipPathFrameBase
+class nsSVGClipPathFrame : public nsSVGContainerFrame
 {
   friend nsIFrame*
   NS_NewSVGClipPathFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+
+  typedef mozilla::gfx::Matrix Matrix;
+  typedef mozilla::gfx::SourceSurface SourceSurface;
+  typedef mozilla::image::DrawResult DrawResult;
+
 protected:
-  nsSVGClipPathFrame(nsStyleContext* aContext)
-    : nsSVGClipPathFrameBase(aContext)
-    , mInUse(false)
+  explicit nsSVGClipPathFrame(nsStyleContext* aContext)
+    : nsSVGContainerFrame(aContext)
+    , mReferencing(mozilla::AutoReferenceLimiter::notReferencing)
   {
     AddStateBits(NS_FRAME_IS_NONDISPLAY);
   }
@@ -34,16 +38,58 @@ public:
   // nsIFrame methods:
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE {}
+                                const nsDisplayListSet& aLists) override {}
 
   // nsSVGClipPathFrame methods:
-  nsresult ClipPaint(nsRenderingContext* aContext,
-                     nsIFrame* aParent,
+
+  /**
+   * Applies the clipPath by pushing a clip path onto the DrawTarget.
+   *
+   * This method must only be used if IsTrivial() returns true, otherwise use
+   * GetClipMask.
+   *
+   * @param aContext The context that the clip path is to be applied to.
+   * @param aClippedFrame The/an nsIFrame of the element that references this
+   *   clipPath that is currently being processed.
+   * @param aMatrix The transform from aClippedFrame's user space to aContext's
+   *   current transform.
+   */
+  void ApplyClipPath(gfxContext& aContext,
+                     nsIFrame* aClippedFrame,
                      const gfxMatrix &aMatrix);
 
-  bool ClipHitTest(nsIFrame* aParent,
-                     const gfxMatrix &aMatrix,
-                     const nsPoint &aPoint);
+  /**
+   * Returns an alpha mask surface containing the clipping geometry.
+   *
+   * This method must only be used if IsTrivial() returns false, otherwise use
+   * ApplyClipPath.
+   *
+   * @param aReferenceContext Used to determine the backend for and size of the
+   *   returned SourceSurface, the size being limited to the device space clip
+   *   extents on the context.
+   * @param aClippedFrame The/an nsIFrame of the element that references this
+   *   clipPath that is currently being processed.
+   * @param aMatrix The transform from aClippedFrame's user space to aContext's
+   *   current transform.
+   * @param [out] aMaskTransform The transform to use with the returned
+   *   surface.
+   * @param [in, optional] aExtraMask An extra surface that the returned
+   *   surface should be masked with.
+   * @param [in, optional] aExtraMasksTransform The transform to use with
+   *   aExtraMask. Should be passed when aExtraMask is passed.
+   * @param [out, optional] aResult returns the result of drawing action.
+   */
+  already_AddRefed<SourceSurface>
+    GetClipMask(gfxContext& aReferenceContext, nsIFrame* aClippedFrame,
+                const gfxMatrix& aMatrix, Matrix* aMaskTransform,
+                SourceSurface* aExtraMask = nullptr,
+                const Matrix& aExtraMasksTransform = Matrix(),
+                DrawResult* aResult = nullptr);
+
+  /**
+   * aPoint is expected to be in aClippedFrame's SVG user space.
+   */
+  bool PointIsInsideClipPath(nsIFrame* aClippedFrame, const gfxPoint &aPoint);
 
   // Check if this clipPath is made up of more than one geometry object.
   // If so, the clipping API in cairo isn't enough and we need to use
@@ -55,21 +101,21 @@ public:
   // nsIFrame interface:
   virtual nsresult AttributeChanged(int32_t         aNameSpaceID,
                                     nsIAtom*        aAttribute,
-                                    int32_t         aModType) MOZ_OVERRIDE;
+                                    int32_t         aModType) override;
 
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
+                    nsIFrame*         aPrevInFlow) override;
 
   /**
    * Get the "type" of the frame
    *
    * @see nsGkAtoms::svgClipPathFrame
    */
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE
+  virtual nsresult GetFrameName(nsAString& aResult) const override
   {
     return MakeFrameName(NS_LITERAL_STRING("SVGClipPath"), aResult);
   }
@@ -78,37 +124,37 @@ public:
   SVGBBox 
   GetBBoxForClipPathFrame(const SVGBBox &aBBox, const gfxMatrix &aMatrix);
 
- private:
-  // A helper class to allow us to paint clip paths safely. The helper
-  // automatically sets and clears the mInUse flag on the clip path frame
-  // (to prevent nasty reference loops). It's easy to mess this up
-  // and break things, so this helper makes the code far more robust.
-  class MOZ_STACK_CLASS AutoClipPathReferencer
-  {
-  public:
-    AutoClipPathReferencer(nsSVGClipPathFrame *aFrame
-                           MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-       : mFrame(aFrame) {
-      MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-      NS_ASSERTION(!mFrame->mInUse, "reference loop!");
-      mFrame->mInUse = true;
-    }
-    ~AutoClipPathReferencer() {
-      mFrame->mInUse = false;
-    }
-  private:
-    nsSVGClipPathFrame *mFrame;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-  };
+  /**
+   * If the clipPath element transforms its children due to
+   * clipPathUnits="objectBoundingBox" being set on it and/or due to the
+   * 'transform' attribute being set on it, this function returns the resulting
+   * transform.
+   */
+  gfxMatrix GetClipPathTransform(nsIFrame* aClippedFrame);
 
-  nsIFrame *mClipParent;
-  nsAutoPtr<gfxMatrix> mClipParentMatrix;
-  // recursion prevention flag
-  bool mInUse;
+private:
 
   // nsSVGContainerFrame methods:
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor,
-                                nsIFrame* aTransformRoot = nullptr) MOZ_OVERRIDE;
+  virtual gfxMatrix GetCanvasTM() override;
+
+  // Set, during a GetClipMask() call, to the transform that still needs to be
+  // concatenated to the transform of the DrawTarget that was passed to
+  // GetClipMask in order to establish the coordinate space that the clipPath
+  // establishes for its contents (i.e. including applying 'clipPathUnits' and
+  // any 'transform' attribute set on the clipPath) specifically for clipping
+  // the frame that was passed to GetClipMask at that moment in time.  This is
+  // set so that if our GetCanvasTM method is called while GetClipMask is
+  // painting its children, the returned matrix will include the transforms
+  // that should be used when creating the mask for the frame passed to
+  // GetClipMask.
+  //
+  // Note: The removal of GetCanvasTM is nearly complete, so our GetCanvasTM
+  // may not even be called soon/any more.
+  gfxMatrix mMatrixForChildren;
+
+  // Flag used by AutoReferenceLimiter while we're processing an instance of
+  // this class to protect against (break) reference loops.
+  int16_t mReferencing;
 };
 
 #endif

@@ -8,11 +8,11 @@ function test() {
   Harness.setup();
 
   gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.loadURI(TESTROOT + "startsoftwareupdate.html? " + encodeURIComponent(TESTROOT + "unsigned.xpi"));
+  gBrowser.loadURI(TESTROOT + "startsoftwareupdate.html? " + encodeURIComponent(TESTROOT + "amosigned.xpi"));
 }
 
 function allow_blocked(installInfo) {
-  is(installInfo.originatingWindow, gBrowser.contentWindow, "Install should have been triggered by the right window");
+  is(installInfo.browser, gBrowser.selectedBrowser, "Install should have been triggered by the right browser");
   is(installInfo.originatingURI.spec, gBrowser.currentURI.spec, "Install should have been triggered by the right uri");
   return false;
 }

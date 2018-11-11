@@ -7,10 +7,9 @@
 /* Debug Logging support. */
 
 #include "XPCLog.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "prprf.h"
 #include "mozilla/mozalloc.h"
-#include "mozilla/NullPtr.h"
 #include <string.h>
 #include <stdarg.h>
 
@@ -26,13 +25,12 @@
 static char*    g_Spaces;
 static int      g_InitState = 0;
 static int      g_Indent = 0;
-static PRLogModuleInfo* g_LogMod = nullptr;
+static mozilla::LazyLogModule g_LogMod("xpclog");
 
 static bool Init()
 {
-    g_LogMod = PR_NewLogModule("xpclog");
     g_Spaces = new char[SPACE_COUNT+1];
-    if (!g_LogMod || !g_Spaces || !PR_LOG_TEST(g_LogMod,1)) {
+    if (!g_Spaces || !MOZ_LOG_TEST(g_LogMod,LogLevel::Error)) {
         g_InitState = 1;
         XPC_Log_Finish();
         return false;
@@ -48,14 +46,12 @@ XPC_Log_Finish()
 {
     if (g_InitState == 1) {
         delete [] g_Spaces;
-        // we'd like to properly cleanup the LogModule, but nspr owns that
-        g_LogMod = nullptr;
     }
     g_InitState = -1;
 }
 
 void
-XPC_Log_print(const char *fmt, ...)
+XPC_Log_print(const char* fmt, ...)
 {
     va_list ap;
     char line[LINE_LEN];
@@ -72,7 +68,7 @@ XPC_Log_print(const char *fmt, ...)
 bool
 XPC_Log_Check(int i)
 {
-    return CAN_RUN && PR_LOG_TEST(g_LogMod,1);
+    return CAN_RUN && MOZ_LOG_TEST(g_LogMod,LogLevel::Error);
 }
 
 void

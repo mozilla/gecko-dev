@@ -4,11 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <gtk/gtk.h>
-#if (MOZ_WIDGET_GTK == 2)
-#include <gtk/gtkprintunixdialog.h>
-#else
 #include <gtk/gtkunixprint.h>
-#endif
 #include <stdlib.h>
 
 #include "mozilla/ArrayUtils.h"
@@ -21,7 +17,6 @@
 #include "nsString.h"
 #include "nsReadableUtils.h"
 #include "nsIFile.h"
-#include "nsNetUtil.h"
 #include "nsIStringBundle.h"
 #include "nsIPrintSettingsService.h"
 #include "nsIDOMWindow.h"
@@ -60,7 +55,7 @@ ShowCustomDialog(GtkComboBox *changed_box, gpointer user_data)
   bundleSvc->CreateBundle("chrome://global/locale/printdialog.properties", getter_AddRefs(printBundle));
   nsXPIDLString intlString;
 
-  printBundle->GetStringFromName(MOZ_UTF16("headerFooterCustom"), getter_Copies(intlString));
+  printBundle->GetStringFromName(u"headerFooterCustom", getter_Copies(intlString));
   GtkWidget* prompt_dialog = gtk_dialog_new_with_buttons(NS_ConvertUTF16toUTF8(intlString).get(), printDialog,
 #if (MOZ_WIDGET_GTK == 2)
                                                          (GtkDialogFlags)(GTK_DIALOG_MODAL | GTK_DIALOG_NO_SEPARATOR),
@@ -76,7 +71,7 @@ ShowCustomDialog(GtkComboBox *changed_box, gpointer user_data)
                                           GTK_RESPONSE_REJECT,
                                           -1);
 
-  printBundle->GetStringFromName(MOZ_UTF16("customHeaderFooterPrompt"), getter_Copies(intlString));
+  printBundle->GetStringFromName(u"customHeaderFooterPrompt", getter_Copies(intlString));
   GtkWidget* custom_label = gtk_label_new(NS_ConvertUTF16toUTF8(intlString).get());
   GtkWidget* custom_entry = gtk_entry_new();
   GtkWidget* question_icon = gtk_image_new_from_stock(GTK_STOCK_DIALOG_QUESTION, GTK_ICON_SIZE_DIALOG);
@@ -118,10 +113,11 @@ ShowCustomDialog(GtkComboBox *changed_box, gpointer user_data)
 
 class nsPrintDialogWidgetGTK {
   public:
-    nsPrintDialogWidgetGTK(nsIDOMWindow *aParent, nsIPrintSettings *aPrintSettings);
+    nsPrintDialogWidgetGTK(nsPIDOMWindowOuter *aParent,
+                           nsIPrintSettings *aPrintSettings);
     ~nsPrintDialogWidgetGTK() { gtk_widget_destroy(dialog); }
     NS_ConvertUTF16toUTF8 GetUTF8FromBundle(const char* aKey);
-    const gint Run();
+    gint Run();
 
     nsresult ImportSettings(nsIPrintSettings *aNSSettings);
     nsresult ExportSettings(nsIPrintSettings *aNSSettings);
@@ -154,7 +150,8 @@ class nsPrintDialogWidgetGTK {
     void ExportHeaderFooter(nsIPrintSettings *aNS);
 };
 
-nsPrintDialogWidgetGTK::nsPrintDialogWidgetGTK(nsIDOMWindow *aParent, nsIPrintSettings *aSettings)
+nsPrintDialogWidgetGTK::nsPrintDialogWidgetGTK(nsPIDOMWindowOuter *aParent,
+                                               nsIPrintSettings *aSettings)
 {
   nsCOMPtr<nsIWidget> widget = WidgetUtils::DOMWindowToWidget(aParent);
   NS_ASSERTION(widget, "Need a widget for dialog to be modal.");
@@ -348,7 +345,7 @@ nsPrintDialogWidgetGTK::OptionWidgetToString(GtkWidget *dropdown)
     return header_footer_tags[index];
 }
 
-const gint
+gint
 nsPrintDialogWidgetGTK::Run()
 {
   const gint response = gtk_dialog_run(GTK_DIALOG(dialog));
@@ -530,7 +527,8 @@ nsPrintDialogServiceGTK::Init()
 }
 
 NS_IMETHODIMP
-nsPrintDialogServiceGTK::Show(nsIDOMWindow *aParent, nsIPrintSettings *aSettings,
+nsPrintDialogServiceGTK::Show(nsPIDOMWindowOuter *aParent,
+                              nsIPrintSettings *aSettings,
                               nsIWebBrowserPrint *aWebBrowserPrint)
 {
   NS_PRECONDITION(aParent, "aParent must not be null");
@@ -565,7 +563,7 @@ nsPrintDialogServiceGTK::Show(nsIDOMWindow *aParent, nsIPrintSettings *aSettings
 }
 
 NS_IMETHODIMP
-nsPrintDialogServiceGTK::ShowPageSetup(nsIDOMWindow *aParent,
+nsPrintDialogServiceGTK::ShowPageSetup(nsPIDOMWindowOuter *aParent,
                                        nsIPrintSettings *aNSSettings)
 {
   NS_PRECONDITION(aParent, "aParent must not be null");

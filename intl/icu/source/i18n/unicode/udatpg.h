@@ -1,7 +1,9 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 *******************************************************************************
 *
-*   Copyright (C) 2007-2012, International Business Machines
+*   Copyright (C) 2007-2015, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *
 *******************************************************************************
@@ -83,7 +85,13 @@ typedef enum UDateTimePatternField {
     UDATPG_FRACTIONAL_SECOND_FIELD,
     /** @stable ICU 3.8 */
     UDATPG_ZONE_FIELD,
-    /** @stable ICU 3.8 */
+
+    // Do not conditionalize the following with #ifndef U_HIDE_DEPRECATED_API,
+    // it is needed for layout of DateTimePatternGenerator object.
+    /**
+     * One more than the highest normal UDateTimePatternField value.
+     * @deprecated ICU 58 The numeric value may change over time, see ICU ticket #12420.
+     */
     UDATPG_FIELD_COUNT
 } UDateTimePatternField;
 
@@ -120,8 +128,13 @@ typedef enum UDateTimePatternConflict {
     UDATPG_BASE_CONFLICT,
     /** @stable ICU 3.8 */
     UDATPG_CONFLICT,
-    /** @stable ICU 3.8 */
+#ifndef U_HIDE_DEPRECATED_API
+    /**
+     * One more than the highest normal UDateTimePatternConflict value.
+     * @deprecated ICU 58 The numeric value may change over time, see ICU ticket #12420.
+     */
     UDATPG_CONFLICT_COUNT
+#endif  // U_HIDE_DEPRECATED_API
 } UDateTimePatternConflict;
 
 /**
@@ -259,7 +272,8 @@ udatpg_getBestPatternWithOptions(UDateTimePatternGenerator *dtpg,
   * Consecutive calls to this function do not affect each other,
   * but this function cannot be used concurrently on a single generator object.
   *
-  * @param dtpg     a pointer to UDateTimePatternGenerator.
+  * @param unusedDtpg     a pointer to UDateTimePatternGenerator.
+  *    This parameter is no longer used. Callers may pass NULL.
   * @param pattern  input pattern, such as "dd/MMM".
   * @param length   the length of pattern.
   * @param skeleton such as "MMMdd"
@@ -270,7 +284,7 @@ udatpg_getBestPatternWithOptions(UDateTimePatternGenerator *dtpg,
   * @stable ICU 3.8
   */
 U_STABLE int32_t U_EXPORT2
-udatpg_getSkeleton(UDateTimePatternGenerator *dtpg,
+udatpg_getSkeleton(UDateTimePatternGenerator *unusedDtpg,
                    const UChar *pattern, int32_t length,
                    UChar *skeleton, int32_t capacity,
                    UErrorCode *pErrorCode);
@@ -288,7 +302,8 @@ udatpg_getSkeleton(UDateTimePatternGenerator *dtpg,
  * Consecutive calls to this function do not affect each other,
  * but this function cannot be used concurrently on a single generator object.
  *
- * @param dtpg     a pointer to UDateTimePatternGenerator.
+ * @param unusedDtpg     a pointer to UDateTimePatternGenerator.
+ *    This parameter is no longer used. Callers may pass NULL.
  * @param pattern  input pattern, such as "dd/MMM".
  * @param length   the length of pattern.
  * @param baseSkeleton such as "Md"
@@ -299,7 +314,7 @@ udatpg_getSkeleton(UDateTimePatternGenerator *dtpg,
  * @stable ICU 3.8
  */
 U_STABLE int32_t U_EXPORT2
-udatpg_getBaseSkeleton(UDateTimePatternGenerator *dtpg,
+udatpg_getBaseSkeleton(UDateTimePatternGenerator *unusedDtpg,
                        const UChar *pattern, int32_t length,
                        UChar *baseSkeleton, int32_t capacity,
                        UErrorCode *pErrorCode);
@@ -409,14 +424,16 @@ udatpg_getAppendItemName(const UDateTimePatternGenerator *dtpg,
                          int32_t *pLength);
 
 /**
- * The date time format is a message format pattern used to compose date and
- * time patterns. The default value is "{0} {1}", where {0} will be replaced
- * by the date pattern and {1} will be replaced by the time pattern.
+ * The DateTimeFormat is a message format pattern used to compose date and
+ * time patterns. The default pattern in the root locale is "{1} {0}", where
+ * {1} will be replaced by the date pattern and {0} will be replaced by the
+ * time pattern; however, other locales may specify patterns such as
+ * "{1}, {0}" or "{1} 'at' {0}", etc.
  * <p>
  * This is used when the input skeleton contains both date and time fields,
  * but there is not a close match among the added patterns. For example,
  * suppose that this object was created by adding "dd-MMM" and "hh:mm", and
- * its datetimeFormat is the default "{0} {1}". Then if the input skeleton
+ * its DateTimeFormat is the default "{1} {0}". Then if the input skeleton
  * is "MMMdhmm", there is not an exact match, so the input skeleton is
  * broken up into two components "MMMd" and "hmm". There are close matches
  * for those two skeletons, so the result is put together with this pattern,
@@ -424,8 +441,8 @@ udatpg_getAppendItemName(const UDateTimePatternGenerator *dtpg,
  *
  * @param dtpg a pointer to UDateTimePatternGenerator.
  * @param dtFormat
- *            message format pattern, here {0} will be replaced by the date
- *            pattern and {1} will be replaced by the time pattern.
+ *            message format pattern, here {1} will be replaced by the date
+ *            pattern and {0} will be replaced by the time pattern.
  * @param length the length of dtFormat.
  * @stable ICU 3.8
  */

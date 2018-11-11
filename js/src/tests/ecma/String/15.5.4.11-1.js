@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- tab-width: 2; indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -33,8 +33,6 @@ var TITLE   = "String.prototype.toLowerCase()";
 writeHeaderToLog( SECTION + " "+ TITLE);
 
 new TestCase( SECTION,  "String.prototype.toLowerCase.length",        0,          String.prototype.toLowerCase.length );
-new TestCase( SECTION,  "delete String.prototype.toLowerCase.length", false,      delete String.prototype.toLowerCase.length );
-new TestCase( SECTION,  "delete String.prototype.toLowerCase.length; String.prototype.toLowerCase.length", 0,      eval("delete String.prototype.toLowerCase.length; String.prototype.toLowerCase.length") );
 
 // Basic Latin, Latin-1 Supplement, Latin Extended A
 for ( var i = 0; i <= 0x017f; i++ ) {

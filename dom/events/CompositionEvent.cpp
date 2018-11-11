@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -15,16 +15,17 @@ CompositionEvent::CompositionEvent(EventTarget* aOwner,
                                    nsPresContext* aPresContext,
                                    WidgetCompositionEvent* aEvent)
   : UIEvent(aOwner, aPresContext,
-            aEvent ? aEvent : new WidgetCompositionEvent(false, 0, nullptr))
+            aEvent ? aEvent :
+                     new WidgetCompositionEvent(false, eVoidEvent, nullptr))
 {
-  NS_ASSERTION(mEvent->eventStructType == NS_COMPOSITION_EVENT,
+  NS_ASSERTION(mEvent->mClass == eCompositionEventClass,
                "event type mismatch");
 
   if (aEvent) {
     mEventIsInternal = false;
   } else {
     mEventIsInternal = true;
-    mEvent->time = PR_Now();
+    mEvent->mTime = PR_Now();
 
     // XXX compositionstart is cancelable in draft of DOM3 Events.
     //     However, it doesn't make sence for us, we cannot cancel composition
@@ -32,7 +33,8 @@ CompositionEvent::CompositionEvent(EventTarget* aOwner,
     mEvent->mFlags.mCancelable = false;
   }
 
-  mData = mEvent->AsCompositionEvent()->data;
+  // XXX Do we really need to duplicate the data value?
+  mData = mEvent->AsCompositionEvent()->mData;
   // TODO: Native event should have locale information.
 }
 
@@ -40,37 +42,54 @@ NS_IMPL_ADDREF_INHERITED(CompositionEvent, UIEvent)
 NS_IMPL_RELEASE_INHERITED(CompositionEvent, UIEvent)
 
 NS_INTERFACE_MAP_BEGIN(CompositionEvent)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMCompositionEvent)
 NS_INTERFACE_MAP_END_INHERITING(UIEvent)
 
-NS_IMETHODIMP
-CompositionEvent::GetData(nsAString& aData)
+void
+CompositionEvent::GetData(nsAString& aData) const
 {
   aData = mData;
-  return NS_OK;
 }
 
-NS_IMETHODIMP
-CompositionEvent::GetLocale(nsAString& aLocale)
+void
+CompositionEvent::GetLocale(nsAString& aLocale) const
 {
   aLocale = mLocale;
-  return NS_OK;
 }
 
-NS_IMETHODIMP
+void
 CompositionEvent::InitCompositionEvent(const nsAString& aType,
                                        bool aCanBubble,
                                        bool aCancelable,
-                                       nsIDOMWindow* aView,
+                                       nsGlobalWindow* aView,
                                        const nsAString& aData,
                                        const nsAString& aLocale)
 {
-  nsresult rv = UIEvent::InitUIEvent(aType, aCanBubble, aCancelable, aView, 0);
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE_VOID(!mEvent->mFlags.mIsBeingDispatched);
 
+  UIEvent::InitUIEvent(aType, aCanBubble, aCancelable, aView, 0);
   mData = aData;
   mLocale = aLocale;
-  return NS_OK;
+}
+
+void
+CompositionEvent::GetRanges(TextClauseArray& aRanges)
+{
+  // If the mRanges is not empty, we return the cached value.
+  if (!mRanges.IsEmpty()) {
+    aRanges = mRanges;
+    return;
+  }
+  RefPtr<TextRangeArray> textRangeArray = mEvent->AsCompositionEvent()->mRanges;
+  if (!textRangeArray) {
+    return;
+  }
+  nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(mOwner);
+  const TextRange* targetRange = textRangeArray->GetTargetClause();
+  for (size_t i = 0; i < textRangeArray->Length(); i++) {
+    const TextRange& range = textRangeArray->ElementAt(i);
+    mRanges.AppendElement(new TextClause(window, range, targetRange));
+  }
+  aRanges = mRanges;
 }
 
 } // namespace dom
@@ -79,12 +98,12 @@ CompositionEvent::InitCompositionEvent(const nsAString& aType,
 using namespace mozilla;
 using namespace mozilla::dom;
 
-nsresult
-NS_NewDOMCompositionEvent(nsIDOMEvent** aInstancePtrResult,
-                          EventTarget* aOwner,
+already_AddRefed<CompositionEvent>
+NS_NewDOMCompositionEvent(EventTarget* aOwner,
                           nsPresContext* aPresContext,
                           WidgetCompositionEvent* aEvent)
 {
-  CompositionEvent* event = new CompositionEvent(aOwner, aPresContext, aEvent);
-  return CallQueryInterface(event, aInstancePtrResult);
+  RefPtr<CompositionEvent> event =
+    new CompositionEvent(aOwner, aPresContext, aEvent);
+  return event.forget();
 }

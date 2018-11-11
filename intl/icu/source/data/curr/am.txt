@@ -1,14 +1,5 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/am.xml
-// *
-// ***************************************************************************
-/**
- * ICU <specials> source: <path>/common/main/am.xml
- */
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 am{
     Currencies{
         AED{
@@ -103,9 +94,13 @@ am{
             "BWP",
             "የቦትስዋና ፑላ",
         }
+        BYN{
+            "BYN",
+            "የቤላሩስያ ሩብል",
+        }
         BYR{
             "BYR",
-            "የቤላሩስያ ሩብል",
+            "የቤላሩስያ ሩብል (2000–2016)",
         }
         BZD{
             "BZD",
@@ -153,7 +148,7 @@ am{
         }
         CZK{
             "CZK",
-            "ቼክ ሪፐፕሊክ ኮሩና",
+            "ቼክ ሪፐብሊክ ኮሩና",
         }
         DJF{
             "DJF",
@@ -177,7 +172,7 @@ am{
         }
         ERN{
             "ERN",
-            "ዬኤርትራ ናቅፋ",
+            "የኤርትራ ናቅፋ",
         }
         ETB{
             "ብር",
@@ -213,7 +208,7 @@ am{
         }
         GIP{
             "GIP",
-            "ጊብራልታር ፓውንድ",
+            "ጂብራልተር ፓውንድ",
         }
         GMD{
             "GMD",
@@ -365,7 +360,7 @@ am{
         }
         MGA{
             "MGA",
-            "የማደጋስካር ፋርንክ",
+            "የማደጋስካር ማላጋስይ አሪያርይ",
         }
         MKD{
             "MKD",
@@ -373,7 +368,7 @@ am{
         }
         MMK{
             "MMK",
-            "ምያንማ ክያት",
+            "የማያናማር ክያት",
         }
         MNT{
             "MNT",
@@ -417,7 +412,7 @@ am{
         }
         NGN{
             "NGN",
-            "የናይጄሪያ ናኢራ",
+            "የናይጄሪያ ናይራ",
         }
         NIO{
             "NIO",
@@ -565,7 +560,7 @@ am{
         }
         TOP{
             "TOP",
-            "ቶንጋን ፓ'አንጋ",
+            "ቶንጋን ፓ’አንጋ",
         }
         TRY{
             "TRY",
@@ -621,7 +616,7 @@ am{
         }
         XAF{
             "FCFA",
-            "ሴኤፍአ ፍራንክ ቤእአሴ",
+            "የመካከለኛው አፍሪካ ሴፋ ፍራንክ",
         }
         XCD{
             "EC$",
@@ -629,7 +624,7 @@ am{
         }
         XOF{
             "CFA",
-            "ሴኤፍአ ፍራንክ ቤሴእአኦ",
+            "የምዕራብ አፍሪካ ሴፋ ፍራንክ",
         }
         XPF{
             "CFPF",
@@ -660,6 +655,106 @@ am{
             "የዚምቧቡዌ ዶላር",
         }
     }
+    Currencies%narrow{
+        AOA{"Kz"}
+        ARS{"$"}
+        AUD{"$"}
+        BAM{"KM"}
+        BBD{"$"}
+        BDT{"৳"}
+        BMD{"$"}
+        BND{"$"}
+        BOB{"Bs"}
+        BRL{"R$"}
+        BSD{"$"}
+        BWP{"P"}
+        BYN{"р."}
+        BZD{"$"}
+        CAD{"$"}
+        CLP{"$"}
+        CNY{"¥"}
+        COP{"$"}
+        CRC{"₡"}
+        CUC{"$"}
+        CUP{"$"}
+        CZK{"Kč"}
+        DKK{"kr"}
+        DOP{"$"}
+        EGP{"E£"}
+        EUR{"€"}
+        FJD{"$"}
+        FKP{"£"}
+        GBP{"£"}
+        GEL{"₾"}
+        GIP{"£"}
+        GNF{"FG"}
+        GTQ{"Q"}
+        GYD{"$"}
+        HKD{"$"}
+        HNL{"L"}
+        HRK{"kn"}
+        HUF{"Ft"}
+        IDR{"Rp"}
+        ILS{"₪"}
+        INR{"₹"}
+        ISK{"kr"}
+        JMD{"$"}
+        JPY{"¥"}
+        KHR{"៛"}
+        KMF{"CF"}
+        KPW{"₩"}
+        KRW{"₩"}
+        KYD{"$"}
+        KZT{"₸"}
+        LAK{"₭"}
+        LBP{"L£"}
+        LKR{"Rs"}
+        LRD{"$"}
+        MGA{"Ar"}
+        MMK{"K"}
+        MNT{"₮"}
+        MUR{"Rs"}
+        MXN{"$"}
+        MYR{"RM"}
+        NAD{"$"}
+        NGN{"₦"}
+        NIO{"C$"}
+        NOK{"kr"}
+        NPR{"Rs"}
+        NZD{"$"}
+        PHP{"₱"}
+        PKR{"Rs"}
+        PLN{"zł"}
+        PYG{"₲"}
+        RON{"lei"}
+        RUB{"₽"}
+        RWF{"RF"}
+        SBD{"$"}
+        SEK{"kr"}
+        SGD{"$"}
+        SHP{"£"}
+        SRD{"$"}
+        SSP{"£"}
+        STD{"Db"}
+        SYP{"£"}
+        THB{"฿"}
+        TOP{"T$"}
+        TRY{"₺"}
+        TTD{"$"}
+        TWD{"NT$"}
+        UAH{"₴"}
+        USD{"$"}
+        UYU{"$"}
+        VEF{"Bs"}
+        VND{"₫"}
+        XCD{"$"}
+        ZAR{"R"}
+        ZMW{"ZK"}
+    }
+    Currencies%variant{
+        GEL{"₾"}
+        TRY{"TL"}
+    }
     CurrencyPlurals{
         AED{
             one{"የተባበሩት የአረብ ኤምረትስ ዲርሀም"}
@@ -676,6 +771,10 @@ am{
         AMD{
             one{"የአርመን ድራም"}
             other{"የአርመን ድራም"}
+        }
+        ANG{
+            one{"ኔዘርላንድስ አንቲሊአን ጊልደር"}
+            other{"ኔዘርላንድስ አንቲሊአን ጊልደር"}
         }
         AOA{
             one{"የአንጎላ ኩዋንዛ"}
@@ -749,9 +848,13 @@ am{
             one{"የቦትስዋና ፑላ"}
             other{"የቦትስዋና ፑላ"}
         }
-        BYR{
+        BYN{
             one{"የቤላሩስያ ሩብል"}
             other{"የቤላሩስያ ሩብል"}
+        }
+        BYR{
+            one{"የቤላሩስያ ሩብል (2000–2016)"}
+            other{"የቤላሩስያ ሩብል (2000–2016)"}
         }
         BZD{
             one{"የቤሊዝ ዶላር"}
@@ -798,7 +901,7 @@ am{
             other{"የኬፕ ቫርዲ ኤስኩዶ"}
         }
         CZK{
-            one{"ቼክ ሪፐፕሊክ ኮሩና"}
+            one{"ቼክ ሪፐብሊክ ኮሩና"}
             other{"ቼክ ሪፐብሊክ ኮሮና"}
         }
         DJF{
@@ -822,8 +925,8 @@ am{
             other{"የግብጽ ፓውንድ"}
         }
         ERN{
-            one{"ዬኤርትራ ናቅፋ"}
-            other{"ዬኤርትራ ናቅፋ"}
+            one{"የኤርትራ ናቅፋ"}
+            other{"የኤርትራ ናቅፋ"}
         }
         ETB{
             one{"የኢትዮጵያ ብር"}
@@ -854,8 +957,8 @@ am{
             other{"የጋና ሲዲ"}
         }
         GIP{
-            one{"ጊብራልታር ፓውንድ"}
-            other{"ጊብራልታር ፓውንድ"}
+            one{"ጂብራልተር ፓውንድ"}
+            other{"ጂብራልተር ፓውንድ"}
         }
         GMD{
             one{"የጋምቢያ ዳላሲ"}
@@ -1002,16 +1105,16 @@ am{
             other{"ሞልዶቫን ሊኡ"}
         }
         MGA{
-            one{"የማደጋስካር ፋርንክ"}
-            other{"የማደጋስካር ፋርንክ"}
+            one{"የማደጋስካር ማላጋስይ አሪያርይ"}
+            other{"የማደጋስካር ማላጋስይ አሪያርይ"}
         }
         MKD{
             one{"የሜቆድንያ ዲናር"}
             other{"የሜቆድንያ ዲናር"}
         }
         MMK{
-            one{"ምያንማ ክያት"}
-            other{"ምያንማ ክያት"}
+            one{"የማያናማር ክያት"}
+            other{"የማያናማር ክያት"}
         }
         MNT{
             one{"የሞንጎሊያን ቱግሪክ"}
@@ -1054,8 +1157,8 @@ am{
             other{"የናሚቢያ ዶላር"}
         }
         NGN{
-            one{"የናይጄሪያ ናኢራ"}
-            other{"የናይጄሪያ ናኢራ"}
+            one{"የናይጄሪያ ናይራ"}
+            other{"የናይጄሪያ ናይራ"}
         }
         NIO{
             one{"የኒካራጓ ኮርዶባ"}
@@ -1197,6 +1300,10 @@ am{
             one{"የቱኒዚያ ዲናር"}
             other{"የቱኒዚያ ዲናር"}
         }
+        TOP{
+            one{"ቶንጋን ፓ’አንጋ"}
+            other{"ቶንጋን ፓ’አንጋ"}
+        }
         TRY{
             one{"የቱርክ ሊራ"}
             other{"የቱርክ ሊራ"}
@@ -1245,21 +1352,29 @@ am{
             one{"የቫንዋንቱ ቫቱ"}
             other{"የቫንዋንቱ ቫቱ"}
         }
+        WST{
+            one{"ሳሞአን ታላ"}
+            other{"ሳሞአን ታላ"}
+        }
         XAF{
-            one{"ሴኤፍአ ፍራንክ ቤእአሴ"}
-            other{"ሴኤፍአ ፍራንክ ቤእአሴ"}
+            one{"የመካከለኛው አፍሪካ ሴፋ ፍራንክ"}
+            other{"የመካከለኛው አፍሪካ ሴፋ ፍራንክ"}
         }
         XCD{
             one{"የምዕራብ ካሪብያን ዶላር"}
             other{"የምዕራብ ካሪብያን ዶላር"}
         }
         XOF{
-            one{"ሴኤፍአ ፍራንክ ቤሴእአኦ"}
-            other{"ሴኤፍአ ፍራንክ ቤሴእአኦ"}
+            one{"የምዕራብ አፍሪካ ሴፋ ፍራንክ"}
+            other{"የምዕራብ አፍሪካ ሴፋ ፍራንክ"}
         }
         XPF{
             one{"ሲ ኤፍ ፒ ፍራንክ"}
             other{"ሲ ኤፍ ፒ ፍራንክ"}
+        }
+        XXX{
+            one{"ያልታወቀ ገንዘብ"}
+            other{"ያልታወቀ ገንዘብ"}
         }
         YER{
             one{"የየመን ሪአል"}
@@ -1282,5 +1397,5 @@ am{
         one{"{0} {1}"}
         other{"{0} {1}"}
     }
-    Version{"2.0.92.87"}
+    Version{"2.1.28.79"}
 }

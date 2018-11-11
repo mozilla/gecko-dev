@@ -1,0 +1,106 @@
+ <!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test for Bug 545812</title>
+  <script type="application/javascript" src="/MochiKit/packed.js"></script>
+  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+  <script type="application/javascript" src="/tests/SimpleTest/EventUtils.js"></script>
+  <style>
+  body {
+    background-color: black;
+  }
+  </style>
+</head>
+<body>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=545812">Mozilla Bug 545812</a>
+<p id="display"></p>
+<div id="content" style="display: none">
+
+</div>
+<pre id="test">
+<script type="application/javascript">
+
+/** Tests for Bug 545812 **/
+SimpleTest.requestFlakyTimeout("untriaged");
+
+// Run the tests which go full-screen in new windows, as mochitests normally
+// run in an iframe, which by default will not have the allowfullscreen
+// attribute set, so full-screen won't work.
+var gTestWindows = [
+  "file_fullscreen-multiple.html",
+  "file_fullscreen-rollback.html",
+  "file_fullscreen-esc-exit.html",
+  "file_fullscreen-denied.html",
+  "file_fullscreen-api.html",
+  "file_fullscreen-plugins.html",
+  "file_fullscreen-hidden.html",
+  "file_fullscreen-svg-element.html",
+  "file_fullscreen-navigation.html",
+  "file_fullscreen-scrollbar.html",
+  "file_fullscreen-selector.html",
+  "file_fullscreen-top-layer.html",
+  "file_fullscreen-backdrop.html",
+  "file_fullscreen-nested.html",
+  "file_fullscreen-prefixed.html",
+  "file_fullscreen-unprefix-disabled.html",
+  "file_fullscreen-lenient-setters.html",
+];
+
+var testWindow = null;
+var gTestIndex = 0;
+
+function finish() {
+  SimpleTest.finish();
+}
+
+function nextTest() {
+  if (testWindow) {
+    testWindow.close();
+  }
+  SimpleTest.executeSoon(runNextTest);
+}
+
+function runNextTest() {
+  if (gTestIndex < gTestWindows.length) {
+    info("Run test " + gTestWindows[gTestIndex]);
+    testWindow = window.open(gTestWindows[gTestIndex], "", "width=500,height=500,scrollbars=yes");
+    // We'll wait for the window to load, then make sure our window is refocused
+    // before starting the test, which will get kicked off on "focus".
+    // This ensures that we're essentially back on the primary "desktop" on
+    // OS X Lion before we run the test.
+    testWindow.addEventListener("load", function onload() {
+      testWindow.removeEventListener("load", onload, false);
+      SimpleTest.waitForFocus(function() {
+        SimpleTest.waitForFocus(testWindow.begin, testWindow);
+      });
+    }, false);
+    gTestIndex++;
+  } else {
+    SimpleTest.finish();
+  }
+}
+
+try {
+  window.fullScreen = true;
+} catch (e) {
+}
+is(window.fullScreen, false, "Shouldn't be able to set window fullscreen from content");
+// Ensure the full-screen api is enabled, and will be disabled on test exit.
+// Disable the requirement for trusted contexts only, so the tests are easier
+// to write
+addLoadEvent(function() {
+  SpecialPowers.pushPrefEnv({
+      "set": [
+        ["full-screen-api.enabled", true],
+        ["full-screen-api.unprefix.enabled", true],
+        ["full-screen-api.allow-trusted-requests-only", false],
+        ["full-screen-api.transition-duration.enter", "0 0"],
+        ["full-screen-api.transition-duration.leave", "0 0"]
+      ]}, nextTest);
+});
+SimpleTest.waitForExplicitFinish();
+</script>
+</pre>
+</body>
+</html>

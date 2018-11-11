@@ -12,7 +12,7 @@ function results(results) {
     }
     var iter = { next: next }
     var ret = {};
-    ret[std_iterator] = function () { return iter; }
+    ret[Symbol.iterator] = function () { return iter; }
     return ret;
 }
 
@@ -23,7 +23,7 @@ function* yield_results(expected) {
 function collect_results(iterable) {
     var ret = [];
     var result;
-    var iter = iterable[std_iterator]();
+    var iter = iterable[Symbol.iterator]();
     do {
         result = iter.next();
         ret.push(result);
@@ -32,7 +32,7 @@ function collect_results(iterable) {
 }
 
 // We have to put a full result for the end, because the return will re-box.
-var expected = [{value: 1}, 13, "foo", {value: 34, done: true}];
+var expected = [{value: 1}, {value: 34, done: true}];
 
 // Sanity check.
 assertDeepEq(expected, collect_results(results(expected)));

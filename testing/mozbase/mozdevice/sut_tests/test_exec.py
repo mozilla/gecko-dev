@@ -7,12 +7,13 @@ from StringIO import StringIO
 
 from dmunit import DeviceManagerTestCase
 
+
 class ExecTestCase(DeviceManagerTestCase):
 
     def runTest(self):
         """Simple exec test, does not use env vars."""
         out = StringIO()
-        filename = posixpath.join(self.dm.getDeviceRoot(), 'test_exec_file')
+        filename = posixpath.join(self.dm.deviceRoot, 'test_exec_file')
         # Make sure the file was not already there
         self.dm.removeFile(filename)
         self.dm.shell(['dd', 'if=/dev/zero', 'of=%s' % filename, 'bs=1024',

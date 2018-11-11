@@ -5,29 +5,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsISupports.idl"
+#include "nsIRunnable.idl"
+%{C++
+#include "nsCOMPtr.h"
+#include "mozilla/AlreadyAddRefed.h"
+%}
 
-interface nsIRunnable;
+native alreadyAddRefed_nsIRunnable(already_AddRefed<nsIRunnable>);
 
-[scriptable, uuid(4e8febe4-6631-49dc-8ac9-308c1cb9b09c)]
+[scriptable, uuid(88145945-3278-424e-9f37-d874cbdd9f6f)]
 interface nsIEventTarget : nsISupports
 {
-  /**
-   * Dispatch an event to this event target.  This function may be called from
-   * any thread, and it may be called re-entrantly.
-   *
-   * @param event
-   *   The event to dispatch.
-   * @param flags
-   *   The flags modifying event dispatch.  The flags are described in detail
-   *   below.
-   * 
-   * @throws NS_ERROR_INVALID_ARG
-   *   Indicates that event is null.
-   * @throws NS_ERROR_UNEXPECTED
-   *   Indicates that the thread is shutting down and has finished processing
-   * events, so this event would never run and has not been dispatched. 
-   */
-  void dispatch(in nsIRunnable event, in unsigned long flags);
+  /* until we can get rid of all uses, keep the non-alreadyAddRefed<> version */
+%{C++
+    nsresult Dispatch(nsIRunnable* aEvent, uint32_t aFlags) {
+      return Dispatch(nsCOMPtr<nsIRunnable>(aEvent).forget(), aFlags);
+    }
+%}
 
   /**
    * This flag specifies the default mode of event dispatch, whereby the event
@@ -45,7 +39,19 @@ interface nsIEventTarget : nsISupports
    * given event to be processed.
    */
   const unsigned long DISPATCH_SYNC = 1;
-   
+
+  /**
+   * This flag specifies that the dispatch is occurring from a running event
+   * that was dispatched to the same event target, and that event is about to
+   * finish.
+   *
+   * A thread pool can use this as an optimization hint to not spin up
+   * another thread, since the current thread is about to become idle.
+   *
+   * These events are always async.
+   */
+  const unsigned long DISPATCH_AT_END = 2;
+
   /**
    * Check to see if this event target is associated with the current thread.
    *
@@ -55,10 +61,67 @@ interface nsIEventTarget : nsISupports
    *   this method).
    */
   boolean isOnCurrentThread();
+
+  /**
+   * Dispatch an event to this event target.  This function may be called from
+   * any thread, and it may be called re-entrantly.
+   *
+   * @param event
+   *   The alreadyAddRefed<> event to dispatch.
+   *   NOTE that the event will be leaked if it fails to dispatch.
+   * @param flags
+   *   The flags modifying event dispatch.  The flags are described in detail
+   *   below.
+   *
+   * @throws NS_ERROR_INVALID_ARG
+   *   Indicates that event is null.
+   * @throws NS_ERROR_UNEXPECTED
+   *   Indicates that the thread is shutting down and has finished processing
+   * events, so this event would never run and has not been dispatched.
+   */
+  [noscript, binaryname(Dispatch)] void dispatchFromC(in alreadyAddRefed_nsIRunnable event, in unsigned long flags);
+  /**
+   * Version of Dispatch to expose to JS, which doesn't require an alreadyAddRefed<>
+   * (it will be converted to that internally)
+   *
+   * @param event
+   *   The (raw) event to dispatch.
+   * @param flags
+   *   The flags modifying event dispatch.  The flags are described in detail
+   *   below.
+   *
+   * @throws NS_ERROR_INVALID_ARG
+   *   Indicates that event is null.
+   * @throws NS_ERROR_UNEXPECTED
+   *   Indicates that the thread is shutting down and has finished processing
+   * events, so this event would never run and has not been dispatched.
+   */
+  [binaryname(DispatchFromScript)] void dispatch(in nsIRunnable event, in unsigned long flags);
+  /**
+   * Dispatch an event to this event target, but do not run it before delay
+   * milliseconds have passed.  This function may be called from any thread.
+   *
+   * @param event
+   *   The alreadyAddrefed<> event to dispatch.
+   * @param delay
+   *   The delay (in ms) before running the event.  If event does not rise to
+   *   the top of the event queue before the delay has passed, it will be set
+   *   aside to execute once the delay has passed.  Otherwise, it will be
+   *   executed immediately.
+   *
+   * @throws NS_ERROR_INVALID_ARG
+   *   Indicates that event is null.
+   * @throws NS_ERROR_UNEXPECTED
+   *   Indicates that the thread is shutting down and has finished processing
+   * events, so this event would never run and has not been dispatched, or
+   * that delay is zero.
+   */
+  [noscript] void delayedDispatch(in alreadyAddRefed_nsIRunnable event, in unsigned long delay);
 };
 
 %{C++
 // convenient aliases:
 #define NS_DISPATCH_NORMAL nsIEventTarget::DISPATCH_NORMAL
 #define NS_DISPATCH_SYNC   nsIEventTarget::DISPATCH_SYNC
+#define NS_DISPATCH_AT_END nsIEventTarget::DISPATCH_AT_END
 %}

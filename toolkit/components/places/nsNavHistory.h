@@ -8,7 +8,6 @@
 
 #include "nsINavHistoryService.h"
 #include "nsPIPlacesDatabase.h"
-#include "nsPIPlacesHistoryListenersNotifier.h"
 #include "nsIBrowserHistory.h"
 #include "nsINavBookmarksService.h"
 #include "nsIFaviconService.h"
@@ -28,6 +27,7 @@
 #include "nsNavHistoryQuery.h"
 #include "Database.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Atomics.h"
 
 #define QUERYUPDATE_TIME 0
 #define QUERYUPDATE_SIMPLE 1
@@ -52,7 +52,6 @@
 // Fired after frecency has been updated.
 #define TOPIC_FRECENCY_UPDATED "places-frecency-updated"
 
-class mozIAnnotationService;
 class nsNavHistory;
 class QueryKeyValuePair;
 class nsIEffectiveTLDService;
@@ -62,13 +61,12 @@ class nsIAutoCompleteController;
 
 // nsNavHistory
 
-class nsNavHistory MOZ_FINAL : public nsSupportsWeakReference
-                             , public nsINavHistoryService
-                             , public nsIObserver
-                             , public nsIBrowserHistory
-                             , public nsPIPlacesDatabase
-                             , public nsPIPlacesHistoryListenersNotifier
-                             , public mozIStorageVacuumParticipant
+class nsNavHistory final : public nsSupportsWeakReference
+                         , public nsINavHistoryService
+                         , public nsIObserver
+                         , public nsIBrowserHistory
+                         , public nsPIPlacesDatabase
+                         , public mozIStorageVacuumParticipant
 {
   friend class PlacesSQLQueryBuilder;
 
@@ -80,7 +78,6 @@ public:
   NS_DECL_NSIBROWSERHISTORY
   NS_DECL_NSIOBSERVER
   NS_DECL_NSPIPLACESDATABASE
-  NS_DECL_NSPIPLACESHISTORYLISTENERSNOTIFIER
   NS_DECL_MOZISTORAGEVACUUMPARTICIPANT
 
   /**
@@ -184,6 +181,29 @@ public:
   nsresult invalidateFrecencies(const nsCString& aPlaceIdsQueryString);
 
   /**
+   * Calls onDeleteVisits and onDeleteURI notifications on registered listeners
+   * with the history service.
+   *
+   * @param aURI
+   *        The nsIURI object representing the URI of the page being expired.
+   * @param aVisitTime
+   *        The time, in microseconds, that the page being expired was visited.
+   * @param aWholeEntry
+   *        Indicates if this is the last visit for this URI.
+   * @param aGUID
+   *        The unique ID associated with the page.
+   * @param aReason
+   *        Indicates the reason for the removal.
+   *        See nsINavHistoryObserver::REASON_* constants.
+   * @param aTransitionType
+   *        If it's a valid TRANSITION_* value, all visits of the specified type
+   *        have been removed.
+   */
+  nsresult NotifyOnPageExpired(nsIURI *aURI, PRTime aVisitTime,
+                               bool aWholeEntry, const nsACString& aGUID,
+                               uint16_t aReason, uint32_t aTransitionType);
+
+  /**
    * These functions return non-owning references to the locale-specific
    * objects for places components.
    */
@@ -217,6 +237,9 @@ public:
   static const int32_t kGetInfoIndex_Frecency;
   static const int32_t kGetInfoIndex_Hidden;
   static const int32_t kGetInfoIndex_Guid;
+  static const int32_t kGetInfoIndex_VisitId;
+  static const int32_t kGetInfoIndex_FromVisitId;
+  static const int32_t kGetInfoIndex_VisitType;
 
   int64_t GetTagsFolder();
 
@@ -232,7 +255,9 @@ public:
   nsresult RowToResult(mozIStorageValueArray* aRow,
                        nsNavHistoryQueryOptions* aOptions,
                        nsNavHistoryResultNode** aResult);
-  nsresult QueryRowToResult(int64_t aItemId, const nsACString& aURI,
+  nsresult QueryRowToResult(int64_t aItemId,
+                            const nsACString& aBookmarkGuid,
+                            const nsACString& aURI,
                             const nsACString& aTitle,
                             uint32_t aAccessCount, PRTime aTime,
                             const nsACString& aFavicon,
@@ -388,9 +413,12 @@ public:
         return mPermRedirectVisitBonus;
       case nsINavHistoryService::TRANSITION_REDIRECT_TEMPORARY:
         return mTempRedirectVisitBonus;
+      case nsINavHistoryService::TRANSITION_RELOAD:
+        return mReloadVisitBonus;
       default:
         // 0 == undefined (see bug #375777 for details)
-        NS_WARN_IF_FALSE(!aTransitionType, "new transition but no bonus for frecency");
+        NS_WARNING_ASSERTION(!aTransitionType,
+                             "new transition but no bonus for frecency");
         return mDefaultVisitBonus;
     }
   }
@@ -404,12 +432,14 @@ public:
    * Fires onVisit event to nsINavHistoryService observers
    */
   void NotifyOnVisit(nsIURI* aURI,
-                     int64_t aVisitID,
+                     int64_t aVisitId,
                      PRTime aTime,
-                     int64_t referringVisitID,
+                     int64_t aReferrerVisitId,
                      int32_t aTransitionType,
-                     const nsACString& aGUID,
-                     bool aHidden);
+                     const nsACString& aGuid,
+                     bool aHidden,
+                     uint32_t aVisitCount,
+                     uint32_t aTyped);
 
   /**
    * Fires onTitleChanged event to nsINavHistoryService observers
@@ -441,6 +471,15 @@ public:
                                            bool aHidden,
                                            PRTime aLastVisitDate) const;
 
+  /**
+   * Store last insterted id for a table.
+   */
+  static mozilla::Atomic<int64_t> sLastInsertedPlaceId;
+  static mozilla::Atomic<int64_t> sLastInsertedVisitId;
+
+  static void StoreLastInsertedId(const nsACString& aTable,
+                                  const int64_t aLastInsertedId);
+
   bool isBatching() {
     return mBatchLevel > 0;
   }
@@ -454,15 +493,12 @@ private:
 protected:
 
   // Database handle.
-  nsRefPtr<mozilla::places::Database> mDB;
+  RefPtr<mozilla::places::Database> mDB;
 
   /**
    * Decays frecency and inputhistory values.  Runs on idle-daily.
    */
   nsresult DecayFrecency();
-
-  nsresult CalculateFrecency(int64_t aPageID, int32_t aTyped, int32_t aVisitCount, nsAutoCString &aURL, int32_t *aFrecency);
-  nsresult CalculateFrecencyInternal(int64_t aPageID, int32_t aTyped, int32_t aVisitCount, bool aIsBookmarked, int32_t *aFrecency);
 
   nsresult RemovePagesInternal(const nsCString& aPlaceIdsQueryString);
   nsresult CleanupPlacesOnVisitsDelete(const nsCString& aPlaceIdsQueryString);
@@ -488,7 +524,7 @@ protected:
    */
   static void expireNowTimerCallback(nsITimer* aTimer, void* aClosure);
 
-  nsresult ConstructQueryString(const nsCOMArray<nsNavHistoryQuery>& aQueries, 
+  nsresult ConstructQueryString(const nsCOMArray<nsNavHistoryQuery>& aQueries,
                                 nsNavHistoryQueryOptions* aOptions,
                                 nsCString& queryString,
                                 bool& aParamsPresent,
@@ -537,7 +573,7 @@ protected:
   class VisitHashKey : public nsURIHashKey
   {
   public:
-    VisitHashKey(const nsIURI* aURI)
+    explicit VisitHashKey(const nsIURI* aURI)
     : nsURIHashKey(aURI)
     {
     }
@@ -586,6 +622,7 @@ protected:
   int32_t mDefaultVisitBonus;
   int32_t mUnvisitedBookmarkBonus;
   int32_t mUnvisitedTypedBonus;
+  int32_t mReloadVisitBonus;
 
   // in nsNavHistoryQuery.cpp
   nsresult TokensToQueries(const nsTArray<QueryKeyValuePair>& aTokens,

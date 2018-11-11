@@ -16,10 +16,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 //// Helpers
 
-class ServiceInitializer : public nsRunnable
+class ServiceInitializer : public mozilla::Runnable
 {
 public:
-  NS_IMETHOD Run()
+  NS_IMETHOD Run() override
   {
     // Use an explicit do_GetService instead of getService so that the check in
     // getService doesn't blow up.

@@ -24,6 +24,10 @@ namespace mozilla {
 class WebrtcOMXDecoder;
 class OMXOutputDrain;
 
+// XXX see if we can reduce this
+#define WEBRTC_OMX_H264_MIN_DECODE_BUFFERS 10
+#define OMX_IDR_NEEDED_FOR_BITRATE 0
+
 class WebrtcOMXH264VideoEncoder : public WebrtcVideoEncoder
 {
 public:
@@ -32,25 +36,27 @@ public:
   virtual ~WebrtcOMXH264VideoEncoder();
 
   // Implement VideoEncoder interface.
+  virtual uint64_t PluginID() const override { return 0; }
+
   virtual int32_t InitEncode(const webrtc::VideoCodec* aCodecSettings,
                              int32_t aNumOfCores,
-                             uint32_t aMaxPayloadSize) MOZ_OVERRIDE;
+                             size_t aMaxPayloadSize) override;
 
   virtual int32_t Encode(const webrtc::I420VideoFrame& aInputImage,
                          const webrtc::CodecSpecificInfo* aCodecSpecificInfo,
-                         const std::vector<webrtc::VideoFrameType>* aFrameTypes) MOZ_OVERRIDE;
+                         const std::vector<webrtc::VideoFrameType>* aFrameTypes) override;
 
-  virtual int32_t RegisterEncodeCompleteCallback(webrtc::EncodedImageCallback* aCallback) MOZ_OVERRIDE;
+  virtual int32_t RegisterEncodeCompleteCallback(webrtc::EncodedImageCallback* aCallback) override;
 
-  virtual int32_t Release() MOZ_OVERRIDE;
+  virtual int32_t Release() override;
 
   virtual int32_t SetChannelParameters(uint32_t aPacketLossRate,
-                                       int aRoundTripTimeMs) MOZ_OVERRIDE;
+                                       int64_t aRoundTripTimeMs) override;
 
-  virtual int32_t SetRates(uint32_t aBitRate, uint32_t aFrameRate) MOZ_OVERRIDE;
+  virtual int32_t SetRates(uint32_t aBitRate, uint32_t aFrameRate) override;
 
 private:
-  RefPtr<android::OMXVideoEncoder> mOMX;
+  nsAutoPtr<android::OMXVideoEncoder> mOMX;
   android::sp<android::OMXCodecReservation> mReservation;
 
   webrtc::EncodedImageCallback* mCallback;
@@ -59,8 +65,10 @@ private:
   uint32_t mHeight;
   uint32_t mFrameRate;
   uint32_t mBitRateKbps;
+#ifdef OMX_IDR_NEEDED_FOR_BITRATE
   uint32_t mBitRateAtLastIDR;
   TimeStamp mLastIDRTime;
+#endif
   bool mOMXConfigured;
   bool mOMXReconfigure;
   webrtc::EncodedImage mEncodedImage;
@@ -74,18 +82,20 @@ public:
   virtual ~WebrtcOMXH264VideoDecoder();
 
   // Implement VideoDecoder interface.
+  virtual uint64_t PluginID() const override { return 0; }
+
   virtual int32_t InitDecode(const webrtc::VideoCodec* aCodecSettings,
-                             int32_t aNumOfCores) MOZ_OVERRIDE;
+                             int32_t aNumOfCores) override;
   virtual int32_t Decode(const webrtc::EncodedImage& aInputImage,
                          bool aMissingFrames,
                          const webrtc::RTPFragmentationHeader* aFragmentation,
                          const webrtc::CodecSpecificInfo* aCodecSpecificInfo = nullptr,
-                         int64_t aRenderTimeMs = -1) MOZ_OVERRIDE;
-  virtual int32_t RegisterDecodeCompleteCallback(webrtc::DecodedImageCallback* callback) MOZ_OVERRIDE;
+                         int64_t aRenderTimeMs = -1) override;
+  virtual int32_t RegisterDecodeCompleteCallback(webrtc::DecodedImageCallback* callback) override;
 
-  virtual int32_t Release() MOZ_OVERRIDE;
+  virtual int32_t Release() override;
 
-  virtual int32_t Reset() MOZ_OVERRIDE;
+  virtual int32_t Reset() override;
 
 private:
   webrtc::DecodedImageCallback* mCallback;

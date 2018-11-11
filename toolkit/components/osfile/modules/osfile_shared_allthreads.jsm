@@ -19,20 +19,35 @@
 
 // Boilerplate used to be able to import this module both from the main
 // thread and from worker threads.
+
+// Since const is lexically scoped, hoist the
+// conditionally-useful definition ourselves.
+const Cu = typeof Components != "undefined" ? Components.utils : undefined;
+const Ci = typeof Components != "undefined" ? Components.interfaces : undefined;
+const Cc = typeof Components != "undefined" ? Components.classes : undefined;
+
+/**
+ * A constructor for messages that require transfers instead of copies.
+ *
+ * See BasePromiseWorker.Meta.
+ *
+ * @constructor
+ */
+var Meta;
 if (typeof Components != "undefined") {
   // Global definition of |exports|, to keep everybody happy.
   // In non-main thread, |exports| is provided by the module
   // loader.
   this.exports = {};
 
-  const Cu = Components.utils;
-  const Ci = Components.interfaces;
-  const Cc = Components.classes;
-
   Cu.import("resource://gre/modules/Services.jsm", this);
+  Meta = Cu.import("resource://gre/modules/PromiseWorker.jsm", {}).BasePromiseWorker.Meta;
+} else {
+  importScripts("resource://gre/modules/workers/require.js");
+  Meta = require("resource://gre/modules/workers/PromiseWorker.js").Meta;
 }
 
-let EXPORTED_SYMBOLS = [
+var EXPORTED_SYMBOLS = [
   "LOG",
   "clone",
   "Config",
@@ -44,17 +59,17 @@ let EXPORTED_SYMBOLS = [
   "declareFFI",
   "declareLazy",
   "declareLazyFFI",
-  "normalizeToPointer",
+  "normalizeBufferArgs",
   "projectValue",
+  "isArrayBuffer",
   "isTypedArray",
   "defineLazyGetter",
-  "offsetBy",
   "OS" // Warning: this exported symbol will disappear
 ];
 
 ////////////////////// Configuration of OS.File
 
-let Config = {
+var Config = {
   /**
    * If |true|, calls to |LOG| are shown. Otherwise, they are hidden.
    *
@@ -84,7 +99,7 @@ exports.Constants = OS.Constants;
 ///////////////////// Utilities
 
 // Define a lazy getter for a property
-let defineLazyGetter = function defineLazyGetter(object, name, getter) {
+var defineLazyGetter = function defineLazyGetter(object, name, getter) {
   Object.defineProperty(object, name, {
     configurable: true,
     get: function lazy() {
@@ -107,7 +122,7 @@ exports.defineLazyGetter = defineLazyGetter;
  *
  * The choice of logger can be overridden with Config.TEST.
  */
-let gLogger;
+var gLogger;
 if (typeof window != "undefined" && window.console && console.log) {
   gLogger = console.log.bind(console, "OS");
 } else {
@@ -124,7 +139,7 @@ if (typeof window != "undefined" && window.console && console.log) {
  * @param {*} arg An argument to be stringified if possible.
  * @return {string} A stringified version of |arg|.
  */
-let stringifyArg = function stringifyArg(arg) {
+var stringifyArg = function stringifyArg(arg) {
   if (typeof arg === "string") {
     return arg;
   }
@@ -139,7 +154,15 @@ let stringifyArg = function stringifyArg(arg) {
      * compartment.
      */
     if (argToString === "[object Object]") {
-      return JSON.stringify(arg);
+      return JSON.stringify(arg, function(key, value) {
+        if (isTypedArray(value)) {
+          return "["+ value.constructor.name + " " + value.byteOffset + " " + value.byteLength + "]";
+        }
+        if (isArrayBuffer(arg)) {
+          return "[" + value.constructor.name + " " + value.byteLength + "]";
+        }
+        return value;
+      });
     } else {
       return argToString;
     }
@@ -147,7 +170,7 @@ let stringifyArg = function stringifyArg(arg) {
   return arg;
 };
 
-let LOG = function (...args) {
+var LOG = function (...args) {
   if (!Config.DEBUG) {
     // If logging is deactivated, don't log
     return;
@@ -162,7 +185,7 @@ let LOG = function (...args) {
       Services.console.logStringMessage(message + "\n");
     };
   }
-  logFunc.apply(null, [stringifyArg(arg) for (arg of args)]);
+  logFunc.apply(null, args.map(stringifyArg));
 };
 
 exports.LOG = LOG;
@@ -181,7 +204,7 @@ exports.LOG = LOG;
  * @param {Array} refs An optional array of field names to be passed by
  * reference instead of copying.
  */
-let clone = function (object, refs = []) {
+var clone = function (object, refs = []) {
   let result = {};
   // Make a reference between result[key] and object[key].
   let refer = function refer(result, key, object) {
@@ -384,11 +407,20 @@ Type.prototype = {
 /**
  * Utility function used to determine whether an object is a typed array
  */
-let isTypedArray = function isTypedArray(obj) {
-  return typeof obj == "object"
+var isTypedArray = function isTypedArray(obj) {
+  return obj != null && typeof obj == "object"
     && "byteOffset" in obj;
 };
 exports.isTypedArray = isTypedArray;
+
+/**
+ * Utility function used to determine whether an object is an ArrayBuffer.
+ */
+var isArrayBuffer = function(obj) {
+  return obj != null && typeof obj == "object" &&
+    obj.constructor.name == "ArrayBuffer";
+};
+exports.isArrayBuffer = isArrayBuffer;
 
 /**
  * A |Type| of pointers.
@@ -428,13 +460,16 @@ PtrType.prototype.toMsg = function ptr_toMsg(value) {
   if (typeof value == "string") {
     return { string: value };
   }
+  if (isTypedArray(value)) {
+    // Automatically transfer typed arrays
+    return new Meta({data: value}, {transfers: [value.buffer]});
+  }
+  if (isArrayBuffer(value)) {
+    // Automatically transfer array buffers
+    return new Meta({data: value}, {transfers: [value]});
+  }
   let normalized;
-  if (isTypedArray(value)) { // Typed array
-    normalized = Type.uint8_t.in_ptr.implementation(value.buffer);
-    if (value.byteOffset != 0) {
-      normalized = offsetBy(normalized, value.byteOffset);
-    }
-  } else if ("addressOfElement" in value) { // C array
+  if ("addressOfElement" in value) { // C array
     normalized = value.addressOfElement(0);
   } else if ("isNull" in value) { // C pointer
     normalized = value;
@@ -456,6 +491,9 @@ PtrType.prototype.fromMsg = function ptr_fromMsg(msg) {
   if ("string" in msg) {
     return msg.string;
   }
+  if ("data" in msg) {
+    return msg.data;
+  }
   if ("ptr" in msg) {
     let address = ctypes.uintptr_t(msg.ptr);
     return this.cast(address);
@@ -473,7 +511,7 @@ exports.Type = Type;
  * therefore project them to regular numbers whenever possible.
  */
 
-let projectLargeInt = function projectLargeInt(x) {
+var projectLargeInt = function projectLargeInt(x) {
   let str = x.toString();
   let rv = parseInt(str, 10);
   if (rv.toString() !== str) {
@@ -481,10 +519,10 @@ let projectLargeInt = function projectLargeInt(x) {
   }
   return rv;
 };
-let projectLargeUInt = function projectLargeUInt(x) {
+var projectLargeUInt = function projectLargeUInt(x) {
   return projectLargeInt(x);
 };
-let projectValue = function projectValue(x) {
+var projectValue = function projectValue(x) {
   if (!(x instanceof ctypes.CData)) {
     return x;
   }
@@ -626,17 +664,17 @@ Type.char =
 /**
  * A C wide char (two bytes)
  */
-Type.jschar =
-  new Type("jschar",
-           ctypes.jschar);
+Type.char16_t =
+  new Type("char16_t",
+           ctypes.char16_t);
 
  /**
   * Base string types.
   */
 Type.cstring = Type.char.in_ptr.withName("[in] C string");
-Type.wstring = Type.jschar.in_ptr.withName("[in] wide string");
+Type.wstring = Type.char16_t.in_ptr.withName("[in] wide string");
 Type.out_cstring = Type.char.out_ptr.withName("[out] C string");
-Type.out_wstring = Type.jschar.out_ptr.withName("[out] wide string");
+Type.out_wstring = Type.char16_t.out_ptr.withName("[out] wide string");
 
 /**
  * A C integer (8-bits).
@@ -1012,6 +1050,42 @@ Library.prototype = Object.freeze({
     });
   },
 
+  /**
+   * Define a js-ctypes function lazily using ctypes method declare,
+   * with a fallback library to use if this library can't be opened
+   * or the function cannot be declared.
+   *
+   * @param {fallbacklibrary} The fallback Library object.
+   * @param {object} The object containing the function as a field.
+   * @param {string} The name of the field containing the function.
+   * @param {string} symbol The name of the function, as defined in the
+   * library.
+   * @param {ctypes.abi} abi The abi to use, or |null| for default.
+   * @param {ctypes.CType} returnType The type of values returned by the function.
+   * @param {...ctypes.CType} argTypes The type of arguments to the function.
+   */
+  declareLazyWithFallback: function(fallbacklibrary, object, field, ...args) {
+    let lib = this;
+    Object.defineProperty(object, field, {
+      get: function() {
+        delete this[field];
+        try {
+          let ffi = lib.library.declare(...args);
+          if (ffi) {
+            return this[field] = ffi;
+          }
+        } catch (ex) {
+          // Use the fallback library and get the symbol from there.
+          fallbacklibrary.declareLazy(object, field, ...args);
+          return object[field];
+        }
+        return undefined;
+      },
+      configurable: true,
+      enumerable: true
+    });
+  },
+
   toString: function() {
     return "[Library " + this.name + "]";
   }
@@ -1032,7 +1106,7 @@ exports.Library = Library;
  * it does not exist), or a JavaScript wrapper performing the call to C
  * and any type conversion required.
  */
-let declareFFI = function declareFFI(lib, symbol, abi,
+var declareFFI = function declareFFI(lib, symbol, abi,
                                      returnType /*, argTypes ...*/) {
   LOG("Attempting to declare FFI ", symbol);
   // We guard agressively, to avoid any late surprise
@@ -1142,96 +1216,34 @@ function declareLazy(object, field, lib, ...declareArgs) {
 }
 exports.declareLazy = declareLazy;
 
-// A bogus array type used to perform pointer arithmetics
-let gOffsetByType;
-
 /**
- * Advance a pointer by a number of items.
+ * Utility function used to sanity check buffer and length arguments.  The
+ * buffer must be a Typed Array.
  *
- * This method implements adding an integer to a pointer in C.
- *
- * Example:
- *   // ptr is a uint16_t*,
- *   offsetBy(ptr, 3)
- *  // returns a uint16_t* with the address ptr + 3 * 2 bytes
- *
- * @param {C pointer} pointer The start pointer.
- * @param {number} length The number of items to advance. Must not be
- * negative.
- *
- * @return {C pointer} |pointer| advanced by |length| items
- */
-let offsetBy =
-  function offsetBy(pointer, length) {
-    if (length === undefined || length < 0) {
-      throw new TypeError("offsetBy expects a positive number");
-    }
-   if (!("isNull" in pointer)) {
-      throw new TypeError("offsetBy expects a pointer");
-    }
-    if (length == 0) {
-      return pointer;
-    }
-    let type = pointer.constructor;
-    let size = type.targetType.size;
-    if (size == 0 || size == null) {
-      throw new TypeError("offsetBy cannot be applied to a pointer without size");
-    }
-    let bytes = length * size;
-    if (!gOffsetByType || gOffsetByType.size <= bytes) {
-      gOffsetByType = ctypes.uint8_t.array(bytes * 2);
-    }
-    let addr = ctypes.cast(pointer, gOffsetByType.ptr).
-      contents.addressOfElement(bytes);
-    return ctypes.cast(addr, type);
-};
-exports.offsetBy = offsetBy;
-
-/**
- * Utility function used to normalize a Typed Array or C
- * pointer into a uint8_t C pointer.
- *
- * Future versions might extend this to other data structures.
- *
- * @param {Typed array | C pointer} candidate The buffer. If
- * a C pointer, it must be non-null.
+ * @param {Typed array} candidate The buffer.
  * @param {number} bytes The number of bytes that |candidate| should contain.
- * Used for sanity checking if the size of |candidate| can be determined.
  *
- * @return {ptr:{C pointer}, bytes:number} A C pointer of type uint8_t,
- * corresponding to the start of |candidate|.
+ * @return number The bytes argument clamped to the length of the buffer.
  */
-function normalizeToPointer(candidate, bytes) {
+function normalizeBufferArgs(candidate, bytes) {
   if (!candidate) {
-    throw new TypeError("Expecting  a Typed Array or a C pointer");
+    throw new TypeError("Expecting a Typed Array");
   }
-  let ptr;
-  if ("isNull" in candidate) {
-    if (candidate.isNull()) {
-      throw new TypeError("Expecting a non-null pointer");
-    }
-    ptr = Type.uint8_t.out_ptr.cast(candidate);
-    if (bytes == null) {
-      throw new TypeError("C pointer missing bytes indication.");
-    }
-  } else if (isTypedArray(candidate)) {
-    // Typed Array
-    ptr = Type.uint8_t.out_ptr.implementation(candidate.buffer);
-    if (bytes == null) {
-      bytes = candidate.byteLength;
-    } else if (candidate.byteLength < bytes) {
-      throw new TypeError("Buffer is too short. I need at least " +
-                         bytes +
-                         " bytes but I have only " +
-                         candidate.byteLength +
-                          "bytes");
-    }
-  } else {
-    throw new TypeError("Expecting  a Typed Array or a C pointer");
+  if (!isTypedArray(candidate)) {
+    throw new TypeError("Expecting a Typed Array");
   }
-  return {ptr: ptr, bytes: bytes};
+  if (bytes == null) {
+    bytes = candidate.byteLength;
+  } else if (candidate.byteLength < bytes) {
+    throw new TypeError("Buffer is too short. I need at least " +
+                       bytes +
+                       " bytes but I have only " +
+                       candidate.byteLength +
+                        "bytes");
+  }
+  return bytes;
 };
-exports.normalizeToPointer = normalizeToPointer;
+exports.normalizeBufferArgs = normalizeBufferArgs;
 
 ///////////////////// OS interactions
 
@@ -1272,8 +1284,7 @@ exports.OS = {
     declareFFI: declareFFI,
     projectValue: projectValue,
     isTypedArray: isTypedArray,
-    defineLazyGetter: defineLazyGetter,
-    offsetBy: offsetBy
+    defineLazyGetter: defineLazyGetter
   }
 };
 

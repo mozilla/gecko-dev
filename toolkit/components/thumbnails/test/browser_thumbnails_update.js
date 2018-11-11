@@ -5,7 +5,7 @@
  * These tests check the auto-update facility of the thumbnail service.
  */
 
-function runTests() {
+function* runTests() {
   // A "trampoline" - a generator that iterates over sub-iterators
   let tests = [
     simpleCaptureTest,
@@ -41,7 +41,7 @@ function getThumbnailModifiedTime(url) {
 
 // The tests!
 /* Check functionality of a normal captureAndStoreIfStale request */
-function simpleCaptureTest() {
+function* simpleCaptureTest() {
   let numNotifications = 0;
   const URL = "http://mochi.test:8888/browser/toolkit/components/thumbnails/test/thumbnails_update.sjs?simple";
 
@@ -67,14 +67,15 @@ function simpleCaptureTest() {
     is(numNotifications, 1, "got notification of item being created.");
     // The capture is now "fresh" - so requesting the URL should not cause
     // a new capture.
-    PageThumbs.captureAndStoreIfStale(browser);
-    is(numNotifications, 1, "still only 1 notification of item being created.");
+    PageThumbs.captureAndStoreIfStale(browser, function() {
+      is(numNotifications, 1, "still only 1 notification of item being created.");
 
-    ensureThumbnailStale(URL);
-    // Ask for it to be updated.
-    PageThumbs.captureAndStoreIfStale(browser);
-    // But it's async, so wait - our observer above will call next() when
-    // the notification comes.
+      ensureThumbnailStale(URL);
+      // Ask for it to be updated.
+      PageThumbs.captureAndStoreIfStale(browser);
+      // But it's async, so wait - our observer above will call next() when
+      // the notification comes.
+    });
   });
   yield undefined // wait for callbacks to call 'next'...
 }
@@ -82,7 +83,7 @@ function simpleCaptureTest() {
 /* Check functionality of captureAndStoreIfStale when there is an error response
    from the server.
  */
-function capIfStaleErrorResponseUpdateTest() {
+function* capIfStaleErrorResponseUpdateTest() {
   const URL = "http://mochi.test:8888/browser/toolkit/components/thumbnails/test/thumbnails_update.sjs?fail";
   yield addTab(URL);
 
@@ -100,7 +101,7 @@ function capIfStaleErrorResponseUpdateTest() {
   PageThumbs.captureAndStoreIfStale(gBrowser.selectedBrowser, () => {
     ok(getThumbnailModifiedTime(URL) < now, "modified time should be < now");
     retrieveImageDataForURL(URL, function ([r, g, b]) {
-      is("" + [r,g,b], "" + [0, 255, 0], "thumbnail is still green");
+      is("" + [r, g, b], "" + [0, 255, 0], "thumbnail is still green");
       gBrowser.removeTab(gBrowser.selectedTab);
       next();
     });
@@ -112,7 +113,7 @@ function capIfStaleErrorResponseUpdateTest() {
    response from the server.  This test is somewhat redundant - although it is
    using a http:// URL instead of a data: url like most others.
  */
-function capIfStaleGoodResponseUpdateTest() {
+function* capIfStaleGoodResponseUpdateTest() {
   const URL = "http://mochi.test:8888/browser/toolkit/components/thumbnails/test/thumbnails_update.sjs?ok";
   yield addTab(URL);
   let browser = gBrowser.selectedBrowser;
@@ -132,7 +133,7 @@ function capIfStaleGoodResponseUpdateTest() {
     // the captureAndStoreIfStale request saw a 200 response with the red body,
     // so we expect to see the red version here.
     retrieveImageDataForURL(URL, function ([r, g, b]) {
-      is("" + [r,g,b], "" + [255, 0, 0], "thumbnail is now red");
+      is("" + [r, g, b], "" + [255, 0, 0], "thumbnail is now red");
       next();
     });
   });
@@ -142,7 +143,7 @@ function capIfStaleGoodResponseUpdateTest() {
 /* Check functionality of captureAndStore when there is an error response
    from the server.
  */
-function regularCapErrorResponseUpdateTest() {
+function* regularCapErrorResponseUpdateTest() {
   const URL = "http://mochi.test:8888/browser/toolkit/components/thumbnails/test/thumbnails_update.sjs?fail";
   yield addTab(URL);
   yield captureAndCheckColor(0, 255, 0, "we have a green thumbnail");
@@ -156,7 +157,7 @@ function regularCapErrorResponseUpdateTest() {
 /* Check functionality of captureAndStore when there is an OK response
    from the server.
  */
-function regularCapGoodResponseUpdateTest() {
+function* regularCapGoodResponseUpdateTest() {
   const URL = "http://mochi.test:8888/browser/toolkit/components/thumbnails/test/thumbnails_update.sjs?ok";
   yield addTab(URL);
   yield captureAndCheckColor(0, 255, 0, "we have a green thumbnail");

@@ -11,12 +11,11 @@
 #include "webrtc/engine_configurations.h"
 #if defined(COCOA_RENDERING)
 
-#import "cocoa_render_view.h"
-
-#include "video_render_mac_cocoa_impl.h"
-#include "critical_section_wrapper.h"
-#include "video_render_nsopengl.h"
-#include "trace.h"
+#include "webrtc/modules/video_render/mac/cocoa_render_view.h"
+#include "webrtc/modules/video_render/mac/video_render_mac_cocoa_impl.h"
+#include "webrtc/modules/video_render/mac/video_render_nsopengl.h"
+#include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
+#include "webrtc/system_wrappers/interface/trace.h"
 
 namespace webrtc {
 
@@ -63,21 +62,6 @@ VideoRenderMacCocoaImpl::Init()
     {
         WEBRTC_TRACE(kTraceInfo, kTraceVideoRenderer, _id, "Failed to init %s:%d", __FUNCTION__, __LINE__);
         return -1;
-    }
-
-    return 0;
-}
-
-int32_t
-VideoRenderMacCocoaImpl::ChangeUniqueId(const int32_t id)
-{
-    CriticalSectionScoped cs(&_renderMacCocoaCritsect);
-    WEBRTC_TRACE(kTraceInfo, kTraceVideoRenderer, _id, "%s", __FUNCTION__);
-    _id = id;
-
-    if(_ptrCocoaRender)
-    {
-        _ptrCocoaRender->ChangeUniqueID(_id);
     }
 
     return 0;

@@ -21,16 +21,11 @@
 #include "mozilla/storage.h"
 #include "mozilla/Attributes.h"
 
-#include "AsyncFaviconHelpers.h"
+#include "FaviconHelpers.h"
 
-// Favicons bigger than this size should not be saved to the db to avoid
-// bloating it with large image blobs.
-// This still allows us to accept a favicon even if we cannot optimize it.
-#define MAX_FAVICON_SIZE 10240
-
-// Most icons will be smaller than this rough estimate of the size of an
-// uncompressed 16x16 RGBA image of the same dimensions.
-#define MAX_ICON_FILESIZE(s) ((uint32_t) s*s*4)
+// Favicons bigger than this (in bytes) will not be stored in the database.  We
+// expect that most 32x32 PNG favicons will be no larger due to compression.
+#define MAX_FAVICON_FILESIZE 3072 /* 3 KiB */
 
 // forward class definitions
 class mozIStorageStatementCallback;
@@ -38,7 +33,7 @@ class mozIStorageStatementCallback;
 class UnassociatedIconHashKey : public nsURIHashKey
 {
 public:
-  UnassociatedIconHashKey(const nsIURI* aURI)
+  explicit UnassociatedIconHashKey(const nsIURI* aURI)
   : nsURIHashKey(aURI)
   {
   }
@@ -51,9 +46,9 @@ public:
   PRTime created;
 };
 
-class nsFaviconService MOZ_FINAL : public nsIFaviconService
-                                 , public mozIAsyncFavicons
-                                 , public nsITimerCallback
+class nsFaviconService final : public nsIFaviconService
+                             , public mozIAsyncFavicons
+                             , public nsITimerCallback
 {
 public:
   nsFaviconService();
@@ -90,7 +85,6 @@ public:
   nsresult OptimizeFaviconImage(const uint8_t* aData, uint32_t aDataLen,
                                 const nsACString& aMimeType,
                                 nsACString& aNewData, nsACString& aNewMimeType);
-  int32_t GetOptimizedIconDimension() { return mOptimizedIconDimension; }
 
   /**
    * Obtains the favicon data asynchronously.
@@ -126,7 +120,7 @@ public:
 private:
   ~nsFaviconService();
 
-  nsRefPtr<mozilla::places::Database> mDB;
+  RefPtr<mozilla::places::Database> mDB;
 
   nsCOMPtr<nsITimer> mExpireUnassociatedIconsTimer;
 
@@ -140,18 +134,11 @@ private:
    */
   nsCOMPtr<nsIURI> mDefaultIcon;
 
-  // The target dimension, in pixels, for favicons we optimize.
-  // If we find images that are as large or larger than an uncompressed RGBA
-  // image of this size (mOptimizedIconDimension*mOptimizedIconDimension*4),
-  // we will try to optimize it.
-  int32_t mOptimizedIconDimension;
-
   uint32_t mFailedFaviconSerial;
   nsDataHashtable<nsCStringHashKey, uint32_t> mFailedFavicons;
 
-  // AsyncFetchAndSetIconForPage needs access to the icon cache
-  friend class mozilla::places::AsyncFetchAndSetIconForPage;
-  friend class mozilla::places::RemoveIconDataCacheEntry;
+  // This class needs access to the icons cache.
+  friend class mozilla::places::AsyncReplaceFaviconData;
   nsTHashtable<UnassociatedIconHashKey> mUnassociatedIcons;
 };
 

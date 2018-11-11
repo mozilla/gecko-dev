@@ -1,0 +1,29 @@
+# -*- Mode: python; python-indent: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+SOURCES += [
+    '../../chromium/base/strings/safe_sprintf.cc',
+    '../SandboxLogging.cpp',
+    'SandboxCrash.cpp',
+]
+
+# Avoid Chromium logging dependency, because this is going into
+# libxul.  See also the comment in SandboxLogging.h.
+SOURCES['../../chromium/base/strings/safe_sprintf.cc'].flags += ['-DNDEBUG']
+
+LOCAL_INCLUDES += [
+    '/security/sandbox/chromium',
+    '/security/sandbox/linux',
+]
+
+USE_LIBS += [
+    'mozsandbox',
+]
+
+FINAL_LIBRARY = 'xul'
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wno-error=shadow']

@@ -4,15 +4,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef MOZ_LOGGING
-#define FORCE_PR_LOG 1
-#endif
-
 #include "AppTrustDomain.h"
+#include "MainThreadUtils.h"
 #include "certdb.h"
-#include "pkix/pkix.h"
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/Casting.h"
+#include "mozilla/Preferences.h"
+#include "nsComponentManagerUtils.h"
+#include "nsIFile.h"
+#include "nsIFileStreams.h"
 #include "nsIX509CertDB.h"
+#include "nsNSSCertificate.h"
+#include "nsNetUtil.h"
+#include "pkix/pkixnss.h"
 #include "prerror.h"
 #include "secerr.h"
 
@@ -21,18 +25,35 @@
 #include "marketplace-prod-reviewers.inc"
 #include "marketplace-dev-public.inc"
 #include "marketplace-dev-reviewers.inc"
+#include "marketplace-stage.inc"
 #include "xpcshell.inc"
+// Trusted Hosted Apps Certificates
+#include "manifest-signing-root.inc"
+#include "manifest-signing-test-root.inc"
+// Add-on signing Certificates
+#include "addons-public.inc"
+#include "addons-stage.inc"
+// Privileged Package Certificates
+#include "privileged-package-root.inc"
 
 using namespace mozilla::pkix;
 
-#ifdef PR_LOGGING
-extern PRLogModuleInfo* gPIPNSSLog;
-#endif
+extern mozilla::LazyLogModule gPIPNSSLog;
+
+static const unsigned int DEFAULT_MIN_RSA_BITS = 2048;
+static char kDevImportedDER[] =
+  "network.http.signed-packages.developer-root";
 
 namespace mozilla { namespace psm {
 
-AppTrustDomain::AppTrustDomain(void* pinArg)
-  : mPinArg(pinArg)
+StaticMutex AppTrustDomain::sMutex;
+UniquePtr<unsigned char[]> AppTrustDomain::sDevImportedDERData;
+unsigned int AppTrustDomain::sDevImportedDERLen = 0;
+
+AppTrustDomain::AppTrustDomain(UniqueCERTCertList& certChain, void* pinArg)
+  : mCertChain(certChain)
+  , mPinArg(pinArg)
+  , mMinRSABits(DEFAULT_MIN_RSA_BITS)
 {
 }
 
@@ -66,18 +87,88 @@ AppTrustDomain::SetTrustedRoot(AppTrustedRoot trustedRoot)
       trustedDER.len = mozilla::ArrayLength(marketplaceDevReviewersRoot);
       break;
 
+    case nsIX509CertDB::AppMarketplaceStageRoot:
+      trustedDER.data = const_cast<uint8_t*>(marketplaceStageRoot);
+      trustedDER.len = mozilla::ArrayLength(marketplaceStageRoot);
+      // The staging root was generated with a 1024-bit key.
+      mMinRSABits = 1024u;
+      break;
+
     case nsIX509CertDB::AppXPCShellRoot:
       trustedDER.data = const_cast<uint8_t*>(xpcshellRoot);
       trustedDER.len = mozilla::ArrayLength(xpcshellRoot);
       break;
+
+    case nsIX509CertDB::AddonsPublicRoot:
+      trustedDER.data = const_cast<uint8_t*>(addonsPublicRoot);
+      trustedDER.len = mozilla::ArrayLength(addonsPublicRoot);
+      break;
+
+    case nsIX509CertDB::AddonsStageRoot:
+      trustedDER.data = const_cast<uint8_t*>(addonsStageRoot);
+      trustedDER.len = mozilla::ArrayLength(addonsStageRoot);
+      break;
+
+    case nsIX509CertDB::PrivilegedPackageRoot:
+      trustedDER.data = const_cast<uint8_t*>(privilegedPackageRoot);
+      trustedDER.len = mozilla::ArrayLength(privilegedPackageRoot);
+      break;
+
+    case nsIX509CertDB::DeveloperImportedRoot: {
+      StaticMutexAutoLock lock(sMutex);
+      if (!sDevImportedDERData) {
+        MOZ_ASSERT(!NS_IsMainThread());
+        nsCOMPtr<nsIFile> file(do_CreateInstance("@mozilla.org/file/local;1"));
+        if (!file) {
+          PR_SetError(SEC_ERROR_IO, 0);
+          return SECFailure;
+        }
+        nsresult rv = file->InitWithNativePath(
+            Preferences::GetCString(kDevImportedDER));
+        if (NS_FAILED(rv)) {
+          PR_SetError(SEC_ERROR_IO, 0);
+          return SECFailure;
+        }
+
+        nsCOMPtr<nsIInputStream> inputStream;
+        NS_NewLocalFileInputStream(getter_AddRefs(inputStream), file, -1, -1,
+                                   nsIFileInputStream::CLOSE_ON_EOF);
+        if (!inputStream) {
+          PR_SetError(SEC_ERROR_IO, 0);
+          return SECFailure;
+        }
+
+        uint64_t length;
+        rv = inputStream->Available(&length);
+        if (NS_FAILED(rv)) {
+          PR_SetError(SEC_ERROR_IO, 0);
+          return SECFailure;
+        }
+
+        auto data = MakeUnique<char[]>(length);
+        rv = inputStream->Read(data.get(), length, &sDevImportedDERLen);
+        if (NS_FAILED(rv)) {
+          PR_SetError(SEC_ERROR_IO, 0);
+          return SECFailure;
+        }
+
+        MOZ_ASSERT(length == sDevImportedDERLen);
+        sDevImportedDERData.reset(
+          BitwiseCast<unsigned char*, char*>(data.release()));
+      }
+
+      trustedDER.data = sDevImportedDERData.get();
+      trustedDER.len = sDevImportedDERLen;
+      break;
+    }
 
     default:
       PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
       return SECFailure;
   }
 
-  mTrustedRoot = CERT_NewTempCertificate(CERT_GetDefaultCertDB(),
-                                         &trustedDER, nullptr, false, true);
+  mTrustedRoot.reset(CERT_NewTempCertificate(CERT_GetDefaultCertDB(),
+                                             &trustedDER, nullptr, false, true));
   if (!mTrustedRoot) {
     return SECFailure;
   }
@@ -85,38 +176,67 @@ AppTrustDomain::SetTrustedRoot(AppTrustedRoot trustedRoot)
   return SECSuccess;
 }
 
-SECStatus
-AppTrustDomain::FindPotentialIssuers(const SECItem* encodedIssuerName,
-                                     PRTime time,
-                             /*out*/ mozilla::pkix::ScopedCERTCertList& results)
+Result
+AppTrustDomain::FindIssuer(Input encodedIssuerName, IssuerChecker& checker,
+                           Time)
+
 {
   MOZ_ASSERT(mTrustedRoot);
   if (!mTrustedRoot) {
-    PR_SetError(PR_INVALID_STATE_ERROR, 0);
-    return SECFailure;
+    return Result::FATAL_ERROR_INVALID_STATE;
   }
 
-  results = CERT_CreateSubjectCertList(nullptr, CERT_GetDefaultCertDB(),
-                                       encodedIssuerName, time, true);
-  return SECSuccess;
+  // TODO(bug 1035418): If/when mozilla::pkix relaxes the restriction that
+  // FindIssuer must only pass certificates with a matching subject name to
+  // checker.Check, we can stop using CERT_CreateSubjectCertList and instead
+  // use logic like this:
+  //
+  // 1. First, try the trusted trust anchor.
+  // 2. Secondly, iterate through the certificates that were stored in the CMS
+  //    message, passing each one to checker.Check.
+  SECItem encodedIssuerNameSECItem =
+    UnsafeMapInputToSECItem(encodedIssuerName);
+  UniqueCERTCertList
+    candidates(CERT_CreateSubjectCertList(nullptr, CERT_GetDefaultCertDB(),
+                                          &encodedIssuerNameSECItem, 0,
+                                          false));
+  if (candidates) {
+    for (CERTCertListNode* n = CERT_LIST_HEAD(candidates);
+         !CERT_LIST_END(n, candidates); n = CERT_LIST_NEXT(n)) {
+      Input certDER;
+      Result rv = certDER.Init(n->cert->derCert.data, n->cert->derCert.len);
+      if (rv != Success) {
+        continue; // probably too big
+      }
+
+      bool keepGoing;
+      rv = checker.Check(certDER, nullptr/*additionalNameConstraints*/,
+                         keepGoing);
+      if (rv != Success) {
+        return rv;
+      }
+      if (!keepGoing) {
+        break;
+      }
+    }
+  }
+
+  return Success;
 }
 
-SECStatus
+Result
 AppTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
                              const CertPolicyId& policy,
-                             const SECItem& candidateCertDER,
-                     /*out*/ TrustLevel* trustLevel)
+                             Input candidateCertDER,
+                     /*out*/ TrustLevel& trustLevel)
 {
   MOZ_ASSERT(policy.IsAnyPolicy());
-  MOZ_ASSERT(trustLevel);
   MOZ_ASSERT(mTrustedRoot);
-  if (!trustLevel || !policy.IsAnyPolicy()) {
-    PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
-    return SECFailure;
+  if (!policy.IsAnyPolicy()) {
+    return Result::FATAL_ERROR_INVALID_ARGS;
   }
   if (!mTrustedRoot) {
-    PR_SetError(PR_INVALID_STATE_ERROR, 0);
-    return SECFailure;
+    return Result::FATAL_ERROR_INVALID_STATE;
   }
 
   // Handle active distrust of the certificate.
@@ -124,61 +244,144 @@ AppTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
   // XXX: This would be cleaner and more efficient if we could get the trust
   // information without constructing a CERTCertificate here, but NSS doesn't
   // expose it in any other easy-to-use fashion.
-  ScopedCERTCertificate candidateCert(
-    CERT_NewTempCertificate(CERT_GetDefaultCertDB(),
-                            const_cast<SECItem*>(&candidateCertDER), nullptr,
-                            false, true));
+  SECItem candidateCertDERSECItem =
+    UnsafeMapInputToSECItem(candidateCertDER);
+  UniqueCERTCertificate candidateCert(
+    CERT_NewTempCertificate(CERT_GetDefaultCertDB(), &candidateCertDERSECItem,
+                            nullptr, false, true));
   if (!candidateCert) {
-    return SECFailure;
+    return MapPRErrorCodeToResult(PR_GetError());
   }
 
   CERTCertTrust trust;
   if (CERT_GetCertTrust(candidateCert.get(), &trust) == SECSuccess) {
-    PRUint32 flags = SEC_GET_TRUST_FLAGS(&trust, trustObjectSigning);
+    uint32_t flags = SEC_GET_TRUST_FLAGS(&trust, trustObjectSigning);
 
     // For DISTRUST, we use the CERTDB_TRUSTED or CERTDB_TRUSTED_CA bit,
     // because we can have active distrust for either type of cert. Note that
     // CERTDB_TERMINAL_RECORD means "stop trying to inherit trust" so if the
     // relevant trust bit isn't set then that means the cert must be considered
     // distrusted.
-    PRUint32 relevantTrustBit = endEntityOrCA == EndEntityOrCA::MustBeCA
+    uint32_t relevantTrustBit = endEntityOrCA == EndEntityOrCA::MustBeCA
                               ? CERTDB_TRUSTED_CA
                               : CERTDB_TRUSTED;
     if (((flags & (relevantTrustBit | CERTDB_TERMINAL_RECORD)))
             == CERTDB_TERMINAL_RECORD) {
-      *trustLevel = TrustLevel::ActivelyDistrusted;
-      return SECSuccess;
+      trustLevel = TrustLevel::ActivelyDistrusted;
+      return Success;
     }
   }
 
   // mTrustedRoot is the only trust anchor for this validation.
   if (CERT_CompareCerts(mTrustedRoot.get(), candidateCert.get())) {
-    *trustLevel = TrustLevel::TrustAnchor;
-    return SECSuccess;
+    trustLevel = TrustLevel::TrustAnchor;
+    return Success;
   }
 
-  *trustLevel = TrustLevel::InheritsTrust;
-  return SECSuccess;
+  trustLevel = TrustLevel::InheritsTrust;
+  return Success;
 }
 
-SECStatus
-AppTrustDomain::VerifySignedData(const CERTSignedData* signedData,
-                                 const SECItem& subjectPublicKeyInfo)
+Result
+AppTrustDomain::DigestBuf(Input item,
+                          DigestAlgorithm digestAlg,
+                          /*out*/ uint8_t* digestBuf,
+                          size_t digestBufLen)
 {
-  return ::mozilla::pkix::VerifySignedData(signedData, subjectPublicKeyInfo,
-                                           mPinArg);
+  return DigestBufNSS(item, digestAlg, digestBuf, digestBufLen);
 }
 
-SECStatus
-AppTrustDomain::CheckRevocation(EndEntityOrCA,
-                                const CERTCertificate*,
-                                /*const*/ CERTCertificate*,
-                                PRTime time,
-                                /*optional*/ const SECItem*)
+Result
+AppTrustDomain::CheckRevocation(EndEntityOrCA, const CertID&, Time, Duration,
+                                /*optional*/ const Input*,
+                                /*optional*/ const Input*)
 {
   // We don't currently do revocation checking. If we need to distrust an Apps
   // certificate, we will use the active distrust mechanism.
-  return SECSuccess;
+  return Success;
 }
 
-} }
+Result
+AppTrustDomain::IsChainValid(const DERArray& certChain, Time time)
+{
+  SECStatus srv = ConstructCERTCertListFromReversedDERArray(certChain,
+                                                            mCertChain);
+  if (srv != SECSuccess) {
+    return MapPRErrorCodeToResult(PR_GetError());
+  }
+  return Success;
+}
+
+Result
+AppTrustDomain::CheckSignatureDigestAlgorithm(DigestAlgorithm,
+                                              EndEntityOrCA,
+                                              Time)
+{
+  // TODO: We should restrict signatures to SHA-256 or better.
+  return Success;
+}
+
+Result
+AppTrustDomain::CheckRSAPublicKeyModulusSizeInBits(
+  EndEntityOrCA /*endEntityOrCA*/, unsigned int modulusSizeInBits)
+{
+  if (modulusSizeInBits < mMinRSABits) {
+    return Result::ERROR_INADEQUATE_KEY_SIZE;
+  }
+  return Success;
+}
+
+Result
+AppTrustDomain::VerifyRSAPKCS1SignedDigest(const SignedDigest& signedDigest,
+                                           Input subjectPublicKeyInfo)
+{
+  // TODO: We should restrict signatures to SHA-256 or better.
+  return VerifyRSAPKCS1SignedDigestNSS(signedDigest, subjectPublicKeyInfo,
+                                       mPinArg);
+}
+
+Result
+AppTrustDomain::CheckECDSACurveIsAcceptable(EndEntityOrCA /*endEntityOrCA*/,
+                                            NamedCurve curve)
+{
+  switch (curve) {
+    case NamedCurve::secp256r1: // fall through
+    case NamedCurve::secp384r1: // fall through
+    case NamedCurve::secp521r1:
+      return Success;
+  }
+
+  return Result::ERROR_UNSUPPORTED_ELLIPTIC_CURVE;
+}
+
+Result
+AppTrustDomain::VerifyECDSASignedDigest(const SignedDigest& signedDigest,
+                                        Input subjectPublicKeyInfo)
+{
+  return VerifyECDSASignedDigestNSS(signedDigest, subjectPublicKeyInfo,
+                                    mPinArg);
+}
+
+Result
+AppTrustDomain::CheckValidityIsAcceptable(Time /*notBefore*/, Time /*notAfter*/,
+                                          EndEntityOrCA /*endEntityOrCA*/,
+                                          KeyPurposeId /*keyPurpose*/)
+{
+  return Success;
+}
+
+Result
+AppTrustDomain::NetscapeStepUpMatchesServerAuth(Time /*notBefore*/,
+                                                /*out*/ bool& matches)
+{
+  matches = false;
+  return Success;
+}
+
+void
+AppTrustDomain::NoteAuxiliaryExtension(AuxiliaryExtension /*extension*/,
+                                       Input /*extensionData*/)
+{
+}
+
+} } // namespace mozilla::psm

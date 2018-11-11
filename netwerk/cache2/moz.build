@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,6 +11,7 @@ XPIDL_SOURCES += [
     'nsICacheStorage.idl',
     'nsICacheStorageService.idl',
     'nsICacheStorageVisitor.idl',
+    'nsICacheTesting.idl',
 ]
 
 XPIDL_MODULE = 'necko_cache2'
@@ -21,16 +22,6 @@ EXPORTS += [
 ]
 
 UNIFIED_SOURCES += [
-    'CacheHashUtils.cpp',
-    'CacheIOThread.cpp',
-    'CacheObserver.cpp',
-]
-
-# AppCacheStorage.cpp cannot be built in unified mode because it uses plarena.h.
-# The rest of these files cannot be built in unified mode because they rely oni
-# including prlog.h after nsCache.h.
-SOURCES += [
-    'AppCacheStorage.cpp',
     'CacheEntry.cpp',
     'CacheFile.cpp',
     'CacheFileChunk.cpp',
@@ -40,22 +31,29 @@ SOURCES += [
     'CacheFileMetadata.cpp',
     'CacheFileOutputStream.cpp',
     'CacheFileUtils.cpp',
+    'CacheHashUtils.cpp',
     'CacheIndex.cpp',
     'CacheIndexContextIterator.cpp',
     'CacheIndexIterator.cpp',
+    'CacheIOThread.cpp',
     'CacheLog.cpp',
+    'CacheObserver.cpp',
     'CacheStorage.cpp',
     'CacheStorageService.cpp',
     'OldWrappers.cpp',
 ]
 
-LOCAL_INCLUDES += [
-    '../base/src',
-    '../cache',
+# AppCacheStorage.cpp cannot be built in unified mode because it uses plarena.h.
+SOURCES += [
+    'AppCacheStorage.cpp',
 ]
 
-FAIL_ON_WARNINGS = True
+LOCAL_INCLUDES += [
+    '/netwerk/base',
+    '/netwerk/cache',
+]
 
-MSVC_ENABLE_PGO = True
+FINAL_LIBRARY = 'xul'
 
-FINAL_LIBRARY = 'necko'
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wno-error=shadow']

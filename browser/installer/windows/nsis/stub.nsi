@@ -71,6 +71,8 @@ Var CanSetAsDefault
 Var InstallCounterStep
 Var InstallStepSize
 Var InstallTotalSteps
+Var ProgressCompleted
+Var ProgressTotal
 Var TmpVal
 
 Var ExitCode
@@ -105,6 +107,7 @@ Var DownloadedBytes
 Var DownloadRetryCount
 Var OpenedDownloadPage
 Var DownloadServerIP
+Var PostSigningData
 
 Var ControlHeightPX
 Var ControlRightPX
@@ -113,7 +116,7 @@ Var ControlRightPX
 ; the stub installer
 ;!define STUB_DEBUG
 
-!define StubURLVersion "v6"
+!define StubURLVersion "v7"
 
 ; Successful install exit code
 !define ERR_SUCCESS 0
@@ -160,7 +163,7 @@ Var ControlRightPX
 !define DownloadMinSizeBytes 15728640 ; 15 MB
 
 ; Maximum size expected to download in bytes
-!define DownloadMaxSizeBytes 36700160 ; 35 MB
+!define DownloadMaxSizeBytes 73400320 ; 70 MB
 
 ; Interval before retrying to download. 3 seconds is used along with 10
 ; attempted downloads (the first attempt along with 9 retries) to give a
@@ -218,11 +221,13 @@ Var ControlRightPX
 !include "nsDialogs.nsh"
 !include "LogicLib.nsh"
 !include "FileFunc.nsh"
+!include "TextFunc.nsh"
 !include "WinVer.nsh"
 !include "WordFunc.nsh"
 
 !insertmacro GetParameters
 !insertmacro GetOptions
+!insertmacro LineFind
 !insertmacro StrFilter
 
 !include "locales.nsi"
@@ -256,8 +261,9 @@ Var ControlRightPX
 !insertmacro GetSingleInstallPath
 !insertmacro GetTextWidthHeight
 !insertmacro IsUserAdmin
-!insertmacro OnStubInstallUninstall
+!insertmacro RemovePrecompleteEntries
 !insertmacro SetBrandNameVars
+!insertmacro ITBL3Create
 !insertmacro UnloadUAC
 
 VIAddVersionKey "FileDescription" "${BrandShortName} Stub Installer"
@@ -269,7 +275,7 @@ icon "setup.ico"
 XPStyle on
 BrandingText " "
 ChangeUI all "nsisui.exe"
-!ifdef HAVE_64BIT_OS
+!ifdef HAVE_64BIT_BUILD
   InstallDir "$PROGRAMFILES64\${BrandFullName}\"
 !else
   InstallDir "$PROGRAMFILES32\${BrandFullName}\"
@@ -310,11 +316,22 @@ Function .onInit
   ; isn't supported for the stub installer.
   ${SetBrandNameVars} "$PLUGINSDIR\ignored.ini"
 
-!ifdef HAVE_64BIT_OS
-  ; Restrict x64 builds from being installed on x86 and pre Vista
+  ; Don't install on systems that don't support SSE2. The parameter value of
+  ; 10 is for PF_XMMI64_INSTRUCTIONS_AVAILABLE which will check whether the
+  ; SSE2 instruction set is available.
+  System::Call "kernel32::IsProcessorFeaturePresent(i 10)i .R7"
+
+!ifdef HAVE_64BIT_BUILD
+  ; Restrict x64 builds from being installed on x86 and pre Win7
   ${Unless} ${RunningX64}
-  ${OrUnless} ${AtLeastWinVista}
-    MessageBox MB_OK|MB_ICONSTOP "$(WARN_MIN_SUPPORTED_OS_MSG)"
+  ${OrUnless} ${AtLeastWin7}
+    ${If} "$R7" == "0"
+      strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_CPU_MSG)"
+    ${Else}
+      strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_MSG)"
+    ${EndIf}
+    MessageBox MB_OKCANCEL|MB_ICONSTOP "$R7" IDCANCEL +2
+    ExecShell "open" "${URLSystemRequirements}"
     Quit
   ${EndUnless}
 
@@ -345,11 +362,23 @@ Function .onInit
     ${OrIf} "$R8" == "3"
     ${OrIf} "$R8" == "4"
     ${OrIf} "$R8" == "5"
-      MessageBox MB_OK|MB_ICONSTOP "$(WARN_MIN_SUPPORTED_OS_MSG)"
+      ${If} "$R7" == "0"
+        strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_CPU_MSG)"
+      ${Else}
+        strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_MSG)"
+      ${EndIf}
+      MessageBox MB_OKCANCEL|MB_ICONSTOP "$R7" IDCANCEL +2
+      ExecShell "open" "${URLSystemRequirements}"
       Quit
     ${EndIf}
   ${EndUnless}
 !endif
+
+  ${If} "$R7" == "0"
+    MessageBox MB_OKCANCEL|MB_ICONSTOP "$(WARN_MIN_SUPPORTED_CPU_MSG)" IDCANCEL +2
+    ExecShell "open" "${URLSystemRequirements}"
+    Quit
+  ${EndIf}
 
   ; Require elevation if the user can elevate
   ${ElevateUAC}
@@ -368,6 +397,27 @@ Function .onInit
   ${If} "$R9" == "false"
     SetShellVarContext current ; Set SHCTX to HKCU
     ${GetSingleInstallPath} "Software\Mozilla\${BrandFullNameInternal}" $R9
+
+    ${If} ${RunningX64}
+      ; In HKCU there is no WOW64 redirection, which means we may have gotten
+      ; the path to a 32-bit install even though we're 64-bit, or vice-versa.
+      ; In that case, just use the default path instead of offering an upgrade.
+      ; But only do that override if the existing install is in Program Files,
+      ; because that's the only place we can be sure is specific
+      ; to either 32 or 64 bit applications.
+      ; The WordFind syntax below searches for the first occurence of the
+      ; "delimiter" (the Program Files path) in the install path and returns
+      ; anything that appears before that. If nothing appears before that,
+      ; then the install is under Program Files (32 or 64).
+!ifdef HAVE_64BIT_BUILD
+      ${WordFind} $R9 $PROGRAMFILES32 "+1{" $0
+!else
+      ${WordFind} $R9 $PROGRAMFILES64 "+1{" $0
+!endif
+      ${If} $0 == ""
+        StrCpy $R9 "false"
+      ${EndIf}
+    ${EndIf}
   ${EndIf}
 
   ${If} "$R9" != "false"
@@ -561,7 +611,7 @@ Function SendPing
     ; completion of all phases.
     ${GetSecondsElapsed} "$EndInstallPhaseTickCount" "$EndFinishPhaseTickCount" $4
 
-!ifdef HAVE_64BIT_OS
+!ifdef HAVE_64BIT_BUILD
     StrCpy $R0 "1"
 !else
     StrCpy $R0 "0"
@@ -721,14 +771,15 @@ Function SendPing
                       $\nHas Admin = $R8 \
                       $\nDefault Status = $R2 \
                       $\nSet As Sefault Status = $R3 \
-                      $\nDownload Server IP = $DownloadServerIP"
+                      $\nDownload Server IP = $DownloadServerIP \
+                      $\nPost-Signing Data = $PostSigningData"
     ; The following will exit the installer
     SetAutoClose true
     StrCpy $R9 "2"
     Call RelativeGotoPage
 !else
     ${NSD_CreateTimer} OnPing ${DownloadIntervalMS}
-    InetBgDL::Get "${BaseURLStubPing}/${StubURLVersion}${StubURLVersionAppend}/${Channel}/${UpdateChannel}/${AB_CD}/$R0/$R1/$5/$6/$7/$8/$9/$ExitCode/$FirefoxLaunchCode/$DownloadRetryCount/$DownloadedBytes/$DownloadSizeBytes/$IntroPhaseSeconds/$OptionsPhaseSeconds/$0/$1/$DownloadFirstTransferSeconds/$2/$3/$4/$InitialInstallRequirementsCode/$OpenedDownloadPage/$ExistingProfile/$ExistingVersion/$ExistingBuildID/$R5/$R6/$R7/$R8/$R2/$R3/$DownloadServerIP" \
+    InetBgDL::Get "${BaseURLStubPing}/${StubURLVersion}${StubURLVersionAppend}/${Channel}/${UpdateChannel}/${AB_CD}/$R0/$R1/$5/$6/$7/$8/$9/$ExitCode/$FirefoxLaunchCode/$DownloadRetryCount/$DownloadedBytes/$DownloadSizeBytes/$IntroPhaseSeconds/$OptionsPhaseSeconds/$0/$1/$DownloadFirstTransferSeconds/$2/$3/$4/$InitialInstallRequirementsCode/$OpenedDownloadPage/$ExistingProfile/$ExistingVersion/$ExistingBuildID/$R5/$R6/$R7/$R8/$R2/$R3/$DownloadServerIP/$PostSigningData" \
                   "$PLUGINSDIR\_temp" /END
 !endif
   ${Else}
@@ -1018,9 +1069,19 @@ Function createOptions
   ${NSD_Check} $CheckboxSendPing
 
 !ifdef MOZ_MAINTENANCE_SERVICE
-  ; Only show the maintenance service checkbox if we have write access to HKLM
+  ; We can only install the maintenance service if the user is an admin.
   Call IsUserAdmin
   Pop $0
+
+  ; Only show the maintenance service checkbox if we're on XP SP3 or higher;
+  ;  we don't ever want to install it on XP without at least SP3 installed.
+  ${If} $0 == "true"
+  ${AndIf} ${IsWinXP}
+  ${AndIf} ${AtMostServicePack} 2
+    StrCpy $0 "false"
+  ${EndIf}
+
+  ; Only show the maintenance service checkbox if we have write access to HKLM
   ClearErrors
   WriteRegStr HKLM "Software\Mozilla" "${BrandShortName}InstallerTest" \
                    "Write Test"
@@ -1293,6 +1354,9 @@ Function createInstall
     StrCpy $InstallTotalSteps ${InstallCleanTotalSteps}
   ${EndIf}
 
+  ${ITBL3Create}
+  ${ITBL3SetProgressState} "${TBPF_INDETERMINATE}"
+
   ${NSD_CreateTimer} StartDownload ${DownloadIntervalMS}
 
   LockWindow off
@@ -1315,6 +1379,21 @@ Function StartDownload
   ${EndIf}
 FunctionEnd
 
+Function SetProgressBars
+  SendMessage $Progressbar ${PBM_SETPOS} $ProgressCompleted 0
+  ${ITBL3SetProgressValue} "$ProgressCompleted" "$ProgressTotal"
+FunctionEnd
+
+Function RemoveFileProgressCallback
+  IntOp $InstallCounterStep $InstallCounterStep + 2
+  System::Int64Op $ProgressCompleted + $InstallStepSize
+  Pop $ProgressCompleted
+  Call SetProgressBars
+  System::Int64Op $ProgressCompleted + $InstallStepSize
+  Pop $ProgressCompleted
+  Call SetProgressBars
+FunctionEnd
+
 Function OnDownload
   InetBgDL::GetStats
   # $0 = HTTP status code, 0=Completed
@@ -1333,6 +1412,7 @@ Function OnDownload
       ${NSD_AddStyle} $Progressbar ${PBS_MARQUEE}
       SendMessage $Progressbar ${PBM_SETMARQUEE} 1 \
                   $ProgressbarMarqueeIntervalMS ; start=1|stop=0 interval(ms)=+N
+      ${ITBL3SetProgressState} "${TBPF_INDETERMINATE}"
     ${EndIf}
     InetBgDL::Get /RESET /END
     StrCpy $DownloadSizeBytes ""
@@ -1390,8 +1470,9 @@ Function OnDownload
     SendMessage $Progressbar ${PBM_SETMARQUEE} 0 0 ; start=1|stop=0 interval(ms)=+N
     ${RemoveStyle} $Progressbar ${PBS_MARQUEE}
     System::Int64Op $HalfOfDownload + $DownloadSizeBytes
-    Pop $R9
-    SendMessage $Progressbar ${PBM_SETRANGE32} 0 $R9
+    Pop $ProgressTotal
+    StrCpy $ProgressCompleted 0
+    SendMessage $Progressbar ${PBM_SETRANGE32} $ProgressCompleted $ProgressTotal
   ${EndIf}
 
   ; Don't update the status until after the download starts
@@ -1448,12 +1529,13 @@ Function OnDownload
       LockWindow on
       ; Update the progress bars first in the UI change so they take affect
       ; before other UI changes.
-      SendMessage $Progressbar ${PBM_SETPOS} $DownloadSizeBytes 0
+      StrCpy $ProgressCompleted "$DownloadSizeBytes"
+      Call SetProgressBars
       System::Int64Op $InstallStepSize * ${InstallProgressFirstStep}
       Pop $R9
-      SendMessage $Progressbar ${PBM_SETSTEP} $R9 0
-      SendMessage $Progressbar ${PBM_STEPIT} 0 0
-      SendMessage $Progressbar ${PBM_SETSTEP} $InstallStepSize 0
+      System::Int64Op $ProgressCompleted + $R9
+      Pop $ProgressCompleted
+      Call SetProgressBars
       ShowWindow $LabelDownloading ${SW_HIDE}
       ShowWindow $LabelInstalling ${SW_SHOW}
       ShowWindow $LabelBlurb2 ${SW_HIDE}
@@ -1509,6 +1591,14 @@ Function OnDownload
       WriteINIStr "$PLUGINSDIR\${CONFIG_INI}" "Install" "InstallDirectoryPath" "$INSTDIR"
       ; Don't create the QuickLaunch or Taskbar shortcut from the launched installer
       WriteINIStr "$PLUGINSDIR\${CONFIG_INI}" "Install" "QuickLaunchShortcut" "false"
+
+      ; Either avoid or force adding a taskbar pin based on the checkbox value:
+      ${If} $CheckboxShortcutOnBar == 0
+        WriteINIStr "$PLUGINSDIR\${CONFIG_INI}" "Install" "TaskbarShortcut" "false"
+      ${Else}
+        WriteINIStr "$PLUGINSDIR\${CONFIG_INI}" "Install" "TaskbarShortcut" "true"
+      ${EndIf}
+
       ${If} $CheckboxShortcutOnDesktop == 1
         WriteINIStr "$PLUGINSDIR\${CONFIG_INI}" "Install" "DesktopShortcut" "true"
       ${Else}
@@ -1531,24 +1621,23 @@ Function OnDownload
       WriteINIStr "$PLUGINSDIR\${CONFIG_INI}" "Install" "MaintenanceService" "false"
 !endif
 
-      ; Write migrated to the shortcuts.ini file to prevent the installer
-      ; from creating a taskbar shortcut (Bug 791613).
+      ; Delete the taskbar shortcut history to ensure we do the right thing based on
+      ; the config file above.
       ${GetShortcutsLogPath} $0
       Delete "$0"
-      ; Workaround to prevent pinning to the taskbar.
-      ${If} $CheckboxShortcutOnBar == 0
-        WriteIniStr "$0" "TASKBAR" "Migrated" "true"
-      ${EndIf}
 
-      ${OnStubInstallUninstall} $Progressbar $InstallCounterStep
+      GetFunctionAddress $0 RemoveFileProgressCallback
+      ${RemovePrecompleteEntries} $0
 
       ; Delete the install.log and let the full installer create it. When the
       ; installer closes it we can detect that it has completed.
       Delete "$INSTDIR\install.log"
 
-      ; Delete firefox.exe.moz-upgrade if it exists since it being present will
-      ; require an OS restart for the full installer.
+      ; Delete firefox.exe.moz-upgrade and firefox.exe.moz-delete if it exists
+      ; since it being present will require an OS restart for the full
+      ; installer.
       Delete "$INSTDIR\${FileMainEXE}.moz-upgrade"
+      Delete "$INSTDIR\${FileMainEXE}.moz-delete"
 
       System::Call "kernel32::GetTickCount()l .s"
       Pop $EndPreInstallPhaseTickCount
@@ -1567,7 +1656,8 @@ Function OnDownload
         LockWindow off
       ${EndIf}
       StrCpy $DownloadedBytes "$3"
-      SendMessage $Progressbar ${PBM_SETPOS} $3 0
+      StrCpy $ProgressCompleted "$DownloadedBytes"
+      Call SetProgressBars
     ${EndIf}
   ${EndIf}
 FunctionEnd
@@ -1606,7 +1696,9 @@ Function CheckInstall
     Return
   ${EndIf}
 
-  SendMessage $Progressbar ${PBM_STEPIT} 0 0
+  System::Int64Op $ProgressCompleted + $InstallStepSize
+  Pop $ProgressCompleted
+  Call SetProgressBars
 
   ${If} ${FileExists} "$INSTDIR\install.log"
     Delete "$INSTDIR\install.tmp"
@@ -1630,7 +1722,6 @@ Function CheckInstall
       Pop $EndInstallPhaseTickCount
       System::Int64Op $InstallStepSize * ${InstallProgressFinishStep}
       Pop $InstallStepSize
-      SendMessage $Progressbar ${PBM_SETSTEP} $InstallStepSize 0
       ${NSD_CreateTimer} FinishInstall ${InstallIntervalMS}
     ${EndUnless}
   ${EndIf}
@@ -1645,16 +1736,44 @@ Function FinishInstall
   ${EndIf}
 
   ${If} $InstallTotalSteps != $InstallCounterStep
-    SendMessage $Progressbar ${PBM_STEPIT} 0 0
+    System::Int64Op $ProgressCompleted + $InstallStepSize
+    Pop $ProgressCompleted
+    Call SetProgressBars
     Return
   ${EndIf}
 
   ${NSD_KillTimer} FinishInstall
 
-  SendMessage $Progressbar ${PBM_GETRANGE} 0 0 $R9
-  SendMessage $Progressbar ${PBM_SETPOS} $R9 0
+  StrCpy $ProgressCompleted "$ProgressTotal"
+  Call SetProgressBars
 
   ${If} "$CheckboxSetAsDefault" == "1"
+    ; NB: this code is duplicated in installer.nsi. Please keep in sync.
+    ; For data migration in the app, we want to know what the default browser
+    ; value was before we changed it. To do so, we read it here and store it
+    ; in our own registry key.
+    StrCpy $0 ""
+    ${If} ${AtLeastWinVista}
+      AppAssocReg::QueryCurrentDefault "http" "protocol" "effective"
+      Pop $1
+      ; If the method hasn't failed, $1 will contain the progid. Check:
+      ${If} "$1" != "method failed"
+      ${AndIf} "$1" != "method not available"
+        ; Read the actual command from the progid
+        ReadRegStr $0 HKCR "$1\shell\open\command" ""
+      ${EndIf}
+    ${EndIf}
+    ; If using the App Association Registry didn't happen or failed, fall back
+    ; to the effective http default:
+    ${If} "$0" == ""
+      ReadRegStr $0 HKCR "http\shell\open\command" ""
+    ${EndIf}
+    ; If we have something other than empty string now, write the value.
+    ${If} "$0" != ""
+      ClearErrors
+      WriteRegStr HKCU "Software\Mozilla\Firefox" "OldDefaultBrowserCommand" "$0"
+    ${EndIf}
+
     ${GetParameters} $0
     ClearErrors
     ${GetOptions} "$0" "/UAC:" $0
@@ -1701,8 +1820,8 @@ Function FinishProgressBar
 
   ${NSD_KillTimer} FinishProgressBar
 
+  Call CopyPostSigningData
   Call LaunchApp
-
   Call SendPing
 FunctionEnd
 
@@ -1745,44 +1864,24 @@ Function UpdateFreeSpaceLabel
 
   ${If} $0 > 1024
   ${OrIf} $0 < 0
-    ; Multiply by 10 so it is possible to display a decimal in the size
-    System::Int64Op $0 * 10
-    Pop $0
     System::Int64Op $0 / 1024
     Pop $0
     StrCpy $1 "$(KILO)$(BYTE)"
-    ${If} $0 > 10240
+    ${If} $0 > 1024
     ${OrIf} $0 < 0
       System::Int64Op $0 / 1024
       Pop $0
       StrCpy $1 "$(MEGA)$(BYTE)"
-      ${If} $0 > 10240
+      ${If} $0 > 1024
       ${OrIf} $0 < 0
         System::Int64Op $0 / 1024
         Pop $0
         StrCpy $1 "$(GIGA)$(BYTE)"
       ${EndIf}
     ${EndIf}
-    StrLen $3 "$0"
-    ${If} $3 > 1
-      StrCpy $2 "$0" -1 ; All characters except the last one
-      StrCpy $0 "$0" "" -1 ; The last character
-      ${If} "$0" == "0"
-        StrCpy $0 "$2" ; Don't display the decimal if it is 0
-      ${Else}
-        StrCpy $0 "$2.$0"
-      ${EndIf}
-    ${ElseIf} $3 == 1
-      StrCpy $0 "0.$0"
-    ${Else}
-      ; This should never happen
-      System::Int64Op $0 / 10
-      Pop $0
-    ${EndIf}
   ${EndIf}
 
   SendMessage $LabelFreeSpace ${WM_SETTEXT} 0 "STR:$0 $1"
-
 FunctionEnd
 
 Function OnChange_DirRequest
@@ -1915,12 +2014,14 @@ Function ExecSetAsDefaultAppUser
 FunctionEnd
 
 Function LaunchApp
+!ifndef DEV_EDITION
   FindWindow $0 "${WindowClass}"
   ${If} $0 <> 0 ; integer comparison
     StrCpy $FirefoxLaunchCode "1"
     MessageBox MB_OK|MB_ICONQUESTION "$(WARN_MANUALLY_CLOSE_APP_LAUNCH)"
     Return
   ${EndIf}
+!endif
 
   StrCpy $FirefoxLaunchCode "2"
 
@@ -1949,8 +2050,23 @@ Function LaunchAppFromElevatedProcess
   Exec "$\"$0$\""
 FunctionEnd
 
+Function CopyPostSigningData
+  ${LineRead} "$EXEDIR\postSigningData" "1" $PostSigningData
+  ${If} ${Errors}
+    ClearErrors
+    StrCpy $PostSigningData "0"
+  ${Else}
+    CreateDirectory "$LOCALAPPDATA\Mozilla\Firefox"
+    CopyFiles /SILENT "$EXEDIR\postSigningData" "$LOCALAPPDATA\Mozilla\Firefox"
+  ${Endif}
+FunctionEnd
+
 Function DisplayDownloadError
   ${NSD_KillTimer} DisplayDownloadError
+  ; To better display the error state on the taskbar set the progress completed
+  ; value to the total value.
+  ${ITBL3SetProgressValue} "100" "100"
+  ${ITBL3SetProgressState} "${TBPF_ERROR}"
   MessageBox MB_OKCANCEL|MB_ICONSTOP "$(ERROR_DOWNLOAD)" IDCANCEL +2 IDOK +1
   StrCpy $OpenedDownloadPage "1" ; Already initialized to 0
 

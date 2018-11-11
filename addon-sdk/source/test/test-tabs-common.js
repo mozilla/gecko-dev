@@ -12,7 +12,13 @@ const { isWindowPrivate } = require('sdk/window/utils');
 const { setTimeout } = require('sdk/timers');
 const { openWebpage } = require('./private-browsing/helper');
 const { isTabPBSupported, isWindowPBSupported } = require('sdk/private-browsing/utils');
+const { getTabContentWindow } = require('sdk/tabs/utils');
+const { attach, detach } = require('sdk/content/mod');
+const { Style } = require('sdk/stylesheet/style');
+const fixtures = require('./fixtures');
+const { viewFor } = require('sdk/view/core');
 const app = require("sdk/system/xul-app");
+const { cleanUI } = require('sdk/test/utils');
 
 const URL = 'data:text/html;charset=utf-8,<html><head><title>#title#</title></head></html>';
 
@@ -23,9 +29,9 @@ exports.testTabCounts = function(assert, done) {
     onReady: function(tab) {
       let count1 = 0,
           count2 = 0;
-      for each(let window in browserWindows) {
+      for (let window of browserWindows) {
         count1 += window.tabs.length;
-        for each(let tab in window.tabs) {
+        for (let tab of window.tabs) {
           count2 += 1;
         }
       }
@@ -40,6 +46,36 @@ exports.testTabCounts = function(assert, done) {
   });
 };
 
+exports.testTabRelativePath = function(assert, done) {
+  const { merge } = require("sdk/util/object");
+  const self = require("sdk/self");
+
+  const options = merge({}, require('@loader/options'),
+                        { prefixURI: require('./fixtures').url() });
+
+  let loader = Loader(module, null, options);
+
+  let tabs = loader.require("sdk/tabs");
+
+  tabs.open({
+    url: "./test.html",
+    onReady: (tab) => {
+      assert.equal(tab.title, "foo",
+        "tab opened a document with relative path");
+
+      tab.attach({
+        contentScriptFile: "./test-contentScriptFile.js",
+        onMessage: (message) => {
+          assert.equal(message, "msg from contentScriptFile",
+            "Tab attach a contentScriptFile with relative path worked");
+
+          tab.close(done);
+          loader.unload();
+        }
+      });
+    }
+  });
+};
 
 // TEST: tabs.activeTab getter
 exports.testActiveTab_getter = function(assert, done) {
@@ -138,24 +174,6 @@ exports.testTabClose_alt = function(assert, done) {
   });
 };
 
-exports.testAttachOnOpen_alt = function (assert, done) {
-  // Take care that attach has to be called on tab ready and not on tab open.
-  tabs.open({
-    url: "data:text/html;charset=utf-8,foobar",
-    onOpen: function (tab) {
-      let worker = tab.attach({
-        contentScript: 'self.postMessage(document.location.href); ',
-        onMessage: function (msg) {
-          assert.equal(msg, "about:blank",
-            "Worker document url is about:blank on open");
-          worker.destroy();
-          tab.close(done);
-        }
-      });
-    }
-  });
-};
-
 exports.testAttachOnMultipleDocuments_alt = function (assert, done) {
   // Example of attach that process multiple tab documents
   let firstLocation = "data:text/html;charset=utf-8,foobar";
@@ -173,7 +191,7 @@ exports.testAttachOnMultipleDocuments_alt = function (assert, done) {
       if (onReadyCount == 1) {
         worker1 = tab.attach({
           contentScript: 'self.on("message", ' +
-                         '  function () self.postMessage(document.location.href)' +
+                         '  () => self.postMessage(document.location.href)' +
                          ');',
           onMessage: function (msg) {
             assert.equal(msg, firstLocation,
@@ -196,7 +214,7 @@ exports.testAttachOnMultipleDocuments_alt = function (assert, done) {
       else if (onReadyCount == 2) {
         worker2 = tab.attach({
           contentScript: 'self.on("message", ' +
-                         '  function () self.postMessage(document.location.href)' +
+                         '  () => self.postMessage(document.location.href)' +
                          ');',
           onMessage: function (msg) {
             assert.equal(msg, secondLocation,
@@ -252,7 +270,7 @@ exports.testAttachWrappers_alt = function (assert, done) {
         onMessage: function (msg) {
           assert.equal(msg, true, "Worker has wrapped objects ("+count+")");
           if (count++ == 1)
-            tab.close(function() done());
+            tab.close(() => done());
         }
       });
     }
@@ -271,6 +289,7 @@ exports.testActiveWindowActiveTabOnActivate_alt = function(assert, done) {
                     "the active window's active tab is the tab provided");
 
     if (++activateCount == 2) {
+      assert.equal(newTabs.length, activateCount, "Should have seen the right number of tabs open");
       tabs.removeListener('activate', onActivate);
 
       newTabs.forEach(function(tab) {
@@ -288,11 +307,11 @@ exports.testActiveWindowActiveTabOnActivate_alt = function(assert, done) {
 
   tabs.open({
     url: URL.replace("#title#", "tabs.open1"),
-    onOpen: function(tab) newTabs.push(tab)
+    onOpen: tab => newTabs.push(tab)
   });
   tabs.open({
     url: URL.replace("#title#", "tabs.open2"),
-    onOpen: function(tab) newTabs.push(tab)
+    onOpen: tab => newTabs.push(tab)
   });
 };
 
@@ -417,7 +436,7 @@ exports.testTabReload = function(assert, done) {
           assert.pass("the tab was loaded again");
           assert.equal(tab.url, url, "the tab has the same URL");
 
-          tab.close(function() done());
+          tab.close(() => done());
         }
       );
 
@@ -461,8 +480,12 @@ exports.testOnPageShowEvent = function (assert, done) {
     }
   }
 
-  function onOpen () events.push('open');
-  function onReady () events.push('ready');
+  function onOpen () {
+    return events.push('open');
+  }
+  function onReady () {
+    return events.push('ready');
+  }
 
   tabs.on('pageshow', onPageShow);
   tabs.on('open', onOpen);
@@ -507,8 +530,12 @@ exports.testOnPageShowEventDeclarative = function (assert, done) {
     }
   }
 
-  function onOpen () events.push('open');
-  function onReady () events.push('ready');
+  function onOpen () {
+    return events.push('open');
+  }
+  function onReady () {
+    return events.push('ready');
+  }
 
   tabs.open({
     url: firstUrl,
@@ -517,5 +544,111 @@ exports.testOnPageShowEventDeclarative = function (assert, done) {
     onReady: onReady
   });
 };
+
+exports.testAttachStyleToTab = function(assert, done) {
+   let style = Style({
+    source: "div { height: 100px; }",
+    uri: fixtures.url("include-file.css")
+  });
+
+  tabs.open({
+    url: "data:text/html;charset=utf-8,<div style='background: silver'>css test</div>",
+    onReady: (tab) => {
+      let xulTab = viewFor(tab);
+
+      attach(style, tab)
+
+      let { document } = getTabContentWindow(xulTab);
+      let div = document.querySelector("div");
+
+      assert.equal(div.clientHeight, 100,
+        "Style.source properly attached to tab");
+
+      assert.equal(div.offsetHeight, 120,
+        "Style.uri properly attached to tab");
+
+      detach(style, tab);
+
+      assert.notEqual(div.clientHeight, 100,
+        "Style.source properly detached from tab");
+
+      assert.notEqual(div.offsetHeight, 120,
+        "Style.uri properly detached from tab");
+
+      attach(style, xulTab);
+
+      assert.equal(div.clientHeight, 100,
+        "Style.source properly attached to xul tab");
+
+      assert.equal(div.offsetHeight, 120,
+        "Style.uri properly attached to xul tab");
+
+      detach(style, tab);
+
+      assert.notEqual(div.clientHeight, 100,
+        "Style.source properly detached from xul tab");
+
+      assert.notEqual(div.offsetHeight, 120,
+        "Style.uri properly detached from xul tab");
+
+      tab.close(done);
+    }
+  });
+};
+
+// Tests that the this property is correct in event listeners called from
+// the tabs API.
+exports.testTabEventBindings = function(assert, done) {
+  let loader = Loader(module);
+  let tabs = loader.require("sdk/tabs");
+  let firstTab = tabs.activeTab;
+
+  let EVENTS = ["open", "close", "activate", "deactivate",
+                "load", "ready", "pageshow"];
+
+  let tabBoundEventHandler = (event) => function(tab) {
+    assert.equal(this, tab, "tab listener for " + event + " event should be bound to the tab object.");
+  };
+
+  let tabsBoundEventHandler = (event) => function(tab) {
+    assert.equal(this, tabs, "tabs listener for " + event + " event should be bound to the tabs object.");
+  }
+  for (let event of EVENTS)
+    tabs.on(event, tabsBoundEventHandler(event));
+
+  let tabsOpenEventHandler = (event) => function(tab) {
+    assert.equal(this, tab, "tabs open listener for " + event + " event should be bound to the tab object.");
+  }
+
+  let openArgs = {
+    url: "data:text/html;charset=utf-8,binding-test",
+    onOpen: function(tab) {
+      tabsOpenEventHandler("open").call(this, tab);
+
+      for (let event of EVENTS)
+        tab.on(event, tabBoundEventHandler(event));
+
+      tab.once("pageshow", () => {
+        tab.once("deactivate", () => {
+          tab.once("close", () => {
+            loader.unload();
+            done();
+          });
+
+          tab.close();
+        });
+
+        firstTab.activate();
+      });
+    }
+  };
+  // Listen to everything except onOpen
+  for (let event of EVENTS.slice(1)) {
+    let eventProperty = "on" + event.slice(0, 1).toUpperCase() + event.slice(1);
+    openArgs[eventProperty] = tabsOpenEventHandler(event);
+  }
+
+  tabs.open(openArgs);
+}
 
 require('sdk/test').run(exports);

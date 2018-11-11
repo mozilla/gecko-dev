@@ -17,6 +17,7 @@
 #include "base/basictypes.h"
 
 #include "mozilla/ModuleUtils.h"
+#include "mozilla/WidgetUtils.h"
 
 #include "nsCOMPtr.h"
 #include "nsWidgetsCID.h"
@@ -49,7 +50,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(GfxInfo, Init)
 }
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsWindow)
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsScreenManagerGonk)
+NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsScreenManagerGonk, nsScreenManagerGonk::GetInstance)
 NS_GENERIC_FACTORY_CONSTRUCTOR(PuppetScreenManager)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsHTMLFormatConverter)
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsIdleServiceGonk, nsIdleServiceGonk::GetInstance)
@@ -71,7 +72,7 @@ NS_DEFINE_NAMED_CID(NS_CLIPBOARDHELPER_CID);
 static nsresult
 ScreenManagerConstructor(nsISupports *aOuter, REFNSIID aIID, void **aResult)
 {
-    return (XRE_GetProcessType() == GeckoProcessType_Default) ?
+    return (XRE_IsParentProcess()) ?
         nsScreenManagerGonkConstructor(aOuter, aIID, aResult) :
         PuppetScreenManagerConstructor(aOuter, aIID, aResult);
 }
@@ -107,6 +108,9 @@ static const mozilla::Module::ContractIDEntry kWidgetContracts[] = {
 static void
 nsWidgetGonkModuleDtor()
 {
+    // Shutdown all XP level widget classes.
+    WidgetUtils::Shutdown();
+
     nsLookAndFeel::Shutdown();
     nsAppShellShutdown();
 }

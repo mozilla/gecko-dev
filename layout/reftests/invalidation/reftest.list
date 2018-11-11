@@ -1,12 +1,14 @@
 == table-repaint-a.html table-repaint-a-ref.html
-random-if(B2G&&browserIsRemote) == table-repaint-b.html table-repaint-b-ref.html
+== table-repaint-b.html table-repaint-b-ref.html
 == table-repaint-c.html table-repaint-c-ref.html
-random-if(B2G&&browserIsRemote) == table-repaint-d.html table-repaint-d-ref.html
-skip-if(B2G&&browserIsRemote) == 540247-1.xul 540247-1-ref.xul  # bug 974780
-skip-if(B2G&&browserIsRemote) == 543681-1.html 543681-1-ref.html
+== table-repaint-d.html table-repaint-d-ref.html
+== 540247-1.xul 540247-1-ref.xul
+== 543681-1.html 543681-1-ref.html
+== 1243409-1.html 1243409-1-ref.html
 == test-image-layers.html test-image-layers-ref.html
-pref(layout.animated-image-layers.enabled,true) == test-animated-image-layers.html test-animated-image-layers-ref.html
-pref(layout.animated-image-layers.enabled,true) == test-animated-image-layers-background.html test-animated-image-layers-ref.html
+== test-image-layers-multiple-displayitem.html test-image-layers-ref.html
+pref(layout.animated-image-layers.enabled,true) skip-if(Android||gtkWidget) == test-animated-image-layers.html test-animated-image-layers-ref.html
+pref(layout.animated-image-layers.enabled,true) skip-if(Android||gtkWidget) == test-animated-image-layers-background.html test-animated-image-layers-ref.html
 == box-shadow-border-radius.html box-shadow-border-radius-ref.html
 == filter-userspace-offset.svg?offsetContainer=rect filter-userspace-offset.svg
 == filter-userspace-offset.svg?offsetContainer=use filter-userspace-offset.svg
@@ -20,29 +22,59 @@ pref(layout.animated-image-layers.enabled,true) == test-animated-image-layers-ba
 == filter-userspace-offset.svg?offsetContainer=use&filter=matrix-boundingBox filter-userspace-offset.svg
 == filter-userspace-offset.svg?offsetContainer=innerSVG&filter=matrix-boundingBox filter-userspace-offset.svg
 == filter-userspace-offset.svg?offsetContainer=foreignObject&filter=matrix-boundingBox filter-userspace-offset.svg
-random-if(B2G&&browserIsRemote) == filter-userspace-offset.svg?offsetContainer=rect&filter=flood-userSpace-at100 filter-userspace-offset.svg
-random-if(B2G&&browserIsRemote) == filter-userspace-offset.svg?offsetContainer=use&filter=flood-userSpace-at100 filter-userspace-offset.svg
+== filter-userspace-offset.svg?offsetContainer=rect&filter=flood-userSpace-at100 filter-userspace-offset.svg
+== filter-userspace-offset.svg?offsetContainer=use&filter=flood-userSpace-at100 filter-userspace-offset.svg
 == filter-userspace-offset.svg?offsetContainer=innerSVG&filter=flood-userSpace-atZero filter-userspace-offset.svg
-random-if(B2G&&browserIsRemote) == filter-userspace-offset.svg?offsetContainer=foreignObject&filter=flood-userSpace-at100 filter-userspace-offset.svg
-random-if(B2G&&browserIsRemote) == filter-userspace-offset.svg?offsetContainer=rect&filter=matrix-userSpace-at100 filter-userspace-offset.svg
-random-if(B2G&&browserIsRemote) == filter-userspace-offset.svg?offsetContainer=use&filter=matrix-userSpace-at100 filter-userspace-offset.svg
+== filter-userspace-offset.svg?offsetContainer=foreignObject&filter=flood-userSpace-at100 filter-userspace-offset.svg
+== filter-userspace-offset.svg?offsetContainer=rect&filter=matrix-userSpace-at100 filter-userspace-offset.svg
+== filter-userspace-offset.svg?offsetContainer=use&filter=matrix-userSpace-at100 filter-userspace-offset.svg
 == filter-userspace-offset.svg?offsetContainer=innerSVG&filter=matrix-userSpace-atZero filter-userspace-offset.svg
-random-if(B2G&&browserIsRemote) == filter-userspace-offset.svg?offsetContainer=foreignObject&filter=matrix-userSpace-at100 filter-userspace-offset.svg
+== filter-userspace-offset.svg?offsetContainer=foreignObject&filter=matrix-userSpace-at100 filter-userspace-offset.svg
 == filter-userspace-offset.svg?offsetContainer=rect&mask=boundingBox filter-userspace-offset.svg
 == filter-userspace-offset.svg?offsetContainer=use&mask=boundingBox filter-userspace-offset.svg
 == filter-userspace-offset.svg?offsetContainer=innerSVG&mask=boundingBox filter-userspace-offset.svg
 == filter-userspace-offset.svg?offsetContainer=foreignObject&mask=boundingBox filter-userspace-offset.svg
-random-if(B2G&&browserIsRemote) == filter-userspace-offset.svg?offsetContainer=rect&mask=userSpace-at100 filter-userspace-offset.svg
-random-if(B2G&&browserIsRemote) == filter-userspace-offset.svg?offsetContainer=use&mask=userSpace-at100 filter-userspace-offset.svg
+== filter-userspace-offset.svg?offsetContainer=rect&mask=userSpace-at100 filter-userspace-offset.svg
+== filter-userspace-offset.svg?offsetContainer=use&mask=userSpace-at100 filter-userspace-offset.svg
 == filter-userspace-offset.svg?offsetContainer=innerSVG&mask=userSpace-atZero filter-userspace-offset.svg
-random-if(B2G&&browserIsRemote) == filter-userspace-offset.svg?offsetContainer=foreignObject&mask=userSpace-at100 filter-userspace-offset.svg
+== filter-userspace-offset.svg?offsetContainer=foreignObject&mask=userSpace-at100 filter-userspace-offset.svg
 == filter-userspace-offset.svg?offsetContainer=rect&filter=matrix-fillPaint-boundingBox filter-userspace-offset.svg
-random-if(B2G&&browserIsRemote) == filter-userspace-offset.svg?offsetContainer=rect&filter=matrix-fillPaint-userSpace-at100 filter-userspace-offset.svg
-== scroll-inactive-layers.html scroll-inactive-layers.html
-== scroll-inactive-layers-2.html scroll-inactive-layers-2.html
+== filter-userspace-offset.svg?offsetContainer=rect&filter=matrix-fillPaint-userSpace-at100 filter-userspace-offset.svg
+!= scroll-inactive-layers.html about:blank
+!= scroll-inactive-layers-2.html about:blank
 != inactive-layertree-visible-region-1.html about:blank
 != inactive-layertree-visible-region-2.html about:blank
 != transform-floating-point-invalidation.html about:blank
 != transform-floating-point-invalidation.html?reverse about:blank
 != nudge-to-integer-invalidation.html about:blank
 != nudge-to-integer-invalidation.html?reverse about:blank
+!= clipped-animated-transform-1.html about:blank
+!= paintedlayer-recycling-1.html about:blank
+!= paintedlayer-recycling-2.html about:blank
+pref(layers.single-tile.enabled,false) != paintedlayer-recycling-3.html about:blank
+!= paintedlayer-recycling-4.html about:blank
+!= paintedlayer-recycling-5.html about:blank
+!= paintedlayer-recycling-6.html about:blank
+!= paintedlayer-recycling-7.html about:blank
+!= masklayer-1.html about:blank
+!= masklayer-2.html about:blank
+!= layer-splitting-1.html about:blank
+!= layer-splitting-2.html about:blank
+!= layer-splitting-3.html about:blank
+!= layer-splitting-4.html about:blank
+!= layer-splitting-5.html about:blank
+!= layer-splitting-6.html about:blank
+!= layer-splitting-7.html about:blank
+fuzzy-if(gtkWidget,2,4) fuzzy-if(asyncPan,2,3955) fuzzy-if(OSX,179,30) fuzzy-if(skiaContent,16,3230) == image-scrolling-zoom-1.html image-scrolling-zoom-1-ref.html
+!= image-scrolling-zoom-1-ref.html image-scrolling-zoom-1-notref.html
+pref(layers.single-tile.enabled,false) != fast-scrolling.html about:blank
+== background-position-1.html background-position-1-ref.html
+== background-position-2a.html background-position-2-ref.html
+== background-position-2b.html background-position-2-ref.html
+== background-position-2c.html background-position-2-ref.html
+== background-position-2d.html background-position-2-ref.html
+== background-position-2e.html background-position-2-ref.html
+== background-position-2f.html background-position-2-ref.html
+== zero-opacity-animation.html about:blank
+== zero-opacity-text.html about:blank
+== negative-w-component.html negative-w-component-ref.html

@@ -67,8 +67,7 @@ gfxFT2LockedFace::GetMetrics(gfxFont::Metrics* aMetrics,
         aMetrics->zeroOrAveCharWidth = spaceWidth;
         const gfxFloat xHeight = 0.5 * emHeight;
         aMetrics->xHeight = xHeight;
-        aMetrics->superscriptOffset = xHeight;
-        aMetrics->subscriptOffset = xHeight;
+        aMetrics->capHeight = aMetrics->maxAscent;
         const gfxFloat underlineSize = emHeight / 14.0;
         aMetrics->underlineSize = underlineSize;
         aMetrics->underlineOffset = -underlineSize;
@@ -125,13 +124,9 @@ gfxFT2LockedFace::GetMetrics(gfxFont::Metrics* aMetrics,
         lineHeight = typoHeight * yScale;
 
         // If the OS/2 fsSelection USE_TYPO_METRICS bit is set,
-        // or if this is an OpenType Math font,
         // set maxAscent/Descent from the sTypo* fields instead of hhea.
         const uint16_t kUseTypoMetricsMask = 1 << 7;
-        FT_ULong length = 0;
-        if ((os2->fsSelection & kUseTypoMetricsMask) ||
-            0 == FT_Load_Sfnt_Table(mFace, FT_MAKE_TAG('M','A','T','H'),
-                                    0, nullptr, &length)) {
+        if (os2->fsSelection & kUseTypoMetricsMask) {
             aMetrics->maxAscent = NS_round(aMetrics->emAscent);
             aMetrics->maxDescent = NS_round(aMetrics->emDescent);
         } else {
@@ -181,6 +176,17 @@ gfxFT2LockedFace::GetMetrics(gfxFont::Metrics* aMetrics,
         }
         aMetrics->aveCharWidth = 0.0; // updated below
     }
+
+    if (GetCharExtents('H', &extents) && extents.y_bearing < 0.0) {
+        aMetrics->capHeight = -extents.y_bearing;
+    } else {
+        if (os2 && os2->sCapHeight && yScale > 0.0) {
+            aMetrics->capHeight = os2->sCapHeight * yScale;
+        } else {
+            aMetrics->capHeight = aMetrics->maxAscent;
+        }
+    }
+
     // aveCharWidth is used for the width of text input elements so be
     // liberal rather than conservative in the estimate.
     if (os2 && os2->xAvgCharWidth) {
@@ -242,24 +248,6 @@ gfxFT2LockedFace::GetMetrics(gfxFont::Metrics* aMetrics,
             + 0.5 * aMetrics->strikeoutSize;
     }
     SnapLineToPixels(aMetrics->strikeoutOffset, aMetrics->strikeoutSize);
-
-    if (os2 && os2->ySuperscriptYOffset) {
-        gfxFloat val = ScaleRoundDesignUnits(os2->ySuperscriptYOffset,
-                                             ftMetrics.y_scale);
-        aMetrics->superscriptOffset = std::max(1.0, val);
-    } else {
-        aMetrics->superscriptOffset = aMetrics->xHeight;
-    }
-    
-    if (os2 && os2->ySubscriptYOffset) {
-        gfxFloat val = ScaleRoundDesignUnits(os2->ySubscriptYOffset,
-                                             ftMetrics.y_scale);
-        // some fonts have the incorrect sign. 
-        val = fabs(val);
-        aMetrics->subscriptOffset = std::max(1.0, val);
-    } else {
-        aMetrics->subscriptOffset = aMetrics->xHeight;
-    }
 
     aMetrics->maxHeight = aMetrics->maxAscent + aMetrics->maxDescent;
 

@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 import posixpath
 import os
 import re
@@ -20,12 +22,18 @@ def normsep(path):
     '''
     if os.sep != '/':
         path = path.replace(os.sep, '/')
+    if os.altsep and os.altsep != '/':
+        path = path.replace(os.altsep, '/')
     return path
 
 
 def relpath(path, start):
     rel = normsep(os.path.relpath(path, start))
     return '' if rel == '.' else rel
+
+
+def realpath(path):
+    return normsep(os.path.realpath(path))
 
 
 def abspath(path):
@@ -99,12 +107,12 @@ def match(path, pattern):
     '''
     if not pattern:
         return True
-    if not pattern in re_cache:
-        pattern = re.escape(pattern)
-        pattern = re.sub(r'(^|\\\/)\\\*\\\*\\\/', r'\1(?:.+/)?', pattern)
-        pattern = re.sub(r'(^|\\\/)\\\*\\\*$', r'(?:\1.+)?', pattern)
-        pattern = pattern.replace(r'\*', '[^/]*') + '(?:/.*)?$'
-        re_cache[pattern] = re.compile(pattern)
+    if pattern not in re_cache:
+        p = re.escape(pattern)
+        p = re.sub(r'(^|\\\/)\\\*\\\*\\\/', r'\1(?:.+/)?', p)
+        p = re.sub(r'(^|\\\/)\\\*\\\*$', r'(?:\1.+)?', p)
+        p = p.replace(r'\*', '[^/]*') + '(?:/.*)?$'
+        re_cache[pattern] = re.compile(p)
     return re_cache[pattern].match(path) is not None
 
 

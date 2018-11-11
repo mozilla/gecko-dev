@@ -1,7 +1,9 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 *******************************************************************************
 *
-*   Copyright (C) 2005-2012, International Business Machines
+*   Copyright (C) 2005-2016, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *
 *******************************************************************************
@@ -516,8 +518,17 @@ utext_copy(UText *ut,
 
 U_CAPI UText * U_EXPORT2
 utext_clone(UText *dest, const UText *src, UBool deep, UBool readOnly, UErrorCode *status) {
-    UText *result;
-    result = src->pFuncs->clone(dest, src, deep, status);
+    if (U_FAILURE(*status)) {
+        return dest;
+    }
+    UText *result = src->pFuncs->clone(dest, src, deep, status);
+    if (U_FAILURE(*status)) {
+        return result;
+    }
+    if (result == NULL) {
+        *status = U_MEMORY_ALLOCATION_ERROR;
+        return result;
+    }
     if (readOnly) {
         utext_freeze(result);
     }
@@ -805,6 +816,11 @@ shallowTextClone(UText * dest, const UText * src, UErrorCode * status) {
     adjustPointer(dest, &dest->q, src);
     adjustPointer(dest, &dest->r, src);
     adjustPointer(dest, (const void **)&dest->chunkContents, src);
+
+    // The newly shallow-cloned UText does _not_ own the underlying storage for the text.
+    // (The source for the clone may or may not have owned the text.)
+
+    dest->providerProperties &= ~I32_FLAG(UTEXT_PROVIDER_OWNS_TEXT);
 
     return dest;
 }
@@ -1575,7 +1591,7 @@ utf8TextClose(UText *ut) {
 U_CDECL_END
 
 
-static const struct UTextFuncs utf8Funcs = 
+static const struct UTextFuncs utf8Funcs =
 {
     sizeof(UTextFuncs),
     0, 0, 0,             // Reserved alignment padding
@@ -1862,7 +1878,7 @@ repTextExtract(UText *ut,
     UnicodeString buffer(dest, 0, destCapacity); // writable alias
     rep->extractBetween(start32, limit32, buffer);
     repTextAccess(ut, limit32, TRUE);
-    
+
     return u_terminateUChars(dest, destCapacity, length, status);
 }
 
@@ -1984,7 +2000,7 @@ repTextCopy(UText *ut,
     repTextAccess(ut, nativeIterIndex, TRUE);
 }
 
-static const struct UTextFuncs repFuncs = 
+static const struct UTextFuncs repFuncs =
 {
     sizeof(UTextFuncs),
     0, 0, 0,           // Reserved alignment padding
@@ -1992,8 +2008,8 @@ static const struct UTextFuncs repFuncs =
     repTextLength,
     repTextAccess,
     repTextExtract,
-    repTextReplace,   
-    repTextCopy,   
+    repTextReplace,
+    repTextCopy,
     NULL,              // MapOffsetToNative,
     NULL,              // MapIndexToUTF16,
     repTextClose,
@@ -2014,6 +2030,9 @@ utext_openReplaceable(UText *ut, Replaceable *rep, UErrorCode *status)
         return NULL;
     }
     ut = utext_setup(ut, sizeof(ReplExtra), status);
+    if(U_FAILURE(*status)) {
+        return ut;
+    }
 
     ut->providerProperties = I32_FLAG(UTEXT_PROVIDER_WRITABLE);
     if(rep->hasMetaData()) {
@@ -2235,7 +2254,7 @@ unistrTextCopy(UText *ut,
 
 }
 
-static const struct UTextFuncs unistrFuncs = 
+static const struct UTextFuncs unistrFuncs =
 {
     sizeof(UTextFuncs),
     0, 0, 0,             // Reserved alignment padding
@@ -2243,8 +2262,8 @@ static const struct UTextFuncs unistrFuncs =
     unistrTextLength,
     unistrTextAccess,
     unistrTextExtract,
-    unistrTextReplace,   
-    unistrTextCopy,   
+    unistrTextReplace,
+    unistrTextCopy,
     NULL,                // MapOffsetToNative,
     NULL,                // MapIndexToUTF16,
     unistrTextClose,
@@ -2510,6 +2529,7 @@ ucstrTextExtract(UText *ut,
             ut->chunkLength         = si;
             ut->nativeIndexingLimit = si;
             strLength               = si;
+            limit32                 = si;
             break;
         }
         U_ASSERT(di>=0); /* to ensure di never exceeds INT32_MAX, which must not happen logically */
@@ -2531,16 +2551,21 @@ ucstrTextExtract(UText *ut,
     // If the limit index points to a lead surrogate of a pair,
     //   add the corresponding trail surrogate to the destination.
     if (si>0 && U16_IS_LEAD(s[si-1]) &&
-        ((si<strLength || strLength<0)  && U16_IS_TRAIL(s[si])))
+            ((si<strLength || strLength<0)  && U16_IS_TRAIL(s[si])))
     {
         if (di<destCapacity) {
             // store only if there is space in the output buffer.
-            dest[di++] = s[si++];
+            dest[di++] = s[si];
         }
+        si++;
     }
 
     // Put iteration position at the point just following the extracted text
-    ut->chunkOffset = uprv_min(strLength, start32 + destCapacity);
+    if (si <= ut->chunkNativeLimit) {
+        ut->chunkOffset = si;
+    } else {
+        ucstrTextAccess(ut, si, TRUE);
+    }
 
     // Add a terminating NUL if space in the buffer permits,
     // and set the error status as required.
@@ -2548,7 +2573,7 @@ ucstrTextExtract(UText *ut,
     return di;
 }
 
-static const struct UTextFuncs ucstrFuncs = 
+static const struct UTextFuncs ucstrFuncs =
 {
     sizeof(UTextFuncs),
     0, 0, 0,           // Reserved alignment padding
@@ -2719,6 +2744,9 @@ charIterTextClone(UText *dest, const UText *src, UBool deep, UErrorCode * status
         CharacterIterator *srcCI =(CharacterIterator *)src->context;
         srcCI = srcCI->clone();
         dest = utext_openCharacterIterator(dest, srcCI, status);
+        if (U_FAILURE(*status)) {
+            return dest;
+        }
         // cast off const on getNativeIndex.
         //   For CharacterIterator based UTexts, this is safe, the operation is const.
         int64_t  ix = utext_getNativeIndex((UText *)src);
@@ -2765,14 +2793,14 @@ charIterTextExtract(UText *ut,
         }
         srci += len;
     }
-    
+
     charIterTextAccess(ut, copyLimit, TRUE);
 
     u_terminateUChars(dest, destCapacity, desti, status);
     return desti;
 }
 
-static const struct UTextFuncs charIterFuncs = 
+static const struct UTextFuncs charIterFuncs =
 {
     sizeof(UTextFuncs),
     0, 0, 0,             // Reserved alignment padding
@@ -2832,6 +2860,3 @@ utext_openCharacterIterator(UText *ut, CharacterIterator *ci, UErrorCode *status
     }
     return ut;
 }
-
-
-

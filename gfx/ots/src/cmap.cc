@@ -36,10 +36,6 @@ struct Subtable314Range {
   uint32_t id_range_offset_offset;
 };
 
-// The maximum number of groups in format 12, 13 or 14 subtables.
-// Note: 0xFFFF is the maximum number of glyphs in a single font file.
-const unsigned kMaxCMAPGroups = 0xFFFF;
-
 // Glyph array size for the Mac Roman (format 0) table.
 const size_t kFormat0ArraySize = 256;
 
@@ -61,7 +57,7 @@ const uint32_t kIVSEnd = 0xE01EF;
 const uint32_t kUVSUpperLimit = 0xFFFFFF;
 
 // Parses Format 4 tables
-bool ParseFormat4(ots::OpenTypeFile *file, int platform, int encoding,
+bool ParseFormat4(ots::Font *font, int platform, int encoding,
               const uint8_t *data, size_t length, uint16_t num_glyphs) {
   ots::Buffer subtable(data, length);
 
@@ -69,7 +65,7 @@ bool ParseFormat4(ots::OpenTypeFile *file, int platform, int encoding,
   // whole thing and recompacting it, we validate it and include it verbatim
   // in the output.
 
-  if (!file->os2) {
+  if (!font->os2) {
     return OTS_FAILURE_MSG("Required OS/2 table missing");
   }
 
@@ -195,15 +191,15 @@ bool ParseFormat4(ots::OpenTypeFile *file, int platform, int encoding,
 
     // On many fonts, the value of {first, last}_char_index are incorrect.
     // Fix them.
-    if (file->os2->first_char_index != 0xFFFF &&
+    if (font->os2->first_char_index != 0xFFFF &&
         ranges[i].start_range != 0xFFFF &&
-        file->os2->first_char_index > ranges[i].start_range) {
-      file->os2->first_char_index = ranges[i].start_range;
+        font->os2->first_char_index > ranges[i].start_range) {
+      font->os2->first_char_index = ranges[i].start_range;
     }
-    if (file->os2->last_char_index != 0xFFFF &&
+    if (font->os2->last_char_index != 0xFFFF &&
         ranges[i].end_range != 0xFFFF &&
-        file->os2->last_char_index < ranges[i].end_range) {
-      file->os2->last_char_index = ranges[i].end_range;
+        font->os2->last_char_index < ranges[i].end_range) {
+      font->os2->last_char_index = ranges[i].end_range;
     }
   }
 
@@ -218,7 +214,7 @@ bool ParseFormat4(ots::OpenTypeFile *file, int platform, int encoding,
   // glyphs and that we don't access anything out-of-bounds.
   for (unsigned i = 0; i < segcount; ++i) {
     for (unsigned cp = ranges[i].start_range; cp <= ranges[i].end_range; ++cp) {
-      const uint16_t code_point = cp;
+      const uint16_t code_point = static_cast<uint16_t>(cp);
       if (ranges[i].id_range_offset == 0) {
         // this is explictly allowed to overflow in the spec
         const uint16_t glyph = code_point + ranges[i].id_delta;
@@ -249,14 +245,14 @@ bool ParseFormat4(ots::OpenTypeFile *file, int platform, int encoding,
   // We accept the table.
   // TODO(yusukes): transcode the subtable.
   if (platform == 3 && encoding == 0) {
-    file->cmap->subtable_3_0_4_data = data;
-    file->cmap->subtable_3_0_4_length = length;
+    font->cmap->subtable_3_0_4_data = data;
+    font->cmap->subtable_3_0_4_length = length;
   } else if (platform == 3 && encoding == 1) {
-    file->cmap->subtable_3_1_4_data = data;
-    file->cmap->subtable_3_1_4_length = length;
+    font->cmap->subtable_3_1_4_data = data;
+    font->cmap->subtable_3_1_4_length = length;
   } else if (platform == 0 && encoding == 3) {
-    file->cmap->subtable_0_3_4_data = data;
-    file->cmap->subtable_0_3_4_length = length;
+    font->cmap->subtable_0_3_4_data = data;
+    font->cmap->subtable_0_3_4_length = length;
   } else {
     return OTS_FAILURE_MSG("Unknown cmap subtable type (platform=%d, encoding=%d)", platform, encoding);
   }
@@ -264,7 +260,7 @@ bool ParseFormat4(ots::OpenTypeFile *file, int platform, int encoding,
   return true;
 }
 
-bool Parse31012(ots::OpenTypeFile *file,
+bool Parse31012(ots::Font *font,
                 const uint8_t *data, size_t length, uint16_t num_glyphs) {
   ots::Buffer subtable(data, length);
 
@@ -286,12 +282,12 @@ bool Parse31012(ots::OpenTypeFile *file,
   if (!subtable.ReadU32(&num_groups)) {
     return OTS_FAILURE_MSG("can't read number of format 12 subtable groups");
   }
-  if (num_groups == 0 || num_groups > kMaxCMAPGroups) {
-    return OTS_FAILURE_MSG("bad format 12 subtable group count %d", num_groups);
+  if (num_groups == 0 || subtable.remaining() / 12 < num_groups) {
+    return OTS_FAILURE_MSG("Bad format 12 subtable group count %d", num_groups);
   }
 
   std::vector<ots::OpenTypeCMAPSubtableRange> &groups
-      = file->cmap->subtable_3_10_12;
+      = font->cmap->subtable_3_10_12;
   groups.resize(num_groups);
 
   for (unsigned i = 0; i < num_groups; ++i) {
@@ -306,21 +302,6 @@ bool Parse31012(ots::OpenTypeFile *file,
         groups[i].start_glyph_id > 0xFFFF) {
       return OTS_FAILURE_MSG("bad format 12 subtable group (startCharCode=0x%4X, endCharCode=0x%4X, startGlyphID=%d)",
                              groups[i].start_range, groups[i].end_range, groups[i].start_glyph_id);
-    }
-
-    // [0xD800, 0xDFFF] are surrogate code points.
-    if (groups[i].start_range >= 0xD800 &&
-        groups[i].start_range <= 0xDFFF) {
-      return OTS_FAILURE_MSG("format 12 subtable out of range group startCharCode (0x%4X)", groups[i].start_range);
-    }
-    if (groups[i].end_range >= 0xD800 &&
-        groups[i].end_range <= 0xDFFF) {
-      return OTS_FAILURE_MSG("format 12 subtable out of range group endCharCode (0x%4X)", groups[i].end_range);
-    }
-    if (groups[i].start_range < 0xD800 &&
-        groups[i].end_range > 0xDFFF) {
-      return OTS_FAILURE_MSG("bad format 12 subtable group startCharCode (0x%4X) or endCharCode (0x%4X)",
-                             groups[i].start_range, groups[i].end_range);
     }
 
     // We assert that the glyph value is within range. Because of the range
@@ -350,7 +331,7 @@ bool Parse31012(ots::OpenTypeFile *file,
   return true;
 }
 
-bool Parse31013(ots::OpenTypeFile *file,
+bool Parse31013(ots::Font *font,
                 const uint8_t *data, size_t length, uint16_t num_glyphs) {
   ots::Buffer subtable(data, length);
 
@@ -375,12 +356,12 @@ bool Parse31013(ots::OpenTypeFile *file,
 
   // We limit the number of groups in the same way as in 3.10.12 tables. See
   // the comment there in
-  if (num_groups == 0 || num_groups > kMaxCMAPGroups) {
-    return OTS_FAILURE_MSG("Bad number of groups (%d) in a cmap subtable", num_groups);
+  if (num_groups == 0 || subtable.remaining() / 12 < num_groups) {
+    return OTS_FAILURE_MSG("Bad format 13 subtable group count %d", num_groups);
   }
 
   std::vector<ots::OpenTypeCMAPSubtableRange> &groups
-      = file->cmap->subtable_3_10_13;
+      = font->cmap->subtable_3_10_13;
   groups.resize(num_groups);
 
   for (unsigned i = 0; i < num_groups; ++i) {
@@ -416,7 +397,7 @@ bool Parse31013(ots::OpenTypeFile *file,
   return true;
 }
 
-bool Parse0514(ots::OpenTypeFile *file,
+bool Parse0514(ots::Font *font,
                const uint8_t *data, size_t length, uint16_t num_glyphs) {
   // Unicode Variation Selector table
   ots::Buffer subtable(data, length);
@@ -434,11 +415,11 @@ bool Parse0514(ots::OpenTypeFile *file,
     return OTS_FAILURE_MSG("Can't read number of records in cmap subtable");
   }
   if (num_records == 0 || num_records > kMaxCMAPSelectorRecords) {
-    return OTS_FAILURE_MSG("Bad number of records (%d) in cmap subtable", num_records);
+    return OTS_FAILURE_MSG("Bad format 14 subtable records count %d", num_records);
   }
 
   std::vector<ots::OpenTypeCMAPSubtableVSRecord>& records
-      = file->cmap->subtable_0_5_14;
+      = font->cmap->subtable_0_5_14;
   records.resize(num_records);
 
   for (unsigned i = 0; i < num_records; ++i) {
@@ -483,8 +464,8 @@ bool Parse0514(ots::OpenTypeFile *file,
       if (!subtable.ReadU32(&num_ranges)) {
         return OTS_FAILURE_MSG("Can't read number of ranges in record %d", i);
       }
-      if (!num_ranges || num_ranges > kMaxCMAPGroups) {
-        return OTS_FAILURE_MSG("number of ranges too high (%d > %d) in record %d", num_ranges, kMaxCMAPGroups, i);
+      if (num_ranges == 0 || subtable.remaining() / 4 < num_ranges) {
+        return OTS_FAILURE_MSG("Bad number of ranges (%d) in record %d", num_ranges, i);
       }
 
       uint32_t last_unicode_value = 0;
@@ -517,8 +498,8 @@ bool Parse0514(ots::OpenTypeFile *file,
       if (!subtable.ReadU32(&num_mappings)) {
         return OTS_FAILURE_MSG("Can't read number of mappings in variation selector record %d", i);
       }
-      if (!num_mappings || num_mappings > kMaxCMAPGroups) {
-        return OTS_FAILURE_MSG("Number of mappings too high (%d) in variation selector record %d", num_mappings, i);
+      if (num_mappings == 0 || subtable.remaining() / 5 < num_mappings) {
+        return OTS_FAILURE_MSG("Bad number of mappings (%d) in variation selector record %d", num_mappings, i);
       }
 
       uint32_t last_unicode_value = 0;
@@ -546,11 +527,11 @@ bool Parse0514(ots::OpenTypeFile *file,
   if (subtable.offset() != length) {
     return OTS_FAILURE_MSG("Bad subtable offset (%ld != %ld)", subtable.offset(), length);
   }
-  file->cmap->subtable_0_5_14_length = subtable.offset();
+  font->cmap->subtable_0_5_14_length = subtable.offset();
   return true;
 }
 
-bool Parse100(ots::OpenTypeFile *file, const uint8_t *data, size_t length) {
+bool Parse100(ots::Font *font, const uint8_t *data, size_t length) {
   // Mac Roman table
   ots::Buffer subtable(data, length);
 
@@ -566,13 +547,13 @@ bool Parse100(ots::OpenTypeFile *file, const uint8_t *data, size_t length) {
     OTS_WARNING("language id should be zero: %u", language);
   }
 
-  file->cmap->subtable_1_0_0.reserve(kFormat0ArraySize);
+  font->cmap->subtable_1_0_0.reserve(kFormat0ArraySize);
   for (size_t i = 0; i < kFormat0ArraySize; ++i) {
     uint8_t glyph_id = 0;
     if (!subtable.ReadU8(&glyph_id)) {
       return OTS_FAILURE_MSG("Can't read glyph id at array[%ld] in cmap subtable", i);
     }
-    file->cmap->subtable_1_0_0.push_back(glyph_id);
+    font->cmap->subtable_1_0_0.push_back(glyph_id);
   }
 
   return true;
@@ -582,9 +563,9 @@ bool Parse100(ots::OpenTypeFile *file, const uint8_t *data, size_t length) {
 
 namespace ots {
 
-bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
+bool ots_cmap_parse(Font *font, const uint8_t *data, size_t length) {
   Buffer table(data, length);
-  file->cmap = new OpenTypeCMAP;
+  font->cmap = new OpenTypeCMAP;
 
   uint16_t version = 0;
   uint16_t num_tables = 0;
@@ -677,20 +658,21 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   }
 
   // check if the table is sorted first by platform ID, then by encoding ID.
-  uint32_t last_id = 0;
-  for (unsigned i = 0; i < num_tables; ++i) {
-    uint32_t current_id
-        = (subtable_headers[i].platform << 24)
-        + (subtable_headers[i].encoding << 16)
-        + subtable_headers[i].language;
-    if ((i != 0) && (last_id >= current_id)) {
-      return OTS_FAILURE_MSG("subtable %d with platform ID %d, encoding ID %d, language ID %d "
-                             "following subtable with platform ID %d, encoding ID %d, language ID %d",
-                             i,
-                             (uint8_t)(current_id >> 24), (uint8_t)(current_id >> 16), (uint8_t)(current_id),
-                             (uint8_t)(last_id >> 24), (uint8_t)(last_id >> 16), (uint8_t)(last_id));
-    }
-    last_id = current_id;
+  for (unsigned i = 1; i < num_tables; ++i) {
+    if (subtable_headers[i - 1].platform > subtable_headers[i].platform ||
+        (subtable_headers[i - 1].platform == subtable_headers[i].platform &&
+         (subtable_headers[i - 1].encoding > subtable_headers[i].encoding ||
+          (subtable_headers[i - 1].encoding == subtable_headers[i].encoding &&
+           subtable_headers[i - 1].language > subtable_headers[i].language))))
+      OTS_WARNING("subtable %d with platform ID %d, encoding ID %d, language ID %d "
+                  "following subtable with platform ID %d, encoding ID %d, language ID %d",
+                  i,
+                  subtable_headers[i].platform,
+                  subtable_headers[i].encoding,
+                  subtable_headers[i].language,
+                  subtable_headers[i - 1].platform,
+                  subtable_headers[i - 1].encoding,
+                  subtable_headers[i - 1].language);
   }
 
   // Now, verify that all the lengths are sane
@@ -738,16 +720,17 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
 
   // we grab the number of glyphs in the file from the maxp table to make sure
   // that the character map isn't referencing anything beyound this range.
-  if (!file->maxp) {
+  if (!font->maxp) {
     return OTS_FAILURE_MSG("No maxp table in font! Needed by cmap.");
   }
-  const uint16_t num_glyphs = file->maxp->num_glyphs;
+  const uint16_t num_glyphs = font->maxp->num_glyphs;
 
   // We only support a subset of the possible character map tables. Microsoft
   // 'strongly recommends' that everyone supports the Unicode BMP table with
   // the UCS-4 table for non-BMP glyphs. We'll pass the following subtables:
   //   Platform ID   Encoding ID  Format
   //   0             0            4       (Unicode Default)
+  //   0             1            4       (Unicode 1.1)
   //   0             3            4       (Unicode BMP)
   //   0             3            12      (Unicode UCS-4)
   //   0             5            14      (Unicode Variation Sequences)
@@ -758,8 +741,8 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   //   3             10           13      (MS UCS-4 Fallback mapping)
   //
   // Note:
-  //  * 0-0-4 table is (usually) written as a 3-1-4 table. If 3-1-4 table
-  //    also exists, the 0-0-4 table is ignored.
+  //  * 0-0-4 and 0-1-4 tables are (usually) written as a 3-1-4 table. If 3-1-4 table
+  //    also exists, the 0-0-4 or 0-1-4 tables are ignored.
   //  * Unlike 0-0-4 table, 0-3-4 table is written as a 0-3-4 table.
   //    Some fonts which include 0-5-14 table seems to be required 0-3-4
   //    table. The 0-3-4 table will be wriiten even if 3-1-4 table also exists.
@@ -771,33 +754,33 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
     if (subtable_headers[i].platform == 0) {
       // Unicode platform
 
-      if ((subtable_headers[i].encoding == 0) &&
+      if ((subtable_headers[i].encoding == 0 || subtable_headers[i].encoding == 1) &&
           (subtable_headers[i].format == 4)) {
-        // parse and output the 0-0-4 table as 3-1-4 table. Sometimes the 0-0-4
+        // parse and output the 0-0-4 and 0-1-4 tables as 3-1-4 table. Sometimes the 0-0-4
         // table actually points to MS symbol data and thus should be parsed as
         // 3-0-4 table (e.g., marqueem.ttf and quixotic.ttf). This error will be
         // recovered in ots_cmap_serialise().
-        if (!ParseFormat4(file, 3, 1, data + subtable_headers[i].offset,
+        if (!ParseFormat4(font, 3, 1, data + subtable_headers[i].offset,
                       subtable_headers[i].length, num_glyphs)) {
           return OTS_FAILURE_MSG("Failed to parse format 4 cmap subtable %d", i);
         }
       } else if ((subtable_headers[i].encoding == 3) &&
                  (subtable_headers[i].format == 4)) {
         // parse and output the 0-3-4 table as 0-3-4 table.
-        if (!ParseFormat4(file, 0, 3, data + subtable_headers[i].offset,
+        if (!ParseFormat4(font, 0, 3, data + subtable_headers[i].offset,
                       subtable_headers[i].length, num_glyphs)) {
           return OTS_FAILURE_MSG("Failed to parse format 4 cmap subtable %d", i);
         }
       } else if ((subtable_headers[i].encoding == 3) &&
                  (subtable_headers[i].format == 12)) {
         // parse and output the 0-3-12 table as 3-10-12 table.
-        if (!Parse31012(file, data + subtable_headers[i].offset,
+        if (!Parse31012(font, data + subtable_headers[i].offset,
                         subtable_headers[i].length, num_glyphs)) {
           return OTS_FAILURE_MSG("Failed to parse format 12 cmap subtable %d", i);
         }
       } else if ((subtable_headers[i].encoding == 5) &&
                  (subtable_headers[i].format == 14)) {
-        if (!Parse0514(file, data + subtable_headers[i].offset,
+        if (!Parse0514(font, data + subtable_headers[i].offset,
                        subtable_headers[i].length, num_glyphs)) {
           return OTS_FAILURE_MSG("Failed to parse format 14 cmap subtable %d", i);
         }
@@ -808,7 +791,7 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
       if ((subtable_headers[i].encoding == 0) &&
           (subtable_headers[i].format == 0)) {
         // parse and output the 1-0-0 table.
-        if (!Parse100(file, data + subtable_headers[i].offset,
+        if (!Parse100(font, data + subtable_headers[i].offset,
                       subtable_headers[i].length)) {
           return OTS_FAILURE();
         }
@@ -821,7 +804,7 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
         case 1:
           if (subtable_headers[i].format == 4) {
             // parse 3-0-4 or 3-1-4 table.
-            if (!ParseFormat4(file, subtable_headers[i].platform,
+            if (!ParseFormat4(font, subtable_headers[i].platform,
                           subtable_headers[i].encoding,
                           data + subtable_headers[i].offset,
                           subtable_headers[i].length, num_glyphs)) {
@@ -831,14 +814,14 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
           break;
         case 10:
           if (subtable_headers[i].format == 12) {
-            file->cmap->subtable_3_10_12.clear();
-            if (!Parse31012(file, data + subtable_headers[i].offset,
+            font->cmap->subtable_3_10_12.clear();
+            if (!Parse31012(font, data + subtable_headers[i].offset,
                             subtable_headers[i].length, num_glyphs)) {
               return OTS_FAILURE();
             }
           } else if (subtable_headers[i].format == 13) {
-            file->cmap->subtable_3_10_13.clear();
-            if (!Parse31013(file, data + subtable_headers[i].offset,
+            font->cmap->subtable_3_10_13.clear();
+            if (!Parse31013(font, data + subtable_headers[i].offset,
                             subtable_headers[i].length, num_glyphs)) {
               return OTS_FAILURE();
             }
@@ -851,33 +834,33 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   return true;
 }
 
-bool ots_cmap_should_serialise(OpenTypeFile *file) {
-  return file->cmap != NULL;
+bool ots_cmap_should_serialise(Font *font) {
+  return font->cmap != NULL;
 }
 
-bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
-  const bool have_034 = file->cmap->subtable_0_3_4_data != NULL;
-  const bool have_0514 = file->cmap->subtable_0_5_14.size() != 0;
-  const bool have_100 = file->cmap->subtable_1_0_0.size() != 0;
-  const bool have_304 = file->cmap->subtable_3_0_4_data != NULL;
+bool ots_cmap_serialise(OTSStream *out, Font *font) {
+  const bool have_034 = font->cmap->subtable_0_3_4_data != NULL;
+  const bool have_0514 = font->cmap->subtable_0_5_14.size() != 0;
+  const bool have_100 = font->cmap->subtable_1_0_0.size() != 0;
+  const bool have_304 = font->cmap->subtable_3_0_4_data != NULL;
   // MS Symbol and MS Unicode tables should not co-exist.
   // See the comment above in 0-0-4 parser.
-  const bool have_314 = (!have_304) && file->cmap->subtable_3_1_4_data;
-  const bool have_31012 = file->cmap->subtable_3_10_12.size() != 0;
-  const bool have_31013 = file->cmap->subtable_3_10_13.size() != 0;
-  const unsigned num_subtables = static_cast<unsigned>(have_034) +
-                                 static_cast<unsigned>(have_0514) +
-                                 static_cast<unsigned>(have_100) +
-                                 static_cast<unsigned>(have_304) +
-                                 static_cast<unsigned>(have_314) +
-                                 static_cast<unsigned>(have_31012) +
-                                 static_cast<unsigned>(have_31013);
+  const bool have_314 = (!have_304) && font->cmap->subtable_3_1_4_data;
+  const bool have_31012 = font->cmap->subtable_3_10_12.size() != 0;
+  const bool have_31013 = font->cmap->subtable_3_10_13.size() != 0;
+  const uint16_t num_subtables = static_cast<uint16_t>(have_034) +
+                                 static_cast<uint16_t>(have_0514) +
+                                 static_cast<uint16_t>(have_100) +
+                                 static_cast<uint16_t>(have_304) +
+                                 static_cast<uint16_t>(have_314) +
+                                 static_cast<uint16_t>(have_31012) +
+                                 static_cast<uint16_t>(have_31013);
   const off_t table_start = out->Tell();
 
   // Some fonts don't have 3-0-4 MS Symbol nor 3-1-4 Unicode BMP tables
   // (e.g., old fonts for Mac). We don't support them.
   if (!have_304 && !have_314 && !have_034 && !have_31012 && !have_31013) {
-    return OTS_FAILURE();
+    return OTS_FAILURE_MSG("no supported subtables were found");
   }
 
   if (!out->WriteU16(0) ||
@@ -892,8 +875,8 @@ bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
 
   const off_t offset_034 = out->Tell();
   if (have_034) {
-    if (!out->Write(file->cmap->subtable_0_3_4_data,
-                    file->cmap->subtable_0_3_4_length)) {
+    if (!out->Write(font->cmap->subtable_0_3_4_data,
+                    font->cmap->subtable_0_3_4_length)) {
       return OTS_FAILURE();
     }
   }
@@ -901,10 +884,10 @@ bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
   const off_t offset_0514 = out->Tell();
   if (have_0514) {
     const std::vector<ots::OpenTypeCMAPSubtableVSRecord> &records
-        = file->cmap->subtable_0_5_14;
+        = font->cmap->subtable_0_5_14;
     const unsigned num_records = records.size();
     if (!out->WriteU16(14) ||
-        !out->WriteU32(file->cmap->subtable_0_5_14_length) ||
+        !out->WriteU32(font->cmap->subtable_0_5_14_length) ||
         !out->WriteU32(num_records)) {
       return OTS_FAILURE();
     }
@@ -956,23 +939,23 @@ bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
         !out->WriteU16(0)) {  // language
       return OTS_FAILURE();
     }
-    if (!out->Write(&(file->cmap->subtable_1_0_0[0]), kFormat0ArraySize)) {
+    if (!out->Write(&(font->cmap->subtable_1_0_0[0]), kFormat0ArraySize)) {
       return OTS_FAILURE();
     }
   }
 
   const off_t offset_304 = out->Tell();
   if (have_304) {
-    if (!out->Write(file->cmap->subtable_3_0_4_data,
-                    file->cmap->subtable_3_0_4_length)) {
+    if (!out->Write(font->cmap->subtable_3_0_4_data,
+                    font->cmap->subtable_3_0_4_length)) {
       return OTS_FAILURE();
     }
   }
 
   const off_t offset_314 = out->Tell();
   if (have_314) {
-    if (!out->Write(file->cmap->subtable_3_1_4_data,
-                    file->cmap->subtable_3_1_4_length)) {
+    if (!out->Write(font->cmap->subtable_3_1_4_data,
+                    font->cmap->subtable_3_1_4_length)) {
       return OTS_FAILURE();
     }
   }
@@ -980,7 +963,7 @@ bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
   const off_t offset_31012 = out->Tell();
   if (have_31012) {
     std::vector<OpenTypeCMAPSubtableRange> &groups
-        = file->cmap->subtable_3_10_12;
+        = font->cmap->subtable_3_10_12;
     const unsigned num_groups = groups.size();
     if (!out->WriteU16(12) ||
         !out->WriteU16(0) ||
@@ -1002,11 +985,11 @@ bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
   const off_t offset_31013 = out->Tell();
   if (have_31013) {
     std::vector<OpenTypeCMAPSubtableRange> &groups
-        = file->cmap->subtable_3_10_13;
+        = font->cmap->subtable_3_10_13;
     const unsigned num_groups = groups.size();
     if (!out->WriteU16(13) ||
-        !out->WriteU32(0) ||
-        !out->WriteU32(num_groups * 12 + 14) ||
+        !out->WriteU16(0) ||
+        !out->WriteU32(num_groups * 12 + 16) ||
         !out->WriteU32(0) ||
         !out->WriteU32(num_groups)) {
       return OTS_FAILURE();
@@ -1022,10 +1005,6 @@ bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
   }
 
   const off_t table_end = out->Tell();
-  // We might have hanging bytes from the above's checksum which the OTSStream
-  // then merges into the table of offsets.
-  OTSStream::ChecksumState saved_checksum = out->SaveChecksumState();
-  out->ResetChecksum();
 
   // Now seek back and write the table of offsets
   if (!out->Seek(record_offset)) {
@@ -1091,13 +1070,17 @@ bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
   if (!out->Seek(table_end)) {
     return OTS_FAILURE();
   }
-  out->RestoreChecksum(saved_checksum);
 
   return true;
 }
 
-void ots_cmap_free(OpenTypeFile *file) {
-  delete file->cmap;
+void ots_cmap_reuse(Font *font, Font *other) {
+  font->cmap = other->cmap;
+  font->cmap_reused = true;
+}
+
+void ots_cmap_free(Font *font) {
+  delete font->cmap;
 }
 
 }  // namespace ots

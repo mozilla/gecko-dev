@@ -12,9 +12,6 @@
 #include "nsILayoutRegressionTester.h"  
 #include "nsILayoutDebugger.h"
 
-class nsIDOMWindow;
-class nsIDocShell;
-
 //*****************************************************************************
 //***    nsRegressionTester
 //*****************************************************************************
@@ -25,10 +22,9 @@ public:
   NS_DECL_NSILAYOUTREGRESSIONTESTER
 
   nsRegressionTester();
-  virtual ~nsRegressionTester();
 
 protected:
-  nsresult    GetDocShellFromWindow(nsIDOMWindow* inWindow, nsIDocShell** outShell);
+  virtual ~nsRegressionTester();
 };
 
 

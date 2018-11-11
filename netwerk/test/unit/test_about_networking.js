@@ -1,9 +1,10 @@
-/* -*- Mode: Javasript; indent-tab-mode: nil; js-indent-level: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 const gDashboard = Cc['@mozilla.org/network/dashboard;1']
   .getService(Ci.nsIDashboard);
@@ -84,9 +85,9 @@ function run_test() {
 
   let uri = ioService.newURI("http://localhost:" + gHttpServer.identity.primaryPort,
                              null, null);
-  let channel = ioService.newChannelFromURI(uri);
+  let channel = NetUtil.newChannel({uri: uri, loadUsingSystemPrincipal: true});
 
-  channel.open();
+  channel.open2();
 
   gServerSocket.init(-1, true, -1);
 

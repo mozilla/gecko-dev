@@ -1,7 +1,9 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 ******************************************************************************
 *
-*   Copyright (C) 1997-2013, International Business Machines
+*   Copyright (C) 1997-2016, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *
 ******************************************************************************
@@ -52,6 +54,7 @@
 #include "cstring.h"
 #include "locmap.h"
 #include "ucln_cmn.h"
+#include "charstr.h"
 
 /* Include standard headers. */
 #include <stdio.h>
@@ -87,14 +90,6 @@
 #   include <qusrjobi.h>
 #   include <qliept.h>      /* EPT_CALL macro  - this include must be after all other "QSYSINCs" */
 #   include <mih/testptr.h> /* For uprv_maximumPtr */
-#elif U_PLATFORM == U_PF_CLASSIC_MACOS
-#   include <Files.h>
-#   include <IntlResources.h>
-#   include <Script.h>
-#   include <Folders.h>
-#   include <MacTypes.h>
-#   include <TextUtils.h>
-#   define ICU_NO_USER_DATA_OVERRIDE 1
 #elif U_PLATFORM == U_PF_OS390
 #   include "unicode/ucnv.h"   /* Needed for UCNV_SWAP_LFNL_OPTION_STRING */
 #elif U_PLATFORM_IS_DARWIN_BASED || U_PLATFORM_IS_LINUX_BASED || U_PLATFORM == U_PF_BSD || U_PLATFORM == U_PF_SOLARIS
@@ -158,7 +153,7 @@
 #   define HAVE_GETTIMEOFDAY 0
 #endif
 
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
+U_NAMESPACE_USE
 
 /* Define the extension for data files, again... */
 #define DATA_TYPE "dat"
@@ -187,7 +182,7 @@ static const BitPatternConversion gInf = { (int64_t) INT64_C(0x7FF0000000000000)
   functions).
   ---------------------------------------------------------------------------*/
 
-#if U_PLATFORM_USES_ONLY_WIN32_API || U_PLATFORM == U_PF_CLASSIC_MACOS || U_PLATFORM == U_PF_OS400
+#if U_PLATFORM_USES_ONLY_WIN32_API || U_PLATFORM == U_PF_OS400
 #   undef U_POSIX_LOCALE
 #else
 #   define U_POSIX_LOCALE    1
@@ -306,21 +301,7 @@ uprv_getUTCtime()
 U_CAPI UDate U_EXPORT2
 uprv_getRawUTCtime()
 {
-#if U_PLATFORM == U_PF_CLASSIC_MACOS
-    time_t t, t1, t2;
-    struct tm tmrec;
-
-    uprv_memset( &tmrec, 0, sizeof(tmrec) );
-    tmrec.tm_year = 70;
-    tmrec.tm_mon = 0;
-    tmrec.tm_mday = 1;
-    t1 = mktime(&tmrec);    /* seconds of 1/1/1970*/
-
-    time(&t);
-    uprv_memcpy( &tmrec, gmtime(&t), sizeof(tmrec) );
-    t2 = mktime(&tmrec);    /* seconds of current GMT*/
-    return (UDate)(t2 - t1) * U_MILLIS_PER_SECOND;         /* GMT (or UTC) in seconds since 1970*/
-#elif U_PLATFORM_USES_ONLY_WIN32_API
+#if U_PLATFORM_USES_ONLY_WIN32_API
 
     FileTimeConversion winTime;
     GetSystemTimeAsFileTime(&winTime.fileTime);
@@ -838,7 +819,7 @@ static const char* remapShortTimeZone(const char *stdID, const char *dstID, int3
 #ifdef DEBUG_TZNAME
     fprintf(stderr, "TZ=%s std=%s dst=%s daylight=%d offset=%d\n", getenv("TZ"), stdID, dstID, daylightType, offset);
 #endif
-    for (idx = 0; idx < LENGTHOF(OFFSET_ZONE_MAPPINGS); idx++)
+    for (idx = 0; idx < UPRV_LENGTHOF(OFFSET_ZONE_MAPPINGS); idx++)
     {
         if (offset == OFFSET_ZONE_MAPPINGS[idx].offsetSeconds
             && daylightType == OFFSET_ZONE_MAPPINGS[idx].daylightType
@@ -853,7 +834,6 @@ static const char* remapShortTimeZone(const char *stdID, const char *dstID, int3
 #endif
 
 #ifdef SEARCH_TZFILE
-#define MAX_PATH_SIZE PATH_MAX /* Set the limit for the size of the path. */
 #define MAX_READ_SIZE 512
 
 typedef struct DefaultTZInfo {
@@ -929,15 +909,19 @@ static UBool compareBinaryFiles(const char* defaultTZFileName, const char* TZFil
 
     return result;
 }
-/*
- * This method recursively traverses the directory given for a matching TZ file and returns the first match.
- */
+
+
 /* dirent also lists two entries: "." and ".." that we can safely ignore. */
 #define SKIP1 "."
 #define SKIP2 ".."
-static char SEARCH_TZFILE_RESULT[MAX_PATH_SIZE] = "";
+static UBool U_CALLCONV putil_cleanup(void);
+static CharString *gSearchTZFileResult = NULL;
+
+/*
+ * This method recursively traverses the directory given for a matching TZ file and returns the first match.
+ * This function is not thread safe - it uses a global, gSearchTZFileResult, to hold its results.
+ */
 static char* searchForTZFile(const char* path, DefaultTZInfo* tzInfo) {
-    char curpath[MAX_PATH_SIZE];
     DIR* dirp = opendir(path);
     DIR* subDirp = NULL;
     struct dirent* dirEntry = NULL;
@@ -947,24 +931,40 @@ static char* searchForTZFile(const char* path, DefaultTZInfo* tzInfo) {
         return result;
     }
 
+    if (gSearchTZFileResult == NULL) {
+        gSearchTZFileResult = new CharString;
+        if (gSearchTZFileResult == NULL) {
+            return NULL;
+        }
+        ucln_common_registerCleanup(UCLN_COMMON_PUTIL, putil_cleanup);
+    }
+
     /* Save the current path */
-    uprv_memset(curpath, 0, MAX_PATH_SIZE);
-    uprv_strcpy(curpath, path);
+    UErrorCode status = U_ZERO_ERROR;
+    CharString curpath(path, -1, status);
+    if (U_FAILURE(status)) {
+        return NULL;
+    }
 
     /* Check each entry in the directory. */
     while((dirEntry = readdir(dirp)) != NULL) {
         const char* dirName = dirEntry->d_name;
         if (uprv_strcmp(dirName, SKIP1) != 0 && uprv_strcmp(dirName, SKIP2) != 0) {
             /* Create a newpath with the new entry to test each entry in the directory. */
-            char newpath[MAX_PATH_SIZE];
-            uprv_strcpy(newpath, curpath);
-            uprv_strcat(newpath, dirName);
+            CharString newpath(curpath, status);
+            newpath.append(dirName, -1, status);
+            if (U_FAILURE(status)) {
+                return NULL;
+            }
 
-            if ((subDirp = opendir(newpath)) != NULL) {
+            if ((subDirp = opendir(newpath.data())) != NULL) {
                 /* If this new path is a directory, make a recursive call with the newpath. */
                 closedir(subDirp);
-                uprv_strcat(newpath, "/");
-                result = searchForTZFile(newpath, tzInfo);
+                newpath.append('/', status);
+                if (U_FAILURE(status)) {
+                    return NULL;
+                }
+                result = searchForTZFile(newpath.data(), tzInfo);
                 /*
                  Have to get out here. Otherwise, we'd keep looking
                  and return the first match in the top-level directory
@@ -976,11 +976,19 @@ static char* searchForTZFile(const char* path, DefaultTZInfo* tzInfo) {
                 if (result != NULL)
                     break;
             } else if (uprv_strcmp(TZFILE_SKIP, dirName) != 0 && uprv_strcmp(TZFILE_SKIP2, dirName) != 0) {
-                if(compareBinaryFiles(TZDEFAULT, newpath, tzInfo)) {
-                    const char* zoneid = newpath + (sizeof(TZZONEINFO)) - 1;
+                if(compareBinaryFiles(TZDEFAULT, newpath.data(), tzInfo)) {
+                    int32_t amountToSkip = sizeof(TZZONEINFO) - 1;
+                    if (amountToSkip > newpath.length()) {
+                        amountToSkip = newpath.length();
+                    }
+                    const char* zoneid = newpath.data() + amountToSkip;
                     skipZoneIDPrefix(&zoneid);
-                    uprv_strcpy(SEARCH_TZFILE_RESULT, zoneid);
-                    result = SEARCH_TZFILE_RESULT;
+                    gSearchTZFileResult->clear();
+                    gSearchTZFileResult->append(zoneid, -1, status);
+                    if (U_FAILURE(status)) {
+                        return NULL;
+                    }
+                    result = gSearchTZFileResult->data();
                     /* Get out after the first one found. */
                     break;
                 }
@@ -991,6 +999,15 @@ static char* searchForTZFile(const char* path, DefaultTZInfo* tzInfo) {
     return result;
 }
 #endif
+
+U_CAPI void U_EXPORT2
+uprv_tzname_clear_cache()
+{
+#if defined(CHECK_LOCALTIME_LINK) && !defined(DEBUG_SKIP_LOCALTIME_LINK)
+    gTimeZoneBufferPtr = NULL;
+#endif
+}
+
 U_CAPI const char* U_EXPORT2
 uprv_tzname(int n)
 {
@@ -1021,6 +1038,10 @@ uprv_tzname(int n)
         && uprv_strcmp(tzid, TZ_ENV_CHECK) != 0
 #endif
     ) {
+        /* The colon forces tzset() to treat the remainder as zoneinfo path */ 
+        if (tzid[0] == ':') { 
+            tzid++; 
+        } 
         /* This might be a good Olson ID. */
         skipZoneIDPrefix(&tzid);
         return tzid;
@@ -1036,7 +1057,7 @@ uprv_tzname(int n)
         because the tzfile contents is underspecified.
         This isn't guaranteed to work because it may not be a symlink.
         */
-        int32_t ret = (int32_t)readlink(TZDEFAULT, gTimeZoneBuffer, sizeof(gTimeZoneBuffer));
+        int32_t ret = (int32_t)readlink(TZDEFAULT, gTimeZoneBuffer, sizeof(gTimeZoneBuffer)-1);
         if (0 < ret) {
             int32_t tzZoneInfoLen = uprv_strlen(TZZONEINFO);
             gTimeZoneBuffer[ret] = 0;
@@ -1134,7 +1155,12 @@ uprv_tzname(int n)
 
 /* Get and set the ICU data directory --------------------------------------- */
 
+static icu::UInitOnce gDataDirInitOnce = U_INITONCE_INITIALIZER;
 static char *gDataDirectory = NULL;
+
+UInitOnce gTimeZoneFilesInitOnce = U_INITONCE_INITIALIZER;
+static CharString *gTimeZoneFilesDirectory = NULL;
+
 #if U_POSIX_LOCALE || U_PLATFORM_USES_ONLY_WIN32_API
  static char *gCorrectedPOSIXLocale = NULL; /* Heap allocated */
 #endif
@@ -1145,6 +1171,17 @@ static UBool U_CALLCONV putil_cleanup(void)
         uprv_free(gDataDirectory);
     }
     gDataDirectory = NULL;
+    gDataDirInitOnce.reset();
+
+    delete gTimeZoneFilesDirectory;
+    gTimeZoneFilesDirectory = NULL;
+    gTimeZoneFilesInitOnce.reset();
+
+#ifdef SEARCH_TZFILE
+    delete gSearchTZFileResult;
+    gSearchTZFileResult = NULL;
+#endif
+
 #if U_POSIX_LOCALE || U_PLATFORM_USES_ONLY_WIN32_API
     if (gCorrectedPOSIXLocale) {
         uprv_free(gCorrectedPOSIXLocale);
@@ -1232,17 +1269,18 @@ uprv_pathIsAbsolute(const char *path)
 # endif
 #endif
 
-U_CAPI const char * U_EXPORT2
-u_getDataDirectory(void) {
+static void U_CALLCONV dataDirectoryInitFn() {
+    /* If we already have the directory, then return immediately. Will happen if user called
+     * u_setDataDirectory().
+     */
+    if (gDataDirectory) {
+        return;
+    }
+
     const char *path = NULL;
 #if defined(ICU_DATA_DIR_PREFIX_ENV_VAR)
     char datadir_path_buffer[PATH_MAX];
 #endif
-
-    /* if we have the directory, then return it immediately */
-    if(gDataDirectory) {
-        return gDataDirectory;
-    }
 
     /*
     When ICU_NO_USER_DATA_OVERRIDE is defined, users aren't allowed to
@@ -1294,117 +1332,69 @@ u_getDataDirectory(void) {
     }
 
     u_setDataDirectory(path);
+    return;
+}
+
+U_CAPI const char * U_EXPORT2
+u_getDataDirectory(void) {
+    umtx_initOnce(gDataDirInitOnce, &dataDirectoryInitFn);
     return gDataDirectory;
 }
 
-
-
-
-
-/* Macintosh-specific locale information ------------------------------------ */
-#if U_PLATFORM == U_PF_CLASSIC_MACOS
-
-typedef struct {
-    int32_t script;
-    int32_t region;
-    int32_t lang;
-    int32_t date_region;
-    const char* posixID;
-} mac_lc_rec;
-
-/* Todo: This will be updated with a newer version from www.unicode.org web
-   page when it's available.*/
-#define MAC_LC_MAGIC_NUMBER -5
-#define MAC_LC_INIT_NUMBER -9
-
-static const mac_lc_rec mac_lc_recs[] = {
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 0, "en_US",
-    /* United States*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 1, "fr_FR",
-    /* France*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 2, "en_GB",
-    /* Great Britain*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 3, "de_DE",
-    /* Germany*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 4, "it_IT",
-    /* Italy*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 5, "nl_NL",
-    /* Metherlands*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 6, "fr_BE",
-    /* French for Belgium or Lxembourg*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 7, "sv_SE",
-    /* Sweden*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 9, "da_DK",
-    /* Denmark*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 10, "pt_PT",
-    /* Portugal*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 11, "fr_CA",
-    /* French Canada*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 13, "is_IS",
-    /* Israel*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 14, "ja_JP",
-    /* Japan*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 15, "en_AU",
-    /* Australia*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 16, "ar_AE",
-    /* the Arabic world (?)*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 17, "fi_FI",
-    /* Finland*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 18, "fr_CH",
-    /* French for Switzerland*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 19, "de_CH",
-    /* German for Switzerland*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 20, "el_GR",
-    /* Greece*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 21, "is_IS",
-    /* Iceland ===*/
-    /*MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 22, "",*/
-    /* Malta ===*/
-    /*MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 23, "",*/
-    /* Cyprus ===*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 24, "tr_TR",
-    /* Turkey ===*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 25, "sh_YU",
-    /* Croatian system for Yugoslavia*/
-    /*MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 33, "",*/
-    /* Hindi system for India*/
-    /*MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 34, "",*/
-    /* Pakistan*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 41, "lt_LT",
-    /* Lithuania*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 42, "pl_PL",
-    /* Poland*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 43, "hu_HU",
-    /* Hungary*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 44, "et_EE",
-    /* Estonia*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 45, "lv_LV",
-    /* Latvia*/
-    /*MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 46, "",*/
-    /* Lapland  [Ask Rich for the data. HS]*/
-    /*MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 47, "",*/
-    /* Faeroe Islands*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 48, "fa_IR",
-    /* Iran*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 49, "ru_RU",
-    /* Russia*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 50, "en_IE",
-    /* Ireland*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 51, "ko_KR",
-    /* Korea*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 52, "zh_CN",
-    /* People's Republic of China*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 53, "zh_TW",
-    /* Taiwan*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 54, "th_TH",
-    /* Thailand*/
-
-    /* fallback is en_US*/
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER,
-    MAC_LC_MAGIC_NUMBER, "en_US"
-};
-
+static void setTimeZoneFilesDir(const char *path, UErrorCode &status) {
+    if (U_FAILURE(status)) {
+        return;
+    }
+    gTimeZoneFilesDirectory->clear();
+    gTimeZoneFilesDirectory->append(path, status);
+#if (U_FILE_SEP_CHAR != U_FILE_ALT_SEP_CHAR)
+    char *p = gTimeZoneFilesDirectory->data();
+    while (p = uprv_strchr(p, U_FILE_ALT_SEP_CHAR)) {
+        *p = U_FILE_SEP_CHAR;
+    }
 #endif
+}
+
+#define TO_STRING(x) TO_STRING_2(x) 
+#define TO_STRING_2(x) #x
+
+static void U_CALLCONV TimeZoneDataDirInitFn(UErrorCode &status) {
+    U_ASSERT(gTimeZoneFilesDirectory == NULL);
+    ucln_common_registerCleanup(UCLN_COMMON_PUTIL, putil_cleanup);
+    gTimeZoneFilesDirectory = new CharString();
+    if (gTimeZoneFilesDirectory == NULL) {
+        status = U_MEMORY_ALLOCATION_ERROR;
+        return;
+    }
+    const char *dir = getenv("ICU_TIMEZONE_FILES_DIR");
+#if defined(U_TIMEZONE_FILES_DIR)
+    if (dir == NULL) {
+        dir = TO_STRING(U_TIMEZONE_FILES_DIR);
+    }
+#endif
+    if (dir == NULL) {
+        dir = "";
+    }
+    setTimeZoneFilesDir(dir, status);
+}
+
+
+U_CAPI const char * U_EXPORT2
+u_getTimeZoneFilesDirectory(UErrorCode *status) {
+    umtx_initOnce(gTimeZoneFilesInitOnce, &TimeZoneDataDirInitFn, *status);
+    return U_SUCCESS(*status) ? gTimeZoneFilesDirectory->data() : "";
+}
+
+U_CAPI void U_EXPORT2
+u_setTimeZoneFilesDirectory(const char *path, UErrorCode *status) {
+    umtx_initOnce(gTimeZoneFilesInitOnce, &TimeZoneDataDirInitFn, *status);
+    setTimeZoneFilesDir(path, *status);
+
+    // Note: this function does some extra churn, first setting based on the
+    //       environment, then immediately replacing with the value passed in.
+    //       The logic is simpler that way, and performance shouldn't be an issue.
+}
+
 
 #if U_POSIX_LOCALE
 /* A helper function used by uprv_getPOSIXIDForDefaultLocale and
@@ -1440,9 +1430,18 @@ static const char *uprv_getPOSIXIDForCategory(int category)
         {
             /* Maybe we got some garbage.  Try something more reasonable */
             posixID = getenv("LC_ALL");
+            /* Solaris speaks POSIX -  See IEEE Std 1003.1-2008 
+             * This is needed to properly handle empty env. variables
+             */
+#if U_PLATFORM == U_PF_SOLARIS
+            if ((posixID == 0) || (posixID[0] == '\0')) {
+                posixID = getenv(category == LC_MESSAGES ? "LC_MESSAGES" : "LC_CTYPE");
+                if ((posixID == 0) || (posixID[0] == '\0')) {
+#else
             if (posixID == 0) {
                 posixID = getenv(category == LC_MESSAGES ? "LC_MESSAGES" : "LC_CTYPE");
                 if (posixID == 0) {
+#endif                    
                     posixID = getenv("LANG");
                 }
             }
@@ -1640,41 +1639,6 @@ The leftmost codepage (.xxx) wins.
         return "en_US";
     }
     return gCorrectedPOSIXLocale;
-
-#elif U_PLATFORM == U_PF_CLASSIC_MACOS
-    int32_t script = MAC_LC_INIT_NUMBER;
-    /* = IntlScript(); or GetScriptManagerVariable(smSysScript);*/
-    int32_t region = MAC_LC_INIT_NUMBER;
-    /* = GetScriptManagerVariable(smRegionCode);*/
-    int32_t lang = MAC_LC_INIT_NUMBER;
-    /* = GetScriptManagerVariable(smScriptLang);*/
-    int32_t date_region = MAC_LC_INIT_NUMBER;
-    const char* posixID = 0;
-    int32_t count = sizeof(mac_lc_recs) / sizeof(mac_lc_rec);
-    int32_t i;
-    Intl1Hndl ih;
-
-    ih = (Intl1Hndl) GetIntlResource(1);
-    if (ih)
-        date_region = ((uint16_t)(*ih)->intl1Vers) >> 8;
-
-    for (i = 0; i < count; i++) {
-        if (   ((mac_lc_recs[i].script == MAC_LC_MAGIC_NUMBER)
-             || (mac_lc_recs[i].script == script))
-            && ((mac_lc_recs[i].region == MAC_LC_MAGIC_NUMBER)
-             || (mac_lc_recs[i].region == region))
-            && ((mac_lc_recs[i].lang == MAC_LC_MAGIC_NUMBER)
-             || (mac_lc_recs[i].lang == lang))
-            && ((mac_lc_recs[i].date_region == MAC_LC_MAGIC_NUMBER)
-             || (mac_lc_recs[i].date_region == date_region))
-            )
-        {
-            posixID = mac_lc_recs[i].posixID;
-            break;
-        }
-    }
-
-    return posixID;
 
 #elif U_PLATFORM == U_PF_OS400
     /* locales are process scoped and are by definition thread safe */
@@ -1957,9 +1921,6 @@ int_getDefaultCodepage()
 
     return codepage;
 
-#elif U_PLATFORM == U_PF_CLASSIC_MACOS
-    return "macintosh"; /* TODO: Macintosh Roman. There must be a better way. fixme! */
-
 #elif U_PLATFORM_USES_ONLY_WIN32_API
     static char codepage[64];
     sprintf(codepage, "windows-%d", GetACP());
@@ -1972,7 +1933,10 @@ int_getDefaultCodepage()
 
     localeName = uprv_getPOSIXIDForDefaultCodepage();
     uprv_memset(codesetName, 0, sizeof(codesetName));
-#if U_HAVE_NL_LANGINFO_CODESET
+    /* On Solaris nl_langinfo returns C locale values unless setlocale
+     * was called earlier.
+     */
+#if (U_HAVE_NL_LANGINFO_CODESET && U_PLATFORM != U_PF_SOLARIS)
     /* When available, check nl_langinfo first because it usually gives more
        useful names. It depends on LC_CTYPE.
        nl_langinfo may use the same buffer as setlocale. */
@@ -2136,6 +2100,7 @@ u_versionToString(const UVersionInfo versionArray, char *versionString) {
 
 U_CAPI void U_EXPORT2
 u_getVersion(UVersionInfo versionArray) {
+    (void)copyright;   // Suppress unused variable warning from clang.
     u_versionFromString(versionArray, U_ICU_VERSION);
 }
 
@@ -2282,6 +2247,7 @@ uprv_dlsym_func(void *lib, const char* sym, UErrorCode *status) {
 
 U_INTERNAL void * U_EXPORT2
 uprv_dl_open(const char *libName, UErrorCode *status) {
+    (void)libName;
     if(U_FAILURE(*status)) return NULL;
     *status = U_UNSUPPORTED_ERROR;
     return NULL;
@@ -2289,6 +2255,7 @@ uprv_dl_open(const char *libName, UErrorCode *status) {
 
 U_INTERNAL void U_EXPORT2
 uprv_dl_close(void *lib, UErrorCode *status) {
+    (void)lib;
     if(U_FAILURE(*status)) return;
     *status = U_UNSUPPORTED_ERROR;
     return;
@@ -2297,6 +2264,8 @@ uprv_dl_close(void *lib, UErrorCode *status) {
 
 U_INTERNAL UVoidFunction* U_EXPORT2
 uprv_dlsym_func(void *lib, const char* sym, UErrorCode *status) {
+  (void)lib;
+  (void)sym;
   if(U_SUCCESS(*status)) {
     *status = U_UNSUPPORTED_ERROR;
   }

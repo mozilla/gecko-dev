@@ -16,10 +16,10 @@
 #include <utility>
 
 #include "testing/gtest/include/gtest/gtest.h"
+#include "webrtc/base/constructormagic.h"
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
 #include "webrtc/system_wrappers/interface/clock.h"
-#include "webrtc/system_wrappers/interface/constructor_magic.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 
 namespace webrtc {
 namespace testing {
@@ -29,8 +29,8 @@ class TestBitrateObserver : public RemoteBitrateObserver {
   TestBitrateObserver() : updated_(false), latest_bitrate_(0) {}
   virtual ~TestBitrateObserver() {}
 
-  virtual void OnReceiveBitrateChanged(const std::vector<unsigned int>& ssrcs,
-                                       unsigned int bitrate) OVERRIDE;
+  void OnReceiveBitrateChanged(const std::vector<unsigned int>& ssrcs,
+                               unsigned int bitrate) override;
 
   void Reset() { updated_ = false; }
 
@@ -49,7 +49,7 @@ class RtpStream {
     int64_t send_time;
     int64_t arrival_time;
     uint32_t rtp_timestamp;
-    unsigned int size;
+    size_t size;
     unsigned int ssrc;
   };
 
@@ -165,7 +165,7 @@ class RemoteBitrateEstimatorTest : public ::testing::Test {
   // estimator (all other fields are cleared) and call IncomingPacket on the
   // estimator.
   void IncomingPacket(uint32_t ssrc,
-                      uint32_t payload_size,
+                      size_t payload_size,
                       int64_t arrival_time,
                       uint32_t rtp_timestamp,
                       uint32_t absolute_send_time);
@@ -189,20 +189,27 @@ class RemoteBitrateEstimatorTest : public ::testing::Test {
                               unsigned int max_bitrate,
                               unsigned int target_bitrate);
 
+
+  void TestTimestampGroupingTestHelper();
+
+  void TestGetStatsHelper();
+
+  void TestWrappingHelper(int silence_time_s);
+
   void InitialBehaviorTestHelper(unsigned int expected_converge_bitrate);
-  void RateIncreaseReorderingTestHelper();
-  void RateIncreaseRtpTimestampsTestHelper();
+  void RateIncreaseReorderingTestHelper(unsigned int expected_bitrate);
+  void RateIncreaseRtpTimestampsTestHelper(int expected_iterations);
   void CapacityDropTestHelper(int number_of_streams,
                               bool wrap_time_stamp,
-                              unsigned int expected_converge_bitrate,
                               unsigned int expected_bitrate_drop_delta);
 
   static const unsigned int kDefaultSsrc;
+  static const int kArrivalTimeClockOffsetMs = 60000;
 
   SimulatedClock clock_;  // Time at the receiver.
-  scoped_ptr<testing::TestBitrateObserver> bitrate_observer_;
-  scoped_ptr<RemoteBitrateEstimator> bitrate_estimator_;
-  scoped_ptr<testing::StreamGenerator> stream_generator_;
+  rtc::scoped_ptr<testing::TestBitrateObserver> bitrate_observer_;
+  rtc::scoped_ptr<RemoteBitrateEstimator> bitrate_estimator_;
+  rtc::scoped_ptr<testing::StreamGenerator> stream_generator_;
 
   DISALLOW_COPY_AND_ASSIGN(RemoteBitrateEstimatorTest);
 };

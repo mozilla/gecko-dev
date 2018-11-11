@@ -1,4 +1,4 @@
-/* -*- Mode: js2; tab-width: 40; indent-tabs-mode: nil; js2-basic-offset: 2; js2-skip-preprocessor-directives: t; -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -39,16 +39,14 @@ function dumpJSStack(stopAtNamedFunction) {
 }
 
 function log() {
-  return;
-  logbase.apply(window, arguments);
+  // logbase.apply(window, arguments);
 }
 
 function log2() {
-  return;
-  logbase.apply(window, arguments);
+  // logbase.apply(window, arguments);
 }
 
-let reportError = log;
+var reportError = log;
 
 /*
  * wsBorder class
@@ -551,7 +549,8 @@ WidgetStack.prototype = {
     this.globalOffsetX += x;
     this.globalOffsetY += y;
 
-    for each (let state in this._widgetState) {
+    for (let wid in this._widgetState) {
+      let state = this._widgetState[wid];
       state.rect.x += x;
       state.rect.y += y;
 
@@ -597,12 +596,13 @@ WidgetStack.prototype = {
     let dtop = this._viewportBounds.top - oldBounds.top;
     let dbottom = this._viewportBounds.bottom - oldBounds.bottom;
 
-    //log2("setViewportBounds dltrb", dleft, dtop, dright, dbottom);
+    // log2("setViewportBounds dltrb", dleft, dtop, dright, dbottom);
 
     // move all vp-relative widgets to be the right offset from the bounds again
-    for each (let state in this._widgetState) {
+    for (let wid in this._widgetState) {
+      let state = this._widgetState[wid];
       if (state.vpRelative) {
-        //log2("vpRelative widget", state.id, state.rect.x, dleft, dright);
+        // log2("vpRelative widget", state.id, state.rect.x, dleft, dright);
         if (state.vpOffsetXBefore) {
           state.rect.x += dleft;
         } else {
@@ -615,7 +615,7 @@ WidgetStack.prototype = {
           state.rect.y += dbottom;
         }
 
-        //log2("vpRelative widget", state.id, state.rect.x, dleft, dright);
+        // log2("vpRelative widget", state.id, state.rect.x, dleft, dright);
         this._commitState(state);
       }
     }
@@ -623,7 +623,7 @@ WidgetStack.prototype = {
     for (let bid in this._barriers) {
       let barrier = this._barriers[bid];
 
-      //log2("setViewportBounds: looking at barrier", bid, barrier.vpRelative, barrier.type);
+      // log2("setViewportBounds: looking at barrier", bid, barrier.vpRelative, barrier.type);
 
       if (barrier.vpRelative) {
         if (barrier.type == "vertical") {
@@ -633,7 +633,7 @@ WidgetStack.prototype = {
           } else {
             barrier.x += dright;
           }
-          //log2(q += barrier.x);
+          // log2(q += barrier.x);
         } else if (barrier.type == "horizontal") {
           let q = "h barrier moving from " + barrier.y + " to ";
           if (barrier.vpOffsetYBefore) {
@@ -641,7 +641,7 @@ WidgetStack.prototype = {
           } else {
             barrier.y += dbottom;
           }
-          //log2(q += barrier.y);
+          // log2(q += barrier.y);
         }
       }
     }
@@ -769,9 +769,11 @@ WidgetStack.prototype = {
 
     // XXX these methods aren't working correctly yet, but they aren't strictly
     // necessary in Fennec's default config
-    //for each (let s in this._widgetState)
+    // for (let wid in this._widgetState) {
+    //  let s = this._widgetState[wid];
     //  this._updateWidgetRect(s);
-    //this._updateViewportOverflow();
+    // }
+    // this._updateViewportOverflow();
 
     this._viewingRect.width = width;
     this._viewingRect.height = height;
@@ -862,7 +864,7 @@ WidgetStack.prototype = {
 
     if (vr.bottom > pb.bottom)
       panY = pb.bottom - vr.bottom;
-    else if(vr.top < pb.top)
+    else if (vr.top < pb.top)
       panY = pb.top - vr.top;
 
     this.panBy(panX, panY, true);
@@ -961,7 +963,7 @@ WidgetStack.prototype = {
     for (let i = 0; i < this._barriers.length; i++) {
       let b = this._barriers[i];
 
-      //log2("barrier", i, b.type, b.x, b.y);
+      // log2("barrier", i, b.type, b.x, b.y);
 
       if (dx != 0 && b.type == "vertical") {
         if (barrier_x != null) {
@@ -971,11 +973,11 @@ WidgetStack.prototype = {
 
         let alreadyKnownDistance = this._dragState.barrierState[i] || 0;
 
-        //log2("alreadyKnownDistance", alreadyKnownDistance);
+        // log2("alreadyKnownDistance", alreadyKnownDistance);
 
         let dbx = 0;
 
-        //100 <= 100 && 100-(-5) > 100
+        // 100 <= 100 && 100-(-5) > 100
 
         if ((vr.left <= b.x && vr.left+dx > b.x) ||
             (vr.left >= b.x && vr.left+dx < b.x))
@@ -992,7 +994,7 @@ WidgetStack.prototype = {
 
         let leftoverDistance = dbx - dx;
 
-        //log2("initial dbx", dbx, leftoverDistance);
+        // log2("initial dbx", dbx, leftoverDistance);
 
         let dist = Math.abs(leftoverDistance + alreadyKnownDistance) - b.size;
 
@@ -1007,13 +1009,13 @@ WidgetStack.prototype = {
           this._dragState.barrierState[i] = leftoverDistance + alreadyKnownDistance;
         }
 
-        //log2("final dbx", dbx, "state", this._dragState.barrierState[i]);
+        // log2("final dbx", dbx, "state", this._dragState.barrierState[i]);
 
         if (Math.abs(barrier_dx) <= Math.abs(dbx)) {
           barrier_x = b;
           barrier_dx = dbx;
 
-          //log2("new barrier_dx", barrier_dx);
+          // log2("new barrier_dx", barrier_dx);
         }
       }
 
@@ -1025,11 +1027,11 @@ WidgetStack.prototype = {
 
         let alreadyKnownDistance = this._dragState.barrierState[i] || 0;
 
-        //log2("alreadyKnownDistance", alreadyKnownDistance);
+        // log2("alreadyKnownDistance", alreadyKnownDistance);
 
         let dby = 0;
 
-        //100 <= 100 && 100-(-5) > 100
+        // 100 <= 100 && 100-(-5) > 100
 
         if ((vr.top <= b.y && vr.top+dy > b.y) ||
             (vr.top >= b.y && vr.top+dy < b.y))
@@ -1046,7 +1048,7 @@ WidgetStack.prototype = {
 
         let leftoverDistance = dby - dy;
 
-        //log2("initial dby", dby, leftoverDistance);
+        // log2("initial dby", dby, leftoverDistance);
 
         let dist = Math.abs(leftoverDistance + alreadyKnownDistance) - b.size;
 
@@ -1061,19 +1063,19 @@ WidgetStack.prototype = {
           this._dragState.barrierState[i] = leftoverDistance + alreadyKnownDistance;
         }
 
-        //log2("final dby", dby, "state", this._dragState.barrierState[i]);
+        // log2("final dby", dby, "state", this._dragState.barrierState[i]);
 
         if (Math.abs(barrier_dy) <= Math.abs(dby)) {
           barrier_y = b;
           barrier_dy = dby;
 
-          //log2("new barrier_dy", barrier_dy);
+          // log2("new barrier_dy", barrier_dy);
         }
       }
     }
 
     if (barrier_x) {
-      //log2("did barrier_x", barrier_x, "barrier_dx", barrier_dx);
+      // log2("did barrier_x", barrier_x, "barrier_dx", barrier_dx);
       dx = barrier_dx;
     }
 
@@ -1112,7 +1114,8 @@ WidgetStack.prototype = {
     // will be ignored in commitState.
     // The widget rects are in real stack space though, so we need to subtract
     // our (now negated) dx, dy from their coordinates.
-    for each (let state in this._widgetState) {
+    for (let wid in this._widgetState) {
+      let state = this._widgetState[wid];
       if (!state.ignoreX)
         state.rect.x -= dx;
       if (!state.ignoreY)
@@ -1175,7 +1178,7 @@ WidgetStack.prototype = {
 
     if (w.hasAttribute("constraint")) {
       let cs = w.getAttribute("constraint").split(",");
-      for each (let s in cs) {
+      for (let s of cs) {
         if (s == "ignore-x")
           state.ignoreX = true;
         else if (s == "ignore-y")
@@ -1239,7 +1242,8 @@ WidgetStack.prototype = {
 
     let ofRect = this._viewingRect.clone();
 
-    for each (let state in this._widgetState) {
+    for (let wid in this._widgetState) {
+      let state = this._widgetState[wid];
       if (vp && state.vpRelative) {
         // compute the vpOffset from 0,0 assuming that the viewport rect is 0,0
         if (state.rect.left >= vp.rect.right) {
@@ -1273,7 +1277,8 @@ WidgetStack.prototype = {
 
     let ofRect = new wsRect(0, 0, this._viewingRect.width, this._viewingRect.height);
 
-    for each (let state in this._widgetState) {
+    for (let wid in this._widgetState) {
+      let state = this._widgetState[wid];
       if (vp && state.vpRelative) {
         ofRect.left = Math.min(ofRect.left, state.rect.left);
         ofRect.top = Math.min(ofRect.top, state.rect.top);
@@ -1286,10 +1291,10 @@ WidgetStack.prototype = {
     // bottom/right values, which would otherwise happen if there aren't widgets
     // beyond each of those edges
     this._viewportOverflow = new wsBorder(
-      /*top*/ Math.round(Math.min(ofRect.top, 0)),
-      /*left*/ Math.round(Math.min(ofRect.left, 0)),
-      /*bottom*/ Math.round(Math.max(ofRect.bottom - vp.rect.height, 0)),
-      /*right*/ Math.round(Math.max(ofRect.right - vp.rect.width, 0))
+      /* top*/ Math.round(Math.min(ofRect.top, 0)),
+      /* left*/ Math.round(Math.min(ofRect.left, 0)),
+      /* bottom*/ Math.round(Math.max(ofRect.bottom - vp.rect.height, 0)),
+      /* right*/ Math.round(Math.max(ofRect.right - vp.rect.width, 0))
     );
 
     // clear the _pannableBounds cache, since it depends on the
@@ -1298,10 +1303,12 @@ WidgetStack.prototype = {
   },
 
   _widgetBounds: function () {
-    let r = new wsRect(0,0,0,0);
+    let r = new wsRect(0, 0, 0, 0);
 
-    for each (let state in this._widgetState)
+    for (let wid in this._widgetState) {
+      let state = this._widgetState[wid];
       r = r.union(state.rect);
+    }
 
     return r;
   },
@@ -1315,7 +1322,7 @@ WidgetStack.prototype = {
     let l = state.rect.x + state.offsetLeft;
     let t = state.rect.y + state.offsetTop;
 
-    //cache left/top to avoid calling setAttribute unnessesarily
+    // cache left/top to avoid calling setAttribute unnessesarily
     if (state._left != l) {
       state._left = l;
       w.setAttribute("left", l);
@@ -1390,7 +1397,7 @@ WidgetStack.prototype = {
 
     if (el.hasAttribute("constraint")) {
       let cs = el.getAttribute("constraint").split(",");
-      for each (let s in cs) {
+      for (let s of cs) {
         if (s == "ignore-x")
           barrier.ignoreX = true;
         else if (s == "ignore-y")
@@ -1422,7 +1429,7 @@ WidgetStack.prototype = {
           barrier.vpOffsetY = barrier.y - vp.rect.top;
         }
 
-        //log2("h barrier relative", barrier.vpOffsetYBefore, barrier.vpOffsetY);
+        // log2("h barrier relative", barrier.vpOffsetYBefore, barrier.vpOffsetY);
       }
     }
 

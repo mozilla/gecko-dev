@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,38 +9,45 @@ EXPORTS += [
     'mozmemory_wrap.h',
 ]
 
+LIBRARY_DEFINES['MOZ_HAS_MOZGLUE'] = True
 DEFINES['MOZ_MEMORY_IMPL'] = True
 
 if CONFIG['MOZ_REPLACE_MALLOC']:
     EXPORTS += [
         'malloc_decls.h',
         'replace_malloc.h',
+        'replace_malloc_bridge.h',
     ]
-    DEFINES['MOZ_REPLACE_MALLOC'] = True
 
 SOURCES += [
-    'jemalloc_config.c',
+    'jemalloc_config.cpp',
     'mozmemory_wrap.c',
 ]
 
-if CONFIG['MOZ_JEMALLOC3']:
+if CONFIG['MOZ_JEMALLOC4']:
     SOURCES += [
         'mozjemalloc_compat.c',
     ]
-    GENERATED_INCLUDES += ['../jemalloc/src/include']
+    LOCAL_INCLUDES += ['!../jemalloc/src/include']
     if CONFIG['_MSC_VER']:
         LOCAL_INCLUDES += ['/memory/jemalloc/src/include/msvc_compat']
+        if not CONFIG['HAVE_INTTYPES_H']:
+            LOCAL_INCLUDES += ['/memory/jemalloc/src/include/msvc_compat/C99']
 
 if CONFIG['MOZ_REPLACE_MALLOC']:
     SOURCES += [
         'replace_malloc.c',
     ]
 
-LIBRARY_NAME = 'memory'
+Library('memory')
+
+if CONFIG['MOZ_GLUE_IN_PROGRAM']:
+    SDK_LIBRARY = True
+    DIST_INSTALL = True
 
 # Keep jemalloc separated when mozglue is statically linked
 if CONFIG['MOZ_MEMORY'] and (CONFIG['OS_TARGET'] in ('WINNT', 'Darwin', 'Android') or
-                             CONFIG['MOZ_NATIVE_JEMALLOC']):
+                             CONFIG['MOZ_SYSTEM_JEMALLOC']):
     FINAL_LIBRARY = 'mozglue'
 
 if CONFIG['MOZ_REPLACE_MALLOC'] and CONFIG['OS_TARGET'] == 'Darwin':

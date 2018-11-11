@@ -10,7 +10,8 @@
 #include "nsTArray.h"
 
 #include "nsIPersistentProperties2.h"
-#include "nsNetUtil.h"
+#include "nsISimpleEnumerator.h"
+#include "nsContentUtils.h"
 #include "nsCRT.h"
 
 // operator dictionary entry
@@ -221,8 +222,10 @@ InitOperators(void)
   // Load the property file containing the Operator Dictionary
   nsresult rv;
   nsCOMPtr<nsIPersistentProperties> mathfontProp;
-  rv = NS_LoadPersistentPropertiesFromURISpec(getter_AddRefs(mathfontProp),
-       NS_LITERAL_CSTRING("resource://gre/res/fonts/mathfont.properties"));
+  rv = NS_LoadPersistentPropertiesFromURISpec(
+         getter_AddRefs(mathfontProp),
+         NS_LITERAL_CSTRING("resource://gre/res/fonts/mathfont.properties"));
+
   if (NS_FAILED(rv)) return rv;
 
   // Parse the Operator Dictionary in two passes.
@@ -289,7 +292,7 @@ InitOperators(void)
 }
 
 static nsresult
-InitGlobals()
+InitOperatorGlobals()
 {
   gGlobalsInitialized = true;
   nsresult rv = NS_ERROR_OUT_OF_MEMORY;
@@ -345,7 +348,7 @@ nsMathMLOperators::LookupOperator(const nsString&       aOperator,
                                   float*                aTrailingSpace)
 {
   if (!gGlobalsInitialized) {
-    InitGlobals();
+    InitOperatorGlobals();
   }
   if (gOperatorTable) {
     NS_ASSERTION(aFlags && aLeadingSpace && aTrailingSpace, "bad usage");
@@ -390,7 +393,7 @@ nsMathMLOperators::LookupOperators(const nsString&       aOperator,
                                    float*                aTrailingSpace)
 {
   if (!gGlobalsInitialized) {
-    InitGlobals();
+    InitOperatorGlobals();
   }
 
   aFlags[NS_MATHML_OPERATOR_FORM_INFIX] = 0;

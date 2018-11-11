@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -68,7 +68,10 @@ this.FileUtils = {
     if (shouldCreate) {
       try {
         dir.create(Ci.nsIFile.DIRECTORY_TYPE, this.PERMS_DIRECTORY);
-      } catch (ex if ex.result == Cr.NS_ERROR_FILE_ALREADY_EXISTS) {
+      } catch (ex) {
+        if (ex.result != Cr.NS_ERROR_FILE_ALREADY_EXISTS) {
+          throw ex;
+        }
         // Ignore the exception due to a directory that already exists.
       }
     }

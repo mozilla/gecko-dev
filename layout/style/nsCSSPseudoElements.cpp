@@ -25,6 +25,7 @@ using namespace mozilla;
 #include "nsCSSPseudoElementList.h"
 #undef CSS_PSEUDO_ELEMENT
 
+// Array of nsStaticAtom for each of the pseudo-elements.
 static const nsStaticAtom CSSPseudoElements_info[] = {
 #define CSS_PSEUDO_ELEMENT(name_, value_, flags_) \
   NS_STATIC_ATOM(name_##_pseudo_element_buffer, (nsIAtom**)&nsCSSPseudoElements::name_),
@@ -32,12 +33,11 @@ static const nsStaticAtom CSSPseudoElements_info[] = {
 #undef CSS_PSEUDO_ELEMENT
 };
 
-// Separate from the array above so that we can have an array of
-// nsStaticAtom (to pass to NS_RegisterStaticAtoms and
-// nsAtomListUtils::IsMember), but with corresponding indices (so the
-// i-th element of this array is the flags for the i-th pseudo-element
-// in the previous array).
-static const uint32_t CSSPseudoElements_flags[] = {
+// Flags data for each of the pseudo-elements, which must be separate
+// from the previous array since there's no place for it in
+// nsStaticAtom.
+/* static */ const uint32_t
+nsCSSPseudoElements::kPseudoElementFlags[] = {
 #define CSS_PSEUDO_ELEMENT(name_, value_, flags_) \
   flags_,
 #include "nsCSSPseudoElementList.h"
@@ -68,49 +68,48 @@ nsCSSPseudoElements::IsCSS2PseudoElement(nsIAtom *aAtom)
                   aAtom == nsCSSPseudoElements::firstLetter ||
                   aAtom == nsCSSPseudoElements::firstLine;
   NS_ASSERTION(nsCSSAnonBoxes::IsAnonBox(aAtom) ||
-               result ==
-                 PseudoElementHasFlags(GetPseudoType(aAtom), CSS_PSEUDO_ELEMENT_IS_CSS2),
+               result == PseudoElementHasFlags(
+                   GetPseudoType(aAtom, EnabledState::eIgnoreEnabledState),
+                   CSS_PSEUDO_ELEMENT_IS_CSS2),
                "result doesn't match flags");
   return result;
 }
 
-/* static */ nsCSSPseudoElements::Type
-nsCSSPseudoElements::GetPseudoType(nsIAtom *aAtom)
+/* static */ CSSPseudoElementType
+nsCSSPseudoElements::GetPseudoType(nsIAtom *aAtom, EnabledState aEnabledState)
 {
-  for (uint32_t i = 0; i < ArrayLength(CSSPseudoElements_info); ++i) {
+  for (CSSPseudoElementTypeBase i = 0;
+       i < ArrayLength(CSSPseudoElements_info);
+       ++i) {
     if (*CSSPseudoElements_info[i].mAtom == aAtom) {
-      return Type(i);
+      auto type = static_cast<Type>(i);
+      // ::moz-placeholder is an alias for ::placeholder
+      if (type == CSSPseudoElementType::mozPlaceholder) {
+        type = CSSPseudoElementType::placeholder;
+      }
+      return IsEnabled(type, aEnabledState) ? type : Type::NotPseudo;
     }
   }
 
   if (nsCSSAnonBoxes::IsAnonBox(aAtom)) {
 #ifdef MOZ_XUL
     if (nsCSSAnonBoxes::IsTreePseudoElement(aAtom)) {
-      return ePseudo_XULTree;
+      return Type::XULTree;
     }
 #endif
 
-    return ePseudo_AnonBox;
+    return Type::AnonBox;
   }
 
-  return ePseudo_NotPseudoElement;
+  return Type::NotPseudo;
 }
 
 /* static */ nsIAtom*
 nsCSSPseudoElements::GetPseudoAtom(Type aType)
 {
-  NS_ASSERTION(aType < nsCSSPseudoElements::ePseudo_PseudoElementCount,
-               "Unexpected type");
-  return *CSSPseudoElements_info[aType].mAtom;
-}
-
-/* static */ uint32_t
-nsCSSPseudoElements::FlagsForPseudoElement(const Type aType)
-{
-  size_t index = static_cast<size_t>(aType);
-  NS_ASSERTION(index < ArrayLength(CSSPseudoElements_flags),
-               "argument must be a pseudo-element");
-  return CSSPseudoElements_flags[index];
+  NS_ASSERTION(aType < Type::Count, "Unexpected type");
+  return *CSSPseudoElements_info[
+    static_cast<CSSPseudoElementTypeBase>(aType)].mAtom;
 }
 
 /* static */ bool

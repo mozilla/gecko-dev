@@ -24,7 +24,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=633602
       /*
        * Test for Bug 633602
        * If element requests pointerlock on itself while in pointerlock state
-       * mozpointerlockchange event should be dispatched
+       * pointerlockchange event should be dispatched
        */
 
       SimpleTest.waitForExplicitFinish();
@@ -34,34 +34,31 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=633602
 
       function runTests () {
         is(numberOfLocks, 2, "Requesting pointer lock on a locked element " +
-          "should dispatch mozpointerlockchange event");
+          "should dispatch pointerlockchange event");
       }
 
-      document.addEventListener("mozpointerlockchange", function (e) {
-        if (document.mozPointerLockElement === div) {
+      document.addEventListener("pointerlockchange", function (e) {
+        if (document.pointerLockElement === div) {
           if (numberOfLocks === 2) {
-            document.mozCancelFullScreen();
+            addFullscreenChangeContinuation("exit", function() {
+              runTests();
+              SimpleTest.finish();
+            });
+            document.exitFullscreen();
           }
           else {
             numberOfLocks++;
-            div.mozRequestPointerLock();
+            div.requestPointerLock();
           }
-        }
-      }, false);
-
-      document.addEventListener("mozfullscreenchange", function (e) {
-        if (document.mozFullScreenElement === div) {
-          div.mozRequestPointerLock();
-        }
-        else {
-          runTests();
-          SimpleTest.finish();
         }
       }, false);
 
       function start() {
         console.log('started');
-        div.mozRequestFullScreen();
+        addFullscreenChangeContinuation("enter", function() {
+          div.requestPointerLock();
+        });
+        div.requestFullscreen();
       }
     </script>
   </pre>

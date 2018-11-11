@@ -11,8 +11,10 @@
 #include "nsIWeakReference.h"
 #include "mozilla/Attributes.h"
 
-class xpcJSWeakReference MOZ_FINAL : public xpcIJSWeakReference
+class xpcJSWeakReference final : public xpcIJSWeakReference
 {
+    ~xpcJSWeakReference() {}
+
 public:
     xpcJSWeakReference();
     nsresult Init(JSContext* cx, const JS::Value& object);

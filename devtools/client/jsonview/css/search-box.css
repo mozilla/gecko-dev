@@ -1,0 +1,24 @@
+/* vim:set ts=2 sw=2 sts=2 et: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/******************************************************************************/
+/* Search Box */
+
+.searchBox {
+  height: 18px;
+  font: message-box;
+  background-color: var(--theme-body-background);
+  background-image: url("chrome://devtools/skin/images/filter.svg#filterinput");
+  background-repeat: no-repeat;
+  background-position: 2px center;
+  border: 1px solid var(--theme-splitter-color);
+  border-radius: 2px;
+  color: var(--theme-content-color1);
+  width: 200px;
+  margin-top: 0;
+  margin-right: 1px;
+  float: right;
+  padding-left: 20px;
+}

@@ -8,10 +8,11 @@
 #include "JavaScriptChild.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/BindingUtils.h"
+#include "mozilla/ipc/MessageChannel.h"
 #include "nsContentUtils.h"
 #include "xpcprivate.h"
 #include "jsfriendapi.h"
-#include "nsCxPusher.h"
+#include "AccessCheck.h"
 
 using namespace JS;
 using namespace mozilla;
@@ -20,22 +21,22 @@ using namespace mozilla::jsipc;
 using mozilla::AutoSafeJSContext;
 
 static void
-FinalizeChild(JSFreeOp *fop, JSFinalizeStatus status, bool isCompartment, void *data)
+UpdateChildWeakPointersBeforeSweepingZoneGroup(JSContext* cx, void* data)
 {
-    if (status == JSFINALIZE_GROUP_START) {
-        static_cast<JavaScriptChild *>(data)->finalize(fop);
-    }
+    static_cast<JavaScriptChild*>(data)->updateWeakPointers();
 }
 
-JavaScriptChild::JavaScriptChild(JSRuntime *rt)
-  : JavaScriptShared(rt),
-    JavaScriptBase<PJavaScriptChild>(rt)
+static void
+TraceChild(JSTracer* trc, void* data)
 {
+    static_cast<JavaScriptChild*>(data)->trace(trc);
 }
 
 JavaScriptChild::~JavaScriptChild()
 {
-    JS_RemoveFinalizeCallback(rt_, FinalizeChild);
+    JSContext* cx = dom::danger::GetJSContext();
+    JS_RemoveWeakPointerZoneGroupCallback(cx, UpdateChildWeakPointersBeforeSweepingZoneGroup);
+    JS_RemoveExtraGCRootsTracer(cx, TraceChild, this);
 }
 
 bool
@@ -46,13 +47,54 @@ JavaScriptChild::init()
     if (!WrapperAnswer::init())
         return false;
 
-    JS_AddFinalizeCallback(rt_, FinalizeChild, this);
+    JSContext* cx = dom::danger::GetJSContext();
+    JS_AddWeakPointerZoneGroupCallback(cx, UpdateChildWeakPointersBeforeSweepingZoneGroup, this);
+    JS_AddExtraGCRootsTracer(cx, TraceChild, this);
     return true;
 }
 
 void
-JavaScriptChild::finalize(JSFreeOp *fop)
+JavaScriptChild::trace(JSTracer* trc)
 {
-    objects_.finalize(fop);
-    objectIds_.finalize(fop);
+    objects_.trace(trc, strongReferenceObjIdMinimum_);
+}
+
+void
+JavaScriptChild::updateWeakPointers()
+{
+    objects_.sweep();
+    unwaivedObjectIds_.sweep();
+    waivedObjectIds_.sweep();
+}
+
+JSObject*
+JavaScriptChild::scopeForTargetObjects()
+{
+    // CPOWs from the parent need to point into the child's privileged junk
+    // scope so that they can benefit from XrayWrappers in the child.
+    return xpc::PrivilegedJunkScope();
+}
+
+bool
+JavaScriptChild::RecvDropTemporaryStrongReferences(const uint64_t& upToObjId)
+{
+    strongReferenceObjIdMinimum_ = upToObjId + 1;
+    return true;
+}
+
+PJavaScriptChild*
+mozilla::jsipc::NewJavaScriptChild()
+{
+    JavaScriptChild* child = new JavaScriptChild();
+    if (!child->init()) {
+        delete child;
+        return nullptr;
+    }
+    return child;
+}
+
+void
+mozilla::jsipc::ReleaseJavaScriptChild(PJavaScriptChild* child)
+{
+    static_cast<JavaScriptChild*>(child)->decref();
 }

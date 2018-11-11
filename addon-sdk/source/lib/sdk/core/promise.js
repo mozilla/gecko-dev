@@ -1,8 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
-
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 'use strict';
 
 /*
@@ -17,13 +15,14 @@ const PROMISE_URI = 'resource://gre/modules/Promise.jsm';
 
 getEnvironment.call(this, function ({ require, exports, module, Cu }) {
 
-const { defer, resolve, all, reject, race } = Cu.import(PROMISE_URI, {}).Promise;
+const Promise = Cu.import(PROMISE_URI, {}).Promise;
+const { Debugging, defer, resolve, all, reject, race } = Promise;
 
 module.metadata = {
   'stability': 'unstable'
 };
 
-let promised = (function() {
+var promised = (function() {
   // Note: Define shortcuts and utility functions here in order to avoid
   // slower property accesses and unnecessary closure creations on each
   // call of this popular function.
@@ -33,14 +32,16 @@ let promised = (function() {
 
   // Utility function that does following:
   // execute([ f, self, args...]) => f.apply(self, args)
-  function execute (args) call.apply(call, args)
+  function execute (args) {
+    return call.apply(call, args);
+  }
 
   // Utility function that takes promise of `a` array and maybe promise `b`
   // as arguments and returns promise for `a.concat(b)`.
   function promisedConcat(promises, unknown) {
     return promises.then(function (values) {
       return resolve(unknown)
-        .then(function (value) values.concat([value]));
+        .then(value => values.concat([value]));
     });
   }
 
@@ -57,9 +58,9 @@ let promised = (function() {
     promise.then(console.log) // => [ 1, 2, 3 ]
     **/
 
-    return function promised() {
+    return function promised(...args) {
       // create array of [ f, this, args... ]
-      return concat.apply([ f, this ], arguments).
+      return [f, this, ...args].
         // reduce it via `promisedConcat` to get promised array of fulfillments
         reduce(promisedConcat, resolve([], prototype)).
         // finally map that to promise of `f.apply(this, args...)`
@@ -75,7 +76,7 @@ exports.resolve = resolve;
 exports.reject = reject;
 exports.race = race;
 exports.Promise = Promise;
-
+exports.Debugging = Debugging;
 });
 
 function getEnvironment (callback) {

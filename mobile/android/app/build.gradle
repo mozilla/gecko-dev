@@ -1,0 +1,406 @@
+buildDir "${topobjdir}/gradle/build/mobile/android/app"
+
+apply plugin: 'android-sdk-manager' // Must come before 'com.android.*'.
+apply plugin: 'com.android.application'
+apply plugin: 'checkstyle'
+
+android {
+    compileSdkVersion 23
+    buildToolsVersion mozconfig.substs.ANDROID_BUILD_TOOLS_VERSION
+
+    defaultConfig {
+        targetSdkVersion 23
+        minSdkVersion 15
+        applicationId mozconfig.substs.ANDROID_PACKAGE_NAME
+        testApplicationId 'org.mozilla.roboexample.test'
+        testInstrumentationRunner 'org.mozilla.gecko.FennecInstrumentationTestRunner'
+        manifestPlaceholders = [
+            ANDROID_PACKAGE_NAME: mozconfig.substs.ANDROID_PACKAGE_NAME,
+            MOZ_ANDROID_MIN_SDK_VERSION: mozconfig.substs.MOZ_ANDROID_MIN_SDK_VERSION,
+            MOZ_ANDROID_SHARED_ID: "${mozconfig.substs.ANDROID_PACKAGE_NAME}.sharedID",
+        ]
+        // Used by Robolectric based tests; see TestRunner.
+        buildConfigField 'String', 'BUILD_DIR', "\"${project.buildDir}\""
+
+        vectorDrawables.useSupportLibrary = true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+
+    dexOptions {
+        javaMaxHeapSize "2g"
+    }
+
+    lintOptions {
+        abortOnError true
+    }
+
+    buildTypes {
+        release {
+            shrinkResources true
+            minifyEnabled true
+            proguardFile "${topsrcdir}/mobile/android/config/proguard/proguard.cfg"
+        }
+    }
+
+    productFlavors {
+        // For API 21+ - with multi dex, this will be faster for local development.
+        local {
+            // For multi dex, setting `minSdkVersion 21` allows the Android gradle plugin to
+            // pre-DEX each module and produce an APK that can be tested on
+            // Android Lollipop without time consuming DEX merging processes.
+            minSdkVersion 21
+            dexOptions {
+                preDexLibraries true
+                // We only call `MultiDex.install()` for the automation build flavor
+                // so this may not work. However, I don't think the multidex support
+                // library is necessary for 21+, so I expect that it will work.
+                multiDexEnabled true
+            }
+        }
+        // For API < 21 - does not support multi dex because local development
+        // is slow in that case. Most builds will not require multi dex so this
+        // should not be an issue.
+        localOld {
+        }
+        // Automation builds.
+        automation {
+            dexOptions {
+                // As of FF48 on beta, the "test", "lint", etc. treeherder jobs fail because they
+                // exceed the method limit. Beta includes Adjust and its GPS dependencies, which
+                // increase the method count & explain the failures. Furthermore, this error only
+                // occurs on debug builds because we don't proguard.
+                //
+                // We enable multidex as an easy, quick-fix with minimal side effects but before we
+                // move to gradle for our production builds, we should re-evaluate this decision
+                // (bug 1286677).
+                multiDexEnabled true
+            }
+        }
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile "${project.buildDir}/generated/source/preprocessed_manifest/AndroidManifest.xml"
+
+            aidl {
+                srcDir "${topsrcdir}/mobile/android/base/aidl"
+            }
+
+            java {
+                srcDir "${topsrcdir}/mobile/android/base/java"
+                srcDir "${topsrcdir}/mobile/android/search/java"
+                srcDir "${topsrcdir}/mobile/android/javaaddons/java"
+                srcDir "${topsrcdir}/mobile/android/services/src/main/java"
+
+                if (mozconfig.substs.MOZ_ANDROID_MLS_STUMBLER) {
+                    srcDir "${topsrcdir}/mobile/android/stumbler/java"
+                }
+
+                if (!mozconfig.substs.MOZ_CRASHREPORTER) {
+                    exclude 'org/mozilla/gecko/CrashReporter.java'
+                }
+
+                if (!mozconfig.substs.MOZ_NATIVE_DEVICES) {
+                    exclude 'org/mozilla/gecko/ChromeCastDisplay.java'
+                    exclude 'org/mozilla/gecko/ChromeCastPlayer.java'
+                    exclude 'org/mozilla/gecko/GeckoMediaPlayer.java'
+                    exclude 'org/mozilla/gecko/GeckoPresentationDisplay.java'
+                    exclude 'org/mozilla/gecko/MediaPlayerManager.java'
+                }
+
+                if (mozconfig.substs.MOZ_WEBRTC) {
+                    srcDir "${topsrcdir}/media/webrtc/trunk/webrtc/modules/audio_device/android/java/src"
+                    srcDir "${topsrcdir}/media/webrtc/trunk/webrtc/modules/video_capture/android/java/src"
+                    srcDir "${topsrcdir}/media/webrtc/trunk/webrtc/modules/video_render/android/java/src"
+                }
+
+                if (mozconfig.substs.MOZ_INSTALL_TRACKING) {
+                    exclude 'org/mozilla/gecko/adjust/StubAdjustHelper.java'
+                } else {
+                    exclude 'org/mozilla/gecko/adjust/AdjustHelper.java'
+                }
+
+                if (!mozconfig.substs.MOZ_ANDROID_GCM) {
+                    exclude 'org/mozilla/gecko/gcm/**/*.java'
+                    exclude 'org/mozilla/gecko/push/**/*.java'
+                }
+
+                srcDir "${project.buildDir}/generated/source/preprocessed_code" // See syncPreprocessedCode.
+            }
+
+            res {
+                srcDir "${topsrcdir}/${mozconfig.substs.MOZ_BRANDING_DIRECTORY}/res"
+                srcDir "${project.buildDir}/generated/source/preprocessed_resources" // See syncPreprocessedResources.
+                srcDir "${topsrcdir}/mobile/android/base/resources"
+                srcDir "${topsrcdir}/mobile/android/services/src/main/res"
+                if (mozconfig.substs.MOZ_CRASHREPORTER) {
+                    srcDir "${topsrcdir}/mobile/android/base/crashreporter/res"
+                }
+            }
+
+            assets {
+                if (mozconfig.substs.MOZ_ANDROID_DISTRIBUTION_DIRECTORY && !mozconfig.substs.MOZ_ANDROID_PACKAGE_INSTALL_BOUNCER) {
+                    // If we are packaging the bouncer, it will have the distribution, so don't put
+                    // it in the main APK as well.
+                    srcDir "${mozconfig.substs.MOZ_ANDROID_DISTRIBUTION_DIRECTORY}/assets"
+                }
+                srcDir "${topsrcdir}/mobile/android/app/assets"
+            }
+        }
+
+        test {
+            java {
+                srcDir "${topsrcdir}/mobile/android/tests/background/junit4/src"
+
+                if (!mozconfig.substs.MOZ_ANDROID_GCM) {
+                    exclude 'org/mozilla/gecko/gcm/**/*.java'
+                    exclude 'org/mozilla/gecko/push/**/*.java'
+                }
+            }
+            resources {
+                srcDir "${topsrcdir}/mobile/android/tests/background/junit4/resources"
+            }
+        }
+
+        androidTest {
+            java {
+                srcDir "${topsrcdir}/mobile/android/tests/browser/robocop/src"
+                srcDir "${topsrcdir}/mobile/android/tests/background/junit3/src"
+                srcDir "${topsrcdir}/mobile/android/tests/browser/junit3/src"
+                srcDir "${topsrcdir}/mobile/android/tests/javaddons/src"
+            }
+            res {
+                srcDir "${topsrcdir}/mobile/android/tests/browser/robocop/res"
+            }
+            assets {
+                srcDir "${topsrcdir}/mobile/android/tests/browser/robocop/assets"
+            }
+        }
+    }
+
+    testOptions {
+        unitTests.all {
+            // We'd like to use (Runtime.runtime.availableProcessors()/2), but
+            // we have tests that start test servers and the bound ports
+            // collide.  We'll fix this soon to have much faster test cycles.
+            maxParallelForks 1
+        }
+    }
+}
+
+dependencies {
+    compile 'com.android.support:multidex:1.0.0'
+
+    compile "com.android.support:support-v4:${mozconfig.substs.ANDROID_SUPPORT_LIBRARY_VERSION}"
+    compile "com.android.support:appcompat-v7:${mozconfig.substs.ANDROID_SUPPORT_LIBRARY_VERSION}"
+    compile "com.android.support:cardview-v7:${mozconfig.substs.ANDROID_SUPPORT_LIBRARY_VERSION}"
+    compile "com.android.support:recyclerview-v7:${mozconfig.substs.ANDROID_SUPPORT_LIBRARY_VERSION}"
+    compile "com.android.support:design:${mozconfig.substs.ANDROID_SUPPORT_LIBRARY_VERSION}"
+    compile "com.android.support:customtabs:${mozconfig.substs.ANDROID_SUPPORT_LIBRARY_VERSION}"
+    compile "com.android.support:palette-v7:${mozconfig.substs.ANDROID_SUPPORT_LIBRARY_VERSION}"
+
+    if (mozconfig.substs.MOZ_NATIVE_DEVICES) {
+        compile "com.android.support:mediarouter-v7:${mozconfig.substs.ANDROID_SUPPORT_LIBRARY_VERSION}"
+        compile "com.google.android.gms:play-services-basement:${mozconfig.substs.ANDROID_GOOGLE_PLAY_SERVICES_VERSION}"
+        compile "com.google.android.gms:play-services-base:${mozconfig.substs.ANDROID_GOOGLE_PLAY_SERVICES_VERSION}"
+        compile "com.google.android.gms:play-services-cast:${mozconfig.substs.ANDROID_GOOGLE_PLAY_SERVICES_VERSION}"
+    }
+
+    if (mozconfig.substs.MOZ_INSTALL_TRACKING) {
+        compile "com.google.android.gms:play-services-ads:${mozconfig.substs.ANDROID_GOOGLE_PLAY_SERVICES_VERSION}"
+        compile "com.google.android.gms:play-services-basement:${mozconfig.substs.ANDROID_GOOGLE_PLAY_SERVICES_VERSION}"
+    }
+
+    if (mozconfig.substs.MOZ_ANDROID_GCM) {
+        compile "com.google.android.gms:play-services-basement:${mozconfig.substs.ANDROID_GOOGLE_PLAY_SERVICES_VERSION}"
+        compile "com.google.android.gms:play-services-base:${mozconfig.substs.ANDROID_GOOGLE_PLAY_SERVICES_VERSION}"
+        compile "com.google.android.gms:play-services-gcm:${mozconfig.substs.ANDROID_GOOGLE_PLAY_SERVICES_VERSION}"
+        compile "com.google.android.gms:play-services-measurement:${mozconfig.substs.ANDROID_GOOGLE_PLAY_SERVICES_VERSION}"
+    }
+
+    // Include LeakCanary in most gradle based builds. LeakCanary adds about 5k methods, so we disable
+    // it for the (non-proguarded, non-multidex) localOld builds to allow space for other libraries.
+    // Gradle based tests include the no-op version.  Mach based builds only include the no-op version
+    // of this library.
+    // It doesn't seem like there is a non-trivial way to be conditional on 'localOld', so instead we explicitly
+    // define a version of leakcanary for every flavor:
+    localCompile 'com.squareup.leakcanary:leakcanary-android:1.4-beta1'
+    localOldCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta1'
+    automationCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta1'
+    testCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta1'
+
+    compile project(':geckoview')
+    compile project(':thirdparty')
+
+    testCompile 'junit:junit:4.12'
+    testCompile 'org.robolectric:robolectric:3.1.2'
+    testCompile 'org.simpleframework:simple-http:6.0.1'
+    testCompile 'org.mockito:mockito-core:1.10.19'
+
+    // Including the Robotium JAR directly can cause issues with dexing.
+    androidTestCompile 'com.jayway.android.robotium:robotium-solo:5.5.4'
+}
+
+// TODO: (bug 1261486): This impl is not robust -
+// we just wanted to land something.
+task checkstyle(type: Checkstyle) {
+    configFile file("checkstyle.xml")
+    // TODO: should use sourceSets from project instead of hard-coded str.
+    source '../base/java/'
+    // TODO: This ignores our pre-processed resources.
+    include '**/*.java'
+    // TODO: classpath should probably be something.
+    classpath = files()
+}
+
+task syncPreprocessedCode(type: Sync, dependsOn: rootProject.generateCodeAndResources) {
+    into("${project.buildDir}/generated/source/preprocessed_code")
+    from("${topobjdir}/mobile/android/base/generated/preprocessed") {
+        // All other preprocessed code is included in the geckoview project.
+        include '**/AdjustConstants.java'
+    }
+}
+
+// The localization system uses the moz.build preprocessor to interpolate a .dtd
+// file of XML entity definitions into an XML file of elements referencing those
+// entities.  (Each locale produces its own .dtd file, backstopped by the en-US
+// .dtd file in tree.)  Android Studio (and IntelliJ) don't handle these inline
+// entities smoothly.  This filter merely expands the entities in place, making
+// them appear properly throughout the IDE.  Be aware that this assumes that the
+// JVM's file.encoding is utf-8.  See comments in
+// mobile/android/mach_commands.py.
+class ExpandXMLEntitiesFilter extends FilterReader {
+    ExpandXMLEntitiesFilter(Reader input) {
+        // Extremely inefficient, but whatever.
+        super(new StringReader(groovy.xml.XmlUtil.serialize(new XmlParser(false, false, true).parse(input))))
+    }
+}
+
+task syncPreprocessedResources(type: Sync, dependsOn: rootProject.generateCodeAndResources) {
+    into("${project.buildDir}/generated/source/preprocessed_resources")
+    from("${topobjdir}/mobile/android/base/res")
+    filesMatching('**/strings.xml') {
+        filter(ExpandXMLEntitiesFilter)
+    }
+}
+
+// It's not easy -- see the backout in Bug 1242213 -- to change the <manifest>
+// package for Fennec.  Gradle has grown a mechanism to achieve what we want for
+// Fennec, however, with applicationId.  To use the same manifest as moz.build,
+// we replace the package with org.mozilla.gecko (the eventual package) here.
+task rewriteManifestPackage(type: Copy, dependsOn: rootProject.generateCodeAndResources) {
+    into("${project.buildDir}/generated/source/preprocessed_manifest")
+    from("${topobjdir}/mobile/android/base/AndroidManifest.xml")
+    filter { it.replaceFirst(/package=".*?"/, 'package="org.mozilla.gecko"') }
+}
+
+apply from: "${topsrcdir}/mobile/android/gradle/with_gecko_binaries.gradle"
+
+android.applicationVariants.all { variant ->
+    variant.preBuild.dependsOn rewriteManifestPackage
+    variant.preBuild.dependsOn syncPreprocessedCode
+    variant.preBuild.dependsOn syncPreprocessedResources
+
+    // Automation builds don't include Gecko binaries, since those binaries are
+    // not produced until after build time (at package time).  Therefore,
+    // automation builds include the Gecko binaries into the APK at package
+    // time.  The "withGeckoBinaries" variant of the :geckoview project also
+    // does this.  (It does what it says on the tin!)  For notes on this
+    // approach, see mobile/android/gradle/with_gecko_binaries.gradle.
+
+    // Like 'local' or 'localOld'.
+    def productFlavor = variant.productFlavors[0].name
+
+    // :app uses :geckoview:release and handles it's own Gecko binary inclusion,
+    // even though this would be most naturally done in the :geckoview project.
+    if (!productFlavor.equals('automation')) {
+        configureVariantWithGeckoBinaries(variant)
+    }
+}
+
+apply plugin: 'spoon'
+
+spoon {
+    // For now, let's be verbose.
+    debug = true
+    // It's not helpful to pass when we don't have a device connected.
+    failIfNoDeviceConnected = true
+
+    def spoonPackageName
+    if (gradle.startParameter.taskNames.contains('runBrowserTests')) {
+        spoonPackageName = 'org.mozilla.tests.browser.junit3'
+    }
+    if (gradle.startParameter.taskNames.contains('runBackgroundTests')) {
+        spoonPackageName = 'org.mozilla.gecko.background'
+    }
+    if (project.hasProperty('spoonPackageName')) {
+        // Command line overrides everything.
+        spoonPackageName = project.spoonPackageName
+    }
+    if (spoonPackageName) {
+        instrumentationArgs = ['-e', "package=${spoonPackageName}".toString()]
+    }
+}
+
+// See discussion at https://github.com/stanfy/spoon-gradle-plugin/issues/9.
+afterEvaluate {
+    tasks["spoonLocal${android.testBuildType.capitalize()}AndroidTest"].outputs.upToDateWhen { false }
+
+    // This is an awkward way to define different sets of instrumentation tests.
+    // The task name itself is fished at runtime and the package name configured
+    // in the spoon configuration.
+    task runBrowserTests {
+        dependsOn tasks["spoonLocalOldDebugAndroidTest"]
+    }
+    task runBackgroundTests {
+        dependsOn tasks["spoonLocalOldDebugAndroidTest"]
+    }
+}
+
+// Bug 1299015: Complain to treeherder if checkstyle, lint, or unittest fails.  It's not obvious
+// how to listen to individual errors in most cases, so we just link to the reports for now.
+def makeTaskExecutionListener(artifactRootUrl) {
+    return new TaskExecutionListener() {
+        void beforeExecute(Task task) {
+            // Do nothing.
+        }
+
+        void afterExecute(Task task, TaskState state) {
+            if (!state.failure) {
+                return
+            }
+
+            // Link to the failing report.  The task path and the report path
+            // depend on the android-lint task in
+            // taskcluster/ci/android-stuff/kind.yml.  It's not possible to link
+            // directly, so for now consumers will need to copy-paste the URL.
+            switch (task.path) {
+            case ':app:checkstyle':
+                def url = "${artifactRootUrl}/public/android/checkstyle/checkstyle.xml"
+                println "TEST-UNEXPECTED-FAIL | android-checkstyle | Checkstyle rule violations were found. See the report at: $url"
+                break
+
+            case ':app:lintAutomationDebug':
+                def url = "${artifactRootUrl}/public/android/lint/lint-results-automationDebug.html"
+                println "TEST-UNEXPECTED-FAIL | android-lint | Lint found errors in the project; aborting build. See the report at: $url"
+                break
+
+            case ':app:testAutomationDebugUnitTest':
+                def url = "${artifactRootUrl}/public/android/unittest/automationDebug/index.html"
+                println "TEST-UNEXPECTED-FAIL | android-test | There were failing tests. See the report at: $url"
+                break
+            }
+        }
+    }
+}
+
+// TASK_ID and RUN_ID are provided by docker-worker; see
+// https://docs.taskcluster.net/manual/execution/workers/docker-worker.
+if (System.env.TASK_ID && System.env.RUN_ID) {
+    def artifactRootUrl = "https://queue.taskcluster.net/v1/task/${System.env.TASK_ID}/runs/${System.env.RUN_ID}/artifacts"
+    gradle.addListener(makeTaskExecutionListener(artifactRootUrl))
+}

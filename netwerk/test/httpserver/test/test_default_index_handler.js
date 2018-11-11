@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -42,7 +42,7 @@ function createTestDirectory()
           .getService(Ci.nsIProperties)
           .get("TmpD", Ci.nsIFile);
   dir.append("index_handler_test_" + Math.random());
-  dir.createUnique(Ci.nsIFile.DIRECTORY_TYPE, 0744);
+  dir.createUnique(Ci.nsIFile.DIRECTORY_TYPE, 0o744);
 
   // populate with test directories, files, etc.
   // Files must be in expected order of display on the index page!
@@ -249,7 +249,7 @@ function makeFile(name, isDirectory, parentDir, lst)
   try
   {
     file.append(name);
-    file.create(type, 0755);
+    file.create(type, 0o755);
     lst.push({name: name, isDirectory: isDirectory});
   }
   catch (e) { /* OS probably doesn't like file name, skip */ }

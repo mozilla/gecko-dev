@@ -26,7 +26,9 @@ include $(CORE_DEPTH)/coreconf/config.mk
 # (4) Include "local" platform-dependent assignments (OPTIONAL).      #
 #######################################################################
 
-
+ifdef NSS_DISABLE_GTESTS
+DIRS := $(filter-out gtests,$(DIRS))
+endif
 
 #######################################################################
 # (5) Execute "global" rules. (OPTIONAL)                              #
@@ -44,7 +46,7 @@ include $(CORE_DEPTH)/coreconf/rules.mk
 # (7) Execute "local" rules. (OPTIONAL).                              #
 #######################################################################
 
-nss_build_all: build_nspr all
+nss_build_all: build_nspr all latest
 
 nss_clean_all: clobber_nspr clobber
 
@@ -56,7 +58,11 @@ NSPR_CONFIGURE = $(CORE_DEPTH)/../nspr/configure
 #
 
 ifeq ($(OS_TARGET),Android)
-NSPR_CONFIGURE_OPTS += --with-android-ndk=$(ANDROID_NDK) --target=arm-linux-androideabi --with-android-version=$(OS_TARGET_RELEASE)
+NSPR_CONFIGURE_OPTS += --with-android-ndk=$(ANDROID_NDK) \
+                       --target=$(ANDROID_PREFIX) \
+                       --with-android-version=$(OS_TARGET_RELEASE) \
+                       --with-android-toolchain=$(ANDROID_TOOLCHAIN) \
+                       --with-android-platform=$(ANDROID_SYSROOT)
 endif
 ifdef BUILD_OPT
 NSPR_CONFIGURE_OPTS += --disable-debug --enable-optimize
@@ -73,8 +79,30 @@ endif
 ifdef USE_DEBUG_RTL
 NSPR_CONFIGURE_OPTS += --enable-debug-rtl
 endif
+ifdef USE_STATIC_RTL
+NSPR_CONFIGURE_OPTS += --enable-static-rtl
+endif
 ifdef NS_USE_GCC
-NSPR_COMPILERS = CC=gcc CXX=g++
+NSPR_CONFIGURE_ENV = CC=gcc CXX=g++
+endif
+ifdef CC
+NSPR_CONFIGURE_ENV = CC=$(CC)
+endif
+ifdef CCC
+NSPR_CONFIGURE_ENV += CXX=$(CCC)
+endif
+# Remove -arch definitions. NSPR can't handle that.
+NSPR_CONFIGURE_ENV := $(filter-out -arch x86_64,$(NSPR_CONFIGURE_ENV))
+NSPR_CONFIGURE_ENV := $(filter-out -arch i386,$(NSPR_CONFIGURE_ENV))
+NSPR_CONFIGURE_ENV := $(filter-out -arch ppc,$(NSPR_CONFIGURE_ENV))
+
+ifdef SANITIZER_CFLAGS
+ifdef BUILD_OPT
+NSPR_CONFIGURE_OPTS += --enable-debug-symbols
+endif
+NSPR_CONFIGURE_ENV += CFLAGS='$(SANITIZER_CFLAGS)' \
+                      CXXFLAGS='$(SANITIZER_CFLAGS)' \
+                      LDFLAGS='$(SANITIZER_LDFLAGS)'
 endif
 
 #
@@ -98,16 +126,28 @@ else
 NSPR_PREFIX = $$(topsrcdir)/../dist/$(OBJDIR_NAME)
 endif
 
+ifndef NSS_GYP_PREFIX
 $(NSPR_CONFIG_STATUS): $(NSPR_CONFIGURE)
 	mkdir -p $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME)
 	cd $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME) ; \
-	$(NSPR_COMPILERS) sh ../configure \
+	$(NSPR_CONFIGURE_ENV) sh ../configure \
 	$(NSPR_CONFIGURE_OPTS) \
 	--with-dist-prefix='$(NSPR_PREFIX)' \
 	--with-dist-includedir='$(NSPR_PREFIX)/include'
+else
+$(NSPR_CONFIG_STATUS): $(NSPR_CONFIGURE)
+	mkdir -p $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME)
+	cd $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME) ; \
+	$(NSPR_CONFIGURE_ENV) sh ../configure \
+	$(NSPR_CONFIGURE_OPTS) \
+	--prefix='$(NSS_GYP_PREFIX)'
+endif
 
 build_nspr: $(NSPR_CONFIG_STATUS)
 	$(MAKE) -C $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME)
+
+install_nspr: build_nspr
+	$(MAKE) -C $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME) install
 
 clobber_nspr: $(NSPR_CONFIG_STATUS)
 	$(MAKE) -C $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME) clobber
@@ -122,4 +162,7 @@ nss_RelEng_bld: import all
 
 package:
 	$(MAKE) -C pkg publish
+
+latest:
+	echo $(OBJDIR_NAME) > $(CORE_DEPTH)/../dist/latest
 

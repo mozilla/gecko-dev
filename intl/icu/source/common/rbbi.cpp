@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 ***************************************************************************
-*   Copyright (C) 1999-2013 International Business Machines Corporation
+*   Copyright (C) 1999-2016 International Business Machines Corporation
 *   and others. All rights reserved.
 ***************************************************************************
 */
@@ -71,21 +73,6 @@ RuleBasedBreakIterator::RuleBasedBreakIterator(RBBIDataHeader* data, UErrorCode 
         return;
     }
 }
-
-/**
- * Same as above but does not adopt memory
- */
-RuleBasedBreakIterator::RuleBasedBreakIterator(const RBBIDataHeader* data, enum EDontAdopt, UErrorCode &status)
-{
-    init();
-    fData = new RBBIDataWrapper(data, RBBIDataWrapper::kDontAdopt, status); // status checked in constructor
-    if (U_FAILURE(status)) {return;}
-    if(fData == 0) {
-        status = U_MEMORY_ALLOCATION_ERROR;
-        return;
-    }
-}
-
 
 //
 //  Construct from precompiled binary rules (tables).  This constructor is public API,
@@ -518,8 +505,8 @@ RuleBasedBreakIterator &RuleBasedBreakIterator::refreshInputText(UText *input, U
 
 
 /**
- * Sets the current iteration position to the beginning of the text.
- * @return The offset of the beginning of the text.
+ * Sets the current iteration position to the beginning of the text, position zero.
+ * @return The new iterator position, which is zero.
  */
 int32_t RuleBasedBreakIterator::first(void) {
     reset();
@@ -592,6 +579,7 @@ int32_t RuleBasedBreakIterator::next(void) {
     }
 
     int32_t startPos = current();
+    fDictionaryCharCount = 0;
     int32_t result = handleNext(fData->fForwardTable);
     if (fDictionaryCharCount > 0) {
         result = checkDictionary(startPos, result, FALSE);
@@ -646,7 +634,6 @@ int32_t RuleBasedBreakIterator::previous(void) {
     // break position before the current position (we back our internal
     // iterator up one step to prevent handlePrevious() from returning
     // the current position), but not necessarily the last one before
-
     // where we started
 
     int32_t start = current();
@@ -679,11 +666,11 @@ int32_t RuleBasedBreakIterator::previous(void) {
     // the result position that we are to return (in lastResult.)  If
     // the backwards rules overshot and the above loop had to do two or more
     // next()s to move up to the desired return position, we will have a valid
-    // tag value. But, if handlePrevious() took us to exactly the correct result positon,
+    // tag value. But, if handlePrevious() took us to exactly the correct result position,
     // we wont have a tag value for that position, which is only set by handleNext().
 
-    // set the current iteration position to be the last break position
-    // before where we started, and then return that value
+    // Set the current iteration position to be the last break position
+    // before where we started, and then return that value.
     utext_setNativeIndex(fText, lastResult);
     fLastRuleStatusIndex  = lastTag;       // for use by getRuleStatus()
     fLastStatusIndexValid = breakTagValid;
@@ -701,6 +688,22 @@ int32_t RuleBasedBreakIterator::previous(void) {
  * @return The position of the first break after the current position.
  */
 int32_t RuleBasedBreakIterator::following(int32_t offset) {
+    // if the offset passed in is already past the end of the text,
+    // just return DONE; if it's before the beginning, return the
+    // text's starting offset
+    if (fText == NULL || offset >= utext_nativeLength(fText)) {
+        last();
+        return next();
+    }
+    else if (offset < 0) {
+        return first();
+    }
+
+    // Move requested offset to a code point start. It might be on a trail surrogate,
+    // or on a trail byte if the input is UTF-8.
+    utext_setNativeIndex(fText, offset);
+    offset = (int32_t)utext_getNativeIndex(fText);
+
     // if we have cached break positions and offset is in the range
     // covered by them, use them
     // TODO: could use binary search
@@ -722,20 +725,7 @@ int32_t RuleBasedBreakIterator::following(int32_t offset) {
         }
     }
 
-    // if the offset passed in is already past the end of the text,
-    // just return DONE; if it's before the beginning, return the
-    // text's starting offset
-    fLastRuleStatusIndex  = 0;
-    fLastStatusIndexValid = TRUE;
-    if (fText == NULL || offset >= utext_nativeLength(fText)) {
-        last();
-        return next();
-    }
-    else if (offset < 0) {
-        return first();
-    }
-
-    // otherwise, set our internal iteration position (temporarily)
+    // Set our internal iteration position (temporarily)
     // to the position passed in.  If this is the _beginning_ position,
     // then we can just use next() to get our return value
 
@@ -747,6 +737,7 @@ int32_t RuleBasedBreakIterator::following(int32_t offset) {
         // move forward one codepoint to prepare for moving back to a
         // safe point.
         // this handles offset being between a supplementary character
+        // TODO: is this still needed, with move to code point boundary handled above?
         (void)UTEXT_NEXT32(fText);
         // handlePrevious will move most of the time to < 1 boundary away
         handlePrevious(fData->fSafeRevTable);
@@ -809,6 +800,21 @@ int32_t RuleBasedBreakIterator::following(int32_t offset) {
  * @return The position of the last boundary before the starting position.
  */
 int32_t RuleBasedBreakIterator::preceding(int32_t offset) {
+    // if the offset passed in is already past the end of the text,
+    // just return DONE; if it's before the beginning, return the
+    // text's starting offset
+    if (fText == NULL || offset > utext_nativeLength(fText)) {
+        return last();
+    }
+    else if (offset < 0) {
+        return first();
+    }
+
+    // Move requested offset to a code point start. It might be on a trail surrogate,
+    // or on a trail byte if the input is UTF-8.
+    utext_setNativeIndex(fText, offset);
+    offset = (int32_t)utext_getNativeIndex(fText);
+
     // if we have cached break positions and offset is in the range
     // covered by them, use them
     if (fCachedBreakPositions != NULL) {
@@ -832,17 +838,6 @@ int32_t RuleBasedBreakIterator::preceding(int32_t offset) {
         else {
             reset();
         }
-    }
-
-    // if the offset passed in is already past the end of the text,
-    // just return DONE; if it's before the beginning, return the
-    // text's starting offset
-    if (fText == NULL || offset > utext_nativeLength(fText)) {
-        // return BreakIterator::DONE;
-        return last();
-    }
-    else if (offset < 0) {
-        return first();
     }
 
     // if we start by updating the current iteration position to the
@@ -975,6 +970,54 @@ enum RBBIRunMode {
 };
 
 
+// Map from look-ahead break states (corresponds to rules) to boundary positions.
+// Allows multiple lookahead break rules to be in flight at the same time.
+//
+// This is a temporary approach for ICU 57. A better fix is to make the look-ahead numbers
+// in the state table be sequential, then we can just index an array. And the
+// table could also tell us in advance how big that array needs to be.
+//
+// Before ICU 57 there was just a single simple variable for a look-ahead match that
+// was in progress. Two rules at once did not work.
+
+static const int32_t kMaxLookaheads = 8;
+struct LookAheadResults {
+    int32_t    fUsedSlotLimit;
+    int32_t    fPositions[8];
+    int16_t    fKeys[8];
+
+    LookAheadResults() : fUsedSlotLimit(0), fPositions(), fKeys() {};
+
+    int32_t getPosition(int16_t key) {
+        for (int32_t i=0; i<fUsedSlotLimit; ++i) {
+            if (fKeys[i] == key) {
+                return fPositions[i];
+            }
+        }
+        U_ASSERT(FALSE);
+        return -1;
+    }
+
+    void setPosition(int16_t key, int32_t position) {
+        int32_t i;
+        for (i=0; i<fUsedSlotLimit; ++i) {
+            if (fKeys[i] == key) {
+                fPositions[i] = position;
+                return;
+            }
+        }
+        if (i >= kMaxLookaheads) {
+            U_ASSERT(FALSE);
+            i = kMaxLookaheads - 1;
+        }
+        fKeys[i] = key;
+        fPositions[i] = position;
+        U_ASSERT(fUsedSlotLimit == i);
+        fUsedSlotLimit = i + 1;
+    }
+};
+
+
 //-----------------------------------------------------------------------------------
 //
 //  handleNext(stateTable)
@@ -992,14 +1035,11 @@ int32_t RuleBasedBreakIterator::handleNext(const RBBIStateTable *statetable) {
     
     RBBIStateTableRow  *row;
     UChar32             c;
-    int32_t             lookaheadStatus = 0;
-    int32_t             lookaheadTagIdx = 0;
-    int32_t             result          = 0;
-    int32_t             initialPosition = 0;
-    int32_t             lookaheadResult = 0;
-    UBool               lookAheadHardBreak = (statetable->fFlags & RBBI_LOOKAHEAD_HARD_BREAK) != 0;
-    const char         *tableData       = statetable->fTableData;
-    uint32_t            tableRowLen     = statetable->fRowLen;
+    LookAheadResults    lookAheadMatches;
+    int32_t             result             = 0;
+    int32_t             initialPosition    = 0;
+    const char         *tableData          = statetable->fTableData;
+    uint32_t            tableRowLen        = statetable->fRowLen;
 
     #ifdef RBBI_DEBUG
         if (fTrace) {
@@ -1042,14 +1082,6 @@ int32_t RuleBasedBreakIterator::handleNext(const RBBIStateTable *statetable) {
                 // We have already run the loop one last time with the 
                 //   character set to the psueudo {eof} value.  Now it is time
                 //   to unconditionally bail out.
-                if (lookaheadResult > result) {
-                    // We ran off the end of the string with a pending look-ahead match.
-                    // Treat this as if the look-ahead condition had been met, and return
-                    //  the match at the / position from the look-ahead rule.
-                    result               = lookaheadResult;
-                    fLastRuleStatusIndex = lookaheadTagIdx;
-                    lookaheadStatus = 0;
-                } 
                 break;
             }
             // Run the loop one last time with the fake end-of-input character category.
@@ -1115,38 +1147,23 @@ int32_t RuleBasedBreakIterator::handleNext(const RBBIStateTable *statetable) {
             fLastRuleStatusIndex = row->fTagIdx;   // Remember the break status (tag) values.
         }
 
-        if (row->fLookAhead != 0) {
-            if (lookaheadStatus != 0
-                && row->fAccepting == lookaheadStatus) {
-                // Lookahead match is completed.  
-                result               = lookaheadResult;
-                fLastRuleStatusIndex = lookaheadTagIdx;
-                lookaheadStatus      = 0;
-                // TODO:  make a standalone hard break in a rule work.
-                if (lookAheadHardBreak) {
-                    UTEXT_SETNATIVEINDEX(fText, result);
-                    return result;
-                }
-                // Look-ahead completed, but other rules may match further.  Continue on
-                //  TODO:  junk this feature?  I don't think it's used anywhwere.
-                goto continueOn;
+        int16_t completedRule = row->fAccepting;
+        if (completedRule > 0) {
+            // Lookahead match is completed.  
+            int32_t lookaheadResult = lookAheadMatches.getPosition(completedRule);
+            if (lookaheadResult >= 0) {
+                fLastRuleStatusIndex = row->fTagIdx;
+                UTEXT_SETNATIVEINDEX(fText, lookaheadResult);
+                return lookaheadResult;
             }
-
-            int32_t  r = (int32_t)UTEXT_GETNATIVEINDEX(fText);
-            lookaheadResult = r;
-            lookaheadStatus = row->fLookAhead;
-            lookaheadTagIdx = row->fTagIdx;
-            goto continueOn;
+        }
+        int16_t rule = row->fLookAhead;
+        if (rule != 0) {
+            // At the position of a '/' in a look-ahead match. Record it.
+            int32_t  pos = (int32_t)UTEXT_GETNATIVEINDEX(fText);
+            lookAheadMatches.setPosition(rule, pos);
         }
 
-
-        if (row->fAccepting != 0) {
-            // Because this is an accepting state, any in-progress look-ahead match
-            //   is no longer relavant.  Clear out the pending lookahead status.
-            lookaheadStatus = 0;           // clear out any pending look-ahead match.
-        }
-
-continueOn:
         if (state == STOP_STATE) {
             // This is the normal exit from the lookup state machine.
             // We have advanced through the string until it is certain that no
@@ -1208,11 +1225,9 @@ int32_t RuleBasedBreakIterator::handlePrevious(const RBBIStateTable *statetable)
     RBBIRunMode         mode;
     RBBIStateTableRow  *row;
     UChar32             c;
-    int32_t             lookaheadStatus = 0;
+    LookAheadResults    lookAheadMatches;
     int32_t             result          = 0;
     int32_t             initialPosition = 0;
-    int32_t             lookaheadResult = 0;
-    UBool               lookAheadHardBreak = (statetable->fFlags & RBBI_LOOKAHEAD_HARD_BREAK) != 0;
 
     #ifdef RBBI_DEBUG
         if (fTrace) {
@@ -1258,13 +1273,7 @@ int32_t RuleBasedBreakIterator::handlePrevious(const RBBIStateTable *statetable)
                 // We have already run the loop one last time with the 
                 //   character set to the psueudo {eof} value.  Now it is time
                 //   to unconditionally bail out.
-                if (lookaheadResult < result) {
-                    // We ran off the end of the string with a pending look-ahead match.
-                    // Treat this as if the look-ahead condition had been met, and return
-                    //  the match at the / position from the look-ahead rule.
-                    result               = lookaheadResult;
-                    lookaheadStatus = 0;
-                } else if (result == initialPosition) {
+                if (result == initialPosition) {
                     // Ran off start, no match found.
                     // move one index one (towards the start, since we are doing a previous())
                     UTEXT_SETNATIVEINDEX(fText, initialPosition);
@@ -1330,36 +1339,22 @@ int32_t RuleBasedBreakIterator::handlePrevious(const RBBIStateTable *statetable)
             result = (int32_t)UTEXT_GETNATIVEINDEX(fText);
         }
 
-        if (row->fLookAhead != 0) {
-            if (lookaheadStatus != 0
-                && row->fAccepting == lookaheadStatus) {
-                // Lookahead match is completed.  
-                result               = lookaheadResult;
-                lookaheadStatus      = 0;
-                // TODO:  make a standalone hard break in a rule work.
-                if (lookAheadHardBreak) {
-                    UTEXT_SETNATIVEINDEX(fText, result);
-                    return result;
-                }
-                // Look-ahead completed, but other rules may match further.  Continue on
-                //  TODO:  junk this feature?  I don't think it's used anywhwere.
-                goto continueOn;
+        int16_t completedRule = row->fAccepting;
+        if (completedRule > 0) {
+            // Lookahead match is completed.  
+            int32_t lookaheadResult = lookAheadMatches.getPosition(completedRule);
+            if (lookaheadResult >= 0) {
+                UTEXT_SETNATIVEINDEX(fText, lookaheadResult);
+                return lookaheadResult;
             }
-
-            int32_t  r = (int32_t)UTEXT_GETNATIVEINDEX(fText);
-            lookaheadResult = r;
-            lookaheadStatus = row->fLookAhead;
-            goto continueOn;
+        }
+        int16_t rule = row->fLookAhead;
+        if (rule != 0) {
+            // At the position of a '/' in a look-ahead match. Record it.
+            int32_t  pos = (int32_t)UTEXT_GETNATIVEINDEX(fText);
+            lookAheadMatches.setPosition(rule, pos);
         }
 
-
-        if (row->fAccepting != 0) {
-            // Because this is an accepting state, any in-progress look-ahead match
-            //   is no longer relavant.  Clear out the pending lookahead status.
-            lookaheadStatus = 0;    
-        }
-
-continueOn:
         if (state == STOP_STATE) {
             // This is the normal exit from the lookup state machine.
             // We have advanced through the string until it is certain that no
@@ -1578,30 +1573,6 @@ int32_t RuleBasedBreakIterator::checkDictionary(int32_t startPos,
         return (reverse ? startPos : endPos);
     }
     
-    // Bug 5532.  The dictionary code will crash if the input text is UTF-8
-    //      because native indexes are different from UTF-16 indexes.
-    //      Temporary hack: skip dictionary lookup for UTF-8 encoded text.
-    //      It wont give the right breaks, but it's better than a crash.
-    //
-    //      Check the type of the UText by checking its pFuncs field, which
-    //      is UText's function dispatch table.  It will be the same for all
-    //      UTF-8 UTexts and different for any other UText type.
-    //
-    //      We have no other type of UText available with non-UTF-16 native indexing.
-    //      This whole check will go away once the dictionary code is fixed.
-    static const void *utext_utf8Funcs;
-    if (utext_utf8Funcs == NULL) {
-        // Cache the UTF-8 UText function pointer value.
-        UErrorCode status = U_ZERO_ERROR;
-        UText tempUText = UTEXT_INITIALIZER; 
-        utext_openUTF8(&tempUText, NULL, 0, &status);
-        utext_utf8Funcs = tempUText.pFuncs;
-        utext_close(&tempUText);
-    }
-    if (fText->pFuncs == utext_utf8Funcs) {
-        return (reverse ? startPos : endPos);
-    }
-
     // Starting from the starting point, scan towards the proposed result,
     // looking for the first dictionary character (which may be the one
     // we're on, if we're starting in the middle of a range).
@@ -1703,6 +1674,7 @@ int32_t RuleBasedBreakIterator::checkDictionary(int32_t startPos,
     // If we found breaks, build a new break cache. The first and last entries must
     // be the original starting and ending position.
     if (foundBreakCount > 0) {
+        U_ASSERT(foundBreakCount == breaks.size());
         int32_t totalBreaks = foundBreakCount;
         if (startPos < breaks.elementAti(0)) {
             totalBreaks += 1;
@@ -1741,8 +1713,6 @@ int32_t RuleBasedBreakIterator::checkDictionary(int32_t startPos,
     utext_setNativeIndex(fText, reverse ? startPos : endPos);
     return (reverse ? startPos : endPos);
 }
-
-// defined in ucln_cmn.h
 
 U_NAMESPACE_END
 

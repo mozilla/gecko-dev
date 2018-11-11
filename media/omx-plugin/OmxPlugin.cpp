@@ -26,27 +26,12 @@
 #define MAX_DECODER_NAME_LEN 256
 #define AVC_MIME_TYPE "video/avc"
 
-#if !defined(MOZ_ANDROID_FROYO)
 #define DEFAULT_STAGEFRIGHT_FLAGS OMXCodec::kClientNeedsFramebuffer
-#else
-#define DEFAULT_STAGEFRIGHT_FLAGS 0
-#endif
 
 #undef LOG
 #define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "OmxPlugin" , ## args)
 
-#if defined(MOZ_ANDROID_FROYO) || defined(MOZ_ANDROID_GB)
-// Android versions 2.x.x have common API differences
-#define MOZ_ANDROID_V2_X_X
-#endif
-
-#if !defined(MOZ_ANDROID_V2_X_X) && !defined(MOZ_ANDROID_HC)
-#define MOZ_ANDROID_V4_OR_ABOVE
-#endif
-
-#if defined(MOZ_ANDROID_V4_OR_ABOVE)
 #include <I420ColorConverter.h>
-#endif
 
 using namespace MPAPI;
 
@@ -209,11 +194,9 @@ OmxDecoder::~OmxDecoder()
     mAudioSource->stop();
   }
 
-#ifndef MOZ_ANDROID_HC
   if (mColorConverter) {
     delete mColorConverter;
   }
-#endif
 }
 
 class AutoStopMediaSource {
@@ -242,8 +225,6 @@ GetDefaultStagefrightFlags(PluginHost *aPluginHost)
 {
   uint32_t flags = DEFAULT_STAGEFRIGHT_FLAGS;
 
-#if !defined(MOZ_ANDROID_FROYO)
-
   char hardware[256] = "";
   aPluginHost->GetSystemInfoString("hardware", hardware, sizeof(hardware));
 
@@ -259,8 +240,6 @@ GetDefaultStagefrightFlags(PluginHost *aPluginHost)
   }
 
   LOG("Hardware %s; using default flags %#x\n", hardware, flags);
-
-#endif
 
   return flags;
 }
@@ -281,14 +260,12 @@ static uint32_t GetVideoCreationFlags(PluginHost* aPluginHost)
   int32_t flags = 0;
   aPluginHost->GetIntPref("media.stagefright.omxcodec.flags", &flags);
   if (flags != 0) {
-#if !defined(MOZ_ANDROID_V2_X_X)
     LOG("media.stagefright.omxcodec.flags=%d", flags);
     if ((flags & OMXCodec::kHardwareCodecsOnly) != 0) {
       LOG("FORCE HARDWARE DECODING");
     } else if ((flags & OMXCodec::kSoftwareCodecsOnly) != 0) {
       LOG("FORCE SOFTWARE DECODING");
     }
-#endif
   }
 
   flags |= GetDefaultStagefrightFlags(aPluginHost);
@@ -323,14 +300,11 @@ IsColorFormatSupported(OMX_COLOR_FORMATTYPE aColorFormat)
 
   // These formats are okay if we can't find a better one; Android provides a
   // software conversion to a sane colour format.
-#if !defined(MOZ_ANDROID_HC)
   if (ColorConverter(aColorFormat, OMX_COLOR_Format16bitRGB565).isValid()) {
     LOG("Colour format %#x supported by Android ColorConverter.", aColorFormat);
     return ColorFormatSupportOK;
   }
-#endif
 
-#if defined(MOZ_ANDROID_V4_OR_ABOVE)
   I420ColorConverter yuvConverter;
 
   if (yuvConverter.isLoaded() &&
@@ -338,7 +312,6 @@ IsColorFormatSupported(OMX_COLOR_FORMATTYPE aColorFormat)
     LOG("Colour format %#x supported by Android I420ColorConverter.", aColorFormat);
     return ColorFormatSupportOK;
   }
-#endif
 
   return ColorFormatNotSupported;
 }
@@ -446,11 +419,7 @@ static sp<MediaSource> CreateVideoSource(PluginHost* aPluginHost,
     // Throw away the videoSource and try again with new flags.
     LOG("Falling back to software decoder");
     videoSource.clear();
-#if defined(MOZ_ANDROID_V2_X_X)
-    flags = DEFAULT_STAGEFRIGHT_FLAGS | OMXCodec::kPreferSoftwareCodecs;
-#else
     flags = DEFAULT_STAGEFRIGHT_FLAGS | OMXCodec::kSoftwareCodecsOnly;
-#endif
   }
 
   MOZ_ASSERT(flags != DEFAULT_STAGEFRIGHT_FLAGS);
@@ -521,11 +490,6 @@ bool OmxDecoder::Init()
   sp<MediaSource> videoTrack;
   sp<MediaSource> videoSource;
   if (videoTrackIndex != -1 && (videoTrack = extractor->getTrack(videoTrackIndex)) != nullptr) {
-#if defined(MOZ_ANDROID_FROYO)
-    // Allow up to 720P video.
-    sp<MetaData> meta = extractor->getTrackMetaData(videoTrackIndex);
-    meta->setInt32(kKeyMaxInputSize, (1280 * 720 * 3) / 2);
-#endif
     videoSource = CreateVideoSource(mPluginHost, omx, videoTrack);
     if (videoSource == nullptr) {
       LOG("OMXCodec failed to initialize video decoder for \"%s\"", videoMime);
@@ -623,7 +587,7 @@ bool OmxDecoder::SetVideoFormat() {
   // slice height. Stagefright only seems to use its kKeyStride and
   // kKeySliceHeight to initialize camera video formats.
 
-#if defined(DEBUG) && !defined(MOZ_ANDROID_FROYO)
+#if defined(DEBUG)
   int32_t unexpected;
   if (format->findInt32(kKeyStride, &unexpected))
     LOG("Expected kKeyWidth, but found kKeyStride %d", unexpected);
@@ -651,18 +615,14 @@ bool OmxDecoder::SetVideoFormat() {
   }
 
   // Gingerbread does not support the kKeyCropRect key
-#if !defined(MOZ_ANDROID_V2_X_X)
   if (!format->findRect(kKeyCropRect, &mVideoCropLeft, &mVideoCropTop,
                                       &mVideoCropRight, &mVideoCropBottom)) {
-#endif
     mVideoCropLeft = 0;
     mVideoCropTop = 0;
     mVideoCropRight = mVideoStride - 1;
     mVideoCropBottom = mVideoSliceHeight - 1;
     LOG("crop rect not available, assuming no cropping");
-#if !defined(MOZ_ANDROID_V2_X_X)
   }
-#endif
 
   if (mVideoCropLeft < 0 || mVideoCropLeft >= mVideoCropRight || mVideoCropRight >= mVideoStride ||
       mVideoCropTop < 0 || mVideoCropTop >= mVideoCropBottom || mVideoCropBottom >= mVideoSliceHeight) {
@@ -675,14 +635,10 @@ bool OmxDecoder::SetVideoFormat() {
   MOZ_ASSERT(mVideoWidth > 0 && mVideoWidth <= mVideoStride);
   MOZ_ASSERT(mVideoHeight > 0 && mVideoHeight <= mVideoSliceHeight);
 
-#if !defined(MOZ_ANDROID_FROYO)
   if (!format->findInt32(kKeyRotation, &mVideoRotation)) {
-#endif
     mVideoRotation = 0;
-#if !defined(MOZ_ANDROID_FROYO)
     LOG("rotation not available, assuming 0");
   }
-#endif
 
   if (mVideoRotation != 0 && mVideoRotation != 90 &&
       mVideoRotation != 180 && mVideoRotation != 270) {
@@ -820,9 +776,6 @@ bool OmxDecoder::ToVideoFrame_RGB565(VideoFrame *aFrame, int64_t aTimeUs, void *
 }
 
 bool OmxDecoder::ToVideoFrame_ColorConverter(VideoFrame *aFrame, int64_t aTimeUs, void *aData, size_t aSize, bool aKeyFrame, BufferCallback *aBufferCallback) {
-#ifdef MOZ_ANDROID_HC
-  return false;
-#else
   if (!mColorConverter) {
     mColorConverter = new ColorConverter((OMX_COLOR_FORMATTYPE)mVideoColorFormat,
                                          OMX_COLOR_Format16bitRGB565);
@@ -842,26 +795,18 @@ bool OmxDecoder::ToVideoFrame_ColorConverter(VideoFrame *aFrame, int64_t aTimeUs
 
   aFrame->mSize = mVideoWidth * mVideoHeight * 2;
 
-#if defined(MOZ_ANDROID_V2_X_X)
-  mColorConverter->convert(mVideoWidth, mVideoHeight,
-                           aData, 0 /* srcSkip */,
-                           buffer, mVideoWidth * 2);
-#else
   mColorConverter->convert(aData, mVideoStride, mVideoSliceHeight,
                            mVideoCropLeft, mVideoCropTop,
                            mVideoCropLeft + mVideoWidth - 1,
                            mVideoCropTop + mVideoHeight - 1,
                            buffer, mVideoWidth, mVideoHeight,
                            0, 0, mVideoWidth - 1, mVideoHeight - 1);
-#endif
 
   return true;
-#endif
 }
 
 bool OmxDecoder::ToVideoFrame_I420ColorConverter(VideoFrame *aFrame, int64_t aTimeUs, void *aData, size_t aSize, bool aKeyFrame, BufferCallback *aBufferCallback)
 {
-#if defined(MOZ_ANDROID_V4_OR_ABOVE)
   I420ColorConverter yuvConverter;
 
   if (!yuvConverter.isLoaded()) {
@@ -888,16 +833,10 @@ bool OmxDecoder::ToVideoFrame_I420ColorConverter(VideoFrame *aFrame, int64_t aTi
   }
 
   return result == OK;
-#else
-  return false;
-#endif
 }
 
 bool OmxDecoder::ToVideoFrame(VideoFrame *aFrame, int64_t aTimeUs, void *aData, size_t aSize, bool aKeyFrame, BufferCallback *aBufferCallback) {
   switch (mVideoColorFormat) {
-// Froyo support is best handled with the android color conversion code. I
-// get corrupted videos when using our own routines below.
-#if !defined(MOZ_ANDROID_FROYO)
   case OMX_COLOR_FormatYUV420Planar: // e.g. Asus Transformer, Stagefright's software decoder
     ToVideoFrame_YUV420Planar(aFrame, aTimeUs, aData, aSize, aKeyFrame);
     break;
@@ -919,7 +858,6 @@ bool OmxDecoder::ToVideoFrame(VideoFrame *aFrame, int64_t aTimeUs, void *aData, 
   case OMX_COLOR_Format16bitRGB565:
     return ToVideoFrame_RGB565(aFrame, aTimeUs, aData, aSize, aKeyFrame, aBufferCallback);
     break;
-#endif
   default:
     if (!ToVideoFrame_ColorConverter(aFrame, aTimeUs, aData, aSize, aKeyFrame, aBufferCallback) &&
         !ToVideoFrame_I420ColorConverter(aFrame, aTimeUs, aData, aSize, aKeyFrame, aBufferCallback)) {

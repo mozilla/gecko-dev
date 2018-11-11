@@ -16,7 +16,7 @@
 nsresult
 gfxGdkNativeRenderer::DrawWithXlib(cairo_surface_t* surface,
                                    nsIntPoint offset,
-                                   nsIntRect* clipRects, uint32_t numClipRects)
+                                   mozilla::gfx::IntRect* clipRects, uint32_t numClipRects)
 {
     GdkDrawable *drawable = gfxPlatformGtk::GetGdkDrawable(surface);
     if (!drawable) {
@@ -49,7 +49,7 @@ gfxGdkNativeRenderer::DrawWithXlib(cairo_surface_t* surface,
 }
 
 void
-gfxGdkNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
+gfxGdkNativeRenderer::Draw(gfxContext* ctx, mozilla::gfx::IntSize size,
                            uint32_t flags, GdkColormap* colormap)
 {
     mColormap = colormap;

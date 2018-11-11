@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -186,7 +187,7 @@ ParseClockValue(RangedPtr<const char16_t>& aIter,
           !ParseColon(iter, aEnd)) {
         return false;
       }
-      // intentional fall through
+      MOZ_FALLTHROUGH;
     case PARTIAL_CLOCK_VALUE:
       if (!ParseSecondsOrMinutes(iter, aEnd, minutes) ||
           !ParseColon(iter, aEnd) ||
@@ -271,16 +272,15 @@ ParseOptionalOffset(RangedPtr<const char16_t>& aIter,
 bool
 ParseAccessKey(const nsAString& aSpec, nsSMILTimeValueSpecParams& aResult)
 {
-  NS_ABORT_IF_FALSE(StringBeginsWith(aSpec, ACCESSKEY_PREFIX_CC) ||
-      StringBeginsWith(aSpec, ACCESSKEY_PREFIX_LC),
-      "Calling ParseAccessKey on non-accesskey-type spec");
+  MOZ_ASSERT(StringBeginsWith(aSpec, ACCESSKEY_PREFIX_CC) ||
+             StringBeginsWith(aSpec, ACCESSKEY_PREFIX_LC),
+             "Calling ParseAccessKey on non-accesskey-type spec");
 
   nsSMILTimeValueSpecParams result;
   result.mType = nsSMILTimeValueSpecParams::ACCESSKEY;
 
-  NS_ABORT_IF_FALSE(
-      ACCESSKEY_PREFIX_LC.Length() == ACCESSKEY_PREFIX_CC.Length(),
-      "Case variations for accesskey prefix differ in length");
+  MOZ_ASSERT(ACCESSKEY_PREFIX_LC.Length() == ACCESSKEY_PREFIX_CC.Length(),
+             "Case variations for accesskey prefix differ in length");
 
   RangedPtr<const char16_t> iter(SVGContentUtils::GetStartRangedPtr(aSpec));
   RangedPtr<const char16_t> end(SVGContentUtils::GetEndRangedPtr(aSpec));
@@ -351,7 +351,7 @@ ConvertUnescapedTokenToAtom(const nsAString& aToken)
   // Whether the token is an id-ref or event-symbol it should be a valid NCName
   if (aToken.IsEmpty() || NS_FAILED(nsContentUtils::CheckQName(aToken, false)))
     return nullptr;
-  return do_GetAtom(aToken);
+  return NS_Atomize(aToken);
 }
     
 already_AddRefed<nsIAtom>
@@ -371,7 +371,7 @@ ConvertTokenToAtom(const nsAString& aToken,
   bool escape = false;
 
   while (read != end) {
-    NS_ABORT_IF_FALSE(write <= read, "Writing past where we've read");
+    MOZ_ASSERT(write <= read, "Writing past where we've read");
     if (!escape && *read == '\\') {
       escape = true;
       ++read;
@@ -416,7 +416,7 @@ ParseElementBaseTimeValueSpec(const nsAString& aSpec,
   bool requiresUnescaping;
   MoveToNextToken(tokenEnd, end, true, requiresUnescaping);
 
-  nsRefPtr<nsIAtom> atom =
+  RefPtr<nsIAtom> atom =
     ConvertTokenToAtom(Substring(start.get(), tokenEnd.get()),
                        requiresUnescaping);
   if (atom == nullptr) {
@@ -478,7 +478,7 @@ ParseElementBaseTimeValueSpec(const nsAString& aSpec,
   return true;
 }
 
-} // end anonymous namespace block
+} // namespace
 
 //------------------------------------------------------------------------------
 // Implementation
@@ -535,7 +535,8 @@ nsSMILParserUtils::ParseKeySplines(const nsAString& aSpec,
         !aKeySplines.AppendElement(nsSMILKeySpline(values[0],
                                                    values[1],
                                                    values[2],
-                                                   values[3]))) {
+                                                   values[3]),
+                                   fallible)) {
       return false;
     }
   }
@@ -563,7 +564,7 @@ nsSMILParserUtils::ParseSemicolonDelimitedProgressList(const nsAString& aSpec,
       return false;
     }
 
-    if (!aArray.AppendElement(value)) {
+    if (!aArray.AppendElement(value, fallible)) {
       return false;
     }
     previousValue = value;
@@ -587,14 +588,14 @@ public:
     mPreventCachingOfSandwich(aPreventCachingOfSandwich)
   {}
 
-  virtual bool Parse(const nsAString& aValueStr) MOZ_OVERRIDE {
+  virtual bool Parse(const nsAString& aValueStr) override {
     nsSMILValue newValue;
     bool tmpPreventCachingOfSandwich = false;
     if (NS_FAILED(mSMILAttr->ValueFromString(aValueStr, mSrcElement, newValue,
                                              tmpPreventCachingOfSandwich)))
       return false;
 
-    if (!mValuesArray->AppendElement(newValue)) {
+    if (!mValuesArray->AppendElement(newValue, fallible)) {
       return false;
     }
     if (tmpPreventCachingOfSandwich) {
@@ -708,21 +709,21 @@ nsSMILParserUtils::CheckForNegativeNumber(const nsAString& aStr)
 {
   int32_t absValLocation = -1;
 
-  nsAString::const_iterator start, end;
-  aStr.BeginReading(start);
-  aStr.EndReading(end);
+  RangedPtr<const char16_t> start(SVGContentUtils::GetStartRangedPtr(aStr));
+  RangedPtr<const char16_t> iter = start;
+  RangedPtr<const char16_t> end(SVGContentUtils::GetEndRangedPtr(aStr));
 
   // Skip initial whitespace
-  while (start != end && IsSVGWhitespace(*start)) {
-    ++start;
+  while (iter != end && IsSVGWhitespace(*iter)) {
+    ++iter;
   }
 
   // Check for dash
-  if (start != end && *start == '-') {
-    ++start;
+  if (iter != end && *iter == '-') {
+    ++iter;
     // Check for numeric character
-    if (start != end && SVGContentUtils::IsDigit(*start)) {
-      absValLocation = start.get() - start.start();
+    if (iter != end && SVGContentUtils::IsDigit(*iter)) {
+      absValLocation = iter - start;
     }
   }
   return absValLocation;

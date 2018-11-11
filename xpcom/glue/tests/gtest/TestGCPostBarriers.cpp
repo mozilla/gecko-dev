@@ -1,6 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: sw=2 ts=8 et :
- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -18,18 +17,18 @@
 #include "js/TracingAPI.h"
 #include "js/HeapAPI.h"
 
-#include "mozilla/CycleCollectedJSRuntime.h"
+#include "mozilla/CycleCollectedJSContext.h"
 
 using namespace JS;
 using namespace mozilla;
 
-template <class ArrayT>
+template<class ArrayT>
 static void
 TraceArray(JSTracer* trc, void* data)
 {
   ArrayT* array = static_cast<ArrayT *>(data);
   for (unsigned i = 0; i < array->Length(); ++i)
-    JS_CallHeapObjectTracer(trc, &array->ElementAt(i), "array-element");
+    JS::TraceEdge(trc, &array->ElementAt(i), "array-element");
 }
 
 /*
@@ -39,14 +38,14 @@ TraceArray(JSTracer* trc, void* data)
 const size_t ElementCount = 100;
 const size_t InitialElements = ElementCount / 10;
 
-template <class ArrayT>
+template<class ArrayT>
 static void
-RunTest(JSRuntime* rt, JSContext* cx, ArrayT* array)
+RunTest(JSContext* cx, ArrayT* array)
 {
-  JS_GC(rt);
+  JS_GC(cx);
 
   ASSERT_TRUE(array != nullptr);
-  JS_AddExtraGCRootsTracer(rt, TraceArray<ArrayT>, array);
+  JS_AddExtraGCRootsTracer(cx, TraceArray<ArrayT>, array);
 
   /*
    * Create the array and fill it with new JS objects. With GGC these will be
@@ -55,50 +54,50 @@ RunTest(JSRuntime* rt, JSContext* cx, ArrayT* array)
   RootedValue value(cx);
   const char* property = "foo";
   for (size_t i = 0; i < ElementCount; ++i) {
-    RootedObject obj(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
-#ifdef JSGC_GENERATIONAL
-    ASSERT_TRUE(js::gc::IsInsideNursery(AsCell(obj)));
-#else
-    ASSERT_FALSE(js::gc::IsInsideNursery(AsCell(obj)));
-#endif
+    RootedObject obj(cx, JS_NewPlainObject(cx));
+    ASSERT_FALSE(JS::ObjectIsTenured(obj));
     value = Int32Value(i);
     ASSERT_TRUE(JS_SetProperty(cx, obj, property, value));
-    array->AppendElement(obj);
+    ASSERT_TRUE(array->AppendElement(obj, fallible));
   }
 
   /*
    * If postbarriers are not working, we will crash here when we try to mark
    * objects that have been moved to the tenured heap.
    */
-  JS_GC(rt);
+  JS_GC(cx);
 
   /*
    * Sanity check that our array contains what we expect.
    */
   for (size_t i = 0; i < ElementCount; ++i) {
     RootedObject obj(cx, array->ElementAt(i));
-    ASSERT_FALSE(js::gc::IsInsideNursery(AsCell(obj)));
+    ASSERT_TRUE(JS::ObjectIsTenured(obj));
     ASSERT_TRUE(JS_GetProperty(cx, obj, property, &value));
     ASSERT_TRUE(value.isInt32());
     ASSERT_EQ(static_cast<int32_t>(i), value.toInt32());
   }
 
-  JS_RemoveExtraGCRootsTracer(rt, TraceArray<ArrayT>, array);
+  JS_RemoveExtraGCRootsTracer(cx, TraceArray<ArrayT>, array);
 }
 
 static void
-CreateGlobalAndRunTest(JSRuntime* rt, JSContext* cx)
+CreateGlobalAndRunTest(JSContext* cx)
 {
-  static const JSClass GlobalClass = {
-    "global", JSCLASS_GLOBAL_FLAGS,
-    JS_PropertyStub, JS_DeletePropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
-    JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub,
+  static const JSClassOps GlobalClassOps = {
     nullptr, nullptr, nullptr, nullptr,
+    nullptr, nullptr, nullptr, nullptr,
+    nullptr, nullptr, nullptr,
     JS_GlobalObjectTraceHook
   };
 
+  static const JSClass GlobalClass = {
+    "global", JSCLASS_GLOBAL_FLAGS,
+    &GlobalClassOps
+  };
+
   JS::CompartmentOptions options;
-  options.setVersion(JSVERSION_LATEST);
+  options.behaviors().setVersion(JSVERSION_LATEST);
   JS::PersistentRootedObject global(cx);
   global = JS_NewGlobalObject(cx, &GlobalClass, nullptr, JS::FireOnNewGlobalHook, options);
   ASSERT_TRUE(global != nullptr);
@@ -109,41 +108,33 @@ CreateGlobalAndRunTest(JSRuntime* rt, JSContext* cx)
 
   {
     nsTArray<ElementT>* array = new nsTArray<ElementT>(InitialElements);
-    RunTest(rt, cx, array);
+    RunTest(cx, array);
     delete array;
   }
 
   {
     FallibleTArray<ElementT>* array = new FallibleTArray<ElementT>(InitialElements);
-    RunTest(rt, cx, array);
+    RunTest(cx, array);
     delete array;
   }
 
   {
-    nsAutoTArray<ElementT, InitialElements> array;
-    RunTest(rt, cx, &array);
-  }
-
-  {
-    AutoFallibleTArray<ElementT, InitialElements> array;
-    RunTest(rt, cx, &array);
+    AutoTArray<ElementT, InitialElements> array;
+    RunTest(cx, &array);
   }
 
   JS_LeaveCompartment(cx, oldCompartment);
 }
 
 TEST(GCPostBarriers, nsTArray) {
-  CycleCollectedJSRuntime* ccrt = CycleCollectedJSRuntime::Get();
-  ASSERT_TRUE(ccrt != nullptr);
-  JSRuntime* rt = ccrt->Runtime();
-  ASSERT_TRUE(rt != nullptr);
-
-  JSContext *cx = JS_NewContext(rt, 8192);
+  CycleCollectedJSContext* ccjscx = CycleCollectedJSContext::Get();
+  ASSERT_TRUE(ccjscx != nullptr);
+  JSContext* cx = ccjscx->Context();
   ASSERT_TRUE(cx != nullptr);
+
   JS_BeginRequest(cx);
 
-  CreateGlobalAndRunTest(rt, cx);
+  CreateGlobalAndRunTest(cx);
 
   JS_EndRequest(cx);
-  JS_DestroyContext(cx);
 }

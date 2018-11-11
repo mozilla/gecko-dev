@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -128,6 +128,9 @@ function test()
   // 00:00 and 24:00
   check("2009-07-23T00:00:00.000-07:00", dd(2009,7,23,7,0,0,0));
   check("2009-07-23T24:00:00.000-07:00", dd(2009,7,24,7,0,0,0));
+
+  // Bug 730838 - non-zero fraction part for midnight should produce NaN
+  checkInvalid("1970-01-01T24:00:00.500Z");
 
   exitFunc ('test');
 }

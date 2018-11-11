@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 **********************************************************************
-*   Copyright (C) 1999-2013, International Business Machines
+*   Copyright (C) 1999-2015, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 **********************************************************************
 *   Date        Name        Description
@@ -18,6 +20,7 @@
 #include "rbt_data.h"
 #include "rbt_rule.h"
 #include "rbt.h"
+#include "mutex.h"
 #include "umutex.h"
 
 U_NAMESPACE_BEGIN
@@ -239,25 +242,27 @@ RuleBasedTransliterator::handleTransliterate(Replaceable& text, UTransPosition& 
     //   Double-locking must be prevented in these cases.
     //   
 
-    // If the transliteration data is exclusively owned by this transliterator object,
-    //   we don't need to do any locking.  No sharing between transliterators is possible,
-    //   so no concurrent access from multiple threads is possible.
     UBool    lockedMutexAtThisLevel = FALSE;
-    if (isDataOwned == FALSE) {
-        // Test whether this request is operating on the same text string as some
-        //   some other transliteration that is still in progress and holding the 
-        //   transliteration mutex.  If so, do not lock the transliteration
-        //    mutex again.
-        // TODO(andy): Need a better scheme for handling this.
-        UBool needToLock;
-        umtx_lock(NULL);
+
+    // Test whether this request is operating on the same text string as
+    //   some other transliteration that is still in progress and holding the 
+    //   transliteration mutex.  If so, do not lock the transliteration
+    //    mutex again.
+    //
+    //  gLockedText variable is protected by the global ICU mutex.
+    //  Shared RBT data protected by transliteratorDataMutex.
+    //
+    // TODO(andy): Need a better scheme for handling this.
+    UBool needToLock;
+    {
+        Mutex m;
         needToLock = (&text != gLockedText);
-        umtx_unlock(NULL);
-        if (needToLock) {
-            umtx_lock(&transliteratorDataMutex);
-            gLockedText = &text;
-            lockedMutexAtThisLevel = TRUE;
-        }
+    }
+    if (needToLock) {
+        umtx_lock(&transliteratorDataMutex);  // Contention, longish waits possible here.
+        Mutex m;
+        gLockedText = &text;
+        lockedMutexAtThisLevel = TRUE;
     }
     
     // Check to make sure we don't dereference a null pointer.
@@ -269,7 +274,10 @@ RuleBasedTransliterator::handleTransliterate(Replaceable& text, UTransPosition& 
 	    }
     }
     if (lockedMutexAtThisLevel) {
-        gLockedText = NULL;
+        {
+            Mutex m;
+            gLockedText = NULL;
+        }
         umtx_unlock(&transliteratorDataMutex);
     }
 }

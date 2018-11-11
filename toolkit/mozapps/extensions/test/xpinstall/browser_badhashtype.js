@@ -11,7 +11,7 @@ function test() {
 
   var triggers = encodeURIComponent(JSON.stringify({
     "Unsigned XPI": {
-      URL: TESTROOT + "unsigned.xpi",
+      URL: TESTROOT + "amosigned.xpi",
       Hash: "foo:3d0dc22e1f394e159b08aaf5f0f97de4d5c65f4f",
       toString: function() { return this.URL; }
     }
@@ -26,7 +26,7 @@ function download_failed(install) {
 
 function finish_test(count) {
   is(count, 0, "No add-ons should have been installed");
-  Services.perms.remove("example.com", "install");
+  Services.perms.remove(makeURI("http://example.com/"), "install");
 
   gBrowser.removeCurrentTab();
   Harness.finish();

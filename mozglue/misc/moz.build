@@ -1,0 +1,37 @@
+FINAL_LIBRARY = 'mozglue'
+
+EXPORTS.mozilla += [
+    'StackWalk.h',
+    'TimeStamp.h',
+]
+
+if CONFIG['OS_ARCH'] == 'WINNT':
+    EXPORTS.mozilla += [
+        'StackWalk_windows.h',
+        'TimeStamp_windows.h',
+    ]
+
+SOURCES += [
+    'StackWalk.cpp',
+    'TimeStamp.cpp',
+]
+
+OS_LIBS += CONFIG['REALTIME_LIBS']
+
+DEFINES['IMPL_MFBT'] = True
+
+if CONFIG['OS_ARCH'] == 'WINNT':
+    SOURCES += [
+        'TimeStamp_windows.cpp',
+    ]
+    OS_LIBS += ['dbghelp']
+elif CONFIG['HAVE_CLOCK_MONOTONIC']:
+    SOURCES += [
+        'TimeStamp_posix.cpp',
+    ]
+elif CONFIG['OS_ARCH'] == 'Darwin':
+    SOURCES += [
+        'TimeStamp_darwin.cpp',
+    ]
+elif CONFIG['COMPILE_ENVIRONMENT']:
+    error('No TimeStamp implementation on this platform.  Build will not succeed')

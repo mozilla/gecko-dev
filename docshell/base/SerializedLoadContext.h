@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=2 ts=8 et tw=80 : */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,6 +9,7 @@
 
 #include "base/basictypes.h"
 #include "ipc/IPCMessageUtils.h"
+#include "mozilla/BasePrincipal.h"
 
 class nsILoadContext;
 
@@ -27,36 +28,31 @@ class SerializedLoadContext
 {
 public:
   SerializedLoadContext()
+    : mIsNotNull(false)
+    , mIsPrivateBitValid(false)
+    , mIsContent(false)
+    , mUseRemoteTabs(false)
   {
     Init(nullptr);
   }
 
-  SerializedLoadContext(nsILoadContext* aLoadContext);
-  SerializedLoadContext(nsIChannel* aChannel);
-  SerializedLoadContext(nsIWebSocketChannel* aChannel);
+  explicit SerializedLoadContext(nsILoadContext* aLoadContext);
+  explicit SerializedLoadContext(nsIChannel* aChannel);
+  explicit SerializedLoadContext(nsIWebSocketChannel* aChannel);
 
   void Init(nsILoadContext* aLoadContext);
 
-  bool IsNotNull() const
-  {
-    return mIsNotNull;
-  }
-
-  bool IsPrivateBitValid() const
-  {
-    return mIsPrivateBitValid;
-  }
+  bool IsNotNull() const { return mIsNotNull; }
+  bool IsPrivateBitValid() const { return mIsPrivateBitValid; }
 
   // used to indicate if child-side LoadContext * was null.
-  bool          mIsNotNull;
+  bool mIsNotNull;
   // used to indicate if child-side mUsePrivateBrowsing flag is valid, even if
   // mIsNotNull is false, i.e., child LoadContext was null.
-  bool          mIsPrivateBitValid;
-  bool          mIsContent;
-  bool          mUsePrivateBrowsing;
-  bool          mUseRemoteTabs;
-  bool          mIsInBrowserElement;
-  uint32_t      mAppId;
+  bool mIsPrivateBitValid;
+  bool mIsContent;
+  bool mUseRemoteTabs;
+  mozilla::DocShellOriginAttributes mOriginAttributes;
 };
 
 // Function to serialize over IPDL
@@ -67,32 +63,30 @@ struct ParamTraits<SerializedLoadContext>
 
   static void Write(Message* aMsg, const paramType& aParam)
   {
+    nsAutoCString suffix;
+    aParam.mOriginAttributes.CreateSuffix(suffix);
+
     WriteParam(aMsg, aParam.mIsNotNull);
     WriteParam(aMsg, aParam.mIsContent);
     WriteParam(aMsg, aParam.mIsPrivateBitValid);
-    WriteParam(aMsg, aParam.mUsePrivateBrowsing);
     WriteParam(aMsg, aParam.mUseRemoteTabs);
-    WriteParam(aMsg, aParam.mAppId);
-    WriteParam(aMsg, aParam.mIsInBrowserElement);
+    WriteParam(aMsg, suffix);
   }
 
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
   {
+    nsAutoCString suffix;
     if (!ReadParam(aMsg, aIter, &aResult->mIsNotNull) ||
-        !ReadParam(aMsg, aIter, &aResult->mIsContent)  ||
-        !ReadParam(aMsg, aIter, &aResult->mIsPrivateBitValid)  ||
-        !ReadParam(aMsg, aIter, &aResult->mUsePrivateBrowsing)  ||
-        !ReadParam(aMsg, aIter, &aResult->mUseRemoteTabs)  ||
-        !ReadParam(aMsg, aIter, &aResult->mAppId)  ||
-        !ReadParam(aMsg, aIter, &aResult->mIsInBrowserElement)) {
+        !ReadParam(aMsg, aIter, &aResult->mIsContent) ||
+        !ReadParam(aMsg, aIter, &aResult->mIsPrivateBitValid) ||
+        !ReadParam(aMsg, aIter, &aResult->mUseRemoteTabs) ||
+        !ReadParam(aMsg, aIter, &suffix)) {
       return false;
     }
-
-    return true;
+    return aResult->mOriginAttributes.PopulateFromSuffix(suffix);
   }
 };
 
 } // namespace IPC
 
 #endif // SerializedLoadContext_h
-

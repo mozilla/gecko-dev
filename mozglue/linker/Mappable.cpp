@@ -9,7 +9,12 @@
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
+#include <string>
+
 #include "Mappable.h"
+
+#include "mozilla/UniquePtr.h"
+
 #ifdef ANDROID
 #include <linux/ashmem.h>
 #endif
@@ -17,7 +22,86 @@
 #include <errno.h>
 #include "ElfLoader.h"
 #include "SeekableZStream.h"
+#include "XZStream.h"
 #include "Logging.h"
+
+using mozilla::MakeUnique;
+using mozilla::UniquePtr;
+
+class CacheValidator
+{
+public:
+  CacheValidator(const char* aCachedLibPath, Zip* aZip, Zip::Stream* aStream)
+    : mCachedLibPath(aCachedLibPath)
+  {
+    static const char kChecksumSuffix[] = ".crc";
+
+    mCachedChecksumPath =
+      MakeUnique<char[]>(strlen(aCachedLibPath) + sizeof(kChecksumSuffix));
+    sprintf(mCachedChecksumPath.get(), "%s%s", aCachedLibPath, kChecksumSuffix);
+    DEBUG_LOG("mCachedChecksumPath: %s", mCachedChecksumPath.get());
+
+    mChecksum = aStream->GetCRC32();
+    DEBUG_LOG("mChecksum: %x", mChecksum);
+  }
+
+  // Returns whether the cache is valid and up-to-date.
+  bool IsValid() const
+  {
+    // Validate based on checksum.
+    RefPtr<Mappable> checksumMap = MappableFile::Create(mCachedChecksumPath.get());
+    if (!checksumMap) {
+      // Force caching if checksum is missing in cache.
+      return false;
+    }
+
+    DEBUG_LOG("Comparing %x with %s", mChecksum, mCachedChecksumPath.get());
+    MappedPtr checksumBuf = checksumMap->mmap(nullptr, checksumMap->GetLength(),
+                                              PROT_READ, MAP_PRIVATE, 0);
+    if (checksumBuf == MAP_FAILED) {
+      WARN("Couldn't map %s to validate checksum", mCachedChecksumPath.get());
+      return false;
+    }
+    if (memcmp(checksumBuf, &mChecksum, sizeof(mChecksum))) {
+      return false;
+    }
+    return !access(mCachedLibPath.c_str(), R_OK);
+  }
+
+  // Caches the APK-provided checksum used in future cache validations.
+  void CacheChecksum() const
+  {
+    AutoCloseFD fd(open(mCachedChecksumPath.get(),
+                        O_TRUNC | O_RDWR | O_CREAT | O_NOATIME,
+                        S_IRUSR | S_IWUSR));
+    if (fd == -1) {
+      WARN("Couldn't open %s to update checksum", mCachedChecksumPath.get());
+      return;
+    }
+
+    DEBUG_LOG("Updating checksum %s", mCachedChecksumPath.get());
+
+    const size_t size = sizeof(mChecksum);
+    size_t written = 0;
+    while (written < size) {
+      ssize_t ret = write(fd,
+                          reinterpret_cast<const uint8_t*>(&mChecksum) + written,
+                          size - written);
+      if (ret >= 0) {
+        written += ret;
+      } else if (errno != EINTR) {
+        WARN("Writing checksum %s failed with errno %d",
+             mCachedChecksumPath.get(), errno);
+        break;
+      }
+    }
+  }
+
+private:
+  const std::string mCachedLibPath;
+  UniquePtr<char[]> mCachedChecksumPath;
+  uint32_t mChecksum;
+};
 
 Mappable *
 MappableFile::Create(const char *path)
@@ -57,34 +141,36 @@ MappableFile::GetLength() const
 Mappable *
 MappableExtractFile::Create(const char *name, Zip *zip, Zip::Stream *stream)
 {
+  MOZ_ASSERT(zip && stream);
+
   const char *cachePath = getenv("MOZ_LINKER_CACHE");
   if (!cachePath || !*cachePath) {
     WARN("MOZ_LINKER_EXTRACT is set, but not MOZ_LINKER_CACHE; "
         "not extracting");
     return nullptr;
   }
-  mozilla::ScopedDeleteArray<char> path;
-  path = new char[strlen(cachePath) + strlen(name) + 2];
-  sprintf(path, "%s/%s", cachePath, name);
-  struct stat cacheStat;
-  if (stat(path, &cacheStat) == 0) {
-    struct stat zipStat;
-    stat(zip->GetName(), &zipStat);
-    if (cacheStat.st_mtime > zipStat.st_mtime) {
-      DEBUG_LOG("Reusing %s", static_cast<char *>(path));
-      return MappableFile::Create(path);
-    }
+
+  // Ensure that the cache dir is private.
+  chmod(cachePath, 0770);
+
+  UniquePtr<char[]> path =
+    MakeUnique<char[]>(strlen(cachePath) + strlen(name) + 2);
+  sprintf(path.get(), "%s/%s", cachePath, name);
+
+  CacheValidator validator(path.get(), zip, stream);
+  if (validator.IsValid()) {
+    DEBUG_LOG("Reusing %s", static_cast<char *>(path.get()));
+    return MappableFile::Create(path.get());
   }
-  DEBUG_LOG("Extracting to %s", static_cast<char *>(path));
+  DEBUG_LOG("Extracting to %s", static_cast<char *>(path.get()));
   AutoCloseFD fd;
-  fd = open(path, O_TRUNC | O_RDWR | O_CREAT | O_NOATIME,
-                  S_IRUSR | S_IWUSR);
+  fd = open(path.get(), O_TRUNC | O_RDWR | O_CREAT | O_NOATIME,
+                        S_IRUSR | S_IWUSR);
   if (fd == -1) {
     ERROR("Couldn't open %s to decompress library", path.get());
     return nullptr;
   }
-  AutoUnlinkFile file;
-  file = path.forget();
+  AutoUnlinkFile file(path.release());
   if (stream->GetType() == Zip::Stream::DEFLATE) {
     if (ftruncate(fd, stream->GetUncompressedSize()) == -1) {
       ERROR("Couldn't ftruncate %s to decompress library", file.get());
@@ -98,7 +184,7 @@ MappableExtractFile::Create(const char *name, Zip *zip, Zip::Stream *stream)
       return nullptr;
     }
 
-    z_stream zStream = stream->GetZStream(buffer);
+    zxx_stream zStream = stream->GetZStream(buffer);
 
     /* Decompress */
     if (inflateInit2(&zStream, -MAX_WBITS) != Z_OK) {
@@ -116,6 +202,32 @@ MappableExtractFile::Create(const char *name, Zip *zip, Zip::Stream *stream)
     if (zStream.total_out != stream->GetUncompressedSize()) {
       ERROR("File not fully uncompressed! %ld / %d", zStream.total_out,
           static_cast<unsigned int>(stream->GetUncompressedSize()));
+      return nullptr;
+    }
+  } else if (XZStream::IsXZ(stream->GetBuffer(), stream->GetSize())) {
+    XZStream xzStream(stream->GetBuffer(), stream->GetSize());
+
+    if (!xzStream.Init()) {
+      ERROR("Couldn't initialize XZ decoder");
+      return nullptr;
+    }
+    DEBUG_LOG("XZStream created, compressed=%u, uncompressed=%u",
+              xzStream.Size(), xzStream.UncompressedSize());
+
+    if (ftruncate(fd, xzStream.UncompressedSize()) == -1) {
+      ERROR("Couldn't ftruncate %s to decompress library", file.get());
+      return nullptr;
+    }
+    MappedPtr buffer(MemoryRange::mmap(nullptr, xzStream.UncompressedSize(),
+                                       PROT_WRITE, MAP_SHARED, fd, 0));
+    if (buffer == MAP_FAILED) {
+      ERROR("Couldn't map %s to decompress library", file.get());
+      return nullptr;
+    }
+    const size_t written = xzStream.Decode(buffer, buffer.GetLength());
+    DEBUG_LOG("XZStream decoded %u", written);
+    if (written != buffer.GetLength()) {
+      ERROR("Error decoding XZ file %s", file.get());
       return nullptr;
     }
   } else if (stream->GetType() == Zip::Stream::STORE) {
@@ -143,17 +255,8 @@ MappableExtractFile::Create(const char *name, Zip *zip, Zip::Stream *stream)
     return nullptr;
   }
 
-  return new MappableExtractFile(fd.forget(), file.forget());
-}
-
-MappableExtractFile::~MappableExtractFile()
-{
-  /* When destroying from a forked process, we don't want the file to be
-   * removed, as the main process is still using the file. Although it
-   * doesn't really matter, it helps e.g. valgrind that the file is there.
-   * The string still needs to be delete[]d, though */
-  if (pid != getpid())
-    delete [] path.forget();
+  validator.CacheChecksum();
+  return new MappableExtractFile(fd.forget(), file.release());
 }
 
 /**
@@ -372,8 +475,7 @@ MappableSeekableZStream::Create(const char *name, Zip *zip,
                                 Zip::Stream *stream)
 {
   MOZ_ASSERT(stream->GetType() == Zip::Stream::STORE);
-  mozilla::ScopedDeletePtr<MappableSeekableZStream> mappable;
-  mappable = new MappableSeekableZStream(zip);
+  UniquePtr<MappableSeekableZStream> mappable(new MappableSeekableZStream(zip));
 
   pthread_mutexattr_t recursiveAttr;
   pthread_mutexattr_init(&recursiveAttr);
@@ -385,15 +487,14 @@ MappableSeekableZStream::Create(const char *name, Zip *zip,
   if (!mappable->zStream.Init(stream->GetBuffer(), stream->GetSize()))
     return nullptr;
 
-  mappable->buffer = _MappableBuffer::Create(name,
-                              mappable->zStream.GetUncompressedSize());
+  mappable->buffer.reset(_MappableBuffer::Create(name,
+                              mappable->zStream.GetUncompressedSize()));
   if (!mappable->buffer)
     return nullptr;
 
-  mappable->chunkAvail = new unsigned char[mappable->zStream.GetChunksNum()];
-  memset(mappable->chunkAvail, 0, mappable->zStream.GetChunksNum());
+  mappable->chunkAvail = MakeUnique<unsigned char[]>(mappable->zStream.GetChunksNum());
 
-  return mappable.forget();
+  return mappable.release();
 }
 
 MappableSeekableZStream::MappableSeekableZStream(Zip *zip)
@@ -441,22 +542,6 @@ MappableSeekableZStream::munmap(void *addr, size_t length)
 
 void
 MappableSeekableZStream::finalize() { }
-
-class AutoLock {
-public:
-  AutoLock(pthread_mutex_t *mutex): mutex(mutex)
-  {
-    if (pthread_mutex_lock(mutex))
-      MOZ_CRASH("pthread_mutex_lock failed");
-  }
-  ~AutoLock()
-  {
-    if (pthread_mutex_unlock(mutex))
-      MOZ_CRASH("pthread_mutex_unlock failed");
-  }
-private:
-  pthread_mutex_t *mutex;
-};
 
 bool
 MappableSeekableZStream::ensure(const void *addr)
@@ -575,8 +660,7 @@ MappableSeekableZStream::stats(const char *when, const char *name) const
             name, when, static_cast<size_t>(chunkAvailNum), nEntries);
 
   size_t len = 64;
-  mozilla::ScopedDeleteArray<char> map;
-  map = new char[len + 3];
+  UniquePtr<char[]> map = MakeUnique<char[]>(len + 3);
   map[0] = '[';
 
   for (size_t i = 0, j = 1; i < nEntries; i++, j++) {
@@ -584,7 +668,7 @@ MappableSeekableZStream::stats(const char *when, const char *name) const
     if ((j == len) || (i == nEntries - 1)) {
       map[j + 1] = ']';
       map[j + 2] = '\0';
-      DEBUG_LOG("%s", static_cast<char *>(map));
+      DEBUG_LOG("%s", static_cast<char *>(map.get()));
       j = 0;
     }
   }

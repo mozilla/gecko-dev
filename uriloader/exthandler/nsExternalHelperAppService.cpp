@@ -4,10 +4,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef MOZ_LOGGING
-#define FORCE_PR_LOG
-#endif
-
 #include "base/basictypes.h"
 
 /* This must occur *after* base/basictypes.h to avoid typedefs conflicts. */
@@ -25,7 +21,6 @@
 #include "nsIFile.h"
 #include "nsIFileURL.h"
 #include "nsIChannel.h"
-#include "nsIRedirectHistory.h"
 #include "nsIDirectoryService.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsICategoryManager.h"
@@ -55,9 +50,9 @@
 #include "nsIHelperAppLauncherDialog.h"
 #include "nsIContentDispatchChooser.h"
 #include "nsNetUtil.h"
+#include "nsIPrivateBrowsingChannel.h"
 #include "nsIIOService.h"
 #include "nsNetCID.h"
-#include "nsChannelProperties.h"
 
 #include "nsMimeTypes.h"
 // used for header disposition information.
@@ -105,15 +100,11 @@
 #endif
 
 #ifdef MOZ_WIDGET_ANDROID
-#include "AndroidBridge.h"
+#include "FennecJNIWrappers.h"
 #endif
 
 #include "mozilla/Preferences.h"
 #include "mozilla/ipc/URIUtils.h"
-
-#ifdef MOZ_WIDGET_GONK
-#include "nsDeviceStorage.h"
-#endif
 
 using namespace mozilla;
 using namespace mozilla::ipc;
@@ -127,16 +118,14 @@ enum {
 , NS_FOLDER_VALUE_CUSTOM = 2
 };
 
-#ifdef PR_LOGGING
-PRLogModuleInfo* nsExternalHelperAppService::mLog = nullptr;
-#endif
+LazyLogModule nsExternalHelperAppService::mLog("HelperAppService");
 
 // Using level 3 here because the OSHelperAppServices use a log level
-// of PR_LOG_DEBUG (4), and we want less detailed output here
-// Using 3 instead of PR_LOG_WARN because we don't output warnings
+// of LogLevel::Debug (4), and we want less detailed output here
+// Using 3 instead of LogLevel::Warning because we don't output warnings
 #undef LOG
-#define LOG(args) PR_LOG(nsExternalHelperAppService::mLog, 3, args)
-#define LOG_ENABLED() PR_LOG_TEST(nsExternalHelperAppService::mLog, 3)
+#define LOG(args) MOZ_LOG(nsExternalHelperAppService::mLog, mozilla::LogLevel::Info, args)
+#define LOG_ENABLED() MOZ_LOG_TEST(nsExternalHelperAppService::mLog, mozilla::LogLevel::Info)
 
 static const char NEVER_ASK_FOR_SAVE_TO_DISK_PREF[] =
   "browser.helperApps.neverAsk.saveToDisk";
@@ -333,65 +322,24 @@ static nsresult GetDownloadDirectory(nsIFile **_directory,
                                          getter_AddRefs(dir));
     NS_ENSURE_SUCCESS(rv, rv);
   }
-#elif defined(MOZ_WIDGET_GONK)
-  // On Gonk, store the files on the sdcard in the downloads directory.
-  // We need to check with the volume manager which storage point is
-  // available.
-
-  // Pick the default storage in case multiple (internal and external) ones
-  // are available.
-  nsString storageName;
-  nsDOMDeviceStorage::GetDefaultStorageName(NS_LITERAL_STRING("sdcard"),
-                                            storageName);
-
-  DeviceStorageFile dsf(NS_LITERAL_STRING("sdcard"),
-                        storageName,
-                        NS_LITERAL_STRING("downloads"));
-  NS_ENSURE_TRUE(dsf.mFile, NS_ERROR_FILE_ACCESS_DENIED);
-
-  // If we're not checking for availability we're done.
-  if (aSkipChecks) {
-    dsf.mFile.forget(_directory);
-    return NS_OK;
-  }
-
-  // Check device storage status before continuing.
-  nsString storageStatus;
-  dsf.GetStatus(storageStatus);
-
-  // If we get an "unavailable" status, it means the sd card is not present.
-  // We'll also catch internal errors by looking for an empty string and assume
-  // the SD card isn't present when this occurs.
-  if (storageStatus.EqualsLiteral("unavailable") ||
-      storageStatus.IsEmpty()) {
-    return NS_ERROR_FILE_NOT_FOUND;
-  }
-
-  // If we get a status other than 'available' here it means the card is busy
-  // because it's mounted via USB or it is being formatted.
-  if (!storageStatus.EqualsLiteral("available")) {
-    return NS_ERROR_FILE_ACCESS_DENIED;
-  }
-
-  bool alreadyThere;
-  nsresult rv = dsf.mFile->Exists(&alreadyThere);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!alreadyThere) {
-    rv = dsf.mFile->Create(nsIFile::DIRECTORY_TYPE, 0770);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-  dir = dsf.mFile;
 #elif defined(ANDROID)
-  // On mobile devices, we are avoiding exposing users to the file
-  // system, and don't save downloads to temp directories
+  // We ask Java for the temporary download directory. The directory will be
+  // different depending on whether we have the permission to write to the
+  // public download directory or not.
+  // In the case where we do not have the permission we will start the
+  // download to the app cache directory and later move it to the final
+  // destination after prompting for the permission.
+  jni::String::LocalRef downloadDir;
+  if (jni::IsFennec()) {
+    downloadDir = java::DownloadsIntegration::GetTemporaryDownloadDirectory();
+  }
 
-  // On Android we only return something if we have and SD-card
-  char* downloadDir = getenv("DOWNLOADS_DIRECTORY");
   nsresult rv;
   if (downloadDir) {
     nsCOMPtr<nsIFile> ldir;
-    rv = NS_NewNativeLocalFile(nsDependentCString(downloadDir),
+    rv = NS_NewNativeLocalFile(downloadDir->ToCString(),
                                true, getter_AddRefs(ldir));
+
     NS_ENSURE_SUCCESS(rv, rv);
     dir = do_QueryInterface(ldir);
 
@@ -404,20 +352,81 @@ static nsresult GetDownloadDirectory(nsIFile **_directory,
   else {
     return NS_ERROR_FAILURE;
   }
-#elif defined(XP_WIN)
-  // On metro we want to be able to search opened files and the temp directory
-  // is exlcuded in searches.
-  nsresult rv;
-  if (IsRunningInWindowsMetro()) {
-    rv = NS_GetSpecialDirectory(NS_WIN_DEFAULT_DOWNLOAD_DIR, getter_AddRefs(dir));
-  } else {
-    rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(dir));
-  }
-  NS_ENSURE_SUCCESS(rv, rv);
 #else
   // On all other platforms, we default to the systems temporary directory.
   nsresult rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(dir));
   NS_ENSURE_SUCCESS(rv, rv);
+
+#if defined(XP_UNIX)
+  // Ensuring that only the current user can read the file names we end up
+  // creating. Note that Creating directories with specified permission only
+  // supported on Unix platform right now. That's why above if exists.
+
+  uint32_t permissions;
+  rv = dir->GetPermissions(&permissions);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (permissions != PR_IRWXU) {
+    const char* userName = PR_GetEnv("USERNAME");
+    if (!userName || !*userName) {
+      userName = PR_GetEnv("USER");
+    }
+    if (!userName || !*userName) {
+      userName = PR_GetEnv("LOGNAME");
+    }
+    if (!userName || !*userName) {
+      userName = "mozillaUser";
+    }
+
+    nsAutoString userDir;
+    userDir.AssignLiteral("mozilla_");
+    userDir.AppendASCII(userName);
+    userDir.ReplaceChar(FILE_PATH_SEPARATOR FILE_ILLEGAL_CHARACTERS, '_');
+
+    int counter = 0;
+    bool pathExists;
+    nsCOMPtr<nsIFile> finalPath;
+
+    while (true) {
+      nsAutoString countedUserDir(userDir);
+      countedUserDir.AppendInt(counter, 10);
+      dir->Clone(getter_AddRefs(finalPath));
+      finalPath->Append(countedUserDir);
+
+      rv = finalPath->Exists(&pathExists);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      if (pathExists) {
+        // If this path has the right permissions, use it.
+        rv = finalPath->GetPermissions(&permissions);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        // Ensuring the path is writable by the current user.
+        bool isWritable;
+        rv = finalPath->IsWritable(&isWritable);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        if (permissions == PR_IRWXU && isWritable) {
+          dir = finalPath;
+          break;
+        }
+      }
+
+      rv = finalPath->Create(nsIFile::DIRECTORY_TYPE, PR_IRWXU);
+      if (NS_SUCCEEDED(rv)) {
+        dir = finalPath;
+        break;
+      }
+      else if (rv != NS_ERROR_FILE_ALREADY_EXISTS) {
+        // Unexpected error.
+        return rv;
+      }
+
+      counter++;
+    }
+  }
+
+#endif
 #endif
 
   NS_ASSERTION(dir, "Somehow we didn't get a download directory!");
@@ -438,7 +447,7 @@ struct nsDefaultMimeTypeEntry {
  * Default extension->mimetype mappings. These are not overridable.
  * If you add types here, make sure they are lowercase, or you'll regret it.
  */
-static nsDefaultMimeTypeEntry defaultMimeEntries [] = 
+static const nsDefaultMimeTypeEntry defaultMimeEntries[] =
 {
   // The following are those extensions that we're asked about during startup,
   // sorted by order used
@@ -462,14 +471,11 @@ static nsDefaultMimeTypeEntry defaultMimeEntries [] =
   { VIDEO_OGG, "ogg" },
   { APPLICATION_OGG, "ogg" },
   { AUDIO_OGG, "oga" },
-#ifdef MOZ_OPUS
   { AUDIO_OGG, "opus" },
-#endif
-#ifdef MOZ_WEBM
+  { APPLICATION_PDF, "pdf" },
   { VIDEO_WEBM, "webm" },
   { AUDIO_WEBM, "webm" },
-#endif
-#if defined(MOZ_GSTREAMER) || defined(MOZ_WMF)
+#if defined(MOZ_WMF)
   { VIDEO_MP4, "mp4" },
   { AUDIO_MP4, "m4a" },
   { AUDIO_MP3, "mp3" },
@@ -502,11 +508,9 @@ struct nsExtraMimeTypeEntry {
  * overridden by user helper app prefs.
  * If you add types here, make sure they are lowercase, or you'll regret it.
  */
-static nsExtraMimeTypeEntry extraMimeEntries [] =
+static const nsExtraMimeTypeEntry extraMimeEntries[] =
 {
-#if defined(VMS)
-  { APPLICATION_OCTET_STREAM, "exe,com,bin,sav,bck,pcsi,dcx_axpexe,dcx_vaxexe,sfx_axpexe,sfx_vaxexe", "Binary File" },
-#elif defined(XP_MACOSX) // don't define .bin on the mac...use internet config to look that up...
+#if defined(XP_MACOSX) // don't define .bin on the mac...use internet config to look that up...
   { APPLICATION_OCTET_STREAM, "exe,com", "Binary File" },
 #else
   { APPLICATION_OCTET_STREAM, "exe,com,bin", "Binary File" },
@@ -528,6 +532,7 @@ static nsExtraMimeTypeEntry extraMimeEntries [] =
   { IMAGE_ICO, "ico,cur", "ICO Image" },
   { IMAGE_JPEG, "jpeg,jpg,jfif,pjpeg,pjp", "JPEG Image" },
   { IMAGE_PNG, "png", "PNG Image" },
+  { IMAGE_APNG, "apng", "APNG Image" },
   { IMAGE_TIFF, "tiff,tif", "TIFF Image" },
   { IMAGE_XBM, "xbm", "XBM Image" },
   { IMAGE_SVG_XML, "svg", "Scalable Vector Graphics" },
@@ -548,6 +553,13 @@ static nsExtraMimeTypeEntry extraMimeEntries [] =
   { AUDIO_OGG, "opus", "Opus Audio" },
 #ifdef MOZ_WIDGET_GONK
   { AUDIO_AMR, "amr", "Adaptive Multi-Rate Audio" },
+  { AUDIO_FLAC, "flac", "FLAC Audio" },
+  { VIDEO_AVI, "avi", "Audio Video Interleave" },
+  { VIDEO_AVI, "divx", "Audio Video Interleave" },
+  { VIDEO_MPEG_TS, "ts", "MPEG Transport Stream" },
+  { VIDEO_MPEG_TS, "m2ts", "MPEG-2 Transport Stream" },
+  { VIDEO_MATROSKA, "mkv", "MATROSKA VIDEO" },
+  { AUDIO_MATROSKA, "mka", "MATROSKA AUDIO" },
 #endif
   { VIDEO_WEBM, "webm", "Web Media Video" },
   { AUDIO_WEBM, "webm", "Web Media Audio" },
@@ -558,6 +570,13 @@ static nsExtraMimeTypeEntry extraMimeEntries [] =
   { AUDIO_WAV, "wav", "Waveform Audio" },
   { VIDEO_3GPP, "3gpp,3gp", "3GPP Video" },
   { VIDEO_3GPP2,"3g2", "3GPP2 Video" },
+#ifdef MOZ_WIDGET_GONK
+  // The AUDIO_3GPP has to come after the VIDEO_3GPP entry because the Gallery
+  // app on Firefox OS depends on the "3gp" extension mapping to the
+  // "video/3gpp" MIME type.
+  { AUDIO_3GPP, "3gpp,3gp", "3GPP Audio" },
+  { AUDIO_3GPP2, "3g2", "3GPP2 Audio" },
+#endif
   { AUDIO_MIDI, "mid", "Standard MIDI Audio" }
 };
 
@@ -567,7 +586,7 @@ static nsExtraMimeTypeEntry extraMimeEntries [] =
  * File extensions for which decoding should be disabled.
  * NOTE: These MUST be lower-case and ASCII.
  */
-static nsDefaultMimeTypeEntry nonDecodableExtensions [] = {
+static const nsDefaultMimeTypeEntry nonDecodableExtensions[] = {
   { APPLICATION_GZIP, "gz" }, 
   { APPLICATION_GZIP, "tgz" },
   { APPLICATION_ZIP, "zip" },
@@ -594,14 +613,6 @@ nsresult nsExternalHelperAppService::Init()
   if (!obs)
     return NS_ERROR_FAILURE;
 
-#ifdef PR_LOGGING
-  if (!mLog) {
-    mLog = PR_NewLogModule("HelperAppService");
-    if (!mLog)
-      return NS_ERROR_OUT_OF_MEMORY;
-  }
-#endif
-
   nsresult rv = obs->AddObserver(this, "profile-before-change", true);
   NS_ENSURE_SUCCESS(rv, rv);
   return obs->AddObserver(this, "last-pb-context-exited", true);
@@ -611,18 +622,102 @@ nsExternalHelperAppService::~nsExternalHelperAppService()
 {
 }
 
+
+nsresult
+nsExternalHelperAppService::DoContentContentProcessHelper(const nsACString& aMimeContentType,
+                                                          nsIRequest *aRequest,
+                                                          nsIInterfaceRequestor *aContentContext,
+                                                          bool aForceSave,
+                                                          nsIInterfaceRequestor *aWindowContext,
+                                                          nsIStreamListener ** aStreamListener)
+{
+  nsCOMPtr<nsPIDOMWindowOuter> window = do_GetInterface(aContentContext);
+  NS_ENSURE_STATE(window);
+
+  // We need to get a hold of a ContentChild so that we can begin forwarding
+  // this data to the parent.  In the HTTP case, this is unfortunate, since
+  // we're actually passing data from parent->child->parent wastefully, but
+  // the Right Fix will eventually be to short-circuit those channels on the
+  // parent side based on some sort of subscription concept.
+  using mozilla::dom::ContentChild;
+  using mozilla::dom::ExternalHelperAppChild;
+  ContentChild *child = ContentChild::GetSingleton();
+  if (!child) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCString disp;
+  nsCOMPtr<nsIURI> uri;
+  int64_t contentLength = -1;
+  bool wasFileChannel = false;
+  uint32_t contentDisposition = -1;
+  nsAutoString fileName;
+
+  nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
+  if (channel) {
+    channel->GetURI(getter_AddRefs(uri));
+    channel->GetContentLength(&contentLength);
+    channel->GetContentDisposition(&contentDisposition);
+    channel->GetContentDispositionFilename(fileName);
+    channel->GetContentDispositionHeader(disp);
+
+    nsCOMPtr<nsIFileChannel> fileChan(do_QueryInterface(aRequest));
+    wasFileChannel = fileChan != nullptr;
+  }
+
+
+  nsCOMPtr<nsIURI> referrer;
+  NS_GetReferrerFromChannel(channel, getter_AddRefs(referrer));
+
+  OptionalURIParams uriParams, referrerParams;
+  SerializeURI(uri, uriParams);
+  SerializeURI(referrer, referrerParams);
+
+  // Now we build a protocol for forwarding our data to the parent.  The
+  // protocol will act as a listener on the child-side and create a "real"
+  // helperAppService listener on the parent-side, via another call to
+  // DoContent.
+  mozilla::dom::PExternalHelperAppChild *pc =
+    child->SendPExternalHelperAppConstructor(uriParams,
+                                              nsCString(aMimeContentType),
+                                              disp, contentDisposition,
+                                              fileName, aForceSave,
+                                              contentLength, wasFileChannel,
+                                              referrerParams,
+                                              mozilla::dom::TabChild::GetFrom(window));
+  ExternalHelperAppChild *childListener = static_cast<ExternalHelperAppChild *>(pc);
+
+  NS_ADDREF(*aStreamListener = childListener);
+
+  uint32_t reason = nsIHelperAppLauncherDialog::REASON_CANTHANDLE;
+
+  RefPtr<nsExternalAppHandler> handler =
+    new nsExternalAppHandler(nullptr, EmptyCString(), aContentContext, aWindowContext, this,
+                             fileName, reason, aForceSave);
+  if (!handler) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  childListener->SetHandler(handler);
+  return NS_OK;
+}
+
 NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeContentType,
                                                     nsIRequest *aRequest,
-                                                    nsIInterfaceRequestor *aWindowContext,
+                                                    nsIInterfaceRequestor *aContentContext,
                                                     bool aForceSave,
+                                                    nsIInterfaceRequestor *aWindowContext,
                                                     nsIStreamListener ** aStreamListener)
 {
+  if (XRE_IsContentProcess()) {
+    return DoContentContentProcessHelper(aMimeContentType, aRequest, aContentContext,
+                                         aForceSave, aWindowContext, aStreamListener);
+  }
+
   nsAutoString fileName;
   nsAutoCString fileExtension;
   uint32_t reason = nsIHelperAppLauncherDialog::REASON_CANTHANDLE;
   uint32_t contentDisposition = -1;
-
-  nsresult rv;
 
   // Get the file extension and name that we will need later
   nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
@@ -633,62 +728,7 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
     channel->GetContentLength(&contentLength);
     channel->GetContentDisposition(&contentDisposition);
     channel->GetContentDispositionFilename(fileName);
-  }
-  
-  if (XRE_GetProcessType() == GeckoProcessType_Content) {
-    nsCOMPtr<nsIDOMWindow> window = do_GetInterface(aWindowContext);
-    NS_ENSURE_STATE(window);
 
-    // We need to get a hold of a ContentChild so that we can begin forwarding
-    // this data to the parent.  In the HTTP case, this is unfortunate, since
-    // we're actually passing data from parent->child->parent wastefully, but
-    // the Right Fix will eventually be to short-circuit those channels on the
-    // parent side based on some sort of subscription concept.
-    using mozilla::dom::ContentChild;
-    using mozilla::dom::ExternalHelperAppChild;
-    ContentChild *child = ContentChild::GetSingleton();
-    if (!child)
-      return NS_ERROR_FAILURE;
-
-    nsCString disp;
-    if (channel) {
-      channel->GetContentDispositionHeader(disp);
-    }
-
-    nsCOMPtr<nsIURI> referrer;
-    rv = NS_GetReferrerFromChannel(channel, getter_AddRefs(referrer));
-
-    OptionalURIParams uriParams, referrerParams;
-    SerializeURI(uri, uriParams);
-    SerializeURI(referrer, referrerParams);
-
-    // Now we build a protocol for forwarding our data to the parent.  The
-    // protocol will act as a listener on the child-side and create a "real"
-    // helperAppService listener on the parent-side, via another call to
-    // DoContent.
-    mozilla::dom::PExternalHelperAppChild *pc =
-      child->SendPExternalHelperAppConstructor(uriParams,
-                                               nsCString(aMimeContentType),
-                                               disp, contentDisposition,
-                                               fileName, aForceSave, 
-                                               contentLength, referrerParams,
-                                               mozilla::dom::TabChild::GetFrom(window));
-    ExternalHelperAppChild *childListener = static_cast<ExternalHelperAppChild *>(pc);
-
-    NS_ADDREF(*aStreamListener = childListener);
-
-    nsRefPtr<nsExternalAppHandler> handler =
-      new nsExternalAppHandler(nullptr, EmptyCString(), aWindowContext, this,
-                               fileName,
-                               reason, aForceSave);
-    if (!handler)
-      return NS_ERROR_OUT_OF_MEMORY;
-
-    childListener->SetHandler(handler);
-    return NS_OK;
-  }
-
-  if (channel) {
     // Check if we have a POST request, in which case we don't want to use
     // the url's extension
     bool allowURLExt = true;
@@ -710,16 +750,19 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
         nsAutoCString query;
 
         // We only care about the query for HTTP and HTTPS URLs
+        nsresult rv;
         bool isHTTP, isHTTPS;
         rv = uri->SchemeIs("http", &isHTTP);
-        if (NS_FAILED(rv))
+        if (NS_FAILED(rv)) {
           isHTTP = false;
+        }
         rv = uri->SchemeIs("https", &isHTTPS);
-        if (NS_FAILED(rv))
+        if (NS_FAILED(rv)) {
           isHTTPS = false;
-
-        if (isHTTP || isHTTPS)
+        }
+        if (isHTTP || isHTTPS) {
           url->GetQuery(query);
+        }
 
         // Only get the extension if the query is empty; if it isn't, then the
         // extension likely belongs to a cgi script and isn't helpful
@@ -733,16 +776,17 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
     LOG(("Found extension '%s' (filename is '%s', handling attachment: %i)",
          fileExtension.get(), NS_ConvertUTF16toUTF8(fileName).get(),
          isAttachment));
-    if (isAttachment)
+    if (isAttachment) {
       reason = nsIHelperAppLauncherDialog::REASON_SERVERREQUEST;
+    }
   }
 
   LOG(("HelperAppService::DoContent: mime '%s', extension '%s'\n",
        PromiseFlatCString(aMimeContentType).get(), fileExtension.get()));
 
-  // we get the mime service here even though we're the default implementation of it,
-  // so it's possible to override only the mime service and not need to reimplement the
-  // whole external helper app service itself
+  // We get the mime service here even though we're the default implementation
+  // of it, so it's possible to override only the mime service and not need to
+  // reimplement the whole external helper app service itself.
   nsCOMPtr<nsIMIMEService> mimeSvc(do_GetService(NS_MIMESERVICE_CONTRACTID));
   NS_ENSURE_TRUE(mimeSvc, NS_ERROR_FAILURE);
 
@@ -766,21 +810,25 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
                                        getter_AddRefs(mimeInfo));
       mimeType.AssignLiteral(APPLICATION_OCTET_STREAM);
     }
-    if (channel)
+
+    if (channel) {
       channel->SetContentType(mimeType);
+    }
+
     // Don't overwrite SERVERREQUEST
-    if (reason == nsIHelperAppLauncherDialog::REASON_CANTHANDLE)
+    if (reason == nsIHelperAppLauncherDialog::REASON_CANTHANDLE) {
       reason = nsIHelperAppLauncherDialog::REASON_TYPESNIFFED;
-  } 
-  else {
+    }
+  } else {
     mimeSvc->GetFromTypeAndExtension(aMimeContentType, fileExtension,
                                      getter_AddRefs(mimeInfo));
   } 
   LOG(("Type/Ext lookup found 0x%p\n", mimeInfo.get()));
 
   // No mimeinfo -> we can't continue. probably OOM.
-  if (!mimeInfo)
+  if (!mimeInfo) {
     return NS_ERROR_OUT_OF_MEMORY;
+  }
 
   *aStreamListener = nullptr;
   // We want the mimeInfo's primary extension to pass it to
@@ -790,15 +838,17 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
 
   nsExternalAppHandler * handler = new nsExternalAppHandler(mimeInfo,
                                                             buf,
+                                                            aContentContext,
                                                             aWindowContext,
                                                             this,
                                                             fileName,
                                                             reason,
                                                             aForceSave);
-  if (!handler)
+  if (!handler) {
     return NS_ERROR_OUT_OF_MEMORY;
+  }
+
   NS_ADDREF(*aStreamListener = handler);
-  
   return NS_OK;
 }
 
@@ -915,11 +965,13 @@ nsExternalHelperAppService::LoadURI(nsIURI *aURI,
 {
   NS_ENSURE_ARG_POINTER(aURI);
 
-  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+  if (XRE_IsContentProcess()) {
     URIParams uri;
     SerializeURI(aURI, uri);
 
-    mozilla::dom::ContentChild::GetSingleton()->SendLoadURIExternal(uri);
+    nsCOMPtr<nsITabChild> tabChild(do_GetInterface(aWindowContext));
+    mozilla::dom::ContentChild::GetSingleton()->
+      SendLoadURIExternal(uri, static_cast<dom::TabChild*>(tabChild.get()));
     return NS_OK;
   }
 
@@ -1153,11 +1205,13 @@ NS_INTERFACE_MAP_END_THREADSAFE
 
 nsExternalAppHandler::nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo,
                                            const nsCSubstring& aTempFileExtension,
+                                           nsIInterfaceRequestor* aContentContext,
                                            nsIInterfaceRequestor* aWindowContext,
                                            nsExternalHelperAppService *aExtProtSvc,
                                            const nsAString& aSuggestedFilename,
                                            uint32_t aReason, bool aForceSave)
 : mMimeInfo(aMIMEInfo)
+, mContentContext(aContentContext)
 , mWindowContext(aWindowContext)
 , mWindowToClose(nullptr)
 , mSuggestedFileName(aSuggestedFilename)
@@ -1217,7 +1271,7 @@ nsExternalAppHandler::~nsExternalAppHandler()
 void
 nsExternalAppHandler::DidDivertRequest(nsIRequest *request)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Content, "in child process");
+  MOZ_ASSERT(XRE_IsContentProcess(), "in child process");
   // Remove our request from the child loadGroup
   RetargetLoadNotifications(request);
   MaybeCloseWindow();
@@ -1285,17 +1339,19 @@ void nsExternalAppHandler::RetargetLoadNotifications(nsIRequest *request)
   // Note that we need to do this before removing aChannel from the loadgroup,
   // since that would mess with the original channel on the loader.
   nsCOMPtr<nsIDocumentLoader> origContextLoader =
-    do_GetInterface(mWindowContext);
-  if (origContextLoader)
+    do_GetInterface(mContentContext);
+  if (origContextLoader) {
     origContextLoader->GetDocumentChannel(getter_AddRefs(mOriginalChannel));
+  }
 
   bool isPrivate = NS_UsePrivateBrowsing(aChannel);
 
   nsCOMPtr<nsILoadGroup> oldLoadGroup;
   aChannel->GetLoadGroup(getter_AddRefs(oldLoadGroup));
 
-  if(oldLoadGroup)
-     oldLoadGroup->RemoveRequest(request, nullptr, NS_BINDING_RETARGETED);
+  if(oldLoadGroup) {
+    oldLoadGroup->RemoveRequest(request, nullptr, NS_BINDING_RETARGETED);
+  }
       
   aChannel->SetLoadGroup(nullptr);
   aChannel->SetNotificationCallbacks(nullptr);
@@ -1371,7 +1427,7 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
   nsAutoCString tempLeafName;
   nsDependentCSubstring randomData(reinterpret_cast<const char*>(buffer), requiredBytesLength);
   rv = Base64Encode(randomData, tempLeafName);
-  NS_Free(buffer);
+  free(buffer);
   buffer = nullptr;
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1415,7 +1471,7 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
   rv = mTempFile->Append(NS_ConvertUTF8toUTF16(tempLeafName));
   // make this file unique!!!
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = mTempFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0644);
+  rv = mTempFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Now save the temp leaf name, minus the ".part" bit, so we can use it later.
@@ -1458,6 +1514,58 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
   return rv;
 }
 
+void
+nsExternalAppHandler::MaybeApplyDecodingForExtension(nsIRequest *aRequest)
+{
+  MOZ_ASSERT(aRequest);
+
+  nsCOMPtr<nsIEncodedChannel> encChannel = do_QueryInterface(aRequest);
+  if (!encChannel) {
+    return;
+  }
+
+  // Turn off content encoding conversions if needed
+  bool applyConversion = true;
+
+  // First, check to see if conversion is already disabled.  If so, we
+  // have nothing to do here.
+  encChannel->GetApplyConversion(&applyConversion);
+  if (!applyConversion) {
+    return;
+  }
+
+  nsCOMPtr<nsIURL> sourceURL(do_QueryInterface(mSourceUrl));
+  if (sourceURL)
+  {
+    nsAutoCString extension;
+    sourceURL->GetFileExtension(extension);
+    if (!extension.IsEmpty())
+    {
+      nsCOMPtr<nsIUTF8StringEnumerator> encEnum;
+      encChannel->GetContentEncodings(getter_AddRefs(encEnum));
+      if (encEnum)
+      {
+        bool hasMore;
+        nsresult rv = encEnum->HasMore(&hasMore);
+        if (NS_SUCCEEDED(rv) && hasMore)
+        {
+          nsAutoCString encType;
+          rv = encEnum->GetNext(encType);
+          if (NS_SUCCEEDED(rv) && !encType.IsEmpty())
+          {
+            MOZ_ASSERT(mExtProtSvc);
+            mExtProtSvc->ApplyDecodingForExtension(extension, encType,
+                                                   &applyConversion);
+          }
+        }
+      }
+    }
+  }
+
+  encChannel->SetApplyConversion( applyConversion );
+  return;
+}
+
 NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISupports * aCtxt)
 {
   NS_PRECONDITION(request, "OnStartRequest without request?");
@@ -1469,11 +1577,18 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
   mRequest = request;
 
   nsCOMPtr<nsIChannel> aChannel = do_QueryInterface(request);
-  
+
   nsresult rv;
-  
+
   nsCOMPtr<nsIFileChannel> fileChan(do_QueryInterface(request));
   mIsFileChannel = fileChan != nullptr;
+  if (!mIsFileChannel) {
+    // It's possible that this request came from the child process and the
+    // file channel actually lives there. If this returns true, then our
+    // mSourceUrl will be an nsIFileURL anyway.
+    nsCOMPtr<dom::nsIExternalHelperAppParent> parent(do_QueryInterface(request));
+    mIsFileChannel = parent && parent->WasFileChannel();
+  }
 
   // Get content length
   if (aChannel) {
@@ -1490,8 +1605,7 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
   }
 
   // Now get the URI
-  if (aChannel)
-  {
+  if (aChannel) {
     aChannel->GetURI(getter_AddRefs(mSourceUrl));
   }
 
@@ -1521,58 +1635,23 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
   // Con: Uncompressed data means more IPC overhead.
   // Pros: ExternalHelperAppParent doesn't need to implement nsIEncodedChannel.
   //       Parent process doesn't need to expect CPU time on decompression.
-  nsCOMPtr<nsIEncodedChannel> encChannel = do_QueryInterface( aChannel );
-  if (encChannel) 
-  {
-    // Turn off content encoding conversions if needed
-    bool applyConversion = true;
-
-    nsCOMPtr<nsIURL> sourceURL(do_QueryInterface(mSourceUrl));
-    if (sourceURL)
-    {
-      nsAutoCString extension;
-      sourceURL->GetFileExtension(extension);
-      if (!extension.IsEmpty())
-      {
-        nsCOMPtr<nsIUTF8StringEnumerator> encEnum;
-        encChannel->GetContentEncodings(getter_AddRefs(encEnum));
-        if (encEnum)
-        {
-          bool hasMore;
-          rv = encEnum->HasMore(&hasMore);
-          if (NS_SUCCEEDED(rv) && hasMore)
-          {
-            nsAutoCString encType;
-            rv = encEnum->GetNext(encType);
-            if (NS_SUCCEEDED(rv) && !encType.IsEmpty())
-            {
-              mExtProtSvc->ApplyDecodingForExtension(extension, encType,
-                                                     &applyConversion);
-            }
-          }
-        }
-      }    
-    }
-
-    encChannel->SetApplyConversion( applyConversion );
-  }
+  MaybeApplyDecodingForExtension(aChannel);
 
   // At this point, the child process has done everything it can usefully do
   // for OnStartRequest.
-  if (XRE_GetProcessType() == GeckoProcessType_Content)
-     return NS_OK;
+  if (XRE_IsContentProcess()) {
+    return NS_OK;
+  }
 
   rv = SetUpTempFile(aChannel);
   if (NS_FAILED(rv)) {
     nsresult transferError = rv;
 
     rv = CreateFailedTransfer(aChannel && NS_UsePrivateBrowsing(aChannel));
-#ifdef PR_LOGGING
     if (NS_FAILED(rv)) {
       LOG(("Failed to create transfer to report failure."
            "Will fallback to prompter!"));
     }
-#endif
 
     mCanceled = true;
     request->Cancel(transferError);
@@ -1608,8 +1687,7 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
 
   bool alwaysAsk = true;
   mMimeInfo->GetAlwaysAskBeforeHandling(&alwaysAsk);
-  if (alwaysAsk)
-  {
+  if (alwaysAsk) {
     // But we *don't* ask if this mimeInfo didn't come from
     // our user configuration datastore and the user has said
     // at some point in the distant past that they don't
@@ -1618,22 +1696,18 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
 
     bool mimeTypeIsInDatastore = false;
     nsCOMPtr<nsIHandlerService> handlerSvc = do_GetService(NS_HANDLERSERVICE_CONTRACTID);
-    if (handlerSvc)
+    if (handlerSvc) {
       handlerSvc->Exists(mMimeInfo, &mimeTypeIsInDatastore);
-    if (!handlerSvc || !mimeTypeIsInDatastore)
-    {
+    }
+    if (!handlerSvc || !mimeTypeIsInDatastore) {
       nsAutoCString MIMEType;
       mMimeInfo->GetMIMEType(MIMEType);
-
-      if (!GetNeverAskFlagFromPref(NEVER_ASK_FOR_SAVE_TO_DISK_PREF, MIMEType.get()))
-      {
+      if (!GetNeverAskFlagFromPref(NEVER_ASK_FOR_SAVE_TO_DISK_PREF, MIMEType.get())) {
         // Don't need to ask after all.
         alwaysAsk = false;
         // Make sure action matches pref (save to disk).
         mMimeInfo->SetPreferredAction(nsIMIMEInfo::saveToDisk);
-      }
-      else if (!GetNeverAskFlagFromPref(NEVER_ASK_FOR_OPEN_FILE_PREF, MIMEType.get()))
-      {
+      } else if (!GetNeverAskFlagFromPref(NEVER_ASK_FOR_OPEN_FILE_PREF, MIMEType.get())) {
         // Don't need to ask after all.
         alwaysAsk = false;
       }
@@ -1659,13 +1733,13 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
   
   if (alwaysAsk)
   {
-    // invoke the dialog!!!!! use mWindowContext as the window context parameter for the dialog request
-    mDialog = do_CreateInstance( NS_HELPERAPPLAUNCHERDLG_CONTRACTID, &rv );
+    // Display the dialog
+    mDialog = do_CreateInstance(NS_HELPERAPPLAUNCHERDLG_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
     // this will create a reference cycle (the dialog holds a reference to us as
     // nsIHelperAppLauncher), which will be broken in Cancel or CreateTransfer.
-    rv = mDialog->Show( this, mWindowContext, mReason );
+    rv = mDialog->Show(this, GetDialogParent(), mReason);
 
     // what do we do if the dialog failed? I guess we should call Cancel and abort the load....
   }
@@ -1702,12 +1776,9 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
 
 #endif
     if (action == nsIMIMEInfo::useHelperApp ||
-        action == nsIMIMEInfo::useSystemDefault)
-    {
+        action == nsIMIMEInfo::useSystemDefault) {
         rv = LaunchWithApplication(nullptr, false);
-    }
-    else // Various unknown actions go here too
-    {
+    } else {
         rv = SaveToDisk(nullptr, false);
     }
   }
@@ -1720,8 +1791,7 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
 void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequest *aRequest, const nsAFlatString &path)
 {
     nsAutoString msgId;
-    switch(rv)
-    {
+    switch (rv) {
     case NS_ERROR_OUT_OF_MEMORY:
         // No memory
         msgId.AssignLiteral("noMemory");
@@ -1748,9 +1818,7 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
 #else
           msgId.AssignLiteral("accessError");
 #endif
-        }
-        else
-        {
+        } else {
           msgId.AssignLiteral("launchError");
         }
         break;
@@ -1771,12 +1839,11 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
           break;
         }
 #endif
-        // fall through
+        MOZ_FALLTHROUGH;
 
     default:
         // Generic read/write/launch error message.
-        switch(type)
-        {
+        switch (type) {
         case kReadError:
           msgId.AssignLiteral("readError");
           break;
@@ -1789,45 +1856,43 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
         }
         break;
     }
-    PR_LOG(nsExternalHelperAppService::mLog, PR_LOG_ERROR,
+
+    MOZ_LOG(nsExternalHelperAppService::mLog, LogLevel::Error,
         ("Error: %s, type=%i, listener=0x%p, transfer=0x%p, rv=0x%08X\n",
          NS_LossyConvertUTF16toASCII(msgId).get(), type, mDialogProgressListener.get(), mTransfer.get(), rv));
-    PR_LOG(nsExternalHelperAppService::mLog, PR_LOG_ERROR,
+
+    MOZ_LOG(nsExternalHelperAppService::mLog, LogLevel::Error,
         ("       path='%s'\n", NS_ConvertUTF16toUTF8(path).get()));
 
     // Get properties file bundle and extract status string.
     nsCOMPtr<nsIStringBundleService> stringService =
         mozilla::services::GetStringBundleService();
-    if (stringService)
-    {
+    if (stringService) {
         nsCOMPtr<nsIStringBundle> bundle;
-        if (NS_SUCCEEDED(stringService->CreateBundle("chrome://global/locale/nsWebBrowserPersist.properties", getter_AddRefs(bundle))))
-        {
+        if (NS_SUCCEEDED(stringService->CreateBundle("chrome://global/locale/nsWebBrowserPersist.properties",
+                         getter_AddRefs(bundle)))) {
             nsXPIDLString msgText;
             const char16_t *strings[] = { path.get() };
-            if(NS_SUCCEEDED(bundle->FormatStringFromName(msgId.get(), strings, 1, getter_Copies(msgText))))
-            {
-              if (mDialogProgressListener)
-              {
+            if (NS_SUCCEEDED(bundle->FormatStringFromName(msgId.get(), strings, 1,
+                                                          getter_Copies(msgText)))) {
+              if (mDialogProgressListener) {
                 // We have a listener, let it handle the error.
                 mDialogProgressListener->OnStatusChange(nullptr, (type == kReadError) ? aRequest : nullptr, rv, msgText);
               } else if (mTransfer) {
                 mTransfer->OnStatusChange(nullptr, (type == kReadError) ? aRequest : nullptr, rv, msgText);
-              }
-              else
-              if (XRE_GetProcessType() == GeckoProcessType_Default) {
+              } else if (XRE_IsParentProcess()) {
                 // We don't have a listener.  Simply show the alert ourselves.
                 nsresult qiRv;
-                nsCOMPtr<nsIPrompt> prompter(do_GetInterface(mWindowContext, &qiRv));
+                nsCOMPtr<nsIPrompt> prompter(do_GetInterface(GetDialogParent(), &qiRv));
                 nsXPIDLString title;
-                bundle->FormatStringFromName(MOZ_UTF16("title"),
+                bundle->FormatStringFromName(u"title",
                                              strings,
                                              1,
                                              getter_Copies(title));
 
-                PR_LOG(nsExternalHelperAppService::mLog, PR_LOG_DEBUG,
-                       ("mWindowContext=0x%p, prompter=0x%p, qi rv=0x%08X, title='%s', msg='%s'",
-                       mWindowContext.get(),
+                MOZ_LOG(nsExternalHelperAppService::mLog, LogLevel::Debug,
+                       ("mContentContext=0x%p, prompter=0x%p, qi rv=0x%08X, title='%s', msg='%s'",
+                       mContentContext.get(),
                        prompter.get(),
                        qiRv,
                        NS_ConvertUTF16toUTF8(title).get(),
@@ -1835,18 +1900,16 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
 
                 // If we didn't have a prompter we will try and get a window
                 // instead, get it's docshell and use it to alert the user.
-                if (!prompter)
-                {
-                  nsCOMPtr<nsPIDOMWindow> window(do_GetInterface(mWindowContext));
-                  if (!window || !window->GetDocShell())
-                  {
+                if (!prompter) {
+                  nsCOMPtr<nsPIDOMWindowOuter> window(do_GetInterface(GetDialogParent()));
+                  if (!window || !window->GetDocShell()) {
                     return;
                   }
 
                   prompter = do_GetInterface(window->GetDocShell(), &qiRv);
 
-                  PR_LOG(nsExternalHelperAppService::mLog, PR_LOG_DEBUG,
-                         ("No prompter from mWindowContext, using DocShell, " \
+                  MOZ_LOG(nsExternalHelperAppService::mLog, LogLevel::Debug,
+                         ("No prompter from mContentContext, using DocShell, " \
                           "window=0x%p, docShell=0x%p, " \
                           "prompter=0x%p, qi rv=0x%08X",
                           window.get(),
@@ -1856,9 +1919,8 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
 
                   // If we still don't have a prompter, there's nothing else we
                   // can do so just return.
-                  if (!prompter)
-                  {
-                    PR_LOG(nsExternalHelperAppService::mLog, PR_LOG_ERROR,
+                  if (!prompter) {
+                    MOZ_LOG(nsExternalHelperAppService::mLog, LogLevel::Error,
                            ("No prompter from DocShell, no way to alert user"));
                     return;
                   }
@@ -1879,31 +1941,30 @@ nsExternalAppHandler::OnDataAvailable(nsIRequest *request, nsISupports * aCtxt,
 {
   nsresult rv = NS_OK;
   // first, check to see if we've been canceled....
-  if (mCanceled || !mSaver) // then go cancel our underlying channel too
+  if (mCanceled || !mSaver) {
+    // then go cancel our underlying channel too
     return request->Cancel(NS_BINDING_ABORTED);
+  }
 
   // read the data out of the stream and write it to the temp file.
-  if (count > 0)
-  {
+  if (count > 0) {
     mProgress += count;
 
     nsCOMPtr<nsIStreamListener> saver = do_QueryInterface(mSaver);
     rv = saver->OnDataAvailable(request, aCtxt, inStr, sourceOffset, count);
-    if (NS_SUCCEEDED(rv))
-    {
+    if (NS_SUCCEEDED(rv)) {
       // Send progress notification.
       if (mTransfer) {
         mTransfer->OnProgressChange64(nullptr, request, mProgress,
                                       mContentLength, mProgress,
                                       mContentLength);
       }
-    }
-    else
-    {
+    } else {
       // An error occurred, notify listener.
       nsAutoString tempFilePath;
-      if (mTempFile)
+      if (mTempFile) {
         mTempFile->GetPath(tempFilePath);
+      }
       SendStatusChange(kReadError, rv, request, tempFilePath);
 
       // Cancel the download.
@@ -1923,8 +1984,7 @@ NS_IMETHODIMP nsExternalAppHandler::OnStopRequest(nsIRequest *request, nsISuppor
   mStopRequestIssued = true;
 
   // Cancel if the request did not complete successfully.
-  if (!mCanceled && NS_FAILED(aStatus))
-  {
+  if (!mCanceled && NS_FAILED(aStatus)) {
     // Send error notification.
     nsAutoString tempFilePath;
     if (mTempFile)
@@ -1935,8 +1995,9 @@ NS_IMETHODIMP nsExternalAppHandler::OnStopRequest(nsIRequest *request, nsISuppor
   }
 
   // first, check to see if we've been canceled....
-  if (mCanceled || !mSaver)
+  if (mCanceled || !mSaver) {
     return NS_OK;
+  }
 
   return mSaver->Finish(NS_OK);
 }
@@ -1966,14 +2027,20 @@ nsExternalAppHandler::OnSaveComplete(nsIBackgroundFileSaver *aSaver,
     mSaver = nullptr;
 
     // Save the redirect information.
-    nsCOMPtr<nsIRedirectHistory> history = do_QueryInterface(mRequest);
-    if (history) {
-      (void)history->GetRedirects(getter_AddRefs(mRedirects));
-      uint32_t length = 0;
-      mRedirects->GetLength(&length);
-      LOG(("nsExternalAppHandler: Got %u redirects\n", length));
-    } else {
-      LOG(("nsExternalAppHandler: No redirects\n"));
+    nsCOMPtr<nsIChannel> channel = do_QueryInterface(mRequest);
+    if (channel) {
+      nsCOMPtr<nsILoadInfo> loadInfo = channel->GetLoadInfo();
+      if (loadInfo) {
+        nsresult rv = NS_OK;
+        nsCOMPtr<nsIMutableArray> redirectChain =
+          do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
+        NS_ENSURE_SUCCESS(rv, rv);
+        LOG(("nsExternalAppHandler: Got %u redirects\n", loadInfo->RedirectChain().Length()));
+        for (nsIPrincipal* principal : loadInfo->RedirectChain()) {
+          redirectChain->AppendElement(principal, false);
+        }
+        mRedirects = redirectChain;
+      }
     }
 
     if (NS_FAILED(aStatus)) {
@@ -1986,7 +2053,6 @@ nsExternalAppHandler::OnSaveComplete(nsIBackgroundFileSaver *aSaver,
       // for us, we'll fall back to using the prompt service if we absolutely
       // have to.
       if (!mTransfer) {
-        nsCOMPtr<nsIChannel> channel = do_QueryInterface(mRequest);
         // We don't care if this fails.
         CreateFailedTransfer(channel && NS_UsePrivateBrowsing(channel));
       }
@@ -2094,13 +2160,10 @@ nsresult nsExternalAppHandler::CreateTransfer()
   // Now let's add the download to history
   nsCOMPtr<nsIDownloadHistory> dh(do_GetService(NS_DOWNLOADHISTORY_CONTRACTID));
   if (dh) {
-    nsCOMPtr<nsIURI> referrer;
-    nsCOMPtr<nsIChannel> channel = do_QueryInterface(mRequest);
-    if (channel) {
-      NS_GetReferrerFromChannel(channel, getter_AddRefs(referrer));
-    }
-
     if (channel && !NS_UsePrivateBrowsing(channel)) {
+      nsCOMPtr<nsIURI> referrer;
+      NS_GetReferrerFromChannel(channel, getter_AddRefs(referrer));
+
       dh->AddDownload(mSourceUrl, referrer, mTimeDownloadStarted, target);
     }
   }
@@ -2182,14 +2245,13 @@ nsresult nsExternalAppHandler::SaveDestinationAvailable(nsIFile * aFile)
 
 void nsExternalAppHandler::RequestSaveDestination(const nsAFlatString &aDefaultFile, const nsAFlatString &aFileExtension)
 {
-  // invoke the dialog!!!!! use mWindowContext as the window context parameter for the dialog request
-  // Convert to use file picker? No, then embeddors could not do any sort of
+  // Display the dialog
+  // XXX Convert to use file picker? No, then embeddors could not do any sort of
   // "AutoDownload" w/o showing a prompt
   nsresult rv = NS_OK;
-  if (!mDialog)
-  {
+  if (!mDialog) {
     // Get helper app launcher dialog.
-    mDialog = do_CreateInstance( NS_HELPERAPPLAUNCHERDLG_CONTRACTID, &rv );
+    mDialog = do_CreateInstance(NS_HELPERAPPLAUNCHERDLG_CONTRACTID, &rv);
     if (rv != NS_OK) {
       Cancel(NS_BINDING_ABORTED);
       return;
@@ -2204,24 +2266,16 @@ void nsExternalAppHandler::RequestSaveDestination(const nsAFlatString &aDefaultF
   // picker is up would cause Cancel() to be called, and the dialog would be
   // released, which would release this object too, which would crash.
   // See Bug 249143
-  nsIFile* fileToUse;
-  nsRefPtr<nsExternalAppHandler> kungFuDeathGrip(this);
+  RefPtr<nsExternalAppHandler> kungFuDeathGrip(this);
   nsCOMPtr<nsIHelperAppLauncherDialog> dlg(mDialog);
-  rv = mDialog->PromptForSaveToFile(this,
-                                    mWindowContext,
-                                    aDefaultFile.get(),
-                                    aFileExtension.get(),
-                                    mForceSave, &fileToUse);
 
-  if (rv == NS_ERROR_NOT_AVAILABLE) {
-    // we need to use the async version -> nsIHelperAppLauncherDialog.promptForSaveToFileAsync.
-    rv = mDialog->PromptForSaveToFileAsync(this, 
-                                           mWindowContext,
-                                           aDefaultFile.get(),
-                                           aFileExtension.get(),
-                                           mForceSave);
-  } else {
-    SaveDestinationAvailable(rv == NS_OK ? fileToUse : nullptr);
+  rv = dlg->PromptForSaveToFileAsync(this,
+                                     GetDialogParent(),
+                                     aDefaultFile.get(),
+                                     aFileExtension.get(),
+                                     mForceSave);
+  if (NS_FAILED(rv)) {
+    Cancel(NS_BINDING_ABORTED);
   }
 }
 
@@ -2333,14 +2387,12 @@ NS_IMETHODIMP nsExternalAppHandler::LaunchWithApplication(nsIFile * aApplication
   // Now check if the file is local, in which case we won't bother with saving
   // it to a temporary directory and just launch it from where it is
   nsCOMPtr<nsIFileURL> fileUrl(do_QueryInterface(mSourceUrl));
-  if (fileUrl && mIsFileChannel)
-  {
+  if (fileUrl && mIsFileChannel) {
     Cancel(NS_BINDING_ABORTED);
     nsCOMPtr<nsIFile> file;
     nsresult rv = fileUrl->GetFile(getter_AddRefs(file));
 
-    if (NS_SUCCEEDED(rv))
-    {
+    if (NS_SUCCEEDED(rv)) {
       rv = mMimeInfo->LaunchWithFile(file);
       if (NS_SUCCEEDED(rv))
         return NS_OK;
@@ -2363,8 +2415,7 @@ NS_IMETHODIMP nsExternalAppHandler::LaunchWithApplication(nsIFile * aApplication
   nsCOMPtr<nsIFile> fileToUse;
   (void) GetDownloadDirectory(getter_AddRefs(fileToUse));
 
-  if (mSuggestedFileName.IsEmpty())
-  {
+  if (mSuggestedFileName.IsEmpty()) {
     // Keep using the leafname of the temp file, since we're just starting a helper
     mSuggestedFileName = mTempLeafName;
   }
@@ -2375,18 +2426,15 @@ NS_IMETHODIMP nsExternalAppHandler::LaunchWithApplication(nsIFile * aApplication
   fileToUse->Append(mSuggestedFileName);  
 #endif
 
-  nsresult rv = fileToUse->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0644);
-  if(NS_SUCCEEDED(rv))
-  {
+  nsresult rv = fileToUse->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
+  if(NS_SUCCEEDED(rv)) {
     mFinalFileDestination = do_QueryInterface(fileToUse);
     // launch the progress window now that the user has picked the desired action.
     rv = CreateTransfer();
     if (NS_FAILED(rv)) {
       Cancel(rv);
     }
-  }
-  else
-  {
+  } else {
     // Cancel the download and report an error.  We do not want to end up in
     // a state where it appears that we have a normal download that is
     // pointing to a file that we did not actually create.
@@ -2450,9 +2498,8 @@ void nsExternalAppHandler::ProcessAnyRefreshTags()
    // pass this refresh information back to the caller? For now, try to get the refresh URI
    // interface. If the window context where the request originated came from supports this
    // then we can force it to process the refresh information (if there is any) from this channel.
-   if (mWindowContext && mOriginalChannel)
-   {
-     nsCOMPtr<nsIRefreshURI> refreshHandler (do_GetInterface(mWindowContext));
+   if (mContentContext && mOriginalChannel) {
+     nsCOMPtr<nsIRefreshURI> refreshHandler (do_GetInterface(mContentContext));
      if (refreshHandler) {
         refreshHandler->SetupRefreshURI(mOriginalChannel);
      }
@@ -2479,18 +2526,16 @@ bool nsExternalAppHandler::GetNeverAskFlagFromPref(const char * prefName, const 
 
 nsresult nsExternalAppHandler::MaybeCloseWindow()
 {
-  nsCOMPtr<nsIDOMWindow> window = do_GetInterface(mWindowContext);
+  nsCOMPtr<nsPIDOMWindowOuter> window = do_GetInterface(mContentContext);
   NS_ENSURE_STATE(window);
 
   if (mShouldCloseWindow) {
     // Reset the window context to the opener window so that the dependent
     // dialogs have a parent
-    nsCOMPtr<nsIDOMWindow> opener;
-    window->GetOpener(getter_AddRefs(opener));
+    nsCOMPtr<nsPIDOMWindowOuter> opener = window->GetOpener();
 
-    bool isClosed;
-    if (opener && NS_SUCCEEDED(opener->GetClosed(&isClosed)) && !isClosed) {
-      mWindowContext = do_GetInterface(opener);
+    if (opener && !opener->Closed()) {
+      mContentContext = do_GetInterface(opener);
 
       // Now close the old window.  Do it on a timer so that we don't run
       // into issues trying to close the window before it has fully opened.
@@ -2628,7 +2673,6 @@ NS_IMETHODIMP nsExternalHelperAppService::GetFromTypeAndExtension(const nsACStri
       (*_retval)->SetPrimaryExtension(aFileExt);
   }
 
-#ifdef PR_LOGGING
   if (LOG_ENABLED()) {
     nsAutoCString type;
     (*_retval)->GetMIMEType(type);
@@ -2637,83 +2681,73 @@ NS_IMETHODIMP nsExternalHelperAppService::GetFromTypeAndExtension(const nsACStri
     (*_retval)->GetPrimaryExtension(ext);
     LOG(("MIME Info Summary: Type '%s', Primary Ext '%s'\n", type.get(), ext.get()));
   }
-#endif
 
   return NS_OK;
 }
 
-NS_IMETHODIMP nsExternalHelperAppService::GetTypeFromExtension(const nsACString& aFileExt, nsACString& aContentType) 
+NS_IMETHODIMP
+nsExternalHelperAppService::GetTypeFromExtension(const nsACString& aFileExt,
+                                                 nsACString& aContentType)
 {
   // OK. We want to try the following sources of mimetype information, in this order:
   // 1. defaultMimeEntries array
-  // 2. User-set preferences (managed by the handler service)
-  // 3. OS-provided information
-  // 4. our "extras" array
-  // 5. Information from plugins
-  // 6. The "ext-to-type-mapping" category
+  // 2. OS-provided information
+  // 3. our "extras" array
+  // 4. Information from plugins
+  // 5. The "ext-to-type-mapping" category
+  // Note that, we are intentionally not looking at the handler service, because
+  // that can be affected by websites, which leads to undesired behavior.
 
   // Early return if called with an empty extension parameter
-  if (aFileExt.IsEmpty())
+  if (aFileExt.IsEmpty()) {
     return NS_ERROR_NOT_AVAILABLE;
-
-  nsresult rv = NS_OK;
-  // First of all, check our default entries
-  for (size_t i = 0; i < ArrayLength(defaultMimeEntries); i++)
-  {
-    if (aFileExt.LowerCaseEqualsASCII(defaultMimeEntries[i].mFileExtension)) {
-      aContentType = defaultMimeEntries[i].mMimeType;
-      return rv;
-    }
   }
 
-  // Check user-set prefs
-  nsCOMPtr<nsIHandlerService> handlerSvc = do_GetService(NS_HANDLERSERVICE_CONTRACTID);
-  if (handlerSvc)
-    rv = handlerSvc->GetTypeFromExtension(aFileExt, aContentType);
-  if (NS_SUCCEEDED(rv) && !aContentType.IsEmpty())
-    return NS_OK;
-
-  // Ask OS.
-  bool found = false;
-  nsCOMPtr<nsIMIMEInfo> mi = GetMIMEInfoFromOS(EmptyCString(), aFileExt, &found);
-  if (mi && found)
-    return mi->GetMIMEType(aContentType);
-
-  // Check extras array.
-  found = GetTypeFromExtras(aFileExt, aContentType);
-  if (found)
-    return NS_OK;
-
-  const nsCString& flatExt = PromiseFlatCString(aFileExt);
-  // Try the plugins
-  const char* mimeType;
-  nsCOMPtr<nsIPluginHost> pluginHostCOM(do_GetService(MOZ_PLUGIN_HOST_CONTRACTID, &rv));
-  nsPluginHost* pluginHost = static_cast<nsPluginHost*>(pluginHostCOM.get());
-  if (NS_SUCCEEDED(rv)) {
-    if (NS_SUCCEEDED(pluginHost->IsPluginEnabledForExtension(flatExt.get(), mimeType))) {
-      aContentType = mimeType;
+  // First of all, check our default entries
+  for (auto& entry : defaultMimeEntries) {
+    if (aFileExt.LowerCaseEqualsASCII(entry.mFileExtension)) {
+      aContentType = entry.mMimeType;
       return NS_OK;
     }
   }
-  
-  rv = NS_OK;
+
+  // Ask OS.
+  if (GetMIMETypeFromOSForExtension(aFileExt, aContentType)) {
+    return NS_OK;
+  }
+
+  // Check extras array.
+  bool found = GetTypeFromExtras(aFileExt, aContentType);
+  if (found) {
+    return NS_OK;
+  }
+
+  // Try the plugins
+  RefPtr<nsPluginHost> pluginHost = nsPluginHost::GetInst();
+  if (pluginHost &&
+      pluginHost->HavePluginForExtension(aFileExt, aContentType)) {
+    return NS_OK;
+  }
+
   // Let's see if an extension added something
-  nsCOMPtr<nsICategoryManager> catMan(do_GetService("@mozilla.org/categorymanager;1"));
+  nsCOMPtr<nsICategoryManager> catMan(
+    do_GetService("@mozilla.org/categorymanager;1"));
   if (catMan) {
     // The extension in the category entry is always stored as lowercase
     nsAutoCString lowercaseFileExt(aFileExt);
     ToLowerCase(lowercaseFileExt);
     // Read the MIME type from the category entry, if available
     nsXPIDLCString type;
-    rv = catMan->GetCategoryEntry("ext-to-type-mapping", lowercaseFileExt.get(),
-                                  getter_Copies(type));
-    aContentType = type;
+    nsresult rv = catMan->GetCategoryEntry("ext-to-type-mapping",
+                                           lowercaseFileExt.get(),
+                                           getter_Copies(type));
+    if (NS_SUCCEEDED(rv)) {
+      aContentType = type;
+      return NS_OK;
+    }
   }
-  else {
-    rv = NS_ERROR_NOT_AVAILABLE;
-  }
-  
-  return rv;
+
+  return NS_ERROR_NOT_AVAILABLE;
 }
 
 NS_IMETHODIMP nsExternalHelperAppService::GetPrimaryExtension(const nsACString& aMIMEType, const nsACString& aFileExt, nsACString& _retval)
@@ -2790,7 +2824,6 @@ NS_IMETHODIMP nsExternalHelperAppService::GetTypeFromFile(nsIFile* aFile, nsACSt
 {
   NS_ENSURE_ARG_POINTER(aFile);
   nsresult rv;
-  nsCOMPtr<nsIMIMEInfo> info;
 
   // Get the Extension
   nsAutoString fileName;
@@ -2882,4 +2915,12 @@ bool nsExternalHelperAppService::GetTypeFromExtras(const nsACString& aExtension,
   }
 
   return false;
+}
+
+bool
+nsExternalHelperAppService::GetMIMETypeFromOSForExtension(const nsACString& aExtension, nsACString& aMIMEType)
+{
+  bool found = false;
+  nsCOMPtr<nsIMIMEInfo> mimeInfo = GetMIMEInfoFromOS(EmptyCString(), aExtension, &found);
+  return found && mimeInfo && NS_SUCCEEDED(mimeInfo->GetMIMEType(aMIMEType));
 }

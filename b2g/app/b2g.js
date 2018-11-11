@@ -4,6 +4,8 @@
 
 #filter substitution
 
+// For the all MOZ_MULET ifdef conditions in this file: see bug 1174234
+
 #ifndef MOZ_MULET
 pref("toolkit.defaultChromeURI", "chrome://b2g/content/shell.html");
 pref("browser.chromeURL", "chrome://b2g/content/");
@@ -15,6 +17,7 @@ pref("browser.chromeURL", "chrome://b2g/content/");
 // so that it can't be set a just a string.
 // data: url is a workaround this.
 pref("browser.startup.homepage", "data:text/plain,browser.startup.homepage=chrome://b2g/content/shell.html");
+pref("b2g.is_mulet", true);
 // Prevent having the firstrun page
 pref("startup.homepage_welcome_url", "");
 pref("browser.shell.checkDefaultBrowser", false);
@@ -26,10 +29,16 @@ pref("browser.sessionstore.max_tabs_undo", 0);
 pref("browser.sessionstore.max_windows_undo", 0);
 pref("browser.sessionstore.restore_on_demand", false);
 pref("browser.sessionstore.resume_from_crash", false);
+// No e10s on mulet
+pref("browser.tabs.remote.autostart.1", false);
+pref("browser.tabs.remote.autostart.2", false);
 #endif
 
 // Bug 945235: Prevent all bars to be considered visible:
 pref("toolkit.defaultChromeFeatures", "chrome,dialog=no,close,resizable,scrollbars,extrachrome");
+
+// Disable focus rings
+pref("browser.display.focus_ring_width", 0);
 
 // Device pixel to CSS px ratio, in percent. Set to -1 to calculate based on display density.
 pref("browser.viewport.scaleRatio", -1);
@@ -53,8 +62,7 @@ pref("browser.cache.memory_limit", 2048); // 2 MB
 
 /* image cache prefs */
 pref("image.cache.size", 1048576); // bytes
-pref("image.high_quality_downscaling.enabled", false);
-pref("canvas.image.cache.limit", 10485760); // 10 MB
+pref("canvas.image.cache.limit", 20971520); // 20 MB
 
 /* offline cache prefs */
 pref("browser.offline-apps.notify", false);
@@ -82,19 +90,20 @@ pref("network.cookie.cookieBehavior", 0);
 
 // spdy
 pref("network.http.spdy.push-allowance", 32768);
+pref("network.http.spdy.default-hpack-buffer", 4096); // 4k
 
 // See bug 545869 for details on why these are set the way they are
 pref("network.buffer.cache.count", 24);
 pref("network.buffer.cache.size",  16384);
 
 // predictive actions
-pref("network.predictor.enable", false); // disabled on b2g
+pref("network.predictor.enabled", false); // disabled on b2g
 pref("network.predictor.max-db-size", 2097152); // bytes
 pref("network.predictor.preserve", 50); // percentage of predictor data to keep when cleaning up
 
 /* session history */
-pref("browser.sessionhistory.max_total_viewers", 1);
 pref("browser.sessionhistory.max_entries", 50);
+pref("browser.sessionhistory.contentViewerTimeout", 360);
 
 /* session store */
 pref("browser.sessionstore.resume_session_once", false);
@@ -108,17 +117,12 @@ pref("mozilla.widget.force-24bpp", true);
 pref("mozilla.widget.use-buffer-pixmap", true);
 pref("mozilla.widget.disable-native-theme", true);
 pref("layout.reflow.synthMouseMove", false);
+#ifndef MOZ_X11
 pref("layers.enable-tiles", true);
-pref("layers.low-precision-buffer", true);
-/*
-   Cross Process Mutex is not supported on Mac OS X so progressive
-   paint cannot be enabled for B2G on Mac OS X desktop
-*/
-#ifdef MOZ_WIDGET_COCOA
-pref("layers.progressive-paint", false);
-#else
-pref("layers.progressive-paint", true);
 #endif
+pref("layers.low-precision-buffer", true);
+pref("layers.low-precision-opacity", "0.5");
+pref("layers.progressive-paint", true);
 
 /* download manager (don't show the window or alert) */
 pref("browser.download.useDownloadDir", true);
@@ -151,6 +155,7 @@ pref("dom.disable_open_during_load", true);
 pref("privacy.popups.showBrowserMessage", true);
 
 pref("keyword.enabled", true);
+pref("browser.fixup.domainwhitelist.localhost", true);
 
 pref("accessibility.typeaheadfind", false);
 pref("accessibility.typeaheadfind.timeout", 5000);
@@ -162,16 +167,8 @@ pref("accessibility.typeaheadfind.casesensitive", 0);
 pref("browser.ssl_override_behavior", 2);
 pref("browser.xul.error_pages.expert_bad_cert", false);
 
-// disable logging for the search service by default
-pref("browser.search.log", false);
-
 // disable updating
 pref("browser.search.update", false);
-pref("browser.search.update.log", false);
-pref("browser.search.updateinterval", 6);
-
-// enable search suggestions by default
-pref("browser.search.suggest.enabled", true);
 
 // tell the search service that we don't really expose the "current engine"
 pref("browser.search.noCurrentEngine", true);
@@ -203,8 +200,10 @@ pref("privacy.item.syncAccount", true);
 
 // base url for the wifi geolocation network provider
 pref("geo.provider.use_mls", false);
-pref("geo.cell.scan", true);
 pref("geo.wifi.uri", "https://location.services.mozilla.com/v1/geolocate?key=%MOZILLA_API_KEY%");
+
+// base url for the stumbler
+pref("geo.stumbler.url", "https://location.services.mozilla.com/v1/geosubmit?key=%MOZILLA_API_KEY%");
 
 // enable geo
 pref("geo.enabled", true);
@@ -232,17 +231,29 @@ pref("dom.ipc.plugins.enabled", true);
 // product URLs
 // The breakpad report server to link to in about:crashes
 pref("breakpad.reportURL", "https://crash-stats.mozilla.com/report/index/");
-pref("app.releaseNotesURL", "http://www.mozilla.com/%LOCALE%/b2g/%VERSION%/releasenotes/");
-pref("app.support.baseURL", "http://support.mozilla.com/b2g");
-pref("app.privacyURL", "http://www.mozilla.com/%LOCALE%/m/privacy.html");
-pref("app.creditsURL", "http://www.mozilla.org/credits/");
-pref("app.featuresURL", "http://www.mozilla.com/%LOCALE%/b2g/features/");
-pref("app.faqURL", "http://www.mozilla.com/%LOCALE%/b2g/faq/");
+pref("app.releaseNotesURL", "https://www.mozilla.com/%LOCALE%/b2g/%VERSION%/releasenotes/");
+pref("app.support.baseURL", "https://support.mozilla.com/b2g");
+pref("app.privacyURL", "https://www.mozilla.com/%LOCALE%/m/privacy.html");
+pref("app.creditsURL", "https://www.mozilla.org/credits/");
+pref("app.featuresURL", "https://www.mozilla.com/%LOCALE%/b2g/features/");
+pref("app.faqURL", "https://www.mozilla.com/%LOCALE%/b2g/faq/");
 
 // Name of alternate about: page for certificate errors (when undefined, defaults to about:neterror)
 pref("security.alternate_certificate_error_page", "certerror");
 
 pref("security.warn_viewing_mixed", false); // Warning is disabled.  See Bug 616712.
+
+// Block insecure active content on https pages
+pref("security.mixed_content.block_active_content", true);
+
+// 2 = strict certificate pinning checks.
+// This default preference is more strict than Firefox because B2G
+// currently does not have a way to install local root certificates.
+// Strict checking is effectively equivalent to non-strict checking as
+// long as that is true.  If an ability to add local certificates is
+// added, there may be a need to change this pref.
+pref("security.cert_pinning.enforcement_level", 2);
+
 
 // Override some named colors to avoid inverse OS themes
 pref("ui.-moz-dialog", "#efebe7");
@@ -286,92 +297,53 @@ pref("ui.dragThresholdY", 25);
 
 // Layers Acceleration.  We can only have nice things on gonk, because
 // they're not maintained anywhere else.
-pref("layers.offmainthreadcomposition.enabled", true);
-pref("layers.offmainthreadcomposition.async-animations", true);
 #ifndef MOZ_WIDGET_GONK
 pref("dom.ipc.tabs.disabled", true);
-pref("layers.async-video.enabled", false);
+pref("layers.async-pan-zoom.enabled", false);
 #else
 pref("dom.ipc.tabs.disabled", false);
 pref("layers.acceleration.disabled", false);
-pref("layers.async-video.enabled", true);
-pref("layers.async-video-oop.enabled",true);
-pref("layers.async-pan-zoom.enabled", true);
 pref("gfx.content.azure.backends", "cairo");
 #endif
 
 // Web Notifications
 pref("notification.feature.enabled", true);
 
-// IndexedDB
-pref("dom.indexedDB.warningQuota", 5);
-
 // prevent video elements from preloading too much data
 pref("media.preload.default", 1); // default to preload none
 pref("media.preload.auto", 2);    // preload metadata if preload=auto
 pref("media.cache_size", 4096);    // 4MB media cache
+// Try to save battery by not resuming reading from a connection until we fall
+// below 10s of buffered data.
+pref("media.cache_resume_threshold", 10);
+pref("media.cache_readahead_limit", 30);
 
+#ifdef MOZ_FMP4
+// Enable/Disable Gonk Decoder Module
+pref("media.gonk.enabled", true);
+#endif
+
+//Encrypted media extensions.
+pref("media.eme.enabled", true);
+pref("media.eme.apiVisible", true);
 // The default number of decoded video frames that are enqueued in
 // MediaDecoderReader's mVideoQueue.
 pref("media.video-queue.default-size", 3);
 
 // optimize images' memory usage
-pref("image.mem.decodeondraw", true);
-pref("image.mem.allow_locking_in_content_processes", false); /* don't allow image locking */
-pref("image.mem.min_discard_timeout_ms", 86400000); /* 24h, we rely on the out of memory hook */
-pref("image.mem.max_decoded_image_kb", 30000); /* 30MB seems reasonable */
-// 65MB seems reasonable and layout/reftests/bugs/370629-1.html requires more than 62MB
-pref("image.mem.hard_limit_decoded_image_kb", 66560);
-pref("image.onload.decode.limit", 24); /* don't decode more than 24 images eagerly */
+pref("image.downscale-during-decode.enabled", true);
+pref("image.mem.allow_locking_in_content_processes", true);
+// Limit the surface cache to 1/8 of main memory or 128MB, whichever is smaller.
+// Almost everything that was factored into 'max_decoded_image_kb' is now stored
+// in the surface cache.  1/8 of main memory is 32MB on a 256MB device, which is
+// about the same as the old 'max_decoded_image_kb'.
+pref("image.mem.surfacecache.max_size_kb", 131072);  // 128MB
+pref("image.mem.surfacecache.size_factor", 8);  // 1/8 of main memory
+pref("image.mem.surfacecache.discard_factor", 2);  // Discard 1/2 of the surface cache at a time.
+pref("image.mem.surfacecache.min_expiration_ms", 86400000); // 24h, we rely on the out of memory hook
 
-// XXX this isn't a good check for "are touch events supported", but
-// we don't really have a better one at the moment.
-// enable touch events interfaces
-pref("dom.w3c_touch_events.enabled", 1);
 pref("dom.w3c_touch_events.safetyX", 0); // escape borders in units of 1/240"
 pref("dom.w3c_touch_events.safetyY", 120); // escape borders in units of 1/240"
-
-#ifdef MOZ_SAFE_BROWSING
-// Safe browsing does nothing unless this pref is set
-pref("browser.safebrowsing.enabled", true);
-
-// Prevent loading of pages identified as malware
-pref("browser.safebrowsing.malware.enabled", true);
-
-// Non-enhanced mode (local url lists) URL list to check for updates
-pref("browser.safebrowsing.provider.0.updateURL", "https://safebrowsing.google.com/safebrowsing/downloads?client={moz:client}&appver={moz:version}&pver=2.2&key=%GOOGLE_API_KEY%");
-
-pref("browser.safebrowsing.dataProvider", 0);
-
-// Does the provider name need to be localizable?
-pref("browser.safebrowsing.provider.0.name", "Google");
-pref("browser.safebrowsing.provider.0.reportURL", "https://safebrowsing.google.com/safebrowsing/report?");
-pref("browser.safebrowsing.provider.0.gethashURL", "https://safebrowsing.google.com/safebrowsing/gethash?client={moz:client}&appver={moz:version}&pver=2.2");
-
-// HTML report pages
-pref("browser.safebrowsing.provider.0.reportGenericURL", "http://{moz:locale}.phish-generic.mozilla.com/?hl={moz:locale}");
-pref("browser.safebrowsing.provider.0.reportErrorURL", "http://{moz:locale}.phish-error.mozilla.com/?hl={moz:locale}");
-pref("browser.safebrowsing.provider.0.reportPhishURL", "http://{moz:locale}.phish-report.mozilla.com/?hl={moz:locale}");
-pref("browser.safebrowsing.provider.0.reportMalwareURL", "http://{moz:locale}.malware-report.mozilla.com/?hl={moz:locale}");
-pref("browser.safebrowsing.provider.0.reportMalwareErrorURL", "http://{moz:locale}.malware-error.mozilla.com/?hl={moz:locale}");
-
-// FAQ URLs
-
-// Name of the about: page contributed by safebrowsing to handle display of error
-// pages on phishing/malware hits.  (bug 399233)
-pref("urlclassifier.alternate_error_page", "blocked");
-
-// The number of random entries to send with a gethash request.
-pref("urlclassifier.gethashnoise", 4);
-
-// If an urlclassifier table has not been updated in this number of seconds,
-// a gethash request will be forced to check that the result is still in
-// the database.
-pref("urlclassifier.max-complete-age", 2700);
-
-// URL for checking the reason for a malware warning.
-pref("browser.safebrowsing.malware.reportURL", "https://safebrowsing.google.com/safebrowsing/diagnostic?client=%NAME%&hl=%LOCALE%&site=");
-#endif
 
 // True if this is the first time we are showing about:firstrun
 pref("browser.firstrun.show.uidiscovery", true);
@@ -390,18 +362,9 @@ pref("content.ime.strict_policy", true);
 // $ adb shell start
 pref("browser.dom.window.dump.enabled", false);
 
-// Turn on the CSP 1.0 parser for Content Security Policy headers
-pref("security.csp.speccompliant", true);
-
-// Default Content Security Policy to apply to privileged and certified apps
-pref("security.apps.privileged.CSP.default", "default-src *; script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'");
+// Default Content Security Policy to apply to certified apps.
 // If you change this CSP, make sure to update the fast path in nsCSPService.cpp
-pref("security.apps.certified.CSP.default", "default-src *; script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'");
-
-// Temporarily force-enable GL compositing.  This is default-disabled
-// deep within the bowels of the widgetry system.  Remove me when GL
-// compositing isn't default disabled in widget/android.
-pref("layers.acceleration.force-enabled", true);
+pref("security.apps.certified.CSP.default", "default-src * data: blob:; script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline' app://theme.gaiamobile.org");
 
 // handle links targeting new windows
 // 1=current window/tab, 2=new window, 3=new tab in most recent window
@@ -421,18 +384,13 @@ pref("dom.mozBrowserFramesEnabled", true);
 pref("dom.ipc.processCount", 100000);
 
 pref("dom.ipc.browser_frames.oop_by_default", false);
-pref("dom.browser_frames.useAsyncPanZoom", true);
 
-// SMS/MMS
-pref("dom.sms.enabled", true);
+#if !defined(MOZ_MULET) && !defined(MOZ_GRAPHENE)
+pref("dom.meta-viewport.enabled", true);
+#endif
 
 //The waiting time in network manager.
 pref("network.gonk.ms-release-mms-connection", 30000);
-
-// WebContacts
-pref("dom.mozContacts.enabled", true);
-pref("dom.navigator-property.disable.mozContacts", false);
-pref("dom.global-constructor.disable.mozContact", false);
 
 // Shortnumber matching needed for e.g. Brazil:
 // 03187654321 can be found with 87654321
@@ -441,42 +399,6 @@ pref("dom.phonenumber.substringmatching.CO", 10);
 pref("dom.phonenumber.substringmatching.VE", 7);
 pref("dom.phonenumber.substringmatching.CL", 8);
 pref("dom.phonenumber.substringmatching.PE", 7);
-
-// WebAlarms
-pref("dom.mozAlarms.enabled", true);
-
-// SimplePush
-pref("services.push.enabled", true);
-// Debugging enabled.
-pref("services.push.debug", false);
-// Is the network connection allowed to be up?
-// This preference should be used in UX to enable/disable push.
-pref("services.push.connection.enabled", true);
-// serverURL to be assigned by services team
-pref("services.push.serverURL", "wss://push.services.mozilla.com/");
-pref("services.push.userAgentID", "");
-// Exponential back-off start is 5 seconds like in HTTP/1.1.
-// Maximum back-off is pingInterval.
-pref("services.push.retryBaseInterval", 5000);
-// Interval at which to ping PushServer to check connection status. In
-// milliseconds. If no reply is received within requestTimeout, the connection
-// is considered closed.
-pref("services.push.pingInterval", 1800000); // 30 minutes
-// How long before a DOMRequest errors as timeout
-pref("services.push.requestTimeout", 10000);
-// enable udp wakeup support
-pref("services.push.udp.wakeupEnabled", true);
-// This value should be the prefix to be added to the current PDP context[1]
-// domain or a full-qualified domain name.
-// If finished with a dot, it will be added as a prefix to the PDP context
-// domain. If not, will be used as the DNS query.
-// If the DNS query is unsuccessful, the push agent will send a null netid and
-// is a server decision what to do with the device. If the MCC-MNC identifies a
-// unique network the server will change to UDP mode. Otherwise, a websocket
-// connection will be maintained.
-// [1] Packet Data Protocol
-//     http://en.wikipedia.org/wiki/GPRS_core_network#PDP_context
-pref("services.push.udp.well-known_netidAddress", "_wakeup_.");
 
 // NetworkStats
 #ifdef MOZ_WIDGET_GONK
@@ -491,7 +413,6 @@ pref("dom.mozApps.single_variant_sourcedir", "/persist/svoperapps");
 
 // WebSettings
 pref("dom.mozSettings.enabled", true);
-pref("dom.navigator-property.disable.mozSettings", false);
 pref("dom.mozPermissionSettings.enabled", true);
 
 // controls if we want camera support
@@ -500,9 +421,6 @@ pref("media.realtime_decoder.enabled", true);
 
 // TCPSocket
 pref("dom.mozTCPSocket.enabled", true);
-
-// WebPayment
-pref("dom.mozPay.enabled", true);
 
 // "Preview" landing of bug 710563, which is bogged down in analysis
 // of talos regression.  This is a needed change for higher-framerate
@@ -515,6 +433,9 @@ pref("layout.frame_rate.precise", true);
 
 // Handle hardware buttons in the b2g chrome package
 pref("b2g.keys.menu.enabled", true);
+
+// Display simulator software buttons
+pref("b2g.software-buttons", false);
 
 // Screen timeout in seconds
 pref("power.screen.timeout", 60);
@@ -558,12 +479,10 @@ pref("b2g.update.download-watchdog-max-retries", 5);
 pref("app.update.enabled", true);
 pref("app.update.auto", false);
 pref("app.update.silent", false);
-pref("app.update.mode", 0);
-pref("app.update.incompatible.mode", 0);
 pref("app.update.staging.enabled", true);
 pref("app.update.service.enabled", true);
 
-pref("app.update.url", "https://aus4.mozilla.org/update/3/%PRODUCT%/%VERSION%/%BUILD_ID%/%PRODUCT_DEVICE%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
+pref("app.update.url", "https://aus5.mozilla.org/update/5/%PRODUCT%/%VERSION%/%BUILD_ID%/%PRODUCT_DEVICE%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/%IMEI%/update.xml");
 pref("app.update.channel", "@MOZ_UPDATE_CHANNEL@");
 
 // Interval at which update manifest is fetched.  In units of seconds.
@@ -582,11 +501,17 @@ pref("app.update.socket.maxErrors", 20);
 // Enable update logging for now, to diagnose growing pains in the
 // field.
 pref("app.update.log", true);
+
+// SystemUpdate API
+pref("dom.system_update.active", "@mozilla.org/updates/update-prompt;1");
 #else
 // Explicitly disable the shutdown watchdog.  It's enabled by default.
 // When the updater is disabled, we want to know about shutdown hangs.
 pref("shutdown.watchdog.timeoutSecs", -1);
 #endif
+
+// Allow webapps update checking
+pref("webapps.update.enabled", true);
 
 // Check daily for apps updates.
 pref("webapps.update.interval", 86400);
@@ -608,7 +533,6 @@ pref("dom.webapps.useCurrentProfile", true);
 // Enable system message
 pref("dom.sysmsg.enabled", true);
 pref("media.plugins.enabled", false);
-pref("media.omx.enabled", true);
 pref("media.rtsp.enabled", true);
 pref("media.rtsp.video.enabled", true);
 
@@ -625,9 +549,6 @@ pref("dom.forms.number", true);
 // Don't enable <input type=color> yet as we don't have a color picker
 // implemented for b2g (bug 875751)
 pref("dom.forms.color", false);
-
-// Turns on gralloc-based direct texturing for Gonk
-pref("gfx.gralloc.enabled", false);
 
 // This preference instructs the JS engine to discard the
 // source of any privileged JS after compilation. This saves
@@ -651,11 +572,20 @@ pref("javascript.options.mem.gc_high_frequency_low_limit_mb", 0);
 pref("javascript.options.mem.gc_low_frequency_heap_growth", 120);
 pref("javascript.options.mem.high_water_mark", 6);
 pref("javascript.options.mem.gc_allocation_threshold_mb", 1);
-pref("javascript.options.mem.gc_decommit_threshold_mb", 1);
+pref("javascript.options.mem.gc_min_empty_chunk_count", 1);
+pref("javascript.options.mem.gc_max_empty_chunk_count", 2);
 
 // Show/Hide scrollbars when active/inactive
 pref("ui.showHideScrollbars", 1);
 pref("ui.useOverlayScrollbars", 1);
+pref("ui.scrollbarFadeBeginDelay", 450);
+pref("ui.scrollbarFadeDuration", 0);
+
+// Scrollbar position follows the document `dir` attribute
+pref("layout.scrollbar.side", 1);
+
+// CSS Scroll Snapping
+pref("layout.css.scroll-snap.enabled", true);
 
 // Enable the ProcessPriorityManager, and give processes with no visible
 // documents a 1s grace period before they're eligible to be marked as
@@ -666,71 +596,83 @@ pref("dom.ipc.processPriorityManager.backgroundGracePeriodMS", 1000);
 pref("dom.ipc.processPriorityManager.backgroundPerceivableGracePeriodMS", 5000);
 pref("dom.ipc.processPriorityManager.temporaryPriorityLockMS", 5000);
 
-// Number of different background levels for background processes.  We use
-// these different levels to force the low-memory killer to kill processes in
-// a LRU order.
-pref("dom.ipc.processPriorityManager.backgroundLRUPoolLevels", 5);
+// Number of different background/foreground levels for background/foreground
+// processes.  We use these different levels to force the low-memory killer to
+// kill processes in a LRU order.
+pref("dom.ipc.processPriorityManager.BACKGROUND.LRUPoolLevels", 5);
+pref("dom.ipc.processPriorityManager.BACKGROUND_PERCEIVABLE.LRUPoolLevels", 4);
 
 // Kernel parameters for process priorities.  These affect how processes are
 // killed on low-memory and their relative CPU priorities.
 //
-// Note: The maximum nice value on Linux is 19, but the max value you should
-// use here is 18.  NSPR adds 1 to some threads' nice values, to mark
-// low-priority threads.  If the process priority manager were to renice a
-// process (and all its threads) to 19, all threads would have the same
-// niceness.  Then when we reniced the process to (say) 10, all threads would
-// /still/ have the same niceness; we'd effectively have erased NSPR's thread
-// priorities.
-
 // The kernel can only accept 6 (OomScoreAdjust, KillUnderKB) pairs. But it is
 // okay, kernel will still kill processes with larger OomScoreAdjust first even
 // its OomScoreAdjust don't have a corresponding KillUnderKB.
 
 pref("hal.processPriorityManager.gonk.MASTER.OomScoreAdjust", 0);
 pref("hal.processPriorityManager.gonk.MASTER.KillUnderKB", 4096);
-pref("hal.processPriorityManager.gonk.MASTER.Nice", 0);
+pref("hal.processPriorityManager.gonk.MASTER.cgroup", "");
 
 pref("hal.processPriorityManager.gonk.PREALLOC.OomScoreAdjust", 67);
-pref("hal.processPriorityManager.gonk.PREALLOC.Nice", 18);
+pref("hal.processPriorityManager.gonk.PREALLOC.cgroup", "apps/bg_non_interactive");
 
 pref("hal.processPriorityManager.gonk.FOREGROUND_HIGH.OomScoreAdjust", 67);
 pref("hal.processPriorityManager.gonk.FOREGROUND_HIGH.KillUnderKB", 5120);
-pref("hal.processPriorityManager.gonk.FOREGROUND_HIGH.Nice", 0);
+pref("hal.processPriorityManager.gonk.FOREGROUND_HIGH.cgroup", "apps/critical");
 
 pref("hal.processPriorityManager.gonk.FOREGROUND.OomScoreAdjust", 134);
 pref("hal.processPriorityManager.gonk.FOREGROUND.KillUnderKB", 6144);
-pref("hal.processPriorityManager.gonk.FOREGROUND.Nice", 1);
+pref("hal.processPriorityManager.gonk.FOREGROUND.cgroup", "apps");
 
 pref("hal.processPriorityManager.gonk.FOREGROUND_KEYBOARD.OomScoreAdjust", 200);
-pref("hal.processPriorityManager.gonk.FOREGROUND_KEYBOARD.Nice", 1);
+pref("hal.processPriorityManager.gonk.FOREGROUND_KEYBOARD.cgroup", "apps");
 
 pref("hal.processPriorityManager.gonk.BACKGROUND_PERCEIVABLE.OomScoreAdjust", 400);
-pref("hal.processPriorityManager.gonk.BACKGROUND_PERCEIVABLE.KillUnderKB", 7168);
-pref("hal.processPriorityManager.gonk.BACKGROUND_PERCEIVABLE.Nice", 7);
-
-pref("hal.processPriorityManager.gonk.BACKGROUND_HOMESCREEN.OomScoreAdjust", 534);
-pref("hal.processPriorityManager.gonk.BACKGROUND_HOMESCREEN.KillUnderKB", 8192);
-pref("hal.processPriorityManager.gonk.BACKGROUND_HOMESCREEN.Nice", 18);
+pref("hal.processPriorityManager.gonk.BACKGROUND_PERCEIVABLE.KillUnderKB", 8192);
+pref("hal.processPriorityManager.gonk.BACKGROUND_PERCEIVABLE.cgroup", "apps/bg_perceivable");
 
 pref("hal.processPriorityManager.gonk.BACKGROUND.OomScoreAdjust", 667);
 pref("hal.processPriorityManager.gonk.BACKGROUND.KillUnderKB", 20480);
-pref("hal.processPriorityManager.gonk.BACKGROUND.Nice", 18);
+pref("hal.processPriorityManager.gonk.BACKGROUND.cgroup", "apps/bg_non_interactive");
 
-// Processes get this niceness when they have low CPU priority.
-pref("hal.processPriorityManager.gonk.LowCPUNice", 18);
+// Control group definitions (i.e., CPU priority groups) for B2G processes.
+//
+// memory_swappiness -   0 - The kernel will swap only to avoid an out of memory condition
+// memory_swappiness -  60 - The default value.
+// memory_swappiness - 100 - The kernel will swap aggressively.
+
+// Foreground apps
+pref("hal.processPriorityManager.gonk.cgroups.apps.cpu_shares", 1024);
+pref("hal.processPriorityManager.gonk.cgroups.apps.cpu_notify_on_migrate", 0);
+pref("hal.processPriorityManager.gonk.cgroups.apps.memory_swappiness", 10);
+
+// Foreground apps with high priority, 16x more CPU than foreground ones
+pref("hal.processPriorityManager.gonk.cgroups.apps/critical.cpu_shares", 16384);
+pref("hal.processPriorityManager.gonk.cgroups.apps/critical.cpu_notify_on_migrate", 0);
+pref("hal.processPriorityManager.gonk.cgroups.apps/critical.memory_swappiness", 0);
+
+// Background perceivable apps, ~10x less CPU than foreground ones
+pref("hal.processPriorityManager.gonk.cgroups.apps/bg_perceivable.cpu_shares", 103);
+pref("hal.processPriorityManager.gonk.cgroups.apps/bg_perceivable.cpu_notify_on_migrate", 0);
+pref("hal.processPriorityManager.gonk.cgroups.apps/bg_perceivable.memory_swappiness", 60);
+
+// Background apps, ~20x less CPU than foreground ones and ~2x less than perceivable ones
+pref("hal.processPriorityManager.gonk.cgroups.apps/bg_non_interactive.cpu_shares", 52);
+pref("hal.processPriorityManager.gonk.cgroups.apps/bg_non_interactive.cpu_notify_on_migrate", 0);
+pref("hal.processPriorityManager.gonk.cgroups.apps/bg_non_interactive.memory_swappiness", 100);
 
 // By default the compositor thread on gonk runs without real-time priority.  RT
 // priority can be enabled by setting this pref to a value between 1 and 99.
 // Note that audio processing currently runs at RT priority 2 or 3 at most.
 //
-// If RT priority is disabled, then the compositor nice value is used.  The
-// code will default to ANDROID_PRIORITY_URGENT_DISPLAY which is -8.  Per gfx
-// request we are keeping the compositor at nice level 0 until we can complete
-// the investigation in bug 982972.
+// If RT priority is disabled, then the compositor nice value is used. We prefer
+// to use a nice value of -4, which matches Android's preferences. Setting a preference
+// of RT priority 1 would mean it is higher than audio, which is -16. The compositor
+// priority must be below the audio thread.
 //
 // Do not change these values without gfx team review.
 pref("hal.gonk.COMPOSITOR.rt_priority", 0);
-pref("hal.gonk.COMPOSITOR.nice", 0);
+pref("hal.gonk.COMPOSITOR.nice", -4);
 
 // Fire a memory pressure event when the system has less than Xmb of memory
 // remaining.  You should probably set this just above Y.KillUnderKB for
@@ -739,20 +681,23 @@ pref("hal.gonk.COMPOSITOR.nice", 0);
 // this too high, then we'll send out a memory pressure event every Z seconds
 // (see below), even while we have processes that we would happily kill in
 // order to free up memory.
-pref("hal.processPriorityManager.gonk.notifyLowMemUnderKB", 14336);
+pref("gonk.notifyHardLowMemUnderKB", 14336);
+
+// Fire a memory pressure event when the system has less than Xmb of memory
+// remaining and then switch to the hard trigger, see above.  This should be
+// placed above the BACKGROUND priority class.
+pref("gonk.notifySoftLowMemUnderKB", 43008);
 
 // We wait this long before polling the memory-pressure fd after seeing one
 // memory pressure event.  (When we're not under memory pressure, we sit
 // blocked on a poll(), and this pref has no effect.)
 pref("gonk.systemMemoryPressureRecoveryPollMS", 5000);
 
-#ifndef DEBUG
 // Enable pre-launching content processes for improved startup time
 // (hiding latency).
 pref("dom.ipc.processPrelaunch.enabled", true);
 // Wait this long before pre-launching a new subprocess.
 pref("dom.ipc.processPrelaunch.delayMs", 5000);
-#endif
 
 pref("dom.ipc.reuse_parent_app", false);
 
@@ -764,13 +709,21 @@ pref("dom.ipc.systemMessageCPULockTimeoutSec", 30);
 // Ignore the "dialog=1" feature in window.open.
 pref("dom.disable_window_open_dialog_feature", true);
 
+// Enable before keyboard events and after keyboard events.
+pref("dom.beforeAfterKeyboardEvent.enabled", true);
+
 // Screen reader support
 pref("accessibility.accessfu.activate", 2);
 pref("accessibility.accessfu.quicknav_modes", "Link,Heading,FormElement,Landmark,ListItem");
+// Active quicknav mode, index value of list from quicknav_modes
+pref("accessibility.accessfu.quicknav_index", 0);
 // Setting for an utterance order (0 - description first, 1 - description last).
 pref("accessibility.accessfu.utterance", 1);
 // Whether to skip images with empty alt text
 pref("accessibility.accessfu.skip_empty_images", true);
+// Setting to change the verbosity of entered text (0 - none, 1 - characters,
+// 2 - words, 3 - both)
+pref("accessibility.accessfu.keyboard_echo", 3);
 
 // Enable hit-target fluffing
 pref("ui.touch.radius.enabled", true);
@@ -804,7 +757,10 @@ pref("network.gonk.manage-offline-status", true);
 // On Firefox Mulet, we can't enable shared JSM scope
 // as it breaks most Firefox JSMs (see bug 961777)
 #ifndef MOZ_MULET
+// Break any JSMs or JS components that rely on shared scope
+#ifndef DEBUG
 pref("jsloader.reuseGlobal", true);
+#endif
 #endif
 
 // Enable font inflation for browser tab content.
@@ -822,15 +778,14 @@ pref("memory.system_memory_reporter", true);
 // Don't dump memory reports on OOM, by default.
 pref("memory.dump_reports_on_oom", false);
 
-pref("layout.imagevisibility.enabled", true);
-pref("layout.imagevisibility.numscrollportwidths", 1);
-pref("layout.imagevisibility.numscrollportheights", 1);
-
-// Enable native identity (persona/browserid)
-pref("dom.identity.enabled", true);
+pref("layout.framevisibility.numscrollportwidths", 1);
+pref("layout.framevisibility.numscrollportheights", 1);
 
 // Wait up to this much milliseconds when orientation changed
 pref("layers.orientation.sync.timeout", 1000);
+
+// Animate the orientation change
+pref("b2g.orientation.animate", true);
 
 // Don't discard WebGL contexts for foreground apps on memory
 // pressure.
@@ -846,9 +801,11 @@ pref("general.useragent.updates.enabled", true);
 pref("general.useragent.updates.url", "https://dynamicua.cdn.mozilla.net/0/%APP_ID%");
 pref("general.useragent.updates.interval", 604800); // 1 week
 pref("general.useragent.updates.retry", 86400); // 1 day
+// Device ID can be composed of letter, numbers, hyphen ("-") and dot (".")
+pref("general.useragent.device_id", "");
 
-// Make <audio> and <video> talk to the AudioChannelService.
-pref("media.useAudioChannelService", true);
+// Add Mozilla AudioChannel APIs.
+pref("media.useAudioChannelAPI", true);
 
 pref("b2g.version", @MOZ_B2G_VERSION@);
 pref("b2g.osName", @MOZ_B2G_OS_NAME@);
@@ -860,10 +817,6 @@ pref("consoleservice.buffered", false);
 // Performance testing suggests 2k is a better page size for SQLite.
 pref("toolkit.storage.pageSize", 2048);
 #endif
-
-// Enable captive portal detection.
-pref("captivedetect.canonicalURL", "http://detectportal.firefox.com/success.txt");
-pref("captivedetect.canonicalContent", "success\n");
 
 // The url of the manifest we use for ADU pings.
 pref("ping.manifestURL", "https://marketplace.firefox.com/packaged.webapp");
@@ -878,12 +831,6 @@ pref("network.sntp.pools", // Servers separated by ';'.
      "0.pool.ntp.org;1.pool.ntp.org;2.pool.ntp.org;3.pool.ntp.org");
 pref("network.sntp.port", 123);
 pref("network.sntp.timeout", 30); // In seconds.
-
-// Enable dataStore
-pref("dom.datastore.enabled", true);
-
-// DOM Inter-App Communication API.
-pref("dom.inter-app-communication-api.enabled", true);
 
 // Allow ADB to run for this many hours before disabling
 // (only applies when marionette is disabled)
@@ -913,14 +860,17 @@ pref("gfx.canvas.max-size-for-skia-gl", -1);
 // enable fence with readpixels for SurfaceStream
 pref("gfx.gralloc.fence-with-readpixels", true);
 
-// Cell Broadcast API
-pref("ril.cellbroadcast.disabled", false);
+// enable screen mirroring to external display
+pref("gfx.screen-mirroring.enabled", true);
 
 // The url of the page used to display network error details.
-pref("b2g.neterror.url", "app://system.gaiamobile.org/net_error.html");
+pref("b2g.neterror.url", "net_error.html");
 
 // Enable Web Speech synthesis API
 pref("media.webspeech.synth.enabled", true);
+
+// Enable Web Speech recognition API
+pref("media.webspeech.recognition.enable", true);
 
 // Downloads API
 pref("dom.mozDownloads.enabled", true);
@@ -938,37 +888,20 @@ pref("security.exthelperapp.disable_background_handling", true);
 // Inactivity time in milliseconds after which we shut down the OS.File worker.
 pref("osfile.reset_worker_delay", 5000);
 
-// APZC preferences.
-//
-// Gaia relies heavily on scroll events for now, so lets fire them
-// more often than the default value (100).
-pref("apz.asyncscroll.throttle", 40);
-pref("apz.pan_repaint_interval", 16);
-
 // APZ physics settings, tuned by UX designers
+pref("apz.axis_lock.mode", 2); // Use "sticky" axis locking
+pref("apz.fling_curve_function_x1", "0.41");
+pref("apz.fling_curve_function_y1", "0.0");
+pref("apz.fling_curve_function_x2", "0.80");
+pref("apz.fling_curve_function_y2", "1.0");
+pref("apz.fling_curve_threshold_inches_per_ms", "0.01");
+pref("apz.fling_friction", "0.0019");
 pref("apz.max_velocity_inches_per_ms", "0.07");
-pref("apz.fling_friction", "0.003");
-
-// Tweak default displayport values to reduce the risk of running out of
-// memory when zooming in
-pref("apz.x_skate_size_multiplier", "1.25");
-pref("apz.y_skate_size_multiplier", "1.5");
-pref("apz.x_stationary_size_multiplier", "1.5");
-pref("apz.y_stationary_size_multiplier", "1.8");
-pref("apz.enlarge_displayport_when_clipped", true);
-// Use "sticky" axis locking
-pref("apz.axis_lock_mode", 2);
-pref("apz.subframe.enabled", true);
-
-// Overscroll-related settings
 pref("apz.overscroll.enabled", true);
-pref("apz.overscroll.fling_friction", "0.02");
-pref("apz.overscroll.fling_stopped_threshold", "0.4");
-pref("apz.overscroll.clamping", "0.5");
-pref("apz.overscroll.z_effect", "0.2");
-pref("apz.overscroll.snap_back.spring_stiffness", "0.6");
-pref("apz.overscroll.snap_back.spring_friction", "0.1");
-pref("apz.overscroll.snap_back.mass", "1000");
+pref("apz.displayport_expiry_ms", 0); // causes issues on B2G, see bug 1250924
+
+// For event-regions based hit-testing
+pref("layout.event-regions.enabled", true);
 
 // This preference allows FirefoxOS apps (and content, I think) to force
 // the use of software (instead of hardware accelerated) 2D canvases by
@@ -987,19 +920,99 @@ pref("browser.autofocus", false);
 // Enable wakelock
 pref("dom.wakelock.enabled", true);
 
-// Disable touch caret by default
-pref("touchcaret.enabled", false);
+// Enable webapps add-ons
+pref("dom.apps.reviewer_paths", "/reviewers/,/extension/reviewers/");
 
-// Disable selection caret by default
-pref("selectioncaret.enabled", false);
+// New implementation to unify touch-caret and selection-carets.
+pref("layout.accessiblecaret.enabled", true);
 
-// Enable sync and mozId with Firefox Accounts.
-#ifdef MOZ_SERVICES_FXACCOUNTS
+// Show the selection bars at the two ends of the selection highlight. Required
+// by the spec in bug 921965.
+pref("layout.accessiblecaret.bar.enabled", true);
+
+// Hide the caret in cursor mode after 3 seconds.
+pref("layout.accessiblecaret.timeout_ms", 3000);
+
+// Hide carets and text selection dialog during scrolling.
+pref("layout.accessiblecaret.always_show_when_scrolling", false);
+
+// Enable sync with Firefox Accounts.
 pref("services.sync.fxaccounts.enabled", true);
 pref("identity.fxaccounts.enabled", true);
+
+pref("identity.fxaccounts.remote.oauth.uri", "https://oauth.accounts.firefox.com/v1");
+pref("identity.fxaccounts.remote.profile.uri", "https://profile.accounts.firefox.com/v1");
+
+// Disable Firefox Accounts device registration until bug 1238895 is fixed.
+pref("identity.fxaccounts.skipDeviceRegistration", true);
+
+// Enable mapped array buffer.
+pref("dom.mapped_arraybuffer.enabled", true);
+
+// SystemUpdate API
+pref("dom.system_update.enabled", true);
+
+// UDPSocket API
+pref("dom.udpsocket.enabled", true);
+
+// Enable TV Manager API
+pref("dom.tv.enabled", true);
+
+// Enable Inputport Manager API
+pref("dom.inputport.enabled", true);
+
+pref("dom.mozSettings.SettingsDB.debug.enabled", true);
+pref("dom.mozSettings.SettingsManager.debug.enabled", true);
+pref("dom.mozSettings.SettingsRequestManager.debug.enabled", true);
+pref("dom.mozSettings.SettingsService.debug.enabled", true);
+
+pref("dom.mozSettings.SettingsDB.verbose.enabled", false);
+pref("dom.mozSettings.SettingsManager.verbose.enabled", false);
+pref("dom.mozSettings.SettingsRequestManager.verbose.enabled", false);
+pref("dom.mozSettings.SettingsService.verbose.enabled", false);
+
+// Controlling whether we want to allow forcing some Settings
+// IndexedDB transactions to be opened as readonly or keep everything as
+// readwrite.
+pref("dom.mozSettings.allowForceReadOnly", false);
+
+// Comma separated list of activity names that can only be provided by
+// the system app in dev mode.
+pref("dom.activities.developer_mode_only", "import-app");
+
+// mulet apparently loads firefox.js as well as b2g.js, so we have to explicitly
+// disable serviceworkers and push here to get them disabled in mulet.
+pref("dom.serviceWorkers.enabled", false);
+pref("dom.push.enabled", false);
+
+#if defined(RELEASE_OR_BETA)
+// Bug 1278848: Enable service worker notifications on release B2G once
+// they're ready.
+pref("dom.webnotifications.serviceworker.enabled", false);
+#else
+pref("dom.webnotifications.serviceworker.enabled", true);
 #endif
 
-pref("services.mobileid.server.uri", "http://msisdn.dev.mozaws.net");
+// Retain at most 10 processes' layers buffers
+pref("layers.compositor-lru-size", 10);
 
-// Enable mapped array buffer
-pref("dom.mapped_arraybuffer.enabled", true);
+// In B2G by deafult any AudioChannelAgent is muted when created.
+pref("dom.audiochannel.mutedByDefault", true);
+
+// Default device name for Presentation API
+pref("dom.presentation.device.name", "Firefox OS");
+
+// Enable notification of performance timing
+pref("dom.performance.enable_notify_performance_timing", true);
+
+// Multi-screen
+pref("b2g.multiscreen.chrome_remote_url", "chrome://b2g/content/shell_remote.html");
+pref("b2g.multiscreen.system_remote_url", "index_remote.html");
+
+// Audio competing between tabs
+pref("dom.audiochannel.audioCompeting", false);
+
+// Because we can't have nice things.
+#ifdef MOZ_GRAPHENE
+#include ../graphene/graphene.js
+#endif

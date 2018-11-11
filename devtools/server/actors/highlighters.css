@@ -1,0 +1,536 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/*
+  The :-moz-native-anonymous selector prefix prevents the styles defined here
+  from impacting web content. Indeed, this pseudo-class is only available to chrome code.
+  This stylesheet is loaded as a ua stylesheet via the addon sdk, so having this
+  pseudo-class is important.
+  Having bug 1086532 fixed would make it possible to load this stylesheet in a
+  <style scoped> node instead, directly in the native anonymous container
+  element.
+
+  A specific selector should still be specified to avoid impacting non-devtools
+  chrome content.
+*/
+
+:-moz-native-anonymous .highlighter-container {
+  /*
+  Content CSS applying to the html element impact the highlighters.
+  To avoid that, possible cases have been set to initial.
+  */
+  text-transform: initial;
+  text-indent: initial;
+  letter-spacing: initial;
+  word-spacing: initial;
+  color: initial;
+}
+
+:-moz-native-anonymous .highlighter-container {
+  --highlighter-guide-color: #08c;
+  --highlighter-content-color: #87ceeb;
+  --highlighter-bubble-text-color: hsl(216, 33%, 97%);
+  --highlighter-bubble-background-color: hsl(214, 13%, 24%);
+  --highlighter-bubble-border-color: rgba(255, 255, 255, 0.2);
+}
+
+:-moz-native-anonymous .highlighter-container {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  /* The container for all highlighters doesn't react to pointer-events by
+     default. This is because most highlighters cover the whole viewport but
+     don't contain UIs that need to be accessed.
+     If your highlighter has UI that needs to be interacted with, add
+     'pointer-events:auto;' on its container element. */
+  pointer-events: none;
+}
+
+:-moz-native-anonymous .highlighter-container.box-model {
+  /* Make the box-model container have a z-index other than auto so it always sits above
+     other highlighters. */
+  z-index: 1;
+}
+
+:-moz-native-anonymous .highlighter-container [hidden] {
+  display: none;
+}
+
+:-moz-native-anonymous .highlighter-container [dragging] {
+  cursor: grabbing;
+}
+
+/* Box Model Highlighter */
+
+:-moz-native-anonymous .box-model-regions {
+  opacity: 0.6;
+}
+
+/* Box model regions can be faded (see the onlyRegionArea option in
+   highlighters.js) in order to only display certain regions. */
+:-moz-native-anonymous .box-model-regions [faded] {
+  display: none;
+}
+
+:-moz-native-anonymous .box-model-content {
+  fill: var(--highlighter-content-color);
+}
+
+:-moz-native-anonymous .box-model-padding {
+  fill: #6a5acd;
+}
+
+:-moz-native-anonymous .box-model-border {
+  fill: #444444;
+}
+
+:-moz-native-anonymous .box-model-margin {
+  fill: #edff64;
+}
+
+:-moz-native-anonymous .box-model-content,
+:-moz-native-anonymous .box-model-padding,
+:-moz-native-anonymous .box-model-border,
+:-moz-native-anonymous .box-model-margin {
+  stroke: none;
+}
+
+:-moz-native-anonymous .box-model-guide-top,
+:-moz-native-anonymous .box-model-guide-right,
+:-moz-native-anonymous .box-model-guide-bottom,
+:-moz-native-anonymous .box-model-guide-left {
+  stroke: var(--highlighter-guide-color);
+  stroke-dasharray: 5 3;
+  shape-rendering: crispEdges;
+}
+
+/* Highlighter - Infobar */
+
+:-moz-native-anonymous [class$=infobar-container] {
+  position: absolute;
+  max-width: 95%;
+
+  font: message-box;
+  font-size: 11px;
+}
+
+:-moz-native-anonymous [class$=infobar] {
+  position: relative;
+
+  /* Centering the infobar in the container */
+  left: -50%;
+
+  padding: 5px;
+  min-width: 75px;
+
+  border-radius: 3px;
+  background: var(--highlighter-bubble-background-color) no-repeat padding-box;
+
+  color: var(--highlighter-bubble-text-color);
+  text-shadow: none;
+
+  border: 1px solid var(--highlighter-bubble-border-color);
+}
+
+:-moz-native-anonymous [class$=infobar-container][hide-arrow] > [class$=infobar] {
+  margin: 7px 0;
+}
+
+/* Arrows */
+
+:-moz-native-anonymous [class$=infobar-container] > [class$=infobar]:before {
+  left: calc(50% - 8px);
+  border: 8px solid var(--highlighter-bubble-border-color);
+}
+
+:-moz-native-anonymous [class$=infobar-container] > [class$=infobar]:after {
+  left: calc(50% - 7px);
+  border: 7px solid var(--highlighter-bubble-background-color);
+}
+
+:-moz-native-anonymous [class$=infobar-container] > [class$=infobar]:before,
+:-moz-native-anonymous [class$=infobar-container] > [class$=infobar]:after {
+  content: "";
+  display: none;
+  position: absolute;
+  height: 0;
+  width: 0;
+  border-left-color: transparent;
+  border-right-color: transparent;
+}
+
+:-moz-native-anonymous [class$=infobar-container][position="top"]:not([hide-arrow]) > [class$=infobar]:before,
+:-moz-native-anonymous [class$=infobar-container][position="top"]:not([hide-arrow]) > [class$=infobar]:after {
+  border-bottom: 0;
+  top: 100%;
+  display: block;
+}
+
+:-moz-native-anonymous [class$=infobar-container][position="bottom"]:not([hide-arrow]) > [class$=infobar]:before,
+:-moz-native-anonymous [class$=infobar-container][position="bottom"]:not([hide-arrow]) > [class$=infobar]:after {
+  border-top: 0;
+  bottom: 100%;
+  display: block;
+}
+
+/* Text Container */
+
+:-moz-native-anonymous [class$=infobar-text] {
+  overflow: hidden;
+  white-space: nowrap;
+  direction: ltr;
+  padding-bottom: 1px;
+  display: flex;
+}
+
+:-moz-native-anonymous .box-model-infobar-tagname {
+  color: hsl(285,100%, 75%);
+}
+
+:-moz-native-anonymous .box-model-infobar-id {
+  color: hsl(103, 46%, 54%);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:-moz-native-anonymous .box-model-infobar-classes,
+:-moz-native-anonymous .box-model-infobar-pseudo-classes {
+  color: hsl(200, 74%, 57%);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:-moz-native-anonymous [class$=infobar-dimensions] {
+  color: hsl(210, 30%, 85%);
+  border-inline-start: 1px solid #5a6169;
+  margin-inline-start: 6px;
+  padding-inline-start: 6px;
+}
+
+/* CSS Grid Highlighter */
+
+:-moz-native-anonymous .css-grid-canvas {
+  position: absolute;
+  pointer-events: none;
+  top: 0;
+  left: 0;
+  image-rendering: -moz-crisp-edges;
+}
+
+:-moz-native-anonymous .css-grid-regions {
+  opacity: 0.6;
+}
+
+:-moz-native-anonymous .css-grid-areas {
+  fill: #CEC0ED;
+  stroke: none;
+}
+
+:-moz-native-anonymous .css-grid-infobar-areaname {
+  color: hsl(285,100%, 75%);
+}
+
+/* CSS Transform Highlighter */
+
+:-moz-native-anonymous .css-transform-transformed {
+  fill: var(--highlighter-content-color);
+  opacity: 0.8;
+}
+
+:-moz-native-anonymous .css-transform-untransformed {
+  fill: #66cc52;
+  opacity: 0.8;
+}
+
+:-moz-native-anonymous .css-transform-transformed,
+:-moz-native-anonymous .css-transform-untransformed,
+:-moz-native-anonymous .css-transform-line {
+  stroke: var(--highlighter-guide-color);
+  stroke-dasharray: 5 3;
+  stroke-width: 2;
+}
+
+/* Rect Highlighter */
+
+:-moz-native-anonymous .highlighted-rect {
+  position: absolute;
+  background: var(--highlighter-content-color);
+  opacity: 0.8;
+}
+
+/* Element Geometry Highlighter */
+
+:-moz-native-anonymous .geometry-editor-root {
+  /* The geometry editor can be interacted with, so it needs to react to
+     pointer events */
+  pointer-events: auto;
+  -moz-user-select: none;
+}
+
+:-moz-native-anonymous .geometry-editor-offset-parent {
+  stroke: var(--highlighter-guide-color);
+  shape-rendering: crispEdges;
+  stroke-dasharray: 5 3;
+  fill: transparent;
+}
+
+:-moz-native-anonymous .geometry-editor-current-node {
+  stroke: var(--highlighter-guide-color);
+  fill: var(--highlighter-content-color);
+  shape-rendering: crispEdges;
+  opacity: 0.6;
+}
+
+:-moz-native-anonymous .geometry-editor-arrow {
+  stroke: var(--highlighter-guide-color);
+  shape-rendering: crispEdges;
+}
+
+:-moz-native-anonymous .geometry-editor-root circle {
+  stroke: var(--highlighter-guide-color);
+  fill: var(--highlighter-content-color);
+}
+
+:-moz-native-anonymous .geometry-editor-handler-top,
+:-moz-native-anonymous .geometry-editor-handler-bottom {
+  cursor: ns-resize;
+}
+
+:-moz-native-anonymous .geometry-editor-handler-right,
+:-moz-native-anonymous .geometry-editor-handler-left {
+  cursor: ew-resize;
+}
+
+:-moz-native-anonymous [dragging] .geometry-editor-handler-top,
+:-moz-native-anonymous [dragging] .geometry-editor-handler-right,
+:-moz-native-anonymous [dragging] .geometry-editor-handler-bottom,
+:-moz-native-anonymous [dragging] .geometry-editor-handler-left {
+  cursor: grabbing;
+}
+
+:-moz-native-anonymous .geometry-editor-handler-top.dragging,
+:-moz-native-anonymous .geometry-editor-handler-right.dragging,
+:-moz-native-anonymous .geometry-editor-handler-bottom.dragging,
+:-moz-native-anonymous .geometry-editor-handler-left.dragging {
+  fill: var(--highlighter-guide-color);
+}
+
+:-moz-native-anonymous .geometry-editor-label-bubble {
+  fill: var(--highlighter-bubble-background-color);
+  shape-rendering: crispEdges;
+}
+
+:-moz-native-anonymous .geometry-editor-label-text {
+  fill: var(--highlighter-bubble-text-color);
+  font: message-box;
+  font-size: 10px;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+/* Rulers Highlighter */
+
+:-moz-native-anonymous .rulers-highlighter-elements {
+  shape-rendering: crispEdges;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+:-moz-native-anonymous .rulers-highlighter-elements > g {
+  opacity: 0.8;
+}
+
+:-moz-native-anonymous .rulers-highlighter-elements > g > rect {
+  fill: #fff;
+}
+
+:-moz-native-anonymous .rulers-highlighter-ruler-graduations {
+  stroke: #bebebe;
+}
+
+:-moz-native-anonymous .rulers-highlighter-ruler-markers {
+  stroke: #202020;
+}
+
+:-moz-native-anonymous .rulers-highlighter-horizontal-labels > text,
+:-moz-native-anonymous .rulers-highlighter-vertical-labels > text {
+  stroke: none;
+  fill: #202020;
+  font: message-box;
+  font-size: 9px;
+  dominant-baseline: hanging;
+}
+
+:-moz-native-anonymous .rulers-highlighter-horizontal-labels > text {
+  text-anchor: start;
+}
+
+:-moz-native-anonymous .rulers-highlighter-vertical-labels > text {
+  transform: rotate(-90deg);
+  text-anchor: end;
+}
+
+/* Measuring Tool Highlighter */
+
+:-moz-native-anonymous .measuring-tool-highlighter-root {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
+:-moz-native-anonymous .measuring-tool-highlighter-root path {
+  shape-rendering: crispEdges;
+  fill: rgba(135, 206, 235, 0.6);
+  stroke: var(--highlighter-guide-color);
+  pointer-events: none;
+}
+
+:-moz-native-anonymous .dragging path {
+  fill: rgba(135, 206, 235, 0.6);
+  stroke: var(--highlighter-guide-color);
+  opacity: 0.45;
+}
+
+:-moz-native-anonymous .measuring-tool-highlighter-label-size,
+:-moz-native-anonymous .measuring-tool-highlighter-label-position {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: inline-block;
+  border-radius: 4px;
+  padding: 4px;
+  white-space: pre-line;
+  font: message-box;
+  font-size: 10px;
+  pointer-events: none;
+  -moz-user-select: none;
+  box-sizing: border-box;
+}
+
+:-moz-native-anonymous .measuring-tool-highlighter-label-position {
+  color: #fff;
+  background: hsla(214, 13%, 24%, 0.8);
+}
+
+:-moz-native-anonymous .measuring-tool-highlighter-label-size {
+  color: var(--highlighter-bubble-text-color);
+  background: var(--highlighter-bubble-background-color);
+  border: 1px solid var(--highlighter-bubble-border-color);
+  line-height: 1.5em;
+}
+
+:-moz-native-anonymous .measuring-tool-highlighter-guide-top,
+:-moz-native-anonymous .measuring-tool-highlighter-guide-right,
+:-moz-native-anonymous .measuring-tool-highlighter-guide-bottom,
+:-moz-native-anonymous .measuring-tool-highlighter-guide-left {
+  stroke: var(--highlighter-guide-color);
+  stroke-dasharray: 5 3;
+  shape-rendering: crispEdges;
+}
+
+/* Eye Dropper */
+
+:-moz-native-anonymous .eye-dropper-root {
+  --magnifier-width: 96px;
+  --magnifier-height: 96px;
+  /* Width accounts for all color formats (hsl being the longest) */
+  --label-width: 160px;
+  --label-height: 23px;
+  --color: #e0e0e0;
+
+  position: absolute;
+  /* Tool start position. This should match the X/Y defines in JS */
+  top: 100px;
+  left: 100px;
+
+  /* Prevent interacting with the page when hovering and clicking */
+  pointer-events: auto;
+
+  /* Offset the UI so it is centered around the pointer */
+  transform: translate(
+    calc(var(--magnifier-width) / -2), calc(var(--magnifier-height) / -2));
+
+  filter: drop-shadow(0 0 1px rgba(0,0,0,.4));
+
+  /* We don't need the UI to be reversed in RTL locales, otherwise the # would appear
+     to the right of the hex code. Force LTR */
+  direction: ltr;
+}
+
+:-moz-native-anonymous .eye-dropper-canvas {
+  image-rendering: -moz-crisp-edges;
+  cursor: none;
+  width: var(--magnifier-width);
+  height: var(--magnifier-height);
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--color);
+  display: block;
+}
+
+:-moz-native-anonymous .eye-dropper-color-container {
+  background-color: var(--color);
+  border-radius: 2px;
+  width: var(--label-width);
+  height: var(--label-height);
+  position: relative;
+
+  --label-horizontal-center:
+    translateX(calc((var(--magnifier-width) - var(--label-width)) / 2));
+  --label-horizontal-left:
+    translateX(calc((-1 * var(--label-width) + var(--magnifier-width) / 2)));
+  --label-horizontal-right:
+    translateX(calc(var(--magnifier-width) / 2));
+  --label-vertical-top:
+    translateY(calc((-1 * var(--magnifier-height)) - var(--label-height)));
+
+  /* By default the color label container sits below the canvas.
+     Here we just center it horizontally */
+  transform: var(--label-horizontal-center);
+  transition: transform .1s ease-in-out;
+}
+
+/* If there isn't enough space below the canvas, we move the label container to the top */
+:-moz-native-anonymous .eye-dropper-root[top] .eye-dropper-color-container {
+  transform: var(--label-horizontal-center) var(--label-vertical-top);
+}
+
+/* If there isn't enough space right of the canvas to horizontally center the label
+   container, offset it to the left */
+:-moz-native-anonymous .eye-dropper-root[left] .eye-dropper-color-container {
+  transform: var(--label-horizontal-left);
+}
+:-moz-native-anonymous .eye-dropper-root[left][top] .eye-dropper-color-container {
+  transform: var(--label-horizontal-left) var(--label-vertical-top);
+}
+
+/* If there isn't enough space left of the canvas to horizontally center the label
+   container, offset it to the right */
+:-moz-native-anonymous .eye-dropper-root[right] .eye-dropper-color-container {
+  transform: var(--label-horizontal-right);
+}
+:-moz-native-anonymous .eye-dropper-root[right][top] .eye-dropper-color-container {
+  transform: var(--label-horizontal-right) var(--label-vertical-top);
+}
+
+:-moz-native-anonymous .eye-dropper-color-preview {
+  width: 16px;
+  height: 16px;
+  position: absolute;
+  offset-inline-start: 3px;
+  offset-block-start: 3px;
+  box-shadow: 0px 0px 0px black;
+  border: solid 1px #fff;
+}
+
+:-moz-native-anonymous .eye-dropper-color-value {
+  text-shadow: 1px 1px 1px #fff;
+  font: message-box;
+  font-size: 11px;
+  text-align: center;
+  padding: 4px 0;
+}

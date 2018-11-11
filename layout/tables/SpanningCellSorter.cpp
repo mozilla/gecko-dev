@@ -16,42 +16,34 @@
 
 SpanningCellSorter::SpanningCellSorter()
   : mState(ADDING)
+  , mHashTable(&HashTableOps, sizeof(HashTableEntry))
   , mSortedHashTable(nullptr)
 {
     memset(mArray, 0, sizeof(mArray));
-    mHashTable.entryCount = 0;
 }
 
 SpanningCellSorter::~SpanningCellSorter()
 {
-    if (mHashTable.entryCount) {
-        PL_DHashTableFinish(&mHashTable);
-        mHashTable.entryCount = 0;
-    }
     delete [] mSortedHashTable;
 }
 
 /* static */ const PLDHashTableOps
 SpanningCellSorter::HashTableOps = {
-    PL_DHashAllocTable,
-    PL_DHashFreeTable,
     HashTableHashKey,
     HashTableMatchEntry,
-    PL_DHashMoveEntryStub,
-    PL_DHashClearEntryStub,
-    PL_DHashFinalizeStub,
+    PLDHashTable::MoveEntryStub,
+    PLDHashTable::ClearEntryStub,
     nullptr
 };
 
 /* static */ PLDHashNumber
-SpanningCellSorter::HashTableHashKey(PLDHashTable *table, const void *key)
+SpanningCellSorter::HashTableHashKey(const void *key)
 {
     return NS_PTR_TO_INT32(key);
 }
 
 /* static */ bool
-SpanningCellSorter::HashTableMatchEntry(PLDHashTable *table,
-                                        const PLDHashEntryHdr *hdr,
+SpanningCellSorter::HashTableMatchEntry(const PLDHashEntryHdr *hdr,
                                         const void *key)
 {
     const HashTableEntry *entry = static_cast<const HashTableEntry*>(hdr);
@@ -75,13 +67,8 @@ SpanningCellSorter::AddCell(int32_t aColSpan, int32_t aRow, int32_t aCol)
         i->next = mArray[index];
         mArray[index] = i;
     } else {
-        if (!mHashTable.entryCount) {
-            PL_DHashTableInit(&mHashTable, &HashTableOps, nullptr,
-                              sizeof(HashTableEntry), PL_DHASH_MIN_SIZE);
-        }
-        HashTableEntry *entry = static_cast<HashTableEntry*>
-                                           (PL_DHashTableOperate(&mHashTable, NS_INT32_TO_PTR(aColSpan),
-                                 PL_DHASH_ADD));
+        auto entry = static_cast<HashTableEntry*>
+            (mHashTable.Add(NS_INT32_TO_PTR(aColSpan), fallible));
         NS_ENSURE_TRUE(entry, false);
 
         NS_ASSERTION(entry->mColSpan == 0 || entry->mColSpan == aColSpan,
@@ -95,18 +82,6 @@ SpanningCellSorter::AddCell(int32_t aColSpan, int32_t aRow, int32_t aCol)
     }
 
     return true;
-}
-
-/* static */ PLDHashOperator
-SpanningCellSorter::FillSortedArray(PLDHashTable *table, PLDHashEntryHdr *hdr,
-                                    uint32_t number, void *arg)
-{
-    HashTableEntry *entry = static_cast<HashTableEntry*>(hdr);
-    HashTableEntry **sh = static_cast<HashTableEntry**>(arg);
-
-    sh[number] = entry;
-
-    return PL_DHASH_NEXT;
 }
 
 /* static */ int
@@ -132,7 +107,7 @@ SpanningCellSorter::GetNext(int32_t *aColSpan)
             /* prepare to enumerate the array */
             mState = ENUMERATING_ARRAY;
             mEnumerationIndex = 0;
-            /* fall through */
+            MOZ_FALLTHROUGH;
         case ENUMERATING_ARRAY:
             while (mEnumerationIndex < ARRAY_SIZE && !mArray[mEnumerationIndex])
                 ++mEnumerationIndex;
@@ -151,22 +126,20 @@ SpanningCellSorter::GetNext(int32_t *aColSpan)
             /* prepare to enumerate the hash */
             mState = ENUMERATING_HASH;
             mEnumerationIndex = 0;
-            if (mHashTable.entryCount) {
+            if (mHashTable.EntryCount() > 0) {
                 HashTableEntry **sh =
-                    new HashTableEntry*[mHashTable.entryCount];
-                if (!sh) {
-                    // give up
-                    mState = DONE;
-                    return nullptr;
+                    new HashTableEntry*[mHashTable.EntryCount()];
+                int32_t j = 0;
+                for (auto iter = mHashTable.Iter(); !iter.Done(); iter.Next()) {
+                    sh[j++] = static_cast<HashTableEntry*>(iter.Get());
                 }
-                PL_DHashTableEnumerate(&mHashTable, FillSortedArray, sh);
-                NS_QuickSort(sh, mHashTable.entryCount, sizeof(sh[0]),
+                NS_QuickSort(sh, mHashTable.EntryCount(), sizeof(sh[0]),
                              SortArray, nullptr);
                 mSortedHashTable = sh;
             }
-            /* fall through */
+            MOZ_FALLTHROUGH;
         case ENUMERATING_HASH:
-            if (mEnumerationIndex < mHashTable.entryCount) {
+            if (mEnumerationIndex < mHashTable.EntryCount()) {
                 Item *result = mSortedHashTable[mEnumerationIndex]->mItems;
                 *aColSpan = mSortedHashTable[mEnumerationIndex]->mColSpan;
                 NS_ASSERTION(result, "holes in hash table");
@@ -179,7 +152,7 @@ SpanningCellSorter::GetNext(int32_t *aColSpan)
                 return result;
             }
             mState = DONE;
-            /* fall through */
+            MOZ_FALLTHROUGH;
         case DONE:
             ;
     }

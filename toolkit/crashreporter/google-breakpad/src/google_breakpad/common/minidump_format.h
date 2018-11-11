@@ -97,7 +97,6 @@ typedef struct {
 #define MD_CONTEXT_IA64  0x00080000  /* CONTEXT_IA64 */
 /* Additional values from winnt.h in the Windows CE 5.0 SDK: */
 #define MD_CONTEXT_SHX   0x000000c0  /* CONTEXT_SH4 (Super-H, includes SH3) */
-#define MD_CONTEXT_MIPS  0x00010000  /* CONTEXT_R4000 (same value as x86?) */
 #define MD_CONTEXT_ALPHA 0x00020000  /* CONTEXT_ALPHA */
 
 /* As of Windows 7 SP1, the number of flag bits has increased to
@@ -115,6 +114,8 @@ typedef struct {
 
 #include "minidump_cpu_amd64.h"
 #include "minidump_cpu_arm.h"
+#include "minidump_cpu_arm64.h"
+#include "minidump_cpu_mips.h"
 #include "minidump_cpu_ppc.h"
 #include "minidump_cpu_ppc64.h"
 #include "minidump_cpu_sparc.h"
@@ -327,6 +328,10 @@ typedef enum {
   MD_MEMORY_INFO_LIST_STREAM     = 16,  /* MDRawMemoryInfoList */
   MD_THREAD_INFO_LIST_STREAM     = 17,
   MD_HANDLE_OPERATION_LIST_STREAM = 18,
+  MD_TOKEN_STREAM                = 19,
+  MD_JAVASCRIPT_DATA_STREAM      = 20,
+  MD_SYSTEM_MEMORY_INFO_STREAM   = 21,
+  MD_PROCESS_VM_COUNTERS_STREAM  = 22,
   MD_LAST_RESERVED_STREAM        = 0x0000ffff,
 
   /* Breakpad extension types.  0x4767 = "Gg" */
@@ -341,13 +346,13 @@ typedef enum {
   MD_LINUX_ENVIRON               = 0x47670007,  /* /proc/$x/environ   */
   MD_LINUX_AUXV                  = 0x47670008,  /* /proc/$x/auxv      */
   MD_LINUX_MAPS                  = 0x47670009,  /* /proc/$x/maps      */
-  MD_LINUX_DSO_DEBUG             = 0x4767000A   /* MDRawDebug         */
+  MD_LINUX_DSO_DEBUG             = 0x4767000A   /* MDRawDebug{32,64}  */
 } MDStreamType;  /* MINIDUMP_STREAM_TYPE */
 
 
 typedef struct {
   uint32_t length;     /* Length of buffer in bytes (not characters),
-                         * excluding 0-terminator */
+                        * excluding 0-terminator */
   uint16_t buffer[1];  /* UTF-16-encoded, 0-terminated */
 } MDString;  /* MINIDUMP_STRING */
 
@@ -448,14 +453,25 @@ static const size_t MDCVInfoPDB70_minsize = offsetof(MDCVInfoPDB70,
 
 #define MD_CVINFOPDB70_SIGNATURE 0x53445352  /* cvSignature = 'SDSR' */
 
+/*
+ * Modern ELF toolchains insert a "build id" into the ELF headers that
+ * usually contains a hash of some ELF headers + sections to uniquely
+ * identify a binary.
+ *
+ * https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Developer_Guide/compiling-build-id.html
+ * https://sourceware.org/binutils/docs-2.26/ld/Options.html#index-g_t_002d_002dbuild_002did-292
+ */
 typedef struct {
-  uint32_t data1[2];
-  uint32_t data2;
-  uint32_t data3;
-  uint32_t data4;
-  uint32_t data5[3];
-  uint8_t  extra[2];
+  uint32_t cv_signature;
+  uint8_t  build_id[1];  /* Bytes of build id from GNU_BUILD_ID ELF note.
+                          * This is variable-length, but usually 20 bytes
+                          * as the binutils ld default is a SHA-1 hash. */
 } MDCVInfoELF;
+
+static const size_t MDCVInfoELF_minsize = offsetof(MDCVInfoELF,
+                                                   build_id[0]);
+
+#define MD_CVINFOELF_SIGNATURE 0x4270454c  /* cvSignature = 'BpEL' */
 
 /* In addition to the two CodeView record formats above, used for linking
  * to external pdb files, it is possible for debugging data to be carried
@@ -529,10 +545,11 @@ typedef struct {
   uint64_t  exception_information[MD_EXCEPTION_MAXIMUM_PARAMETERS];
 } MDException;  /* MINIDUMP_EXCEPTION */
 
-#include "minidump_exception_win32.h"
-#include "minidump_exception_mac.h"
 #include "minidump_exception_linux.h"
+#include "minidump_exception_mac.h"
+#include "minidump_exception_ps3.h"
 #include "minidump_exception_solaris.h"
+#include "minidump_exception_win32.h"
 
 typedef struct {
   uint32_t             thread_id;         /* Thread in which the exception
@@ -552,18 +569,47 @@ typedef union {
     uint32_t amd_extended_cpu_features;  /* cpuid 0x80000001, ebx */
   } x86_cpu_info;
   struct {
+    uint32_t cpuid;
+    uint32_t elf_hwcaps;    /* linux specific, 0 otherwise */
+  } arm_cpu_info;
+  struct {
     uint64_t processor_features[2];
   } other_cpu_info;
 } MDCPUInformation;  /* CPU_INFORMATION */
 
+/* For (MDCPUInformation).arm_cpu_info.elf_hwcaps.
+ * This matches the Linux kernel definitions from <asm/hwcaps.h> */
+typedef enum {
+  MD_CPU_ARM_ELF_HWCAP_SWP       = (1 << 0),
+  MD_CPU_ARM_ELF_HWCAP_HALF      = (1 << 1),
+  MD_CPU_ARM_ELF_HWCAP_THUMB     = (1 << 2),
+  MD_CPU_ARM_ELF_HWCAP_26BIT     = (1 << 3),
+  MD_CPU_ARM_ELF_HWCAP_FAST_MULT = (1 << 4),
+  MD_CPU_ARM_ELF_HWCAP_FPA       = (1 << 5),
+  MD_CPU_ARM_ELF_HWCAP_VFP       = (1 << 6),
+  MD_CPU_ARM_ELF_HWCAP_EDSP      = (1 << 7),
+  MD_CPU_ARM_ELF_HWCAP_JAVA      = (1 << 8),
+  MD_CPU_ARM_ELF_HWCAP_IWMMXT    = (1 << 9),
+  MD_CPU_ARM_ELF_HWCAP_CRUNCH    = (1 << 10),
+  MD_CPU_ARM_ELF_HWCAP_THUMBEE   = (1 << 11),
+  MD_CPU_ARM_ELF_HWCAP_NEON      = (1 << 12),
+  MD_CPU_ARM_ELF_HWCAP_VFPv3     = (1 << 13),
+  MD_CPU_ARM_ELF_HWCAP_VFPv3D16  = (1 << 14),
+  MD_CPU_ARM_ELF_HWCAP_TLS       = (1 << 15),
+  MD_CPU_ARM_ELF_HWCAP_VFPv4     = (1 << 16),
+  MD_CPU_ARM_ELF_HWCAP_IDIVA     = (1 << 17),
+  MD_CPU_ARM_ELF_HWCAP_IDIVT     = (1 << 18),
+} MDCPUInformationARMElfHwCaps;
 
 typedef struct {
   /* The next 3 fields and numberOfProcessors are from the SYSTEM_INFO
    * structure as returned by GetSystemInfo */
   uint16_t         processor_architecture;
   uint16_t         processor_level;         /* x86: 5 = 586, 6 = 686, ... */
+                                            /* ARM: 6 = ARMv6, 7 = ARMv7 ... */
   uint16_t         processor_revision;      /* x86: 0xMMSS, where MM=model,
                                              *      SS=stepping */
+                                            /* ARM: 0 */
 
   uint8_t          number_of_processors;
   uint8_t          product_type;            /* Windows: VER_NT_* from WinNT.h */
@@ -605,6 +651,9 @@ typedef enum {
   MD_CPU_ARCHITECTURE_X86_WIN64 = 10,
       /* PROCESSOR_ARCHITECTURE_IA32_ON_WIN64 (WoW64) */
   MD_CPU_ARCHITECTURE_SPARC     = 0x8001, /* Breakpad-defined value for SPARC */
+  MD_CPU_ARCHITECTURE_PPC64     = 0x8002, /* Breakpad-defined value for PPC64 */
+  MD_CPU_ARCHITECTURE_ARM64     = 0x8003, /* Breakpad-defined value for ARM64 */
+  MD_CPU_ARCHITECTURE_MIPS64    = 0x8004, /* Breakpad-defined value for MIPS64 */
   MD_CPU_ARCHITECTURE_UNKNOWN   = 0xffff  /* PROCESSOR_ARCHITECTURE_UNKNOWN */
 } MDCPUArchitecture;
 
@@ -622,10 +671,95 @@ typedef enum {
   MD_OS_IOS           = 0x8102,  /* iOS */
   MD_OS_LINUX         = 0x8201,  /* Linux */
   MD_OS_SOLARIS       = 0x8202,  /* Solaris */
-  MD_OS_ANDROID       = 0x8203   /* Android */
+  MD_OS_ANDROID       = 0x8203,  /* Android */
+  MD_OS_PS3           = 0x8204,  /* PS3 */
+  MD_OS_NACL          = 0x8205   /* Native Client (NaCl) */
 } MDOSPlatform;
 
+typedef struct {
+  uint16_t year;
+  uint16_t month;
+  uint16_t day_of_week;
+  uint16_t day;
+  uint16_t hour;
+  uint16_t minute;
+  uint16_t second;
+  uint16_t milliseconds;
+} MDSystemTime;  /* SYSTEMTIME */
 
+typedef struct {
+  /* Required field.  The bias is the difference, in minutes, between
+   * Coordinated Universal Time (UTC) and local time.
+   *   Formula: UTC = local time + bias */
+  int32_t bias;
+  /* A description for standard time.  For example, "EST" could indicate Eastern
+   * Standard Time.  In practice this contains the full time zone names.  This
+   * string can be empty. */
+  uint16_t standard_name[32];  /* UTF-16-encoded, 0-terminated */
+  /* A MDSystemTime structure that contains a date and local time when the
+   * transition from daylight saving time to standard time occurs on this
+   * operating system.  If the time zone does not support daylight saving time, 
+   * the month member in the MDSystemTime structure is zero. */
+  MDSystemTime standard_date;
+  /* The bias value to be used during local time translations that occur during
+   * standard time. */
+  int32_t standard_bias;
+  /* A description for daylight saving time.  For example, "PDT" could indicate
+   * Pacific Daylight Time.  In practice this contains the full time zone names.
+   * This string can be empty. */
+  uint16_t daylight_name[32];  /* UTF-16-encoded, 0-terminated */
+  /* A MDSystemTime structure that contains a date and local time when the
+   * transition from standard time to daylight saving time occurs on this
+   * operating system.  If the time zone does not support daylight saving time, 
+   * the month member in the MDSystemTime structure is zero.*/
+  MDSystemTime daylight_date;
+  /* The bias value to be used during local time translations that occur during
+   * daylight saving time. */
+  int32_t daylight_bias;
+} MDTimeZoneInformation;  /* TIME_ZONE_INFORMATION */
+
+/* MAX_PATH from windef.h */
+#define MD_MAX_PATH 260
+
+/* For MDXStateConfigFeatureMscInfo.features */
+typedef struct {
+  uint32_t offset;
+  uint32_t size;
+} MDXStateFeature;
+
+/* For MDXStateConfigFeatureMscInfo.enabled_features from winnt.h */
+typedef enum {
+  MD_XSTATE_LEGACY_FLOATING_POINT = 0, /* XSTATE_LEGACY_FLOATING_POINT */
+  MD_XSTATE_LEGACY_SSE            = 1, /* XSTATE_LEGACY_SSE */
+  MD_XSTATE_GSSE                  = 2, /* XSTATE_GSSE */
+  MD_XSTATE_AVX                   = MD_XSTATE_GSSE, /* XSTATE_AVX */
+  MD_XSTATE_MPX_BNDREGS           = 3, /* XSTATE_MPX_BNDREGS */
+  MD_XSTATE_MPX_BNDCSR            = 4, /* XSTATE_MPX_BNDCSR */
+  MD_XSTATE_AVX512_KMASK          = 5, /* XSTATE_AVX512_KMASK */
+  MD_XSTATE_AVX512_ZMM_H          = 6, /* XSTATE_AVX512_ZMM_H */
+  MD_XSTATE_AVX512_ZMM            = 7, /* XSTATE_AVX512_ZMM */
+  MD_XSTATE_IPT                   = 8, /* XSTATE_IPT */
+  MD_XSTATE_LWP                   = 62 /* XSTATE_LWP */
+} MDXStateFeatureFlag;
+
+/* MAXIMUM_XSTATE_FEATURES from winnt.h */
+#define MD_MAXIMUM_XSTATE_FEATURES 64
+
+/* For MDRawMiscInfo.xstate_data */
+typedef struct {
+  uint32_t size_of_info;
+  uint32_t context_size;
+  /* An entry in the features array is valid only if the corresponding bit in
+   * the enabled_features flag is set. */
+  uint64_t enabled_features;
+  MDXStateFeature features[MD_MAXIMUM_XSTATE_FEATURES];
+} MDXStateConfigFeatureMscInfo;
+
+
+/* The miscellaneous information stream contains a variety
+ * of small pieces of information.  A member is valid if
+ * it's within the available size and its corresponding
+ * bit is set. */
 typedef struct {
   uint32_t size_of_info;  /* Length of entire MDRawMiscInfo structure. */
   uint32_t flags1;
@@ -642,7 +776,7 @@ typedef struct {
 
   /* The following fields are not present in MINIDUMP_MISC_INFO but are
    * in MINIDUMP_MISC_INFO_2.  When this struct is populated, these values
-   * may not be set.  Use flags1 or sizeOfInfo to determine whether these
+   * may not be set.  Use flags1 and size_of_info to determine whether these
    * values are present.  These are only valid when flags1 contains
    * MD_MISCINFO_FLAGS1_PROCESSOR_POWER_INFO. */
   uint32_t processor_max_mhz;
@@ -650,20 +784,91 @@ typedef struct {
   uint32_t processor_mhz_limit;
   uint32_t processor_max_idle_state;
   uint32_t processor_current_idle_state;
-} MDRawMiscInfo;  /* MINIDUMP_MISC_INFO, MINIDUMP_MISC_INFO2 */
 
-#define MD_MISCINFO_SIZE 24
-#define MD_MISCINFO2_SIZE 44
+  /* The following fields are not present in MINIDUMP_MISC_INFO_2 but are
+   * in MINIDUMP_MISC_INFO_3.  When this struct is populated, these values
+   * may not be set.  Use flags1 and size_of_info to determine whether these
+   * values are present. */
+   
+  /* The following field is only valid if flags1 contains
+   * MD_MISCINFO_FLAGS1_PROCESS_INTEGRITY. */
+  uint32_t process_integrity_level;
+
+  /* The following field is only valid if flags1 contains
+   * MD_MISCINFO_FLAGS1_PROCESS_EXECUTE_FLAGS. */
+  uint32_t process_execute_flags;
+
+  /* The following field is only valid if flags1 contains
+   * MD_MISCINFO_FLAGS1_PROTECTED_PROCESS. */
+  uint32_t protected_process;
+
+  /* The following 2 fields are only valid if flags1 contains
+   * MD_MISCINFO_FLAGS1_TIMEZONE. */
+  uint32_t time_zone_id;
+  MDTimeZoneInformation time_zone;
+
+  /* The following fields are not present in MINIDUMP_MISC_INFO_3 but are
+   * in MINIDUMP_MISC_INFO_4.  When this struct is populated, these values
+   * may not be set.  Use flags1 and size_of_info to determine whether these
+   * values are present. */
+
+  /* The following 2 fields are only valid if flags1 contains
+   * MD_MISCINFO_FLAGS1_BUILDSTRING. */
+  uint16_t build_string[MD_MAX_PATH];  /* UTF-16-encoded, 0-terminated */
+  uint16_t dbg_bld_str[40];            /* UTF-16-encoded, 0-terminated */
+
+  /* The following fields are not present in MINIDUMP_MISC_INFO_4 but are
+   * in MINIDUMP_MISC_INFO_5.  When this struct is populated, these values
+   * may not be set.  Use flags1 and size_of_info to determine whether these
+   * values are present. */
+
+  /* The following field has its own flags for establishing the validity of
+   * the structure's contents.*/
+  MDXStateConfigFeatureMscInfo xstate_data;
+
+  /* The following field is only valid if flags1 contains
+   * MD_MISCINFO_FLAGS1_PROCESS_COOKIE. */
+  uint32_t process_cookie;
+} MDRawMiscInfo;  /* MINIDUMP_MISC_INFO, MINIDUMP_MISC_INFO_2,
+                   * MINIDUMP_MISC_INFO_3, MINIDUMP_MISC_INFO_4,
+                   * MINIDUMP_MISC_INFO_5, MINIDUMP_MISC_INFO_N */
+
+static const size_t MD_MISCINFO_SIZE =
+    offsetof(MDRawMiscInfo, processor_max_mhz);
+static const size_t MD_MISCINFO2_SIZE =
+    offsetof(MDRawMiscInfo, process_integrity_level);
+static const size_t MD_MISCINFO3_SIZE =
+    offsetof(MDRawMiscInfo, build_string[0]);
+static const size_t MD_MISCINFO4_SIZE =
+    offsetof(MDRawMiscInfo, xstate_data);
+/* Version 5 of the MDRawMiscInfo structure is not a multiple of 8 in size and
+ * yet it contains some 8-bytes sized fields. This causes many compilers to
+ * round the structure size up to a multiple of 8 by adding padding at the end.
+ * The following hack is thus required for matching the proper on-disk size. */
+static const size_t MD_MISCINFO5_SIZE =
+    offsetof(MDRawMiscInfo, process_cookie) + sizeof(uint32_t);
 
 /* For (MDRawMiscInfo).flags1.  These values indicate which fields in the
  * MDRawMiscInfoStructure are valid. */
 typedef enum {
-  MD_MISCINFO_FLAGS1_PROCESS_ID           = 0x00000001,
+  MD_MISCINFO_FLAGS1_PROCESS_ID            = 0x00000001,
       /* MINIDUMP_MISC1_PROCESS_ID */
-  MD_MISCINFO_FLAGS1_PROCESS_TIMES        = 0x00000002,
+  MD_MISCINFO_FLAGS1_PROCESS_TIMES         = 0x00000002,
       /* MINIDUMP_MISC1_PROCESS_TIMES */
-  MD_MISCINFO_FLAGS1_PROCESSOR_POWER_INFO = 0x00000004
+  MD_MISCINFO_FLAGS1_PROCESSOR_POWER_INFO  = 0x00000004,
       /* MINIDUMP_MISC1_PROCESSOR_POWER_INFO */
+  MD_MISCINFO_FLAGS1_PROCESS_INTEGRITY     = 0x00000010,
+      /* MINIDUMP_MISC3_PROCESS_INTEGRITY */
+  MD_MISCINFO_FLAGS1_PROCESS_EXECUTE_FLAGS = 0x00000020,
+      /* MINIDUMP_MISC3_PROCESS_EXECUTE_FLAGS */
+  MD_MISCINFO_FLAGS1_TIMEZONE              = 0x00000040,
+      /* MINIDUMP_MISC3_TIMEZONE */
+  MD_MISCINFO_FLAGS1_PROTECTED_PROCESS     = 0x00000080,
+      /* MINIDUMP_MISC3_PROTECTED_PROCESS */
+  MD_MISCINFO_FLAGS1_BUILDSTRING           = 0x00000100,
+      /* MINIDUMP_MISC4_BUILDSTRING */
+  MD_MISCINFO_FLAGS1_PROCESS_COOKIE        = 0x00000200,
+      /* MINIDUMP_MISC5_PROCESS_COOKIE */
 } MDMiscInfoFlags1;
 
 /*
@@ -798,21 +1003,39 @@ typedef enum {
 } MDAssertionInfoData;
 
 /* These structs are used to store the DSO debug data in Linux minidumps,
- * which is necessary for converting minidumps to usable coredumps. */
+ * which is necessary for converting minidumps to usable coredumps.
+ * Because of a historical accident, several fields are variably encoded
+ * according to client word size, so tools potentially need to support both. */
+
 typedef struct {
-  void*     addr;
+  uint32_t  addr;
   MDRVA     name;
-  void*     ld;
-} MDRawLinkMap;
+  uint32_t  ld;
+} MDRawLinkMap32;
 
 typedef struct {
   uint32_t  version;
-  MDRVA     map;
+  MDRVA     map;  /* array of MDRawLinkMap32 */
   uint32_t  dso_count;
-  void*     brk;
-  void*     ldbase;
-  void*     dynamic;
-} MDRawDebug;
+  uint32_t  brk;
+  uint32_t  ldbase;
+  uint32_t  dynamic;
+} MDRawDebug32;
+
+typedef struct {
+  uint64_t  addr;
+  MDRVA     name;
+  uint64_t  ld;
+} MDRawLinkMap64;
+
+typedef struct {
+  uint32_t  version;
+  MDRVA     map;  /* array of MDRawLinkMap64 */
+  uint32_t  dso_count;
+  uint64_t  brk;
+  uint64_t  ldbase;
+  uint64_t  dynamic;
+} MDRawDebug64;
 
 #if defined(_MSC_VER)
 #pragma warning(pop)

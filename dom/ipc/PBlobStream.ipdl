@@ -4,9 +4,8 @@
 
 include protocol PBlob;
 include protocol PFileDescriptorSet;
+include BlobTypes;
 include InputStreamParams;
-
-using mozilla::void_t from "ipc/IPCMessageUtils.h";
 
 namespace mozilla {
 namespace dom {
@@ -15,8 +14,8 @@ protocol PBlobStream
 {
   manager PBlob;
 
-both:
-  __delete__(InputStreamParams params, OptionalFileDescriptorSet fds);
+child:
+  async __delete__(InputStreamParams params, OptionalFileDescriptorSet fds);
 };
 
 } // namespace dom

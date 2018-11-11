@@ -13,21 +13,18 @@
 
 #include <math.h>
 
-#include "webrtc/modules/audio_coding/main/source/acm_opus.h"
-#include "webrtc/modules/audio_coding/main/source/acm_resampler.h"
+#include "webrtc/base/scoped_ptr.h"
+#include "webrtc/modules/audio_coding/main/acm2/acm_resampler.h"
 #include "webrtc/modules/audio_coding/main/test/ACMTest.h"
 #include "webrtc/modules/audio_coding/main/test/Channel.h"
 #include "webrtc/modules/audio_coding/main/test/PCMFile.h"
 #include "webrtc/modules/audio_coding/main/test/TestStereo.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 
 namespace webrtc {
 
-class Config;
-
 class OpusTest : public ACMTest {
  public:
-  explicit OpusTest(const Config& config);
+  OpusTest();
   ~OpusTest();
 
   void Perform();
@@ -38,7 +35,7 @@ class OpusTest : public ACMTest {
 
   void OpenOutFile(int test_number);
 
-  scoped_ptr<AudioCodingModule> acm_receiver_;
+  rtc::scoped_ptr<AudioCodingModule> acm_receiver_;
   TestPackStereo* channel_a2b_;
   PCMFile in_file_stereo_;
   PCMFile in_file_mono_;
@@ -47,7 +44,7 @@ class OpusTest : public ACMTest {
   int counter_;
   uint8_t payload_type_;
   int rtp_timestamp_;
-  acm1::ACMResampler resampler_;
+  acm2::ACMResampler resampler_;
   WebRtcOpusEncInst* opus_mono_encoder_;
   WebRtcOpusEncInst* opus_stereo_encoder_;
   WebRtcOpusDecInst* opus_mono_decoder_;

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<script>
+function installEngine() {
+  var query = window.location.search.substring(1);
+  var args = JSON.parse(decodeURIComponent(query));
+
+  window.external.AddSearchProvider(...args);
+}
+</script>
+</head>
+<body onload="installEngine()">
+</body>
+</html>

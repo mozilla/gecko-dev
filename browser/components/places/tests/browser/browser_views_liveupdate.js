@@ -6,16 +6,21 @@
  * Tests Places views (menu, toolbar, tree) for liveupdate.
  */
 
-let toolbar = document.getElementById("PersonalToolbar");
-let wasCollapsed = toolbar.collapsed;
+var toolbar = document.getElementById("PersonalToolbar");
+var wasCollapsed = toolbar.collapsed;
 
 function test() {
-  // Uncollapse the personal toolbar if needed.
-  if (wasCollapsed)
-    setToolbarVisibility(toolbar, true);
-
   waitForExplicitFinish();
 
+  // Uncollapse the personal toolbar if needed.
+  if (wasCollapsed) {
+    promiseSetToolbarVisibility(toolbar, true).then(openBookmarksSidebar);
+  } else {
+    openBookmarksSidebar();
+  }
+}
+
+function openBookmarksSidebar() {
   // Sanity checks.
   ok(PlacesUtils, "PlacesUtils in context");
   ok(PlacesUIUtils, "PlacesUIUtils in context");
@@ -32,7 +37,7 @@ function test() {
     // Need to executeSoon since the tree is initialized on sidebar load.
     executeSoon(startTest);
   }, true);
-  toggleSidebar("viewBookmarksSidebar", true);
+  SidebarUI.show("viewBookmarksSidebar");
 }
 
 /**
@@ -44,7 +49,7 @@ function fakeOpenPopup(aPopup) {
   popupEvent.initMouseEvent("popupshowing", true, true, window, 0,
                             0, 0, 0, 0, false, false, false, false,
                             0, null);
-  aPopup.dispatchEvent(popupEvent);  
+  aPopup.dispatchEvent(popupEvent);
 }
 
 /**
@@ -166,13 +171,14 @@ function startTest() {
  */
 function finishTest() {
   // Close bookmarks sidebar.
-  toggleSidebar("viewBookmarksSidebar", false);
+  SidebarUI.hide();
 
   // Collapse the personal toolbar if needed.
-  if (wasCollapsed)
-    setToolbarVisibility(toolbar, false);
-
-  finish();
+  if (wasCollapsed) {
+    promiseSetToolbarVisibility(toolbar, false).then(finish);
+  } else {
+    finish();
+  }
 }
 
 /**
@@ -212,8 +218,7 @@ var bookmarksObserver = {
     // Check that item has been removed.
     for (var i = 0; i < views.length; i++) {
       var node = null;
-      var index = null;
-      [node, index] = searchItemInView(aItemId, views[i]);
+      [node, ] = searchItemInView(aItemId, views[i]);
       is(node, null, "Places node not found in " + views[i]);
     }
   },
@@ -260,15 +265,14 @@ var bookmarksObserver = {
           return cellText == PlacesUIUtils.getBestTitle(tree.view.nodeForTreeIndex(aElementOrTreeIndex), true);
         return cellText == aNewValue;
       }
-      else {
-        if (!aNewValue && aElementOrTreeIndex.localName != "toolbarbutton")
-          return aElementOrTreeIndex.getAttribute("label") == PlacesUIUtils.getBestTitle(aElementOrTreeIndex._placesNode);
-        return aElementOrTreeIndex.getAttribute("label") == aNewValue;
+      if (!aNewValue && aElementOrTreeIndex.localName != "toolbarbutton") {
+        return aElementOrTreeIndex.getAttribute("label") == PlacesUIUtils.getBestTitle(aElementOrTreeIndex._placesNode);
       }
+      return aElementOrTreeIndex.getAttribute("label") == aNewValue;
     };
 
     for (var i = 0; i < views.length; i++) {
-      var [node, index, valid] = searchItemInView(aItemId, views[i], validator);
+      var [node, , valid] = searchItemInView(aItemId, views[i], validator);
       isnot(node, null, "Found changed Places node in " + views[i]);
       is(node.title, aNewValue, "Node has correct title: " + aNewValue);
       ok(valid, "Node element has correct label: " + aNewValue);
@@ -316,7 +320,7 @@ function getNodeForToolbarItem(aItemId, aValidator) {
       var child = children[i];
 
       // Is this a Places node?
-      if (!child._placesNode) {
+      if (!child._placesNode || child.hasAttribute("simulated-places-node")) {
         staticNodes++;
         continue;
       }
@@ -359,7 +363,7 @@ function getNodeForMenuItem(aItemId, aValidator) {
       var child = children[i];
 
       // Is this a Places node?
-      if (!child._placesNode) {
+      if (!child._placesNode || child.hasAttribute("simulated-places-node")) {
         staticNodes++;
         continue;
       }
@@ -462,13 +466,10 @@ function getViewsForFolder(aFolderId) {
   switch (rootId) {
     case PlacesUtils.toolbarFolderId:
       return ["toolbar", "sidebar"]
-      break;
     case PlacesUtils.bookmarksMenuFolderId:
       return ["menu", "sidebar"]
-      break;
     case PlacesUtils.unfiledBookmarksFolderId:
       return ["sidebar"]
-      break;    
   }
   return new Array();
 }

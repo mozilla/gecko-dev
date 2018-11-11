@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -32,9 +32,9 @@ function test()
   function f() {
     "" + (function(){
         for( ; [function(){}] ; x = 0)
-          with({x: ""})
+          with({x: ""}) {
             const x = []
-            });
+           }});
   }
   f();
 
@@ -55,24 +55,6 @@ function test()
   }
 // Assertion failure: regs.sp == StackBase(fp), at ../jsinterp.cpp:2984
 
-// =====
-  try
-  {
-    do {x} while([[] for (x in []) ]);
-  }
-  catch(ex)
-  {
-  }
-// Assertion failure: !(pnu->pn_dflags & PND_BOUND), at ../jsemit.cpp:1818
-// =====
-
-  try
-  {
-    {x} ((x=[] for (x in []))); x;
-  }
-  catch(ex)
-  {
-  }
 // Assertion failure: cg->staticLevel >= level, at ../jsemit.cpp:2014
 // Crash [@ BindNameToSlot] in opt without -j
 

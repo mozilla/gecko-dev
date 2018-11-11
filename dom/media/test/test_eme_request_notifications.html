@@ -1,0 +1,88 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test Encrypted Media Extensions</title>
+  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  <script type="text/javascript" src="manifest.js"></script>
+  <script type="text/javascript" src="eme.js"></script>
+</head>
+<body>
+<pre id="test">
+<script class="testbody" type="text/javascript">
+var manager = new MediaTestManager;
+
+function SetPrefs(prefs) {
+  return new Promise(function(resolve, reject) {
+    SpecialPowers.pushPrefEnv({"set": prefs}, function() { resolve(); });
+  });
+}
+
+function observe() {
+  return new Promise(function(resolve, reject) {
+    var observer = function(subject, topic, data) {
+      SpecialPowers.Services.obs.removeObserver(observer, "mediakeys-request");
+      resolve(JSON.parse(data).status);
+    };
+    SpecialPowers.Services.obs.addObserver(observer, "mediakeys-request", false);
+  });
+}
+
+function Test(test) {
+  var p = test.prefs ? SetPrefs(test.prefs) : Promise.resolve();
+  observedStatus = "nothing";
+  var name = "'" + test.keySystem + "'";
+
+  var res = observe().then((status) => {
+    is(status, test.expectedStatus, name + " expected status");
+  });
+
+  p.then(() => navigator.requestMediaKeySystemAccess(test.keySystem, gCencMediaKeySystemConfig))
+   .then((keySystemAccess) => keySystemAccess.createMediaKeys());
+
+  return res;
+}
+
+const isWinXP = navigator.userAgent.indexOf("Windows NT 5.1") != -1;
+
+var tests = [
+  {
+    keySystem: CLEARKEY_KEYSYSTEM,
+    expectedStatus: 'cdm-created',
+    prefs: [["media.eme.enabled", false]]
+  },
+  {
+    keySystem: "com.widevine.alpha",
+    expectedStatus: 'api-disabled',
+    prefs: [["media.eme.enabled", false]]
+  },
+  {
+    keySystem: "com.widevine.alpha",
+    expectedStatus: (isWinXP ? 'cdm-not-supported' : 'cdm-disabled'),
+    prefs: [["media.eme.enabled", true], ["media.gmp-widevinecdm.enabled", false]]
+  },
+  {
+    keySystem: "com.widevine.alpha",
+    expectedStatus: (isWinXP ? 'cdm-not-supported' : 'cdm-not-installed'),
+    prefs: [["media.eme.enabled", true], , ["media.gmp-widevinecdm.enabled", true]]
+  },
+  {
+    keySystem: CLEARKEY_KEYSYSTEM,
+    expectedStatus: 'cdm-created',
+    prefs: [["media.eme.enabled", true]]
+  }
+];
+
+SetupEMEPref(function() {
+  tests.reduce(function(p,c,i,array) {
+    return p.then(function() { return Test(c); });
+  }, Promise.resolve()).then(SimpleTest.finish);
+});
+
+
+SimpleTest.waitForExplicitFinish();
+
+</script>
+</pre>
+</body>
+</html>

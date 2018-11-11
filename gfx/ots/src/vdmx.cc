@@ -9,19 +9,20 @@
 
 #define TABLE_NAME "VDMX"
 
-#define DROP_THIS_TABLE \
+#define DROP_THIS_TABLE(...) \
   do { \
-    delete file->vdmx; \
-    file->vdmx = 0; \
+    OTS_FAILURE_MSG_(font->file, TABLE_NAME ": " __VA_ARGS__); \
     OTS_FAILURE_MSG("Table discarded"); \
+    delete font->vdmx; \
+    font->vdmx = 0; \
   } while (0)
 
 namespace ots {
 
-bool ots_vdmx_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
+bool ots_vdmx_parse(Font *font, const uint8_t *data, size_t length) {
   Buffer table(data, length);
-  file->vdmx = new OpenTypeVDMX;
-  OpenTypeVDMX * const vdmx = file->vdmx;
+  font->vdmx = new OpenTypeVDMX;
+  OpenTypeVDMX * const vdmx = font->vdmx;
 
   if (!table.ReadU16(&vdmx->version) ||
       !table.ReadU16(&vdmx->num_recs) ||
@@ -30,8 +31,7 @@ bool ots_vdmx_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   }
 
   if (vdmx->version > 1) {
-    OTS_WARNING("bad version: %u", vdmx->version);
-    DROP_THIS_TABLE;
+    DROP_THIS_TABLE("bad version: %u", vdmx->version);
     return true;  // continue transcoding
   }
 
@@ -47,14 +47,12 @@ bool ots_vdmx_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
     }
 
     if (rec.charset > 1) {
-      OTS_WARNING("bad charset: %u", rec.charset);
-      DROP_THIS_TABLE;
+      DROP_THIS_TABLE("bad charset: %u", rec.charset);
       return true;
     }
 
     if (rec.y_start_ratio > rec.y_end_ratio) {
-      OTS_WARNING("bad y ratio");
-      DROP_THIS_TABLE;
+      DROP_THIS_TABLE("bad y ratio");
       return true;
     }
 
@@ -65,8 +63,7 @@ bool ots_vdmx_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
         (rec.y_start_ratio == 0) &&
         (rec.y_end_ratio == 0)) {
       // workaround for fonts which have 2 or more {0, 0, 0} terminators.
-      OTS_WARNING("superfluous terminator found");
-      DROP_THIS_TABLE;
+      DROP_THIS_TABLE("superfluous terminator found");
       return true;
     }
 
@@ -105,16 +102,14 @@ bool ots_vdmx_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
         return OTS_FAILURE_MSG("Failed to read reacord %d group %d", i, j);
       }
       if (vt.y_max < vt.y_min) {
-        OTS_WARNING("bad y min/max");
-        DROP_THIS_TABLE;
+        DROP_THIS_TABLE("bad y min/max");
         return true;
       }
 
       // This table must appear in sorted order (sorted by yPelHeight),
       // but need not be continuous.
       if ((j != 0) && (group.entries[j - 1].y_pel_height >= vt.y_pel_height)) {
-        OTS_WARNING("the table is not sorted");
-        DROP_THIS_TABLE;
+        DROP_THIS_TABLE("the table is not sorted");
         return true;
       }
 
@@ -126,13 +121,13 @@ bool ots_vdmx_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   return true;
 }
 
-bool ots_vdmx_should_serialise(OpenTypeFile *file) {
-  if (!file->glyf) return false;  // this table is not for CFF fonts.
-  return file->vdmx != NULL;
+bool ots_vdmx_should_serialise(Font *font) {
+  if (!font->glyf) return false;  // this table is not for CFF fonts.
+  return font->vdmx != NULL;
 }
 
-bool ots_vdmx_serialise(OTSStream *out, OpenTypeFile *file) {
-  OpenTypeVDMX * const vdmx = file->vdmx;
+bool ots_vdmx_serialise(OTSStream *out, Font *font) {
+  OpenTypeVDMX * const vdmx = font->vdmx;
 
   if (!out->WriteU16(vdmx->version) ||
       !out->WriteU16(vdmx->num_recs) ||
@@ -176,8 +171,13 @@ bool ots_vdmx_serialise(OTSStream *out, OpenTypeFile *file) {
   return true;
 }
 
-void ots_vdmx_free(OpenTypeFile *file) {
-  delete file->vdmx;
+void ots_vdmx_reuse(Font *font, Font *other) {
+  font->vdmx = other->vdmx;
+  font->vdmx_reused = true;
+}
+
+void ots_vdmx_free(Font *font) {
+  delete font->vdmx;
 }
 
 }  // namespace ots

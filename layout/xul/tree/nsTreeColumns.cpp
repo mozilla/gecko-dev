@@ -11,10 +11,11 @@
 #include "nsTreeUtils.h"
 #include "nsStyleContext.h"
 #include "nsDOMClassInfoID.h"
-#include "nsINodeInfo.h"
 #include "nsContentUtils.h"
 #include "nsTreeBodyFrame.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/TreeBoxObject.h"
+#include "mozilla/dom/TreeColumnBinding.h"
 #include "mozilla/dom/TreeColumnsBinding.h"
 
 using namespace mozilla;
@@ -43,6 +44,7 @@ nsTreeColumn::~nsTreeColumn()
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsTreeColumn)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsTreeColumn)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mContent)
   if (tmp->mNext) {
     tmp->mNext->SetPrevious(nullptr);
@@ -52,18 +54,18 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsTreeColumn)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mContent)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mNext)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(nsTreeColumn)
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsTreeColumn)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsTreeColumn)
 
-DOMCI_DATA(TreeColumn, nsTreeColumn)
-
 // QueryInterface implementation for nsTreeColumn
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsTreeColumn)
+  NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
   NS_INTERFACE_MAP_ENTRY(nsITreeColumn)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(TreeColumn)
   if (aIID.Equals(NS_GET_IID(nsTreeColumn))) {
     AddRef();
     *aInstancePtr = this;
@@ -274,7 +276,7 @@ nsTreeColumn::Invalidate()
 
   // If we have an Id, cache the Id as an atom.
   if (!mId.IsEmpty()) {
-    mAtom = do_GetAtom(mId);
+    mAtom = NS_Atomize(mId);
   }
 
   // Cache our index.
@@ -286,13 +288,13 @@ nsTreeColumn::Invalidate()
   const nsStyleText* textStyle = frame->StyleText();
 
   mTextAlignment = textStyle->mTextAlign;
-  // DEFAULT or END alignment sometimes means RIGHT
-  if ((mTextAlignment == NS_STYLE_TEXT_ALIGN_DEFAULT &&
+  // START or END alignment sometimes means RIGHT
+  if ((mTextAlignment == NS_STYLE_TEXT_ALIGN_START &&
        vis->mDirection == NS_STYLE_DIRECTION_RTL) ||
       (mTextAlignment == NS_STYLE_TEXT_ALIGN_END &&
        vis->mDirection == NS_STYLE_DIRECTION_LTR)) {
     mTextAlignment = NS_STYLE_TEXT_ALIGN_RIGHT;
-  } else if (mTextAlignment == NS_STYLE_TEXT_ALIGN_DEFAULT ||
+  } else if (mTextAlignment == NS_STYLE_TEXT_ALIGN_START ||
              mTextAlignment == NS_STYLE_TEXT_ALIGN_END) {
     mTextAlignment = NS_STYLE_TEXT_ALIGN_LEFT;
   }
@@ -319,11 +321,13 @@ nsTreeColumn::Invalidate()
   // Figure out our column type. Default type is text.
   mType = nsITreeColumn::TYPE_TEXT;
   static nsIContent::AttrValuesArray typestrings[] =
-    {&nsGkAtoms::checkbox, &nsGkAtoms::progressmeter, nullptr};
+    {&nsGkAtoms::checkbox, &nsGkAtoms::progressmeter, &nsGkAtoms::password,
+     nullptr};
   switch (mContent->FindAttrValueIn(kNameSpaceID_None, nsGkAtoms::type,
                                     typestrings, eCaseMatters)) {
     case 0: mType = nsITreeColumn::TYPE_CHECKBOX; break;
     case 1: mType = nsITreeColumn::TYPE_PROGRESSMETER; break;
+    case 2: mType = nsITreeColumn::TYPE_PASSWORD; break;
   }
 
   // Fetch the crop style.
@@ -344,12 +348,55 @@ nsTreeColumn::Invalidate()
   return NS_OK;
 }
 
+nsIContent*
+nsTreeColumn::GetParentObject() const
+{
+  return mContent;
+}
+
+/* virtual */ JSObject*
+nsTreeColumn::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
+{
+  return dom::TreeColumnBinding::Wrap(aCx, this, aGivenProto);
+}
+
+mozilla::dom::Element*
+nsTreeColumn::GetElement(mozilla::ErrorResult& aRv)
+{
+  nsCOMPtr<nsIDOMElement> element;
+  aRv = GetElement(getter_AddRefs(element));
+  if (aRv.Failed()) {
+    return nullptr;
+  }
+  nsCOMPtr<nsINode> node = do_QueryInterface(element);
+  return node->AsElement();
+}
+
+int32_t
+nsTreeColumn::GetX(mozilla::ErrorResult& aRv)
+{
+  int32_t x;
+  aRv = GetX(&x);
+  return x;
+}
+
+int32_t
+nsTreeColumn::GetWidth(mozilla::ErrorResult& aRv)
+{
+  int32_t width;
+  aRv = GetWidth(&width);
+  return width;
+}
+
+void
+nsTreeColumn::Invalidate(mozilla::ErrorResult& aRv)
+{
+  aRv = Invalidate();
+}
 
 nsTreeColumns::nsTreeColumns(nsTreeBodyFrame* aTree)
-  : mTree(aTree),
-    mFirstColumn(nullptr)
+  : mTree(aTree)
 {
-  SetIsDOMBinding();
 }
 
 nsTreeColumns::~nsTreeColumns()
@@ -376,15 +423,15 @@ nsTreeColumns::GetParentObject() const
 }
 
 /* virtual */ JSObject*
-nsTreeColumns::WrapObject(JSContext* aCx)
+nsTreeColumns::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return dom::TreeColumnsBinding::Wrap(aCx, this);
+  return dom::TreeColumnsBinding::Wrap(aCx, this, aGivenProto);
 }
 
-nsITreeBoxObject*
+dom::TreeBoxObject*
 nsTreeColumns::GetTree() const
 {
-  return mTree ? mTree->GetTreeBoxObject() : nullptr;
+  return mTree ? static_cast<mozilla::dom::TreeBoxObject*>(mTree->GetTreeBoxObject()) : nullptr;
 }
 
 NS_IMETHODIMP
@@ -559,12 +606,6 @@ nsTreeColumns::NamedGetter(const nsAString& aId, bool& aFound)
   return nullptr;
 }
 
-bool
-nsTreeColumns::NameIsEnumerable(const nsAString& aName)
-{
-  return true;
-}
-
 nsTreeColumn*
 nsTreeColumns::GetNamedColumn(const nsAString& aId)
 {
@@ -580,7 +621,7 @@ nsTreeColumns::GetNamedColumn(const nsAString& aId, nsITreeColumn** _retval)
 }
 
 void
-nsTreeColumns::GetSupportedNames(unsigned, nsTArray<nsString>& aNames)
+nsTreeColumns::GetSupportedNames(nsTArray<nsString>& aNames)
 {
   for (nsTreeColumn* currCol = mFirstColumn; currCol; currCol = currCol->GetNext()) {
     aNames.AppendElement(currCol->GetId());
@@ -623,7 +664,7 @@ nsTreeColumns::InvalidateColumns()
        currCol = currCol->GetNext()) {
     currCol->SetColumns(nullptr);
   }
-  NS_IF_RELEASE(mFirstColumn);
+  mFirstColumn = nullptr;
   return NS_OK;
 }
 
@@ -691,7 +732,7 @@ nsTreeColumns::EnsureColumns()
     if (!colFrame)
       return;
 
-    colFrame = colFrame->GetFirstPrincipalChild();
+    colFrame = colFrame->PrincipalChildList().FirstChild();
     if (!colFrame)
       return;
 
@@ -713,7 +754,7 @@ nsTreeColumns::EnsureColumns()
           col->SetPrevious(currCol);
         }
         else {
-          NS_ADDREF(mFirstColumn = col);
+          mFirstColumn = col;
         }
         currCol = col;
       }

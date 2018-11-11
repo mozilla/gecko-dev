@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
 const { Ci, Cc } = require("chrome");
@@ -27,6 +27,7 @@ function createNsFile(path) {
   }
   return file;
 }
+exports.createNsFile = createNsFile;
 
 const converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
                   createInstance(Ci.nsIScriptableUnicodeConverter);
@@ -60,7 +61,7 @@ exports.ZipWriter = function (zipPath, mode) {
 
     let nsfile = createNsFile(filePath);
     if (!nsfile.exists()) {
-      reject(new Error("This file doesn't exists : " + nsfile.path));
+      reject(new Error("This file doesn't exist: " + nsfile.path));
       return promise;
     }
 

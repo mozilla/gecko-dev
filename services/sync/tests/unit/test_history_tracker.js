@@ -22,13 +22,13 @@ function onScoreUpdated(callback) {
 
 Service.engineManager.clear();
 Service.engineManager.register(HistoryEngine);
-let engine = Service.engineManager.get("history");
-let tracker = engine._tracker;
+var engine = Service.engineManager.get("history");
+var tracker = engine._tracker;
 
 // Don't write out by default.
 tracker.persistChangedIDs = false;
 
-let _counter = 0;
+var _counter = 0;
 function addVisit() {
   let uriString = "http://getfirefox.com/" + _counter++;
   let uri = Utils.makeURI(uriString);
@@ -199,6 +199,5 @@ add_test(function test_stop_tracking_twice() {
 
 add_test(function cleanup() {
    _("Clean up.");
-  PlacesUtils.history.removeAllPages();
-  run_next_test();
+  PlacesTestUtils.clearHistory().then(run_next_test);
 });

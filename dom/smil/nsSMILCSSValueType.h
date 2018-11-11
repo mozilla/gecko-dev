@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,7 +10,7 @@
 #define NS_SMILCSSVALUETYPE_H_
 
 #include "nsISMILType.h"
-#include "nsCSSProperty.h"
+#include "nsCSSPropertyID.h"
 #include "mozilla/Attributes.h"
 
 class nsAString;
@@ -34,22 +35,22 @@ public:
 protected:
   // nsISMILType Methods
   // -------------------
-  virtual void     Init(nsSMILValue& aValue) const MOZ_OVERRIDE;
-  virtual void     Destroy(nsSMILValue&) const MOZ_OVERRIDE;
+  virtual void     Init(nsSMILValue& aValue) const override;
+  virtual void     Destroy(nsSMILValue&) const override;
   virtual nsresult Assign(nsSMILValue& aDest,
-                          const nsSMILValue& aSrc) const MOZ_OVERRIDE;
+                          const nsSMILValue& aSrc) const override;
   virtual bool     IsEqual(const nsSMILValue& aLeft,
-                           const nsSMILValue& aRight) const MOZ_OVERRIDE;
+                           const nsSMILValue& aRight) const override;
   virtual nsresult Add(nsSMILValue& aDest,
                        const nsSMILValue& aValueToAdd,
-                       uint32_t aCount) const MOZ_OVERRIDE;
+                       uint32_t aCount) const override;
   virtual nsresult ComputeDistance(const nsSMILValue& aFrom,
                                    const nsSMILValue& aTo,
-                                   double& aDistance) const MOZ_OVERRIDE;
+                                   double& aDistance) const override;
   virtual nsresult Interpolate(const nsSMILValue& aStartVal,
                                const nsSMILValue& aEndVal,
                                double aUnitDistance,
-                               nsSMILValue& aResult) const MOZ_OVERRIDE;
+                               nsSMILValue& aResult) const override;
 
 public:
   // Helper Methods
@@ -77,7 +78,7 @@ public:
    * @pre  aValue.IsNull()
    * @post aValue.IsNull() || aValue.mType == nsSMILCSSValueType::sSingleton
    */
-  static void ValueFromString(nsCSSProperty aPropID,
+  static void ValueFromString(nsCSSPropertyID aPropID,
                               Element* aTargetElement,
                               const nsAString& aString,
                               nsSMILValue& aValue,
@@ -97,9 +98,19 @@ public:
    */
   static bool ValueToString(const nsSMILValue& aValue, nsAString& aString);
 
+  /**
+   * Return the CSS property animated by the specified value.
+   *
+   * @param   aValue   The nsSMILValue to examine.
+   * @return           The nsCSSPropertyID enum value of the property animated
+   *                   by |aValue|, or eCSSProperty_UNKNOWN if the type of
+   *                   |aValue| is not nsSMILCSSValueType.
+   */
+  static nsCSSPropertyID PropertyFromValue(const nsSMILValue& aValue);
+
 private:
   // Private constructor: prevent instances beyond my singleton.
-  MOZ_CONSTEXPR nsSMILCSSValueType() {}
+  constexpr nsSMILCSSValueType() {}
 };
 
 #endif // NS_SMILCSSVALUETYPE_H_

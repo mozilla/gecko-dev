@@ -26,7 +26,7 @@ private:
 
 class txAlphaCounter : public txFormattedCounter {
 public:
-    txAlphaCounter(char16_t aOffset) : mOffset(aOffset)
+    explicit txAlphaCounter(char16_t aOffset) : mOffset(aOffset)
     {
     }
 
@@ -38,7 +38,7 @@ private:
 
 class txRomanCounter : public txFormattedCounter {
 public:
-    txRomanCounter(bool aUpper) : mTableOffset(aUpper ? 30 : 0)
+    explicit txRomanCounter(bool aUpper) : mTableOffset(aUpper ? 30 : 0)
     {
     }
 
@@ -80,7 +80,8 @@ txFormattedCounter::getCounterFor(const nsAFlatString& aToken,
                                                 aGroupSeparator);
                 break;
         }
-        return aCounter ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+        MOZ_ASSERT(aCounter);
+        return NS_OK;
     }
     
     // for now, the only multi-char token we support are decimals
@@ -96,8 +97,8 @@ txFormattedCounter::getCounterFor(const nsAFlatString& aToken,
         // if we don't recognize the token then use '1'
         aCounter = new txDecimalCounter(1, aGroupSize, aGroupSeparator);
     }
-
-    return aCounter ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+    MOZ_ASSERT(aCounter);
+    return NS_OK;
 }
 
 

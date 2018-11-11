@@ -6,6 +6,7 @@
 #include "nsIInputStream.h"
 #include "nsIStringStream.h"
 #include "nsNetUtil.h"
+#include "nsIFileURL.h"
 #include "nsIJARURI.h"
 #include "nsIResProtocolHandler.h"
 #include "nsIChromeRegistry.h"
@@ -18,17 +19,20 @@ namespace mozilla {
 namespace scache {
 
 NS_EXPORT nsresult
-NewObjectInputStreamFromBuffer(char* buffer, uint32_t len, 
+NewObjectInputStreamFromBuffer(UniquePtr<char[]> buffer, uint32_t len, 
                                nsIObjectInputStream** stream)
 {
-  nsCOMPtr<nsIStringInputStream> stringStream
-    = do_CreateInstance("@mozilla.org/io/string-input-stream;1");
-  nsCOMPtr<nsIObjectInputStream> objectInput 
-    = do_CreateInstance("@mozilla.org/binaryinputstream;1");
-  
-  stringStream->AdoptData(buffer, len);
+  nsCOMPtr<nsIStringInputStream> stringStream =
+    do_CreateInstance("@mozilla.org/io/string-input-stream;1");
+  NS_ENSURE_TRUE(stringStream, NS_ERROR_FAILURE);
+
+  nsCOMPtr<nsIObjectInputStream> objectInput =
+    do_CreateInstance("@mozilla.org/binaryinputstream;1");
+  NS_ENSURE_TRUE(objectInput, NS_ERROR_FAILURE);
+
+  stringStream->AdoptData(buffer.release(), len);
   objectInput->SetInputStream(stringStream);
-  
+
   objectInput.forget(stream);
   return NS_OK;
 }
@@ -72,7 +76,7 @@ NewObjectOutputWrappedStorageStream(nsIObjectOutputStream **wrapperStream,
 
 NS_EXPORT nsresult
 NewBufferFromStorageStream(nsIStorageStream *storageStream, 
-                           char** buffer, uint32_t* len) 
+                           UniquePtr<char[]>* buffer, uint32_t* len) 
 {
   nsresult rv;
   nsCOMPtr<nsIInputStream> inputStream;
@@ -85,9 +89,9 @@ NewBufferFromStorageStream(nsIStorageStream *storageStream,
   NS_ENSURE_TRUE(avail64 <= UINT32_MAX, NS_ERROR_FILE_TOO_BIG);
 
   uint32_t avail = (uint32_t)avail64;
-  nsAutoArrayPtr<char> temp (new char[avail]);
+  auto temp = MakeUnique<char[]>(avail);
   uint32_t read;
-  rv = inputStream->Read(temp, avail, &read);
+  rv = inputStream->Read(temp.get(), avail, &read);
   if (NS_SUCCEEDED(rv) && avail != read)
     rv = NS_ERROR_UNEXPECTED;
   
@@ -96,7 +100,7 @@ NewBufferFromStorageStream(nsIStorageStream *storageStream,
   }
   
   *len = avail;
-  *buffer = temp.forget();
+  *buffer = Move(temp);
   return NS_OK;
 }
 
@@ -235,7 +239,6 @@ PathifyURI(nsIURI *in, nsACString &out)
             out.Append('/');
             out.Append(path);
         } else { // Very unlikely
-            nsAutoCString spec;
             rv = uri->GetSpec(spec);
             NS_ENSURE_SUCCESS(rv, rv);
 
@@ -246,5 +249,5 @@ PathifyURI(nsIURI *in, nsACString &out)
     return NS_OK;
 }
 
-}
-}
+} // namespace scache
+} // namespace mozilla

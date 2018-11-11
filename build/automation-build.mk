@@ -13,7 +13,7 @@ _CERTS_SRC_DIR = $(ABSOLUTE_TOPSRCDIR)/build/pgo/certs
 
 AUTOMATION_PPARGS = 	\
 			-DBROWSER_PATH=$(browser_path) \
-			-DXPC_BIN_PATH='"$(LIBXUL_DIST)/bin"' \
+			-DXPC_BIN_PATH='"$(DIST)/bin"' \
 			-DBIN_SUFFIX='"$(BIN_SUFFIX)"' \
 			-DPROFILE_DIR='"$(_PROFILE_DIR)"' \
 			-DCERTS_SRC_DIR='"$(_CERTS_SRC_DIR)"' \
@@ -30,12 +30,6 @@ ifeq ($(OS_ARCH),Linux)
 AUTOMATION_PPARGS += -DIS_LINUX=1
 else
 AUTOMATION_PPARGS += -DIS_LINUX=0
-endif
-
-ifeq ($(MOZ_BUILD_APP),camino)
-AUTOMATION_PPARGS += -DIS_CAMINO=1
-else
-AUTOMATION_PPARGS += -DIS_CAMINO=0
 endif
 
 ifeq ($(host_os), cygwin)

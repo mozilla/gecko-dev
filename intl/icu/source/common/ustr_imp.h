@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*  
 **********************************************************************
-*   Copyright (C) 1999-2011, International Business Machines
+*   Copyright (C) 1999-2015, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 **********************************************************************
 *   file name:  ustr_imp.h
@@ -61,6 +63,25 @@ u_strcmpFold(const UChar *s1, int32_t length1,
              const UChar *s2, int32_t length2,
              uint32_t options,
              UErrorCode *pErrorCode);
+
+/**
+ * Interanl API, used for detecting length of
+ * shared prefix case-insensitively.
+ * @param s1            input string 1
+ * @param length1       length of string 1, or -1 (NULL terminated)
+ * @param s2            input string 2
+ * @param length2       length of string 2, or -1 (NULL terminated)
+ * @param options       compare options
+ * @param matchLen1     (output) length of partial prefix match in s1
+ * @param matchLen2     (output) length of partial prefix match in s2
+ * @param pErrorCode    receives error status
+ */
+U_CAPI void
+u_caseInsensitivePrefixMatch(const UChar *s1, int32_t length1,
+                             const UChar *s2, int32_t length2,
+                             uint32_t options,
+                             int32_t *matchLen1, int32_t *matchLen2,
+                             UErrorCode *pErrorCode);
 
 /**
  * Are the Unicode properties loaded?
@@ -198,6 +219,44 @@ ucasemap_mapUTF8(const UCaseMap *csm,
                  const uint8_t *src, int32_t srcLength,
                  UTF8CaseMapper *stringCaseMapper,
                  UErrorCode *pErrorCode);
+
+#ifdef __cplusplus
+
+U_NAMESPACE_BEGIN
+namespace GreekUpper {
+
+// Data bits.
+static const uint32_t UPPER_MASK = 0x3ff;
+static const uint32_t HAS_VOWEL = 0x1000;
+static const uint32_t HAS_YPOGEGRAMMENI = 0x2000;
+static const uint32_t HAS_ACCENT = 0x4000;
+static const uint32_t HAS_DIALYTIKA = 0x8000;
+// Further bits during data building and processing, not stored in the data map.
+static const uint32_t HAS_COMBINING_DIALYTIKA = 0x10000;
+static const uint32_t HAS_OTHER_GREEK_DIACRITIC = 0x20000;
+
+static const uint32_t HAS_VOWEL_AND_ACCENT = HAS_VOWEL | HAS_ACCENT;
+static const uint32_t HAS_VOWEL_AND_ACCENT_AND_DIALYTIKA =
+        HAS_VOWEL_AND_ACCENT | HAS_DIALYTIKA;
+static const uint32_t HAS_EITHER_DIALYTIKA = HAS_DIALYTIKA | HAS_COMBINING_DIALYTIKA;
+
+// State bits.
+static const uint32_t AFTER_CASED = 1;
+static const uint32_t AFTER_VOWEL_WITH_ACCENT = 2;
+
+uint32_t getLetterData(UChar32 c);
+
+/**
+ * Returns a non-zero value for each of the Greek combining diacritics
+ * listed in The Unicode Standard, version 8, chapter 7.2 Greek,
+ * plus some perispomeni look-alikes.
+ */
+uint32_t getDiacriticData(UChar32 c);
+
+}  // namespace GreekUpper
+U_NAMESPACE_END
+
+#endif  // __cplusplus
 
 U_CAPI int32_t U_EXPORT2 
 ustr_hashUCharsN(const UChar *str, int32_t length);

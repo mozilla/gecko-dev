@@ -10,6 +10,8 @@
 #include <vector>
 #include <ostream>
 
+#include "PathHelpers.h"
+
 namespace mozilla {
 namespace gfx {
 
@@ -63,14 +65,20 @@ public:
   virtual void Close();
 
   /* Add an arc to the current figure */
-  virtual void Arc(const Point &, float, float, float, bool) { }
+  virtual void Arc(const Point &aOrigin, float aRadius, float aStartAngle,
+                   float aEndAngle, bool aAntiClockwise) {
+    ArcToBezier(this, aOrigin, Size(aRadius, aRadius), aStartAngle, aEndAngle,
+                aAntiClockwise);
+  }
 
   /* Point the current subpath is at - or where the next subpath will start
    * if there is no active subpath.
    */
   virtual Point CurrentPoint() const;
 
-  virtual TemporaryRef<Path> Finish();
+  virtual already_AddRefed<Path> Finish();
+
+  virtual BackendType GetBackendType() const { return BackendType::RECORDING; }
 
 private:
   friend class PathRecording;
@@ -92,9 +100,9 @@ public:
   ~PathRecording();
 
   virtual BackendType GetBackendType() const { return BackendType::RECORDING; }
-  virtual TemporaryRef<PathBuilder> CopyToBuilder(FillRule aFillRule = FillRule::FILL_WINDING) const;
-  virtual TemporaryRef<PathBuilder> TransformedCopyToBuilder(const Matrix &aTransform,
-                                                             FillRule aFillRule = FillRule::FILL_WINDING) const;
+  virtual already_AddRefed<PathBuilder> CopyToBuilder(FillRule aFillRule) const;
+  virtual already_AddRefed<PathBuilder> TransformedCopyToBuilder(const Matrix &aTransform,
+                                                             FillRule aFillRule) const;
   virtual bool ContainsPoint(const Point &aPoint, const Matrix &aTransform) const
   { return mPath->ContainsPoint(aPoint, aTransform); }
   virtual bool StrokeContainsPoint(const StrokeOptions &aStrokeOptions,
@@ -125,10 +133,10 @@ private:
   FillRule mFillRule;
 
   // Event recorders that have this path in their event stream.
-  std::vector<DrawEventRecorderPrivate*> mStoredRecorders;
+  std::vector<RefPtr<DrawEventRecorderPrivate>> mStoredRecorders;
 };
 
-}
-}
+} // namespace gfx
+} // namespace mozilla
 
 #endif /* MOZILLA_GFX_PATHRECORDING_H_ */

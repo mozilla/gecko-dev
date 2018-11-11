@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-var Services = SpecialPowers.Services;
+var gPopupShownExpected = false;
+var gPopupShownListener;
+var gLastAutoCompleteResults;
+var gChromeScript;
 
 /*
- * $_
- *
  * Returns the element with the specified |name| attribute.
  */
 function $_(formNum, name) {
@@ -44,7 +45,7 @@ function doKey(aKey, modifier) {
     if (!modifier)
         modifier = null;
 
-    // Window utils for sending fake sey events.
+    // Window utils for sending fake key events.
     var wutils = SpecialPowers.getDOMWindowUtils(window);
 
     if (wutils.sendKeyEvent("keydown",  key, 0, modifier)) {
@@ -53,33 +54,42 @@ function doKey(aKey, modifier) {
     wutils.sendKeyEvent("keyup",    key, 0, modifier);
 }
 
-
-function getAutocompletePopup() {
-    var Ci = SpecialPowers.Ci;
-    chromeWin = SpecialPowers.wrap(window)
-                    .QueryInterface(Ci.nsIInterfaceRequestor)
-                    .getInterface(Ci.nsIWebNavigation)
-                    .QueryInterface(Ci.nsIDocShellTreeItem)
-                    .rootTreeItem
-                    .QueryInterface(Ci.nsIInterfaceRequestor)
-                    .getInterface(Ci.nsIDOMWindow)
-                    .QueryInterface(Ci.nsIDOMChromeWindow);
-    autocompleteMenu = chromeWin.document.getElementById("PopupAutoComplete");
-    ok(autocompleteMenu, "Got autocomplete popup");
-
-    return autocompleteMenu;
+function registerPopupShownListener(listener) {
+  if (gPopupShownListener) {
+    ok(false, "got too many popupshownlisteners");
+    return;
+  }
+  gPopupShownListener = listener;
 }
 
+function getMenuEntries() {
+  if (!gLastAutoCompleteResults) {
+    throw new Error("no autocomplete results");
+  }
 
-function cleanUpFormHist() {
-  SpecialPowers.formHistory.update({ op : "remove" });
+  var results = gLastAutoCompleteResults;
+  gLastAutoCompleteResults = null;
+  return results;
 }
-cleanUpFormHist();
 
+function checkArrayValues(actualValues, expectedValues, msg) {
+  is(actualValues.length, expectedValues.length, "Checking array values: " + msg);
+  for (var i = 0; i < expectedValues.length; i++)
+    is(actualValues[i], expectedValues[i], msg + " Checking array entry #" + i);
+}
 
 var checkObserver = {
   verifyStack: [],
   callback: null,
+
+  init() {
+    gChromeScript.sendAsyncMessage("addObserver");
+    gChromeScript.addMessageListener("satchel-storage-changed", this.observe.bind(this));
+  },
+
+  uninit() {
+    gChromeScript.sendAsyncMessage("removeObserver");
+  },
 
   waitForChecks: function(callback) {
     if (this.verifyStack.length == 0)
@@ -88,7 +98,7 @@ var checkObserver = {
       this.callback = callback;
   },
 
-  observe: function(subject, topic, data) {
+  observe: function({ subject, topic, data }) {
     if (data != "formhistory-add" && data != "formhistory-update")
       return;
     ok(this.verifyStack.length > 0, "checking if saved form data was expected");
@@ -120,7 +130,6 @@ function checkForSave(name, value, message) {
   checkObserver.verifyStack.push({ name : name, value: value, message: message });
 }
 
-
 function getFormSubmitButton(formNum) {
   var form = $("form" + formNum); // by id, not name
   ok(form != null, "getting form " + formNum);
@@ -136,29 +145,130 @@ function getFormSubmitButton(formNum) {
 
 // Count the number of entries with the given name and value, and call then(number)
 // when done. If name or value is null, then the value of that field does not matter.
-function countEntries(name, value, then) {
-  var obj = {};
-  if (name !== null)
-    obj.fieldname = name;
-  if (value !== null)
-    obj.value = value;
+function countEntries(name, value, then = null) {
+  return new Promise(resolve => {
+    gChromeScript.sendAsyncMessage("countEntries", { name, value });
+    gChromeScript.addMessageListener("entriesCounted", function counted(data) {
+      gChromeScript.removeMessageListener("entriesCounted", counted);
+      if (!data.ok) {
+        ok(false, "Error occurred counting form history");
+        SimpleTest.finish();
+        return;
+      }
 
-  var count = 0;
-  SpecialPowers.formHistory.count(obj, SpecialPowers.wrapCallbackObject({ handleResult: function (result) { count = result },
-                                         handleError: function (error) {
-                                           ok(false, "Error occurred searching form history: " + error.message);
-                                           SimpleTest.finish();
-                                         },
-                                         handleCompletion: function (reason) { if (!reason) then(count); }
-                                       }));
+      if (then) {
+        then(data.count);
+      }
+      resolve(data.count);
+    });
+  });
 }
 
 // Wrapper around FormHistory.update which handles errors. Calls then() when done.
-function updateFormHistory(changes, then) {
-  SpecialPowers.formHistory.update(changes, SpecialPowers.wrapCallbackObject({ handleError: function (error) {
-                                                ok(false, "Error occurred updating form history: " + error.message);
-                                                SimpleTest.finish();
-                                              },
-                                              handleCompletion: function (reason) { if (!reason) then(); },
-                                            }));
+function updateFormHistory(changes, then = null) {
+  return new Promise(resolve => {
+    gChromeScript.sendAsyncMessage("updateFormHistory", { changes });
+    gChromeScript.addMessageListener("formHistoryUpdated", function updated({ ok }) {
+      gChromeScript.removeMessageListener("formHistoryUpdated", updated);
+      if (!ok) {
+        ok(false, "Error occurred updating form history");
+        SimpleTest.finish();
+        return;
+      }
+
+      if (then) {
+        then();
+      }
+      resolve();
+    });
+  });
 }
+
+function notifyMenuChanged(expectedCount, expectedFirstValue, then = null) {
+  return new Promise(resolve => {
+    gChromeScript.sendAsyncMessage("waitForMenuChange",
+                            { expectedCount,
+                              expectedFirstValue });
+    gChromeScript.addMessageListener("gotMenuChange", function changed({ results }) {
+      gChromeScript.removeMessageListener("gotMenuChange", changed);
+      gLastAutoCompleteResults = results;
+      if (then) {
+        then(results);
+      }
+      resolve(results);
+    });
+  });
+}
+
+function notifySelectedIndex(expectedIndex, then = null) {
+  return new Promise(resolve => {
+    gChromeScript.sendAsyncMessage("waitForSelectedIndex", { expectedIndex });
+    gChromeScript.addMessageListener("gotSelectedIndex", function changed() {
+      gChromeScript.removeMessageListener("gotSelectedIndex", changed);
+      if (then) {
+        then();
+      }
+      resolve();
+    });
+  });
+}
+
+function getPopupState(then = null) {
+  return new Promise(resolve => {
+    gChromeScript.sendAsyncMessage("getPopupState");
+    gChromeScript.addMessageListener("gotPopupState", function listener(state) {
+      gChromeScript.removeMessageListener("gotPopupState", listener);
+      if (then) {
+        then(state);
+      }
+      resolve(state);
+    });
+  });
+}
+
+function listenForUnexpectedPopupShown() {
+  gPopupShownListener = function onPopupShown() {
+    if (!gPopupShownExpected) {
+      ok(false, "Unexpected autocomplete popupshown event");
+    }
+  };
+}
+
+function* promiseNoUnexpectedPopupShown() {
+  gPopupShownExpected = false;
+  listenForUnexpectedPopupShown();
+  SimpleTest.requestFlakyTimeout("Giving a chance for an unexpected popupshown to occur");
+  yield new Promise(resolve => setTimeout(resolve, 1000));
+}
+
+/**
+ * Resolve at the next popupshown event for the autocomplete popup
+ * @return {Promise} with the results
+ */
+function promiseACShown() {
+  gPopupShownExpected = true;
+  return new Promise(resolve => {
+    gPopupShownListener = ({ results }) => {
+      gPopupShownExpected = false;
+      resolve(results);
+    };
+  });
+}
+
+function satchelCommonSetup() {
+  var chromeURL = SimpleTest.getTestFileURL("parent_utils.js");
+  gChromeScript = SpecialPowers.loadChromeScript(chromeURL);
+  gChromeScript.addMessageListener("onpopupshown", ({ results }) => {
+    gLastAutoCompleteResults = results;
+    if (gPopupShownListener)
+      gPopupShownListener({results});
+  });
+
+  SimpleTest.registerCleanupFunction(() => {
+    gChromeScript.sendAsyncMessage("cleanup");
+    gChromeScript.destroy();
+  });
+}
+
+
+satchelCommonSetup();

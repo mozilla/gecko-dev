@@ -10,11 +10,39 @@
 #ifndef GL_CONTEXT_PROVIDER_NAME
 #error GL_CONTEXT_PROVIDER_NAME not defined
 #endif
+#if defined(ANDROID)
+typedef void* EGLSurface;
+#endif // defined(ANDROID)
 
 class GL_CONTEXT_PROVIDER_NAME
 {
 public:
-    typedef gfx::SurfaceCaps SurfaceCaps;
+    /**
+     * Create a context that renders to the surface of the widget represented by
+     * the compositor widget that is passed in. The context is always created
+     * with an RGB pixel format, with no alpha, depth or stencil.
+     * If any of those features are needed, either use a framebuffer, or
+     * use CreateOffscreen.
+     *
+     * This context will attempt to share resources with all other window
+     * contexts.  As such, it's critical that resources allocated that are not
+     * needed by other contexts be deleted before the context is destroyed.
+     *
+     * The GetSharedContext() method will return non-null if sharing
+     * was successful.
+     *
+     * Note: a context created for a widget /must not/ hold a strong
+     * reference to the widget; otherwise a cycle can be created through
+     * a GL layer manager.
+     *
+     * @param aCompositorWidget Widget whose surface to create a context for
+     * @param aForceAccelerated true if only accelerated contexts are allowed
+     *
+     * @return Context to use for the window
+     */
+    static already_AddRefed<GLContext>
+    CreateForCompositorWidget(mozilla::widget::CompositorWidget* aCompositorWidget, bool aForceAccelerated);
+
     /**
      * Create a context that renders to the surface of the widget that is
      * passed in.  The context is always created with an RGB pixel format,
@@ -33,11 +61,12 @@ public:
      * a GL layer manager.
      *
      * @param aWidget Widget whose surface to create a context for
+     * @param aForceAccelerated true if only accelerated contexts are allowed
      *
      * @return Context to use for the window
      */
     static already_AddRefed<GLContext>
-    CreateForWindow(nsIWidget* widget);
+    CreateForWindow(nsIWidget* aWidget, bool aForceAccelerated);
 
     /**
      * Create a context for offscreen rendering.  The target of this
@@ -52,14 +81,24 @@ public:
      * resource sharing can be avoided on the target platform, it will
      * be, in order to isolate the offscreen context.
      *
-     * @param aSize The initial size of this offscreen context.
-     * @param aFormat The ContextFormat for this offscreen context.
+     * @param size    The initial size of this offscreen context.
+     * @param minCaps The required SurfaceCaps for this offscreen context. The resulting
+     *                context *may* have more/better caps than requested, but it cannot
+     *                have fewer/worse caps than requested.
+     * @param flags   The set of CreateContextFlags to be used for this
+     *                offscreen context.
      *
      * @return Context to use for offscreen rendering
      */
     static already_AddRefed<GLContext>
-    CreateOffscreen(const gfxIntSize& size,
-                    const SurfaceCaps& caps);
+    CreateOffscreen(const mozilla::gfx::IntSize& size,
+                    const SurfaceCaps& minCaps,
+                    CreateContextFlags flags,
+                    nsACString* const out_failureId);
+
+    // Just create a context. We'll add offscreen stuff ourselves.
+    static already_AddRefed<GLContext>
+    CreateHeadless(CreateContextFlags flags, nsACString* const out_failureId);
 
     /**
      * Create wrapping Gecko GLContext for external gl context.
@@ -71,6 +110,11 @@ public:
      */
     static already_AddRefed<GLContext>
     CreateWrappingExisting(void* aContext, void* aSurface);
+
+#if defined(ANDROID)
+    static EGLSurface CreateEGLSurface(void* aWindow);
+    static void DestroyEGLSurface(EGLSurface surface);
+#endif // defined(ANDROID)
 
     /**
      * Get a pointer to the global context, creating it if it doesn't exist.

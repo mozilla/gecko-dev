@@ -4,7 +4,7 @@
 
 "use strict";
 
-let originalWindowWidth;
+var originalWindowWidth;
 
 // Drag to overflow chevron should open the overflow panel.
 add_task(function*() {
@@ -12,7 +12,6 @@ add_task(function*() {
   let navbar = document.getElementById(CustomizableUI.AREA_NAVBAR);
   ok(!navbar.hasAttribute("overflowing"), "Should start with a non-overflowing toolbar.");
   ok(CustomizableUI.inDefaultState, "Should start in default state.");
-  let oldChildCount = navbar.customizationTarget.childElementCount;
   window.resizeTo(400, window.outerHeight);
   yield waitForCondition(() => navbar.hasAttribute("overflowing"));
   ok(navbar.hasAttribute("overflowing"), "Should have an overflowing toolbar.");
@@ -26,8 +25,20 @@ add_task(function*() {
   // async-ness of the 'shown' yield...
   let panelHiddenPromise = promisePanelElementHidden(window, widgetOverflowPanel);
 
-  ChromeUtils.synthesizeDrop(identityBox, overflowChevron, [], null);
-  yield panelShownPromise;
+  var ds = Components.classes["@mozilla.org/widget/dragservice;1"].
+           getService(Components.interfaces.nsIDragService);
+
+  ds.startDragSession();
+  try {
+    var [result, dataTransfer] = EventUtils.synthesizeDragOver(identityBox, overflowChevron);
+
+    // Wait for showing panel before ending drag session.
+    yield panelShownPromise;
+
+    EventUtils.synthesizeDropAfterDragOver(result, dataTransfer, overflowChevron);
+  } finally {
+    ds.endDragSession(true);
+  }
 
   info("Overflow panel is shown.");
 

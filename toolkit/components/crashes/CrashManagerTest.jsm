@@ -12,16 +12,33 @@
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 this.EXPORTED_SYMBOLS = [
+  "configureLogging",
   "getManager",
   "sleep",
   "TestingCrashManager",
 ];
 
 Cu.import("resource://gre/modules/CrashManager.jsm", this);
+Cu.import("resource://gre/modules/Log.jsm", this);
 Cu.import("resource://gre/modules/osfile.jsm", this);
 Cu.import("resource://gre/modules/Promise.jsm", this);
 Cu.import("resource://gre/modules/Task.jsm", this);
 Cu.import("resource://gre/modules/Timer.jsm", this);
+
+var loggingConfigured = false;
+
+this.configureLogging = function () {
+  if (loggingConfigured) {
+    return;
+  }
+
+  let log = Log.repository.getLogger("Crashes.CrashManager");
+  log.level = Log.Level.All;
+  let appender = new Log.DumpAppender();
+  appender.level = Log.Level.All;
+  log.addAppender(appender);
+  loggingConfigured = true;
+};
 
 this.sleep = function (wait) {
   let deferred = Promise.defer();
@@ -113,9 +130,8 @@ this.TestingCrashManager.prototype = {
         return this.EVENT_FILE_ERROR_MALFORMED;
       } else if (payload == "success") {
         return this.EVENT_FILE_SUCCESS;
-      } else {
-        return this.EVENT_FILE_ERROR_UNKNOWN_EVENT;
       }
+      return this.EVENT_FILE_ERROR_UNKNOWN_EVENT;
     }
 
     return CrashManager.prototype._handleEventFilePayload.call(this,
@@ -127,7 +143,7 @@ this.TestingCrashManager.prototype = {
   },
 };
 
-let DUMMY_DIR_COUNT = 0;
+var DUMMY_DIR_COUNT = 0;
 
 this.getManager = function () {
   return Task.spawn(function* () {

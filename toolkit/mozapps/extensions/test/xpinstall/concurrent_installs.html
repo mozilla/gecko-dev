@@ -7,15 +7,19 @@
   <meta charset="utf-8">
 <title>Concurrent InstallTrigger tests</title>
 <script type="text/javascript">
+/* globals InstallTrigger */
 function installCallback(url, status) {
-  window.installTriggerCallback({loc: location.href, xpi: url});
   document.getElementById("status").textContent = status;
+
+  dump("Sending InstallComplete\n");
+  var event = new CustomEvent("InstallComplete", {detail: {loc: location.href, xpi: url}});
+  window.dispatchEvent(event);
 }
 
 function startInstall() {
   var root = location.href.replace("concurrent_installs.html", "");
   var triggers = {
-    "Unsigned XPI": root + "unsigned.xpi"
+    "Unsigned XPI": root + "amosigned.xpi"
   };
   try {
     document.getElementById("return").textContent = InstallTrigger.install(triggers, installCallback);

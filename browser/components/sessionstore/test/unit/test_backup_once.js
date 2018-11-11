@@ -1,48 +1,130 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-let toplevel = this;
-Cu.import("resource://gre/modules/osfile.jsm");
+"use strict";
+
+var {OS} = Cu.import("resource://gre/modules/osfile.jsm", {});
+var {XPCOMUtils} = Cu.import("resource://gre/modules/XPCOMUtils.jsm", {});
+var {Task} = Cu.import("resource://gre/modules/Task.jsm", {});
+var {SessionWorker} = Cu.import("resource:///modules/sessionstore/SessionWorker.jsm", {});
+
+var File = OS.File;
+var Paths;
+var SessionFile;
+
+// We need a XULAppInfo to initialize SessionFile
+Cu.import("resource://testing-common/AppInfo.jsm", this);
+updateAppInfo({
+  name: "SessionRestoreTest",
+  ID: "{230de50e-4cd1-11dc-8314-0800200c9a66}",
+  version: "1",
+  platformVersion: "",
+});
 
 function run_test() {
-  let profd = do_get_profile();
-  Cu.import("resource:///modules/sessionstore/SessionFile.jsm", toplevel);
-  decoder = new TextDecoder();
-  pathStore = OS.Path.join(OS.Constants.Path.profileDir, "sessionstore.js");
-  pathBackup = OS.Path.join(OS.Constants.Path.profileDir, "sessionstore.bak");
-  let source = do_get_file("data/sessionstore_valid.js");
-  source.copyTo(profd, "sessionstore.js");
   run_next_test();
 }
 
-let pathStore;
-let pathBackup;
-let decoder;
+add_task(function* init() {
+  // Make sure that we have a profile before initializing SessionFile
+  let profd = do_get_profile();
+  SessionFile = Cu.import("resource:///modules/sessionstore/SessionFile.jsm", {}).SessionFile;
+  Paths = SessionFile.Paths;
 
-// Write to the store, and check that a backup is created first
-add_task(function test_first_write_backup() {
-  let content = "test_1";
-  let initial_content = decoder.decode(yield OS.File.read(pathStore));
 
-  do_check_true(!(yield OS.File.exists(pathBackup)));
-  yield SessionFile.write(content);
-  do_check_true(yield OS.File.exists(pathBackup));
+  let source = do_get_file("data/sessionstore_valid.js");
+  source.copyTo(profd, "sessionstore.js");
 
-  let backup_content = decoder.decode(yield OS.File.read(pathBackup));
-  do_check_eq(initial_content, backup_content);
+  // Finish initialization of SessionFile
+  yield SessionFile.read();
 });
 
-// Write to the store again, and check that the backup is not updated
-add_task(function test_second_write_no_backup() {
-  let content = "test_2";
-  let initial_content = decoder.decode(yield OS.File.read(pathStore));
-  let initial_backup_content = decoder.decode(yield OS.File.read(pathBackup));
+var pathStore;
+var pathBackup;
+var decoder;
 
-  yield SessionFile.write(content);
+function promise_check_exist(path, shouldExist) {
+  return Task.spawn(function*() {
+    do_print("Ensuring that " + path + (shouldExist?" exists":" does not exist"));
+    if ((yield OS.File.exists(path)) != shouldExist) {
+      throw new Error("File " + path + " should " + (shouldExist?"exist":"not exist"));
+    }
+  });
+}
 
-  let written_content = decoder.decode(yield OS.File.read(pathStore));
-  do_check_eq(content, written_content);
+function promise_check_contents(path, expect) {
+  return Task.spawn(function*() {
+    do_print("Checking whether " + path + " has the right contents");
+    let actual = yield OS.File.read(path, { encoding: "utf-8"});
+    Assert.deepEqual(JSON.parse(actual), expect, `File ${path} contains the expected data.`);
+  });
+}
 
-  let backup_content = decoder.decode(yield OS.File.read(pathBackup));
-  do_check_eq(initial_backup_content, backup_content);
+function generateFileContents(id) {
+  let url = `http://example.com/test_backup_once#${id}_${Math.random()}`;
+  return {windows: [{tabs: [{entries: [{url}], index: 1}]}]}
+}
+
+// Write to the store, and check that it creates:
+// - $Path.recovery with the new data
+// - $Path.nextUpgradeBackup with the old data
+add_task(function* test_first_write_backup() {
+  let initial_content = generateFileContents("initial");
+  let new_content = generateFileContents("test_1");
+
+  do_print("Before the first write, none of the files should exist");
+  yield promise_check_exist(Paths.backups, false);
+
+  yield File.makeDir(Paths.backups);
+  yield File.writeAtomic(Paths.clean, JSON.stringify(initial_content), { encoding: "utf-8" });
+  yield SessionFile.write(new_content);
+
+  do_print("After first write, a few files should have been created");
+  yield promise_check_exist(Paths.backups, true);
+  yield promise_check_exist(Paths.clean, false);
+  yield promise_check_exist(Paths.cleanBackup, true);
+  yield promise_check_exist(Paths.recovery, true);
+  yield promise_check_exist(Paths.recoveryBackup, false);
+  yield promise_check_exist(Paths.nextUpgradeBackup, true);
+
+  yield promise_check_contents(Paths.recovery, new_content);
+  yield promise_check_contents(Paths.nextUpgradeBackup, initial_content);
+});
+
+// Write to the store again, and check that
+// - $Path.clean is not written
+// - $Path.recovery contains the new data
+// - $Path.recoveryBackup contains the previous data
+add_task(function* test_second_write_no_backup() {
+  let new_content = generateFileContents("test_2");
+  let previous_backup_content = yield File.read(Paths.recovery, { encoding: "utf-8" });
+  previous_backup_content = JSON.parse(previous_backup_content);
+
+  yield OS.File.remove(Paths.cleanBackup);
+
+  yield SessionFile.write(new_content);
+
+  yield promise_check_exist(Paths.backups, true);
+  yield promise_check_exist(Paths.clean, false);
+  yield promise_check_exist(Paths.cleanBackup, false);
+  yield promise_check_exist(Paths.recovery, true);
+  yield promise_check_exist(Paths.nextUpgradeBackup, true);
+
+  yield promise_check_contents(Paths.recovery, new_content);
+  yield promise_check_contents(Paths.recoveryBackup, previous_backup_content);
+});
+
+// Make sure that we create $Paths.clean and remove $Paths.recovery*
+// upon shutdown
+add_task(function* test_shutdown() {
+  let output = generateFileContents("test_3");
+
+  yield File.writeAtomic(Paths.recovery, "I should disappear");
+  yield File.writeAtomic(Paths.recoveryBackup, "I should also disappear");
+
+  yield SessionWorker.post("write", [output, { isFinalWrite: true, performShutdownCleanup: true}]);
+
+  do_check_false((yield File.exists(Paths.recovery)));
+  do_check_false((yield File.exists(Paths.recoveryBackup)));
+  yield promise_check_contents(Paths.clean, output);
 });

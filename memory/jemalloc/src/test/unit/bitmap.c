@@ -1,18 +1,16 @@
 #include "test/jemalloc_test.h"
 
-#if (LG_BITMAP_MAXBITS > 12)
-#  define MAXBITS	4500
-#else
-#  define MAXBITS	(1U << LG_BITMAP_MAXBITS)
-#endif
-
 TEST_BEGIN(test_bitmap_size)
 {
 	size_t i, prev_size;
 
 	prev_size = 0;
-	for (i = 1; i <= MAXBITS; i++) {
-		size_t size = bitmap_size(i);
+	for (i = 1; i <= BITMAP_MAXBITS; i++) {
+		bitmap_info_t binfo;
+		size_t size;
+
+		bitmap_info_init(&binfo, i);
+		size = bitmap_size(&binfo);
 		assert_true(size >= prev_size,
 		    "Bitmap size is smaller than expected");
 		prev_size = size;
@@ -24,13 +22,13 @@ TEST_BEGIN(test_bitmap_init)
 {
 	size_t i;
 
-	for (i = 1; i <= MAXBITS; i++) {
+	for (i = 1; i <= BITMAP_MAXBITS; i++) {
 		bitmap_info_t binfo;
 		bitmap_info_init(&binfo, i);
 		{
 			size_t j;
-			bitmap_t *bitmap = malloc(sizeof(bitmap_t) *
-				bitmap_info_ngroups(&binfo));
+			bitmap_t *bitmap = (bitmap_t *)malloc(
+			    bitmap_size(&binfo));
 			bitmap_init(bitmap, &binfo);
 
 			for (j = 0; j < i; j++) {
@@ -47,13 +45,13 @@ TEST_BEGIN(test_bitmap_set)
 {
 	size_t i;
 
-	for (i = 1; i <= MAXBITS; i++) {
+	for (i = 1; i <= BITMAP_MAXBITS; i++) {
 		bitmap_info_t binfo;
 		bitmap_info_init(&binfo, i);
 		{
 			size_t j;
-			bitmap_t *bitmap = malloc(sizeof(bitmap_t) *
-				bitmap_info_ngroups(&binfo));
+			bitmap_t *bitmap = (bitmap_t *)malloc(
+			    bitmap_size(&binfo));
 			bitmap_init(bitmap, &binfo);
 
 			for (j = 0; j < i; j++)
@@ -70,13 +68,13 @@ TEST_BEGIN(test_bitmap_unset)
 {
 	size_t i;
 
-	for (i = 1; i <= MAXBITS; i++) {
+	for (i = 1; i <= BITMAP_MAXBITS; i++) {
 		bitmap_info_t binfo;
 		bitmap_info_init(&binfo, i);
 		{
 			size_t j;
-			bitmap_t *bitmap = malloc(sizeof(bitmap_t) *
-				bitmap_info_ngroups(&binfo));
+			bitmap_t *bitmap = (bitmap_t *)malloc(
+			    bitmap_size(&binfo));
 			bitmap_init(bitmap, &binfo);
 
 			for (j = 0; j < i; j++)
@@ -99,13 +97,13 @@ TEST_BEGIN(test_bitmap_sfu)
 {
 	size_t i;
 
-	for (i = 1; i <= MAXBITS; i++) {
+	for (i = 1; i <= BITMAP_MAXBITS; i++) {
 		bitmap_info_t binfo;
 		bitmap_info_init(&binfo, i);
 		{
-			ssize_t j;
-			bitmap_t *bitmap = malloc(sizeof(bitmap_t) *
-				bitmap_info_ngroups(&binfo));
+			size_t j;
+			bitmap_t *bitmap = (bitmap_t *)malloc(
+			    bitmap_size(&binfo));
 			bitmap_init(bitmap, &binfo);
 
 			/* Iteratively set bits starting at the beginning. */
@@ -121,7 +119,7 @@ TEST_BEGIN(test_bitmap_sfu)
 			 * Iteratively unset bits starting at the end, and
 			 * verify that bitmap_sfu() reaches the unset bits.
 			 */
-			for (j = i - 1; j >= 0; j--) {
+			for (j = i - 1; j < i; j--) { /* (i..0] */
 				bitmap_unset(bitmap, &binfo, j);
 				assert_zd_eq(bitmap_sfu(bitmap, &binfo), j,
 				    "First unset bit should the bit previously "

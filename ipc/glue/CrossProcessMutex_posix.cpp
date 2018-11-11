@@ -1,10 +1,11 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "CrossProcessMutex.h"
-#include "mozilla/unused.h"
+#include "mozilla/Unused.h"
 #include "nsDebug.h"
 #include "nsISupportsImpl.h"
 
@@ -15,13 +16,30 @@ struct MutexData {
   mozilla::Atomic<int32_t> mCount;
 };
 
-}
+} // namespace
 
 namespace mozilla {
 
+static void
+InitMutex(pthread_mutex_t* mMutex)
+{
+  pthread_mutexattr_t mutexAttributes;
+  pthread_mutexattr_init(&mutexAttributes);
+  // Make the mutex reentrant so it behaves the same as a win32 mutex
+  if (pthread_mutexattr_settype(&mutexAttributes, PTHREAD_MUTEX_RECURSIVE)) {
+    MOZ_CRASH();
+  }
+  if (pthread_mutexattr_setpshared(&mutexAttributes, PTHREAD_PROCESS_SHARED)) {
+    MOZ_CRASH();
+  }
+
+  if (pthread_mutex_init(mMutex, &mutexAttributes)) {
+    MOZ_CRASH();
+  }
+}
+
 CrossProcessMutex::CrossProcessMutex(const char*)
-    : mSharedBuffer(nullptr)
-    , mMutex(nullptr)
+    : mMutex(nullptr)
     , mCount(nullptr)
 {
   mSharedBuffer = new ipc::SharedMemoryBasic;
@@ -43,34 +61,24 @@ CrossProcessMutex::CrossProcessMutex(const char*)
   mCount = &(data->mCount);
 
   *mCount = 1;
-
-  pthread_mutexattr_t mutexAttributes;
-  pthread_mutexattr_init(&mutexAttributes);
-  // Make the mutex reentrant so it behaves the same as a win32 mutex
-  if (pthread_mutexattr_settype(&mutexAttributes, PTHREAD_MUTEX_RECURSIVE)) {
-    MOZ_CRASH();
-  }
-  if (pthread_mutexattr_setpshared(&mutexAttributes, PTHREAD_PROCESS_SHARED)) {
-    MOZ_CRASH();
-  }
-
-  if (pthread_mutex_init(mMutex, &mutexAttributes)) {
-    MOZ_CRASH();
-  }
+  InitMutex(mMutex);
 
   MOZ_COUNT_CTOR(CrossProcessMutex);
 }
 
 CrossProcessMutex::CrossProcessMutex(CrossProcessMutexHandle aHandle)
-    : mSharedBuffer(nullptr)
-    , mMutex(nullptr)
+    : mMutex(nullptr)
     , mCount(nullptr)
 {
-  if (!ipc::SharedMemoryBasic::IsHandleValid(aHandle)) {
+  mSharedBuffer = new ipc::SharedMemoryBasic;
+
+  if (!mSharedBuffer->IsHandleValid(aHandle)) {
     MOZ_CRASH();
   }
 
-  mSharedBuffer = new ipc::SharedMemoryBasic(aHandle);
+  if (!mSharedBuffer->SetHandle(aHandle)) {
+    MOZ_CRASH();
+  }
 
   if (!mSharedBuffer->Map(sizeof(MutexData))) {
     MOZ_CRASH();
@@ -84,7 +92,13 @@ CrossProcessMutex::CrossProcessMutex(CrossProcessMutexHandle aHandle)
 
   mMutex = &(data->mMutex);
   mCount = &(data->mCount);
-  (*mCount)++;
+  int32_t count = (*mCount)++;
+
+  if (count == 0) {
+    // The other side has already let go of their CrossProcessMutex, so now
+    // mMutex is garbage. We need to re-initialize it.
+    InitMutex(mMutex);
+  }
 
   MOZ_COUNT_CTOR(CrossProcessMutex);
 }
@@ -95,10 +109,9 @@ CrossProcessMutex::~CrossProcessMutex()
 
   if (count == 0) {
     // Nothing can be done if the destroy fails so ignore return code.
-    unused << pthread_mutex_destroy(mMutex);
+    Unused << pthread_mutex_destroy(mMutex);
   }
 
-  delete mSharedBuffer;
   MOZ_COUNT_DTOR(CrossProcessMutex);
 }
 
@@ -117,15 +130,15 @@ CrossProcessMutex::Unlock()
 }
 
 CrossProcessMutexHandle
-CrossProcessMutex::ShareToProcess(base::ProcessHandle aHandle)
+CrossProcessMutex::ShareToProcess(base::ProcessId aTargetPid)
 {
   CrossProcessMutexHandle result = ipc::SharedMemoryBasic::NULLHandle();
 
-  if (mSharedBuffer && !mSharedBuffer->ShareToProcess(aHandle, &result)) {
+  if (mSharedBuffer && !mSharedBuffer->ShareToProcess(aTargetPid, &result)) {
     MOZ_CRASH();
   }
 
   return result;
 }
 
-}
+} // namespace mozilla

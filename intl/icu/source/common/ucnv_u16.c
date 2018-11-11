@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*  
 **********************************************************************
-*   Copyright (C) 2002-2010, International Business Machines
+*   Copyright (C) 2002-2015, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 **********************************************************************
 *   file name:  ucnv_u16.c
@@ -621,7 +623,10 @@ static const UConverterImpl _UTF16BEImpl={
     _UTF16BEGetName,
     NULL,
     NULL,
-    ucnv_getNonSurrogateUnicodeSet
+    ucnv_getNonSurrogateUnicodeSet,
+
+    NULL,
+    NULL
 };
 
 static const UConverterStaticData _UTF16BEStaticData={
@@ -635,11 +640,8 @@ static const UConverterStaticData _UTF16BEStaticData={
 };
 
 
-const UConverterSharedData _UTF16BEData={
-    sizeof(UConverterSharedData), ~((uint32_t) 0),
-    NULL, NULL, &_UTF16BEStaticData, FALSE, &_UTF16BEImpl, 
-    0
-};
+const UConverterSharedData _UTF16BEData=
+        UCNV_IMMUTABLE_SHARED_DATA_INITIALIZER(&_UTF16BEStaticData, &_UTF16BEImpl);
 
 /* UTF-16LE ----------------------------------------------------------------- */
 
@@ -1220,7 +1222,10 @@ static const UConverterImpl _UTF16LEImpl={
     _UTF16LEGetName,
     NULL,
     NULL,
-    ucnv_getNonSurrogateUnicodeSet
+    ucnv_getNonSurrogateUnicodeSet,
+
+    NULL,
+    NULL
 };
 
 
@@ -1235,11 +1240,8 @@ static const UConverterStaticData _UTF16LEStaticData={
 };
 
 
-const UConverterSharedData _UTF16LEData={
-    sizeof(UConverterSharedData), ~((uint32_t) 0),
-    NULL, NULL, &_UTF16LEStaticData, FALSE, &_UTF16LEImpl, 
-    0
-};
+const UConverterSharedData _UTF16LEData=
+        UCNV_IMMUTABLE_SHARED_DATA_INITIALIZER(&_UTF16LEStaticData, &_UTF16LEImpl);
 
 /* UTF-16 (Detect BOM) ------------------------------------------------------ */
 
@@ -1492,7 +1494,10 @@ static const UConverterImpl _UTF16Impl = {
     _UTF16GetName,
     NULL,
     NULL,
-    ucnv_getNonSurrogateUnicodeSet
+    ucnv_getNonSurrogateUnicodeSet,
+
+    NULL,
+    NULL
 };
 
 static const UConverterStaticData _UTF16StaticData = {
@@ -1511,11 +1516,8 @@ static const UConverterStaticData _UTF16StaticData = {
     { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 } /* reserved */
 };
 
-const UConverterSharedData _UTF16Data = {
-    sizeof(UConverterSharedData), ~((uint32_t) 0),
-    NULL, NULL, &_UTF16StaticData, FALSE, &_UTF16Impl, 
-    0
-};
+const UConverterSharedData _UTF16Data =
+        UCNV_IMMUTABLE_SHARED_DATA_INITIALIZER(&_UTF16StaticData, &_UTF16Impl);
 
 static const UConverterImpl _UTF16v2Impl = {
     UCNV_UTF16,
@@ -1537,7 +1539,10 @@ static const UConverterImpl _UTF16v2Impl = {
     _UTF16GetName,
     NULL,
     NULL,
-    ucnv_getNonSurrogateUnicodeSet
+    ucnv_getNonSurrogateUnicodeSet,
+
+    NULL,
+    NULL
 };
 
 static const UConverterStaticData _UTF16v2StaticData = {
@@ -1552,10 +1557,7 @@ static const UConverterStaticData _UTF16v2StaticData = {
     { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 } /* reserved */
 };
 
-static const UConverterSharedData _UTF16v2Data = {
-    sizeof(UConverterSharedData), ~((uint32_t) 0),
-    NULL, NULL, &_UTF16v2StaticData, FALSE, &_UTF16v2Impl, 
-    0
-};
+static const UConverterSharedData _UTF16v2Data =
+        UCNV_IMMUTABLE_SHARED_DATA_INITIALIZER(&_UTF16v2StaticData, &_UTF16v2Impl);
 
 #endif

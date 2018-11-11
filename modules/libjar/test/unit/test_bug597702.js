@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 // Check that reading non existant inner jars results in the right error
 
@@ -14,17 +16,17 @@ function run_test() {
   var outerJarBase = "jar:" + ios.newFileURI(file).spec + "!/";
   var goodSpec = "jar:" + outerJarBase + "inner.jar!/hello";
   var badSpec = "jar:" + outerJarBase + "jar_that_isnt_in_the.jar!/hello";
-  var goodChannel = ios.newChannel(goodSpec, null, null);
-  var badChannel = ios.newChannel(badSpec, null, null);
+  var goodChannel = NetUtil.newChannel({uri: goodSpec, loadUsingSystemPrincipal: true});
+  var badChannel = NetUtil.newChannel({uri: badSpec, loadUsingSystemPrincipal: true});
 
   try {
-    instr = goodChannel.open();
+    instr = goodChannel.open2();
   } catch (e) {
     do_throw("Failed to open file in inner jar");
   }
 
   try {
-    instr = badChannel.open();
+    instr = badChannel.open2();
     do_throw("Failed to report that file doesn't exist");
   } catch (e) {
     do_check_true(e.name == "NS_ERROR_FILE_NOT_FOUND");

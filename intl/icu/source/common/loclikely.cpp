@@ -1,7 +1,9 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 *******************************************************************************
 *
-*   Copyright (C) 1997-2012, International Business Machines
+*   Copyright (C) 1997-2016, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *
 *******************************************************************************
@@ -18,9 +20,11 @@
 */
 
 #include "unicode/utypes.h"
+#include "unicode/locid.h"
 #include "unicode/putil.h"
 #include "unicode/uloc.h"
 #include "unicode/ures.h"
+#include "unicode/uscript.h"
 #include "cmemory.h"
 #include "cstring.h"
 #include "ulocimp.h"
@@ -1273,3 +1277,109 @@ uloc_minimizeSubtags(const char*    localeID,
                     err);
     }    
 }
+
+// Pairs of (language subtag, + or -) for finding out fast if common languages
+// are LTR (minus) or RTL (plus).
+static const char* LANG_DIR_STRING =
+        "root-en-es-pt-zh-ja-ko-de-fr-it-ar+he+fa+ru-nl-pl-th-tr-";
+
+// Implemented here because this calls uloc_addLikelySubtags().
+U_CAPI UBool U_EXPORT2
+uloc_isRightToLeft(const char *locale) {
+    UErrorCode errorCode = U_ZERO_ERROR;
+    char script[8];
+    int32_t scriptLength = uloc_getScript(locale, script, UPRV_LENGTHOF(script), &errorCode);
+    if (U_FAILURE(errorCode) || errorCode == U_STRING_NOT_TERMINATED_WARNING ||
+            scriptLength == 0) {
+        // Fastpath: We know the likely scripts and their writing direction
+        // for some common languages.
+        errorCode = U_ZERO_ERROR;
+        char lang[8];
+        int32_t langLength = uloc_getLanguage(locale, lang, UPRV_LENGTHOF(lang), &errorCode);
+        if (U_FAILURE(errorCode) || errorCode == U_STRING_NOT_TERMINATED_WARNING ||
+                langLength == 0) {
+            return FALSE;
+        }
+        const char* langPtr = uprv_strstr(LANG_DIR_STRING, lang);
+        if (langPtr != NULL) {
+            switch (langPtr[langLength]) {
+            case '-': return FALSE;
+            case '+': return TRUE;
+            default: break;  // partial match of a longer code
+            }
+        }
+        // Otherwise, find the likely script.
+        errorCode = U_ZERO_ERROR;
+        char likely[ULOC_FULLNAME_CAPACITY];
+        (void)uloc_addLikelySubtags(locale, likely, UPRV_LENGTHOF(likely), &errorCode);
+        if (U_FAILURE(errorCode) || errorCode == U_STRING_NOT_TERMINATED_WARNING) {
+            return FALSE;
+        }
+        scriptLength = uloc_getScript(likely, script, UPRV_LENGTHOF(script), &errorCode);
+        if (U_FAILURE(errorCode) || errorCode == U_STRING_NOT_TERMINATED_WARNING ||
+                scriptLength == 0) {
+            return FALSE;
+        }
+    }
+    UScriptCode scriptCode = (UScriptCode)u_getPropertyValueEnum(UCHAR_SCRIPT, script);
+    return uscript_isRightToLeft(scriptCode);
+}
+
+U_NAMESPACE_BEGIN
+
+UBool
+Locale::isRightToLeft() const {
+    return uloc_isRightToLeft(getBaseName());
+}
+
+U_NAMESPACE_END
+
+// The following must at least allow for rg key value (6) plus terminator (1).
+#define ULOC_RG_BUFLEN 8
+
+U_CAPI int32_t U_EXPORT2
+ulocimp_getRegionForSupplementalData(const char *localeID, UBool inferRegion,
+                                     char *region, int32_t regionCapacity, UErrorCode* status) {
+    if (U_FAILURE(*status)) {
+        return 0;
+    }
+    char rgBuf[ULOC_RG_BUFLEN];
+    UErrorCode rgStatus = U_ZERO_ERROR;
+
+    // First check for rg keyword value
+    int32_t rgLen = uloc_getKeywordValue(localeID, "rg", rgBuf, ULOC_RG_BUFLEN, &rgStatus);
+    if (U_FAILURE(rgStatus) || rgLen != 6) {
+        rgLen = 0;
+    } else {
+        // rgBuf guaranteed to be zero terminated here, with text len 6
+        char *rgPtr = rgBuf;
+        for (; *rgPtr!= 0; rgPtr++) {
+            *rgPtr = uprv_toupper(*rgPtr);
+        }
+        rgLen = (uprv_strcmp(rgBuf+2, "ZZZZ") == 0)? 2: 0;
+    }
+
+    if (rgLen == 0) {
+        // No valid rg keyword value, try for unicode_region_subtag
+        rgLen = uloc_getCountry(localeID, rgBuf, ULOC_RG_BUFLEN, status);
+        if (U_FAILURE(*status)) {
+            rgLen = 0;
+        } else if (rgLen == 0 && inferRegion) {
+            // no unicode_region_subtag but inferRegion TRUE, try likely subtags
+            char locBuf[ULOC_FULLNAME_CAPACITY];
+            rgStatus = U_ZERO_ERROR;
+            (void)uloc_addLikelySubtags(localeID, locBuf, ULOC_FULLNAME_CAPACITY, &rgStatus);
+            if (U_SUCCESS(rgStatus)) {
+                rgLen = uloc_getCountry(locBuf, rgBuf, ULOC_RG_BUFLEN, status);
+                if (U_FAILURE(*status)) {
+                    rgLen = 0;
+                }
+            }
+        }
+    }
+
+    rgBuf[rgLen] = 0;
+    uprv_strncpy(region, rgBuf, regionCapacity);
+    return u_terminateChars(region, regionCapacity, rgLen, status);
+}
+

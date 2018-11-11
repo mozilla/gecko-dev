@@ -3,8 +3,7 @@
 ;
 ; Copyright 2009 Pierre Ossman <ossman@cendio.se> for Cendio AB
 ;
-; Based on
-; x86 SIMD extension for IJG JPEG library
+; Based on the x86 SIMD extension for IJG JPEG library
 ; Copyright (C) 1999-2006, MIYASAKA Masaru.
 ; For conditions of distribution and use, see copyright notice in jsimdext.inc
 ;
@@ -18,11 +17,11 @@
 ;
 %define RANGE_MASK  (MAXJSAMPLE * 4 + 3)  ; 2 bits wider than legal samples
 
-%define ROW(n,b,s)		((b)+(n)*(s))
-%define COL(n,b,s)		((b)+(n)*(s)*DCTSIZE)
+%define ROW(n,b,s)              ((b)+(n)*(s))
+%define COL(n,b,s)              ((b)+(n)*(s)*DCTSIZE)
 
-%define DWBLOCK(m,n,b,s)	((b)+(m)*DCTSIZE*(s)+(n)*SIZEOF_DWORD)
-%define MMBLOCK(m,n,b,s)	((b)+(m)*DCTSIZE*(s)+(n)*SIZEOF_MMWORD)
-%define XMMBLOCK(m,n,b,s)	((b)+(m)*DCTSIZE*(s)+(n)*SIZEOF_XMMWORD)
+%define DWBLOCK(m,n,b,s)        ((b)+(m)*DCTSIZE*(s)+(n)*SIZEOF_DWORD)
+%define MMBLOCK(m,n,b,s)        ((b)+(m)*DCTSIZE*(s)+(n)*SIZEOF_MMWORD)
+%define XMMBLOCK(m,n,b,s)       ((b)+(m)*DCTSIZE*(s)+(n)*SIZEOF_XMMWORD)
 
 ; --------------------------------------------------------------------------

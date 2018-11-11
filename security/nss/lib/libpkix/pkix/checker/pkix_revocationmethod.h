@@ -31,7 +31,7 @@ pkix_LocalRevocationCheckFn(PKIX_PL_Cert *cert, PKIX_PL_Cert *issuer,
                             PKIX_UInt32 methodFlags,
                             PKIX_Boolean chainVerificationState,
                             PKIX_RevocationStatus *pRevStatus,
-                            PKIX_UInt32 *reasonCode,
+                            CERTCRLEntryReasonCode *reasonCode,
                             void *plContext);
 
 /* External revocation check function prototype definition.
@@ -44,12 +44,13 @@ pkix_ExternalRevocationCheckFn(PKIX_PL_Cert *cert, PKIX_PL_Cert *issuer,
                                PKIX_ProcessingParams *procParams,
                                PKIX_UInt32 methodFlags,
                                PKIX_RevocationStatus *pRevStatus,
-                               PKIX_UInt32 *reasonCode,
+                               CERTCRLEntryReasonCode *reasonCode,
                                void **pNBIOContext, void *plContext);
 
 /* Revocation method structure assosiates revocation types with
- * a set of flags on the method, a priority of the method, and
- * method local/external checker functions. */
+ * a set of flags on the method, a priority of the method (0
+ * corresponds to the highest priority), and method local/external
+ * checker functions. */
 struct pkix_RevocationMethodStruct {
     PKIX_RevocationMethodType methodType;
     PKIX_UInt32 flags;

@@ -32,15 +32,16 @@
 }
 
 
-class nsJARURI : public nsIJARURI,
-                 public nsISerializable,
-                 public nsIClassInfo,
-                 public nsINestedURI,
-                 public nsIIPCSerializableURI
+class nsJARURI final : public nsIJARURI,
+                       public nsISerializable,
+                       public nsIClassInfo,
+                       public nsINestedURI,
+                       public nsIIPCSerializableURI
 {
 public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSIURI
+    NS_DECL_NSIURIWITHQUERY
     NS_DECL_NSIURL
     NS_DECL_NSIJARURI
     NS_DECL_NSISERIALIZABLE
@@ -52,7 +53,6 @@ public:
 
     // nsJARURI
     nsJARURI();
-    virtual ~nsJARURI();
    
     nsresult Init(const char *charsetHint);
     nsresult FormatSpec(const nsACString &entryPath, nsACString &result,
@@ -63,10 +63,13 @@ public:
     nsresult SetSpecWithBase(const nsACString& aSpec, nsIURI* aBaseURL);
 
 protected:
+    virtual ~nsJARURI();
+
     // enum used in a few places to specify how .ref attribute should be handled
     enum RefHandlingEnum {
         eIgnoreRef,
-        eHonorRef
+        eHonorRef,
+        eReplaceRef
     };
 
     // Helper to share code between Equals methods.
@@ -74,9 +77,13 @@ protected:
                                     RefHandlingEnum refHandlingMode,
                                     bool* result);
 
-    // Helper to share code between Clone methods.
+    // Helpers to share code between Clone methods.
     nsresult CloneWithJARFileInternal(nsIURI *jarFile,
                                       RefHandlingEnum refHandlingMode,
+                                      nsIJARURI **result);
+    nsresult CloneWithJARFileInternal(nsIURI *jarFile,
+                                      RefHandlingEnum refHandlingMode,
+                                      const nsACString& newRef,
                                       nsIJARURI **result);
     nsCOMPtr<nsIURI> mJARFile;
     // mJarEntry stored as a URL so that we can easily access things

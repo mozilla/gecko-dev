@@ -1,7 +1,3 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
 function AutoCompleteResult(aValues, aFinalCompleteValues) {
   this._values = aValues;
   this._finalCompleteValues = aFinalCompleteValues;
@@ -14,15 +10,13 @@ function AutoCompleteInput(aSearches) {
 }
 AutoCompleteInput.prototype = Object.create(AutoCompleteInputBase.prototype);
 
-function run_test() {
-  run_next_test();
-}
-
-add_test(function test_handleEnter() {
+add_test(function test_handleEnter_mouse() {
   doSearch("moz", "mozilla.com", "http://www.mozilla.com", function(aController) {
     do_check_eq(aController.input.textValue, "moz");
     do_check_eq(aController.getFinalCompleteValueAt(0), "http://www.mozilla.com");
-    aController.handleEnter(false);
+    // Keyboard interaction is tested by test_finalCompleteValueSelectedIndex.js
+    // so here just test popup selection.
+    aController.handleEnter(true);
     do_check_eq(aController.input.textValue, "http://www.mozilla.com");
   });
 });
@@ -35,8 +29,8 @@ function doSearch(aSearchString, aResultValue, aFinalCompleteValue, aOnCompleteC
   registerAutoCompleteSearch(search);
 
   let controller = Cc["@mozilla.org/autocomplete/controller;1"].
-                   getService(Ci.nsIAutoCompleteController);  
-  
+                   getService(Ci.nsIAutoCompleteController);
+
   // Make an AutoCompleteInput that uses our searches and confirms results.
   let input = new AutoCompleteInput([ search.name ]);
   input.textValue = aSearchString;

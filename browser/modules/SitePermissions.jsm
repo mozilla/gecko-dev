@@ -6,7 +6,7 @@ this.EXPORTED_SYMBOLS = [ "SitePermissions" ];
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 
-let gStringBundle =
+var gStringBundle =
   Services.strings.createBundle("chrome://browser/locale/sitePermissions.properties");
 
 this.SitePermissions = {
@@ -15,6 +15,76 @@ this.SitePermissions = {
   ALLOW: Services.perms.ALLOW_ACTION,
   BLOCK: Services.perms.DENY_ACTION,
   SESSION: Components.interfaces.nsICookiePermission.ACCESS_SESSION,
+
+  /* Returns all custom permissions for a given URI, the return
+   * type is a list of objects with the keys:
+   * - id: the permissionId of the permission
+   * - state: a constant representing the current permission state
+   *   (e.g. SitePermissions.ALLOW)
+   *
+   * To receive a more detailed, albeit less performant listing see
+   * SitePermissions.getPermissionDetailsByURI().
+   *
+   * install addon permission is excluded, check bug 1303108
+   */
+  getAllByURI: function (aURI) {
+    let result = [];
+    if (!this.isSupportedURI(aURI)) {
+      return result;
+    }
+
+    let permissions = Services.perms.getAllForURI(aURI);
+    while (permissions.hasMoreElements()) {
+      let permission = permissions.getNext();
+
+      // filter out unknown permissions
+      if (gPermissionObject[permission.type]) {
+        // XXX Bug 1303108 - Control Center should only show non-default permissions
+        if (permission.type == "install") {
+          continue;
+        }
+        result.push({
+          id: permission.type,
+          state: permission.capability,
+        });
+      }
+    }
+
+    return result;
+  },
+
+  /* Returns an object representing the aId permission. It contains the
+   * following keys:
+   * - id: the permissionID of the permission
+   * - label: the localized label
+   * - state: a constant representing the aState permission state
+   *   (e.g. SitePermissions.ALLOW), or the default if aState is omitted
+   * - availableStates: an array of all available states for that permission,
+   *   represented as objects with the keys:
+   *   - id: the state constant
+   *   - label: the translated label of that state
+   */
+  getPermissionItem: function (aId, aState) {
+    let availableStates = this.getAvailableStates(aId).map(state => {
+      return { id: state, label: this.getStateLabel(aId, state) };
+    });
+    if (aState == undefined)
+      aState = this.getDefault(aId);
+    return {id: aId, label: this.getPermissionLabel(aId),
+            state: aState, availableStates};
+  },
+
+  /* Returns a list of objects representing all permissions that are currently
+   * set for the given URI. See getPermissionItem for the content of each object.
+   */
+  getPermissionDetailsByURI: function (aURI) {
+    let permissions = [];
+    for (let {state, id} of this.getAllByURI(aURI)) {
+      permissions.push(this.getPermissionItem(id, state));
+    }
+
+    return permissions;
+  },
 
   /* Checks whether a UI for managing permissions should be exposed for a given
    * URI. This excludes file URIs, for instance, as they don't have a host,
@@ -27,11 +97,7 @@ this.SitePermissions = {
   /* Returns an array of all permission IDs.
    */
   listPermissions: function () {
-    let array = Object.keys(gPermissionObject);
-    array.sort((a, b) => {
-      return this.getPermissionLabel(a).localeCompare(this.getPermissionLabel(b));
-    });
-    return array;
+    return Object.keys(gPermissionObject);
   },
 
   /* Returns an array of permission states to be exposed to the user for a
@@ -85,10 +151,6 @@ this.SitePermissions = {
     }
 
     Services.perms.add(aURI, aPermissionID, aState);
-
-    if (aPermissionID in gPermissionObject &&
-        gPermissionObject[aPermissionID].onChange)
-      gPermissionObject[aPermissionID].onChange(aURI, aState);
   },
 
   /* Removes the saved state of a particular permission for a given URI.
@@ -97,33 +159,25 @@ this.SitePermissions = {
     if (!this.isSupportedURI(aURI))
       return;
 
-    Services.perms.remove(aURI.host, aPermissionID);
-
-    if (aPermissionID in gPermissionObject &&
-        gPermissionObject[aPermissionID].onChange)
-      gPermissionObject[aPermissionID].onChange(aURI, this.UNKNOWN);
+    Services.perms.remove(aURI, aPermissionID);
   },
 
   /* Returns the localized label for the permission with the given ID, to be
    * used in a UI for managing permissions.
    */
   getPermissionLabel: function (aPermissionID) {
-    return gStringBundle.GetStringFromName("permission." + aPermissionID + ".label");
+    let labelID = gPermissionObject[aPermissionID].labelID || aPermissionID;
+    return gStringBundle.GetStringFromName("permission." + labelID + ".label");
   },
 
   /* Returns the localized label for the given permission state, to be used in
    * a UI for managing permissions.
    */
-  getStateLabel: function (aPermissionID, aState) {
-    if (aPermissionID in gPermissionObject &&
-        gPermissionObject[aPermissionID].getStateLabel) {
-      let label = gPermissionObject[aPermissionID].getStateLabel(aState);
-      if (label)
-        return label;
-    }
-
+  getStateLabel: function (aPermissionID, aState, aInUse = false) {
     switch (aState) {
       case this.UNKNOWN:
+        if (aInUse)
+          return gStringBundle.GetStringFromName("allowTemporarily");
         return gStringBundle.GetStringFromName("alwaysAsk");
       case this.ALLOW:
         return gStringBundle.GetStringFromName("allow");
@@ -132,12 +186,12 @@ this.SitePermissions = {
       case this.BLOCK:
         return gStringBundle.GetStringFromName("block");
       default:
-        throw new Error("unknown permission state");
+        return null;
     }
   }
 };
 
-let gPermissionObject = {
+var gPermissionObject = {
   /* Holds permission ID => options pairs.
    *
    * Supported options:
@@ -151,13 +205,9 @@ let gPermissionObject = {
    *    Defaults to UNKNOWN, indicating that the user will be asked each time
    *    a page asks for that permissions.
    *
-   *  - getStateLabel
-   *    Called to get the localized label for the given permission state, to be
-   *    used in a UI for managing permissions. May return null for states that
-   *    should use their default label.
-   *
-   *  - onChange
-   *    Called when a permission state changes.
+   *  - labelID
+   *    Use the given ID instead of the permission name for looking up strings.
+   *    e.g. "desktop-notification2" to use permission.desktop-notification2.label
    *
    *  - states
    *    Array of permission states to be exposed to the user.
@@ -184,10 +234,16 @@ let gPermissionObject = {
     }
   },
 
-  "desktop-notification": {},
+  "desktop-notification": {
+    exactHostMatch: true,
+    labelID: "desktop-notification2",
+  },
 
   "camera": {},
   "microphone": {},
+  "screen": {
+    states: [ SitePermissions.UNKNOWN, SitePermissions.BLOCK ],
+  },
 
   "popup": {
     getDefault: function () {
@@ -207,29 +263,7 @@ let gPermissionObject = {
     exactHostMatch: true
   },
 
-  "indexedDB": {
-    states: [ SitePermissions.ALLOW, SitePermissions.UNKNOWN, SitePermissions.BLOCK ],
-    getStateLabel: function (aState) {
-      // indexedDB redefines nsIPermissionManager.UNKNOWN_ACTION (the default)
-      // as "allow" and nsIPermissionManager.ALLOW_ACTION as "ask the user."
-      switch (aState) {
-        case SitePermissions.UNKNOWN:
-          return gStringBundle.GetStringFromName("allow");
-        case SitePermissions.ALLOW:
-          return gStringBundle.GetStringFromName("alwaysAsk");
-        default:
-          return null;
-      }
-    },
-    onChange: function (aURI, aState) {
-      if (aState == SitePermissions.ALLOW || aState == SitePermissions.BLOCK)
-        Services.perms.remove(aURI.host, "indexedDB-unlimited");
-    }
-  },
-
-  "fullscreen": {},
-
-  "pointerLock": {
-    exactHostMatch: true
-  }
+  "indexedDB": {}
 };
+
+const kPermissionIDs = Object.keys(gPermissionObject);

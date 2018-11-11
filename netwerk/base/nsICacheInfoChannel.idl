@@ -1,0 +1,84 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface nsIOutputStream;
+
+[scriptable, uuid(72c34415-c6eb-48af-851f-772fa9ee5972)]
+interface nsICacheInfoChannel : nsISupports
+{
+  /**
+   * Get expiration time from cache token. This attribute is equivalent to
+   * nsICachingChannel.cacheToken.expirationTime.
+   */
+  readonly attribute uint32_t cacheTokenExpirationTime;
+
+  /**
+   * Set/get charset of cache entry. Accessing this attribute is equivalent to
+   * calling nsICachingChannel.cacheToken.getMetaDataElement("charset") and
+   * nsICachingChannel.cacheToken.setMetaDataElement("charset").
+   */
+  attribute ACString cacheTokenCachedCharset;
+
+  /**
+   * TRUE if this channel's data is being loaded from the cache.  This value
+   * is undefined before the channel fires its OnStartRequest notification
+   * and after the channel fires its OnStopRequest notification.
+   */
+  boolean isFromCache();
+
+  /**
+   * Set/get the cache key... uniquely identifies the data in the cache
+   * for this channel.  Holding a reference to this key does NOT prevent
+   * the cached data from being removed.
+   *
+   * A cache key retrieved from a particular instance of nsICacheInfoChannel
+   * could be set on another instance of nsICacheInfoChannel provided the
+   * underlying implementations are compatible and provided the new 
+   * channel instance was created with the same URI.  The implementation of
+   * nsICacheInfoChannel would be expected to use the cache entry identified
+   * by the cache token.  Depending on the value of nsIRequest::loadFlags,
+   * the cache entry may be validated, overwritten, or simply read.
+   *
+   * The cache key may be NULL indicating that the URI of the channel is
+   * sufficient to locate the same cache entry.  Setting a NULL cache key
+   * is likewise valid.
+   */
+  attribute nsISupports cacheKey;
+
+  /**
+   * Tells the channel to behave as if the LOAD_FROM_CACHE flag has been set,
+   * but without affecting the loads for the entire loadGroup in case of this
+   * channel being the default load group's channel.
+   */
+  attribute boolean allowStaleCacheContent;
+
+  /**
+   * Calling this method instructs the channel to serve the alternative data
+   * if that was previously saved in the cache, otherwise it will serve the
+   * real data.
+   * Must be called before AsyncOpen.
+   */
+  void preferAlternativeDataType(in ACString type);
+
+  /**
+   * Holds the type of the alternative data representation that the channel
+   * is returning.
+   * Is empty string if no alternative data representation was requested, or
+   * if the requested representation wasn't found in the cache.
+   * Can only be called during or after OnStartRequest.
+   */
+  readonly attribute ACString alternativeDataType;
+
+  /**
+   * Opens and returns an output stream that a consumer may use to save an
+   * alternate representation of the data.
+   * Must be called after the OnStopRequest that delivered the real data.
+   * The consumer may choose to replace the saved alt representation.
+   * Opening the output stream will fail if there are any open input streams
+   * reading the already saved alt representation.
+   */
+  nsIOutputStream openAlternativeOutputStream(in ACString type);
+};

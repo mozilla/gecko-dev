@@ -33,17 +33,15 @@
 //
 // Author: Dan Waylonis
 
-extern "C" {  // necessary for Leopard
-  #include <fcntl.h>
-  #include <mach-o/loader.h>
-  #include <mach-o/swap.h>
-  #include <stdio.h>
-  #include <stdlib.h>
-  #include <string.h>
-  #include <sys/time.h>
-  #include <sys/types.h>
-  #include <unistd.h>
-}
+
+#include <fcntl.h>
+#include <mach-o/loader.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "common/mac/macho_id.h"
 #include "common/mac/macho_walker.h"
@@ -61,7 +59,7 @@ MachoID::MachoID(const char *path)
      crc_(0), 
      md5_context_(), 
      update_function_(NULL) {
-  strlcpy(path_, path, sizeof(path_));
+  snprintf(path_, sizeof(path_), "%s", path);
 }
 
 MachoID::MachoID(const char *path, void *memory, size_t size)
@@ -70,7 +68,7 @@ MachoID::MachoID(const char *path, void *memory, size_t size)
      crc_(0), 
      md5_context_(), 
      update_function_(NULL) {
-  strlcpy(path_, path, sizeof(path_));
+  snprintf(path_, sizeof(path_), "%s", path);
 }
 
 MachoID::~MachoID() {
@@ -125,7 +123,7 @@ void MachoID::UpdateCRC(unsigned char *bytes, size_t size) {
 }
 
 void MachoID::UpdateMD5(unsigned char *bytes, size_t size) {
-  MD5Update(&md5_context_, bytes, size);
+  MD5Update(&md5_context_, bytes, static_cast<unsigned>(size));
 }
 
 void MachoID::Update(MachoWalker *walker, off_t offset, size_t size) {
@@ -261,7 +259,7 @@ bool MachoID::WalkerCB(MachoWalker *walker, load_command *cmd, off_t offset,
       return false;
 
     if (swap)
-      swap_segment_command(&seg, NXHostByteOrder());
+      breakpad_swap_segment_command(&seg);
 
     struct mach_header_64 header;
     off_t header_offset;
@@ -278,7 +276,7 @@ bool MachoID::WalkerCB(MachoWalker *walker, load_command *cmd, off_t offset,
         return false;
 
       if (swap)
-        swap_section(&sec, 1, NXHostByteOrder());
+        breakpad_swap_section(&sec, 1);
 
       // sections of type S_ZEROFILL are "virtual" and contain no data
       // in the file itself
@@ -294,7 +292,7 @@ bool MachoID::WalkerCB(MachoWalker *walker, load_command *cmd, off_t offset,
       return false;
 
     if (swap)
-      breakpad_swap_segment_command_64(&seg64, NXHostByteOrder());
+      breakpad_swap_segment_command_64(&seg64);
 
     struct mach_header_64 header;
     off_t header_offset;
@@ -311,7 +309,7 @@ bool MachoID::WalkerCB(MachoWalker *walker, load_command *cmd, off_t offset,
         return false;
 
       if (swap)
-        breakpad_swap_section_64(&sec64, 1, NXHostByteOrder());
+        breakpad_swap_section_64(&sec64, 1);
 
       // sections of type S_ZEROFILL are "virtual" and contain no data
       // in the file itself
@@ -340,7 +338,7 @@ bool MachoID::UUIDWalkerCB(MachoWalker *walker, load_command *cmd, off_t offset,
       return false;
 
     if (swap)
-      breakpad_swap_uuid_command(uuid_cmd, NXHostByteOrder());
+      breakpad_swap_uuid_command(uuid_cmd);
 
     return false;
   }
@@ -359,7 +357,7 @@ bool MachoID::IDWalkerCB(MachoWalker *walker, load_command *cmd, off_t offset,
       return false;
 
     if (swap)
-      swap_dylib_command(dylib_cmd, NXHostByteOrder());
+      breakpad_swap_dylib_command(dylib_cmd);
 
     return false;
   }

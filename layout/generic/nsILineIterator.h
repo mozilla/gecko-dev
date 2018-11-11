@@ -6,19 +6,11 @@
 #define nsILineIterator_h___
 
 #include "nscore.h"
-#include "nsCoord.h"
+#include "nsPoint.h"
+#include "mozilla/Attributes.h"
 
 class nsIFrame;
 struct nsRect;
-
-// Line Flags (see GetLine below)
-
-// This bit is set when the line is wrapping up a block frame. When
-// clear, it means that the line contains inline elements.
-#define NS_LINE_FLAG_IS_BLOCK           0x1
-
-// This bit is set when the line ends in some sort of break.
-#define NS_LINE_FLAG_ENDS_IN_BREAK      0x4
 
 /**
  * Line iterator API.
@@ -48,6 +40,8 @@ public:
    *
    * @return true if the CSS direction property for the block is
    *         "rtl", otherwise false
+   *
+   *XXX after bug 924851 change this to return a UBiDiDirection
    */
   virtual bool GetDirection() = 0;
 
@@ -61,14 +55,10 @@ public:
   // the line (which is based on the in-flow position of the frames on
   // the line; if a frame was moved because of relative positioning
   // then its coordinates may be outside the line bounds).
-  //
-  // In addition, aLineFlags will contain flag information about the
-  // line.
   NS_IMETHOD GetLine(int32_t aLineNumber,
                      nsIFrame** aFirstFrameOnLine,
                      int32_t* aNumFramesOnLine,
-                     nsRect& aLineBounds,
-                     uint32_t* aLineFlags) = 0;
+                     nsRect& aLineBounds) = 0;
 
   /**
    * Given a frame that's a child of the block, find which line its on
@@ -79,15 +69,16 @@ public:
   virtual int32_t FindLineContaining(nsIFrame* aFrame,
                                      int32_t aStartLine = 0) = 0;
 
-  // Given a line number and an X coordinate, find the frame on the
-  // line that is nearest to the X coordinate. The
-  // aXIsBeforeFirstFrame and aXIsAfterLastFrame flags are updated
+  // Given a line number and a coordinate, find the frame on the line
+  // that is nearest to aPos along the inline axis. (The block-axis coord
+  // of aPos is irrelevant.)
+  // The aPosIsBeforeFirstFrame and aPosIsAfterLastFrame flags are updated
   // appropriately.
   NS_IMETHOD FindFrameAt(int32_t aLineNumber,
-                         nscoord aX,
+                         nsPoint aPos,
                          nsIFrame** aFrameFound,
-                         bool* aXIsBeforeFirstFrame,
-                         bool* aXIsAfterLastFrame) = 0;
+                         bool* aPosIsBeforeFirstFrame,
+                         bool* aPosIsAfterLastFrame) = 0;
 
   // Give the line iterator implementor a chance todo something more complicated than
   // nsIFrame::GetNextSibling()
@@ -105,7 +96,7 @@ class nsAutoLineIterator
 {
 public:
   nsAutoLineIterator() : mRawPtr(nullptr) { }
-  nsAutoLineIterator(nsILineIterator *i) : mRawPtr(i) { }
+  MOZ_IMPLICIT nsAutoLineIterator(nsILineIterator *i) : mRawPtr(i) { }
 
   ~nsAutoLineIterator() {
     if (mRawPtr)

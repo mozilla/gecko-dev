@@ -1,16 +1,7 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/collation/ln.xml
-// *
-// ***************************************************************************
-/**
- * ICU <specials> source: <path>/xml/collation/ln.xml
- */
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 ln{
-    Version{"2.0.89.0"}
+    Version{"2.1.19.14"}
     collations{
         phonetic{
             Sequence{
@@ -25,14 +16,14 @@ ln{
                 "&S<sh<<<sH<<<Sh<<<SH"
                 "&T<ts<<<tS<<<Ts<<<TS"
             }
-            Version{"24"}
+            Version{"30.0.3"}
         }
         standard{
             Sequence{
                 "&E<ɛ<<<Ɛ"
                 "&O<<ɔ<<<Ɔ"
             }
-            Version{"24"}
+            Version{"30.0.3"}
         }
     }
 }

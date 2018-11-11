@@ -10,6 +10,7 @@
 
 #include "nsNthIndexCache.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/NodeInfoInlines.h"
 
 nsNthIndexCache::nsNthIndexCache()
 {
@@ -72,13 +73,11 @@ int32_t
 nsNthIndexCache::GetNthIndex(Element* aChild, bool aIsOfType,
                              bool aIsFromEnd, bool aCheckEdgeOnly)
 {
-  NS_ASSERTION(aChild->GetParent(), "caller should check GetParent()");
-
   if (aChild->IsRootOfAnonymousSubtree()) {
     return 0;
   }
 
-  Cache &cache = mCaches[aIsOfType][aIsFromEnd];
+  Cache& cache = mCaches[aIsOfType][aIsFromEnd];
 
   if (!cache.initialized() && !cache.init()) {
     // Give up and just don't match.
@@ -93,11 +92,11 @@ nsNthIndexCache::GetNthIndex(Element* aChild, bool aIsOfType,
     return 0;
   }
 
-  int32_t &slot = entry->value();
+  int32_t& slot = entry->value();
   if (slot != -2 && (slot != -1 || aCheckEdgeOnly)) {
     return slot;
   }
-  
+
   int32_t result = 1;
   if (aCheckEdgeOnly) {
     // The caller only cares whether or not the result is 1, so we can

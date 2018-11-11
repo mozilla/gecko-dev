@@ -7,6 +7,9 @@
   <script type="application/javascript"
           src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"/>
 
+  <!-- This file tests (in a rough fashion) whether the memory reporters are
+       producing sensible results in the presence of child processes. -->
+
   <!-- test results are displayed in the html:body -->
   <body xmlns="http://www.w3.org/1999/xhtml">
   </body>
@@ -67,7 +70,7 @@
       // won't be used.)
       mgr.getReports(
         () => ok(false, "handleReport called for nested getReports() call"),
-        null, null, null
+        null, null, null, /* anonymize = */ false
       );
 
       // Close the remote processes.
@@ -85,8 +88,8 @@
         if (processes[i] == "") {
           numEmptyProcesses++;
         } else {
-          ok(processes[i].startsWith("Browser ("),
-             "correct non-empty process name prefix");
+          ok(processes[i].startsWith("Browser (") || processes[i].startsWith("Web Content ("),
+             "correct non-empty process name prefix: " + processes[i]);
           numNonEmptyProcesses++;
         }
       }
@@ -97,7 +100,8 @@
       SimpleTest.finish();
     }
 
-    mgr.getReports(handleReport, null, processReports, null);
+    mgr.getReports(handleReport, null, processReports, null,
+                   /* anonymize = */ false);
   }
 
   ]]></script>

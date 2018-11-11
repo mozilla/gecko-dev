@@ -4,20 +4,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/dom/Navigator.h"
 #include "mozilla/dom/TouchEvent.h"
 #include "mozilla/dom/Touch.h"
 #include "mozilla/dom/TouchListBinding.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/TouchEvents.h"
 #include "nsContentUtils.h"
+#include "nsIDocShell.h"
+#include "mozilla/WidgetUtils.h"
 
 namespace mozilla {
-
-#ifdef XP_WIN
-namespace widget {
-extern int32_t IsTouchDeviceSupportPresent();
-} // namespace widget
-#endif // #ifdef XP_WIN
 
 namespace dom {
 
@@ -36,9 +33,9 @@ NS_IMPL_CYCLE_COLLECTING_ADDREF(TouchList)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(TouchList)
 
 JSObject*
-TouchList::WrapObject(JSContext* aCx)
+TouchList::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return TouchListBinding::Wrap(aCx, this);
+  return TouchListBinding::Wrap(aCx, this, aGivenProto);
 }
 
 // static
@@ -46,18 +43,6 @@ bool
 TouchList::PrefEnabled(JSContext* aCx, JSObject* aGlobal)
 {
   return TouchEvent::PrefEnabled(aCx, aGlobal);
-}
-
-Touch*
-TouchList::IdentifiedTouch(int32_t aIdentifier) const
-{
-  for (uint32_t i = 0; i < mPoints.Length(); ++i) {
-    Touch* point = mPoints[i];
-    if (point && point->Identifier() == aIdentifier) {
-      return point;
-    }
-  }
-  return nullptr;
 }
 
 /******************************************************************************
@@ -68,18 +53,19 @@ TouchEvent::TouchEvent(EventTarget* aOwner,
                        nsPresContext* aPresContext,
                        WidgetTouchEvent* aEvent)
   : UIEvent(aOwner, aPresContext,
-            aEvent ? aEvent : new WidgetTouchEvent(false, 0, nullptr))
+            aEvent ? aEvent :
+                     new WidgetTouchEvent(false, eVoidEvent, nullptr))
 {
   if (aEvent) {
     mEventIsInternal = false;
 
-    for (uint32_t i = 0; i < aEvent->touches.Length(); ++i) {
-      Touch* touch = aEvent->touches[i];
+    for (uint32_t i = 0; i < aEvent->mTouches.Length(); ++i) {
+      Touch* touch = aEvent->mTouches[i];
       touch->InitializePoints(mPresContext, aEvent);
     }
   } else {
     mEventIsInternal = true;
-    mEvent->time = PR_Now();
+    mEvent->mTime = PR_Now();
   }
 }
 
@@ -98,7 +84,7 @@ void
 TouchEvent::InitTouchEvent(const nsAString& aType,
                            bool aCanBubble,
                            bool aCancelable,
-                           nsIDOMWindow* aView,
+                           nsGlobalWindow* aView,
                            int32_t aDetail,
                            bool aCtrlKey,
                            bool aAltKey,
@@ -106,14 +92,11 @@ TouchEvent::InitTouchEvent(const nsAString& aType,
                            bool aMetaKey,
                            TouchList* aTouches,
                            TouchList* aTargetTouches,
-                           TouchList* aChangedTouches,
-                           ErrorResult& aRv)
+                           TouchList* aChangedTouches)
 {
-  aRv = UIEvent::InitUIEvent(aType, aCanBubble, aCancelable, aView, aDetail);
-  if (aRv.Failed()) {
-    return;
-  }
+  NS_ENSURE_TRUE_VOID(!mEvent->mFlags.mIsBeingDispatched);
 
+  UIEvent::InitUIEvent(aType, aCanBubble, aCancelable, aView, aDetail);
   mEvent->AsInputEvent()->InitBasicModifiers(aCtrlKey, aAltKey,
                                              aShiftKey, aMetaKey);
   mTouches = aTouches;
@@ -126,10 +109,10 @@ TouchEvent::Touches()
 {
   if (!mTouches) {
     WidgetTouchEvent* touchEvent = mEvent->AsTouchEvent();
-    if (mEvent->message == NS_TOUCH_END || mEvent->message == NS_TOUCH_CANCEL) {
-      // for touchend events, remove any changed touches from the touches array
-      nsTArray< nsRefPtr<Touch> > unchangedTouches;
-      const nsTArray< nsRefPtr<Touch> >& touches = touchEvent->touches;
+    if (mEvent->mMessage == eTouchEnd || mEvent->mMessage == eTouchCancel) {
+      // for touchend events, remove any changed touches from mTouches
+      WidgetTouchEvent::AutoTouchArray unchangedTouches;
+      const WidgetTouchEvent::TouchArray& touches = touchEvent->mTouches;
       for (uint32_t i = 0; i < touches.Length(); ++i) {
         if (!touches[i]->mChanged) {
           unchangedTouches.AppendElement(touches[i]);
@@ -137,7 +120,7 @@ TouchEvent::Touches()
       }
       mTouches = new TouchList(ToSupports(this), unchangedTouches);
     } else {
-      mTouches = new TouchList(ToSupports(this), touchEvent->touches);
+      mTouches = new TouchList(ToSupports(this), touchEvent->mTouches);
     }
   }
   return mTouches;
@@ -147,15 +130,15 @@ TouchList*
 TouchEvent::TargetTouches()
 {
   if (!mTargetTouches) {
-    nsTArray< nsRefPtr<Touch> > targetTouches;
+    WidgetTouchEvent::AutoTouchArray targetTouches;
     WidgetTouchEvent* touchEvent = mEvent->AsTouchEvent();
-    const nsTArray< nsRefPtr<Touch> >& touches = touchEvent->touches;
+    const WidgetTouchEvent::TouchArray& touches = touchEvent->mTouches;
     for (uint32_t i = 0; i < touches.Length(); ++i) {
       // for touchend/cancel events, don't append to the target list if this is a
       // touch that is ending
-      if ((mEvent->message != NS_TOUCH_END &&
-           mEvent->message != NS_TOUCH_CANCEL) || !touches[i]->mChanged) {
-        if (touches[i]->mTarget == mEvent->originalTarget) {
+      if ((mEvent->mMessage != eTouchEnd && mEvent->mMessage != eTouchCancel) ||
+          !touches[i]->mChanged) {
+        if (touches[i]->mTarget == mEvent->mOriginalTarget) {
           targetTouches.AppendElement(touches[i]);
         }
       }
@@ -169,9 +152,9 @@ TouchList*
 TouchEvent::ChangedTouches()
 {
   if (!mChangedTouches) {
-    nsTArray< nsRefPtr<Touch> > changedTouches;
+    WidgetTouchEvent::AutoTouchArray changedTouches;
     WidgetTouchEvent* touchEvent = mEvent->AsTouchEvent();
-    const nsTArray< nsRefPtr<Touch> >& touches = touchEvent->touches;
+    const WidgetTouchEvent::TouchArray& touches = touchEvent->mTouches;
     for (uint32_t i = 0; i < touches.Length(); ++i) {
       if (touches[i]->mChanged) {
         changedTouches.AppendElement(touches[i]);
@@ -186,32 +169,98 @@ TouchEvent::ChangedTouches()
 bool
 TouchEvent::PrefEnabled(JSContext* aCx, JSObject* aGlobal)
 {
-  bool prefValue = false;
-  int32_t flag = 0;
-  if (NS_SUCCEEDED(Preferences::GetInt("dom.w3c_touch_events.enabled",
-                                        &flag))) {
-    if (flag == 2) {
-#ifdef XP_WIN
-      static bool sDidCheckTouchDeviceSupport = false;
-      static bool sIsTouchDeviceSupportPresent = false;
-      // On Windows we auto-detect based on device support.
-      if (!sDidCheckTouchDeviceSupport) {
-        sDidCheckTouchDeviceSupport = true;
-        sIsTouchDeviceSupportPresent = widget::IsTouchDeviceSupportPresent();
-      }
-      prefValue = sIsTouchDeviceSupportPresent;
-#else
-      NS_WARNING("dom.w3c_touch_events.enabled=2 not implemented!");
-      prefValue = false;
-#endif
-    } else {
-      prefValue = !!flag;
+  nsIDocShell* docShell = nullptr;
+  if (aGlobal) {
+    nsGlobalWindow* win = xpc::WindowOrNull(aGlobal);
+    if (win) {
+      docShell = win->GetDocShell();
     }
   }
-  if (prefValue) {
+  return PrefEnabled(docShell);
+}
+
+// static
+bool
+TouchEvent::PrefEnabled(nsIDocShell* aDocShell)
+{
+  static bool sPrefCached = false;
+  static int32_t sPrefCacheValue = 0;
+
+  uint32_t touchEventsOverride = nsIDocShell::TOUCHEVENTS_OVERRIDE_NONE;
+  if (aDocShell) {
+    aDocShell->GetTouchEventsOverride(&touchEventsOverride);
+  }
+
+  if (!sPrefCached) {
+    sPrefCached = true;
+    Preferences::AddIntVarCache(&sPrefCacheValue, "dom.w3c_touch_events.enabled");
+  }
+
+  bool enabled = false;
+  if (touchEventsOverride == nsIDocShell::TOUCHEVENTS_OVERRIDE_ENABLED) {
+    enabled = true;
+  } else if (touchEventsOverride == nsIDocShell::TOUCHEVENTS_OVERRIDE_DISABLED) {
+    enabled = false;
+  } else {
+    if (sPrefCacheValue == 2) {
+#if defined(MOZ_B2G) || defined(MOZ_WIDGET_ANDROID)
+      // Touch support is always enabled on B2G and android.
+      enabled = true;
+#elif defined(XP_WIN) || MOZ_WIDGET_GTK == 3
+      static bool sDidCheckTouchDeviceSupport = false;
+      static bool sIsTouchDeviceSupportPresent = false;
+      // On Windows and GTK3 we auto-detect based on device support.
+      if (!sDidCheckTouchDeviceSupport) {
+        sDidCheckTouchDeviceSupport = true;
+        sIsTouchDeviceSupportPresent = WidgetUtils::IsTouchDeviceSupportPresent();
+      }
+      enabled = sIsTouchDeviceSupportPresent;
+#else
+      enabled = false;
+#endif
+    } else {
+      enabled = !!sPrefCacheValue;
+    }
+  }
+
+  if (enabled) {
     nsContentUtils::InitializeTouchEventTable();
   }
-  return prefValue;
+  return enabled;
+}
+
+// static
+already_AddRefed<Event>
+TouchEvent::Constructor(const GlobalObject& aGlobal,
+                        const nsAString& aType,
+                        const TouchEventInit& aParam,
+                        ErrorResult& aRv)
+{
+  nsCOMPtr<EventTarget> t = do_QueryInterface(aGlobal.GetAsSupports());
+  RefPtr<TouchEvent> e = new TouchEvent(t, nullptr, nullptr);
+  bool trusted = e->Init(t);
+  RefPtr<TouchList> touches = e->CopyTouches(aParam.mTouches);
+  RefPtr<TouchList> targetTouches = e->CopyTouches(aParam.mTargetTouches);
+  RefPtr<TouchList> changedTouches = e->CopyTouches(aParam.mChangedTouches);
+  e->InitTouchEvent(aType, aParam.mBubbles, aParam.mCancelable, aParam.mView,
+                    aParam.mDetail, aParam.mCtrlKey, aParam.mAltKey,
+                    aParam.mShiftKey, aParam.mMetaKey, touches, targetTouches,
+                    changedTouches);
+  e->SetTrusted(trusted);
+  e->SetComposed(aParam.mComposed);
+  return e.forget();
+}
+
+
+already_AddRefed<TouchList>
+TouchEvent::CopyTouches(const Sequence<OwningNonNull<Touch>>& aTouches)
+{
+  RefPtr<TouchList> list = new TouchList(GetParentObject());
+  size_t len = aTouches.Length();
+  for (size_t i = 0; i < len; ++i) {
+    list->Append(aTouches[i]);
+  }
+  return list.forget();
 }
 
 bool
@@ -244,14 +293,11 @@ TouchEvent::ShiftKey()
 using namespace mozilla;
 using namespace mozilla::dom;
 
-nsresult
-NS_NewDOMTouchEvent(nsIDOMEvent** aInstancePtrResult,
-                    EventTarget* aOwner,
+already_AddRefed<TouchEvent>
+NS_NewDOMTouchEvent(EventTarget* aOwner,
                     nsPresContext* aPresContext,
                     WidgetTouchEvent* aEvent)
 {
-  TouchEvent* it = new TouchEvent(aOwner, aPresContext, aEvent);
-  NS_ADDREF(it);
-  *aInstancePtrResult = static_cast<Event*>(it);
-  return NS_OK;
+  RefPtr<TouchEvent> it = new TouchEvent(aOwner, aPresContext, aEvent);
+  return it.forget();
 }

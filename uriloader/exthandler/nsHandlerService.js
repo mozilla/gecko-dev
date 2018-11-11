@@ -219,7 +219,7 @@ HandlerService.prototype = {
     var schemes = {};
 
     // read all the scheme prefs into a hash
-    for each (var schemePrefName in schemePrefList) {
+    for (var schemePrefName of schemePrefList) {
 
       let [scheme, handlerNumber, attribute] = schemePrefName.split(".");
 
@@ -259,8 +259,8 @@ HandlerService.prototype = {
       // cache the possible handlers to avoid extra xpconnect traversals.      
       let possibleHandlers = protoInfo.possibleApplicationHandlers;
 
-      for each (var handlerPrefs in schemes[scheme]) {
-
+      for (let handlerNumber in schemes[scheme]) {
+        let handlerPrefs = schemes[scheme][handlerNumber];
         let handlerApp = Cc["@mozilla.org/uriloader/web-handler-app;1"].
                          createInstance(Ci.nsIWebHandlerApp);
 
@@ -369,7 +369,7 @@ HandlerService.prototype = {
     // If the object represents a MIME type handler, then also retrieve
     // any file extensions.
     if (aHandlerInfo instanceof Ci.nsIMIMEInfo)
-      for each (let fileExtension in this._retrieveFileExtensions(typeID))
+      for (let fileExtension of this._retrieveFileExtensions(typeID))
         aHandlerInfo.appendExtension(fileExtension);
   },
 
@@ -384,6 +384,7 @@ HandlerService.prototype = {
     this._storePreferredHandler(aHandlerInfo);
     this._storePossibleHandlers(aHandlerInfo);
     this._storeAlwaysAsk(aHandlerInfo);
+    this._storeExtensions(aHandlerInfo);
 
     // Write the changes to the database immediately so we don't lose them
     // if the application crashes.
@@ -430,7 +431,7 @@ HandlerService.prototype = {
 
     // Now that we've removed the info record, remove any possible handlers
     // that aren't referenced by other info records.
-    for each (let possibleHandlerID in possibleHandlerIDs)
+    for (let possibleHandlerID of possibleHandlerIDs)
       if (!this._existsResourceTarget(NC_POSSIBLE_APP, possibleHandlerID))
         this._removeAssertions(possibleHandlerID);
 
@@ -456,6 +457,14 @@ HandlerService.prototype = {
   getTypeFromExtension: function HS_getTypeFromExtension(aFileExtension) {
     var fileExtension = aFileExtension.toLowerCase();
     var typeID;
+
+    // See bug 1100069 for why we want to fail gracefully and silently here.
+    try {
+      this._ds;
+    } catch (ex) {
+      Components.returnCode = Cr.NS_ERROR_NOT_AVAILABLE;
+      return;
+    }
 
     if (this._existsLiteralTarget(NC_FILE_EXTENSIONS, fileExtension))
       typeID = this._getSourceForLiteral(NC_FILE_EXTENSIONS, fileExtension);
@@ -569,8 +578,8 @@ HandlerService.prototype = {
       if (!objpath)
         return null;
       
-      let interface = this._getValue(aHandlerAppID, NC_INTERFACE);
-      if (!interface)
+      let iface = this._getValue(aHandlerAppID, NC_INTERFACE);
+      if (!iface)
         return null;
       
       handlerApp = Cc["@mozilla.org/uriloader/dbus-handler-app;1"].
@@ -578,7 +587,7 @@ HandlerService.prototype = {
       handlerApp.service   = service;
       handlerApp.method    = method;
       handlerApp.objectPath   = objpath;
-      handlerApp.dBusInterface = interface;
+      handlerApp.dBusInterface = iface;
       
     }
     else
@@ -810,7 +819,7 @@ HandlerService.prototype = {
       this._removeTarget(aHandlerAppID, NC_URI_TEMPLATE);
     }
     else {
-	throw "unknown handler type";
+      throw "unknown handler type";
     }
 	
   },
@@ -820,6 +829,19 @@ HandlerService.prototype = {
     this._setLiteral(infoID,
                      NC_ALWAYS_ASK,
                      aHandlerInfo.alwaysAskBeforeHandling ? "true" : "false");
+  },
+
+  _storeExtensions: function HS__storeExtensions(aHandlerInfo) {
+    if (aHandlerInfo instanceof Ci.nsIMIMEInfo) {
+      var typeID = this._getTypeID(this._getClass(aHandlerInfo), aHandlerInfo.type);
+      var extEnum = aHandlerInfo.getFileExtensions();
+      while (extEnum.hasMore()) {
+        let ext = extEnum.getNext().toLowerCase();
+        if (!this._hasLiteralAssertion(typeID, NC_FILE_EXTENSIONS, ext)) {
+          this._setLiteral(typeID, NC_FILE_EXTENSIONS, ext);
+        }
+      }
+    }
   },
 
 

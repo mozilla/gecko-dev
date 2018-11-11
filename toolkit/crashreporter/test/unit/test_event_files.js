@@ -3,7 +3,7 @@
 
 "use strict";
 
-const {utils: Cu} = Components;
+var {utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/Promise.jsm", this);
 Cu.import("resource://gre/modules/Services.jsm", this);
@@ -24,7 +24,15 @@ add_task(function* test_main_process_crash() {
 
   let basename;
   let deferred = Promise.defer();
-  do_crash("crashType = CrashTestUtils.CRASH_RUNTIMEABORT;",
+  do_crash(
+    function() {
+      // TelemetrySession setup will trigger the session annotation
+      let scope = {};
+      Components.utils.import("resource://gre/modules/TelemetryController.jsm", scope);
+      scope.TelemetryController.testSetup();
+      crashType = CrashTestUtils.CRASH_RUNTIMEABORT;
+      crashReporter.annotateCrashReport("ShutdownProgress", "event-test");
+    },
     (minidump, extra) => {
       basename = minidump.leafName;
       cm._eventsDirs = [getEventDir()];
@@ -39,4 +47,10 @@ add_task(function* test_main_process_crash() {
   let crash = crashes[0];
   Assert.ok(crash.isOfType(cm.PROCESS_TYPE_MAIN, cm.CRASH_TYPE_CRASH));
   Assert.equal(crash.id + ".dmp", basename, "ID recorded properly");
+  Assert.equal(crash.metadata.ShutdownProgress, "event-test");
+  Assert.ok("TelemetrySessionId" in crash.metadata);
+  Assert.ok("UptimeTS" in crash.metadata);
+  Assert.ok(/^[0-9a-f]{8}\-([0-9a-f]{4}\-){3}[0-9a-f]{12}$/.test(crash.metadata.TelemetrySessionId));
+  Assert.ok("CrashTime" in crash.metadata);
+  Assert.ok(/^\d+$/.test(crash.metadata.CrashTime));
 });

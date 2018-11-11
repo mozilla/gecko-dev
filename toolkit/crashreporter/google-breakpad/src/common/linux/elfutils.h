@@ -30,8 +30,8 @@
 // elfutils.h: Utilities for dealing with ELF files.
 //
 
-#ifndef COMMON_LINUX_ELFUTILS_H__
-#define COMMON_LINUX_ELFUTILS_H__
+#ifndef COMMON_LINUX_ELFUTILS_H_
+#define COMMON_LINUX_ELFUTILS_H_
 
 #include <elf.h>
 #include <link.h>
@@ -49,9 +49,13 @@ struct ElfClass32 {
   typedef Elf32_Shdr Shdr;
   typedef Elf32_Half Half;
   typedef Elf32_Off Off;
+  typedef Elf32_Sym Sym;
   typedef Elf32_Word Word;
+
   static const int kClass = ELFCLASS32;
+  static const uint16_t kMachine = EM_386;
   static const size_t kAddrSize = sizeof(Elf32_Addr);
+  static constexpr const char* kMachineName = "x86";
 };
 
 struct ElfClass64 {
@@ -62,9 +66,13 @@ struct ElfClass64 {
   typedef Elf64_Shdr Shdr;
   typedef Elf64_Half Half;
   typedef Elf64_Off Off;
+  typedef Elf64_Sym Sym;
   typedef Elf64_Word Word;
+
   static const int kClass = ELFCLASS64;
+  static const uint16_t kMachine = EM_X86_64;
   static const size_t kAddrSize = sizeof(Elf64_Addr);
+  static constexpr const char* kMachineName = "x86_64";
 };
 
 bool IsValidElf(const void* elf_header);
@@ -79,7 +87,7 @@ bool FindElfSection(const void *elf_mapped_base,
                     const char *section_name,
                     uint32_t section_type,
                     const void **section_start,
-                    int *section_size,
+                    size_t *section_size,
                     int *elfclass);
 
 // Internal helper method, exposed for convenience for callers
@@ -101,7 +109,7 @@ FindElfSectionByName(const char* name,
 bool FindElfSegment(const void *elf_mapped_base,
                     uint32_t segment_type,
                     const void **segment_start,
-                    int *segment_size,
+                    size_t *segment_size,
                     int *elfclass);
 
 // Convert an offset from an Elf header into a pointer to the mapped
@@ -115,4 +123,4 @@ GetOffset(const typename ElfClass::Ehdr* elf_header,
 
 }  // namespace google_breakpad
 
-#endif  // COMMON_LINUX_ELFUTILS_H__
+#endif  // COMMON_LINUX_ELFUTILS_H_

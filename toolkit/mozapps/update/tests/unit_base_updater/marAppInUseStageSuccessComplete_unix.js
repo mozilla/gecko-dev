@@ -4,72 +4,110 @@
 
 /* Application in use complete MAR file staged patch apply success test */
 
+const START_STATE = STATE_PENDING;
+const STATE_AFTER_STAGE = STATE_APPLIED;
+
 function run_test() {
-  gStageUpdate = true;
-  setupTestCommon();
+  if (!setupTestCommon()) {
+    return;
+  }
   gTestFiles = gTestFilesCompleteSuccess;
+  gTestFiles[gTestFiles.length - 1].originalContents = null;
+  gTestFiles[gTestFiles.length - 1].compareContents = "FromComplete\n";
+  gTestFiles[gTestFiles.length - 1].comparePerms = 0o644;
   gTestDirs = gTestDirsCompleteSuccess;
-  setupUpdaterTest(FILE_COMPLETE_MAR, false, false);
-
-  // For Mac OS X set the last modified time for the root directory to a date in
-  // the past to test that the last modified time is updated on a successful
-  // update (bug 600098).
-  if (IS_MACOSX) {
-    let now = Date.now();
-    let yesterday = now - (1000 * 60 * 60 * 24);
-    let applyToDir = getApplyDirFile(null, true);
-    applyToDir.lastModifiedTime = yesterday;
-  }
-
-  // Launch the callback helper application so it is in use during the update
-  let callbackApp = getApplyDirFile("a/b/" + gCallbackBinFile);
-  callbackApp.permissions = PERMS_DIRECTORY;
-  let args = [getApplyDirPath() + "a/b/", "input", "output", "-s",
-              HELPER_SLEEP_TIMEOUT];
-  let callbackAppProcess = AUS_Cc["@mozilla.org/process/util;1"].
-                           createInstance(AUS_Ci.nsIProcess);
-  callbackAppProcess.init(callbackApp);
-  callbackAppProcess.run(false, args, args.length);
-
-  do_timeout(TEST_HELPER_TIMEOUT, waitForHelperSleep);
+  setupUpdaterTest(FILE_COMPLETE_MAR, true);
 }
 
-function doUpdate() {
-  runUpdate(0, STATE_APPLIED, null);
+/**
+ * Called after the call to setupUpdaterTest finishes.
+ */
+function setupUpdaterTestFinished() {
+  setupSymLinks();
+  runHelperFileInUse(DIR_RESOURCES + gCallbackBinFile, false);
+}
 
-  if (IS_MACOSX) {
-    logTestInfo("testing last modified time on the apply to directory has " +
-                "changed after a successful update (bug 600098)");
-    let now = Date.now();
-    let applyToDir = getApplyDirFile(null, true);
-    let timeDiff = Math.abs(applyToDir.lastModifiedTime - now);
-    do_check_true(timeDiff < MAC_MAX_TIME_DIFFERENCE);
-  }
+/**
+ * Called after the call to waitForHelperSleep finishes.
+ */
+function waitForHelperSleepFinished() {
+  stageUpdate(true);
+}
 
-  checkFilesAfterUpdateSuccess();
-
+/**
+ * Called after the call to stageUpdate finishes.
+ */
+function stageUpdateFinished() {
+  checkPostUpdateRunningFile(false);
+  checkFilesAfterUpdateSuccess(getStageDirFile, true);
+  checkUpdateLogContents(LOG_COMPLETE_SUCCESS, true);
   // Switch the application to the staged application that was updated.
-  gStageUpdate = false;
-  gSwitchApp = true;
-  do_timeout(TEST_CHECK_TIMEOUT, function() {
-    runUpdate(0, STATE_SUCCEEDED);
-  });
+  runUpdate(STATE_SUCCEEDED, true, 0, true);
 }
 
-function checkUpdateApplied() {
-  let applyToDir = getApplyDirFile();
-  if (IS_MACOSX) {
-    logTestInfo("testing last modified time on the apply to directory has " +
-                "changed after a successful update (bug 600098)");
-    let now = Date.now();
-    let timeDiff = Math.abs(applyToDir.lastModifiedTime - now);
-    do_check_true(timeDiff < MAC_MAX_TIME_DIFFERENCE);
+/**
+ * Called after the call to runUpdate finishes.
+ */
+function runUpdateFinished() {
+  waitForHelperExit();
+}
+
+/**
+ * Called after the call to waitForHelperExit finishes.
+ */
+function waitForHelperExitFinished() {
+  checkPostUpdateAppLog();
+}
+
+/**
+ * Called after the call to checkPostUpdateAppLog finishes.
+ */
+function checkPostUpdateAppLogFinished() {
+  checkAppBundleModTime();
+  checkSymLinks();
+  standardInit();
+  Assert.equal(readStatusState(), STATE_NONE,
+               "the status file state" + MSG_SHOULD_EQUAL);
+  Assert.ok(!gUpdateManager.activeUpdate,
+            "the active update should not be defined");
+  Assert.equal(gUpdateManager.updateCount, 1,
+               "the update manager updateCount attribute" + MSG_SHOULD_EQUAL);
+  Assert.equal(gUpdateManager.getUpdateAt(0).state, STATE_SUCCEEDED,
+               "the update state" + MSG_SHOULD_EQUAL);
+  checkPostUpdateRunningFile(true);
+  checkFilesAfterUpdateSuccess(getApplyDirFile);
+  checkUpdateLogContents(LOG_REPLACE_SUCCESS, false, true);
+  checkCallbackLog();
+}
+
+/**
+ * Setup symlinks for the test.
+ */
+function setupSymLinks() {
+  if (IS_UNIX) {
+    removeSymlink();
+    createSymlink();
+    do_register_cleanup(removeSymlink);
+    gTestFiles.splice(gTestFiles.length - 3, 0,
+      {
+        description: "Readable symlink",
+        fileName: "link",
+        relPathDir: DIR_RESOURCES,
+        originalContents: "test",
+        compareContents: "test",
+        originalFile: null,
+        compareFile: null,
+        originalPerms: 0o666,
+        comparePerms: 0o666
+      });
   }
-
-  checkFilesAfterUpdateSuccess();
-  setupHelperFinish();
 }
 
-function checkUpdate() {
-  checkCallbackAppLog();
+/**
+ * Checks the state of the symlinks for the test.
+ */
+function checkSymLinks() {
+  if (IS_UNIX) {
+    checkSymlink();
+  }
 }

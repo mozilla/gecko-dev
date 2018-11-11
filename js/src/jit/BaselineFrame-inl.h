@@ -7,78 +7,101 @@
 #ifndef jit_BaselineFrame_inl_h
 #define jit_BaselineFrame_inl_h
 
-#ifdef JS_ION
-
 #include "jit/BaselineFrame.h"
 
 #include "jscntxt.h"
 #include "jscompartment.h"
 
-#include "vm/ScopeObject.h"
+#include "vm/EnvironmentObject.h"
+
+#include "jsscriptinlines.h"
+
+#include "vm/EnvironmentObject-inl.h"
 
 namespace js {
 namespace jit {
 
+template <typename SpecificEnvironment>
 inline void
-BaselineFrame::pushOnScopeChain(ScopeObject &scope)
+BaselineFrame::pushOnEnvironmentChain(SpecificEnvironment& env)
 {
-    JS_ASSERT(*scopeChain() == scope.enclosingScope() ||
-              *scopeChain() == scope.as<CallObject>().enclosingScope().as<DeclEnvObject>().enclosingScope());
-    scopeChain_ = &scope;
+    MOZ_ASSERT(*environmentChain() == env.enclosingEnvironment());
+    envChain_ = &env;
+    if (IsFrameInitialEnvironment(this, env))
+        flags_ |= HAS_INITIAL_ENV;
+}
+
+template <typename SpecificEnvironment>
+inline void
+BaselineFrame::popOffEnvironmentChain()
+{
+    MOZ_ASSERT(envChain_->is<SpecificEnvironment>());
+    envChain_ = &envChain_->as<SpecificEnvironment>().enclosingEnvironment();
 }
 
 inline void
-BaselineFrame::popOffScopeChain()
+BaselineFrame::replaceInnermostEnvironment(EnvironmentObject& env)
 {
-    scopeChain_ = &scopeChain_->as<ScopeObject>().enclosingScope();
-}
-
-inline void
-BaselineFrame::popWith(JSContext *cx)
-{
-    if (MOZ_UNLIKELY(cx->compartment()->debugMode()))
-        DebugScopes::onPopWith(this);
-
-    JS_ASSERT(scopeChain()->is<DynamicWithObject>());
-    popOffScopeChain();
+    MOZ_ASSERT(env.enclosingEnvironment() ==
+               envChain_->as<EnvironmentObject>().enclosingEnvironment());
+    envChain_ = &env;
 }
 
 inline bool
-BaselineFrame::pushBlock(JSContext *cx, Handle<StaticBlockObject *> block)
+BaselineFrame::pushLexicalEnvironment(JSContext* cx, Handle<LexicalScope*> scope)
 {
-    JS_ASSERT(block->needsClone());
-
-    ClonedBlockObject *clone = ClonedBlockObject::create(cx, block, this);
-    if (!clone)
+    LexicalEnvironmentObject* env = LexicalEnvironmentObject::create(cx, scope, this);
+    if (!env)
         return false;
-    pushOnScopeChain(*clone);
+    pushOnEnvironmentChain(*env);
 
     return true;
 }
 
-inline void
-BaselineFrame::popBlock(JSContext *cx)
+inline bool
+BaselineFrame::freshenLexicalEnvironment(JSContext* cx)
 {
-    JS_ASSERT(scopeChain_->is<ClonedBlockObject>());
+    Rooted<LexicalEnvironmentObject*> current(cx, &envChain_->as<LexicalEnvironmentObject>());
+    LexicalEnvironmentObject* clone = LexicalEnvironmentObject::clone(cx, current);
+    if (!clone)
+        return false;
 
-    popOffScopeChain();
+    replaceInnermostEnvironment(*clone);
+    return true;
 }
 
-inline CallObject &
+inline bool
+BaselineFrame::recreateLexicalEnvironment(JSContext* cx)
+{
+    Rooted<LexicalEnvironmentObject*> current(cx, &envChain_->as<LexicalEnvironmentObject>());
+    LexicalEnvironmentObject* clone = LexicalEnvironmentObject::recreate(cx, current);
+    if (!clone)
+        return false;
+
+    replaceInnermostEnvironment(*clone);
+    return true;
+}
+
+inline CallObject&
 BaselineFrame::callObj() const
 {
-    JS_ASSERT(hasCallObj());
-    JS_ASSERT(fun()->isHeavyweight());
+    MOZ_ASSERT(hasInitialEnvironment());
+    MOZ_ASSERT(callee()->needsCallObject());
 
-    JSObject *obj = scopeChain();
+    JSObject* obj = environmentChain();
     while (!obj->is<CallObject>())
-        obj = obj->enclosingScope();
+        obj = obj->enclosingEnvironment();
     return obj->as<CallObject>();
+}
+
+inline void
+BaselineFrame::unsetIsDebuggee()
+{
+    MOZ_ASSERT(!script()->isDebuggee());
+    flags_ &= ~DEBUGGEE;
 }
 
 } // namespace jit
 } // namespace js
-
-#endif // JS_ION
 
 #endif /* jit_BaselineFrame_inl_h */

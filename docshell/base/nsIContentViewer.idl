@@ -7,13 +7,16 @@
 interface nsIDocShell;
 interface nsIDocument;
 interface nsIDOMDocument;
+interface nsIDOMNode;
 interface nsISHEntry;
 interface nsIPrintSettings;
 
 
 %{ C++
+#include "nsTArray.h"
+#include "nsRect.h"
+
 class nsIWidget;
-struct nsIntRect;
 class nsIPresShell;
 class nsPresContext;
 class nsView;
@@ -26,11 +29,11 @@ class nsDOMNavigationTiming;
 [ptr] native nsPresContextPtr(nsPresContext);
 [ptr] native nsViewPtr(nsView);
 [ptr] native nsDOMNavigationTimingPtr(nsDOMNavigationTiming);
+[ref] native nsIContentViewerTArray(nsTArray<nsCOMPtr<nsIContentViewer> >);
 
-[scriptable, builtinclass, uuid(0cb321bd-5b38-4586-8fcd-d43b366886fb)]
+[scriptable, builtinclass, uuid(2da17016-7851-4a45-a7a8-00b360e01595)]
 interface nsIContentViewer : nsISupports
 {
-
   [noscript] void init(in nsIWidgetPtr aParentWidget,
                        [const] in nsIntRectRef aBounds);
 
@@ -38,16 +41,13 @@ interface nsIContentViewer : nsISupports
 
   [noscript,notxpcom,nostdcall] void loadStart(in nsIDocument aDoc);
   void loadComplete(in nsresult aStatus);
+  [noscript] readonly attribute boolean loadCompleted;
 
   /**
    * Checks if the document wants to prevent unloading by firing beforeunload on
    * the document, and if it does, prompts the user. The result is returned.
-   *
-   * @param aCallerClosesWindow indicates that the current caller will close the
-   *        window. If the method returns true, all subsequent calls will be
-   *        ignored.
    */
-  boolean permitUnload([optional] in boolean aCallerClosesWindow);
+  boolean permitUnload();
 
   /**
    * Exposes whether we're blocked in a call to permitUnload.
@@ -59,8 +59,7 @@ interface nsIContentViewer : nsISupports
    * track of whether the user has responded to a prompt.
    * Used internally by the scriptable version to ensure we only prompt once.
    */
-  [noscript,nostdcall] boolean permitUnloadInternal(in boolean aCallerClosesWindow,
-                                                    inout boolean aShouldPrompt);
+  [noscript,nostdcall] boolean permitUnloadInternal(inout boolean aShouldPrompt);
 
   /**
    * Exposes whether we're in the process of firing the beforeunload event.
@@ -68,16 +67,6 @@ interface nsIContentViewer : nsISupports
    */
   readonly attribute boolean beforeUnloadFiring;
 
-  /**
-   * Works in tandem with permitUnload, if the caller decides not to close the
-   * window it indicated it will, it is the caller's responsibility to reset
-   * that with this method.
-   *
-   * @Note this method is only meant to be called on documents for which the
-   *  caller has indicated that it will close the window. If that is not the case
-   *  the behavior of this method is undefined.
-   */
-  void resetCloseWindow();
   void pageHide(in boolean isUnload);
 
   /**
@@ -115,6 +104,12 @@ interface nsIContentViewer : nsISupports
 
   [noscript] void getBounds(in nsIntRectRef aBounds);
   [noscript] void setBounds([const] in nsIntRectRef aBounds);
+  /**
+   * The 'aFlags' argument to setBoundsWithFlags is a set of these bits.
+   */
+  const unsigned long eDelayResize = 1;
+  [noscript] void setBoundsWithFlags([const] in nsIntRectRef aBounds,
+                                     in unsigned long aFlags);
 
   /**
    * The previous content viewer, which has been |close|d but not
@@ -176,8 +171,10 @@ interface nsIContentViewer : nsISupports
 
   /**
    * Returns whether this content viewer is in a hidden state.
+   *
+   * @note Only Gecko internal code should set the attribute!
    */
-  readonly attribute boolean isHidden;
+  attribute boolean isHidden;
 
   [noscript] readonly attribute nsIPresShellPtr presShell;
   [noscript] readonly attribute nsPresContextPtr presContext;
@@ -195,4 +192,89 @@ interface nsIContentViewer : nsISupports
    * Set collector for navigation timing data (load, unload events).
    */
   [noscript,notxpcom,nostdcall] void setNavigationTiming(in nsDOMNavigationTimingPtr aTiming);
+  /*
+  Scrolls to a given DOM content node. 
+  */
+  void scrollToNode(in nsIDOMNode node);
+
+  /** The amount by which to scale all text. Default is 1.0. */
+  attribute float textZoom;
+
+  /** The amount by which to scale all lengths. Default is 1.0. */
+  attribute float fullZoom;
+
+  /**
+   * The value used to override devicePixelRatio and media queries dppx.
+   * Default is 0.0, that means no overriding is done (only a positive value
+   * is applied).
+   */
+  attribute float overrideDPPX;
+
+  /** Disable entire author style level (including HTML presentation hints) */
+  attribute boolean authorStyleDisabled;
+
+  /**
+   * XXX comm-central only: bug 829543. Not the Character Encoding menu in
+   * browser!
+   */
+  attribute ACString forceCharacterSet;
+
+  /**
+   * XXX comm-central only: bug 829543.
+   */
+  attribute ACString hintCharacterSet;
+
+  /**
+   * XXX comm-central only: bug 829543.
+   */
+  attribute int32_t hintCharacterSetSource;
+
+  /**
+   * Requests the size of the content to the container.
+   */
+  void getContentSize(out long width, out long height);
+
+  /**
+   * Returns the preferred width and height of the content, constrained to the
+   * given maximum values. If either maxWidth or maxHeight is less than zero,
+   * that dimension is not constrained.
+   *
+   * All input and output values are in device pixels, rather than CSS pixels.
+   */
+  void getContentSizeConstrained(in long maxWidth, in long maxHeight,
+                                 out long width, out long height);
+
+  /** The minimum font size  */
+  attribute long minFontSize;
+
+  /**
+   * Append |this| and all of its descendants to the given array,
+   * in depth-first pre-order traversal.
+   */
+  [noscript] void appendSubtree(in nsIContentViewerTArray array);
+
+  /**
+   * Instruct the refresh driver to discontinue painting until further
+   * notice.
+   */
+  void pausePainting();
+
+  /**
+   * Instruct the refresh driver to resume painting after a previous call to
+   * pausePainting().
+   */
+  void resumePainting();
+
+  /*
+   * Render the document as if being viewed on a device with the specified
+   * media type. This will cause a reflow.
+   *
+   * @param mediaType The media type to be emulated
+   */
+  void emulateMedium(in AString aMediaType);
+
+  /*
+   * Restore the viewer's natural media type
+   */
+  void stopEmulatingMedium();
 };

@@ -7,6 +7,7 @@ CORE_DEPTH = ../..
 EXPORTS = \
 	base64.h \
 	ciferfam.h \
+	eccutil.h \
 	hasht.h \
 	nssb64.h \
 	nssb64t.h \
@@ -22,6 +23,7 @@ EXPORTS = \
 	pkcs11t.h \
 	pkcs11n.h \
 	pkcs11u.h \
+	pkcs1sig.h \
 	portreg.h \
 	secasn1.h \
 	secasn1t.h \
@@ -42,6 +44,7 @@ EXPORTS = \
 	$(NULL)
 
 PRIVATE_EXPORTS = \
+        verref.h \
 	templates.c \
 	$(NULL)
 
@@ -58,6 +61,7 @@ CSRCS = \
 	nssrwlk.c \
 	nssilock.c \
 	oidstring.c \
+	pkcs1sig.c \
 	portreg.c \
 	secalgid.c \
 	secasn1d.c \

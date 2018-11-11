@@ -13,9 +13,9 @@
 #include "build/build_config.h"
 
 namespace base {
+
 class FilePath;
 class ScopedPathOverride;
-}  // namespace
 
 // The path service is a global table mapping keys to file system paths.  It is
 // OK to use this service from multiple threads.
@@ -29,7 +29,7 @@ class BASE_EXPORT PathService {
   //
   // Returns true if the directory or file was successfully retrieved. On
   // failure, 'path' will not be changed.
-  static bool Get(int key, base::FilePath* path);
+  static bool Get(int key, FilePath* path);
 
   // Overrides the path to a special directory or file.  This cannot be used to
   // change the value of DIR_CURRENT, but that should be obvious.  Also, if the
@@ -41,13 +41,23 @@ class BASE_EXPORT PathService {
   //
   // WARNING: Consumers of PathService::Get may expect paths to be constant
   // over the lifetime of the app, so this method should be used with caution.
-  static bool Override(int key, const base::FilePath& path);
+  //
+  // Unit tests generally should use ScopedPathOverride instead. Overrides from
+  // one test should not carry over to another.
+  static bool Override(int key, const FilePath& path);
 
-  // This function does the same as PathService::Override but it takes an extra
-  // parameter |create| which guides whether the directory to be overriden must
+  // This function does the same as PathService::Override but it takes extra
+  // parameters:
+  // - |is_absolute| indicates that |path| has already been expanded into an
+  // absolute path, otherwise MakeAbsoluteFilePath() will be used. This is
+  // useful to override paths that may not exist yet, since MakeAbsoluteFilePath
+  // fails for those. Note that MakeAbsoluteFilePath also expands symbolic
+  // links, even if path.IsAbsolute() is already true.
+  // - |create| guides whether the directory to be overriden must
   // be created in case it doesn't exist already.
   static bool OverrideAndCreateIfNeeded(int key,
-                                        const base::FilePath& path,
+                                        const FilePath& path,
+                                        bool is_absolute,
                                         bool create);
 
   // To extend the set of supported keys, you can register a path provider,
@@ -58,7 +68,7 @@ class BASE_EXPORT PathService {
   // WARNING: This function could be called on any thread from which the
   // PathService is used, so a the ProviderFunc MUST BE THREADSAFE.
   //
-  typedef bool (*ProviderFunc)(int, base::FilePath*);
+  typedef bool (*ProviderFunc)(int, FilePath*);
 
   // Call to register a path provider.  You must specify the range "[key_start,
   // key_end)" of supported path keys.
@@ -70,7 +80,7 @@ class BASE_EXPORT PathService {
   static void DisableCache();
 
  private:
-  friend class base::ScopedPathOverride;
+  friend class ScopedPathOverride;
   FRIEND_TEST_ALL_PREFIXES(PathServiceTest, RemoveOverride);
 
   // Removes an override for a special directory or file. Returns true if there
@@ -78,5 +88,10 @@ class BASE_EXPORT PathService {
   // NOTE: This function is intended to be used by tests only!
   static bool RemoveOverride(int key);
 };
+
+}  // namespace base
+
+// TODO(brettw) Convert all callers to using the base namespace and remove this.
+using base::PathService;
 
 #endif  // BASE_PATH_SERVICE_H_

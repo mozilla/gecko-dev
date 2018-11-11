@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -42,21 +42,21 @@ const ARRAY_CONTRACTID = "@mozilla.org/array;1";
 const SAX_CONTRACTID = "@mozilla.org/saxparser/xmlreader;1";
 const PARSERUTILS_CONTRACTID = "@mozilla.org/parserutils;1";
 
-
+const gMimeService = Cc["@mozilla.org/mime;1"].getService(Ci.nsIMIMEService);
 var gIoService = null;
 
 const XMLNS = "http://www.w3.org/XML/1998/namespace";
 const RSS090NS = "http://my.netscape.com/rdf/simple/0.9/";
 
-/***** Some general utils *****/
+/** *** Some general utils *****/
 function strToURI(link, base) {
-  var base = base || null;
+  base = base || null;
   if (!gIoService)
     gIoService = Cc[IO_CONTRACTID].getService(Ci.nsIIOService);
   try {
     return gIoService.newURI(link, null, base);
   }
-  catch(e) {
+  catch (e) {
     return null;
   }
 }
@@ -79,7 +79,7 @@ function isIID(a, iid) {
     a.QueryInterface(iid);
     rv = true;
   }
-  catch(e) {
+  catch (e) {
   }
   return rv;
 }
@@ -93,11 +93,11 @@ function isIFeedContainer(a) {
 }
 
 function stripTags(someHTML) {
-  return someHTML.replace(/<[^>]+>/g,"");
+  return someHTML.replace(/<[^>]+>/g, "");
 }
 
 /**
- * Searches through an array of links and returns a JS array 
+ * Searches through an array of links and returns a JS array
  * of matching property bags.
  */
 const IANA_URI = "http://www.iana.org/assignments/relation/";
@@ -114,7 +114,7 @@ function findAtomLinks(rel, links) {
         rvLinks.push(linkElement);
         continue;
       }
-      // catch relations specified by IANA URI 
+      // catch relations specified by IANA URI
       if (relAttribute == IANA_URI + rel) {
         rvLinks.push(linkElement);
       }
@@ -157,7 +157,7 @@ function makePropGetter(key) {
     try {
       return value = bag.getProperty(key);
     }
-    catch(e) {
+    catch (e) {
     }
     return null;
   }
@@ -177,8 +177,8 @@ var gNamespaces = {
   "http://www.w3.org/1999/02/22-rdf-syntax-ns#":"rdf",
   "http://purl.org/rss/1.0/":"rss1",
   "http://my.netscape.com/rdf/simple/0.9/":"rss1",
-  "http://wellformedweb.org/CommentAPI/":"wfw",                              
-  "http://purl.org/rss/1.0/modules/wiki/":"wiki", 
+  "http://wellformedweb.org/CommentAPI/":"wfw",
+  "http://purl.org/rss/1.0/modules/wiki/":"wiki",
   "http://www.w3.org/XML/1998/namespace":"xml",
   "http://search.yahoo.com/mrss/":"media",
   "http://search.yahoo.com/mrss":"media"
@@ -209,7 +209,7 @@ FeedResult.prototype = {
   // XPCOM stuff
   classID: FR_CLASSID,
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIFeedResult])
-}  
+}
 
 function Feed() {
   this.subtitle = null;
@@ -228,17 +228,16 @@ function Feed() {
 Feed.prototype = {
   searchLists: {
     title: ["title", "rss1:title", "atom03:title", "atom:title"],
-    subtitle: ["description","dc:description","rss1:description",
-               "atom03:tagline","atom:subtitle"],
-    items: ["items","atom03_entries","entries"],
-    id: ["atom:id","rdf:about"],
+    subtitle: ["description", "dc:description", "rss1:description",
+               "atom03:tagline", "atom:subtitle"],
+    items: ["items", "atom03_entries", "entries"],
+    id: ["atom:id", "rdf:about"],
     generator: ["generator"],
     authors : ["authors"],
     contributors: ["contributors"],
-    title: ["title","rss1:title", "atom03:title","atom:title"],
-    link:  [["link",strToURI],["rss1:link",strToURI]],
+    link:  [["link", strToURI], ["rss1:link", strToURI]],
     categories: ["categories", "dc:subject"],
-    rights: ["atom03:rights","atom:rights"],
+    rights: ["atom03:rights", "atom:rights"],
     cloud: ["cloud"],
     image: ["image", "rss1:image", "atom:logo"],
     textInput: ["textInput", "rss1:textinput"],
@@ -268,7 +267,7 @@ Feed.prototype = {
     if (this.image && bagHasKey(this.image, "url"))
       this._resolveImageLink();
 
-    this._resetBagMembersToRawText([this.searchLists.subtitle, 
+    this._resetBagMembersToRawText([this.searchLists.subtitle,
                                     this.searchLists.title]);
   },
 
@@ -309,7 +308,7 @@ Feed.prototype = {
 
     var feedtype = Ci.nsIFeed.TYPE_FEED;
 
-    // For a feed to be marked as TYPE_VIDEO, TYPE_AUDIO and TYPE_IMAGE, 
+    // For a feed to be marked as TYPE_VIDEO, TYPE_AUDIO and TYPE_IMAGE,
     // we enforce two things:
     //
     //    1. all entries must have at least one enclosure
@@ -360,7 +359,7 @@ Feed.prototype = {
       var base = baseSpec ? strToURI(baseSpec, this.baseURI) : this.baseURI;
       uri = strToURI(linkSpec, base);
     }
-    catch(e) {
+    catch (e) {
       LOG(e);
     }
 
@@ -369,7 +368,7 @@ Feed.prototype = {
 
   // reset the bag to raw contents, not text constructs
   _resetBagMembersToRawText: function Feed_resetBagMembers(fieldLists) {
-    for (var i=0; i<fieldLists.length; i++) {      
+    for (var i=0; i<fieldLists.length; i++) {
       for (var j=0; j<fieldLists[i].length; j++) {
         if (bagHasKey(this.fields, fieldLists[i][j])) {
           var textConstruct = this.fields.getProperty(fieldLists[i][j]);
@@ -379,7 +378,7 @@ Feed.prototype = {
       }
     }
   },
-  
+
   // XPCOM stuff
   classID: FEED_CLASSID,
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIFeed, Ci.nsIFeedContainer])
@@ -399,31 +398,31 @@ function Entry() {
   this.authors = Cc[ARRAY_CONTRACTID].createInstance(Ci.nsIMutableArray);
   this.contributors = Cc[ARRAY_CONTRACTID].createInstance(Ci.nsIMutableArray);
 }
-  
+
 Entry.prototype = {
   fields: null,
   enclosures: null,
   mediaContent: null,
-  
+
   searchLists: {
     title: ["title", "rss1:title", "atom03:title", "atom:title"],
-    link: [["link",strToURI],["rss1:link",strToURI]],
+    link: [["link", strToURI], ["rss1:link", strToURI]],
     id: [["guid", makePropGetter("guid")], "rdf:about",
          "atom03:id", "atom:id"],
     authors : ["authors"],
     contributors: ["contributors"],
     summary: ["description", "rss1:description", "dc:description",
               "atom03:summary", "atom:summary"],
-    content: ["content:encoded","atom03:content","atom:content"],
-    rights: ["atom03:rights","atom:rights"],
+    content: ["content:encoded", "atom03:content", "atom:content"],
+    rights: ["atom03:rights", "atom:rights"],
     published: ["pubDate", "atom03:issued", "dcterms:issued", "atom:published"],
     updated: ["pubDate", "atom03:modified", "dc:date", "dcterms:modified",
               "atom:updated"]
   },
-  
+
   normalize: function Entry_normalize() {
     fieldsToObj(this, this.searchLists);
- 
+
     // Assign Atom link if needed
     if (bagHasKey(this.fields, "links"))
       this._atomLinksToURI();
@@ -435,10 +434,10 @@ Entry.prototype = {
     if (!this.link && bagHasKey(this.fields, "guid")) {
       var guid = this.fields.getProperty("guid");
       var isPermaLink = true;
-      
+
       if (bagHasKey(guid, "isPermaLink"))
         isPermaLink = guid.getProperty("isPermaLink").toLowerCase() != "false";
-      
+
       if (guid && isPermaLink)
         this.link = strToURI(guid.getProperty("guid"));
     }
@@ -448,8 +447,8 @@ Entry.prototype = {
     if (this.published)
       this.published = dateParse(this.published);
 
-    this._resetBagMembersToRawText([this.searchLists.content, 
-                                    this.searchLists.summary, 
+    this._resetBagMembersToRawText([this.searchLists.content,
+                                    this.searchLists.summary,
                                     this.searchLists.title]);
   },
 
@@ -490,12 +489,19 @@ Entry.prototype = {
     if (previous_enc != undefined) {
       previous_enc.QueryInterface(Ci.nsIWritablePropertyBag2);
 
-      if (!bagHasKey(previous_enc, "type") && bagHasKey(new_enc, "type"))
+      if (!bagHasKey(previous_enc, "type") && bagHasKey(new_enc, "type")) {
         previous_enc.setPropertyAsAString("type", new_enc.getPropertyAsAString("type"));
+        try {
+          let handlerInfoWrapper = gMimeService.getFromTypeAndExtension(new_enc.getPropertyAsAString("type"), null);
+          if (handlerInfoWrapper && handlerInfoWrapper.description) {
+            previous_enc.setPropertyAsAString("typeDesc", handlerInfoWrapper.description);
+          }
+        } catch (ext) {}
+      }
 
       if (!bagHasKey(previous_enc, "length") && bagHasKey(new_enc, "length"))
         previous_enc.setPropertyAsAString("length", new_enc.getPropertyAsAString("length"));
-      
+
       return;
     }
 
@@ -544,10 +550,16 @@ Entry.prototype = {
   },
 
   _mediaToEnclosures: function Entry_mediaToEnclosures(mediaType, contentType) {
-    var content = this.fields.getPropertyAsInterface(mediaType, Ci.nsIArray);
+    var content;
 
-    if (contentType)
-      content = content.getPropertyAsInterface(contentType, Ci.nsIArray);
+    // If a contentType is specified, the mediaType is a simple propertybag,
+    // and the contentType is an array inside it.
+    if (contentType) {
+      var group = this.fields.getPropertyAsInterface(mediaType, Ci.nsIPropertyBag2);
+      content = group.getPropertyAsInterface(contentType, Ci.nsIArray);
+    } else {
+      content = this.fields.getPropertyAsInterface(mediaType, Ci.nsIArray);
+    }
 
     for (var i = 0; i < content.length; ++i) {
       var contentElement = content.queryElementAt(i, Ci.nsIWritablePropertyBag2);
@@ -586,7 +598,7 @@ Entry.prototype = {
 
 Entry.prototype._atomLinksToURI = Feed.prototype._atomLinksToURI;
 Entry.prototype._resolveURI = Feed.prototype._resolveURI;
-Entry.prototype._resetBagMembersToRawText = 
+Entry.prototype._resetBagMembersToRawText =
    Feed.prototype._resetBagMembersToRawText;
 
 // TextConstruct represents and element that could contain (X)HTML
@@ -628,7 +640,7 @@ TextConstruct.prototype = {
     return this.parserUtils.parseFragment(this.text, 0, isXML,
                                           this.base, element);
   },
- 
+
   // XPCOM stuff
   classID: TEXTCONSTRUCT_CLASSID,
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIFeedTextConstruct])
@@ -654,13 +666,13 @@ Generator.prototype = {
 
   set attributes(value) {
     this._attributes = value;
-    this.version = this._attributes.getValueFromName("","version");
-    var uriAttribute = this._attributes.getValueFromName("","uri") ||
-                       this._attributes.getValueFromName("","url");
+    this.version = this._attributes.getValueFromName("", "version");
+    var uriAttribute = this._attributes.getValueFromName("", "uri") ||
+                       this._attributes.getValueFromName("", "url");
     this.uri = strToURI(uriAttribute, this.baseURI);
 
     // RSS1
-    uriAttribute = this._attributes.getValueFromName(RDF_NS,"resource");
+    uriAttribute = this._attributes.getValueFromName(RDF_NS, "resource");
     if (uriAttribute) {
       this.agent = uriAttribute;
       this.uri = strToURI(uriAttribute, this.baseURI);
@@ -692,16 +704,16 @@ Person.prototype = {
   )
 }
 
-/** 
+/**
  * Map a list of fields into properties on a container.
  *
  * @param container An nsIFeedContainer
  * @param fields A list of fields to search for. List members can
- *               be a list, in which case the second member is 
+ *               be a list, in which case the second member is
  *               transformation function (like parseInt).
  */
 function fieldsToObj(container, fields) {
-  var props,prop,field,searchList;
+  var props, prop, field, searchList;
   for (var key in fields) {
     searchList = fields[key];
     for (var i=0; i < searchList.length; ++i) {
@@ -710,8 +722,8 @@ function fieldsToObj(container, fields) {
       field = isArray(props) ? props[0] : props;
       try {
         prop = container.fields.getProperty(field);
-      } 
-      catch(e) { 
+      }
+      catch (e) {
       }
       if (prop) {
         prop = isArray(props) ? props[1](prop) : prop;
@@ -749,9 +761,9 @@ function rssCatTerm(s, cat) {
   // add slash handling?
   cat.setPropertyAsAString("term", s.trim());
   return cat;
-} 
+}
 
-// post-process a GUID 
+// post-process a GUID
 function rssGuid(s, guid) {
   guid.setPropertyAsAString("guid", s.trim());
   return guid;
@@ -760,7 +772,7 @@ function rssGuid(s, guid) {
 // post-process an RSS author element
 //
 // It can contain a field like this:
-// 
+//
 //  <author>lawyer@boyer.net (Lawyer Boyer)</author>
 //
 // or, delightfully, a field like this:
@@ -770,12 +782,12 @@ function rssGuid(s, guid) {
 // We want to split this up and assign it to corresponding Atom
 // fields.
 //
-function rssAuthor(s,author) {
+function rssAuthor(s, author) {
   author.QueryInterface(Ci.nsIFeedPerson);
   // check for RSS2 string format
   var chars = s.trim();
   var matches = chars.match(/(.*)\((.*)\)/);
-  var emailCheck = 
+  var emailCheck =
     /^([a-zA-Z0-9_\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/;
   if (matches) {
     var match1 = matches[1].trim();
@@ -831,7 +843,7 @@ function dateParse(aDateString) {
     return date.toUTCString();
   }
   return null;
-} 
+}
 
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
 
@@ -849,7 +861,7 @@ function XHTMLHandler(processor, isAtom) {
 // SVG and MathML. XXX
 XHTMLHandler.prototype = {
 
-   // look back up at the declared namespaces 
+   // look back up at the declared namespaces
    // we always use the same prefixes for our safe stuff
   _isInScope: function XH__isInScope(ns) {
     for (var i in this._inScopeNS) {
@@ -865,24 +877,24 @@ XHTMLHandler.prototype = {
   },
   endDocument: function XH_endDocument() {
   },
-  startElement: function XH_startElement(uri, localName, qName, attributes) {
+  startElement: function XH_startElement(namespace, localName, qName, attributes) {
     ++this._depth;
     this._inScopeNS.push([]);
 
-    // RFC4287 requires XHTML to be wrapped in a div that is *not* part of 
+    // RFC4287 requires XHTML to be wrapped in a div that is *not* part of
     // the content. This prevents people from screwing up namespaces, but
     // we need to skip it here.
     if (this._isAtom && this._depth == 1 && localName == "div")
       return;
 
     // If it's an XHTML element, record it. Otherwise, it's ignored.
-    if (uri == XHTML_NS) {
+    if (namespace == XHTML_NS) {
       this._buf += "<" + localName;
       var uri;
       for (var i=0; i < attributes.length; ++i) {
         uri = attributes.getURI(i);
         // XHTML attributes aren't in a namespace
-        if (uri == "") { 
+        if (uri == "") {
           this._buf += (" " + attributes.getLocalName(i) + "='" +
                         xmlEscape(attributes.getValue(i)) + "'");
         } else {
@@ -892,10 +904,10 @@ XHTMLHandler.prototype = {
             // The attribute value we'll attempt to write
             var attributeValue = xmlEscape(attributes.getValue(i));
 
-            // it's an allowed attribute NS.            
+            // it's an allowed attribute NS.
             // write the attribute
-            this._buf += (" " + prefix + ":" + 
-                          attributes.getLocalName(i) + 
+            this._buf += (" " + prefix + ":" +
+                          attributes.getLocalName(i) +
                           "='" + attributeValue + "'");
 
             // write an xmlns declaration if necessary
@@ -936,7 +948,7 @@ XHTMLHandler.prototype = {
   endPrefixMapping: function FP_endPrefixMapping(prefix) {
   },
   processingInstruction: function XH_processingInstruction() {
-  }, 
+  },
 }
 
 /**
@@ -965,25 +977,23 @@ ExtensionHandler.prototype = {
   },
   startElement: function EH_startElement(uri, localName, qName, attrs) {
     ++this._depth;
-    var prefix = gNamespaces[uri] ? gNamespaces[uri] + ":" : "";
-    var key =  prefix + localName;
-    
+
     if (this._depth == 1) {
       this._uri = uri;
       this._localName = localName;
       this._qName = qName;
       this._attrs = attrs;
     }
-    
+
     // if we descend into another element, we won't send text
     this._hasChildElements = (this._depth > 1);
-    
+
   },
   endElement: function EH_endElement(uri, localName, qName) {
     --this._depth;
     if (this._depth == 0) {
       var text = this._hasChildElements ? null : this._buf.trim();
-      this._processor.returnFromExtHandler(this._uri, this._localName, 
+      this._processor.returnFromExtHandler(this._uri, this._localName,
                                            text, this._attrs);
     }
   },
@@ -996,7 +1006,7 @@ ExtensionHandler.prototype = {
   endPrefixMapping: function EH_endPrefixMapping() {
   },
   processingInstruction: function EH_processingInstruction() {
-  }, 
+  },
 };
 
 
@@ -1005,7 +1015,7 @@ ExtensionHandler.prototype = {
  * some characteristics of a feed element. For example, it
  * says whether an element can be expected to appear more
  * than once inside a given entry or feed.
- */ 
+ */
 function ElementInfo(fieldName, containerClass, closeFunc, isArray) {
   this.fieldName = fieldName;
   this.containerClass = containerClass;
@@ -1033,7 +1043,7 @@ function WrapperElementInfo(fieldName) {
   this.fieldName = fieldName;
 }
 
-/***** The Processor *****/
+/** *** The Processor *****/
 function FeedProcessor() {
   this._reader = Cc[SAX_CONTRACTID].createInstance(Ci.nsISAXXMLReader);
   this._buf =  "";
@@ -1046,7 +1056,7 @@ function FeedProcessor() {
   this._extensionHandler = null;
   this._xhtmlHandler = null;
   this._haveSentResult = false;
-  
+
   // The nsIFeedResultListener waiting for the parse results
   this.listener = null;
 
@@ -1069,9 +1079,9 @@ function FeedProcessor() {
                           "atom03:content":"text"};
   this._stack = [];
 
-  this._trans = {   
+  this._trans = {
     "START": {
-      //If we hit a root RSS element, treat as RSS2.
+      // If we hit a root RSS element, treat as RSS2.
       "rss": new FeedElementInfo("RSS2", "rss2"),
 
       // If we hit an RDF element, if could be RSS1, but we can't
@@ -1084,8 +1094,8 @@ function FeedProcessor() {
       // Treat as Atom 0.3
       "atom03:feed": new FeedElementInfo("Atom03", "atom03"),
     },
-    
-    /********* RSS2 **********/
+
+    /** ******* RSS2 **********/
     "IN_RSS2": {
       "channel": new WrapperElementInfo("channel")
     },
@@ -1139,8 +1149,8 @@ function FeedProcessor() {
       "media:content": new ElementInfo("mediacontent", null, null, true),
       "media:thumbnail": new ElementInfo("mediathumbnail", null, null, true)
     },
- 
-    /********* RSS1 **********/
+
+    /** ******* RSS1 **********/
     "IN_RDF": {
       // If we hit a rss1:channel, we can verify that we have RSS1
       "rss1:channel": new FeedElementInfo("rdf_channel", "rss1"),
@@ -1161,7 +1171,7 @@ function FeedProcessor() {
                                          rssAuthor, true),
     },
 
-    /********* ATOM 1.0 **********/
+    /** ******* ATOM 1.0 **********/
     "IN_ATOM": {
       "atom:author": new ElementInfo("authors", Cc[PERSON_CONTRACTID],
                                      null, true),
@@ -1183,7 +1193,7 @@ function FeedProcessor() {
       "atom:link": new ElementInfo("links", null, null, true),
     },
 
-    /********* ATOM 0.3 **********/
+    /** ******* ATOM 0.3 **********/
     "IN_ATOM03": {
       "atom03:author": new ElementInfo("authors", Cc[PERSON_CONTRACTID],
                                        null, true),
@@ -1211,8 +1221,8 @@ function FeedProcessor() {
 }
 
 // See startElement for a long description of how feeds are processed.
-FeedProcessor.prototype = { 
-  
+FeedProcessor.prototype = {
+
   // Set ourselves as the SAX handler, and set the base URI
   _init: function FP_init(uri) {
     this._reader.contentHandler = this;
@@ -1230,7 +1240,7 @@ FeedProcessor.prototype = {
   // than the root.
   _docVerified: function FP_docVerified(version) {
     this._result.doc = Cc[FEED_CONTRACTID].createInstance(Ci.nsIFeed);
-    this._result.doc.baseURI = 
+    this._result.doc.baseURI =
       this._xmlBaseStack[this._xmlBaseStack.length - 1];
     this._result.doc.fields = this._feed;
     this._result.version = version;
@@ -1261,7 +1271,7 @@ FeedProcessor.prototype = {
   // Parsing functions
   parseFromStream: function FP_parseFromStream(stream, uri) {
     this._init(uri);
-    this._reader.parseFromStream(stream, null, stream.available(), 
+    this._reader.parseFromStream(stream, null, stream.available(),
                                  "application/xml");
     this._reader = null;
   },
@@ -1277,7 +1287,7 @@ FeedProcessor.prototype = {
     this._reader.parseAsync(requestObserver);
   },
 
-  // nsIStreamListener 
+  // nsIStreamListener
 
   // The XMLReader will throw sensible exceptions if these get called
   // out of order.
@@ -1311,7 +1321,7 @@ FeedProcessor.prototype = {
   // through.
   fatalError: function FP_reportError() {
     this._result.bozo = true;
-    //XXX need to QI to FeedProgressListener
+    // XXX need to QI to FeedProgressListener
     if (!this._haveSentResult)
       this._sendResult();
   },
@@ -1319,7 +1329,7 @@ FeedProcessor.prototype = {
   // nsISAXContentHandler
 
   startDocument: function FP_startDocument() {
-    //LOG("----------");
+    // LOG("----------");
   },
 
   endDocument: function FP_endDocument() {
@@ -1337,7 +1347,7 @@ FeedProcessor.prototype = {
   // multiple times, such as the RSS category element and the Atom
   // link element. Most of the RSS1/DC elements can occur multiple
   // times in theory, but in practice, the only ones that do have
-  // analogues in Atom. 
+  // analogues in Atom.
   //
   // Some elements are also groups of attributes or sub-elements,
   // while others are simple text fields. For the most part, we don't
@@ -1349,7 +1359,7 @@ FeedProcessor.prototype = {
   // being dictionaries, whether they are based on attributes like RSS
   // cloud, sub-elements like Atom author, or even items and
   // entries. These elements are treated as "containers". It's
-  // theoretically possible for a container to have an attribute with 
+  // theoretically possible for a container to have an attribute with
   // the same universal name as a sub-element, but none of the feed
   // formats allow this by default, and I don't of any extension that
   // works this way.
@@ -1359,7 +1369,7 @@ FeedProcessor.prototype = {
     ++this._depth;
     var elementInfo;
 
-    //LOG("<" + localName + ">");
+    // LOG("<" + localName + ">");
 
     // Check for xml:base
     var base = attributes.getValueFromName(XMLNS, "base");
@@ -1378,7 +1388,7 @@ FeedProcessor.prototype = {
 
     // Check to see if we need to hand this off to our XHTML handler.
     // The elements we're dealing with will look like this:
-    // 
+    //
     // <title type="xhtml">
     //   <div xmlns="http://www.w3.org/1999/xhtml">
     //     A title with <b>bold</b> and <i>italics</i>.
@@ -1386,18 +1396,18 @@ FeedProcessor.prototype = {
     // </title>
     //
     // When it returns in returnFromXHTMLHandler, the handler should
-    // give us back a string like this: 
-    // 
+    // give us back a string like this:
+    //
     //    "A title with <b>bold</b> and <i>italics</i>."
     //
     // The Atom spec explicitly says the div is not part of the content,
     // and explicitly allows whitespace collapsing.
-    // 
+    //
     if ((this._result.version == "atom" || this._result.version == "atom03") &&
         this._textConstructs[key] != null) {
-      var type = attributes.getValueFromName("","type");
+      var type = attributes.getValueFromName("", "type");
       if (type != null && type.indexOf("xhtml") >= 0) {
-        this._xhtmlHandler = 
+        this._xhtmlHandler =
           new XHTMLHandler(this, (this._result.version == "atom"));
         this._reader.contentHandler = this._xhtmlHandler;
         return;
@@ -1417,14 +1427,14 @@ FeedProcessor.prototype = {
       this._extensionHandler.startElement(uri, localName, qName, attributes);
       return;
     }
-      
+
     // This distinguishes wrappers like 'channel' from elements
     // we'd actually like to do something with (which will test true).
-    this._handlerStack[this._depth] = elementInfo; 
+    this._handlerStack[this._depth] = elementInfo;
     if (elementInfo.isWrapper) {
       this._state = "IN_" + elementInfo.fieldName.toUpperCase();
       this._stack.push([this._feed, this._state]);
-    } 
+    }
     else if (elementInfo.feedVersion) {
       this._state = "IN_" + elementInfo.fieldName.toUpperCase();
 
@@ -1450,10 +1460,10 @@ FeedProcessor.prototype = {
   // to distinguish endElement events from startElement events.
   endElement:  function FP_endElement(uri, localName, qName) {
     var elementInfo = this._handlerStack[this._depth];
-    //LOG("</" + localName + ">");
+    // LOG("</" + localName + ">");
     if (elementInfo && !elementInfo.isWrapper)
       this._closeComplexElement(elementInfo);
-  
+
     // cut down xml:base context
     if (this._xmlBaseStack.length == this._depth + 1)
       this._xmlBaseStack = this._xmlBaseStack.slice(0, this._depth);
@@ -1471,18 +1481,18 @@ FeedProcessor.prototype = {
     this._buf += data;
   },
   // TODO: It would be nice to check new prefixes here, and if they
-  // don't conflict with the ones we've defined, throw them in a 
+  // don't conflict with the ones we've defined, throw them in a
   // dictionary to check.
   startPrefixMapping: function FP_startPrefixMapping(prefix, uri) {
   },
-  
+
   endPrefixMapping: function FP_endPrefixMapping(prefix) {
   },
-  
+
   processingInstruction: function FP_processingInstruction(target, data) {
     if (target == "xml-stylesheet") {
       var hrefAttribute = data.match(/href=[\"\'](.*?)[\"\']/);
-      if (hrefAttribute && hrefAttribute.length == 2) 
+      if (hrefAttribute && hrefAttribute.length == 2)
         this._result.stylesheet = strToURI(hrefAttribute[1], this._result.uri);
     }
   },
@@ -1493,9 +1503,9 @@ FeedProcessor.prototype = {
   // attributes and child elements.
   _processComplexElement:
   function FP__processComplexElement(elementInfo, attributes) {
-    var obj, key, prefix;
+    var obj;
 
-    // If the container is an entry/item, it'll need to have its 
+    // If the container is an entry/item, it'll need to have its
     // more esoteric properties put in the 'fields' property bag.
     if (elementInfo.containerClass == Cc[ENTRY_CONTRACTID]) {
       obj = elementInfo.containerClass.createInstance(Ci.nsIFeedEntry);
@@ -1525,9 +1535,9 @@ FeedProcessor.prototype = {
     try {
       prop = container.getProperty(elementInfo.fieldName);
     }
-    catch(e) {
+    catch (e) {
     }
-    
+
     if (elementInfo.isArray) {
       if (!prop) {
         container.setPropertyAsInterface(elementInfo.fieldName,
@@ -1540,22 +1550,22 @@ FeedProcessor.prototype = {
       // off the handle in the browser, and loses track of the interface
       // on large files. Bug 335638.
       newProp.QueryInterface(Ci.nsIMutableArray);
-      newProp.appendElement(obj,false);
-      
+      newProp.appendElement(obj, false);
+
       // If new object is an nsIFeedContainer, we want to deal with
       // its member nsIPropertyBag instead.
       if (isIFeedContainer(obj))
-        newProp = obj.fields; 
+        newProp = obj.fields;
 
     }
     else {
       // If it doesn't, set it.
       if (!prop) {
-        container.setPropertyAsInterface(elementInfo.fieldName,obj);
+        container.setPropertyAsInterface(elementInfo.fieldName, obj);
       }
       newProp = container.getProperty(elementInfo.fieldName);
     }
-    
+
     // make our new state name, and push the property onto the stack
     var newState = "IN_" + elementInfo.fieldName.toUpperCase();
     this._stack.push([newProp, newState, obj]);
@@ -1593,7 +1603,7 @@ FeedProcessor.prototype = {
     if (isArray)
       container.replaceElementAt(element, container.length - 1, false);
   },
-  
+
   _prefixForNS: function FP_prefixForNS(uri) {
     if (!uri)
       return "";
@@ -1602,8 +1612,7 @@ FeedProcessor.prototype = {
       return prefix + ":";
     if (uri.toLowerCase().indexOf("http://backend.userland.com") == 0)
       return "";
-    else
-      return null;
+    return null;
   },
 
   _mapAttributes: function FP__mapAttributes(bag, attributes) {
@@ -1625,7 +1634,7 @@ FeedProcessor.prototype = {
                      "0.94":"rss094" }
     if (versions[versionAttr])
       return versions[versionAttr];
-    if (versionAttr.substr(0,2) != "2.")
+    if (versionAttr.substr(0, 2) != "2.")
       return "rssUnknown";
     return "rss2";
   },
@@ -1644,10 +1653,10 @@ FeedProcessor.prototype = {
     // we don't take random elements inside rdf:RDF
     if (this._state == "IN_RDF")
       return;
-    
+
     // Grab the top of the stack
     var top = this._stack[this._stack.length - 1];
-    if (!top) 
+    if (!top)
       return;
 
     var container = top[0];
@@ -1656,25 +1665,25 @@ FeedProcessor.prototype = {
       var contract = this._handlerStack[this._depth].containerClass;
       // check if it's something specific, but not an entry
       if (contract && contract != Cc[ENTRY_CONTRACTID]) {
-        var el = container.queryElementAt(container.length - 1, 
+        var el = container.queryElementAt(container.length - 1,
                                           Ci.nsIFeedElementBase);
         // XXX there must be a way to flatten these interfaces
-        if (contract == Cc[PERSON_CONTRACTID]) 
+        if (contract == Cc[PERSON_CONTRACTID])
           el.QueryInterface(Ci.nsIFeedPerson);
         else
           return; // don't know about this interface
 
-        var propName = localName;
+        let propName = localName;
         var prefix = gNamespaces[uri];
 
         // synonyms
-        if ((uri == "" || 
+        if ((uri == "" ||
              prefix &&
              ((prefix.indexOf("atom") > -1) ||
-              (prefix.indexOf("rss") > -1))) && 
+              (prefix.indexOf("rss") > -1))) &&
             (propName == "url" || propName == "href"))
           propName = "uri";
-        
+
         try {
           if (el[propName] !== "undefined") {
             var propValue = chars;
@@ -1686,18 +1695,16 @@ FeedProcessor.prototype = {
             el[propName] = propValue;
           }
         }
-        catch(e) {
+        catch (e) {
           // ignore XPConnect errors
         }
         // the rest of the function deals with entry- and feed-level stuff
-        return; 
-      } 
-      else {
-        container = container.queryElementAt(container.length - 1, 
-                                             Ci.nsIWritablePropertyBag2);
+        return;
       }
+      container = container.queryElementAt(container.length - 1,
+                                           Ci.nsIWritablePropertyBag2);
     }
-    
+
     // Make the buffer our new property
     var propName = this._prefixForNS(uri) + localName;
 
@@ -1710,7 +1717,7 @@ FeedProcessor.prototype = {
       newProp.text = chars;
       // Look up the default type in our table
       var type = this._textConstructs[propName];
-      var typeAttribute = attributes.getValueFromName("","type");
+      var typeAttribute = attributes.getValueFromName("", "type");
       if (this._result.version == "atom" && typeAttribute != null) {
         type = typeAttribute;
       }
@@ -1725,7 +1732,7 @@ FeedProcessor.prototype = {
           type = "text";
         }
       }
-      
+
       // If it's rss feed-level description, it's not supposed to have html
       if (this._result.version.indexOf("rss") >= 0 &&
           this._handlerStack[this._depth].containerClass != ENTRY_CONTRACTID) {
@@ -1751,7 +1758,7 @@ FeedProcessor.prototype = {
 
     // Grab the top of the stack
     var top = this._stack[this._stack.length - 1];
-    if (!top) 
+    if (!top)
       return;
     var container = top[0];
 
@@ -1763,7 +1770,7 @@ FeedProcessor.prototype = {
     newProp.base = this._xmlBaseStack[this._xmlBaseStack.length - 1];
     container.setPropertyAsInterface(this._prefixForNS(uri) + localName,
                                      newProp);
-    
+
     // XHTML will cause us to peek too far. The XHTML handler will
     // send us an end element to call. RFC4287-valid feeds allow a
     // more graceful way to handle this. Unfortunately, we can't count

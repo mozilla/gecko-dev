@@ -27,16 +27,14 @@
 namespace webrtc {
 namespace test {
 UdpSocketPosix::UdpSocketPosix(const int32_t id, UdpSocketManager* mgr,
-                               bool ipV6Enable)
+                               bool ipV6Enable) : _id(id)
 {
     WEBRTC_TRACE(kTraceMemory, kTraceTransport, id,
                  "UdpSocketPosix::UdpSocketPosix()");
 
     _wantsIncoming = false;
-    _error = 0;
     _mgr = mgr;
 
-    _id = id;
     _obj = NULL;
     _incomingCb = NULL;
     _readyForDeletionCond = ConditionVariableWrapper::CreateConditionVariable();
@@ -93,12 +91,6 @@ UdpSocketPosix::~UdpSocketPosix()
     }
 }
 
-int32_t UdpSocketPosix::ChangeUniqueId(const int32_t id)
-{
-    _id = id;
-    return 0;
-}
-
 bool UdpSocketPosix::SetCallback(CallbackObj obj, IncomingSocketCallback cb)
 {
     _obj = obj;
@@ -129,9 +121,8 @@ bool UdpSocketPosix::SetSockopt(int32_t level, int32_t optname,
        return true;
    }
 
-   _error = errno;
    WEBRTC_TRACE(kTraceError, kTraceTransport, _id,
-                "UdpSocketPosix::SetSockopt(), error:%d", _error);
+                "UdpSocketPosix::SetSockopt(), error:%d", errno);
    return false;
 }
 
@@ -151,13 +142,12 @@ bool UdpSocketPosix::Bind(const SocketAddress& name)
     {
         return true;
     }
-    _error = errno;
     WEBRTC_TRACE(kTraceError, kTraceTransport, _id,
-                 "UdpSocketPosix::Bind() error: %d",_error);
+                 "UdpSocketPosix::Bind() error: %d", errno);
     return false;
 }
 
-int32_t UdpSocketPosix::SendTo(const int8_t* buf, int32_t len,
+int32_t UdpSocketPosix::SendTo(const int8_t* buf, size_t len,
                                const SocketAddress& to)
 {
     int size = sizeof(sockaddr);
@@ -165,16 +155,14 @@ int32_t UdpSocketPosix::SendTo(const int8_t* buf, int32_t len,
                         reinterpret_cast<const sockaddr*>(&to), size);
     if(retVal == SOCKET_ERROR)
     {
-        _error = errno;
         WEBRTC_TRACE(kTraceError, kTraceTransport, _id,
-                     "UdpSocketPosix::SendTo() error: %d", _error);
+                     "UdpSocketPosix::SendTo() error: %d", errno);
     }
 
     return retVal;
 }
 
 SOCKET UdpSocketPosix::GetFd() { return _socket; }
-int32_t UdpSocketPosix::GetError() { return _error; }
 
 bool UdpSocketPosix::ValidHandle()
 {

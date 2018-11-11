@@ -1,7 +1,10 @@
 // Tests illegal UTF-8 sequences
 
-const Cc = Components.Constructor;
-const Ci = Components.interfaces;
+var Cc = Components.Constructor;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
+
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 const tests = [
 { inStrings: ["%80",                 // Illegal or incomplete sequences
@@ -95,16 +98,12 @@ function testCaseInputStream(inStr, expected)
   var dataURI = "data:text/plain; charset=UTF-8,ABC" + inStr + "XYZ"
   dump(inStr + "==>");
 
-  var IOService = Cc("@mozilla.org/network/io-service;1",
-		     "nsIIOService");
   var ConverterInputStream =
       Cc("@mozilla.org/intl/converter-input-stream;1",
 	 "nsIConverterInputStream",
 	 "init");
-
-  var ios = new IOService();
-  var channel = ios.newChannel(dataURI, "", null);
-  var testInputStream = channel.open();
+  var channel = NetUtil.newChannel({uri: dataURI, loadUsingSystemPrincipal: true});
+  var testInputStream = channel.open2();
   var testConverter = new ConverterInputStream(testInputStream,
 					       "UTF-8",
 					       16,

@@ -5,12 +5,16 @@
 #include "nsEscape.h"
 #include "nsString.h"
 #include "nsIURI.h"
-#include "nsNetUtil.h"
 #include "nsUrlClassifierUtils.h"
 #include "nsTArray.h"
 #include "nsReadableUtils.h"
 #include "plbase64.h"
-#include "prprf.h"
+#include "nsPrintfCString.h"
+#include "safebrowsing.pb.h"
+#include "mozilla/Sprintf.h"
+#include "mozilla/Mutex.h"
+
+#define DEFAULT_PROTOCOL_VERSION "2.2"
 
 static char int_to_hex_digit(int32_t i)
 {
@@ -70,7 +74,81 @@ IsOctal(const nsACString & num)
   return true;
 }
 
-nsUrlClassifierUtils::nsUrlClassifierUtils() : mEscapeCharmap(nullptr)
+/////////////////////////////////////////////////////////////////
+// SafeBrowsing V4 related utits.
+
+namespace mozilla {
+namespace safebrowsing {
+
+static PlatformType
+GetPlatformType()
+{
+#if defined(ANDROID)
+  return ANDROID_PLATFORM;
+#elif defined(XP_MACOSX)
+  return OSX_PLATFORM;
+#elif defined(XP_LINUX)
+  return LINUX_PLATFORM;
+#elif defined(XP_WIN)
+  return WINDOWS_PLATFORM;
+#else
+  return PLATFORM_TYPE_UNSPECIFIED;
+#endif
+}
+
+typedef FetchThreatListUpdatesRequest_ListUpdateRequest ListUpdateRequest;
+typedef FetchThreatListUpdatesRequest_ListUpdateRequest_Constraints Constraints;
+
+static void
+InitListUpdateRequest(ThreatType aThreatType,
+                      const char* aStateBase64,
+                      ListUpdateRequest* aListUpdateRequest)
+{
+  aListUpdateRequest->set_threat_type(aThreatType);
+  aListUpdateRequest->set_platform_type(GetPlatformType());
+  aListUpdateRequest->set_threat_entry_type(URL);
+
+  Constraints* contraints = new Constraints();
+  contraints->add_supported_compressions(RICE);
+  aListUpdateRequest->set_allocated_constraints(contraints);
+
+  // Only set non-empty state.
+  if (aStateBase64[0] != '\0') {
+    nsCString stateBinary;
+    nsresult rv = Base64Decode(nsCString(aStateBase64), stateBinary);
+    if (NS_SUCCEEDED(rv)) {
+      aListUpdateRequest->set_state(stateBinary.get(), stateBinary.Length());
+    }
+  }
+}
+
+static ClientInfo*
+CreateClientInfo()
+{
+  ClientInfo* c = new ClientInfo();
+
+  nsCOMPtr<nsIPrefBranch> prefBranch =
+    do_GetService(NS_PREFSERVICE_CONTRACTID);
+
+  nsXPIDLCString clientId;
+  nsresult rv = prefBranch->GetCharPref("browser.safebrowsing.id",
+                                        getter_Copies(clientId));
+
+  if (NS_FAILED(rv)) {
+    clientId = "Firefox"; // Use "Firefox" as fallback.
+  }
+
+  c->set_client_id(clientId.get());
+
+  return c;
+}
+
+} // end of namespace safebrowsing.
+} // end of namespace mozilla.
+
+nsUrlClassifierUtils::nsUrlClassifierUtils()
+  : mEscapeCharmap(nullptr)
+  , mProviderDictLock("nsUrlClassifierUtils.mProviderDictLock")
 {
 }
 
@@ -82,10 +160,31 @@ nsUrlClassifierUtils::Init()
                                0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
   if (!mEscapeCharmap)
     return NS_ERROR_OUT_OF_MEMORY;
+
+  // nsIUrlClassifierUtils is a thread-safe service so it's
+  // allowed to use on non-main threads. However, building
+  // the provider dictionary must be on the main thread.
+  // We forcefully load nsUrlClassifierUtils in
+  // nsUrlClassifierDBService::Init() to ensure we must
+  // now be on the main thread.
+  nsresult rv = ReadProvidersFromPrefs(mProviderDict);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // Add an observer for shutdown
+  nsCOMPtr<nsIObserverService> observerService =
+      mozilla::services::GetObserverService();
+  if (!observerService)
+    return NS_ERROR_FAILURE;
+
+  observerService->AddObserver(this, "xpcom-shutdown-threads", false);
+  Preferences::AddStrongObserver(this, "browser.safebrowsing");
+
   return NS_OK;
 }
 
-NS_IMPL_ISUPPORTS(nsUrlClassifierUtils, nsIUrlClassifierUtils)
+NS_IMPL_ISUPPORTS(nsUrlClassifierUtils,
+                  nsIUrlClassifierUtils,
+                  nsIObserver)
 
 /////////////////////////////////////////////////////////////////////////////
 // nsIUrlClassifierUtils
@@ -125,8 +224,210 @@ nsUrlClassifierUtils::GetKeyForURI(nsIURI * uri, nsACString & _retval)
   return NS_OK;
 }
 
+// We use "goog-*-proto" as the list name for v4, where "proto" indicates
+// it's updated (as well as hash completion) via protobuf.
+//
+// In the mozilla official build, we are allowed to use the
+// private phishing list (goog-phish-proto). See Bug 1288840.
+static const struct {
+  const char* mListName;
+  uint32_t mThreatType;
+} THREAT_TYPE_CONV_TABLE[] = {
+  { "goog-malware-proto",  MALWARE_THREAT},            // 1
+  { "googpub-phish-proto", SOCIAL_ENGINEERING_PUBLIC}, // 2
+  { "goog-unwanted-proto", UNWANTED_SOFTWARE},         // 3
+  { "goog-phish-proto", SOCIAL_ENGINEERING},           // 5
+
+  // For testing purpose.
+  { "test-phish-proto",    SOCIAL_ENGINEERING_PUBLIC}, // 2
+  { "test-unwanted-proto", UNWANTED_SOFTWARE}, // 3
+};
+
+NS_IMETHODIMP
+nsUrlClassifierUtils::ConvertThreatTypeToListNames(uint32_t aThreatType,
+                                                   nsACString& aListNames)
+{
+  for (uint32_t i = 0; i < ArrayLength(THREAT_TYPE_CONV_TABLE); i++) {
+    if (aThreatType == THREAT_TYPE_CONV_TABLE[i].mThreatType) {
+      if (!aListNames.IsEmpty()) {
+        aListNames.AppendLiteral(",");
+      }
+      aListNames += THREAT_TYPE_CONV_TABLE[i].mListName;
+    }
+  }
+
+  return aListNames.IsEmpty() ? NS_ERROR_FAILURE : NS_OK;
+}
+
+NS_IMETHODIMP
+nsUrlClassifierUtils::ConvertListNameToThreatType(const nsACString& aListName,
+                                                  uint32_t* aThreatType)
+{
+  for (uint32_t i = 0; i < ArrayLength(THREAT_TYPE_CONV_TABLE); i++) {
+    if (aListName.EqualsASCII(THREAT_TYPE_CONV_TABLE[i].mListName)) {
+      *aThreatType = THREAT_TYPE_CONV_TABLE[i].mThreatType;
+      return NS_OK;
+    }
+  }
+
+  return NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+nsUrlClassifierUtils::GetProvider(const nsACString& aTableName,
+                                  nsACString& aProvider)
+{
+  MutexAutoLock lock(mProviderDictLock);
+  nsCString* provider = nullptr;
+  if (mProviderDict.Get(aTableName, &provider)) {
+    aProvider = provider ? *provider : EmptyCString();
+  } else {
+    aProvider = EmptyCString();
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsUrlClassifierUtils::GetProtocolVersion(const nsACString& aProvider,
+                                         nsACString& aVersion)
+{
+  nsCOMPtr<nsIPrefBranch> prefBranch = do_GetService(NS_PREFSERVICE_CONTRACTID);
+  if (prefBranch) {
+      nsPrintfCString prefName("browser.safebrowsing.provider.%s.pver",
+                               nsCString(aProvider).get());
+      nsXPIDLCString version;
+      nsresult rv = prefBranch->GetCharPref(prefName.get(), getter_Copies(version));
+
+      aVersion = NS_SUCCEEDED(rv) ? version : DEFAULT_PROTOCOL_VERSION;
+  } else {
+      aVersion = DEFAULT_PROTOCOL_VERSION;
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsUrlClassifierUtils::MakeUpdateRequestV4(const char** aListNames,
+                                          const char** aStatesBase64,
+                                          uint32_t aCount,
+                                          nsACString &aRequest)
+{
+  using namespace mozilla::safebrowsing;
+
+  FetchThreatListUpdatesRequest r;
+  r.set_allocated_client(CreateClientInfo());
+
+  for (uint32_t i = 0; i < aCount; i++) {
+    nsCString listName(aListNames[i]);
+    uint32_t threatType;
+    nsresult rv = ConvertListNameToThreatType(listName, &threatType);
+    if (NS_FAILED(rv)) {
+      continue; // Unknown list name.
+    }
+    auto lur = r.mutable_list_update_requests()->Add();
+    InitListUpdateRequest(static_cast<ThreatType>(threatType), aStatesBase64[i], lur);
+  }
+
+  // Then serialize.
+  std::string s;
+  r.SerializeToString(&s);
+
+  nsCString out;
+  nsresult rv = Base64URLEncode(s.size(),
+                                (const uint8_t*)s.c_str(),
+                                Base64URLEncodePaddingPolicy::Include,
+                                out);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  aRequest = out;
+
+  return NS_OK;
+}
+
+//////////////////////////////////////////////////////////
+// nsIObserver
+
+NS_IMETHODIMP
+nsUrlClassifierUtils::Observe(nsISupports *aSubject, const char *aTopic,
+                              const char16_t *aData)
+{
+  if (0 == strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
+    MutexAutoLock lock(mProviderDictLock);
+    return ReadProvidersFromPrefs(mProviderDict);
+  }
+
+  if (0 == strcmp(aTopic, "xpcom-shutdown-threads")) {
+    nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+    NS_ENSURE_TRUE(prefs, NS_ERROR_FAILURE);
+    return prefs->RemoveObserver("browser.safebrowsing", this);
+  }
+
+  return NS_ERROR_UNEXPECTED;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // non-interface methods
+
+nsresult
+nsUrlClassifierUtils::ReadProvidersFromPrefs(ProviderDictType& aDict)
+{
+  MOZ_ASSERT(NS_IsMainThread(), "ReadProvidersFromPrefs must be on main thread");
+
+  nsCOMPtr<nsIPrefService> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+  NS_ENSURE_TRUE(prefs, NS_ERROR_FAILURE);
+  nsCOMPtr<nsIPrefBranch> prefBranch;
+  nsresult rv = prefs->GetBranch("browser.safebrowsing.provider.",
+                                  getter_AddRefs(prefBranch));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // We've got a pref branch for "browser.safebrowsing.provider.".
+  // Enumerate all children prefs and parse providers.
+  uint32_t childCount;
+  char** childArray;
+  rv = prefBranch->GetChildList("", &childCount, &childArray);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // Collect providers from childArray.
+  nsTHashtable<nsCStringHashKey> providers;
+  for (uint32_t i = 0; i < childCount; i++) {
+    nsCString child(childArray[i]);
+    auto dotPos = child.FindChar('.');
+    if (dotPos < 0) {
+      continue;
+    }
+
+    nsDependentCSubstring provider = Substring(child, 0, dotPos);
+
+    providers.PutEntry(provider);
+  }
+  NS_FREE_XPCOM_ALLOCATED_POINTER_ARRAY(childCount, childArray);
+
+  // Now we have all providers. Check which one owns |aTableName|.
+  // e.g. The owning lists of provider "google" is defined in
+  // "browser.safebrowsing.provider.google.lists".
+  for (auto itr = providers.Iter(); !itr.Done(); itr.Next()) {
+    auto entry = itr.Get();
+    nsCString provider(entry->GetKey());
+    nsPrintfCString owninListsPref("%s.lists", provider.get());
+
+    nsXPIDLCString owningLists;
+    nsresult rv = prefBranch->GetCharPref(owninListsPref.get(),
+                                          getter_Copies(owningLists));
+    if (NS_FAILED(rv)) {
+      continue;
+    }
+
+    // We've got the owning lists (represented as string) of |provider|.
+    // Build the dictionary for the owning list and the current provider.
+    nsTArray<nsCString> tables;
+    Classifier::SplitTables(owningLists, tables);
+    for (auto tableName : tables) {
+      aDict.Put(tableName, new nsCString(provider));
+    }
+  }
+
+  return NS_OK;
+}
 
 nsresult
 nsUrlClassifierUtils::CanonicalizeHostname(const nsACString & hostname,
@@ -315,7 +616,7 @@ nsUrlClassifierUtils::CanonicalNum(const nsACString& num,
 
   while (bytes--) {
     char buf[20];
-    PR_snprintf(buf, sizeof(buf), "%u", val & 0xff);
+    SprintfLiteral(buf, "%u", val & 0xff);
     if (_retval.IsEmpty()) {
       _retval.Assign(buf);
     } else {

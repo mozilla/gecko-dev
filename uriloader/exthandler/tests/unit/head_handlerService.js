@@ -4,10 +4,10 @@
 
 // Inspired by the Places infrastructure in head_bookmarks.js
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
-const Cu = Components.utils;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cr = Components.results;
+var Cu = Components.utils;
 
 var HandlerServiceTest = {
   //**************************************************************************//
@@ -123,14 +123,14 @@ var HandlerServiceTest = {
    */
   getDatasourceContents: function HandlerServiceTest_getDatasourceContents() {
     var rdf = Cc["@mozilla.org/rdf/rdf-service;1"].getService(Ci.nsIRDFService);
-  
+
     var ioService = Cc["@mozilla.org/network/io-service;1"].
                     getService(Ci.nsIIOService);
     var fileHandler = ioService.getProtocolHandler("file").
                       QueryInterface(Ci.nsIFileProtocolHandler);
     var fileURL = fileHandler.getURLSpecFromFile(this.getDatasourceFile());
     var ds = rdf.GetDataSourceBlocking(fileURL);
-  
+
     var outputStream = {
       data: "",
       close: function() {},
@@ -142,10 +142,10 @@ var HandlerServiceTest = {
       writeFrom: function (stream,count) {},
       isNonBlocking: false
     };
-  
+
     ds.QueryInterface(Components.interfaces.nsIRDFXMLSource);
     ds.Serialize(outputStream);
-  
+
     return outputStream.data;
   },
 

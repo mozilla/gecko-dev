@@ -1,9 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
-/* Any copyright is dedicated to the Public Domain.
- * http://creativecommons.org/publicdomain/zero/1.0/ */
-
-/**
+/*
  * Tests methods that find specific logins in the store (findLogins,
  * searchLogins, and countLogins).
  *
@@ -13,8 +8,7 @@
 
 "use strict";
 
-////////////////////////////////////////////////////////////////////////////////
-//// Globals
+// Globals
 
 /**
  * Returns a list of new nsILoginInfo objects that are a subset of the test
@@ -52,7 +46,7 @@ function checkSearchLogins(aQuery, aExpectedCount)
   let outCount = {};
   let logins = Services.logins.searchLogins(outCount, newPropertyBag(aQuery));
   do_check_eq(outCount.value, expectedLogins.length);
-  LoginTest.assertLoginListsEqual(logins, expectedLogins);
+  LoginTestUtils.assertLoginListsEqual(logins, expectedLogins);
 }
 
 /**
@@ -87,18 +81,17 @@ function checkAllSearches(aQuery, aExpectedCount)
   let logins = Services.logins.findLogins(outCount, hostname, formSubmitURL,
                                           httpRealm);
   do_check_eq(outCount.value, expectedLogins.length);
-  LoginTest.assertLoginListsEqual(logins, expectedLogins);
+  LoginTestUtils.assertLoginListsEqual(logins, expectedLogins);
 
   // Test countLogins.
-  let count = Services.logins.countLogins(hostname, formSubmitURL, httpRealm)
+  let count = Services.logins.countLogins(hostname, formSubmitURL, httpRealm);
   do_check_eq(count, expectedLogins.length);
 
   // Test searchLogins.
   checkSearchLogins(aQuery, aExpectedCount);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//// Tests
+// Tests
 
 /**
  * Prepare data for the following tests.

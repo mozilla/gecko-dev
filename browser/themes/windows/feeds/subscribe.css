@@ -7,10 +7,24 @@ html {
   font: 3mm tahoma,arial,helvetica,sans-serif;
 }
 
+#subscribeUsingDescription,
+#subscribeButton {
+  display: block;
+}
+
+#subscribeUsingDescription {
+  margin-bottom: 0.5em;
+}
+
+#subscribeButton {
+  margin-top: 0.5em;
+  margin-inline-start: auto;
+}
+
 #feedBody {
   border: 1px solid THreeDShadow;
   padding: 3em;
-  -moz-padding-start: 30px;
+  padding-inline-start: 30px;
   margin: 2em auto;
   background: -moz-Field;
 }
@@ -20,14 +34,19 @@ html {
   border-radius: 10px;
   margin: -4em auto 0 auto;
   background-color: InfoBackground;
+  display: flex;
 }
 
-#feedHeader {  
+#feedHeaderContainerSpacer {
+  flex-grow: 1;
+}
+
+#feedHeader {
   margin-top: 4.9em;
   margin-bottom: 1em;
-  -moz-margin-start: 1.4em;
-  -moz-margin-end: 1em;
-  -moz-padding-start: 2.9em;
+  margin-inline-start: 1.4em;
+  margin-inline-end: 1em;
+  padding-inline-start: 2.9em;
   font-size: 110%;
   color: InfoText;
 }
@@ -54,16 +73,17 @@ html {
 
 #feedHeader[firstrun="true"] #feedIntroText {
   padding-top: 0.1em;
-  -moz-padding-start: 0.6em;
+  padding-inline-start: 0.6em;
   display: block;
 }
 
 #feedHeader[firstrun="true"] > #feedSubscribeLine {
-  -moz-padding-start: 1.8em;
+  padding-inline-start: 1.8em;
 }
 
 #feedSubscribeLine {
   padding-top: 0.2em;
+  padding-inline-start: 0.5em;
 }
 
 /* Don't print subscription UI */
@@ -95,8 +115,8 @@ h2 {
 
 #feedTitleLink {
   float: right;
-  -moz-margin-start: .6em;
-  -moz-margin-end: 0;
+  margin-inline-start: .6em;
+  margin-inline-end: 0;
   margin-top: 0;
   margin-bottom: 0;
 }
@@ -106,15 +126,15 @@ a[href] img {
 }
 
 #feedTitleContainer {
-  -moz-margin-start: 0;
-  -moz-margin-end: .6em;
+  margin-inline-start: 0;
+  margin-inline-end: .6em;
   margin-top: 0;
   margin-bottom: 0;
 }
 
 #feedTitleImage {
-  -moz-margin-start: .6em;
-  -moz-margin-end: 0;
+  margin-inline-start: .6em;
+  margin-inline-end: 0;
   margin-top: 0;
   margin-bottom: 0;
   max-width: 300px;

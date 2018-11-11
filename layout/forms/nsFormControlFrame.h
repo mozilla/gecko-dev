@@ -8,14 +8,15 @@
 
 #include "mozilla/Attributes.h"
 #include "nsIFormControlFrame.h"
-#include "nsLeafFrame.h"
+#include "nsAtomicContainerFrame.h"
+#include "nsDisplayList.h"
 
-/** 
+/**
  * nsFormControlFrame is the base class for radio buttons and
  * checkboxes.  It also has two static methods (RegUnRegAccessKey and
  * GetScreenHeight) that are used by other form controls.
  */
-class nsFormControlFrame : public nsLeafFrame,
+class nsFormControlFrame : public nsAtomicContainerFrame,
                            public nsIFormControlFrame
 {
 public:
@@ -24,47 +25,75 @@ public:
     * @param aContent the content representing this frame
     * @param aParentFrame the parent frame
     */
-  nsFormControlFrame(nsStyleContext*);
+  explicit nsFormControlFrame(nsStyleContext*);
 
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE
+  virtual bool IsFrameOfType(uint32_t aFlags) const override
   {
-    return nsLeafFrame::IsFrameOfType(aFlags &
+    return nsAtomicContainerFrame::IsFrameOfType(aFlags &
       ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));
   }
 
   NS_DECL_QUERYFRAME
-  NS_DECL_FRAMEARENA_HELPERS
+  NS_DECL_ABSTRACT_FRAME(nsFormControlFrame)
 
-  /** 
+  // nsIFrame replacements
+  virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                                const nsRect&           aDirtyRect,
+                                const nsDisplayListSet& aLists) override {
+    DO_GLOBAL_REFLOW_COUNT_DSP("nsFormControlFrame");
+    DisplayBorderBackgroundOutline(aBuilder, aLists);
+  }
+
+  /**
+   * Both GetMinISize and GetPrefISize will return whatever GetIntrinsicISize
+   * returns.
+   */
+  virtual nscoord GetMinISize(nsRenderingContext *aRenderingContext) override;
+  virtual nscoord GetPrefISize(nsRenderingContext *aRenderingContext) override;
+
+  /**
+   * Our auto size is just intrinsic width and intrinsic height.
+   */
+  virtual mozilla::LogicalSize
+  ComputeAutoSize(nsRenderingContext*         aRenderingContext,
+                  mozilla::WritingMode        aWM,
+                  const mozilla::LogicalSize& aCBSize,
+                  nscoord                     aAvailableISize,
+                  const mozilla::LogicalSize& aMargin,
+                  const mozilla::LogicalSize& aBorder,
+                  const mozilla::LogicalSize& aPadding,
+                  ComputeSizeFlags            aFlags) override;
+
+  /**
     * Respond to a gui event
     * @see nsIFrame::HandleEvent
     */
-  virtual nsresult HandleEvent(nsPresContext* aPresContext, 
+  virtual nsresult HandleEvent(nsPresContext* aPresContext,
                                mozilla::WidgetGUIEvent* aEvent,
-                               nsEventStatus* aEventStatus) MOZ_OVERRIDE;
+                               nsEventStatus* aEventStatus) override;
 
   virtual nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode)
-    const MOZ_OVERRIDE;
+    const override;
 
   /**
     * Respond to the request to resize and/or reflow
     * @see nsIFrame::Reflow
     */
   virtual void Reflow(nsPresContext*      aCX,
-                      nsHTMLReflowMetrics& aDesiredSize,
-                      const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus&      aStatus) MOZ_OVERRIDE;
+                      ReflowOutput& aDesiredSize,
+                      const ReflowInput& aReflowInput,
+                      nsReflowStatus&      aStatus) override;
 
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
 
   // new behavior
 
-  virtual void SetFocus(bool aOn = true, bool aRepaint = false) MOZ_OVERRIDE;
+  virtual void SetFocus(bool aOn = true, bool aRepaint = false) override;
 
   // nsIFormControlFrame
-  virtual nsresult SetFormProperty(nsIAtom* aName, const nsAString& aValue) MOZ_OVERRIDE;
+  virtual nsresult SetFormProperty(nsIAtom* aName, const nsAString& aValue) override;
 
   // AccessKey Helper function
   static nsresult RegUnRegAccessKey(nsIFrame * aFrame, bool aDoReg);
@@ -79,14 +108,14 @@ protected:
 
   virtual ~nsFormControlFrame();
 
-  virtual nscoord GetIntrinsicWidth() MOZ_OVERRIDE;
-  virtual nscoord GetIntrinsicHeight() MOZ_OVERRIDE;
+  nscoord GetIntrinsicISize();
+  nscoord GetIntrinsicBSize();
 
 //
 //-------------------------------------------------------------------------------------
 //  Utility methods for managing checkboxes and radiobuttons
 //-------------------------------------------------------------------------------------
-//   
+//
    /**
     * Get the state of the checked attribute.
     * @param aState set to true if the checked attribute is set,

@@ -1,15 +1,19 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsDOMNavigationTiming.h"
-#include "nsPerformance.h"
+
+#include "GeckoProfiler.h"
 #include "nsCOMPtr.h"
 #include "nsContentUtils.h"
 #include "nsIScriptSecurityManager.h"
 #include "prtime.h"
 #include "nsIURI.h"
+#include "nsPrintfCString.h"
+#include "mozilla/dom/PerformanceNavigation.h"
 #include "mozilla/TimeStamp.h"
 
 nsDOMNavigationTiming::nsDOMNavigationTiming()
@@ -24,7 +28,7 @@ nsDOMNavigationTiming::~nsDOMNavigationTiming()
 void
 nsDOMNavigationTiming::Clear()
 {
-  mNavigationType = mozilla::dom::PerformanceNavigation::TYPE_RESERVED;
+  mNavigationType = TYPE_RESERVED;
   mNavigationStartHighRes = 0;
   mBeforeUnloadStart = 0;
   mUnloadStart = 0;
@@ -44,6 +48,7 @@ nsDOMNavigationTiming::Clear()
   mDOMContentLoadedEventStartSet = false;
   mDOMContentLoadedEventEndSet = false;
   mDOMCompleteSet = false;
+  mDocShellHasBeenActiveSinceNavigationStart = false;
 }
 
 DOMTimeMilliSec
@@ -56,19 +61,21 @@ nsDOMNavigationTiming::TimeStampToDOM(mozilla::TimeStamp aStamp) const
   return GetNavigationStart() + static_cast<int64_t>(duration.ToMilliseconds());
 }
 
-DOMTimeMilliSec nsDOMNavigationTiming::DurationFromStart(){
+DOMTimeMilliSec nsDOMNavigationTiming::DurationFromStart()
+{
   return TimeStampToDOM(mozilla::TimeStamp::Now());
 }
 
 void
-nsDOMNavigationTiming::NotifyNavigationStart()
+nsDOMNavigationTiming::NotifyNavigationStart(DocShellState aDocShellState)
 {
   mNavigationStartHighRes = (double)PR_Now() / PR_USEC_PER_MSEC;
   mNavigationStartTimeStamp = mozilla::TimeStamp::Now();
+  mDocShellHasBeenActiveSinceNavigationStart = (aDocShellState == DocShellState::eActive);
 }
 
 void
-nsDOMNavigationTiming::NotifyFetchStart(nsIURI* aURI, nsDOMPerformanceNavigationType aNavigationType)
+nsDOMNavigationTiming::NotifyFetchStart(nsIURI* aURI, Type aNavigationType)
 {
   mNavigationType = aNavigationType;
   // At the unload event time we don't really know the loading uri.
@@ -179,6 +186,44 @@ nsDOMNavigationTiming::NotifyDOMContentLoadedEnd(nsIURI* aURI)
   }
 }
 
+void
+nsDOMNavigationTiming::NotifyNonBlankPaintForRootContentDocument()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(!mNavigationStartTimeStamp.IsNull());
+
+  if (!mNonBlankPaintTimeStamp.IsNull()) {
+    return;
+  }
+
+  mNonBlankPaintTimeStamp = TimeStamp::Now();
+  TimeDuration elapsed = mNonBlankPaintTimeStamp - mNavigationStartTimeStamp;
+
+  if (profiler_is_active()) {
+    nsAutoCString spec;
+    if (mLoadedURI) {
+      mLoadedURI->GetSpec(spec);
+    }
+    nsPrintfCString marker("Non-blank paint after %dms for URL %s, %s",
+                           int(elapsed.ToMilliseconds()), spec.get(),
+                           mDocShellHasBeenActiveSinceNavigationStart ? "foreground tab" : "this tab was inactive some of the time between navigation start and first non-blank paint");
+    PROFILER_MARKER(marker.get());
+  }
+
+  if (mDocShellHasBeenActiveSinceNavigationStart) {
+    Telemetry::AccumulateTimeDelta(Telemetry::TIME_TO_NON_BLANK_PAINT_MS,
+                                   mNavigationStartTimeStamp,
+                                   mNonBlankPaintTimeStamp);
+  }
+}
+
+void
+nsDOMNavigationTiming::NotifyDocShellStateChanged(DocShellState aDocShellState)
+{
+  mDocShellHasBeenActiveSinceNavigationStart &=
+    (aDocShellState == DocShellState::eActive);
+}
+
 DOMTimeMilliSec
 nsDOMNavigationTiming::GetUnloadEventStart()
 {
@@ -200,4 +245,3 @@ nsDOMNavigationTiming::GetUnloadEventEnd()
   }
   return 0;
 }
-

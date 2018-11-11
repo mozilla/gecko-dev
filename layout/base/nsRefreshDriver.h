@@ -13,10 +13,13 @@
 #define nsRefreshDriver_h_
 
 #include "mozilla/TimeStamp.h"
+#include "mozilla/Vector.h"
+#include "mozilla/WeakPtr.h"
 #include "mozFlushType.h"
 #include "nsTObserverArray.h"
 #include "nsTArray.h"
 #include "nsTHashtable.h"
+#include "nsTObserverArray.h"
 #include "nsClassHashtable.h"
 #include "nsHashKeys.h"
 #include "mozilla/Attributes.h"
@@ -28,11 +31,15 @@ class nsPresContext;
 class nsIPresShell;
 class nsIDocument;
 class imgIRequest;
-class nsIRunnable;
+class nsIDOMEvent;
+class nsINode;
 
 namespace mozilla {
 class RefreshDriverTimer;
-}
+namespace layout {
+class VsyncChild;
+} // namespace layout
+} // namespace mozilla
 
 /**
  * An abstract base class to be implemented by callers wanting to be
@@ -63,14 +70,12 @@ public:
   virtual void DidRefresh() = 0;
 };
 
-class nsRefreshDriver MOZ_FINAL : public mozilla::layers::TransactionIdAllocator,
-                                  public nsARefreshObserver {
+class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
+                              public nsARefreshObserver
+{
 public:
-  nsRefreshDriver(nsPresContext *aPresContext);
+  explicit nsRefreshDriver(nsPresContext *aPresContext);
   ~nsRefreshDriver();
-
-  static void InitializeStatics();
-  static void Shutdown();
 
   /**
    * Methods for testing, exposed via nsIDOMWindowUtils.  See
@@ -150,7 +155,7 @@ public:
    */
   bool AddStyleFlushObserver(nsIPresShell* aShell) {
     NS_ASSERTION(!mStyleFlushObservers.Contains(aShell),
-		 "Double-adding style flush observer");
+                 "Double-adding style flush observer");
     // We only get the cause for the first observer each frame because capturing
     // a stack is expensive. This is still useful if (1) you're trying to remove
     // all flushes for a particial frame or (2) the costly flush is triggered
@@ -159,7 +164,7 @@ public:
       mStyleCause = profiler_get_backtrace();
     }
     bool appended = mStyleFlushObservers.AppendElement(aShell) != nullptr;
-    EnsureTimerStarted(false);
+    EnsureTimerStarted();
 
     return appended;
   }
@@ -168,7 +173,7 @@ public:
   }
   bool AddLayoutFlushObserver(nsIPresShell* aShell) {
     NS_ASSERTION(!IsLayoutFlushObserver(aShell),
-		 "Double-adding layout flush observer");
+                 "Double-adding layout flush observer");
     // We only get the cause for the first observer each frame because capturing
     // a stack is expensive. This is still useful if (1) you're trying to remove
     // all flushes for a particial frame or (2) the costly flush is triggered
@@ -177,7 +182,7 @@ public:
       mReflowCause = profiler_get_backtrace();
     }
     bool appended = mLayoutFlushObservers.AppendElement(aShell) != nullptr;
-    EnsureTimerStarted(false);
+    EnsureTimerStarted();
     return appended;
   }
   void RemoveLayoutFlushObserver(nsIPresShell* aShell) {
@@ -188,9 +193,9 @@ public:
   }
   bool AddPresShellToInvalidateIfHidden(nsIPresShell* aShell) {
     NS_ASSERTION(!mPresShellsToInvalidateIfHidden.Contains(aShell),
-		 "Double-adding style flush observer");
+                 "Double-adding style flush observer");
     bool appended = mPresShellsToInvalidateIfHidden.AppendElement(aShell) != nullptr;
-    EnsureTimerStarted(false);
+    EnsureTimerStarted();
     return appended;
   }
   void RemovePresShellToInvalidateIfHidden(nsIPresShell* aShell) {
@@ -209,24 +214,38 @@ public:
   }
 
   /**
-   * Add a document for which we have nsIFrameRequestCallbacks
+   * Add a document for which we have FrameRequestCallbacks
    */
   void ScheduleFrameRequestCallbacks(nsIDocument* aDocument);
 
   /**
-   * Remove a document for which we have nsIFrameRequestCallbacks
+   * Remove a document for which we have FrameRequestCallbacks
    */
   void RevokeFrameRequestCallbacks(nsIDocument* aDocument);
+
+  /**
+   * Queue a new event to dispatch in next tick before the style flush
+   */
+  void ScheduleEventDispatch(nsINode* aTarget, nsIDOMEvent* aEvent);
+
+  /**
+   * Cancel all pending events scheduled by ScheduleEventDispatch which
+   * targets any node in aDocument.
+   */
+  void CancelPendingEvents(nsIDocument* aDocument);
+
+  /**
+   * Schedule a frame visibility update "soon", subject to the heuristics and
+   * throttling we apply to visibility updates.
+   */
+  void ScheduleFrameVisibilityUpdate() { mNeedToRecomputeVisibility = true; }
 
   /**
    * Tell the refresh driver that it is done driving refreshes and
    * should stop its timer and forget about its pres context.  This may
    * be called from within a refresh.
    */
-  void Disconnect() {
-    StopTimer();
-    mPresContext = nullptr;
-  }
+  void Disconnect();
 
   bool IsFrozen() { return mFreezeCount > 0; }
 
@@ -254,14 +273,22 @@ public:
   /**
    * Return the prescontext we were initialized with
    */
-  nsPresContext* PresContext() const { return mPresContext; }
+  nsPresContext* GetPresContext() const { return mPresContext; }
+
+  /**
+   * PBackgroundChild actor is created asynchronously in content process.
+   * We can't create vsync-based timers during PBackground startup. This
+   * function will be called when PBackgroundChild actor is created. Then we can
+   * do the pending vsync-based timer creation.
+   */
+  static void PVsyncActorCreated(mozilla::layout::VsyncChild* aVsyncChild);
 
 #ifdef DEBUG
   /**
    * Check whether the given observer is an observer for the given flush type
    */
   bool IsRefreshObserver(nsARefreshObserver *aObserver,
-			   mozFlushType aFlushType);
+                         mozFlushType aFlushType);
 #endif
 
   /**
@@ -271,17 +298,78 @@ public:
 
   bool IsInRefresh() { return mInRefresh; }
 
-  // mozilla::layers::TransactionIdAllocator
-  virtual uint64_t GetTransactionId() MOZ_OVERRIDE;
-  void NotifyTransactionCompleted(uint64_t aTransactionId) MOZ_OVERRIDE;
-  void RevokeTransactionId(uint64_t aTransactionId) MOZ_OVERRIDE;
+  void SetIsResizeSuppressed() { mResizeSuppressed = true; }
+  bool IsResizeSuppressed() const { return mResizeSuppressed; }
 
-  bool IsWaitingForPaint();
+  /**
+   * The latest value of process-wide jank levels.
+   *
+   * For each i, sJankLevels[i] counts the number of times delivery of
+   * vsync to the main thread has been delayed by at least 2^i
+   * ms. This data structure has been designed to make it easy to
+   * determine how much jank has taken place between two instants in
+   * time.
+   *
+   * Return `false` if `aJank` needs to be grown to accomodate the
+   * data but we didn't have enough memory.
+   */
+  static bool GetJankLevels(mozilla::Vector<uint64_t>& aJank);
+
+  // mozilla::layers::TransactionIdAllocator
+  uint64_t GetTransactionId() override;
+  uint64_t LastTransactionId() const override;
+  void NotifyTransactionCompleted(uint64_t aTransactionId) override;
+  void RevokeTransactionId(uint64_t aTransactionId) override;
+  mozilla::TimeStamp GetTransactionStart() override;
+
+  bool IsWaitingForPaint(mozilla::TimeStamp aTime);
 
   // nsARefreshObserver
-  NS_IMETHOD_(MozExternalRefCountType) AddRef(void) { return TransactionIdAllocator::AddRef(); }
-  NS_IMETHOD_(MozExternalRefCountType) Release(void) { return TransactionIdAllocator::Release(); }
-  virtual void WillRefresh(mozilla::TimeStamp aTime);
+  NS_IMETHOD_(MozExternalRefCountType) AddRef(void) override { return TransactionIdAllocator::AddRef(); }
+  NS_IMETHOD_(MozExternalRefCountType) Release(void) override { return TransactionIdAllocator::Release(); }
+  virtual void WillRefresh(mozilla::TimeStamp aTime) override;
+
+  /**
+   * Compute the time when the currently active refresh driver timer
+   * will start its next tick.
+   *
+   * Returns 'Nothing' if the refresh driver timer hasn't been
+   * initialized or if we can't tell when the next tick will happen.
+   *
+   * Returns Some(TimeStamp()), i.e. the null time, if the next tick is late.
+   *
+   * Otherwise returns Some(TimeStamp(t)), where t is the time of the next tick.
+   *
+   * Using these three types of return values it is possible to
+   * estimate three different things about the idleness of the
+   * currently active group of refresh drivers. This information is
+   * used by nsThread to schedule lower priority "idle tasks".
+   *
+   * The 'Nothing' return value indicates to nsThread that the
+   * currently active refresh drivers will be idle for a time
+   * significantly longer than the current refresh rate and that it is
+   * free to schedule longer periods for executing idle tasks. This is the
+   * expected result when we aren't animating.
+
+   * Returning the null time indicates to nsThread that we are very
+   * busy and that it should definitely not schedule idle tasks at
+   * all. This is the expected result when we are animating, but
+   * aren't able to keep up with the animation and hence need to skip
+   * paints. Since catching up to missed paints will happen as soon as
+   * possible, this is the expected result if any of the refresh
+   * drivers attached to the current refresh driver misses a paint.
+   *
+   * Returning Some(TimeStamp(t)) indicates to nsThread that we will
+   * be idle until. This is usually the case when we're animating
+   * without skipping paints.
+   */
+  static mozilla::Maybe<mozilla::TimeStamp> GetIdleDeadlineHint();
+
+  bool SkippedPaints() const
+  {
+    return mSkippedPaints;
+  }
+
 private:
   typedef nsTObserverArray<nsARefreshObserver*> ObserverArray;
   typedef nsTHashtable<nsISupportsHashKey> RequestTable;
@@ -295,30 +383,32 @@ private:
   };
   typedef nsClassHashtable<nsUint32HashKey, ImageStartData> ImageStartTable;
 
+  void DispatchPendingEvents();
+  void DispatchAnimationEvents();
+  void RunFrameRequestCallbacks(mozilla::TimeStamp aNowTime);
   void Tick(int64_t aNowEpoch, mozilla::TimeStamp aNowTime);
 
-  void EnsureTimerStarted(bool aAdjustingTimer);
+  enum EnsureTimerStartedFlags {
+    eNone = 0,
+    eForceAdjustTimer = 1 << 0,
+    eAllowTimeToGoBackwards = 1 << 1,
+    eNeverAdjustTimer = 1 << 2,
+  };
+  void EnsureTimerStarted(EnsureTimerStartedFlags aFlags = eNone);
   void StopTimer();
 
   uint32_t ObserverCount() const;
   uint32_t ImageRequestCount() const;
-  static PLDHashOperator ImageRequestEnumerator(nsISupportsHashKey* aEntry,
-                                                void* aUserArg);
-  static PLDHashOperator StartTableRequestCounter(const uint32_t& aKey,
-                                                  ImageStartData* aEntry,
-                                                  void* aUserArg);
-  static PLDHashOperator StartTableRefresh(const uint32_t& aKey,
-                                           ImageStartData* aEntry,
-                                           void* aUserArg);
-  static PLDHashOperator BeginRefreshingImages(nsISupportsHashKey* aEntry,
-                                               void* aUserArg);
   ObserverArray& ArrayFor(mozFlushType aFlushType);
   // Trigger a refresh immediately, if haven't been disconnected or frozen.
   void DoRefresh();
 
   double GetRefreshTimerInterval() const;
   double GetRegularTimerInterval(bool *outIsDefault = nullptr) const;
-  double GetThrottledTimerInterval() const;
+  static double GetThrottledTimerInterval();
+
+  static mozilla::TimeDuration GetMinRecomputeVisibilityInterval();
+  static mozilla::TimeDuration GetMinNotifyIntersectionObserversInterval();
 
   bool HaveFrameRequestCallbacks() const {
     return mFrameRequestCallbackDocs.Length() != 0;
@@ -327,15 +417,15 @@ private:
   void FinishedWaitingForTransaction();
 
   mozilla::RefreshDriverTimer* ChooseTimer() const;
-  mozilla::RefreshDriverTimer *mActiveTimer;
+  mozilla::RefreshDriverTimer* mActiveTimer;
 
   ProfilerBacktrace* mReflowCause;
   ProfilerBacktrace* mStyleCause;
 
-  nsPresContext *mPresContext; // weak; pres context passed in constructor
-                               // and unset in Disconnect
+  // nsPresContext passed in constructor and unset in Disconnect.
+  mozilla::WeakPtr<nsPresContext> mPresContext;
 
-  nsRefPtr<nsRefreshDriver> mRootRefresh;
+  RefPtr<nsRefreshDriver> mRootRefresh;
 
   // The most recently allocated transaction id.
   uint64_t mPendingTransaction;
@@ -343,7 +433,21 @@ private:
   uint64_t mCompletedTransaction;
 
   uint32_t mFreezeCount;
+
+  // How long we wait between ticks for throttled (which generally means
+  // non-visible) documents registered with a non-throttled refresh driver.
+  const mozilla::TimeDuration mThrottledFrameRequestInterval;
+
+  // How long we wait, at a minimum, before recomputing approximate frame
+  // visibility information. This is a minimum because, regardless of this
+  // interval, we only recompute visibility when we've seen a layout or style
+  // flush since the last time we did it.
+  const mozilla::TimeDuration mMinRecomputeVisibilityInterval;
+
+  const mozilla::TimeDuration mMinNotifyIntersectionObserversInterval;
+
   bool mThrottled;
+  bool mNeedToRecomputeVisibility;
   bool mTestControllingRefreshes;
   bool mViewManagerFlushIsPending;
   bool mRequestedHighPrecision;
@@ -355,36 +459,65 @@ private:
   // True if Tick() was skipped because of mWaitingForTransaction and
   // we should schedule a new Tick immediately when resumed instead
   // of waiting until the next interval.
-  uint32_t mSkippedPaints;
+  bool mSkippedPaints;
+
+  // True if view managers should delay any resize request until the
+  // next tick by the refresh driver. This flag will be reset at the
+  // start of every tick.
+  bool mResizeSuppressed;
 
   int64_t mMostRecentRefreshEpochTime;
+  // Number of seconds that the refresh driver is blocked waiting for a compositor
+  // transaction to be completed before we append a note to the gfx critical log.
+  // The number is doubled every time the threshold is hit.
+  uint64_t mWarningThreshold;
   mozilla::TimeStamp mMostRecentRefresh;
+  mozilla::TimeStamp mMostRecentTick;
+  mozilla::TimeStamp mTickStart;
+  mozilla::TimeStamp mNextThrottledFrameRequestTick;
+  mozilla::TimeStamp mNextRecomputeVisibilityTick;
+  mozilla::TimeStamp mNextNotifyIntersectionObserversTick;
 
   // separate arrays for each flush type we support
   ObserverArray mObservers[3];
   RequestTable mRequests;
   ImageStartTable mStartTable;
 
-  nsAutoTArray<nsIPresShell*, 16> mStyleFlushObservers;
-  nsAutoTArray<nsIPresShell*, 16> mLayoutFlushObservers;
-  nsAutoTArray<nsIPresShell*, 16> mPresShellsToInvalidateIfHidden;
+  struct PendingEvent {
+    nsCOMPtr<nsINode> mTarget;
+    nsCOMPtr<nsIDOMEvent> mEvent;
+  };
+
+  AutoTArray<nsIPresShell*, 16> mStyleFlushObservers;
+  AutoTArray<nsIPresShell*, 16> mLayoutFlushObservers;
+  AutoTArray<nsIPresShell*, 16> mPresShellsToInvalidateIfHidden;
   // nsTArray on purpose, because we want to be able to swap.
   nsTArray<nsIDocument*> mFrameRequestCallbackDocs;
-  nsTArray<nsAPostRefreshObserver*> mPostRefreshObservers;
+  nsTArray<nsIDocument*> mThrottledFrameRequestCallbackDocs;
+  nsTObserverArray<nsAPostRefreshObserver*> mPostRefreshObservers;
+  nsTArray<PendingEvent> mPendingEvents;
 
-  // Helper struct for processing image requests
-  struct ImageRequestParameters {
-    mozilla::TimeStamp mCurrent;
-    mozilla::TimeStamp mPrevious;
-    RequestTable* mRequests;
-    mozilla::TimeStamp mDesired;
-  };
+  void BeginRefreshingImages(RequestTable& aEntries,
+                             mozilla::TimeStamp aDesired);
 
   friend class mozilla::RefreshDriverTimer;
 
   // turn on or turn off high precision based on various factors
   void ConfigureHighPrecision();
   void SetHighPrecisionTimersEnabled(bool aEnable);
+
+  static void Shutdown();
+
+  // `true` if we are currently in jank-critical mode.
+  //
+  // In jank-critical mode, any iteration of the event loop that takes
+  // more than 16ms to compute will cause an ongoing animation to miss
+  // frames.
+  //
+  // For simplicity, the current implementation assumes that we are
+  // in jank-critical mode if and only if the vsync driver has at least
+  // one observer.
+  static bool IsJankCritical();
 };
 
 #endif /* !defined(nsRefreshDriver_h_) */

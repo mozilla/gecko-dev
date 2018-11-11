@@ -44,7 +44,7 @@ interface GlobalEventHandlers {
            attribute EventHandler ondrag;
            attribute EventHandler ondragend;
            attribute EventHandler ondragenter;
-           //(Not implemented)attribute EventHandler ondragexit;
+           attribute EventHandler ondragexit;
            attribute EventHandler ondragleave;
            attribute EventHandler ondragover;
            attribute EventHandler ondragstart;
@@ -60,6 +60,7 @@ interface GlobalEventHandlers {
            attribute EventHandler onload;
            attribute EventHandler onloadeddata;
            attribute EventHandler onloadedmetadata;
+           attribute EventHandler onloadend;
            attribute EventHandler onloadstart;
            attribute EventHandler onmousedown;
   [LenientThis] attribute EventHandler onmouseenter;
@@ -75,6 +76,7 @@ interface GlobalEventHandlers {
            attribute EventHandler onprogress;
            attribute EventHandler onratechange;
            attribute EventHandler onreset;
+           attribute EventHandler onresize;
            attribute EventHandler onscroll;
            attribute EventHandler onseeked;
            attribute EventHandler onseeking;
@@ -87,6 +89,12 @@ interface GlobalEventHandlers {
            attribute EventHandler ontimeupdate;
            attribute EventHandler onvolumechange;
            attribute EventHandler onwaiting;
+
+           [Pref="dom.select_events.enabled"]
+           attribute EventHandler onselectstart;
+
+           [Pref="dom.details_element.enabled"]
+           attribute EventHandler ontoggle;
 
            // Pointer events handlers
            [Pref="dom.w3c_pointer_events.enabled"]
@@ -110,11 +118,31 @@ interface GlobalEventHandlers {
            [Pref="dom.w3c_pointer_events.enabled"]
            attribute EventHandler onlostpointercapture;
 
-           // Mozilla-specific handlers
+           // Mozilla-specific handlers. Unprefixed handlers live in
+           // Document rather than here.
            attribute EventHandler onmozfullscreenchange;
            attribute EventHandler onmozfullscreenerror;
+           [Pref="pointer-lock-api.prefixed.enabled"]
            attribute EventHandler onmozpointerlockchange;
+           [Pref="pointer-lock-api.prefixed.enabled"]
            attribute EventHandler onmozpointerlockerror;
+
+           // CSS-Animation and CSS-Transition handlers.
+           attribute EventHandler onanimationend;
+           attribute EventHandler onanimationiteration;
+           attribute EventHandler onanimationstart;
+           attribute EventHandler ontransitionend;
+           // We will ship transitionrun and transitionstart events
+           // on Firefox 53. (For detail, see bug 1324985)
+//           attribute EventHandler ontransitionrun;
+//           attribute EventHandler ontransitionstart;
+
+           // CSS-Animation and CSS-Transition legacy handlers.
+           // This handler isn't standard.
+           attribute EventHandler onwebkitanimationend;
+           attribute EventHandler onwebkitanimationiteration;
+           attribute EventHandler onwebkitanimationstart;
+           attribute EventHandler onwebkittransitionend;
 };
 
 [NoInterfaceObject]
@@ -130,8 +158,7 @@ interface WindowEventHandlers {
            attribute EventHandler onpagehide;
            attribute EventHandler onpageshow;
            attribute EventHandler onpopstate;
-           attribute EventHandler onresize;
-           //(Not implemented)attribute EventHandler onstorage;
+           attribute EventHandler onstorage;
            attribute EventHandler onunload;
 };
 

@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,11 +8,17 @@
 #include "mozilla/ContentEvents.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/EventDispatcher.h"
+#include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/PathHelpers.h"
+#include "mozilla/Likely.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/MouseEvents.h"
-#include "mozilla/Likely.h"
+#include "mozilla/TextEditRules.h"
 
+#include "gfxUtils.h"
+#include "nsAlgorithm.h"
 #include "nsCOMPtr.h"
+#include "nsFontMetrics.h"
 #include "nsPresContext.h"
 #include "nsNameSpaceManager.h"
 
@@ -39,24 +46,24 @@
 #include "nsContainerFrame.h"
 #include "nsView.h"
 #include "nsViewManager.h"
+#include "nsVariant.h"
 #include "nsWidgetsCID.h"
 #include "nsBoxFrame.h"
-#include "nsBoxObject.h"
 #include "nsIURL.h"
-#include "nsNetUtil.h"
 #include "nsBoxLayoutState.h"
 #include "nsTreeContentView.h"
 #include "nsTreeUtils.h"
+#include "nsThemeConstants.h"
 #include "nsITheme.h"
 #include "imgIRequest.h"
 #include "imgIContainer.h"
 #include "imgILoader.h"
-#include "nsINodeInfo.h"
+#include "mozilla/dom/NodeInfo.h"
 #include "nsContentUtils.h"
 #include "nsLayoutUtils.h"
 #include "nsIScrollableFrame.h"
 #include "nsDisplayList.h"
-#include "nsTreeBoxObject.h"
+#include "mozilla/dom/TreeBoxObject.h"
 #include "nsRenderingContext.h"
 #include "nsIScriptableRegion.h"
 #include <algorithm>
@@ -69,23 +76,22 @@
 #include "nsBidiUtils.h"
 
 using namespace mozilla;
+using namespace mozilla::gfx;
+using namespace mozilla::image;
 using namespace mozilla::layout;
 
-// Enumeration function that cancels all the image requests in our cache
-static PLDHashOperator
-CancelImageRequest(const nsAString& aKey,
-                   nsTreeImageCacheEntry aEntry, void* aData)
+// Function that cancels all the image requests in our cache.
+void
+nsTreeBodyFrame::CancelImageRequests()
 {
-
-  // If our imgIRequest object was registered with the refresh driver,
-  // then we need to deregister it.
-  nsTreeBodyFrame* frame = static_cast<nsTreeBodyFrame*>(aData);
-
-  nsLayoutUtils::DeregisterImageRequest(frame->PresContext(), aEntry.request,
-                                        nullptr);
-
-  aEntry.request->CancelAndForgetObserver(NS_BINDING_ABORTED);
-  return PL_DHASH_NEXT;
+  for (auto iter = mImageCache.Iter(); !iter.Done(); iter.Next()) {
+    // If our imgIRequest object was registered with the refresh driver
+    // then we need to deregister it.
+    nsTreeImageCacheEntry entry = iter.UserData();
+    nsLayoutUtils::DeregisterImageRequest(PresContext(), entry.request,
+                                          nullptr);
+    entry.request->CancelAndForgetObserver(NS_BINDING_ABORTED);
+  }
 }
 
 //
@@ -96,22 +102,21 @@ CancelImageRequest(const nsAString& aKey,
 nsIFrame*
 NS_NewTreeBodyFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
-  return new (aPresShell) nsTreeBodyFrame(aPresShell, aContext);
+  return new (aPresShell) nsTreeBodyFrame(aContext);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsTreeBodyFrame)
 
 NS_QUERYFRAME_HEAD(nsTreeBodyFrame)
   NS_QUERYFRAME_ENTRY(nsIScrollbarMediator)
-  NS_QUERYFRAME_ENTRY(nsIScrollbarOwner)
   NS_QUERYFRAME_ENTRY(nsTreeBodyFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsLeafBoxFrame)
 
 // Constructor
-nsTreeBodyFrame::nsTreeBodyFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
-:nsLeafBoxFrame(aPresShell, aContext),
+nsTreeBodyFrame::nsTreeBodyFrame(nsStyleContext* aContext)
+:nsLeafBoxFrame(aContext),
  mSlots(nullptr),
- mImageCache(16),
+ mImageCache(),
  mTopRowIndex(0),
  mPageLength(0),
  mHorzPosition(0),
@@ -137,7 +142,7 @@ nsTreeBodyFrame::nsTreeBodyFrame(nsIPresShell* aPresShell, nsStyleContext* aCont
 // Destructor
 nsTreeBodyFrame::~nsTreeBodyFrame()
 {
-  mImageCache.EnumerateRead(CancelImageRequest, this);
+  CancelImageRequests();
   DetachImageListeners();
   delete mSlots;
 }
@@ -146,9 +151,7 @@ static void
 GetBorderPadding(nsStyleContext* aContext, nsMargin& aMargin)
 {
   aMargin.SizeTo(0, 0, 0, 0);
-  if (!aContext->StylePadding()->GetPadding(aMargin)) {
-    NS_NOTYETIMPLEMENTED("percentage padding");
-  }
+  aContext->StylePadding()->GetPadding(aMargin);
   aMargin += aContext->StyleBorder()->GetComputedBorder();
 }
 
@@ -174,12 +177,12 @@ nsTreeBodyFrame::Init(nsIContent*       aContent,
 
   if (LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars) != 0) {
     mScrollbarActivity = new ScrollbarActivity(
-                           static_cast<nsIScrollbarOwner*>(this));
+                           static_cast<nsIScrollbarMediator*>(this));
   }
 }
 
 nsSize
-nsTreeBodyFrame::GetMinSize(nsBoxLayoutState& aBoxLayoutState)
+nsTreeBodyFrame::GetXULMinSize(nsBoxLayoutState& aBoxLayoutState)
 {
   EnsureView();
 
@@ -190,8 +193,7 @@ nsTreeBodyFrame::GetMinSize(nsBoxLayoutState& aBoxLayoutState)
   if (MOZ_UNLIKELY(!baseElement)) {
     desiredRows = 0;
   }
-  else if (baseElement->Tag() == nsGkAtoms::select &&
-           baseElement->IsHTML()) {
+  else if (baseElement->IsHTMLElement(nsGkAtoms::select)) {
     min.width = CalcMaxRowWidth();
     nsAutoString size;
     baseElement->GetAttr(kNameSpaceID_None, nsGkAtoms::size, size);
@@ -223,7 +225,7 @@ nsTreeBodyFrame::GetMinSize(nsBoxLayoutState& aBoxLayoutState)
 
   AddBorderAndPadding(min);
   bool widthSet, heightSet;
-  nsIFrame::AddCSSMinSize(aBoxLayoutState, this, min, widthSet, heightSet);
+  nsIFrame::AddXULMinSize(aBoxLayoutState, this, min, widthSet, heightSet);
 
   return min;
 }
@@ -244,15 +246,15 @@ nsTreeBodyFrame::CalcMaxRowWidth()
   nscoord rowWidth;
   nsTreeColumn* col;
 
-  nsRefPtr<nsRenderingContext> rc =
-    PresContext()->PresShell()->CreateReferenceRenderingContext();
+  nsRenderingContext rc(
+    PresContext()->PresShell()->CreateReferenceRenderingContext());
 
   for (int32_t row = 0; row < mRowCount; ++row) {
     rowWidth = 0;
 
     for (col = mColumns->GetFirstColumn(); col; col = col->GetNext()) {
       nscoord desiredWidth, currentWidth;
-      nsresult rv = GetCellWidth(row, col, rc, desiredWidth, currentWidth);
+      nsresult rv = GetCellWidth(row, col, &rc, desiredWidth, currentWidth);
       if (NS_FAILED(rv)) {
         NS_NOTREACHED("invalid column");
         continue;
@@ -320,7 +322,7 @@ nsTreeBodyFrame::EnsureBoxObject()
   if (!mTreeBoxObject) {
     nsIContent* parent = GetBaseElement();
     if (parent) {
-      nsIDocument* nsDoc = parent->GetDocument();
+      nsIDocument* nsDoc = parent->GetComposedDoc();
       if (!nsDoc) // there may be no document, if we're called from Destroy()
         return;
       ErrorResult ignored;
@@ -332,8 +334,8 @@ nsTreeBodyFrame::EnsureBoxObject()
         nsCOMPtr<nsITreeBoxObject> realTreeBoxObject = do_QueryInterface(pBox);
         if (realTreeBoxObject) {
           nsTreeBodyFrame* innerTreeBoxObject =
-            static_cast<nsTreeBoxObject*>(realTreeBoxObject.get())
-              ->GetCachedTreeBody();
+            static_cast<dom::TreeBoxObject*>(realTreeBoxObject.get())
+              ->GetCachedTreeBodyFrame();
           ENSURE_TRUE(!innerTreeBoxObject || innerTreeBoxObject == this);
           mTreeBoxObject = realTreeBoxObject;
         }
@@ -360,8 +362,7 @@ nsTreeBodyFrame::EnsureView()
       mTreeBoxObject->GetView(getter_AddRefs(treeView));
       if (treeView && weakFrame.IsAlive()) {
         nsXPIDLString rowStr;
-        box->GetProperty(MOZ_UTF16("topRow"),
-                         getter_Copies(rowStr));
+        box->GetProperty(u"topRow", getter_Copies(rowStr));
         nsAutoString rowStr2(rowStr);
         nsresult error;
         int32_t rowIndex = rowStr2.ToInteger(&error);
@@ -377,7 +378,7 @@ nsTreeBodyFrame::EnsureView()
 
         // Clear out the property info for the top row, but we always keep the
         // view current.
-        box->RemoveProperty(MOZ_UTF16("topRow"));
+        box->RemoveProperty(u"topRow");
       }
     }
   }
@@ -401,14 +402,14 @@ nsTreeBodyFrame::ManageReflowCallback(const nsRect& aRect, nscoord aHorzWidth)
 }
 
 void
-nsTreeBodyFrame::SetBounds(nsBoxLayoutState& aBoxLayoutState, const nsRect& aRect,
-                           bool aRemoveOverflowArea)
+nsTreeBodyFrame::SetXULBounds(nsBoxLayoutState& aBoxLayoutState, const nsRect& aRect,
+                              bool aRemoveOverflowArea)
 {
   nscoord horzWidth = CalcHorzWidth(GetScrollParts());
   ManageReflowCallback(aRect, horzWidth);
   mHorzWidth = horzWidth;
 
-  nsLeafBoxFrame::SetBounds(aBoxLayoutState, aRect, aRemoveOverflowArea);
+  nsLeafBoxFrame::SetXULBounds(aBoxLayoutState, aRect, aRemoveOverflowArea);
 }
 
 
@@ -539,13 +540,6 @@ nsTreeBodyFrame::SetView(nsITreeView * aView)
 }
 
 nsresult
-nsTreeBodyFrame::GetFocused(bool* aFocused)
-{
-  *aFocused = mFocused;
-  return NS_OK;
-}
-
-nsresult
 nsTreeBodyFrame::SetFocused(bool aFocused)
 {
   if (mFocused != aFocused) {
@@ -570,25 +564,22 @@ nsTreeBodyFrame::GetTreeBody(nsIDOMElement** aElement)
   return mContent->QueryInterface(NS_GET_IID(nsIDOMElement), (void**)aElement);
 }
 
-nsresult
-nsTreeBodyFrame::GetRowHeight(int32_t* _retval)
+int32_t
+nsTreeBodyFrame::RowHeight() const
 {
-  *_retval = nsPresContext::AppUnitsToIntCSSPixels(mRowHeight);
-  return NS_OK;
+  return nsPresContext::AppUnitsToIntCSSPixels(mRowHeight);
 }
 
-nsresult
-nsTreeBodyFrame::GetRowWidth(int32_t *aRowWidth)
+int32_t
+nsTreeBodyFrame::RowWidth()
 {
-  *aRowWidth = nsPresContext::AppUnitsToIntCSSPixels(CalcHorzWidth(GetScrollParts()));
-  return NS_OK;
+  return nsPresContext::AppUnitsToIntCSSPixels(CalcHorzWidth(GetScrollParts()));
 }
 
-nsresult
-nsTreeBodyFrame::GetHorizontalPosition(int32_t *aHorizontalPosition)
+int32_t
+nsTreeBodyFrame::GetHorizontalPosition() const
 {
-  *aHorizontalPosition = nsPresContext::AppUnitsToIntCSSPixels(mHorzPosition); 
-  return NS_OK;
+  return nsPresContext::AppUnitsToIntCSSPixels(mHorzPosition);
 }
 
 nsresult
@@ -604,7 +595,7 @@ nsTreeBodyFrame::GetSelectionRegion(nsIScriptableRegion **aRegion)
   NS_ENSURE_TRUE(region, NS_ERROR_FAILURE);
   region->Init();
 
-  nsRefPtr<nsPresContext> presContext = PresContext();
+  RefPtr<nsPresContext> presContext = PresContext();
   nsIntRect rect = mRect.ToOutsidePixels(presContext->AppUnitsPerCSSPixel());
 
   nsIFrame* rootFrame = presContext->PresShell()->GetRootFrame();
@@ -628,7 +619,7 @@ nsTreeBodyFrame::GetSelectionRegion(nsIScriptableRegion **aRegion)
   // clip to the tree boundary in case one row extends past it
   region->IntersectRect(x, top, rect.width, rect.height);
 
-  NS_ADDREF(*aRegion = region);
+  region.forget(aRegion);
   return NS_OK;
 }
 
@@ -649,7 +640,7 @@ nsTreeBodyFrame::InvalidateColumn(nsITreeColumn* aCol)
   if (mUpdateBatchNest)
     return NS_OK;
 
-  nsRefPtr<nsTreeColumn> col = GetColumnImpl(aCol);
+  RefPtr<nsTreeColumn> col = GetColumnImpl(aCol);
   if (!col)
     return NS_ERROR_INVALID_ARG;
 
@@ -705,7 +696,7 @@ nsTreeBodyFrame::InvalidateCell(int32_t aIndex, nsITreeColumn* aCol)
   if (aIndex < 0 || aIndex > mPageLength)
     return NS_OK;
 
-  nsRefPtr<nsTreeColumn> col = GetColumnImpl(aCol);
+  RefPtr<nsTreeColumn> col = GetColumnImpl(aCol);
   if (!col)
     return NS_ERROR_INVALID_ARG;
 
@@ -759,7 +750,7 @@ nsTreeBodyFrame::InvalidateColumnRange(int32_t aStart, int32_t aEnd, nsITreeColu
   if (mUpdateBatchNest)
     return NS_OK;
 
-  nsRefPtr<nsTreeColumn> col = GetColumnImpl(aCol);
+  RefPtr<nsTreeColumn> col = GetColumnImpl(aCol);
   if (!col)
     return NS_ERROR_INVALID_ARG;
 
@@ -809,7 +800,7 @@ FindScrollParts(nsIFrame* aCurrFrame, nsTreeBodyFrame::ScrollParts* aResult)
   
   nsScrollbarFrame *sf = do_QueryFrame(aCurrFrame);
   if (sf) {
-    if (!aCurrFrame->IsHorizontal()) {
+    if (!aCurrFrame->IsXULHorizontal()) {
       if (!aResult->mVScrollbar) {
         aResult->mVScrollbar = sf;
       }
@@ -822,7 +813,7 @@ FindScrollParts(nsIFrame* aCurrFrame, nsTreeBodyFrame::ScrollParts* aResult)
     return;
   }
   
-  nsIFrame* child = aCurrFrame->GetFirstPrincipalChild();
+  nsIFrame* child = aCurrFrame->PrincipalChildList().FirstChild();
   while (child &&
          !child->GetContent()->IsRootOfNativeAnonymousSubtree() &&
          (!aResult->mVScrollbar || !aResult->mHScrollbar ||
@@ -918,23 +909,23 @@ nsTreeBodyFrame::CheckOverflow(const ScrollParts& aParts)
 
   nsWeakFrame weakFrame(this);
 
-  nsRefPtr<nsPresContext> presContext = PresContext();
+  RefPtr<nsPresContext> presContext = PresContext();
   nsCOMPtr<nsIPresShell> presShell = presContext->GetPresShell();
   nsCOMPtr<nsIContent> content = mContent;
 
   if (verticalOverflowChanged) {
     InternalScrollPortEvent event(true,
-      mVerticalOverflow ? NS_SCROLLPORT_OVERFLOW : NS_SCROLLPORT_UNDERFLOW,
+      mVerticalOverflow ? eScrollPortOverflow : eScrollPortUnderflow,
       nullptr);
-    event.orient = InternalScrollPortEvent::vertical;
+    event.mOrient = InternalScrollPortEvent::eVertical;
     EventDispatcher::Dispatch(content, presContext, &event);
   }
 
   if (horizontalOverflowChanged) {
     InternalScrollPortEvent event(true,
-      mHorizontalOverflow ? NS_SCROLLPORT_OVERFLOW : NS_SCROLLPORT_UNDERFLOW,
+      mHorizontalOverflow ? eScrollPortOverflow : eScrollPortUnderflow,
       nullptr);
-    event.orient = InternalScrollPortEvent::horizontal;
+    event.mOrient = InternalScrollPortEvent::eHorizontal;
     EventDispatcher::Dispatch(content, presContext, &event);
   }
 
@@ -1172,8 +1163,8 @@ nsTreeBodyFrame::GetCoordsForCellItem(int32_t aRow, nsITreeColumn* aCol, const n
     // interfere with our computations.
     AdjustForBorderPadding(cellContext, cellRect);
 
-    nsRefPtr<nsRenderingContext> rc =
-      presContext->PresShell()->CreateReferenceRenderingContext();
+    nsRenderingContext rc(
+      presContext->PresShell()->CreateReferenceRenderingContext());
 
     // Now we'll start making our way across the cell, starting at the edge of 
     // the cell and proceeding until we hit the right edge. |cellX| is the 
@@ -1197,7 +1188,7 @@ nsTreeBodyFrame::GetCoordsForCellItem(int32_t aRow, nsITreeColumn* aCol, const n
       nsRect twistyRect(cellRect);
       nsStyleContext* twistyContext = GetPseudoStyleContext(nsCSSAnonBoxes::moztreetwisty);
       GetTwistyRect(aRow, currCol, imageRect, twistyRect, presContext,
-                    *rc, twistyContext);
+                    twistyContext);
 
       if (NS_LITERAL_CSTRING("twisty").Equals(aElement)) {
         // If we're looking for the twisty Rect, just return the size
@@ -1256,9 +1247,8 @@ nsTreeBodyFrame::GetCoordsForCellItem(int32_t aRow, nsITreeColumn* aCol, const n
     // we add in borders and padding to the text dimension and give that back. 
     nsStyleContext* textContext = GetPseudoStyleContext(nsCSSAnonBoxes::moztreecelltext);
 
-    nsRefPtr<nsFontMetrics> fm;
-    nsLayoutUtils::GetFontMetricsForStyleContext(textContext,
-                                                 getter_AddRefs(fm));
+    RefPtr<nsFontMetrics> fm =
+      nsLayoutUtils::GetFontMetricsForStyleContext(textContext);
     nscoord height = fm->MaxHeight();
 
     nsMargin textMargin;
@@ -1275,8 +1265,7 @@ nsTreeBodyFrame::GetCoordsForCellItem(int32_t aRow, nsITreeColumn* aCol, const n
     GetBorderPadding(textContext, bp);
     textRect.height += bp.top + bp.bottom;
 
-    rc->SetFont(fm);
-    AdjustForCellText(cellText, aRow, currCol, *rc, textRect);
+    AdjustForCellText(cellText, aRow, currCol, rc, *fm, textRect);
 
     theRect = textRect;
   }
@@ -1321,18 +1310,23 @@ void
 nsTreeBodyFrame::AdjustForCellText(nsAutoString& aText,
                                    int32_t aRowIndex,  nsTreeColumn* aColumn,
                                    nsRenderingContext& aRenderingContext,
+                                   nsFontMetrics& aFontMetrics,
                                    nsRect& aTextRect)
 {
   NS_PRECONDITION(aColumn && aColumn->GetFrame(), "invalid column passed");
 
-  nscoord width =
-    nsLayoutUtils::GetStringWidth(this, &aRenderingContext, aText.get(), aText.Length());
+  DrawTarget* drawTarget = aRenderingContext.GetDrawTarget();
+
   nscoord maxWidth = aTextRect.width;
+  bool widthIsGreater = nsLayoutUtils::StringWidthIsGreaterThan(aText,
+                                                                aFontMetrics,
+                                                                drawTarget,
+                                                                maxWidth);
 
   if (aColumn->Overflow()) {
     DebugOnly<nsresult> rv;
     nsTreeColumn* nextColumn = aColumn->GetNext();
-    while (nextColumn && width > maxWidth) {
+    while (nextColumn && widthIsGreater) {
       while (nextColumn) {
         nscoord width;
         rv = nextColumn->GetWidthInTwips(this, &width);
@@ -1356,6 +1350,10 @@ nsTreeBodyFrame::AdjustForCellText(nsAutoString& aText,
           NS_ASSERTION(NS_SUCCEEDED(rv), "nextColumn is invalid");
 
           maxWidth += width;
+          widthIsGreater = nsLayoutUtils::StringWidthIsGreaterThan(aText,
+                                                                   aFontMetrics,
+                                                                   drawTarget,
+                                                                   maxWidth);
 
           nextColumn = nextColumn->GetNext();
         }
@@ -1366,12 +1364,14 @@ nsTreeBodyFrame::AdjustForCellText(nsAutoString& aText,
     }
   }
 
-  if (width > maxWidth) {
+  nscoord width;
+  if (widthIsGreater) {
     // See if the width is even smaller than the ellipsis
     // If so, clear the text completely.
     const nsDependentString& kEllipsis = nsContentUtils::GetLocalizedEllipsis();
-    aRenderingContext.SetTextRunRTL(false);
-    nscoord ellipsisWidth = aRenderingContext.GetWidth(kEllipsis);
+    aFontMetrics.SetTextRunRTL(false);
+    nscoord ellipsisWidth =
+      nsLayoutUtils::AppUnitWidthOfString(kEllipsis, aFontMetrics, drawTarget);
 
     width = maxWidth;
     if (ellipsisWidth > width)
@@ -1396,7 +1396,8 @@ nsTreeBodyFrame::AdjustForCellText(nsAutoString& aText,
           for (i = 0; i < length; ++i) {
             char16_t ch = aText[i];
             // XXX this is horrible and doesn't handle clusters
-            cwidth = aRenderingContext.GetWidth(ch);
+            cwidth = nsLayoutUtils::AppUnitWidthOfString(ch, aFontMetrics,
+                                                         drawTarget);
             if (twidth + cwidth > width)
               break;
             twidth += cwidth;
@@ -1414,7 +1415,8 @@ nsTreeBodyFrame::AdjustForCellText(nsAutoString& aText,
           int32_t i;
           for (i=length-1; i >= 0; --i) {
             char16_t ch = aText[i];
-            cwidth = aRenderingContext.GetWidth(ch);
+            cwidth = nsLayoutUtils::AppUnitWidthOfString(ch, aFontMetrics,
+                                                         drawTarget);
             if (twidth + cwidth > width)
               break;
             twidth += cwidth;
@@ -1436,14 +1438,16 @@ nsTreeBodyFrame::AdjustForCellText(nsAutoString& aText,
           int32_t rightPos = length - 1;
           for (int32_t leftPos = 0; leftPos < rightPos; ++leftPos) {
             char16_t ch = aText[leftPos];
-            cwidth = aRenderingContext.GetWidth(ch);
+            cwidth = nsLayoutUtils::AppUnitWidthOfString(ch, aFontMetrics,
+                                                         drawTarget);
             twidth += cwidth;
             if (twidth > width)
               break;
             leftStr.Append(ch);
 
             ch = aText[rightPos];
-            cwidth = aRenderingContext.GetWidth(ch);
+            cwidth = nsLayoutUtils::AppUnitWidthOfString(ch, aFontMetrics,
+                                                         drawTarget);
             twidth += cwidth;
             if (twidth > width)
               break;
@@ -1457,9 +1461,10 @@ nsTreeBodyFrame::AdjustForCellText(nsAutoString& aText,
         break;
       }
     }
-
-    width = nsLayoutUtils::GetStringWidth(this, &aRenderingContext, aText.get(), aText.Length());
   }
+
+  width = nsLayoutUtils::AppUnitWidthOfStringBidi(aText, this, aFontMetrics,
+                                                  aRenderingContext);
 
   switch (aColumn->GetTextAlignment()) {
     case NS_STYLE_TEXT_ALIGN_RIGHT: {
@@ -1513,8 +1518,8 @@ nsTreeBodyFrame::GetItemWithinCellAt(nscoord aX, const nsRect& aCellRect,
   bool isRTL = StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
 
   nsPresContext* presContext = PresContext();
-  nsRefPtr<nsRenderingContext> rc =
-    presContext->PresShell()->CreateReferenceRenderingContext();
+  nsRenderingContext rc(
+    presContext->PresShell()->CreateReferenceRenderingContext());
 
   if (aColumn->IsPrimary()) {
     // If we're the primary column, we have indentation and a twisty.
@@ -1548,7 +1553,7 @@ nsTreeBodyFrame::GetItemWithinCellAt(nscoord aX, const nsRect& aCellRect,
 
     nsRect imageSize;
     GetTwistyRect(aRowIndex, aColumn, imageSize, twistyRect, presContext,
-                  *rc, twistyContext);
+                  twistyContext);
 
     // We will treat a click as hitting the twisty if it happens on the margins, borders, padding,
     // or content of the twisty object.  By allowing a "slop" into the margin, we make it a little
@@ -1613,12 +1618,9 @@ nsTreeBodyFrame::GetItemWithinCellAt(nscoord aX, const nsRect& aCellRect,
 
   AdjustForBorderPadding(textContext, textRect);
 
-  nsRefPtr<nsFontMetrics> fm;
-  nsLayoutUtils::GetFontMetricsForStyleContext(textContext,
-                                               getter_AddRefs(fm));
-  rc->SetFont(fm);
-
-  AdjustForCellText(cellText, aRowIndex, aColumn, *rc, textRect);
+  RefPtr<nsFontMetrics> fm =
+    nsLayoutUtils::GetFontMetricsForStyleContext(textContext);
+  AdjustForCellText(cellText, aRowIndex, aColumn, rc, *fm, textRect);
 
   if (aX >= textRect.x && aX < textRect.x + textRect.width)
     return nsCSSAnonBoxes::moztreecelltext;
@@ -1710,7 +1712,7 @@ nsTreeBodyFrame::GetCellWidth(int32_t aRow, nsTreeColumn* aCol,
     nsRect imageSize;
     nsRect twistyRect(cellRect);
     GetTwistyRect(aRow, aCol, imageSize, twistyRect, PresContext(),
-                  *aRenderingContext, twistyContext);
+                  twistyContext);
 
     // Add in the margins of the twisty element.
     nsMargin twistyMargin;
@@ -1743,14 +1745,11 @@ nsTreeBodyFrame::GetCellWidth(int32_t aRow, nsTreeColumn* aCol,
   // Get the borders and padding for the text.
   GetBorderPadding(textContext, bp);
 
-  nsRefPtr<nsFontMetrics> fm;
-  nsLayoutUtils::GetFontMetricsForStyleContext(textContext,
-                                               getter_AddRefs(fm));
-  aRenderingContext->SetFont(fm);
-
+  RefPtr<nsFontMetrics> fm =
+    nsLayoutUtils::GetFontMetricsForStyleContext(textContext);
   // Get the width of the text itself
-  nscoord width =
-    nsLayoutUtils::GetStringWidth(this, aRenderingContext, cellText.get(), cellText.Length());
+  nscoord width = nsLayoutUtils::AppUnitWidthOfStringBidi(cellText, this, *fm,
+                                                          *aRenderingContext);
   nscoord totalTextWidth = width + bp.left + bp.right;
   aDesiredSize += totalTextWidth;
   return NS_OK;
@@ -1762,14 +1761,14 @@ nsTreeBodyFrame::IsCellCropped(int32_t aRow, nsITreeColumn* aCol, bool *_retval)
   nscoord currentSize, desiredSize;
   nsresult rv;
 
-  nsRefPtr<nsTreeColumn> col = GetColumnImpl(aCol);
+  RefPtr<nsTreeColumn> col = GetColumnImpl(aCol);
   if (!col)
     return NS_ERROR_INVALID_ARG;
 
-  nsRefPtr<nsRenderingContext> rc =
-    PresContext()->PresShell()->CreateReferenceRenderingContext();
+  nsRenderingContext rc(
+    PresContext()->PresShell()->CreateReferenceRenderingContext());
 
-  rv = GetCellWidth(aRow, col, rc, desiredSize, currentSize);
+  rv = GetCellWidth(aRow, col, &rc, desiredSize, currentSize);
   NS_ENSURE_SUCCESS(rv, rv);
 
   *_retval = desiredSize > currentSize;
@@ -1782,8 +1781,7 @@ nsTreeBodyFrame::MarkDirtyIfSelect()
 {
   nsIContent* baseElement = GetBaseElement();
 
-  if (baseElement && baseElement->Tag() == nsGkAtoms::select &&
-      baseElement->IsHTML()) {
+  if (baseElement && baseElement->IsHTMLElement(nsGkAtoms::select)) {
     // If we are an intrinsically sized select widget, we may need to
     // resize, if the widest item was removed or a new item was added.
     // XXX optimize this more
@@ -2058,7 +2056,6 @@ nsTreeBodyFrame::GetTwistyRect(int32_t aRowIndex,
                                nsRect& aImageRect,
                                nsRect& aTwistyRect,
                                nsPresContext* aPresContext,
-                               nsRenderingContext& aRenderingContext,
                                nsStyleContext* aTwistyContext)
 {
   // The twisty rect extends all the way to the end of the cell.  This is incorrect.  We need to
@@ -2085,9 +2082,9 @@ nsTreeBodyFrame::GetTwistyRect(int32_t aRowIndex,
   }
 
   if (useTheme) {
-    nsIntSize minTwistySizePx(0,0);
+    LayoutDeviceIntSize minTwistySizePx;
     bool canOverride = true;
-    theme->GetMinimumWidgetSize(&aRenderingContext, this, twistyDisplayData->mAppearance,
+    theme->GetMinimumWidgetSize(aPresContext, this, twistyDisplayData->mAppearance,
                                 &minTwistySizePx, &canOverride);
 
     // GMWS() returns size in pixels, we need to convert it back to app units
@@ -2110,7 +2107,7 @@ nsTreeBodyFrame::GetImage(int32_t aRowIndex, nsTreeColumn* aCol, bool aUseContex
 
   nsAutoString imageSrc;
   mView->GetImageSrc(aRowIndex, aCol, imageSrc);
-  nsRefPtr<imgRequestProxy> styleRequest;
+  RefPtr<imgRequestProxy> styleRequest;
   if (!aUseContext && !imageSrc.IsEmpty()) {
     aAllowImageRegions = false;
   }
@@ -2123,7 +2120,8 @@ nsTreeBodyFrame::GetImage(int32_t aRowIndex, nsTreeColumn* aCol, bool aUseContex
     nsCOMPtr<nsIURI> uri;
     styleRequest->GetURI(getter_AddRefs(uri));
     nsAutoCString spec;
-    uri->GetSpec(spec);
+    nsresult rv = uri->GetSpec(spec);
+    NS_ENSURE_SUCCESS(rv, rv);
     CopyUTF8toUTF16(spec, imageSrc);
   }
 
@@ -2168,11 +2166,11 @@ nsTreeBodyFrame::GetImage(int32_t aRowIndex, nsTreeColumn* aCol, bool aUseContex
     listener->AddCell(aRowIndex, aCol);
     nsCOMPtr<imgINotificationObserver> imgNotificationObserver = listener;
 
-    nsRefPtr<imgRequestProxy> imageRequest;
+    RefPtr<imgRequestProxy> imageRequest;
     if (styleRequest) {
       styleRequest->Clone(imgNotificationObserver, getter_AddRefs(imageRequest));
     } else {
-      nsIDocument* doc = mContent->GetDocument();
+      nsIDocument* doc = mContent->GetComposedDoc();
       if (!doc)
         // The page is currently being torn down.  Why bother.
         return NS_ERROR_FAILURE;
@@ -2189,19 +2187,17 @@ nsTreeBodyFrame::GetImage(int32_t aRowIndex, nsTreeColumn* aCol, bool aUseContex
 
       // XXXbz what's the origin principal for this stuff that comes from our
       // view?  I guess we should assume that it's the node's principal...
-      if (nsContentUtils::CanLoadImage(srcURI, mContent, doc,
-                                       mContent->NodePrincipal())) {
-        nsresult rv = nsContentUtils::LoadImage(srcURI,
-                                                doc,
-                                                mContent->NodePrincipal(),
-                                                doc->GetDocumentURI(),
-                                                imgNotificationObserver,
-                                                nsIRequest::LOAD_NORMAL,
-                                                EmptyString(),
-                                                getter_AddRefs(imageRequest));
-        NS_ENSURE_SUCCESS(rv, rv);
-                                  
-      }
+      nsresult rv = nsContentUtils::LoadImage(srcURI,
+                                              mContent,
+                                              doc,
+                                              mContent->NodePrincipal(),
+                                              doc->GetDocumentURI(),
+                                              doc->GetReferrerPolicy(),
+                                              imgNotificationObserver,
+                                              nsIRequest::LOAD_NORMAL,
+                                              EmptyString(),
+                                              getter_AddRefs(imageRequest));
+      NS_ENSURE_SUCCESS(rv, rv);
     }
     listener->UnsuppressInvalidation();
 
@@ -2522,7 +2518,7 @@ nsTreeBodyFrame::GetCursor(const nsPoint& aPoint,
   // Check the GetScriptHandlingObject so we don't end up running code when
   // the document is a zombie.
   bool dummy;
-  if (mView && GetContent()->GetCurrentDoc()->GetScriptHandlingObject(dummy)) {
+  if (mView && GetContent()->GetComposedDoc()->GetScriptHandlingObject(dummy)) {
     int32_t row;
     nsTreeColumn* col;
     nsIAtom* child;
@@ -2546,13 +2542,14 @@ nsTreeBodyFrame::GetCursor(const nsPoint& aPoint,
 
 static uint32_t GetDropEffect(WidgetGUIEvent* aEvent)
 {
-  NS_ASSERTION(aEvent->eventStructType == NS_DRAG_EVENT, "wrong event type");
+  NS_ASSERTION(aEvent->mClass == eDragEventClass, "wrong event type");
   WidgetDragEvent* dragEvent = aEvent->AsDragEvent();
   nsContentUtils::SetDataTransferInEvent(dragEvent);
 
   uint32_t action = 0;
-  if (dragEvent->dataTransfer)
-    dragEvent->dataTransfer->GetDropEffectInt(&action);
+  if (dragEvent->mDataTransfer) {
+    dragEvent->mDataTransfer->GetDropEffectInt(&action);
+  }
   return action;
 }
 
@@ -2561,7 +2558,7 @@ nsTreeBodyFrame::HandleEvent(nsPresContext* aPresContext,
                              WidgetGUIEvent* aEvent,
                              nsEventStatus* aEventStatus)
 {
-  if (aEvent->message == NS_MOUSE_ENTER_SYNTH || aEvent->message == NS_MOUSE_MOVE) {
+  if (aEvent->mMessage == eMouseOver || aEvent->mMessage == eMouseMove) {
     nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, this);
     int32_t xTwips = pt.x - mInnerBox.x;
     int32_t yTwips = pt.y - mInnerBox.y;
@@ -2574,14 +2571,12 @@ nsTreeBodyFrame::HandleEvent(nsPresContext* aPresContext,
       if (mMouseOverRow != -1)
         InvalidateRow(mMouseOverRow);
     }
-  }
-  else if (aEvent->message == NS_MOUSE_EXIT_SYNTH) {
+  } else if (aEvent->mMessage == eMouseOut) {
     if (mMouseOverRow != -1) {
       InvalidateRow(mMouseOverRow);
       mMouseOverRow = -1;
     }
-  }
-  else if (aEvent->message == NS_DRAGDROP_ENTER) {
+  } else if (aEvent->mMessage == eDragEnter) {
     if (!mSlots)
       mSlots = new Slots();
 
@@ -2598,8 +2593,7 @@ nsTreeBodyFrame::HandleEvent(nsPresContext* aPresContext,
     mSlots->mDropRow = -1;
     mSlots->mDropOrient = -1;
     mSlots->mDragAction = GetDropEffect(aEvent);
-  }
-  else if (aEvent->message == NS_DRAGDROP_OVER) {
+  } else if (aEvent->mMessage == eDragOver) {
     // The mouse is hovering over this tree. If we determine things are
     // different from the last time, invalidate the drop feedback at the old
     // position, query the view to see if the current location is droppable,
@@ -2694,7 +2688,7 @@ nsTreeBodyFrame::HandleEvent(nsPresContext* aPresContext,
         // The dataTransfer was initialized by the call to GetDropEffect above.
         bool canDropAtNewLocation = false;
         mView->CanDrop(mSlots->mDropRow, mSlots->mDropOrient,
-                       aEvent->AsDragEvent()->dataTransfer,
+                       aEvent->AsDragEvent()->mDataTransfer,
                        &canDropAtNewLocation);
 
         if (canDropAtNewLocation) {
@@ -2708,8 +2702,7 @@ nsTreeBodyFrame::HandleEvent(nsPresContext* aPresContext,
     // Indicate that the drop is allowed by preventing the default behaviour.
     if (mSlots->mDropAllowed)
       *aEventStatus = nsEventStatus_eConsumeNoDefault;
-  }
-  else if (aEvent->message == NS_DRAGDROP_DROP) {
+  } else if (aEvent->mMessage == eDrop) {
      // this event was meant for another frame, so ignore it
      if (!mSlots)
        return NS_OK;
@@ -2724,17 +2717,17 @@ nsTreeBodyFrame::HandleEvent(nsPresContext* aPresContext,
       rv = mView->GetParentIndex(parentIndex, &parentIndex);
     }
 
-    NS_ASSERTION(aEvent->eventStructType == NS_DRAG_EVENT, "wrong event type");
+    NS_ASSERTION(aEvent->mClass == eDragEventClass, "wrong event type");
     WidgetDragEvent* dragEvent = aEvent->AsDragEvent();
     nsContentUtils::SetDataTransferInEvent(dragEvent);
 
-    mView->Drop(mSlots->mDropRow, mSlots->mDropOrient, dragEvent->dataTransfer);
+    mView->Drop(mSlots->mDropRow, mSlots->mDropOrient,
+                dragEvent->mDataTransfer);
     mSlots->mDropRow = -1;
     mSlots->mDropOrient = -1;
     mSlots->mIsDragging = false;
     *aEventStatus = nsEventStatus_eConsumeNoDefault; // already handled the drop
-  }
-  else if (aEvent->message == NS_DRAGDROP_EXIT) {
+  } else if (aEvent->mMessage == eDragExit) {
     // this event was meant for another frame, so ignore it
     if (!mSlots)
       return NS_OK;
@@ -2768,25 +2761,65 @@ nsTreeBodyFrame::HandleEvent(nsPresContext* aPresContext,
   return NS_OK;
 }
 
-static nsLineStyle
-ConvertBorderStyleToLineStyle(uint8_t aBorderStyle)
-{
-  switch (aBorderStyle) {
-    case NS_STYLE_BORDER_STYLE_DOTTED:
-      return nsLineStyle_kDotted;
-    case NS_STYLE_BORDER_STYLE_DASHED:
-      return nsLineStyle_kDashed;
-    default:
-      return nsLineStyle_kSolid;
+class nsDisplayTreeBody final : public nsDisplayItem {
+public:
+  nsDisplayTreeBody(nsDisplayListBuilder* aBuilder, nsFrame* aFrame) :
+    nsDisplayItem(aBuilder, aFrame),
+    mDisableSubpixelAA(false) {
+    MOZ_COUNT_CTOR(nsDisplayTreeBody);
   }
-}
+#ifdef NS_BUILD_REFCNT_LOGGING
+  virtual ~nsDisplayTreeBody() {
+    MOZ_COUNT_DTOR(nsDisplayTreeBody);
+  }
+#endif
 
-static void
-PaintTreeBody(nsIFrame* aFrame, nsRenderingContext* aCtx,
-              const nsRect& aDirtyRect, nsPoint aPt)
-{
-  static_cast<nsTreeBodyFrame*>(aFrame)->PaintTreeBody(*aCtx, aDirtyRect, aPt);
-}
+  nsDisplayItemGeometry* AllocateGeometry(nsDisplayListBuilder* aBuilder) override
+  {
+    return new nsDisplayItemGenericImageGeometry(this, aBuilder);
+  }
+
+  void ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
+                                 const nsDisplayItemGeometry* aGeometry,
+                                 nsRegion *aInvalidRegion) override
+  {
+    auto geometry =
+      static_cast<const nsDisplayItemGenericImageGeometry*>(aGeometry);
+
+    if (aBuilder->ShouldSyncDecodeImages() &&
+        geometry->ShouldInvalidateToSyncDecodeImages()) {
+      bool snap;
+      aInvalidRegion->Or(*aInvalidRegion, GetBounds(aBuilder, &snap));
+    }
+
+    nsDisplayItem::ComputeInvalidationRegion(aBuilder, aGeometry, aInvalidRegion);
+  }
+
+  virtual void Paint(nsDisplayListBuilder* aBuilder,
+                     nsRenderingContext* aCtx) override
+  {
+    DrawTargetAutoDisableSubpixelAntialiasing disable(aCtx->GetDrawTarget(),
+                                                      mDisableSubpixelAA);
+
+    DrawResult result = static_cast<nsTreeBodyFrame*>(mFrame)
+      ->PaintTreeBody(*aCtx, mVisibleRect, ToReferenceFrame());
+
+    nsDisplayItemGenericImageGeometry::UpdateDrawResult(this, result);
+  }
+
+  NS_DISPLAY_DECL_NAME("XULTreeBody", TYPE_XUL_TREE_BODY)
+
+  virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder) override
+  {
+    bool snap;
+    return GetBounds(aBuilder, &snap);
+  }
+  virtual void DisableComponentAlpha() override {
+    mDisableSubpixelAA = true;
+  }
+
+  bool mDisableSubpixelAA;
+};
 
 // Painting routines
 void
@@ -2803,22 +2836,74 @@ nsTreeBodyFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   // Bail out now if there's no view or we can't run script because the
   // document is a zombie
-  if (!mView || !GetContent()->GetCurrentDoc()->GetWindow())
+  if (!mView || !GetContent ()->GetComposedDoc()->GetWindow())
     return;
 
+#ifdef XP_MACOSX
+  nsIContent* baseElement = GetBaseElement();
+  nsIFrame* treeFrame =
+    baseElement ? baseElement->GetPrimaryFrame() : nullptr;
+  nsCOMPtr<nsITreeSelection> selection;
+  mView->GetSelection(getter_AddRefs(selection));
+  nsITheme* theme = PresContext()->GetTheme();
+  // On Mac, we support native theming of selected rows. On 10.10 and higher,
+  // this means applying vibrancy which require us to register the theme
+  // geometrics for the row. In order to make the vibrancy effect to work
+  // properly, we also need the tree to be themed as a source list.
+  if (selection && treeFrame && theme &&
+      treeFrame->StyleDisplay()->mAppearance == NS_THEME_MAC_SOURCE_LIST) {
+    // Loop through our onscreen rows. If the row is selected and a
+    // -moz-appearance is provided, RegisterThemeGeometry might be necessary.
+    const auto end = std::min(mRowCount, LastVisibleRow() + 1);
+    for (auto i = FirstVisibleRow(); i < end; i++) {
+      bool isSelected;
+      selection->IsSelected(i, &isSelected);
+      if (isSelected) {
+        PrefillPropertyArray(i, nullptr);
+        nsAutoString properties;
+        mView->GetRowProperties(i, properties);
+        nsTreeUtils::TokenizeProperties(properties, mScratchArray);
+        nsStyleContext* rowContext =
+          GetPseudoStyleContext(nsCSSAnonBoxes::moztreerow);
+        auto appearance = rowContext->StyleDisplay()->mAppearance;
+        if (appearance) {
+          if (theme->ThemeSupportsWidget(PresContext(), this, appearance)) {
+            nsITheme::ThemeGeometryType type =
+              theme->ThemeGeometryTypeForWidget(this, appearance);
+            if (type != nsITheme::eThemeGeometryTypeUnknown) {
+              nsRect rowRect(mInnerBox.x, mInnerBox.y + mRowHeight *
+                             (i - FirstVisibleRow()), mInnerBox.width,
+                             mRowHeight);
+              aBuilder->RegisterThemeGeometry(type,
+                LayoutDeviceIntRect::FromUnknownRect(
+                  (rowRect + aBuilder->ToReferenceFrame(this)).ToNearestPixels(
+                    PresContext()->AppUnitsPerDevPixel())));
+            }
+          }
+        }
+      }
+    }
+  }
+#endif
+
   aLists.Content()->AppendNewToTop(new (aBuilder)
-    nsDisplayGeneric(aBuilder, this, ::PaintTreeBody, "XULTreeBody",
-                     nsDisplayItem::TYPE_XUL_TREE_BODY));
+    nsDisplayTreeBody(aBuilder, this));
 }
 
-void
+DrawResult
 nsTreeBodyFrame::PaintTreeBody(nsRenderingContext& aRenderingContext,
                                const nsRect& aDirtyRect, nsPoint aPt)
 {
   // Update our available height and our page count.
   CalcInnerBox();
-  aRenderingContext.PushState();
-  aRenderingContext.IntersectClip(mInnerBox + aPt);
+
+  DrawTarget* drawTarget = aRenderingContext.GetDrawTarget();
+  gfxContext* gfx = aRenderingContext.ThebesContext();
+
+  gfx->Save();
+  gfx->Clip(NSRectToSnappedRect(mInnerBox + aPt,
+                                PresContext()->AppUnitsPerDevPixel(),
+                                *drawTarget));
   int32_t oldPageCount = mPageLength;
   if (!mHasFixedRowCount)
     mPageLength = mInnerBox.height/mRowHeight;
@@ -2831,8 +2916,10 @@ nsTreeBodyFrame::PaintTreeBody(nsRenderingContext& aRenderingContext,
 #ifdef DEBUG
   int32_t rowCount = mRowCount;
   mView->GetRowCount(&rowCount);
-  NS_WARN_IF_FALSE(mRowCount == rowCount, "row count changed unexpectedly");
+  NS_WARNING_ASSERTION(mRowCount == rowCount, "row count changed unexpectedly");
 #endif
+
+  DrawResult result = DrawResult::SUCCESS;
 
   // Loop through our columns and paint them (e.g., for sorting).  This is only
   // relevant when painting backgrounds, since columns contain no content.  Content
@@ -2849,7 +2936,8 @@ nsTreeBodyFrame::PaintTreeBody(nsRenderingContext& aRenderingContext,
       nsRect dirtyRect;
       colRect += aPt;
       if (dirtyRect.IntersectRect(aDirtyRect, colRect)) {
-        PaintColumn(currCol, colRect, PresContext(), aRenderingContext, aDirtyRect);
+        result &=
+          PaintColumn(currCol, colRect, PresContext(), aRenderingContext, aDirtyRect);
       }
     }
   }
@@ -2859,7 +2947,8 @@ nsTreeBodyFrame::PaintTreeBody(nsRenderingContext& aRenderingContext,
     nsRect dirtyRect;
     if (dirtyRect.IntersectRect(aDirtyRect, rowRect + aPt) &&
         rowRect.y < (mInnerBox.y+mInnerBox.height)) {
-      PaintRow(i, rowRect + aPt, PresContext(), aRenderingContext, aDirtyRect, aPt);
+      result &=
+        PaintRow(i, rowRect + aPt, PresContext(), aRenderingContext, aDirtyRect, aPt);
     }
   }
 
@@ -2873,15 +2962,19 @@ nsTreeBodyFrame::PaintTreeBody(nsRenderingContext& aRenderingContext,
     nsRect dirtyRect;
     feedbackRect += aPt;
     if (dirtyRect.IntersectRect(aDirtyRect, feedbackRect)) {
-      PaintDropFeedback(feedbackRect, PresContext(), aRenderingContext, aDirtyRect, aPt);
+      result &=
+        PaintDropFeedback(feedbackRect, PresContext(), aRenderingContext,
+                          aDirtyRect, aPt);
     }
   }
-  aRenderingContext.PopState();
+  gfx->Restore();
+
+  return result;
 }
 
 
 
-void
+DrawResult
 nsTreeBodyFrame::PaintColumn(nsTreeColumn*        aColumn,
                              const nsRect&        aColumnRect,
                              nsPresContext*      aPresContext,
@@ -2907,10 +3000,11 @@ nsTreeBodyFrame::PaintColumn(nsTreeColumn*        aColumn,
   colContext->StyleMargin()->GetMargin(colMargin);
   colRect.Deflate(colMargin);
 
-  PaintBackgroundLayer(colContext, aPresContext, aRenderingContext, colRect, aDirtyRect);
+  return PaintBackgroundLayer(colContext, aPresContext, aRenderingContext,
+                              colRect, aDirtyRect);
 }
 
-void
+DrawResult
 nsTreeBodyFrame::PaintRow(int32_t              aRowIndex,
                           const nsRect&        aRowRect,
                           nsPresContext*       aPresContext,
@@ -2922,8 +3016,9 @@ nsTreeBodyFrame::PaintRow(int32_t              aRowIndex,
   // frame, meaning that it can have borders, margins, padding, and a background.
   
   // Without a view, we have no data. Check for this up front.
-  if (!mView)
-    return;
+  if (!mView) {
+    return DrawResult::SUCCESS;
+  }
 
   nsresult rv;
 
@@ -2946,29 +3041,31 @@ nsTreeBodyFrame::PaintRow(int32_t              aRowIndex,
   rowContext->StyleMargin()->GetMargin(rowMargin);
   rowRect.Deflate(rowMargin);
 
+  DrawResult result = DrawResult::SUCCESS;
+
   // Paint our borders and background for our row rect.
-  // If a -moz-appearance is provided, use theme drawing only if the current row
-  // is not selected (since we draw the selection as part of drawing the background).
-  bool useTheme = false;
-  nsITheme *theme = nullptr;
-  const nsStyleDisplay* displayData = rowContext->StyleDisplay();
-  if (displayData->mAppearance) {
+  nsITheme* theme = nullptr;
+  auto appearance = rowContext->StyleDisplay()->mAppearance;
+  if (appearance) {
     theme = aPresContext->GetTheme();
-    if (theme && theme->ThemeSupportsWidget(aPresContext, nullptr, displayData->mAppearance))
-      useTheme = true;
   }
-  bool isSelected = false;
-  nsCOMPtr<nsITreeSelection> selection;
-  mView->GetSelection(getter_AddRefs(selection));
-  if (selection) 
-    selection->IsSelected(aRowIndex, &isSelected);
-  if (useTheme && !isSelected) {
+  gfxContext* ctx = aRenderingContext.ThebesContext();
+  // Save the current font smoothing background color in case we change it.
+  Color originalColor(ctx->GetFontSmoothingBackgroundColor());
+  if (theme && theme->ThemeSupportsWidget(aPresContext, nullptr, appearance)) {
+    nscolor color;
+    if (theme->WidgetProvidesFontSmoothingBackgroundColor(this, appearance,
+                                                          &color)) {
+      // Set the font smoothing background color provided by the widget.
+      ctx->SetFontSmoothingBackgroundColor(ToDeviceColor(color));
+    }
     nsRect dirty;
     dirty.IntersectRect(rowRect, aDirtyRect);
-    theme->DrawWidgetBackground(&aRenderingContext, this, 
-                                displayData->mAppearance, rowRect, dirty);
+    theme->DrawWidgetBackground(&aRenderingContext, this, appearance, rowRect,
+                                dirty);
   } else {
-    PaintBackgroundLayer(rowContext, aPresContext, aRenderingContext, rowRect, aDirtyRect);
+    result &= PaintBackgroundLayer(rowContext, aPresContext, aRenderingContext,
+                                   rowRect, aDirtyRect);
   }
   
   // Adjust the rect for its border and padding.
@@ -2988,7 +3085,7 @@ nsTreeBodyFrame::PaintRow(int32_t              aRowIndex,
       rv = primaryCol->GetRect(this, rowRect.y, rowRect.height, &cellRect);
       if (NS_FAILED(rv)) {
         NS_NOTREACHED("primary column is invalid");
-        return;
+        return result;
       }
 
       if (OffsetForHorzScroll(cellRect, false)) {
@@ -2996,9 +3093,10 @@ nsTreeBodyFrame::PaintRow(int32_t              aRowIndex,
         nsRect dirtyRect;
         nsRect checkRect(cellRect.x, originalRowRect.y,
                          cellRect.width, originalRowRect.height);
-        if (dirtyRect.IntersectRect(aDirtyRect, checkRect))
-          PaintCell(aRowIndex, primaryCol, cellRect, aPresContext,
-                    aRenderingContext, aDirtyRect, primaryX, aPt);
+        if (dirtyRect.IntersectRect(aDirtyRect, checkRect)) {
+          result &= PaintCell(aRowIndex, primaryCol, cellRect, aPresContext,
+                              aRenderingContext, aDirtyRect, primaryX, aPt);
+        }
       }
 
       // Paint the left side of the separator.
@@ -3025,7 +3123,8 @@ nsTreeBodyFrame::PaintRow(int32_t              aRowIndex,
       if (currX > rowRect.x) {
         nsRect separatorRect(rowRect);
         separatorRect.width -= rowRect.x + rowRect.width - currX;
-        PaintSeparator(aRowIndex, separatorRect, aPresContext, aRenderingContext, aDirtyRect);
+        result &= PaintSeparator(aRowIndex, separatorRect, aPresContext,
+                                 aRenderingContext, aDirtyRect);
       }
     }
 
@@ -3035,7 +3134,8 @@ nsTreeBodyFrame::PaintRow(int32_t              aRowIndex,
       separatorRect.width -= primaryX - rowRect.x;
       separatorRect.x += primaryX - rowRect.x;
     }
-    PaintSeparator(aRowIndex, separatorRect, aPresContext, aRenderingContext, aDirtyRect);
+    result &= PaintSeparator(aRowIndex, separatorRect, aPresContext,
+                             aRenderingContext, aDirtyRect);
   }
   else {
     // Now loop over our cells. Only paint a cell if it intersects with our dirty rect.
@@ -3060,14 +3160,21 @@ nsTreeBodyFrame::PaintRow(int32_t              aRowIndex,
         nsRect dirtyRect;
         nscoord dummy;
         if (dirtyRect.IntersectRect(aDirtyRect, checkRect))
-          PaintCell(aRowIndex, currCol, cellRect, aPresContext,
-                    aRenderingContext, aDirtyRect, dummy, aPt);
+          result &= PaintCell(aRowIndex, currCol, cellRect, aPresContext,
+                              aRenderingContext, aDirtyRect, dummy, aPt);
       }
     }
   }
+  // If we've changed the font smoothing background color for this row, restore
+  // the color to the original one.
+  if (originalColor != ctx->GetFontSmoothingBackgroundColor()) {
+    ctx->SetFontSmoothingBackgroundColor(originalColor);
+  }
+
+  return result;
 }
 
-void
+DrawResult
 nsTreeBodyFrame::PaintSeparator(int32_t              aRowIndex,
                                 const nsRect&        aSeparatorRect,
                                 nsPresContext*      aPresContext,
@@ -3084,6 +3191,8 @@ nsTreeBodyFrame::PaintSeparator(int32_t              aRowIndex,
     if (theme && theme->ThemeSupportsWidget(aPresContext, nullptr, displayData->mAppearance))
       useTheme = true;
   }
+
+  DrawResult result = DrawResult::SUCCESS;
 
   // use -moz-appearance if provided.
   if (useTheme) {
@@ -3114,11 +3223,15 @@ nsTreeBodyFrame::PaintSeparator(int32_t              aRowIndex,
     // Center the separator.
     separatorRect.y += (aSeparatorRect.height - height) / 2;
 
-    PaintBackgroundLayer(separatorContext, aPresContext, aRenderingContext, separatorRect, aDirtyRect);
+    result &= PaintBackgroundLayer(separatorContext, aPresContext,
+                                   aRenderingContext, separatorRect,
+                                   aDirtyRect);
   }
+
+  return result;
 }
 
-void
+DrawResult
 nsTreeBodyFrame::PaintCell(int32_t              aRowIndex,
                            nsTreeColumn*        aColumn,
                            const nsRect&        aCellRect,
@@ -3151,7 +3264,9 @@ nsTreeBodyFrame::PaintCell(int32_t              aRowIndex,
   cellRect.Deflate(cellMargin);
 
   // Paint our borders and background for our row rect.
-  PaintBackgroundLayer(cellContext, aPresContext, aRenderingContext, cellRect, aDirtyRect);
+  DrawResult result = PaintBackgroundLayer(cellContext, aPresContext,
+                                           aRenderingContext, cellRect,
+                                           aDirtyRect);
 
   // Adjust the rect for its border and padding.
   AdjustForBorderPadding(cellContext, cellRect);
@@ -3190,29 +3305,29 @@ nsTreeBodyFrame::PaintCell(int32_t              aRowIndex,
       nsRect imageSize;
       nsRect twistyRect(aCellRect);
       GetTwistyRect(aRowIndex, aColumn, imageSize, twistyRect, aPresContext,
-                    aRenderingContext, twistyContext);
+                    twistyContext);
 
       nsMargin twistyMargin;
       twistyContext->StyleMargin()->GetMargin(twistyMargin);
       twistyRect.Inflate(twistyMargin);
 
-      aRenderingContext.PushState();
+      aRenderingContext.ThebesContext()->Save();
 
       const nsStyleBorder* borderStyle = lineContext->StyleBorder();
-      nscolor color;
-      bool foreground;
-      borderStyle->GetBorderColor(NS_SIDE_LEFT, color, foreground);
-      if (foreground) {
-        // GetBorderColor didn't touch color, thus grab it from the treeline context
-        color = lineContext->StyleColor()->mColor;
-      }
-      aRenderingContext.SetColor(color);
-      uint8_t style;
-      style = borderStyle->GetBorderStyle(NS_SIDE_LEFT);
-      aRenderingContext.SetLineStyle(ConvertBorderStyleToLineStyle(style));
+      // Resolve currentcolor values against the treeline context
+      nscolor color = lineContext->StyleColor()->
+        CalcComplexColor(borderStyle->mBorderLeftColor);
+      ColorPattern colorPatt(ToDeviceColor(color));
+
+      uint8_t style = borderStyle->GetBorderStyle(NS_SIDE_LEFT);
+      StrokeOptions strokeOptions;
+      nsLayoutUtils::InitDashPattern(strokeOptions, style);
 
       nscoord srcX = currX + twistyRect.width - mIndentation / 2;
       nscoord lineY = (aRowIndex - mTopRowIndex) * mRowHeight + aPt.y;
+
+      DrawTarget* drawTarget = aRenderingContext.GetDrawTarget();
+      nsPresContext* pc = PresContext();
 
       // Don't paint off our cell.
       if (srcX <= cellRect.x + cellRect.width) {
@@ -3223,7 +3338,13 @@ nsTreeBodyFrame::PaintCell(int32_t              aRowIndex,
           srcX = currX + remainingWidth - (srcX - cellRect.x);
           destX = currX + remainingWidth - (destX - cellRect.x);
         }
-        aRenderingContext.DrawLine(srcX, lineY + mRowHeight / 2, destX, lineY + mRowHeight / 2);
+        Point p1(pc->AppUnitsToGfxUnits(srcX),
+                 pc->AppUnitsToGfxUnits(lineY + mRowHeight / 2));
+        Point p2(pc->AppUnitsToGfxUnits(destX),
+                 pc->AppUnitsToGfxUnits(lineY + mRowHeight / 2));
+        SnapLineToDevicePixelsForStroking(p1, p2, *drawTarget,
+                                          strokeOptions.mLineWidth);
+        drawTarget->StrokeLine(p1, p2, colorPatt, strokeOptions);
       }
 
       int32_t currentParent = aRowIndex;
@@ -3232,10 +3353,21 @@ nsTreeBodyFrame::PaintCell(int32_t              aRowIndex,
           // Paint full vertical line only if we have next sibling.
           bool hasNextSibling;
           mView->HasNextSibling(currentParent, aRowIndex, &hasNextSibling);
-          if (hasNextSibling)
-            aRenderingContext.DrawLine(srcX, lineY, srcX, lineY + mRowHeight);
-          else if (i == level)
-            aRenderingContext.DrawLine(srcX, lineY, srcX, lineY + mRowHeight / 2);
+          if (hasNextSibling || i == level) {
+            Point p1(pc->AppUnitsToGfxUnits(srcX),
+                     pc->AppUnitsToGfxUnits(lineY));
+            Point p2;
+            p2.x = pc->AppUnitsToGfxUnits(srcX);
+
+            if (hasNextSibling)
+              p2.y = pc->AppUnitsToGfxUnits(lineY + mRowHeight);
+            else if (i == level)
+              p2.y = pc->AppUnitsToGfxUnits(lineY + mRowHeight / 2);
+
+            SnapLineToDevicePixelsForStroking(p1, p2, *drawTarget,
+                                              strokeOptions.mLineWidth);
+            drawTarget->StrokeLine(p1, p2, colorPatt, strokeOptions);
+          }          
         }
 
         int32_t parent;
@@ -3245,21 +3377,24 @@ nsTreeBodyFrame::PaintCell(int32_t              aRowIndex,
         srcX -= mIndentation;
       }
 
-      aRenderingContext.PopState();
+      aRenderingContext.ThebesContext()->Restore();
     }
 
     // Always leave space for the twisty.
     nsRect twistyRect(currX, cellRect.y, remainingWidth, cellRect.height);
-    PaintTwisty(aRowIndex, aColumn, twistyRect, aPresContext, aRenderingContext, aDirtyRect,
-                remainingWidth, currX);
+    result &= PaintTwisty(aRowIndex, aColumn, twistyRect, aPresContext,
+                          aRenderingContext, aDirtyRect, remainingWidth,
+                          currX);
   }
   
   // Now paint the icon for our cell.
   nsRect iconRect(currX, cellRect.y, remainingWidth, cellRect.height);
   nsRect dirtyRect;
-  if (dirtyRect.IntersectRect(aDirtyRect, iconRect))
-    PaintImage(aRowIndex, aColumn, iconRect, aPresContext, aRenderingContext, aDirtyRect,
-               remainingWidth, currX);
+  if (dirtyRect.IntersectRect(aDirtyRect, iconRect)) {
+    result &= PaintImage(aRowIndex, aColumn, iconRect, aPresContext,
+                         aRenderingContext, aDirtyRect, remainingWidth,
+                         currX);
+  }
 
   // Now paint our element, but only if we aren't a cycler column.
   // XXX until we have the ability to load images, allow the view to 
@@ -3270,10 +3405,13 @@ nsTreeBodyFrame::PaintCell(int32_t              aRowIndex,
     if (dirtyRect.IntersectRect(aDirtyRect, elementRect)) {
       switch (aColumn->GetType()) {
         case nsITreeColumn::TYPE_TEXT:
-          PaintText(aRowIndex, aColumn, elementRect, aPresContext, aRenderingContext, aDirtyRect, currX);
+        case nsITreeColumn::TYPE_PASSWORD:
+          result &= PaintText(aRowIndex, aColumn, elementRect, aPresContext,
+                              aRenderingContext, aDirtyRect, currX);
           break;
         case nsITreeColumn::TYPE_CHECKBOX:
-          PaintCheckbox(aRowIndex, aColumn, elementRect, aPresContext, aRenderingContext, aDirtyRect);
+          result &= PaintCheckbox(aRowIndex, aColumn, elementRect, aPresContext,
+                                  aRenderingContext, aDirtyRect);
           break;
         case nsITreeColumn::TYPE_PROGRESSMETER:
           int32_t state;
@@ -3281,11 +3419,14 @@ nsTreeBodyFrame::PaintCell(int32_t              aRowIndex,
           switch (state) {
             case nsITreeView::PROGRESS_NORMAL:
             case nsITreeView::PROGRESS_UNDETERMINED:
-              PaintProgressMeter(aRowIndex, aColumn, elementRect, aPresContext, aRenderingContext, aDirtyRect);
+              result &= PaintProgressMeter(aRowIndex, aColumn, elementRect,
+                                           aPresContext, aRenderingContext,
+                                           aDirtyRect);
               break;
             case nsITreeView::PROGRESS_NONE:
             default:
-              PaintText(aRowIndex, aColumn, elementRect, aPresContext, aRenderingContext, aDirtyRect, currX);
+              result &= PaintText(aRowIndex, aColumn, elementRect, aPresContext,
+                                  aRenderingContext, aDirtyRect, currX);
               break;
           }
           break;
@@ -3294,9 +3435,11 @@ nsTreeBodyFrame::PaintCell(int32_t              aRowIndex,
   }
 
   aCurrX = currX;
+
+  return result;
 }
 
-void
+DrawResult
 nsTreeBodyFrame::PaintTwisty(int32_t              aRowIndex,
                              nsTreeColumn*        aColumn,
                              const nsRect&        aTwistyRect,
@@ -3333,7 +3476,7 @@ nsTreeBodyFrame::PaintTwisty(int32_t              aRowIndex,
 
   nsRect imageSize;
   nsITheme* theme = GetTwistyRect(aRowIndex, aColumn, imageSize, twistyRect,
-                                  aPresContext, aRenderingContext, twistyContext);
+                                  aPresContext, twistyContext);
 
   // Subtract out the remaining width.  This is done even when we don't actually paint a twisty in 
   // this cell, so that cells in different rows still line up.
@@ -3343,9 +3486,13 @@ nsTreeBodyFrame::PaintTwisty(int32_t              aRowIndex,
   if (!isRTL)
     aCurrX += copyRect.width;
 
+  DrawResult result = DrawResult::SUCCESS;
+
   if (shouldPaint) {
     // Paint our borders and background for our image rect.
-    PaintBackgroundLayer(twistyContext, aPresContext, aRenderingContext, twistyRect, aDirtyRect);
+    result &= PaintBackgroundLayer(twistyContext, aPresContext,
+                                   aRenderingContext, twistyRect,
+                                   aDirtyRect);
 
     if (theme) {
       if (isRTL)
@@ -3379,17 +3526,21 @@ nsTreeBodyFrame::PaintTwisty(int32_t              aRowIndex,
         if (imageSize.height < twistyRect.height) {
           pt.y += (twistyRect.height - imageSize.height)/2;
         }
-          
+
         // Paint the image.
-        nsLayoutUtils::DrawSingleUnscaledImage(&aRenderingContext, image,
-            GraphicsFilter::FILTER_NEAREST, pt, &aDirtyRect,
-            imgIContainer::FLAG_NONE, &imageSize);
+        result &=
+          nsLayoutUtils::DrawSingleUnscaledImage(
+              *aRenderingContext.ThebesContext(), aPresContext, image,
+              SamplingFilter::POINT, pt, &aDirtyRect,
+              imgIContainer::FLAG_NONE, &imageSize);
       }
     }
   }
+
+  return result;
 }
 
-void
+DrawResult
 nsTreeBodyFrame::PaintImage(int32_t              aRowIndex,
                             nsTreeColumn*        aColumn,
                             const nsRect&        aImageRect,
@@ -3407,7 +3558,7 @@ nsTreeBodyFrame::PaintImage(int32_t              aRowIndex,
   nsStyleContext* imageContext = GetPseudoStyleContext(nsCSSAnonBoxes::moztreeimage);
 
   // Obtain opacity value for the image.
-  float opacity = imageContext->StyleDisplay()->mOpacity;
+  float opacity = imageContext->StyleEffects()->mOpacity;
 
   // Obtain the margins for the image and then deflate our rect by that
   // amount.  The image is assumed to be contained within the deflated rect.
@@ -3423,8 +3574,9 @@ nsTreeBodyFrame::PaintImage(int32_t              aRowIndex,
 
   // Get the image destination size.
   nsSize imageDestSize = GetImageDestSize(imageContext, useImageRegion, image);
-  if (!imageDestSize.width || !imageDestSize.height)
-    return;
+  if (!imageDestSize.width || !imageDestSize.height) {
+    return DrawResult::SUCCESS;
+  }
 
   // Get the borders and padding.
   nsMargin bp(0,0,0,0);
@@ -3460,11 +3612,15 @@ nsTreeBodyFrame::PaintImage(int32_t              aRowIndex,
     }
   }
 
+  DrawResult result = DrawResult::SUCCESS;
+
   if (image) {
     if (isRTL)
       imageRect.x = rightEdge - imageRect.width;
     // Paint our borders and background for our image rect
-    PaintBackgroundLayer(imageContext, aPresContext, aRenderingContext, imageRect, aDirtyRect);
+    result &= PaintBackgroundLayer(imageContext, aPresContext,
+                                   aRenderingContext, imageRect,
+                                   aDirtyRect);
 
     // The destRect x and y have not been set yet. Let's do that now.
     // Initially, we use the imageRect x and y.
@@ -3495,50 +3651,79 @@ nsTreeBodyFrame::PaintImage(int32_t              aRowIndex,
     // Deflate destRect for the border and padding.
     destRect.Deflate(bp);
 
-    // Get the image source rectangle - the rectangle containing the part of
-    // the image that we are going to display.
-    // sourceRect will be passed as the aSrcRect argument in the DrawImage method.
-    nsRect sourceRect = GetImageSourceRect(imageContext, useImageRegion, image);
+    // Compute the area where our whole image would be mapped, to get the
+    // desired subregion onto our actual destRect:
+    nsRect wholeImageDest;
+    CSSIntSize rawImageCSSIntSize;
+    if (NS_SUCCEEDED(image->GetWidth(&rawImageCSSIntSize.width)) &&
+        NS_SUCCEEDED(image->GetHeight(&rawImageCSSIntSize.height))) {
+      // Get the image source rectangle - the rectangle containing the part of
+      // the image that we are going to display.  sourceRect will be passed as
+      // the aSrcRect argument in the DrawImage method.
+      nsRect sourceRect = GetImageSourceRect(imageContext, useImageRegion, image);
 
-    // Let's say that the image is 100 pixels tall and
-    // that the CSS has specified that the destination height should be 50
-    // pixels tall. Let's say that the cell height is only 20 pixels. So, in
-    // those 20 visible pixels, we want to see the top 20/50ths of the image.
-    // So, the sourceRect.height should be 100 * 20 / 50, which is 40 pixels.
-    // Essentially, we are scaling the image as dictated by the CSS destination
-    // height and width, and we are then clipping the scaled image by the cell
-    // width and height.
-    nsIntSize rawImageSize;
-    image->GetWidth(&rawImageSize.width);
-    image->GetHeight(&rawImageSize.height);
-    nsRect wholeImageDest =
-      nsLayoutUtils::GetWholeImageDestination(rawImageSize, sourceRect,
-          nsRect(destRect.TopLeft(), imageDestSize));
+      // Let's say that the image is 100 pixels tall and that the CSS has
+      // specified that the destination height should be 50 pixels tall. Let's
+      // say that the cell height is only 20 pixels. So, in those 20 visible
+      // pixels, we want to see the top 20/50ths of the image.  So, the
+      // sourceRect.height should be 100 * 20 / 50, which is 40 pixels.
+      // Essentially, we are scaling the image as dictated by the CSS
+      // destination height and width, and we are then clipping the scaled
+      // image by the cell width and height.
+      nsSize rawImageSize(CSSPixel::ToAppUnits(rawImageCSSIntSize));
+      wholeImageDest =
+        nsLayoutUtils::GetWholeImageDestination(rawImageSize, sourceRect,
+                                                nsRect(destRect.TopLeft(),
+                                                       imageDestSize));
+    } else {
+      // GetWidth/GetHeight failed, so we can't easily map a subregion of the
+      // source image onto the destination area.
+      // * If this happens with a RasterImage, it probably means the image is
+      // in an error state, and we shouldn't draw anything. Hence, we leave
+      // wholeImageDest as an empty rect (its initial state).
+      // * If this happens with a VectorImage, it probably means the image has
+      // no explicit width or height attribute -- but we can still proceed and
+      // just treat the destination area as our whole SVG image area. Hence, we
+      // set wholeImageDest to the full destRect.
+      if (image->GetType() == imgIContainer::TYPE_VECTOR) {
+        wholeImageDest = destRect;
+      }
+    }
 
     gfxContext* ctx = aRenderingContext.ThebesContext();
     if (opacity != 1.0f) {
-      ctx->PushGroup(gfxContentType::COLOR_ALPHA);
+      ctx->PushGroupForBlendBack(gfxContentType::COLOR_ALPHA, opacity);
     }
 
-    nsLayoutUtils::DrawImage(&aRenderingContext, image,
-        nsLayoutUtils::GetGraphicsFilterForFrame(this),
+    result &=
+      nsLayoutUtils::DrawImage(*ctx, aPresContext, image,
+        nsLayoutUtils::GetSamplingFilterForFrame(this),
         wholeImageDest, destRect, destRect.TopLeft(), aDirtyRect,
         imgIContainer::FLAG_NONE);
 
     if (opacity != 1.0f) {
-      ctx->PopGroupToSource();
-      ctx->Paint(opacity);
+      ctx->PopGroupAndBlend();
     }
   }
 
   // Update the aRemainingWidth and aCurrX values.
   imageRect.Inflate(imageMargin);
   aRemainingWidth -= imageRect.width;
-  if (!isRTL)
+  if (!isRTL) {
     aCurrX += imageRect.width;
+  }
+
+  return result;
 }
 
-void
+// Disable PGO for PaintText because MSVC 2015 seems to have decided
+// that it can null out the alreadyAddRefed<nsFontMetrics> used to
+// initialize fontMet after storing fontMet on the stack in the same
+// space, overwriting fontMet's stack storage with null.
+#ifdef _MSC_VER
+# pragma optimize("g", off)
+#endif
+DrawResult
 nsTreeBodyFrame::PaintText(int32_t              aRowIndex,
                            nsTreeColumn*        aColumn,
                            const nsRect&        aTextRect,
@@ -3554,19 +3739,31 @@ nsTreeBodyFrame::PaintText(int32_t              aRowIndex,
   // Now obtain the text for our cell.
   nsAutoString text;
   mView->GetCellText(aRowIndex, aColumn, text);
+
+  if (aColumn->Type() == nsITreeColumn::TYPE_PASSWORD) {
+    TextEditRules::FillBufWithPWChars(&text, text.Length());
+  }
+
   // We're going to paint this text so we need to ensure bidi is enabled if
   // necessary
   CheckTextForBidi(text);
 
-  if (text.Length() == 0)
-    return; // Don't paint an empty string. XXX What about background/borders? Still paint?
+  DrawResult result = DrawResult::SUCCESS;
+
+  if (text.Length() == 0) {
+    // Don't paint an empty string. XXX What about background/borders? Still paint?
+    return result;
+  }
+
+  int32_t appUnitsPerDevPixel = PresContext()->AppUnitsPerDevPixel();
+  DrawTarget* drawTarget = aRenderingContext.GetDrawTarget();
 
   // Resolve style for the text.  It contains all the info we need to lay ourselves
   // out and to paint.
   nsStyleContext* textContext = GetPseudoStyleContext(nsCSSAnonBoxes::moztreecelltext);
 
   // Obtain opacity value for the image.
-  float opacity = textContext->StyleDisplay()->mOpacity;
+  float opacity = textContext->StyleEffects()->mOpacity;
 
   // Obtain the margins for the text and then deflate our rect by that 
   // amount.  The text is assumed to be contained within the deflated rect.
@@ -3581,9 +3778,8 @@ nsTreeBodyFrame::PaintText(int32_t              aRowIndex,
   textRect.Deflate(bp);
 
   // Compute our text size.
-  nsRefPtr<nsFontMetrics> fontMet;
-  nsLayoutUtils::GetFontMetricsForStyleContext(textContext,
-                                               getter_AddRefs(fontMet));
+  RefPtr<nsFontMetrics> fontMet =
+    nsLayoutUtils::GetFontMetricsForStyleContext(textContext);
 
   nscoord height = fontMet->MaxHeight();
   nscoord baseline = fontMet->MaxAscent();
@@ -3595,57 +3791,75 @@ nsTreeBodyFrame::PaintText(int32_t              aRowIndex,
   }
 
   // Set our font.
-  aRenderingContext.SetFont(fontMet);
-
-  AdjustForCellText(text, aRowIndex, aColumn, aRenderingContext, textRect);
+  AdjustForCellText(text, aRowIndex, aColumn, aRenderingContext, *fontMet, textRect);
   textRect.Inflate(bp);
 
   // Subtract out the remaining width.
   if (!isRTL)
     aCurrX += textRect.width + textMargin.LeftRight();
 
-  PaintBackgroundLayer(textContext, aPresContext, aRenderingContext, textRect, aDirtyRect);
+  result &= PaintBackgroundLayer(textContext, aPresContext, aRenderingContext,
+                                 textRect, aDirtyRect);
 
   // Time to paint our text.
   textRect.Deflate(bp);
 
   // Set our color.
-  aRenderingContext.SetColor(textContext->StyleColor()->mColor);
+  ColorPattern color(ToDeviceColor(textContext->StyleColor()->mColor));
 
   // Draw decorations.
   uint8_t decorations = textContext->StyleTextReset()->mTextDecorationLine;
 
   nscoord offset;
   nscoord size;
-  if (decorations & (NS_FONT_DECORATION_OVERLINE | NS_FONT_DECORATION_UNDERLINE)) {
+  if (decorations & (NS_STYLE_TEXT_DECORATION_LINE_OVERLINE |
+                     NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE)) {
     fontMet->GetUnderline(offset, size);
-    if (decorations & NS_FONT_DECORATION_OVERLINE)
-      aRenderingContext.FillRect(textRect.x, textRect.y, textRect.width, size);
-    if (decorations & NS_FONT_DECORATION_UNDERLINE)
-      aRenderingContext.FillRect(textRect.x, textRect.y + baseline - offset, textRect.width, size);
+    if (decorations & NS_STYLE_TEXT_DECORATION_LINE_OVERLINE) {
+      nsRect r(textRect.x, textRect.y, textRect.width, size);
+      Rect devPxRect =
+        NSRectToSnappedRect(r, appUnitsPerDevPixel, *drawTarget);
+      drawTarget->FillRect(devPxRect, color);
+    }
+    if (decorations & NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE) {
+      nsRect r(textRect.x, textRect.y + baseline - offset,
+               textRect.width, size);
+      Rect devPxRect =
+        NSRectToSnappedRect(r, appUnitsPerDevPixel, *drawTarget);
+      drawTarget->FillRect(devPxRect, color);
+    }
   }
-  if (decorations & NS_FONT_DECORATION_LINE_THROUGH) {
+  if (decorations & NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH) {
     fontMet->GetStrikeout(offset, size);
-    aRenderingContext.FillRect(textRect.x, textRect.y + baseline - offset, textRect.width, size);
+    nsRect r(textRect.x, textRect.y + baseline - offset, textRect.width, size);
+    Rect devPxRect =
+      NSRectToSnappedRect(r, appUnitsPerDevPixel, *drawTarget);
+    drawTarget->FillRect(devPxRect, color);
   }
   nsStyleContext* cellContext = GetPseudoStyleContext(nsCSSAnonBoxes::moztreecell);
 
   gfxContext* ctx = aRenderingContext.ThebesContext();
   if (opacity != 1.0f) {
-    ctx->PushGroup(gfxContentType::COLOR_ALPHA);
+    ctx->PushGroupForBlendBack(gfxContentType::COLOR_ALPHA, opacity);
   }
 
-  nsLayoutUtils::DrawString(this, &aRenderingContext, text.get(), text.Length(),
-                            textRect.TopLeft() + nsPoint(0, baseline), cellContext);
+  ctx->SetColor(Color::FromABGR(textContext->StyleColor()->mColor));
+  nsLayoutUtils::DrawString(this, *fontMet, &aRenderingContext, text.get(),
+                            text.Length(),
+                            textRect.TopLeft() + nsPoint(0, baseline),
+                            cellContext);
 
   if (opacity != 1.0f) {
-    ctx->PopGroupToSource();
-    ctx->Paint(opacity);
+    ctx->PopGroupAndBlend();
   }
 
+  return result;
 }
+#ifdef _MSC_VER
+# pragma optimize("", on)
+#endif
 
-void
+DrawResult
 nsTreeBodyFrame::PaintCheckbox(int32_t              aRowIndex,
                                nsTreeColumn*        aColumn,
                                const nsRect&        aCheckboxRect,
@@ -3678,7 +3892,9 @@ nsTreeBodyFrame::PaintCheckbox(int32_t              aRowIndex,
     checkboxRect.x = rightEdge - checkboxRect.width;
 
   // Paint our borders and background for our image rect.
-  PaintBackgroundLayer(checkboxContext, aPresContext, aRenderingContext, checkboxRect, aDirtyRect);
+  DrawResult result = PaintBackgroundLayer(checkboxContext, aPresContext,
+                                           aRenderingContext, checkboxRect,
+                                           aDirtyRect);
 
   // Time to paint the checkbox.
   // Adjust the rect for its border and padding.
@@ -3702,13 +3918,17 @@ nsTreeBodyFrame::PaintCheckbox(int32_t              aRowIndex,
     }
 
     // Paint the image.
-    nsLayoutUtils::DrawSingleUnscaledImage(&aRenderingContext, image,
-        GraphicsFilter::FILTER_NEAREST, pt, &aDirtyRect,
+    result &=
+      nsLayoutUtils::DrawSingleUnscaledImage(*aRenderingContext.ThebesContext(),
+        aPresContext,
+        image, SamplingFilter::POINT, pt, &aDirtyRect,
         imgIContainer::FLAG_NONE, &imageSize);
   }
+
+  return result;
 }
 
-void
+DrawResult
 nsTreeBodyFrame::PaintProgressMeter(int32_t              aRowIndex,
                                     nsTreeColumn*        aColumn,
                                     const nsRect&        aProgressMeterRect,
@@ -3731,7 +3951,9 @@ nsTreeBodyFrame::PaintProgressMeter(int32_t              aRowIndex,
   meterRect.Deflate(meterMargin);
 
   // Paint our borders and background for our progress meter rect.
-  PaintBackgroundLayer(meterContext, aPresContext, aRenderingContext, meterRect, aDirtyRect);
+  DrawResult result = PaintBackgroundLayer(meterContext, aPresContext,
+                                           aRenderingContext, meterRect,
+                                           aDirtyRect);
 
   // Time to paint our progress. 
   int32_t state;
@@ -3739,9 +3961,6 @@ nsTreeBodyFrame::PaintProgressMeter(int32_t              aRowIndex,
   if (state == nsITreeView::PROGRESS_NORMAL) {
     // Adjust the rect for its border and padding.
     AdjustForBorderPadding(meterContext, meterRect);
-
-    // Set our color.
-    aRenderingContext.SetColor(meterContext->StyleColor()->mColor);
 
     // Now obtain the value for our cell.
     nsAutoString value;
@@ -3767,12 +3986,19 @@ nsTreeBodyFrame::PaintProgressMeter(int32_t              aRowIndex,
       image->GetHeight(&height);
       nsSize size(width*nsDeviceContext::AppUnitsPerCSSPixel(),
                   height*nsDeviceContext::AppUnitsPerCSSPixel());
-      nsLayoutUtils::DrawImage(&aRenderingContext, image,
-          nsLayoutUtils::GetGraphicsFilterForFrame(this),
+      result &=
+        nsLayoutUtils::DrawImage(*aRenderingContext.ThebesContext(),
+          aPresContext, image,
+          nsLayoutUtils::GetSamplingFilterForFrame(this),
           nsRect(meterRect.TopLeft(), size), meterRect, meterRect.TopLeft(),
           aDirtyRect, imgIContainer::FLAG_NONE);
     } else {
-      aRenderingContext.FillRect(meterRect);
+      DrawTarget* drawTarget = aRenderingContext.GetDrawTarget();
+      int32_t appUnitsPerDevPixel = PresContext()->AppUnitsPerDevPixel();
+      Rect rect =
+        NSRectToSnappedRect(meterRect, appUnitsPerDevPixel, *drawTarget);
+      ColorPattern color(ToDeviceColor(meterContext->StyleColor()->mColor));
+      drawTarget->FillRect(rect, color);
     }
   }
   else if (state == nsITreeView::PROGRESS_UNDETERMINED) {
@@ -3788,16 +4014,20 @@ nsTreeBodyFrame::PaintProgressMeter(int32_t              aRowIndex,
       image->GetHeight(&height);
       nsSize size(width*nsDeviceContext::AppUnitsPerCSSPixel(),
                   height*nsDeviceContext::AppUnitsPerCSSPixel());
-      nsLayoutUtils::DrawImage(&aRenderingContext, image,
-          nsLayoutUtils::GetGraphicsFilterForFrame(this),
+      result &=
+        nsLayoutUtils::DrawImage(*aRenderingContext.ThebesContext(),
+          aPresContext, image,
+          nsLayoutUtils::GetSamplingFilterForFrame(this),
           nsRect(meterRect.TopLeft(), size), meterRect, meterRect.TopLeft(),
           aDirtyRect, imgIContainer::FLAG_NONE);
     }
   }
+
+  return result;
 }
 
 
-void
+DrawResult
 nsTreeBodyFrame::PaintDropFeedback(const nsRect&        aDropFeedbackRect,
                                    nsPresContext*      aPresContext,
                                    nsRenderingContext& aRenderingContext,
@@ -3827,6 +4057,8 @@ nsTreeBodyFrame::PaintDropFeedback(const nsRect&        aDropFeedbackRect,
 
   // Resolve the style to use for the drop feedback.
   nsStyleContext* feedbackContext = GetPseudoStyleContext(nsCSSAnonBoxes::moztreedropfeedback);
+
+  DrawResult result = DrawResult::SUCCESS;
 
   // Paint only if it is visible.
   if (feedbackContext->StyleVisibility()->IsVisibleOrCollapsed()) {
@@ -3858,8 +4090,8 @@ nsTreeBodyFrame::PaintDropFeedback(const nsRect&        aDropFeedbackRect,
       nsStyleContext* twistyContext = GetPseudoStyleContext(nsCSSAnonBoxes::moztreetwisty);
       nsRect imageSize;
       nsRect twistyRect;
-      GetTwistyRect(mSlots->mDropRow, primaryCol, imageSize, twistyRect, aPresContext,
-                    aRenderingContext, twistyContext);
+      GetTwistyRect(mSlots->mDropRow, primaryCol, imageSize, twistyRect,
+                    aPresContext, twistyContext);
       nsMargin twistyMargin;
       twistyContext->StyleMargin()->GetMargin(twistyMargin);
       twistyRect.Inflate(twistyMargin);
@@ -3896,11 +4128,15 @@ nsTreeBodyFrame::PaintDropFeedback(const nsRect&        aDropFeedbackRect,
     feedbackRect.y += (aDropFeedbackRect.height - height) / 2;
 
     // Finally paint the drop feedback.
-    PaintBackgroundLayer(feedbackContext, aPresContext, aRenderingContext, feedbackRect, aDirtyRect);
+    result &= PaintBackgroundLayer(feedbackContext, aPresContext,
+                                   aRenderingContext, feedbackRect,
+                                   aDirtyRect);
   }
+
+  return result;
 }
 
-void
+DrawResult
 nsTreeBodyFrame::PaintBackgroundLayer(nsStyleContext*      aStyleContext,
                                       nsPresContext*      aPresContext,
                                       nsRenderingContext& aRenderingContext,
@@ -3908,18 +4144,23 @@ nsTreeBodyFrame::PaintBackgroundLayer(nsStyleContext*      aStyleContext,
                                       const nsRect&        aDirtyRect)
 {
   const nsStyleBorder* myBorder = aStyleContext->StyleBorder();
+  nsCSSRendering::PaintBGParams params =
+    nsCSSRendering::PaintBGParams::ForAllLayers(*aPresContext, aRenderingContext,
+                                                aDirtyRect, aRect, this,
+                                                nsCSSRendering::PAINTBG_SYNC_DECODE_IMAGES);
+  DrawResult result =
+    nsCSSRendering::PaintBackgroundWithSC(params, aStyleContext, *myBorder);
 
-  nsCSSRendering::PaintBackgroundWithSC(aPresContext, aRenderingContext,
-                                        this, aDirtyRect, aRect,
-                                        aStyleContext, *myBorder,
-                                        nsCSSRendering::PAINTBG_SYNC_DECODE_IMAGES);
-
-  nsCSSRendering::PaintBorderWithStyleBorder(aPresContext, aRenderingContext,
-                                             this, aDirtyRect, aRect,
-                                             *myBorder, mStyleContext);
+  result &=
+    nsCSSRendering::PaintBorderWithStyleBorder(aPresContext, aRenderingContext,
+                                               this, aDirtyRect, aRect,
+                                               *myBorder, mStyleContext,
+                                               PaintBorderFlags::SYNC_DECODE_IMAGES);
 
   nsCSSRendering::PaintOutline(aPresContext, aRenderingContext, this,
                                aDirtyRect, aRect, aStyleContext);
+
+  return result;
 }
 
 // Scrolling
@@ -3955,7 +4196,7 @@ nsresult nsTreeBodyFrame::EnsureRowIsVisibleInternal(const ScrollParts& aParts, 
 nsresult
 nsTreeBodyFrame::EnsureCellIsVisible(int32_t aRow, nsITreeColumn* aCol)
 {
-  nsRefPtr<nsTreeColumn> col = GetColumnImpl(aCol);
+  RefPtr<nsTreeColumn> col = GetColumnImpl(aCol);
   if (!col)
     return NS_ERROR_INVALID_ARG;
 
@@ -4019,7 +4260,7 @@ nsTreeBodyFrame::ScrollToColumn(nsITreeColumn* aCol)
 nsresult nsTreeBodyFrame::ScrollToColumnInternal(const ScrollParts& aParts,
                                                  nsITreeColumn* aCol)
 {
-  nsRefPtr<nsTreeColumn> col = GetColumnImpl(aCol);
+  RefPtr<nsTreeColumn> col = GetColumnImpl(aCol);
   if (!col)
     return NS_ERROR_INVALID_ARG;
 
@@ -4046,10 +4287,9 @@ nsresult
 nsTreeBodyFrame::ScrollToRow(int32_t aRow)
 {
   ScrollParts parts = GetScrollParts();
-  nsresult rv = ScrollToRowInternal(parts, aRow);
-  NS_ENSURE_SUCCESS(rv, rv);
+  ScrollToRowInternal(parts, aRow);
   UpdateScrollbars(parts);
-  return rv;
+  return NS_OK;
 }
 
 nsresult nsTreeBodyFrame::ScrollToRowInternal(const ScrollParts& aParts, int32_t aRow)
@@ -4062,62 +4302,43 @@ nsresult nsTreeBodyFrame::ScrollToRowInternal(const ScrollParts& aParts, int32_t
 nsresult
 nsTreeBodyFrame::ScrollByLines(int32_t aNumLines)
 {
-  if (!mView)
+  if (!mView) {
     return NS_OK;
-
-  int32_t newIndex = mTopRowIndex + aNumLines;
-  if (newIndex < 0)
-    newIndex = 0;
-  else {
-    int32_t lastPageTopRow = mRowCount - mPageLength;
-    if (newIndex > lastPageTopRow)
-      newIndex = lastPageTopRow;
   }
+  int32_t newIndex = mTopRowIndex + aNumLines;
   ScrollToRow(newIndex);
-  
   return NS_OK;
 }
 
 nsresult
 nsTreeBodyFrame::ScrollByPages(int32_t aNumPages)
 {
-  if (!mView)
+  if (!mView) {
     return NS_OK;
-
-  int32_t newIndex = mTopRowIndex + aNumPages * mPageLength;
-  if (newIndex < 0)
-    newIndex = 0;
-  else {
-    int32_t lastPageTopRow = mRowCount - mPageLength;
-    if (newIndex > lastPageTopRow)
-      newIndex = lastPageTopRow;
   }
+  int32_t newIndex = mTopRowIndex + aNumPages * mPageLength;
   ScrollToRow(newIndex);
-    
   return NS_OK;
 }
 
 nsresult
 nsTreeBodyFrame::ScrollInternal(const ScrollParts& aParts, int32_t aRow)
 {
-  if (!mView)
+  if (!mView) {
     return NS_OK;
-
-  int32_t delta = aRow - mTopRowIndex;
-
-  if (delta > 0) {
-    if (mTopRowIndex == (mRowCount - mPageLength + 1))
-      return NS_OK;
-  }
-  else {
-    if (mTopRowIndex == 0)
-      return NS_OK;
   }
 
-  mTopRowIndex += delta;
+  // Note that we may be "over scrolled" at this point; that is the
+  // current mTopRowIndex may be larger than mRowCount - mPageLength.
+  // This can happen when items are removed for example. (bug 1085050)
 
+  int32_t maxTopRowIndex = std::max(0, mRowCount - mPageLength);
+  aRow = mozilla::clamped(aRow, 0, maxTopRowIndex);
+  if (aRow == mTopRowIndex) {
+    return NS_OK;
+  }
+  mTopRowIndex = aRow;
   Invalidate();
-
   PostScrollEvent();
   return NS_OK;
 }
@@ -4154,48 +4375,91 @@ nsTreeBodyFrame::ScrollHorzInternal(const ScrollParts& aParts, int32_t aPosition
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsTreeBodyFrame::ScrollbarButtonPressed(nsScrollbarFrame* aScrollbar, int32_t aOldIndex, int32_t aNewIndex)
+void
+nsTreeBodyFrame::ScrollByPage(nsScrollbarFrame* aScrollbar, int32_t aDirection,
+                              nsIScrollbarMediator::ScrollSnapMode aSnap)
+{
+  // CSS Scroll Snapping is not enabled for XUL, aSnap is ignored
+  MOZ_ASSERT(aScrollbar != nullptr);
+  ScrollByPages(aDirection);
+}
+
+void
+nsTreeBodyFrame::ScrollByWhole(nsScrollbarFrame* aScrollbar, int32_t aDirection,
+                               nsIScrollbarMediator::ScrollSnapMode aSnap)
+{
+  // CSS Scroll Snapping is not enabled for XUL, aSnap is ignored
+  MOZ_ASSERT(aScrollbar != nullptr); 
+  int32_t newIndex = aDirection < 0 ? 0 : mTopRowIndex;
+  ScrollToRow(newIndex);
+}
+
+void
+nsTreeBodyFrame::ScrollByLine(nsScrollbarFrame* aScrollbar, int32_t aDirection,
+                              nsIScrollbarMediator::ScrollSnapMode aSnap)
+{
+  // CSS Scroll Snapping is not enabled for XUL, aSnap is ignored
+  MOZ_ASSERT(aScrollbar != nullptr);
+  ScrollByLines(aDirection);
+}
+
+void
+nsTreeBodyFrame::RepeatButtonScroll(nsScrollbarFrame* aScrollbar)
 {
   ScrollParts parts = GetScrollParts();
+  int32_t increment = aScrollbar->GetIncrement();
+  int32_t direction = 0;
+  if (increment < 0) {
+    direction = -1;
+  } else if (increment > 0) {
+    direction = 1;
+  }
+  bool isHorizontal = aScrollbar->IsXULHorizontal();
 
-  if (aScrollbar == parts.mVScrollbar) {
-    if (aNewIndex > aOldIndex)
-      ScrollToRowInternal(parts, mTopRowIndex+1);
-    else if (aNewIndex < aOldIndex)
-      ScrollToRowInternal(parts, mTopRowIndex-1);
+  nsWeakFrame weakFrame(this);
+  if (isHorizontal) {
+    int32_t curpos = aScrollbar->MoveToNewPosition();
+    if (weakFrame.IsAlive()) {
+      ScrollHorzInternal(parts, curpos);
+    }
   } else {
-    nsresult rv = ScrollHorzInternal(parts, aNewIndex);
-    if (NS_FAILED(rv)) return rv;
+    ScrollToRowInternal(parts, mTopRowIndex+direction);
   }
 
-  UpdateScrollbars(parts);
-
-  return NS_OK;
+  if (weakFrame.IsAlive() && mScrollbarActivity) {
+    mScrollbarActivity->ActivityOccurred();
+  }
+  if (weakFrame.IsAlive()) {
+    UpdateScrollbars(parts);
+  }
 }
-  
-NS_IMETHODIMP
-nsTreeBodyFrame::PositionChanged(nsScrollbarFrame* aScrollbar, int32_t aOldIndex, int32_t& aNewIndex)
+
+void
+nsTreeBodyFrame::ThumbMoved(nsScrollbarFrame* aScrollbar,
+                            nscoord aOldPos,
+                            nscoord aNewPos)
 {
   ScrollParts parts = GetScrollParts();
   
-  if (aOldIndex == aNewIndex)
-    return NS_OK;
+  if (aOldPos == aNewPos)
+    return;
+
+  nsWeakFrame weakFrame(this);
 
   // Vertical Scrollbar 
   if (parts.mVScrollbar == aScrollbar) {
     nscoord rh = nsPresContext::AppUnitsToIntCSSPixels(mRowHeight);
-
-    nscoord newrow = aNewIndex/rh;
+    nscoord newIndex = nsPresContext::AppUnitsToIntCSSPixels(aNewPos);
+    nscoord newrow = newIndex/rh;
     ScrollInternal(parts, newrow);
   // Horizontal Scrollbar
   } else if (parts.mHScrollbar == aScrollbar) {
-    nsresult rv = ScrollHorzInternal(parts, aNewIndex);
-    if (NS_FAILED(rv)) return rv;
+    int32_t newIndex = nsPresContext::AppUnitsToIntCSSPixels(aNewPos);
+    ScrollHorzInternal(parts, newIndex);
   }
-
-  UpdateScrollbars(parts);
-  return NS_OK;
+  if (weakFrame.IsAlive()) {
+    UpdateScrollbars(parts);
+  }
 }
 
 // The style cache.
@@ -4231,11 +4495,11 @@ nsTreeBodyFrame::GetBaseElement()
   while (parent) {
     nsIContent* content = parent->GetContent();
     if (content) {
-      nsINodeInfo* ni = content->NodeInfo();
+      dom::NodeInfo* ni = content->NodeInfo();
 
       if (ni->Equals(nsGkAtoms::tree, kNameSpaceID_XUL) ||
           (ni->Equals(nsGkAtoms::select) &&
-           content->IsHTML()))
+           content->IsHTMLElement()))
         return content;
     }
 
@@ -4249,7 +4513,7 @@ nsresult
 nsTreeBodyFrame::ClearStyleAndImageCaches()
 {
   mStyleCache.Clear();
-  mImageCache.EnumerateRead(CancelImageRequest, this);
+  CancelImageRequests();
   mImageCache.Clear();
   return NS_OK;
 }
@@ -4463,7 +4727,7 @@ void
 nsTreeBodyFrame::FireScrollEvent()
 {
   mScrollEvent.Forget();
-  WidgetGUIEvent event(true, NS_SCROLL_EVENT, nullptr);
+  WidgetGUIEvent event(true, eScroll, nullptr);
   // scroll events fired at elements don't bubble
   event.mFlags.mBubbles = false;
   EventDispatcher::Dispatch(GetContent(), PresContext(), &event);
@@ -4475,7 +4739,7 @@ nsTreeBodyFrame::PostScrollEvent()
   if (mScrollEvent.IsPending())
     return;
 
-  nsRefPtr<ScrollEvent> ev = new ScrollEvent(this);
+  RefPtr<ScrollEvent> ev = new ScrollEvent(this);
   if (NS_FAILED(NS_DispatchToCurrentThread(ev))) {
     NS_WARNING("failed to dispatch ScrollEvent");
   } else {
@@ -4544,10 +4808,7 @@ nsTreeBodyFrame::FireRowCountChangedEvent(int32_t aIndex, int32_t aCount)
   // Set 'count' data - the number of changed rows.
   propBag->SetPropertyAsInt32(NS_LITERAL_STRING("count"), aCount);
 
-  nsCOMPtr<nsIWritableVariant> detailVariant(
-    do_CreateInstance("@mozilla.org/variant;1"));
-  if (!detailVariant)
-    return;
+  RefPtr<nsVariant> detailVariant(new nsVariant());
 
   detailVariant->SetAsISupports(propBag);
   treeEvent->InitCustomEvent(NS_LITERAL_STRING("TreeRowCountChanged"),
@@ -4555,7 +4816,7 @@ nsTreeBodyFrame::FireRowCountChangedEvent(int32_t aIndex, int32_t aCount)
 
   event->SetTrusted(true);
 
-  nsRefPtr<AsyncEventDispatcher> asyncDispatcher =
+  RefPtr<AsyncEventDispatcher> asyncDispatcher =
     new AsyncEventDispatcher(content, event);
   asyncDispatcher->PostDOMEvent();
 }
@@ -4616,10 +4877,7 @@ nsTreeBodyFrame::FireInvalidateEvent(int32_t aStartRowIdx, int32_t aEndRowIdx,
                                 endColIdx);
   }
 
-  nsCOMPtr<nsIWritableVariant> detailVariant(
-    do_CreateInstance("@mozilla.org/variant;1"));
-  if (!detailVariant)
-    return;
+  RefPtr<nsVariant> detailVariant(new nsVariant());
 
   detailVariant->SetAsISupports(propBag);
   treeEvent->InitCustomEvent(NS_LITERAL_STRING("TreeInvalidated"),
@@ -4627,17 +4885,17 @@ nsTreeBodyFrame::FireInvalidateEvent(int32_t aStartRowIdx, int32_t aEndRowIdx,
 
   event->SetTrusted(true);
 
-  nsRefPtr<AsyncEventDispatcher> asyncDispatcher =
+  RefPtr<AsyncEventDispatcher> asyncDispatcher =
     new AsyncEventDispatcher(content, event);
   asyncDispatcher->PostDOMEvent();
 }
 #endif
 
-class nsOverflowChecker : public nsRunnable
+class nsOverflowChecker : public Runnable
 {
 public:
-  nsOverflowChecker(nsTreeBodyFrame* aFrame) : mFrame(aFrame) {}
-  NS_IMETHOD Run() MOZ_OVERRIDE
+  explicit nsOverflowChecker(nsTreeBodyFrame* aFrame) : mFrame(aFrame) {}
+  NS_IMETHOD Run() override
   {
     if (mFrame.IsAlive()) {
       nsTreeBodyFrame* tree = static_cast<nsTreeBodyFrame*>(mFrame.GetFrame());
@@ -4668,7 +4926,7 @@ nsTreeBodyFrame::FullScrollbarsUpdate(bool aNeedsFullInvalidation)
   // recursion during reflow. Do the first overflow check synchronously, but
   // force any nested checks to round-trip through the event loop. See bug
   // 905909.
-  nsRefPtr<nsOverflowChecker> checker = new nsOverflowChecker(this);
+  RefPtr<nsOverflowChecker> checker = new nsOverflowChecker(this);
   if (!mCheckingOverflow) {
     nsContentUtils::AddScriptRunner(checker);
   } else {

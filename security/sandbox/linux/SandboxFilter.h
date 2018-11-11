@@ -7,21 +7,32 @@
 #ifndef mozilla_SandboxFilter_h
 #define mozilla_SandboxFilter_h
 
-struct sock_fprog;
-struct sock_filter;
+#include "mozilla/Atomics.h"
+#include "mozilla/UniquePtr.h"
+
+namespace sandbox {
+namespace bpf_dsl {
+class Policy;
+}
+}
 
 namespace mozilla {
-  class SandboxFilter {
-    sock_filter *mFilter;
-    sock_fprog *mProg;
-    const sock_fprog **mStored;
-  public:
-  // RAII: on construction, builds the filter and stores it in the
-  // provided variable (with optional logging); on destruction, frees
-  // the filter and nulls out the pointer.
-    SandboxFilter(const sock_fprog** aStored, bool aVerbose = false);
-    ~SandboxFilter();
-  };
-}
+
+#ifdef MOZ_CONTENT_SANDBOX
+class SandboxBrokerClient;
+
+UniquePtr<sandbox::bpf_dsl::Policy> GetContentSandboxPolicy(SandboxBrokerClient* aMaybeBroker);
+#endif
+
+#ifdef MOZ_GMP_SANDBOX
+struct SandboxOpenedFile {
+  const char *mPath;
+  Atomic<int> mFd;
+};
+
+UniquePtr<sandbox::bpf_dsl::Policy> GetMediaSandboxPolicy(SandboxOpenedFile* aPlugin);
+#endif
+
+} // namespace mozilla
 
 #endif

@@ -2,7 +2,7 @@
 
 function test(pairs) {
     print(uneval(pairs));
-    var map = Map(pairs);
+    var map = new Map(pairs);
     
     var all_keys = '';
     var false_keys = '';
@@ -20,7 +20,7 @@ function test(pairs) {
     }
     assertEq(log, all_keys);
 
-    var remaining_keys = [k for ([k] of map)].join('');
+    var remaining_keys = [...map].map(([k]) => k).join('');
     assertEq(remaining_keys, false_keys);
 }
 

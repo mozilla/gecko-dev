@@ -10,9 +10,9 @@
 #include "nsThreadUtils.h"
 #include "mozilla/Attributes.h"
 
-#if defined(PR_LOGGING)
-extern PRLogModuleInfo* gFTPLog;
-#endif /* PR_LOGGING */
+using namespace mozilla;
+using namespace mozilla::net;
+extern LazyLogModule gFTPLog;
 
 // There are two transport connections established for an 
 // ftp connection. One is used for the command channel , and
@@ -29,7 +29,9 @@ NS_IMPL_ISUPPORTS_INHERITED(nsFtpChannel,
                             nsIUploadChannel,
                             nsIResumableChannel,
                             nsIFTPChannel,
-                            nsIProxiedChannel)
+                            nsIProxiedChannel,
+                            nsIForcePendingChannel,
+                            nsIChannelWithDivertableParentListener)
 
 //-----------------------------------------------------------------------------
 
@@ -130,10 +132,12 @@ nsFtpChannel::OnCallbacksChanged()
 
 namespace {
 
-class FTPEventSinkProxy MOZ_FINAL : public nsIFTPEventSink
+class FTPEventSinkProxy final : public nsIFTPEventSink
 {
+    ~FTPEventSinkProxy() {}
+
 public:
-    FTPEventSinkProxy(nsIFTPEventSink* aTarget)
+    explicit FTPEventSinkProxy(nsIFTPEventSink* aTarget)
         : mTarget(aTarget)
         , mTargetThread(do_GetCurrentThread())
     { }
@@ -141,7 +145,7 @@ public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSIFTPEVENTSINK
 
-    class OnFTPControlLogRunnable : public nsRunnable
+    class OnFTPControlLogRunnable : public Runnable
     {
     public:
         OnFTPControlLogRunnable(nsIFTPEventSink* aTarget,
@@ -170,7 +174,7 @@ NS_IMPL_ISUPPORTS(FTPEventSinkProxy, nsIFTPEventSink)
 NS_IMETHODIMP
 FTPEventSinkProxy::OnFTPControlLog(bool aServer, const char* aMsg)
 {
-    nsRefPtr<OnFTPControlLogRunnable> r =
+    RefPtr<OnFTPControlLogRunnable> r =
         new OnFTPControlLogRunnable(mTarget, aServer, aMsg);
     return mTargetThread->Dispatch(r, NS_DISPATCH_NORMAL);
 }
@@ -182,7 +186,7 @@ FTPEventSinkProxy::OnFTPControlLogRunnable::Run()
     return NS_OK;
 }
 
-} // anonymous namespace
+} // namespace
 
 void
 nsFtpChannel::GetFTPEventSink(nsCOMPtr<nsIFTPEventSink> &aResult)
@@ -197,7 +201,7 @@ nsFtpChannel::GetFTPEventSink(nsCOMPtr<nsIFTPEventSink> &aResult)
     aResult = mFTPEventSink;
 }
 
-void
+NS_IMETHODIMP
 nsFtpChannel::ForcePending(bool aForcePending)
 {
     // Set true here so IsPending will return true.
@@ -205,6 +209,8 @@ nsFtpChannel::ForcePending(bool aForcePending)
     // OnStopRequest can be called in the parent before callbacks are diverted
     // back from the child to the listener in the parent.
     mForcePending = aForcePending;
+
+    return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -218,4 +224,71 @@ bool
 nsFtpChannel::Pending() const
 {
   return nsBaseChannel::Pending() || mForcePending;
+}
+
+NS_IMETHODIMP
+nsFtpChannel::Suspend()
+{
+    LOG(("nsFtpChannel::Suspend [this=%p]\n", this));
+
+    nsresult rv = nsBaseChannel::Suspend();
+
+    nsresult rvParentChannel = NS_OK;
+    if (mParentChannel) {
+      rvParentChannel = mParentChannel->SuspendMessageDiversion();
+    }
+
+    return NS_FAILED(rv) ? rv : rvParentChannel;
+}
+
+NS_IMETHODIMP
+nsFtpChannel::Resume()
+{
+    LOG(("nsFtpChannel::Resume [this=%p]\n", this));
+
+    nsresult rv = nsBaseChannel::Resume();
+
+    nsresult rvParentChannel = NS_OK;
+    if (mParentChannel) {
+      rvParentChannel = mParentChannel->ResumeMessageDiversion();
+    }
+
+    return NS_FAILED(rv) ? rv : rvParentChannel;
+}
+
+//-----------------------------------------------------------------------------
+// AChannelHasDivertableParentChannelAsListener internal functions
+//-----------------------------------------------------------------------------
+
+NS_IMETHODIMP
+nsFtpChannel::MessageDiversionStarted(ADivertableParentChannel *aParentChannel)
+{
+  MOZ_ASSERT(!mParentChannel);
+  mParentChannel = aParentChannel;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFtpChannel::MessageDiversionStop()
+{
+  LOG(("nsFtpChannel::MessageDiversionStop [this=%p]", this));
+  MOZ_ASSERT(mParentChannel);
+  mParentChannel = nullptr;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFtpChannel::SuspendInternal()
+{
+    LOG(("nsFtpChannel::SuspendInternal [this=%p]\n", this));
+
+    return nsBaseChannel::Suspend();
+}
+
+NS_IMETHODIMP
+nsFtpChannel::ResumeInternal()
+{
+    LOG(("nsFtpChannel::ResumeInternal [this=%p]\n", this));
+
+    return nsBaseChannel::Resume();
 }

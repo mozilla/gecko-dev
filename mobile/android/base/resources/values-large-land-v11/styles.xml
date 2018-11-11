@@ -5,27 +5,12 @@
 
 <resources>
 
-    <style name="TabsList" parent="TabsListBase">
-         <item name="android:orientation">vertical</item>
-    </style>
-
-    <style name="Widget.BookmarkFolderView" parent="Widget.TwoLinePageRow.Title">
-        <item name="android:paddingLeft">60dip</item>
-        <item name="android:drawablePadding">10dip</item>
-        <item name="android:drawableLeft">@drawable/bookmark_folder</item>
-    </style>
-
-    <style name="Widget.BookmarkItemView" parent="Widget.TwoLinePageRow">
-        <item name="android:paddingLeft">50dp</item>
-        <item name="android:paddingRight">50dp</item>
+    <style name="TabsLayout" parent="TabsLayoutBase">
+         <item name="android:scrollbars">vertical</item>
     </style>
 
     <style name="Widget.BookmarksListView" parent="Widget.HomeListView">
-        <item name="android:paddingTop">30dp</item>
-        <item name="android:paddingLeft">120dp</item>
-        <item name="android:paddingRight">120dp</item>
         <item name="android:scrollbarStyle">outsideOverlay</item>
-        <item name="topDivider">true</item>
     </style>
 
     <style name="Widget.TopSitesGridView" parent="Widget.GridView">
@@ -36,74 +21,14 @@
         <item name="android:verticalSpacing">20dp</item>
     </style>
 
-    <style name="Widget.Home.HistoryListView">
-        <item name="android:paddingLeft">50dp</item>
-        <item name="android:paddingRight">100dp</item>
-        <item name="android:paddingTop">30dp</item>
-        <item name="android:scrollbarStyle">outsideOverlay</item>
-        <item name="topDivider">true</item>
-    </style>
-
-    <style name="Widget.Home.HistoryTabWidget">
-        <item name="android:showDividers">beginning|middle|end</item>
-        <item name="android:dividerPadding">0dp</item>
-        <item name="android:paddingLeft">100dp</item>
-        <item name="android:paddingTop">30dp</item>
-    </style>
-
     <!-- Tabs panel -->
-    <style name="TabsPanelFrame" parent="TabsPanelFrameBase">
-        <item name="android:paddingTop">32dp</item>
-        <!-- Additional spacing set via margins on TabsPanelSection. -->
-        <item name="android:paddingLeft">0dp</item>
-        <item name="android:paddingRight">0dp</item>
-    </style>
-
-    <style name="TabsPanelFrame.PrivateTabs">
-        <!-- We set values in tablet portrait. -->
-    </style>
-
     <style name="TabsPanelSection" parent="TabsPanelSectionBase">
-        <!-- To override the values-land style. -->
+        <item name="android:layout_marginLeft">20dp</item>
+        <item name="android:layout_marginRight">20dp</item>
     </style>
-
-    <style name="TabsPanelSection.PrivateTabs">
-        <!-- We set values in tablet portrait. -->
-    </style>
-
-    <style name="TabsPanelSection.PrivateTabs.Header">
-        <!-- We set values in tablet portrait. -->
-    </style>
-
 
     <style name="TabsPanelItem" parent="TabsPanelItemBase">
         <!-- To override the values-land style. -->
-    </style>
-
-    <style name="TabsPanelItem.Button" parent="TabsPanelItem.ButtonBase">
-        <item name="android:paddingTop">12dp</item>
-        <item name="android:paddingBottom">12dp</item>
-        <item name="android:paddingLeft">6dp</item>
-        <item name="android:paddingRight">6dp</item>
-        <item name="android:layout_marginLeft">12dp</item>
-        <item name="android:layout_marginRight">12dp</item>
-        <item name="android:textSize">16dp</item>
-    </style>
-
-    <style name="TabsPanelItem.TextAppearance.Header.FXAccounts">
-        <item name="android:visibility">gone</item>
-    </style>
-
-    <style name="TabsPanelItem.TextAppearance.Header.PrivateTabs">
-        <item name="android:visibility">visible</item>
-    </style>
-
-    <style name="TabsPanelItem.TextAppearance.Linkified.LearnMore">
-        <item name="android:layout_height">wrap_content</item>
-    </style>
-
-    <style name="TabsPanelItem.TextAppearance.Linkified.Resend">
-        <item name="android:layout_height">wrap_content</item>
     </style>
 
 </resources>

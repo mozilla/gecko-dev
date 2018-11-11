@@ -15,43 +15,46 @@
 #include "webrtc/modules/audio_processing/processing_component.h"
 
 namespace webrtc {
-class AudioProcessingImpl;
+
 class AudioBuffer;
+class CriticalSectionWrapper;
 
 class EchoControlMobileImpl : public EchoControlMobile,
                               public ProcessingComponent {
  public:
-  explicit EchoControlMobileImpl(const AudioProcessingImpl* apm);
+  EchoControlMobileImpl(const AudioProcessing* apm,
+                        CriticalSectionWrapper* crit);
   virtual ~EchoControlMobileImpl();
 
   int ProcessRenderAudio(const AudioBuffer* audio);
   int ProcessCaptureAudio(AudioBuffer* audio);
 
   // EchoControlMobile implementation.
-  virtual bool is_enabled() const OVERRIDE;
+  bool is_enabled() const override;
 
   // ProcessingComponent implementation.
-  virtual int Initialize() OVERRIDE;
+  int Initialize() override;
 
  private:
   // EchoControlMobile implementation.
-  virtual int Enable(bool enable) OVERRIDE;
-  virtual int set_routing_mode(RoutingMode mode) OVERRIDE;
-  virtual RoutingMode routing_mode() const OVERRIDE;
-  virtual int enable_comfort_noise(bool enable) OVERRIDE;
-  virtual bool is_comfort_noise_enabled() const OVERRIDE;
-  virtual int SetEchoPath(const void* echo_path, size_t size_bytes) OVERRIDE;
-  virtual int GetEchoPath(void* echo_path, size_t size_bytes) const OVERRIDE;
+  int Enable(bool enable) override;
+  int set_routing_mode(RoutingMode mode) override;
+  RoutingMode routing_mode() const override;
+  int enable_comfort_noise(bool enable) override;
+  bool is_comfort_noise_enabled() const override;
+  int SetEchoPath(const void* echo_path, size_t size_bytes) override;
+  int GetEchoPath(void* echo_path, size_t size_bytes) const override;
 
   // ProcessingComponent implementation.
-  virtual void* CreateHandle() const OVERRIDE;
-  virtual int InitializeHandle(void* handle) const OVERRIDE;
-  virtual int ConfigureHandle(void* handle) const OVERRIDE;
-  virtual int DestroyHandle(void* handle) const OVERRIDE;
-  virtual int num_handles_required() const OVERRIDE;
-  virtual int GetHandleError(void* handle) const OVERRIDE;
+  void* CreateHandle() const override;
+  int InitializeHandle(void* handle) const override;
+  int ConfigureHandle(void* handle) const override;
+  void DestroyHandle(void* handle) const override;
+  int num_handles_required() const override;
+  int GetHandleError(void* handle) const override;
 
-  const AudioProcessingImpl* apm_;
+  const AudioProcessing* apm_;
+  CriticalSectionWrapper* crit_;
   RoutingMode routing_mode_;
   bool comfort_noise_enabled_;
   unsigned char* external_echo_path_;

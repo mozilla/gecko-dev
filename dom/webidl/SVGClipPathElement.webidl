@@ -11,9 +11,11 @@
  */
 
 interface SVGClipPathElement : SVGElement {
+  [Constant]
   readonly attribute SVGAnimatedEnumeration clipPathUnits;
+  [Constant]
   readonly attribute SVGAnimatedTransformList transform;
 };
 
-SVGClipPathElement implements SVGUnitTypes;
+SVGClipPathElement implements SVGUnitTypeValues;
 

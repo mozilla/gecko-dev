@@ -18,14 +18,14 @@ function createManifest(href) {
 
 function runTest() {
   var iframe1 = document.createElement('iframe');
-  SpecialPowers.wrap(iframe1).mozbrowser = true;
+  iframe1.setAttribute('mozbrowser', 'true');
   document.body.appendChild(iframe1);
 
   // iframe2 is a red herring; we modify its manifest link elements but don't
   // listen for manifestchanges; we want to make sure that its manifestchange
   // events aren't picked up by the listener on iframe1.
   var iframe2 = document.createElement('iframe');
-  SpecialPowers.wrap(iframe2).mozbrowser = true;
+  iframe2.setAttribute('mozbrowser', 'true');
   document.body.appendChild(iframe2);
 
   // iframe3 is another red herring.  It's not a mozbrowser, so we shouldn't
@@ -42,7 +42,7 @@ function runTest() {
     if (numManifestChanges == 1) {
       is(e.detail.href, 'manifest.1', 'manifest.1 matches');
 
-      // We should recieve manifestchange events when the user creates new
+      // We should receive manifestchange events when the user creates new
       // manifests
       SpecialPowers.getBrowserFrameMessageManager(iframe1)
                    .loadFrameScript("data:,content.document.title='New title';",
@@ -86,7 +86,7 @@ function runTest() {
 
 
   iframe1.src = createHtml(createManifest('manifest.1'));
-  // We should not recieve manifest change events for either of the below iframes
+  // We should not receive manifest change events for either of the below iframes
   iframe2.src = createHtml(createManifest('manifest.1'));
   iframe3.src = createHtml(createManifest('manifest.1'));
 

@@ -13,12 +13,12 @@
 
 #include "webrtc/modules/audio_device/audio_device_generic.h"
 #include "webrtc/modules/audio_device/win/audio_mixer_manager_win.h"
+#include "webrtc/system_wrappers/interface/thread_wrapper.h"
 
 #pragma comment( lib, "winmm.lib" )
 
 namespace webrtc {
 class EventWrapper;
-class ThreadWrapper;
 
 const uint32_t TIMER_PERIOD_MS = 2;
 const uint32_t REC_CHECK_TIME_PERIOD_MS = 4;
@@ -94,10 +94,8 @@ public:
     virtual int32_t WaveOutVolume(uint16_t& volumeLeft, uint16_t& volumeRight) const;
 
     // Audio mixer initialization
-    virtual int32_t SpeakerIsAvailable(bool& available);
     virtual int32_t InitSpeaker();
     virtual bool SpeakerIsInitialized() const;
-    virtual int32_t MicrophoneIsAvailable(bool& available);
     virtual int32_t InitMicrophone();
     virtual bool MicrophoneIsInitialized() const;
 
@@ -223,8 +221,7 @@ private:
     HANDLE                                  _hShutdownSetVolumeEvent;
     HANDLE                                  _hSetCaptureVolumeEvent;
 
-    ThreadWrapper*                          _ptrThread;
-    uint32_t                                _threadID;
+    rtc::scoped_ptr<ThreadWrapper>          _ptrThread;
 
     CriticalSectionWrapper&                 _critSectCb;
 

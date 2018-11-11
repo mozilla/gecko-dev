@@ -4,7 +4,7 @@
 
 #include "domstubs.idl"
 
-[scriptable, uuid(fb089720-1c5c-11e3-b773-0800200c9a66)]
+[scriptable, uuid(c1622232-259c-43b0-b52e-89c39dcd9796)]
 interface nsINotificationStorageCallback : nsISupports
 {
   /**
@@ -19,27 +19,28 @@ interface nsINotificationStorageCallback : nsISupports
    * @param body: the notification body
    * @param tag: the notification tag
    */
-  [implicit_jscontext]
   void handle(in DOMString id,
               in DOMString title,
               in DOMString dir,
               in DOMString lang,
               in DOMString body,
               in DOMString tag,
-              in DOMString icon);
+              in DOMString icon,
+              in DOMString data,
+              in DOMString behavior,
+              in DOMString serviceWorkerRegistrationScope);
 
   /**
    * Callback function used to notify C++ the we have returned
    * all notification objects for this Notification.get call.
    */
-  [implicit_jscontext]
   void done();
 };
 
 /**
  * Interface for notification persistence layer.
  */
-[scriptable, uuid(cc4656d7-2a2a-47f1-8016-55891e833d64)]
+[scriptable, uuid(17f85e52-fe57-440e-9ba1-5c312ca02b95)]
 interface nsINotificationStorage : nsISupports
 {
 
@@ -59,6 +60,10 @@ interface nsINotificationStorage : nsISupports
    *                   Stored in the database to avoid re-computing
    *                   it. Built from origin and tag or id depending
    *                   whether there is a tag defined.
+   * @param registrationID: Opaque string that identifies the service worker
+   *                        registration this Notification is associated with.
+   *                        May be empty. Only set for Notifications created by
+   *                        showNotification().
    */
   void put(in DOMString origin,
            in DOMString id,
@@ -68,7 +73,10 @@ interface nsINotificationStorage : nsISupports
            in DOMString body,
            in DOMString tag,
            in DOMString icon,
-           in DOMString alertName);
+           in DOMString alertName,
+           in DOMString data,
+           in DOMString behavior,
+           in DOMString serviceWorkerRegistrationScope);
 
   /**
    * Retrieve a list of notifications.
@@ -83,6 +91,20 @@ interface nsINotificationStorage : nsISupports
            in nsINotificationStorageCallback aCallback);
 
   /**
+   * Retrieve a notification by ID.
+   *
+   * @param origin: the origin/app for which to fetch notifications.
+   * @param id: the id of the notification.
+   * @param callback: nsINotificationStorageCallback whose Handle method will
+   * be called *at most once* if the notification with that ID is found. Not
+   * called if that ID is not found. Done() will be called right after
+   * Handle().
+   */
+  void getByID(in DOMString origin,
+               in DOMString id,
+               in nsINotificationStorageCallback aCallback);
+
+  /**
    * Remove a notification from storage.
    *
    * @param origin: the origin/app to delete the notification from
@@ -90,6 +112,20 @@ interface nsINotificationStorage : nsISupports
    */
   void delete(in DOMString origin,
               in DOMString id);
+
+  /**
+   * Notifications are not supposed to be persistent, according to spec, at
+   * least for now. But we want to be able to have this behavior on B2G. Thus,
+   * this method will check if the origin sending the notifications is a valid
+   * registered app with a manifest or not. Hence, a webpage that has none
+   * will have its notification sent and available (via Notification.get())
+   * during the life time of the page.
+   *
+   * @param origin: Origin from which the notification is sent.
+   *
+   * @return boolean
+   */
+  boolean canPut(in DOMString origin);
 };
 
 %{C++

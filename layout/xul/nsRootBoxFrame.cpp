@@ -34,7 +34,7 @@ nsIRootBox::GetRootBox(nsIPresShell* aShell)
   }
 
   if (rootFrame) {
-    rootFrame = rootFrame->GetFirstPrincipalChild();
+    rootFrame = rootFrame->PrincipalChildList().FirstChild();
   }
 
   nsIRootBox* rootBox = do_QueryFrame(rootFrame);
@@ -46,46 +46,46 @@ public:
 
   friend nsIFrame* NS_NewBoxFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
-  nsRootBoxFrame(nsIPresShell* aShell, nsStyleContext *aContext);
+  explicit nsRootBoxFrame(nsStyleContext* aContext);
 
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
-  virtual nsPopupSetFrame* GetPopupSetFrame() MOZ_OVERRIDE;
-  virtual void SetPopupSetFrame(nsPopupSetFrame* aPopupSet) MOZ_OVERRIDE;
-  virtual nsIContent* GetDefaultTooltip() MOZ_OVERRIDE;
-  virtual void SetDefaultTooltip(nsIContent* aTooltip) MOZ_OVERRIDE;
-  virtual nsresult AddTooltipSupport(nsIContent* aNode) MOZ_OVERRIDE;
-  virtual nsresult RemoveTooltipSupport(nsIContent* aNode) MOZ_OVERRIDE;
+  virtual nsPopupSetFrame* GetPopupSetFrame() override;
+  virtual void SetPopupSetFrame(nsPopupSetFrame* aPopupSet) override;
+  virtual nsIContent* GetDefaultTooltip() override;
+  virtual void SetDefaultTooltip(nsIContent* aTooltip) override;
+  virtual nsresult AddTooltipSupport(nsIContent* aNode) override;
+  virtual nsresult RemoveTooltipSupport(nsIContent* aNode) override;
 
   virtual void AppendFrames(ChildListID     aListID,
-                            nsFrameList&    aFrameList) MOZ_OVERRIDE;
+                            nsFrameList&    aFrameList) override;
   virtual void InsertFrames(ChildListID     aListID,
                             nsIFrame*       aPrevFrame,
-                            nsFrameList&    aFrameList) MOZ_OVERRIDE;
+                            nsFrameList&    aFrameList) override;
   virtual void RemoveFrame(ChildListID     aListID,
-                           nsIFrame*       aOldFrame) MOZ_OVERRIDE;
+                           nsIFrame*       aOldFrame) override;
 
   virtual void Reflow(nsPresContext*          aPresContext,
-                          nsHTMLReflowMetrics&     aDesiredSize,
-                          const nsHTMLReflowState& aReflowState,
-                          nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+                          ReflowOutput&     aDesiredSize,
+                          const ReflowInput& aReflowInput,
+                          nsReflowStatus&          aStatus) override;
   virtual nsresult HandleEvent(nsPresContext* aPresContext,
                                WidgetGUIEvent* aEvent,
-                               nsEventStatus* aEventStatus) MOZ_OVERRIDE;
+                               nsEventStatus* aEventStatus) override;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
   /**
    * Get the "type" of the frame
    *
    * @see nsGkAtoms::rootFrame
    */
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE
+  virtual bool IsFrameOfType(uint32_t aFlags) const override
   {
     // Override bogus IsFrameOfType in nsBoxFrame.
     if (aFlags & (nsIFrame::eReplacedContainsBlock | nsIFrame::eReplaced))
@@ -94,7 +94,7 @@ public:
   }
   
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
   nsPopupSetFrame* mPopupSetFrame;
@@ -108,19 +108,19 @@ protected:
 nsContainerFrame*
 NS_NewRootBoxFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
-  return new (aPresShell) nsRootBoxFrame (aPresShell, aContext);
+  return new (aPresShell) nsRootBoxFrame(aContext);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsRootBoxFrame)
 
-nsRootBoxFrame::nsRootBoxFrame(nsIPresShell* aShell, nsStyleContext* aContext):
-  nsBoxFrame(aShell, aContext, true)
+nsRootBoxFrame::nsRootBoxFrame(nsStyleContext* aContext):
+  nsBoxFrame(aContext, true)
 {
   mPopupSetFrame = nullptr;
 
   nsCOMPtr<nsBoxLayout> layout;
-  NS_NewStackLayout(aShell, layout);
-  SetLayoutManager(layout);
+  NS_NewStackLayout(layout);
+  SetXULLayoutManager(layout);
 }
 
 void
@@ -161,8 +161,8 @@ int32_t gReflows = 0;
 
 void
 nsRootBoxFrame::Reflow(nsPresContext*           aPresContext,
-                       nsHTMLReflowMetrics&     aDesiredSize,
-                       const nsHTMLReflowState& aReflowState,
+                       ReflowOutput&     aDesiredSize,
+                       const ReflowInput& aReflowInput,
                        nsReflowStatus&          aStatus)
 {
   DO_GLOBAL_REFLOW_COUNT("nsRootBoxFrame");
@@ -171,7 +171,7 @@ nsRootBoxFrame::Reflow(nsPresContext*           aPresContext,
   gReflows++;
   printf("----Reflow %d----\n", gReflows);
 #endif
-  return nsBoxFrame::Reflow(aPresContext, aDesiredSize, aReflowState, aStatus);
+  return nsBoxFrame::Reflow(aPresContext, aDesiredSize, aReflowInput, aStatus);
 }
 
 void
@@ -179,6 +179,14 @@ nsRootBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                  const nsRect&           aDirtyRect,
                                  const nsDisplayListSet& aLists)
 {
+  if (mContent && mContent->GetProperty(nsGkAtoms::DisplayPortMargins)) {
+    // The XUL document's root element may have displayport margins set in
+    // ChromeProcessController::InitializeRoot, and we should to supply the
+    // base rect.
+    nsRect displayPortBase = aDirtyRect.Intersect(nsRect(nsPoint(0, 0), GetSize()));
+    nsLayoutUtils::SetDisplayPortBase(mContent, displayPortBase);
+  }
+
   // root boxes don't need a debug border/outline or a selection overlay...
   // They *may* have a background propagated to them, so force creation
   // of a background display list element.
@@ -197,7 +205,7 @@ nsRootBoxFrame::HandleEvent(nsPresContext* aPresContext,
     return NS_OK;
   }
 
-  if (aEvent->message == NS_MOUSE_BUTTON_UP) {
+  if (aEvent->mMessage == eMouseUp) {
     nsFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
   }
 

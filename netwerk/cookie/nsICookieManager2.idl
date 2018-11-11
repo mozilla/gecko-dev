@@ -8,7 +8,7 @@
 interface nsICookie2;
 interface nsIFile;
 
-/** 
+/**
  * Additions to the frozen nsICookieManager
  */
 
@@ -46,7 +46,10 @@ interface nsICookieManager2 : nsICookieManager
    *        expiration date, in seconds since midnight (00:00:00), January 1,
    *        1970 UTC. note that expiry time will also be honored for session cookies;
    *        in this way, the more restrictive of the two will take effect.
+   * @param aOriginAttributes The originAttributes of this cookie. This
+   *                          attribute is optional to avoid breaking add-ons.
    */
+  [implicit_jscontext, optional_argc]
   void add(in AUTF8String aHost,
            in AUTF8String aPath,
            in ACString    aName,
@@ -54,18 +57,42 @@ interface nsICookieManager2 : nsICookieManager
            in boolean     aIsSecure,
            in boolean     aIsHttpOnly,
            in boolean     aIsSession,
-           in int64_t     aExpiry);
+           in int64_t     aExpiry,
+           [optional] in jsval aOriginAttributes);
+
+  [notxpcom]
+  nsresult addNative(in AUTF8String aHost,
+                     in AUTF8String aPath,
+                     in ACString    aName,
+                     in ACString    aValue,
+                     in boolean     aIsSecure,
+                     in boolean     aIsHttpOnly,
+                     in boolean     aIsSession,
+                     in int64_t     aExpiry,
+                     in NeckoOriginAttributesPtr aOriginAttributes);
 
   /**
    * Find whether a given cookie already exists.
    *
    * @param aCookie
    *        the cookie to look for
+   * @param aOriginAttributes
+   *        nsICookie2 contains an originAttributes but if nsICookie2 is
+   *        implemented in JS, we can't retrieve its originAttributes because
+   *        the getter is marked [implicit_jscontext]. This optional parameter
+   *        is a workaround.
    *
    * @return true if a cookie was found which matches the host, path, and name
    *         fields of aCookie
    */
-  boolean cookieExists(in nsICookie2 aCookie);
+  [implicit_jscontext, optional_argc]
+  boolean cookieExists(in nsICookie2 aCookie,
+                       [optional] in jsval aOriginAttributes);
+
+  [notxpcom]
+  nsresult cookieExistsNative(in nsICookie2 aCookie,
+                              in NeckoOriginAttributesPtr aOriginAttributes,
+                              out boolean aExists);
 
   /**
    * Count how many cookies exist within the base domain of 'aHost'.
@@ -92,12 +119,17 @@ interface nsICookieManager2 : nsICookieManager
    *        the host string to search for, e.g. "google.com". this should consist
    *        of only the host portion of a URI. see @add for a description of
    *        acceptable host strings.
+   * @param aOriginAttributes The originAttributes of cookies that would be
+   *                          retrived. This attribute is optional to avoid
+   *                          breaking add-ons.
    *
    * @return an nsISimpleEnumerator of nsICookie2 objects.
    *
    * @see countCookiesFromHost
    */
-  nsISimpleEnumerator getCookiesFromHost(in AUTF8String aHost);
+  [implicit_jscontext, optional_argc]
+  nsISimpleEnumerator getCookiesFromHost(in AUTF8String aHost,
+                                         [optional] in jsval aOriginAttributes);
 
   /**
    * Import an old-style cookie file. Imported cookies will be added to the
@@ -109,24 +141,24 @@ interface nsICookieManager2 : nsICookieManager
   void importCookies(in nsIFile aCookieFile);
 
   /**
-   * Returns an enumerator of all cookies that are related to a specific app.
+   * Returns an enumerator of all cookies whose origin attributes matches aPattern
    *
-   * If the onlyBrowserELement parameter is set to true, only cookies part of
-   * a browser element inside the app will be returned. If set to false, all
-   * cookies will be returned, regardless of their browserElement flag.
+   * @param aPattern origin attribute pattern in JSON format
    *
-   * This method assumes that appId is a valid app id. It should not be a
-   * special value like UNKNOWN_APP_ID or NO_APP_ID.
+   * @param aHost
+   *        the host string to search for, e.g. "google.com". this should consist
+   *        of only the host portion of a URI. see @add for a description of
+   *        acceptable host strings. This attribute is optional. It will search
+   *        all hosts if this attribute is not given.
    */
-  nsISimpleEnumerator getCookiesForApp(in unsigned long appId, in boolean onlyBrowserElement);
+  nsISimpleEnumerator getCookiesWithOriginAttributes(in DOMString aPattern,
+                                                     [optional] in AUTF8String aHost);
 
   /**
-   * Remove all the cookies associated with the app with the id aAppId.
+   * Remove all the cookies whose origin attributes matches aPattern
    *
-   * If onlyBrowserElement is set to true, the method will only remove the
-   * cookies marked as part of a browser element inside the app.
-   *
-   * Special app id values are not allowed (NO_APP_ID or UNKNOWN_APP_ID for example).
+   * @param aPattern origin attribute pattern in JSON format
    */
-  void removeCookiesForApp(in unsigned long appId, in boolean onlyBrowserElement);
+  void removeCookiesWithOriginAttributes(in DOMString aPattern,
+                                         [optional] in AUTF8String aHost);
 };

@@ -1,13 +1,13 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 EXPORTS += [
-    'mozpngconf.h',
     'png.h',
-    'pngconf.h'
+    'pngconf.h',
+    'pnglibconf.h'
 ]
 
 UNIFIED_SOURCES += [
@@ -27,8 +27,8 @@ UNIFIED_SOURCES += [
     'pngwutil.c'
 ]
 
-if CONFIG['MOZ_PNG_ARM_NEON']:
-    DEFINES['MOZ_PNG_HAVE_ARM_NEON'] = True
+if CONFIG['CPU_ARCH'] == 'arm':
+    DEFINES['MOZ_PNG_USE_ARM_NEON'] = True
     UNIFIED_SOURCES += [
         'arm/arm_init.c',
         'arm/filter_neon_intrinsics.c'
@@ -38,11 +38,16 @@ if CONFIG['MOZ_PNG_ARM_NEON']:
         'arm/filter_neon.S'
     ]
 
-LIBRARY_NAME = 'mozpng'
+if CONFIG['INTEL_ARCHITECTURE']:
+    DEFINES['MOZ_PNG_USE_INTEL_SSE'] = True
+    UNIFIED_SOURCES += [
+        'sse2/filter_sse2_intrinsics.c',
+        'sse2/intel_init.c'
+    ]
 
-MSVC_ENABLE_PGO = True
-
-if CONFIG['GKMEDIAS_SHARED_LIBRARY']:
-    NO_VISIBILITY_FLAGS = True
+Library('mozpng')
 
 FINAL_LIBRARY = 'gkmedias'
+
+# We allow warnings for third-party code that can be updated from upstream.
+ALLOW_COMPILER_WARNINGS = True

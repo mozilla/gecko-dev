@@ -18,13 +18,14 @@
 class nsPrintSettingsWin : public nsPrintSettings,
                            public nsIPrintSettingsWin
 {
+  virtual ~nsPrintSettingsWin();
+
 public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIPRINTSETTINGSWIN
 
   nsPrintSettingsWin();
   nsPrintSettingsWin(const nsPrintSettingsWin& aPS);
-  virtual ~nsPrintSettingsWin();
 
   /**
    * Makes a new copy
@@ -41,12 +42,16 @@ public:
    */
   nsPrintSettingsWin& operator=(const nsPrintSettingsWin& rhs);
 
+  NS_IMETHOD GetEffectivePageSize(double *aWidth, double *aHeight) override;
+
 protected:
   void CopyDevMode(DEVMODEW* aInDevMode, DEVMODEW *& aOutDevMode);
 
   wchar_t*      mDeviceName;
   wchar_t*      mDriverName;
   LPDEVMODEW mDevMode;
+  double mPrintableWidthInInches = 0l;
+  double mPrintableHeightInInches = 0l;
 };
 
 

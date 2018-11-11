@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
@@ -9,20 +9,18 @@
 
 "use strict";
 
-////////////////////////////////////////////////////////////////////////////////
-//// Globals
+// Globals
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-const Cr = Components.results;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
+var Cr = Components.results;
 
+Cu.import("resource://gre/modules/Integration.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadPaths",
                                   "resource://gre/modules/DownloadPaths.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "DownloadIntegration",
-                                  "resource://gre/modules/DownloadIntegration.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Downloads",
                                   "resource://gre/modules/Downloads.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
@@ -31,6 +29,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "HttpServer",
                                   "resource://testing-common/httpd.js");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesTestUtils",
+                                  "resource://testing-common/PlacesTestUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
                                   "resource://gre/modules/PlacesUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
@@ -41,10 +41,15 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
                                   "resource://gre/modules/osfile.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "MockRegistrar",
+                                  "resource://testing-common/MockRegistrar.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "gExternalHelperAppService",
            "@mozilla.org/uriloader/external-helper-app-service;1",
            Ci.nsIExternalHelperAppService);
+
+Integration.downloads.defineModuleGetter(this, "DownloadIntegration",
+            "resource://gre/modules/DownloadIntegration.jsm");
 
 const ServerSocket = Components.Constructor(
                                 "@mozilla.org/network/server-socket;1",
@@ -65,12 +70,12 @@ const TEST_STORE_FILE_NAME = "test-downloads.json";
 const TEST_REFERRER_URL = "http://www.example.com/referrer.html";
 
 const TEST_DATA_SHORT = "This test string is downloaded.";
-// Generate using gzipCompressString in TelemetryPing.jsm.
+// Generate using gzipCompressString in TelemetryController.jsm.
 const TEST_DATA_SHORT_GZIP_ENCODED_FIRST = [
- 31,139,8,0,0,0,0,0,0,3,11,201,200,44,86,40,73,45,46,81,40,46,41,202,204
+ 31, 139, 8, 0, 0, 0, 0, 0, 0, 3, 11, 201, 200, 44, 86, 40, 73, 45, 46, 81, 40, 46, 41, 202, 204
 ];
 const TEST_DATA_SHORT_GZIP_ENCODED_SECOND = [
-  75,87,0,114,83,242,203,243,114,242,19,83,82,83,244,0,151,222,109,43,31,0,0,0
+  75, 87, 0, 114, 83, 242, 203, 243, 114, 242, 19, 83, 82, 83, 244, 0, 151, 222, 109, 43, 31, 0, 0, 0
 ];
 const TEST_DATA_SHORT_GZIP_ENCODED =
   TEST_DATA_SHORT_GZIP_ENCODED_FIRST.concat(TEST_DATA_SHORT_GZIP_ENCODED_SECOND);
@@ -84,13 +89,12 @@ function run_test()
   run_next_test();
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//// Support functions
+// Support functions
 
 /**
  * HttpServer object initialized before tests start.
  */
-let gHttpServer;
+var gHttpServer;
 
 /**
  * Given a file name, returns a string containing an URI that points to the file
@@ -105,7 +109,7 @@ function httpUrl(aFileName) {
 // used, on Windows these might still be pending deletion on the physical file
 // system.  Thus, start from a new base number every time, to make a collision
 // with a file that is still pending deletion highly unlikely.
-let gFileCounter = Math.floor(Math.random() * 1000000);
+var gFileCounter = Math.floor(Math.random() * 1000000);
 
 /**
  * Returns a reference to a temporary file, that is guaranteed not to exist, and
@@ -133,8 +137,19 @@ function getTempFile(aLeafName)
   do_check_false(file.exists());
 
   do_register_cleanup(function () {
-    if (file.exists()) {
-      file.remove(false);
+    try {
+      file.remove(false)
+    } catch (e) {
+      if (!(e instanceof Components.Exception &&
+            (e.result == Cr.NS_ERROR_FILE_ACCESS_DENIED ||
+             e.result == Cr.NS_ERROR_FILE_TARGET_DOES_NOT_EXIST ||
+             e.result == Cr.NS_ERROR_FILE_NOT_FOUND))) {
+        throw e;
+      }
+      // On Windows, we may get an access denied error if the file existed before,
+      // and was recently deleted.
+      // Don't bother checking file.exists() as that may also cause an access
+      // denied error.
     }
   });
 
@@ -167,43 +182,6 @@ function promiseTimeout(aTime)
   let deferred = Promise.defer();
   do_timeout(aTime, deferred.resolve);
   return deferred.promise;
-}
-
-/**
- * Allows waiting for an observer notification once.
- *
- * @param aTopic
- *        Notification topic to observe.
- *
- * @return {Promise}
- * @resolves The array [aSubject, aData] from the observed notification.
- * @rejects Never.
- */
-function promiseTopicObserved(aTopic)
-{
-  let deferred = Promise.defer();
-
-  Services.obs.addObserver(
-    function PTO_observe(aSubject, aTopic, aData) {
-      Services.obs.removeObserver(PTO_observe, aTopic);
-      deferred.resolve([aSubject, aData]);
-    }, aTopic, false);
-
-  return deferred.promise;
-}
-
-/**
- * Clears history asynchronously.
- *
- * @return {Promise}
- * @resolves When history has been cleared.
- * @rejects Never.
- */
-function promiseClearHistory()
-{
-  let promise = promiseTopicObserved(PlacesUtils.TOPIC_EXPIRATION_FINISHED);
-  do_execute_soon(function() PlacesUtils.bhistory.removeAllPages());
-  return promise;
 }
 
 /**
@@ -355,13 +333,7 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
   persist.persistFlags |=
     Ci.nsIWebBrowserPersist.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
 
-  // We must create the nsITransfer implementation using its class ID because
-  // the "@mozilla.org/transfer;1" contract is currently implemented in
-  // "toolkit/components/downloads".  When the other folder is not included in
-  // builds anymore (bug 851471), we'll be able to use the contract ID.
-  let transfer =
-      Components.classesByID["{1b4c85df-cbdd-4bb6-b04e-613caece083c}"]
-                .createInstance(Ci.nsITransfer);
+  let transfer = Cc["@mozilla.org/transfer;1"].createInstance(Ci.nsITransfer);
 
   let deferred = Promise.defer();
 
@@ -391,7 +363,7 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
     persist.progressListener = transfer;
 
     // Start the actual download process.
-    persist.savePrivacyAwareURI(sourceURI, null, null, null, null, targetFile,
+    persist.savePrivacyAwareURI(sourceURI, null, null, 0, null, null, targetFile,
                                 isPrivate);
   }.bind(this)).then(null, do_report_unexpected_exception);
 
@@ -435,17 +407,20 @@ function promiseStartExternalHelperAppServiceDownload(aSourceUrl) {
       },
     }).then(null, do_report_unexpected_exception);
 
-    let channel = NetUtil.newChannel(sourceURI);
+    let channel = NetUtil.newChannel({
+      uri: sourceURI,
+      loadUsingSystemPrincipal: true
+    });
 
     // Start the actual download process.
-    channel.asyncOpen({
+    channel.asyncOpen2({
       contentListener: null,
 
       onStartRequest: function (aRequest, aContext)
       {
-        let channel = aRequest.QueryInterface(Ci.nsIChannel);
+        let requestChannel = aRequest.QueryInterface(Ci.nsIChannel);
         this.contentListener = gExternalHelperAppService.doContent(
-                                     channel.contentType, aRequest, null, true);
+                                     requestChannel.contentType, aRequest, null, true);
         this.contentListener.onStartRequest(aRequest, aContext);
       },
 
@@ -460,7 +435,7 @@ function promiseStartExternalHelperAppServiceDownload(aSourceUrl) {
         this.contentListener.onDataAvailable(aRequest, aContext, aInputStream,
                                              aOffset, aCount);
       },
-    }, null);
+    });
   }.bind(this)).then(null, do_report_unexpected_exception);
 
   return deferred.promise;
@@ -557,7 +532,7 @@ function promiseNewList(aIsPrivate)
  */
 function promiseVerifyContents(aPath, aExpectedContents)
 {
-  return Task.spawn(function() {
+  return Task.spawn(function* () {
     let file = new FileUtils.File(aPath);
 
     if (!(yield OS.File.exists(aPath))) {
@@ -569,21 +544,24 @@ function promiseVerifyContents(aPath, aExpectedContents)
     }
 
     let deferred = Promise.defer();
-    NetUtil.asyncFetch(file, function(aInputStream, aStatus) {
-      do_check_true(Components.isSuccessCode(aStatus));
-      let contents = NetUtil.readInputStreamToString(aInputStream,
-                                                     aInputStream.available());
-      if (contents.length > TEST_DATA_SHORT.length * 2 ||
-          /[^\x20-\x7E]/.test(contents)) {
-        // Do not print the entire content string to the test log.
-        do_check_eq(contents.length, aExpectedContents.length);
-        do_check_true(contents == aExpectedContents);
-      } else {
-        // Print the string if it is short and made of printable characters.
-        do_check_eq(contents, aExpectedContents);
-      }
-      deferred.resolve();
-    });
+    NetUtil.asyncFetch(
+      { uri: NetUtil.newURI(file), loadUsingSystemPrincipal: true },
+      function(aInputStream, aStatus) {
+        do_check_true(Components.isSuccessCode(aStatus));
+        let contents = NetUtil.readInputStreamToString(aInputStream,
+                                                       aInputStream.available());
+        if (contents.length > TEST_DATA_SHORT.length * 2 ||
+            /[^\x20-\x7E]/.test(contents)) {
+          // Do not print the entire content string to the test log.
+          do_check_eq(contents.length, aExpectedContents.length);
+          do_check_true(contents == aExpectedContents);
+        } else {
+          // Print the string if it is short and made of printable characters.
+          do_check_eq(contents, aExpectedContents);
+        }
+        deferred.resolve();
+      });
+
     yield deferred.promise;
   });
 }
@@ -609,7 +587,7 @@ function startFakeServer()
 /**
  * This is an internal reference that should not be used directly by tests.
  */
-let _gDeferResponses = Promise.defer();
+var _gDeferResponses = Promise.defer();
 
 /**
  * Ensures that all the interruptible requests started after this function is
@@ -694,10 +672,9 @@ function isValidDate(aDate) {
  * Position of the first byte served by the "interruptible_resumable.txt"
  * handler during the most recent response.
  */
-let gMostRecentFirstBytePos;
+var gMostRecentFirstBytePos;
 
-////////////////////////////////////////////////////////////////////////////////
-//// Initialization functions common to all tests
+// Initialization functions common to all tests
 
 add_task(function test_common_initialize()
 {
@@ -705,6 +682,14 @@ add_task(function test_common_initialize()
   gHttpServer = new HttpServer();
   gHttpServer.registerDirectory("/", do_get_file("../data"));
   gHttpServer.start(-1);
+  do_register_cleanup(() => {
+    return new Promise(resolve => {
+      // Ensure all the pending HTTP requests have a chance to finish.
+      continueResponses();
+      // Stop the HTTP server, calling resolve when it's done.
+      gHttpServer.stop(resolve);
+    });
+  });
 
   // Cache locks might prevent concurrent requests to the same resource, and
   // this may block tests that use the interruptible handlers.
@@ -783,6 +768,17 @@ add_task(function test_common_initialize()
                          TEST_DATA_SHORT_GZIP_ENCODED_SECOND.length);
     });
 
+  gHttpServer.registerPathHandler("/shorter-than-content-length-http-1-1.txt",
+    function (aRequest, aResponse) {
+      aResponse.processAsync();
+      aResponse.setStatusLine("1.1", 200, "OK");
+      aResponse.setHeader("Content-Type", "text/plain", false);
+      aResponse.setHeader("Content-Length", "" + (TEST_DATA_SHORT.length * 2),
+                          false);
+      aResponse.write(TEST_DATA_SHORT);
+      aResponse.finish();
+    });
+
   // This URL will emulate being blocked by Windows Parental controls
   gHttpServer.registerPathHandler("/parentalblocked.zip",
     function (aRequest, aResponse) {
@@ -790,79 +786,58 @@ add_task(function test_common_initialize()
                               "Blocked by Windows Parental Controls");
     });
 
-  // Disable integration with the host application requiring profile access.
-  DownloadIntegration.dontLoadList = true;
-  DownloadIntegration.dontLoadObservers = true;
-  // Disable the parental controls checking.
-  DownloadIntegration.dontCheckParentalControls = true;
-  // Disable application reputation checks.
-  DownloadIntegration.dontCheckApplicationReputation = true;
-  // Disable the calls to the OS to launch files and open containing folders
-  DownloadIntegration.dontOpenFileAndFolder = true;
-  DownloadIntegration._deferTestOpenFile = Promise.defer();
-  DownloadIntegration._deferTestShowDir = Promise.defer();
-
-  // Avoid leaking uncaught promise errors
-  DownloadIntegration._deferTestOpenFile.promise.then(null, () => undefined);
-  DownloadIntegration._deferTestShowDir.promise.then(null, () => undefined);
-
-  // Get a reference to nsIComponentRegistrar, and ensure that is is freed
-  // before the XPCOM shutdown.
-  let registrar = Components.manager.QueryInterface(Ci.nsIComponentRegistrar);
-  do_register_cleanup(() => registrar = null);
+  // During unit tests, most of the functions that require profile access or
+  // operating system features will be disabled. Individual tests may override
+  // them again to check for specific behaviors.
+  Integration.downloads.register(base => ({
+    __proto__: base,
+    loadPublicDownloadListFromStore: () => Promise.resolve(),
+    shouldKeepBlockedData: () => Promise.resolve(false),
+    shouldBlockForParentalControls: () => Promise.resolve(false),
+    shouldBlockForRuntimePermissions: () => Promise.resolve(false),
+    shouldBlockForReputationCheck: () => Promise.resolve({
+      shouldBlock: false,
+      verdict: "",
+    }),
+    confirmLaunchExecutable: () => Promise.resolve(),
+    launchFile: () => Promise.resolve(),
+    showContainingDirectory: () => Promise.resolve(),
+    // This flag allows re-enabling the default observers during their tests.
+    allowObservers: false,
+    addListObservers() {
+      return this.allowObservers ? super.addListObservers(...arguments)
+                                 : Promise.resolve();
+    },
+    // This flag allows re-enabling the download directory logic for its tests.
+    _allowDirectories: false,
+    set allowDirectories(value) {
+      this._allowDirectories = value;
+      // We have to invalidate the previously computed directory path.
+      this._downloadsDirectory = null;
+    },
+    _getDirectory(name) {
+      return super._getDirectory(this._allowDirectories ? name : "TmpD");
+    },
+  }));
 
   // Make sure that downloads started using nsIExternalHelperAppService are
   // saved to disk without asking for a destination interactively.
-  let mockFactory = {
-    createInstance: function (aOuter, aIid) {
-      return {
-        QueryInterface: XPCOMUtils.generateQI([Ci.nsIHelperAppLauncherDialog]),
-        promptForSaveToFile: function (aLauncher, aWindowContext,
-                                       aDefaultFileName,
-                                       aSuggestedFileExtension,
-                                       aForcePrompt)
-        {
-          throw new Components.Exception(
-                             "Synchronous promptForSaveToFile not implemented.",
-                             Cr.NS_ERROR_NOT_AVAILABLE);
-        },
-        promptForSaveToFileAsync: function (aLauncher, aWindowContext,
-                                            aDefaultFileName,
-                                            aSuggestedFileExtension,
-                                            aForcePrompt)
-        {
-          // The dialog should create the empty placeholder file.
-          let file = getTempFile(TEST_TARGET_FILE_NAME);
-          file.create(Ci.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
-          aLauncher.saveDestinationAvailable(file);
-        },
-      }.QueryInterface(aIid);
-    }
+  let mock = {
+    QueryInterface: XPCOMUtils.generateQI([Ci.nsIHelperAppLauncherDialog]),
+    promptForSaveToFileAsync(aLauncher,
+                             aWindowContext,
+                             aDefaultFileName,
+                             aSuggestedFileExtension,
+                             aForcePrompt) {
+      // The dialog should create the empty placeholder file.
+      let file = getTempFile(TEST_TARGET_FILE_NAME);
+      file.create(Ci.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+      aLauncher.saveDestinationAvailable(file);
+    },
   };
 
-  let contractID = "@mozilla.org/helperapplauncherdialog;1";
-  let cid = registrar.contractIDToCID(contractID);
-  let oldFactory = Components.manager.getClassObject(Cc[contractID],
-                                                     Ci.nsIFactory);
-
-  registrar.unregisterFactory(cid, oldFactory);
-  registrar.registerFactory(cid, "", contractID, mockFactory);
-  do_register_cleanup(function () {
-    registrar.unregisterFactory(cid, mockFactory);
-    registrar.registerFactory(cid, "", contractID, oldFactory);
-  });
-
-  // We must also make sure that nsIExternalHelperAppService uses the
-  // JavaScript implementation of nsITransfer, because the
-  // "@mozilla.org/transfer;1" contract is currently implemented in
-  // "toolkit/components/downloads".  When the other folder is not included in
-  // builds anymore (bug 851471), we'll not need to do this anymore.
-  let transferContractID = "@mozilla.org/transfer;1";
-  let transferNewCid = Components.ID("{1b4c85df-cbdd-4bb6-b04e-613caece083c}");
-  let transferCid = registrar.contractIDToCID(transferContractID);
-
-  registrar.registerFactory(transferNewCid, "", transferContractID, null);
-  do_register_cleanup(function () {
-    registrar.registerFactory(transferCid, "", transferContractID, null);
+  let cid = MockRegistrar.register("@mozilla.org/helperapplauncherdialog;1", mock);
+  do_register_cleanup(() => {
+    MockRegistrar.unregister(cid);
   });
 });

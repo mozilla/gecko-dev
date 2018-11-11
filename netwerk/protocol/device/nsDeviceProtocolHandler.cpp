@@ -8,8 +8,10 @@
 #include "nsAutoPtr.h"
 #include "nsSimpleURI.h"
 
-//-----------------------------------------------------------------------------
+namespace mozilla {
+namespace net {
 
+//-----------------------------------------------------------------------------
 NS_IMPL_ISUPPORTS(nsDeviceProtocolHandler,
                   nsIProtocolHandler)
 
@@ -45,22 +47,36 @@ nsDeviceProtocolHandler::NewURI(const nsACString &spec,
                                 nsIURI *baseURI,
                                 nsIURI **result)
 {
-  nsRefPtr<nsSimpleURI> uri = new nsSimpleURI();
+  RefPtr<nsSimpleURI> uri = new nsSimpleURI();
 
   nsresult rv = uri->SetSpec(spec);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return CallQueryInterface(uri, result);
+  uri.forget(result);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDeviceProtocolHandler::NewChannel2(nsIURI* aURI,
+                                     nsILoadInfo* aLoadInfo,
+                                     nsIChannel** aResult)
+{
+  RefPtr<nsDeviceChannel> channel = new nsDeviceChannel();
+  nsresult rv = channel->Init(aURI);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // set the loadInfo on the new channel
+  rv = channel->SetLoadInfo(aLoadInfo);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  channel.forget(aResult);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDeviceProtocolHandler::NewChannel(nsIURI* aURI, nsIChannel **aResult)
 {
-  nsRefPtr<nsDeviceChannel> channel = new nsDeviceChannel();
-  nsresult rv = channel->Init(aURI);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return CallQueryInterface(channel, aResult);
+  return NewChannel2(aURI, nullptr, aResult);
 }
 
 NS_IMETHODIMP 
@@ -72,3 +88,6 @@ nsDeviceProtocolHandler::AllowPort(int32_t port,
   *aResult = false;
   return NS_OK;
 }
+
+} // namespace net
+} // namespace mozilla

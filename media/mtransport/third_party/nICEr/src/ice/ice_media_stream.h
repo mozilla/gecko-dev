@@ -63,9 +63,10 @@ struct nr_ice_media_stream_ {
 #define NR_ICE_MEDIA_STREAM_CHECKS_FAILED      5
 
   nr_ice_cand_pair_head check_list;
+  nr_ice_cand_pair_head trigger_check_queue;
   void *timer;  /* Check list periodic timer */
 
-//  nr_ice_cand_pair_head valid_list;
+/*  nr_ice_cand_pair_head valid_list; */
 
   STAILQ_ENTRY(nr_ice_media_stream_) entry;
 };
@@ -91,11 +92,14 @@ int nr_ice_media_stream_get_best_candidate(nr_ice_media_stream *str, int compone
 int nr_ice_media_stream_send(nr_ice_peer_ctx *pctx, nr_ice_media_stream *str, int component, UCHAR *data, int len);
 int nr_ice_media_stream_get_active(nr_ice_peer_ctx *pctx, nr_ice_media_stream *str, int component, nr_ice_candidate **local, nr_ice_candidate **remote);
 int nr_ice_media_stream_find_component(nr_ice_media_stream *str, int comp_id, nr_ice_component **compp);
+int nr_ice_media_stream_find_pair(nr_ice_media_stream *str, nr_ice_candidate *local, nr_ice_candidate *remote, nr_ice_cand_pair **pair);
 int nr_ice_media_stream_addrs(nr_ice_peer_ctx *pctx, nr_ice_media_stream *str, int component, nr_transport_addr *local, nr_transport_addr *remote);
 int
 nr_ice_peer_ctx_parse_media_stream_attribute(nr_ice_peer_ctx *pctx, nr_ice_media_stream *stream, char *attr);
+int nr_ice_media_stream_get_consent_status(nr_ice_media_stream *stream, int component_id, int *can_send, struct timeval *ts);
 int nr_ice_media_stream_disable_component(nr_ice_media_stream *stream, int component_id);
 int nr_ice_media_stream_pair_new_trickle_candidate(nr_ice_peer_ctx *pctx, nr_ice_media_stream *pstream, nr_ice_candidate *cand);
+void nr_ice_media_stream_role_change(nr_ice_media_stream *stream);
 
 #ifdef __cplusplus
 }

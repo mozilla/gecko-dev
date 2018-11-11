@@ -30,8 +30,9 @@ INCLUDES += -I.
 # To create a loadable module on Darwin, we must use -bundle.
 #
 ifeq ($(OS_TARGET),Darwin)
-ifndef USE_64
 DSO_LDOPTS = -bundle
 endif
-endif
 
+ifdef USE_GCOV
+DSO_LDOPTS += --coverage
+endif

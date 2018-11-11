@@ -1,0 +1,74 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+[scriptable, uuid(51191434-1dd2-11b2-a17c-e49c4e99a4e3)]
+interface nsIPK11Token : nsISupports
+{
+  const long ASK_EVERY_TIME  = -1;
+  const long ASK_FIRST_TIME  =  0;
+  const long ASK_EXPIRE_TIME =  1;
+
+  /*
+   * The name of the token
+   */
+  readonly attribute AUTF8String tokenName;
+  readonly attribute AUTF8String tokenLabel;
+  /**
+   * Manufacturer ID of the token.
+   */
+  readonly attribute AUTF8String tokenManID;
+  /**
+   * Hardware version of the token.
+   */
+  readonly attribute AUTF8String tokenHWVersion;
+  /**
+   * Firmware version of the token.
+   */
+  readonly attribute AUTF8String tokenFWVersion;
+  readonly attribute AUTF8String tokenSerialNumber;
+
+  /*
+   * Login information
+   */
+  boolean isLoggedIn();
+  void login(in boolean force);
+  void logoutSimple();
+  void logoutAndDropAuthenticatedResources();
+
+  /*
+   * Reset password
+   */
+  void reset();
+
+  /*
+   * Password information
+   */
+  readonly attribute long minimumPasswordLength;
+  readonly attribute boolean needsUserInit;
+  /**
+   * Checks whether the given password is correct. Logs the token out if an
+   * incorrect password is given.
+   *
+   * @param password The password to check.
+   * @return true if the password was correct, false otherwise.
+   */
+  boolean checkPassword(in AUTF8String password);
+  void initPassword(in AUTF8String initialPassword);
+  void changePassword(in AUTF8String oldPassword, in AUTF8String newPassword);
+  long getAskPasswordTimes();
+  long getAskPasswordTimeout();
+  void setAskPasswordDefaults([const] in long askTimes, [const] in long timeout);
+
+  /*
+   * Other attributes
+   */
+  boolean isHardwareToken();
+  boolean needsLogin();
+  boolean isFriendly();
+};
+

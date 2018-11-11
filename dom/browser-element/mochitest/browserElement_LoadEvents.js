@@ -20,7 +20,7 @@ function runTest() {
   var seenLocationChange = false;
 
   var iframe = document.createElement('iframe');
-  SpecialPowers.wrap(iframe).mozbrowser = true;
+  iframe.setAttribute('mozbrowser', 'true');
   iframe.id = 'iframe';
   iframe.src = 'http://example.com/tests/dom/browser-element/mochitest/file_browserElement_LoadEvents.html';
 
@@ -38,7 +38,7 @@ function runTest() {
     seenLocationChange = true;
     ok(seenLoadStart, 'Location change after load start.');
     ok(!seenLoadEnd, 'Location change before load end.');
-    ok(e.detail, browserElementTestHelpers.emptyPage1, "event's reported location");
+    ok(e.detail.url, browserElementTestHelpers.emptyPage1, "event's reported location");
   }
 
   function loadend(e) {
@@ -91,7 +91,7 @@ function runTest2() {
     seenLocationChange = true;
     ok(seenLoadStart, 'Location change after load start.');
     ok(!seenLoadEnd, 'Location change before load end.');
-    ok(e.detail, browserElementTestHelpers.emptyPage2, "event's reported location");
+    ok(e.detail.url, browserElementTestHelpers.emptyPage2, "event's reported location");
   });
 
   iframe.addEventListener('mozbrowserloadend', function(e) {

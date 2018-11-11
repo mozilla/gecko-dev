@@ -7,6 +7,7 @@
 #define nsTreeStyleCache_h__
 
 #include "mozilla/Attributes.h"
+#include "nsAutoPtr.h"
 #include "nsIAtom.h"
 #include "nsCOMArray.h"
 #include "nsICSSPseudoComparator.h"
@@ -45,7 +46,7 @@ public:
 protected:
   typedef uint32_t DFAState;
 
-  class Transition MOZ_FINAL
+  class Transition final
   {
   public:
     Transition(DFAState aState, nsIAtom* aSymbol);

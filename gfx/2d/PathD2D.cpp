@@ -6,9 +6,8 @@
 #include "PathD2D.h"
 #include "HelpersD2D.h"
 #include <math.h>
-#include "DrawTargetD2D.h"
+#include "DrawTargetD2D1.h"
 #include "Logging.h"
-#include "mozilla/Constants.h"
 
 namespace mozilla {
 namespace gfx {
@@ -91,6 +90,31 @@ private:
   bool mNeedsFigureEnded;
 };
 
+class MOZ_STACK_CLASS AutoRestoreFP
+{
+public:
+  AutoRestoreFP()
+  {
+    // save the current floating point control word
+    _controlfp_s(&savedFPSetting, 0, 0);
+    UINT unused;
+    // set the floating point control word to its default value
+    _controlfp_s(&unused, _CW_DEFAULT, MCW_PC);
+  }
+  ~AutoRestoreFP()
+  {
+    UINT unused;
+    // restore the saved floating point control word
+    _controlfp_s(&unused, savedFPSetting, MCW_PC);
+  }
+private:
+  UINT savedFPSetting;
+};
+
+// Note that overrides of ID2D1SimplifiedGeometrySink methods in this class may
+// get called from D2D with nonstandard floating point settings (see comments in
+// bug 1134549) - use AutoRestoreFP to reset the floating point control word to
+// what we expect
 class StreamingGeometrySink : public ID2D1SimplifiedGeometrySink
 {
 public:
@@ -130,11 +154,18 @@ public:
   STDMETHOD_(void, SetFillMode)(D2D1_FILL_MODE aMode)
   { return; }
   STDMETHOD_(void, BeginFigure)(D2D1_POINT_2F aPoint, D2D1_FIGURE_BEGIN aBegin)
-  { mSink->MoveTo(ToPoint(aPoint)); }
+  {
+    AutoRestoreFP resetFloatingPoint;
+    mSink->MoveTo(ToPoint(aPoint));
+  }
   STDMETHOD_(void, AddLines)(const D2D1_POINT_2F *aLines, UINT aCount)
-  { for (UINT i = 0; i < aCount; i++) { mSink->LineTo(ToPoint(aLines[i])); } }
+  {
+    AutoRestoreFP resetFloatingPoint;
+    for (UINT i = 0; i < aCount; i++) { mSink->LineTo(ToPoint(aLines[i])); }
+  }
   STDMETHOD_(void, AddBeziers)(const D2D1_BEZIER_SEGMENT *aSegments, UINT aCount)
   {
+    AutoRestoreFP resetFloatingPoint;
     for (UINT i = 0; i < aCount; i++) {
       mSink->BezierTo(ToPoint(aSegments[i].point1), ToPoint(aSegments[i].point2), ToPoint(aSegments[i].point3));
     }
@@ -146,6 +177,7 @@ public:
 
   STDMETHOD_(void, EndFigure)(D2D1_FIGURE_END aEnd)
   {
+    AutoRestoreFP resetFloatingPoint;
     if (aEnd == D2D1_FIGURE_END_CLOSED) {
       return mSink->Close();
     }
@@ -219,12 +251,14 @@ void
 PathBuilderD2D::Arc(const Point &aOrigin, Float aRadius, Float aStartAngle,
                  Float aEndAngle, bool aAntiClockwise)
 {
+  MOZ_ASSERT(aRadius >= 0);
+
   if (aAntiClockwise && aStartAngle < aEndAngle) {
     // D2D does things a little differently, and draws the arc by specifying an
     // beginning and an end point. This means the circle will be the wrong way
     // around if the start angle is smaller than the end angle. It might seem
     // tempting to invert aAntiClockwise but that would change the sweeping
-    // direction of the arc to instead we exchange start/begin.
+    // direction of the arc so instead we exchange start/begin.
     Float oldStart = aStartAngle;
     aStartAngle = aEndAngle;
     aEndAngle = oldStart;
@@ -232,9 +266,12 @@ PathBuilderD2D::Arc(const Point &aOrigin, Float aRadius, Float aStartAngle,
 
   // XXX - Workaround for now, D2D does not appear to do the desired thing when
   // the angle sweeps a complete circle.
+  bool fullCircle = false;
   if (aEndAngle - aStartAngle >= 2 * M_PI) {
+    fullCircle = true;
     aEndAngle = Float(aStartAngle + M_PI * 1.9999);
   } else if (aStartAngle - aEndAngle >= 2 * M_PI) {
+    fullCircle = true;
     aStartAngle = Float(aEndAngle + M_PI * 1.9999);
   }
 
@@ -249,27 +286,60 @@ PathBuilderD2D::Arc(const Point &aOrigin, Float aRadius, Float aStartAngle,
   }
 
   Point endPoint;
-  endPoint.x = aOrigin.x + aRadius * cos(aEndAngle);
-  endPoint.y = aOrigin.y + aRadius * sin(aEndAngle);
+  endPoint.x = aOrigin.x + aRadius * cosf(aEndAngle);
+  endPoint.y = aOrigin.y + aRadius * sinf(aEndAngle);
 
   D2D1_ARC_SIZE arcSize = D2D1_ARC_SIZE_SMALL;
+  D2D1_SWEEP_DIRECTION direction =
+    aAntiClockwise ? D2D1_SWEEP_DIRECTION_COUNTER_CLOCKWISE :
+                     D2D1_SWEEP_DIRECTION_CLOCKWISE;
 
-  if (aAntiClockwise) {
-    if (aStartAngle - aEndAngle > M_PI) {
-      arcSize = D2D1_ARC_SIZE_LARGE;
+  // if startPoint and endPoint of our circle are too close there are D2D issues
+  // with drawing the circle as a single arc
+  const Float kEpsilon = 1e-5f;
+  if (!fullCircle ||
+      (std::abs(startPoint.x - endPoint.x) +
+       std::abs(startPoint.y - endPoint.y) > kEpsilon)) {
+
+    if (aAntiClockwise) {
+      if (aStartAngle - aEndAngle > M_PI) {
+        arcSize = D2D1_ARC_SIZE_LARGE;
+      }
+    } else {
+      if (aEndAngle - aStartAngle > M_PI) {
+        arcSize = D2D1_ARC_SIZE_LARGE;
+      }
     }
-  } else {
-    if (aEndAngle - aStartAngle > M_PI) {
-      arcSize = D2D1_ARC_SIZE_LARGE;
-    }
+
+    mSink->AddArc(D2D1::ArcSegment(D2DPoint(endPoint),
+                                   D2D1::SizeF(aRadius, aRadius),
+                                   0.0f,
+                                   direction,
+                                   arcSize));
   }
+  else {
+    // our first workaround attempt didn't work, so instead draw the circle as
+    // two half-circles
+    Float midAngle = aEndAngle > aStartAngle ?
+      Float(aStartAngle + M_PI) : Float(aEndAngle + M_PI);
+    Point midPoint;
+    midPoint.x = aOrigin.x + aRadius * cosf(midAngle);
+    midPoint.y = aOrigin.y + aRadius * sinf(midAngle);
 
-  mSink->AddArc(D2D1::ArcSegment(D2DPoint(endPoint),
-                                 D2D1::SizeF(aRadius, aRadius),
-                                 0.0f,
-                                 aAntiClockwise ? D2D1_SWEEP_DIRECTION_COUNTER_CLOCKWISE :
-                                                  D2D1_SWEEP_DIRECTION_CLOCKWISE,
-                                 arcSize));
+    mSink->AddArc(D2D1::ArcSegment(D2DPoint(midPoint),
+                                   D2D1::SizeF(aRadius, aRadius),
+                                   0.0f,
+                                   direction,
+                                   arcSize));
+
+    // if the adjusted endPoint computed above is used here and endPoint !=
+    // startPoint then this half of the circle won't render...
+    mSink->AddArc(D2D1::ArcSegment(D2DPoint(startPoint),
+                                   D2D1::SizeF(aRadius, aRadius),
+                                   0.0f,
+                                   direction,
+                                   arcSize));
+  }
 
   mCurrentPoint = endPoint;
 }
@@ -290,7 +360,7 @@ PathBuilderD2D::EnsureActive(const Point &aPoint)
   }
 }
 
-TemporaryRef<Path>
+already_AddRefed<Path>
 PathBuilderD2D::Finish()
 {
   if (mFigureActive) {
@@ -299,34 +369,34 @@ PathBuilderD2D::Finish()
 
   HRESULT hr = mSink->Close();
   if (FAILED(hr)) {
-    gfxDebug() << "Failed to close PathSink. Code: " << hr;
+    gfxCriticalNote << "Failed to close PathSink. Code: " << hexa(hr);
     return nullptr;
   }
 
-  return new PathD2D(mGeometry, mFigureActive, mCurrentPoint, mFillRule);
+  return MakeAndAddRef<PathD2D>(mGeometry, mFigureActive, mCurrentPoint, mFillRule, mBackendType);
 }
 
-TemporaryRef<PathBuilder>
+already_AddRefed<PathBuilder>
 PathD2D::CopyToBuilder(FillRule aFillRule) const
 {
   return TransformedCopyToBuilder(Matrix(), aFillRule);
 }
 
-TemporaryRef<PathBuilder>
+already_AddRefed<PathBuilder>
 PathD2D::TransformedCopyToBuilder(const Matrix &aTransform, FillRule aFillRule) const
 {
   RefPtr<ID2D1PathGeometry> path;
-  HRESULT hr = DrawTargetD2D::factory()->CreatePathGeometry(byRef(path));
+  HRESULT hr = DrawTargetD2D1::factory()->CreatePathGeometry(getter_AddRefs(path));
 
   if (FAILED(hr)) {
-    gfxWarning() << "Failed to create PathGeometry. Code: " << hr;
+    gfxWarning() << "Failed to create PathGeometry. Code: " << hexa(hr);
     return nullptr;
   }
 
   RefPtr<ID2D1GeometrySink> sink;
-  hr = path->Open(byRef(sink));
+  hr = path->Open(getter_AddRefs(sink));
   if (FAILED(hr)) {
-    gfxWarning() << "Failed to open Geometry for writing. Code: " << hr;
+    gfxWarning() << "Failed to open Geometry for writing. Code: " << hexa(hr);
     return nullptr;
   }
 
@@ -336,18 +406,22 @@ PathD2D::TransformedCopyToBuilder(const Matrix &aTransform, FillRule aFillRule) 
 
   if (mEndedActive) {
     OpeningGeometrySink wrapSink(sink);
-    mGeometry->Simplify(D2D1_GEOMETRY_SIMPLIFICATION_OPTION_CUBICS_AND_LINES,
-                        D2DMatrix(aTransform),
-                        &wrapSink);
+    hr = mGeometry->Simplify(D2D1_GEOMETRY_SIMPLIFICATION_OPTION_CUBICS_AND_LINES,
+                             D2DMatrix(aTransform),
+                             &wrapSink);
   } else {
-    mGeometry->Simplify(D2D1_GEOMETRY_SIMPLIFICATION_OPTION_CUBICS_AND_LINES,
-                        D2DMatrix(aTransform),
-                        sink);
+    hr = mGeometry->Simplify(D2D1_GEOMETRY_SIMPLIFICATION_OPTION_CUBICS_AND_LINES,
+                             D2DMatrix(aTransform),
+                             sink);
+  }
+  if (FAILED(hr)) {
+    gfxWarning() << "Failed to simplify PathGeometry to tranformed copy. Code: " << hexa(hr) << " Active: " << mEndedActive;
+    return nullptr;
   }
 
-  RefPtr<PathBuilderD2D> pathBuilder = new PathBuilderD2D(sink, path, aFillRule);
+  RefPtr<PathBuilderD2D> pathBuilder = new PathBuilderD2D(sink, path, aFillRule, mBackendType);
   
-  pathBuilder->mCurrentPoint = aTransform * mEndPoint;
+  pathBuilder->mCurrentPoint = aTransform.TransformPoint(mEndPoint);
   
   if (mEndedActive) {
     pathBuilder->mFigureActive = true;
@@ -367,7 +441,7 @@ PathD2D::StreamToSink(PathSink *aSink) const
                            D2D1::IdentityMatrix(), &sink);
 
   if (FAILED(hr)) {
-    gfxWarning() << "Failed to stream D2D path to sink. Code: " << hr;
+    gfxWarning() << "Failed to stream D2D path to sink. Code: " << hexa(hr);
     return;
   }
 }
@@ -418,7 +492,7 @@ PathD2D::GetBounds(const Matrix &aTransform) const
 
   Rect bounds = ToRect(d2dBounds);
   if (FAILED(hr) || !bounds.IsFinite()) {
-    gfxWarning() << "Failed to get stroked bounds for path. Code: " << hr;
+    gfxWarning() << "Failed to get stroked bounds for path. Code: " << hexa(hr);
     return Rect();
   }
 
@@ -438,7 +512,7 @@ PathD2D::GetStrokedBounds(const StrokeOptions &aStrokeOptions,
 
   Rect bounds = ToRect(d2dBounds);
   if (FAILED(hr) || !bounds.IsFinite()) {
-    gfxWarning() << "Failed to get stroked bounds for path. Code: " << hr;
+    gfxWarning() << "Failed to get stroked bounds for path. Code: " << hexa(hr);
     return Rect();
   }
 

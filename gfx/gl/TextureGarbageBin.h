@@ -17,7 +17,7 @@
 namespace mozilla {
 namespace gl {
 
-class TextureGarbageBin MOZ_FINAL {
+class TextureGarbageBin final {
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TextureGarbageBin)
 
 private:
@@ -31,7 +31,7 @@ private:
     std::stack<GLuint> mGarbageTextures;
 
 public:
-    TextureGarbageBin(GLContext* gl)
+    explicit TextureGarbageBin(GLContext* gl)
         : mGL(gl)
         , mMutex("TextureGarbageBin mutex")
     {}
@@ -41,7 +41,7 @@ public:
     void EmptyGarbage();
 };
 
-}
-}
+} // namespace gl
+} // namespace mozilla
 
 #endif // TEXTUREGARBAGEBIN_H_

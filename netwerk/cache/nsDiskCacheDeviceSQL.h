@@ -25,8 +25,10 @@
 class nsIURI;
 class nsOfflineCacheDevice;
 class mozIStorageService;
+class nsILoadContextInfo;
+namespace mozilla { class OriginAttributesPattern; }
 
-class nsApplicationCacheNamespace MOZ_FINAL : public nsIApplicationCacheNamespace
+class nsApplicationCacheNamespace final : public nsIApplicationCacheNamespace
 {
 public:
   NS_DECL_ISUPPORTS
@@ -35,31 +37,33 @@ public:
   nsApplicationCacheNamespace() : mItemType(0) {}
 
 private:
+  ~nsApplicationCacheNamespace() {}
+
   uint32_t mItemType;
   nsCString mNamespaceSpec;
   nsCString mData;
 };
 
-class nsOfflineCacheEvictionFunction MOZ_FINAL : public mozIStorageFunction {
+class nsOfflineCacheEvictionFunction final : public mozIStorageFunction {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_MOZISTORAGEFUNCTION
 
-  nsOfflineCacheEvictionFunction(nsOfflineCacheDevice *device)
-    : mDevice(device)
-  {}
+  explicit nsOfflineCacheEvictionFunction(nsOfflineCacheDevice *device);
 
-  void Reset() { mItems.Clear(); }
+  void Init();
+  void Reset();
   void Apply();
 
 private:
-  nsOfflineCacheDevice *mDevice;
-  nsCOMArray<nsIFile> mItems;
+  ~nsOfflineCacheEvictionFunction() {}
 
+  nsOfflineCacheDevice *mDevice;
+  bool mTLSInited;
 };
 
-class nsOfflineCacheDevice : public nsCacheDevice
-                           , public nsISupports
+class nsOfflineCacheDevice final : public nsCacheDevice
+                                 , public nsISupports
 {
 public:
   nsOfflineCacheDevice();
@@ -70,34 +74,34 @@ public:
    * nsCacheDevice methods
    */
 
-  virtual nsresult        Init();
+  virtual nsresult        Init() override;
   nsresult                InitWithSqlite(mozIStorageService * ss);
-  virtual nsresult        Shutdown();
+  virtual nsresult        Shutdown() override;
 
-  virtual const char *    GetDeviceID(void);
-  virtual nsCacheEntry *  FindEntry(nsCString * key, bool *collision);
-  virtual nsresult        DeactivateEntry(nsCacheEntry * entry);
-  virtual nsresult        BindEntry(nsCacheEntry * entry);
-  virtual void            DoomEntry( nsCacheEntry * entry );
+  virtual const char *    GetDeviceID(void) override;
+  virtual nsCacheEntry *  FindEntry(nsCString * key, bool *collision) override;
+  virtual nsresult        DeactivateEntry(nsCacheEntry * entry) override;
+  virtual nsresult        BindEntry(nsCacheEntry * entry) override;
+  virtual void            DoomEntry( nsCacheEntry * entry ) override;
 
   virtual nsresult OpenInputStreamForEntry(nsCacheEntry *    entry,
                                            nsCacheAccessMode mode,
                                            uint32_t          offset,
-                                           nsIInputStream ** result);
+                                           nsIInputStream ** result) override;
 
   virtual nsresult OpenOutputStreamForEntry(nsCacheEntry *     entry,
                                             nsCacheAccessMode  mode,
                                             uint32_t           offset,
-                                            nsIOutputStream ** result);
+                                            nsIOutputStream ** result) override;
 
   virtual nsresult        GetFileForEntry(nsCacheEntry *    entry,
-                                          nsIFile **        result);
+                                          nsIFile **        result) override;
 
-  virtual nsresult        OnDataSizeChange(nsCacheEntry * entry, int32_t deltaSize);
+  virtual nsresult        OnDataSizeChange(nsCacheEntry * entry, int32_t deltaSize) override;
   
-  virtual nsresult        Visit(nsICacheVisitor * visitor);
+  virtual nsresult        Visit(nsICacheVisitor * visitor) override;
 
-  virtual nsresult        EvictEntries(const char * clientID);
+  virtual nsresult        EvictEntries(const char * clientID) override;
 
   /* Entry ownership */
   nsresult                GetOwnerDomains(const char *        clientID,
@@ -136,7 +140,7 @@ public:
   nsresult                EvictUnownedEntries(const char *clientID);
 
   static nsresult         BuildApplicationCacheGroupID(nsIURI *aManifestURL,
-                                                       uint32_t appId, bool isInBrowserElement,
+                                                       nsACString const &aOriginSuffix,
                                                        nsACString &_result);
 
   nsresult                ActivateCache(const nsCSubstring &group,
@@ -163,7 +167,8 @@ public:
   nsresult                CacheOpportunistically(nsIApplicationCache* cache,
                                                  const nsACString &key);
 
-  nsresult                DiscardByAppId(int32_t appID, bool isInBrowser);
+  nsresult                Evict(nsILoadContextInfo *aInfo);
+  nsresult                Evict(mozilla::OriginAttributesPattern const &aPattern);
 
   nsresult                GetGroups(uint32_t *count,char ***keys);
 
@@ -188,13 +193,11 @@ public:
   uint32_t                CacheCapacity() { return mCacheCapacity; }
   uint32_t                CacheSize();
   uint32_t                EntryCount();
-  
-private:
-  friend class nsApplicationCache;
 
-  static PLDHashOperator ShutdownApplicationCache(const nsACString &key,
-                                                  nsIWeakReference *weakRef,
-                                                  void *ctx);
+private:
+  ~nsOfflineCacheDevice();
+
+  friend class nsApplicationCache;
 
   static bool GetStrictFileOriginPolicy();
 
@@ -242,7 +245,7 @@ private:
                           char *** values);
 
   nsCOMPtr<mozIStorageConnection>          mDB;
-  nsRefPtr<nsOfflineCacheEvictionFunction> mEvictionFunction;
+  RefPtr<nsOfflineCacheEvictionFunction> mEvictionFunction;
 
   nsCOMPtr<mozIStorageStatement>  mStatement_CacheSize;
   nsCOMPtr<mozIStorageStatement>  mStatement_ApplicationCacheSize;

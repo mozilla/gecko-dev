@@ -1,3 +1,10 @@
+/**
+ * NOTE:
+ * This file is currently only being used for tests which haven't been
+ * fixed to work with e10s. Favor using the `prompt_common.js` file that
+ * is in `toolkit/components/prompts/test/` instead.
+ */
+
 var Ci = SpecialPowers.Ci;
 ok(Ci != null, "Access Ci");
 var Cc = SpecialPowers.Cc;
@@ -23,7 +30,7 @@ var observer = SpecialPowers.wrapCallbackObject({
         const interfaces = [Ci.nsIObserver,
                             Ci.nsISupports, Ci.nsISupportsWeakReference];
 
-        if (!interfaces.some( function(v) { return iid.equals(v) } ))
+        if (!interfaces.some( function(v) { return iid.equals(v); } ))
             throw SpecialPowers.Components.results.NS_ERROR_NO_INTERFACE;
         return this;
     },
@@ -42,7 +49,7 @@ function getDialogDoc() {
   // through all the open windows and all the <browsers> in each.
   var wm = Cc["@mozilla.org/appshell/window-mediator;1"].
            getService(Ci.nsIWindowMediator);
-  //var enumerator = wm.getEnumerator("navigator:browser");
+  // var enumerator = wm.getEnumerator("navigator:browser");
   var enumerator = wm.getXULWindowEnumerator(null);
 
   while (enumerator.hasMoreElements()) {
@@ -62,7 +69,7 @@ function getDialogDoc() {
                                     .contentViewer
                                     .DOMDocument;
 
-        //ok(true, "Got window: " + childDoc.location.href);
+        // ok(true, "Got window: " + childDoc.location.href);
         if (childDoc.location.href == "chrome://global/content/commonDialog.xul")
           return childDoc;
     }

@@ -174,13 +174,18 @@ class TypeCache(object):
         self.void_ptr_t = self.void_t.pointer()
         try:
             self.JSString_ptr_t = gdb.lookup_type('JSString').pointer()
+            self.JSSymbol_ptr_t = gdb.lookup_type('JS::Symbol').pointer()
             self.JSObject_ptr_t = gdb.lookup_type('JSObject').pointer()
         except gdb.error:
             raise NotSpiderMonkeyObjfileError
 
-        self.mod_JSString = None
+        self.mod_GCCellPtr = None
+        self.mod_Interpreter = None
         self.mod_JSObject = None
+        self.mod_JSString = None
         self.mod_jsval = None
+        self.mod_ExecutableAllocator = None
+        self.mod_IonGraph = None
 
 # Yield a series of all the types that |t| implements, by following typedefs
 # and iterating over base classes. Specifically:

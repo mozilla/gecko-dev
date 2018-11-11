@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,6 +9,7 @@ XPIDL_SOURCES += [
     'nsIAsyncOutputStream.idl',
     'nsIBinaryInputStream.idl',
     'nsIBinaryOutputStream.idl',
+    'nsICloneableInputStream.idl',
     'nsIConverterInputStream.idl',
     'nsIConverterOutputStream.idl',
     'nsIDirectoryEnumerator.idl',
@@ -29,7 +30,6 @@ XPIDL_SOURCES += [
     'nsIScriptableBase64Encoder.idl',
     'nsIScriptableInputStream.idl',
     'nsISeekableStream.idl',
-    'nsISimpleUnicharStreamFactory.idl',
     'nsIStorageStream.idl',
     'nsIStreamBufferAccess.idl',
     'nsIStringStream.idl',
@@ -78,15 +78,21 @@ EXPORTS += [
     'nsStringStream.h',
     'nsUnicharInputStream.h',
     'nsWildCard.h',
+    'SlicedInputStream.h',
     'SpecialSystemDirectory.h',
 ]
 
 EXPORTS.mozilla += [
     'Base64.h',
+    'FilePreferences.h',
+    'SnappyCompressOutputStream.h',
+    'SnappyFrameUtils.h',
+    'SnappyUncompressInputStream.h',
 ]
 
 UNIFIED_SOURCES += [
     'Base64.cpp',
+    'crc32c.c',
     'nsAnonymousTemporaryFile.cpp',
     'nsAppFileLocationProvider.cpp',
     'nsBinaryStream.cpp',
@@ -107,7 +113,15 @@ UNIFIED_SOURCES += [
     'nsStringStream.cpp',
     'nsUnicharInputStream.cpp',
     'nsWildCard.cpp',
+    'SlicedInputStream.cpp',
+    'SnappyCompressOutputStream.cpp',
+    'SnappyFrameUtils.cpp',
+    'SnappyUncompressInputStream.cpp',
     'SpecialSystemDirectory.cpp',
+]
+
+SOURCES += [
+    'FilePreferences.cpp',
 ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
@@ -115,15 +129,17 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
         'CocoaFileUtils.mm',
     ]
 
-FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
-FINAL_LIBRARY = 'xpcom_core'
+FINAL_LIBRARY = 'xul'
 
 if CONFIG['OS_ARCH'] == 'Linux' and 'lib64' in CONFIG['libdir']:
     DEFINES['HAVE_USR_LIB64_DIR'] = True
 
-GENERATED_INCLUDES += ['..']
+LOCAL_INCLUDES += ['!..']
+
+if CONFIG['_MSC_VER']:
+    # This is intended as a temporary hack to support building with VS2015.
+    # '_snwprintf' : format string '%s' requires an argument of type 'wchar_t *',
+    # but variadic argument 3 has type 'char16ptr_t'
+    CXXFLAGS += ['-wd4477']

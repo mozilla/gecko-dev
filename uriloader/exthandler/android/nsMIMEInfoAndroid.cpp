@@ -10,7 +10,7 @@
 #include "nsStringEnumerator.h"
 #include "nsNetUtil.h"
 
-using namespace mozilla::widget::android;
+using namespace mozilla;
 
 NS_IMPL_ISUPPORTS(nsMIMEInfoAndroid, nsIMIMEInfo, nsIHandlerInfo)
 
@@ -36,7 +36,9 @@ nsMIMEInfoAndroid::LoadUriInternal(nsIURI * aURI)
     mimeType = NS_ConvertUTF8toUTF16(mType);
   }
 
-  if (GeckoAppShell::OpenUriExternal(NS_ConvertUTF8toUTF16(uriSpec), mimeType)) {
+  if (java::GeckoAppShell::OpenUriExternal(
+      NS_ConvertUTF8toUTF16(uriSpec), mimeType, EmptyString(),
+      EmptyString(), EmptyString(), EmptyString())) {
     return NS_OK;
   }
   return NS_ERROR_FAILURE;
@@ -46,7 +48,7 @@ bool
 nsMIMEInfoAndroid::GetMimeInfoForMimeType(const nsACString& aMimeType,
                                           nsMIMEInfoAndroid** aMimeInfo)
 {
-  nsRefPtr<nsMIMEInfoAndroid> info = new nsMIMEInfoAndroid(aMimeType);
+  RefPtr<nsMIMEInfoAndroid> info = new nsMIMEInfoAndroid(aMimeType);
   mozilla::AndroidBridge* bridge = mozilla::AndroidBridge::Bridge();
   // we don't have access to the bridge, so just assume we can handle
   // the mime type for now and let the system deal with it
@@ -382,7 +384,7 @@ NS_IMPL_ISUPPORTS(nsMIMEInfoAndroid::SystemChooser, nsIHandlerApp)
 
 
 nsresult nsMIMEInfoAndroid::SystemChooser::GetName(nsAString & aName) {
-  aName.AssignLiteral(MOZ_UTF16("Android chooser"));
+  aName.AssignLiteral(u"Android chooser");
   return NS_OK;
 }
 
@@ -393,7 +395,7 @@ nsMIMEInfoAndroid::SystemChooser::SetName(const nsAString&) {
 
 nsresult
 nsMIMEInfoAndroid::SystemChooser::GetDetailedDescription(nsAString & aDesc) {
-  aDesc.AssignLiteral(MOZ_UTF16("Android's default handler application chooser"));
+  aDesc.AssignLiteral(u"Android's default handler application chooser");
   return NS_OK;
 }
 

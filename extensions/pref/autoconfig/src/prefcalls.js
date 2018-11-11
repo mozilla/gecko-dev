@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+/* -*- tab-width: 4; indent-tabs-mode: nil; js-indent-level: 4 -*-
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,10 +10,8 @@ const LDAPSyncQueryContractID = "@mozilla.org/ldapsyncquery;1";
 const nsIPrefService = Components.interfaces.nsIPrefService;
 const PrefServiceContractID = "@mozilla.org/preferences-service;1";
 
-// set on a platform specific basis in platform.js
-platform = { value: "" };
-
 var gVersion;
+var gIsUTF8;
 
 function getPrefBranch() {
     
@@ -28,6 +26,14 @@ function pref(prefName, value) {
         var prefBranch = getPrefBranch();
 
         if (typeof value == "string") {
+            if (gIsUTF8) {
+                const nsISupportsString = Components.interfaces.nsISupportsString;
+                let string = Components.classes["@mozilla.org/supports-string;1"]
+                                       .createInstance(nsISupportsString);
+                string.data = value;
+                prefBranch.setComplexValue(prefName, nsISupportsString, string);
+                return;
+            }
             prefBranch.setCharPref(prefName, value);
         }
         else if (typeof value == "number") {
@@ -49,6 +55,14 @@ function defaultPref(prefName, value) {
                                     .getService(nsIPrefService);        
         var prefBranch = prefService.getDefaultBranch(null);
         if (typeof value == "string") {
+            if (gIsUTF8) {
+                const nsISupportsString = Components.interfaces.nsISupportsString;
+                let string = Components.classes["@mozilla.org/supports-string;1"]
+                                       .createInstance(nsISupportsString);
+                string.data = value;
+                prefBranch.setComplexValue(prefName, nsISupportsString, string);
+                return;
+            }
             prefBranch.setCharPref(prefName, value);
         }
         else if (typeof value == "number") {
@@ -100,6 +114,12 @@ function getPref(prefName) {
         switch (prefBranch.getPrefType(prefName)) {
             
         case prefBranch.PREF_STRING:
+            if (gIsUTF8) {
+                const nsISupportsString = Components.interfaces.nsISupportsString;
+                let string = Components.classes["@mozilla.org/supports-string;1"]
+                                       .createInstance(nsISupportsString);
+                return prefBranch.getComplexValue(prefName, nsISupportsString).data;
+            }
             return prefBranch.getCharPref(prefName);
             
         case prefBranch.PREF_INT:
@@ -132,10 +152,10 @@ function setLDAPVersion(version) {
 }
 
 
-function getLDAPAttributes(host, base, filter, attribs) {
+function getLDAPAttributes(host, base, filter, attribs, isSecure) {
     
     try {
-        var urlSpec = "ldap://" + host + "/" + base + "?" + attribs + "?sub?" +
+        var urlSpec = "ldap" + (isSecure ? "s" : "") + "://" + host + (isSecure ? ":636" : "") + "/" + base + "?" + attribs + "?sub?" +
                       filter;
 
         var url = Components.classes["@mozilla.org/network/io-service;1"]

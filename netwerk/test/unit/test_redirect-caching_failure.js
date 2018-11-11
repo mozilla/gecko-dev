@@ -1,4 +1,5 @@
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "URL", function() {
   return "http://localhost:" + httpServer.identity.primaryPort;
@@ -13,9 +14,7 @@ XPCOMUtils.defineLazyGetter(this, "randomURI", function() {
 });
 
 function make_channel(url, callback, ctx) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].
-            getService(Ci.nsIIOService);
-  return ios.newChannel(url, "", null);
+  return NetUtil.newChannel({uri: url, loadUsingSystemPrincipal: true});
 }
 
 function redirectHandler(metadata, response)
@@ -34,7 +33,7 @@ function makeSureNotInCache(request, buffer)
   // Can't hurt to test though.
   var chan = make_channel(randomURI);
   chan.loadFlags |= Ci.nsIRequest.LOAD_ONLY_FROM_CACHE;
-  chan.asyncOpen(new ChannelListener(finish_test, null, CL_EXPECT_FAILURE), null);
+  chan.asyncOpen2(new ChannelListener(finish_test, null, CL_EXPECT_FAILURE));
 }
 
 function finish_test(request, buffer)
@@ -51,6 +50,6 @@ function run_test()
   httpServer.start(-1);
 
   var chan = make_channel(randomURI);
-  chan.asyncOpen(new ChannelListener(makeSureNotInCache, null, CL_EXPECT_FAILURE), null);
+  chan.asyncOpen2(new ChannelListener(makeSureNotInCache, null, CL_EXPECT_FAILURE));
   do_test_pending();
 }

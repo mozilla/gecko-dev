@@ -19,14 +19,15 @@
 #include "nsISupportsImpl.h" // For mozilla::ThreadSafeAutoRefCnt
 #include "mozilla/FileUtils.h"
 #include "mozilla/FileLocation.h"
+#include "mozilla/UniquePtr.h"
 
-#if defined(XP_WIN) && defined(_MSC_VER)
+#ifdef HAVE_SEH_EXCEPTIONS
 #define MOZ_WIN_MEM_TRY_BEGIN __try {
 #define MOZ_WIN_MEM_TRY_CATCH(cmd) }                                \
   __except(GetExceptionCode()==EXCEPTION_IN_PAGE_ERROR ?            \
            EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH)   \
   {                                                                 \
-    NS_WARNING("EXCEPTION_IN_PAGE_ERROR in " __FUNCTION__);         \
+    NS_WARNING("unexpected EXCEPTION_IN_PAGE_ERROR");               \
     cmd;                                                            \
   }
 #else
@@ -58,9 +59,11 @@ struct PRFileDesc;
  * each nsZipItem represents one file in the archive and all the
  * information needed to manipulate it.
  */
-class nsZipItem
+class nsZipItem final
 {
 public:
+  nsZipItem();
+
   const char* Name() { return ((const char*)central) + ZIPCENTRAL_SIZE; }
 
   uint32_t LocalOffset();
@@ -91,16 +94,18 @@ class nsZipHandle;
  * nsZipArchive -- a class for reading the PKZIP file format.
  *
  */
-class nsZipArchive 
+class nsZipArchive final
 {
   friend class nsZipFind;
 
-public:
-  /** constructing does not open the archive. See OpenArchive() */
-  nsZipArchive();
-
   /** destructing the object closes the archive */
   ~nsZipArchive();
+
+public:
+  static const char* sFileCorruptedReason;
+
+  /** constructing does not open the archive. See OpenArchive() */
+  nsZipArchive();
 
   /** 
    * OpenArchive 
@@ -120,7 +125,7 @@ public:
    * 
    * Convenience function that generates nsZipHandle
    *
-   * @param   aFile  The file used to access the zip
+   * @param   aFile         The file used to access the zip
    * @return  status code
    */
   nsresult OpenArchive(nsIFile *aFile);
@@ -221,7 +226,7 @@ private:
   bool          mBuiltSynthetics;
 
   // file handle
-  nsRefPtr<nsZipHandle> mFd;
+  RefPtr<nsZipHandle> mFd;
 
   // file URI, for logging
   nsCString mURI;
@@ -232,8 +237,8 @@ private:
   nsresult          BuildFileList(PRFileDesc *aFd = nullptr);
   nsresult          BuildSynthetics();
 
-  nsZipArchive& operator=(const nsZipArchive& rhs) MOZ_DELETE;
-  nsZipArchive(const nsZipArchive& rhs) MOZ_DELETE;
+  nsZipArchive& operator=(const nsZipArchive& rhs) = delete;
+  nsZipArchive(const nsZipArchive& rhs) = delete;
 };
 
 /** 
@@ -241,7 +246,7 @@ private:
  *
  * a helper class for nsZipArchive, representing a search
  */
-class nsZipFind
+class nsZipFind final
 {
 public:
   nsZipFind(nsZipArchive* aZip, char* aPattern, bool regExp);
@@ -250,20 +255,21 @@ public:
   nsresult      FindNext(const char** aResult, uint16_t* aNameLen);
 
 private:
-  nsRefPtr<nsZipArchive> mArchive;
+  RefPtr<nsZipArchive> mArchive;
   char*         mPattern;
   nsZipItem*    mItem;
   uint16_t      mSlot;
   bool          mRegExp;
 
-  nsZipFind& operator=(const nsZipFind& rhs) MOZ_DELETE;
-  nsZipFind(const nsZipFind& rhs) MOZ_DELETE;
+  nsZipFind& operator=(const nsZipFind& rhs) = delete;
+  nsZipFind(const nsZipFind& rhs) = delete;
 };
 
 /** 
  * nsZipCursor -- a low-level class for reading the individual items in a zip.
  */
-class nsZipCursor {
+class nsZipCursor final
+{
 public:
   /**
    * Initializes the cursor
@@ -318,7 +324,8 @@ private:
  * for decompression.
  * Do not use when the file may be very large.
  */
-class nsZipItemPtr_base {
+class nsZipItemPtr_base
+{
 public:
   /**
    * Initializes the reader
@@ -334,14 +341,19 @@ public:
   }
 
 protected:
-  nsRefPtr<nsZipHandle> mZipHandle;
-  nsAutoArrayPtr<uint8_t> mAutoBuf;
+  RefPtr<nsZipHandle> mZipHandle;
+  mozilla::UniquePtr<uint8_t[]> mAutoBuf;
   uint8_t *mReturnBuf;
   uint32_t mReadlen;
 };
 
 template <class T>
-class nsZipItemPtr : public nsZipItemPtr_base {
+class nsZipItemPtr final : public nsZipItemPtr_base
+{
+  static_assert(sizeof(T) == sizeof(char),
+                "This class cannot be used with larger T without re-examining"
+                " a number of assumptions.");
+
 public:
   nsZipItemPtr(nsZipArchive *aZip, const char *aEntryName, bool doCRC = false) : nsZipItemPtr_base(aZip, aEntryName, doCRC) { }
   /**
@@ -361,22 +373,23 @@ public:
    * Copy member into a new buffer if uncompressed.
    * @return a buffer with whole zip member. It is caller's responsibility to free() it.
    */
-  T* Forget() {
+  mozilla::UniquePtr<T[]> Forget() {
     if (!mReturnBuf)
       return nullptr;
     // In uncompressed mmap case, give up buffer
     if (mAutoBuf.get() == mReturnBuf) {
       mReturnBuf = nullptr;
-      return (T*) mAutoBuf.forget();
+      return mozilla::UniquePtr<T[]>(reinterpret_cast<T*>(mAutoBuf.release()));
     }
-    T *ret = (T*) malloc(Length());
-    memcpy(ret, mReturnBuf, Length());
+    auto ret = mozilla::MakeUnique<T[]>(Length());
+    memcpy(ret.get(), mReturnBuf, Length());
     mReturnBuf = nullptr;
     return ret;
   }
 };
 
-class nsZipHandle {
+class nsZipHandle final
+{
 friend class nsZipArchive;
 friend class mozilla::FileLocation;
 public:
@@ -384,25 +397,38 @@ public:
                        PRFileDesc **aFd = nullptr);
   static nsresult Init(nsZipArchive *zip, const char *entry,
                        nsZipHandle **ret);
+  static nsresult Init(const uint8_t* aData, uint32_t aLen,
+                       nsZipHandle **aRet);
 
   NS_METHOD_(MozExternalRefCountType) AddRef(void);
   NS_METHOD_(MozExternalRefCountType) Release(void);
 
   int64_t SizeOfMapping();
 
+  nsresult GetNSPRFileDesc(PRFileDesc** aNSPRFileDesc);
+
 protected:
-  const uint8_t * mFileData; /* pointer to mmaped file */
-  uint32_t        mLen;      /* length of file and memory mapped area */
+  const uint8_t * mFileData; /* pointer to zip data */
+  uint32_t        mLen;      /* length of zip data */
   mozilla::FileLocation mFile; /* source file if any, for logging */
 
 private:
   nsZipHandle();
   ~nsZipHandle();
 
+  nsresult findDataStart();
+
   PRFileMap *                       mMap;    /* nspr datastructure for mmap */
+  mozilla::AutoFDClose              mNSPRFileDesc;
   nsAutoPtr<nsZipItemPtr<uint8_t> > mBuf;
   mozilla::ThreadSafeAutoRefCnt     mRefCnt; /* ref count */
   NS_DECL_OWNINGTHREAD
+
+  const uint8_t * mFileStart; /* pointer to mmaped file */
+  uint32_t        mTotalLen;  /* total length of the mmaped file */
+
+  /* Magic number for CRX type expressed in Big Endian since it is a literal */
+  static const uint32_t kCRXMagic = 0x34327243;
 };
 
 nsresult gZlibInit(z_stream *zs);

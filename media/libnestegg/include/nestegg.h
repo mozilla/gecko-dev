@@ -7,7 +7,8 @@
 #if !defined(NESTEGG_671cac2a_365d_ed69_d7a3_4491d3538d79)
 #define NESTEGG_671cac2a_365d_ed69_d7a3_4491d3538d79
 
-#include <nestegg/nestegg-stdint.h>
+#include <limits.h>
+#include <stdint.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -62,13 +63,15 @@ extern "C" {
 /** @file
     The <tt>libnestegg</tt> C API. */
 
-#define NESTEGG_TRACK_VIDEO 0 /**< Track is of type video. */
-#define NESTEGG_TRACK_AUDIO 1 /**< Track is of type audio. */
+#define NESTEGG_TRACK_VIDEO   0       /**< Track is of type video. */
+#define NESTEGG_TRACK_AUDIO   1       /**< Track is of type audio. */
+#define NESTEGG_TRACK_UNKNOWN INT_MAX /**< Track is of type unknown. */
 
-#define NESTEGG_CODEC_VP8    0 /**< Track uses Google On2 VP8 codec. */
-#define NESTEGG_CODEC_VORBIS 1 /**< Track uses Xiph Vorbis codec. */
-#define NESTEGG_CODEC_VP9    2 /**< Track uses Google On2 VP9 codec. */
-#define NESTEGG_CODEC_OPUS   3 /**< Track uses Xiph Opus codec. */
+#define NESTEGG_CODEC_VP8     0       /**< Track uses Google On2 VP8 codec. */
+#define NESTEGG_CODEC_VORBIS  1       /**< Track uses Xiph Vorbis codec. */
+#define NESTEGG_CODEC_VP9     2       /**< Track uses Google On2 VP9 codec. */
+#define NESTEGG_CODEC_OPUS    3       /**< Track uses Xiph Opus codec. */
+#define NESTEGG_CODEC_UNKNOWN INT_MAX /**< Track uses unknown codec. */
 
 #define NESTEGG_VIDEO_MONO              0 /**< Track is mono video. */
 #define NESTEGG_VIDEO_STEREO_LEFT_RIGHT 1 /**< Track is side-by-side stereo video.  Left first. */
@@ -85,6 +88,17 @@ extern "C" {
 #define NESTEGG_LOG_WARNING  100   /**< Warning level log message. */
 #define NESTEGG_LOG_ERROR    1000  /**< Error level log message. */
 #define NESTEGG_LOG_CRITICAL 10000 /**< Critical level log message. */
+
+#define NESTEGG_ENCODING_COMPRESSION 0 /**< Content encoding type is compression. */
+#define NESTEGG_ENCODING_ENCRYPTION  1 /**< Content encoding type is encryption. */
+
+#define NESTEGG_PACKET_HAS_SIGNAL_BYTE_FALSE       0 /**< Packet does not have signal byte */
+#define NESTEGG_PACKET_HAS_SIGNAL_BYTE_UNENCRYPTED 1 /**< Packet has signal byte and is unencrypted */
+#define NESTEGG_PACKET_HAS_SIGNAL_BYTE_ENCRYPTED   2 /**< Packet has signal byte and is encrypted */
+
+#define NESTEGG_PACKET_HAS_KEYFRAME_FALSE   0 /**< Packet contains only keyframes. */
+#define NESTEGG_PACKET_HAS_KEYFRAME_TRUE    1 /**< Packet does not contain any keyframes */
+#define NESTEGG_PACKET_HAS_KEYFRAME_UNKNOWN 2 /**< Packet may or may not contain keyframes */
 
 typedef struct nestegg nestegg;               /**< Opaque handle referencing the stream state. */
 typedef struct nestegg_packet nestegg_packet; /**< Opaque handle referencing a packet of data. */
@@ -133,6 +147,7 @@ typedef struct {
   unsigned int crop_top;       /**< Pixels to crop from the top of the frame. */
   unsigned int crop_left;      /**< Pixels to crop from the left of the frame. */
   unsigned int crop_right;     /**< Pixels to crop from the right of the frame. */
+  unsigned int alpha_mode;     /**< 1 if an additional opacity stream is available, otherwise 0. */
 } nestegg_video_params;
 
 /** Parameters specific to an audio track. */
@@ -170,8 +185,8 @@ void nestegg_destroy(nestegg * context);
 int nestegg_duration(nestegg * context, uint64_t * duration);
 
 /** Query the tstamp scale of the media stream in nanoseconds.
-    Timecodes presented by nestegg have been scaled by this value
-    before presentation to the caller.
+    @note Timecodes presented by nestegg have been scaled by this value
+          before presentation to the caller.
     @param context Stream context initialized by #nestegg_init.
     @param scale   Storage for the queried scale factor.
     @retval  0 Success.
@@ -200,8 +215,8 @@ int nestegg_get_cue_point(nestegg * context, unsigned int cluster_num,
                           int64_t * end_pos, uint64_t * tstamp);
 
 /** Seek to @a offset.  Stream will seek directly to offset.
-    Should be used to seek to the start of a resync point, i.e. cluster; the
-    parser will not be able to understand other offsets.
+    Must be used to seek to the start of a cluster; the parser will not be
+    able to understand other offsets.
     @param context Stream context initialized by #nestegg_init.
     @param offset  Absolute offset in bytes.
     @retval  0 Success.
@@ -221,16 +236,20 @@ int nestegg_track_seek(nestegg * context, unsigned int track, uint64_t tstamp);
 /** Query the type specified by @a track.
     @param context Stream context initialized by #nestegg_init.
     @param track   Zero based track number.
-    @retval #NESTEGG_TRACK_VIDEO Track type is video.
-    @retval #NESTEGG_TRACK_AUDIO Track type is audio.
+    @retval #NESTEGG_TRACK_VIDEO   Track type is video.
+    @retval #NESTEGG_TRACK_AUDIO   Track type is audio.
+    @retval #NESTEGG_TRACK_UNKNOWN Track type is unknown.
     @retval -1 Error. */
 int nestegg_track_type(nestegg * context, unsigned int track);
 
 /** Query the codec ID specified by @a track.
     @param context Stream context initialized by #nestegg_init.
     @param track   Zero based track number.
-    @retval #NESTEGG_CODEC_VP8    Track codec is VP8.
-    @retval #NESTEGG_CODEC_VORBIS Track codec is Vorbis.
+    @retval #NESTEGG_CODEC_VP8     Track codec is VP8.
+    @retval #NESTEGG_CODEC_VP9     Track codec is VP9.
+    @retval #NESTEGG_CODEC_VORBIS  Track codec is Vorbis.
+    @retval #NESTEGG_CODEC_OPUS    Track codec is Opus.
+    @retval #NESTEGG_CODEC_UNKNOWN Track codec is unknown.
     @retval -1 Error. */
 int nestegg_track_codec_id(nestegg * context, unsigned int track);
 
@@ -276,6 +295,28 @@ int nestegg_track_video_params(nestegg * context, unsigned int track,
 int nestegg_track_audio_params(nestegg * context, unsigned int track,
                                nestegg_audio_params * params);
 
+/** Query the encoding status for @a track. If a track has multiple encodings
+    the first will be returned.
+    @param context Stream context initialized by #nestegg_init.
+    @param track   Zero based track number.
+    @retval #NESTEGG_ENCODING_COMPRESSION The track is compressed, but not encrypted.
+    @retval #NESTEGG_ENCODING_ENCRYPTION The track is encrypted and compressed.
+    @retval -1 Error. */
+int nestegg_track_encoding(nestegg * context, unsigned int track);
+
+/** Query the ContentEncKeyId for @a track. Will return an error if the track
+    in not encrypted, or is not recognized.
+    @param context                   Stream context initialized by #nestegg_init.
+    @param track                     Zero based track number.
+    @param content_enc_key_id        Storage for queried id. The content encryption key used.
+                                     Owned by nestegg and will be freed separately.
+    @param content_enc_key_id_length Length of the queried ContentEncKeyId in bytes.
+    @retval  0 Success.
+    @retval -1 Error. */
+int nestegg_track_content_enc_key_id(nestegg * context, unsigned int track,
+                                     unsigned char const ** content_enc_key_id,
+                                     size_t * content_enc_key_id_length);
+
 /** Query the default frame duration for @a track.  For a video track, this
     is typically the inverse of the video frame rate.
     @param context  Stream context initialized by #nestegg_init.
@@ -285,6 +326,12 @@ int nestegg_track_audio_params(nestegg * context, unsigned int track,
     @retval -1 Error. */
 int nestegg_track_default_duration(nestegg * context, unsigned int track,
                                    uint64_t * duration);
+
+/** Reset parser state to the last valid state before nestegg_read_packet failed.
+    @param context Stream context initialized by #nestegg_init.
+    @retval  0 Success.
+    @retval -1 Error. */
+int nestegg_read_reset(nestegg * context);
 
 /** Read a packet of media data.  A packet consists of one or more chunks of
     data associated with a single track.  nestegg_read_packet should be
@@ -300,6 +347,14 @@ int nestegg_read_packet(nestegg * context, nestegg_packet ** packet);
 /** Destroy a nestegg_packet and free associated memory.
     @param packet #nestegg_packet to be freed. @see nestegg_read_packet */
 void nestegg_free_packet(nestegg_packet * packet);
+
+/** Query the keyframe status for a given packet.
+    @param packet Packet initialized by #nestegg_read_packet.
+    @retval #NESTEGG_PACKET_HAS_KEYFRAME_FALSE   Packet contains no keyframes.
+    @retval #NESTEGG_PACKET_HAS_KEYFRAME_TRUE    Packet contains keyframes.
+    @retval #NESTEGG_PACKET_HAS_KEYFRAME_UNKNOWN Unknown packet keyframe content.
+    @retval -1 Error. */
+int nestegg_packet_has_keyframe(nestegg_packet * packet);
 
 /** Query the track number of @a packet.
     @param packet Packet initialized by #nestegg_read_packet.
@@ -324,7 +379,7 @@ int nestegg_packet_duration(nestegg_packet * packet, uint64_t * duration);
 
 /** Query the number of data chunks contained in @a packet.
     @param packet Packet initialized by #nestegg_read_packet.
-    @param count  Storage for the queried timestamp in nanoseconds.
+    @param count  Storage for the queried chunk count.
     @retval  0 Success.
     @retval -1 Error. */
 int nestegg_packet_count(nestegg_packet * packet, unsigned int * count);
@@ -340,6 +395,19 @@ int nestegg_packet_count(nestegg_packet * packet, unsigned int * count);
 int nestegg_packet_data(nestegg_packet * packet, unsigned int item,
                         unsigned char ** data, size_t * length);
 
+/** Get a pointer to additional data with identifier @a id of additional packet
+    data. If @a id isn't present in the packet, returns -1.
+    @param packet  Packet initialized by #nestegg_read_packet.
+    @param id      Codec specific identifer. For VP8, use 1 to get a VP8 encoded
+                   frame containing an alpha channel in its Y plane.
+    @param data    Storage for the queried data pointer.
+                   The data is owned by the #nestegg_packet packet.
+    @param length  Storage for the queried data size.
+    @retval  0 Success.
+    @retval -1 Error. */
+int nestegg_packet_additional_data(nestegg_packet * packet, unsigned int id,
+                                   unsigned char ** data, size_t * length);
+
 /** Returns discard_padding for given packet
     @param packet  Packet initialized by #nestegg_read_packet.
     @param discard_padding pointer to store discard padding in.
@@ -348,27 +416,49 @@ int nestegg_packet_data(nestegg_packet * packet, unsigned int item,
 int nestegg_packet_discard_padding(nestegg_packet * packet,
                                    int64_t * discard_padding);
 
+/** Query if a packet is encrypted.
+    @param packet Packet initialized by #nestegg_read_packet.
+    @retval  #NESTEGG_PACKET_HAS_SIGNAL_BYTE_FALSE No signal byte, encryption
+             information not read from packet.
+    @retval  #NESTEGG_PACKET_HAS_SIGNAL_BYTE_UNENCRYPTED Encrypted bit not
+             set, encryption information not read from packet.
+    @retval  #NESTEGG_PACKET_HAS_SIGNAL_BYTE_ENCRYPTED Encrypted bit set,
+             encryption infomation read from packet.
+    @retval -1 Error.*/
+int nestegg_packet_encryption(nestegg_packet * packet);
+
+/** Query the IV for an encrypted packet. Expects a packet from an encrypted
+    track, and will return error if given a packet that has no signal btye.
+    @param packet Packet initialized by #nestegg_read_packet.
+    @param iv     Storage for queried iv.
+    @param length Length of returned iv, may be 0.
+                  The data is owned by the #nestegg_packet packet.
+    @retval  0 Success.
+    @retval -1 Error.
+  */
+int nestegg_packet_iv(nestegg_packet * packet, unsigned char const ** iv,
+                      size_t * length);
+
+/** Returns reference_block given packet
+    @param packet          Packet initialized by #nestegg_read_packet.
+    @param reference_block pointer to store reference block in.
+    @retval  0 Success.
+    @retval -1 Error. */
+int nestegg_packet_reference_block(nestegg_packet * packet,
+                                   int64_t * reference_block);
+
 /** Query the presence of cues.
     @param context  Stream context initialized by #nestegg_init.
     @retval 0 The media has no cues.
     @retval 1 The media has cues. */
 int nestegg_has_cues(nestegg * context);
 
-/**
- * Try to determine if the buffer looks like the beginning of a WebM file.
- *
- * @param buffer A buffer containing the beginning of a media file.
- * @param length The size of the buffer.
- * @retval 0 The file is not a WebM file.
- * @retval 1 The file is a WebM file. */
+/** Try to determine if the buffer looks like the beginning of a WebM file.
+    @param buffer A buffer containing the beginning of a media file.
+    @param length The size of the buffer.
+    @retval 0 The file is not a WebM file.
+    @retval 1 The file is a WebM file. */
 int nestegg_sniff(unsigned char const * buffer, size_t length);
-
-/**
- * Set the underlying allocation function for library allocations.
- *
- * @param realloc_func The desired function.
- */
-void nestegg_set_halloc_func(void * (* realloc_func)(void *, size_t));
 
 #if defined(__cplusplus)
 }

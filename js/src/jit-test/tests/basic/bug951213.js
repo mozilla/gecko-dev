@@ -1,5 +1,5 @@
 
-setObjectMetadataCallback(function(obj) {});
+enableShellAllocationMetadataBuilder();
 function foo(x, y) {
   this.g = x + y;
 }

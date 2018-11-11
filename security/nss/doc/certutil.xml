@@ -73,6 +73,11 @@
       </varlistentry>
 
       <varlistentry>
+        <term>--rename </term>
+        <listitem><para>Change the database nickname of a certificate.</para></listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term>-E </term>
         <listitem><para>Add an email certificate to the certificate database.</para></listitem>
       </varlistentry>
@@ -204,6 +209,11 @@ If this option is not used, the validity check defaults to the current system ti
       </varlistentry>
 
       <varlistentry>
+        <term>--dump-ext-val OID </term>
+        <listitem><para>For single cert, print binary DER encoding of extension OID.</para></listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term>-e </term>
         <listitem><para>Check a certificate's signature during the process of validating a certificate.</para></listitem>
       </varlistentry>
@@ -211,6 +221,26 @@ If this option is not used, the validity check defaults to the current system ti
       <varlistentry>
         <term>--email email-address</term>
         <listitem><para>Specify the email address of a certificate to list. Used with the -L command option.</para></listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>--extGeneric OID:critical-flag:filename[,OID:critical-flag:filename]... </term>
+        <listitem>
+          <para>
+Add one or multiple extensions that certutil cannot encode yet, by loading their encodings from external files.
+           </para>
+	<itemizedlist>
+	<listitem>
+<para>OID (example): 1.2.3.4</para>
+	</listitem>
+	<listitem>
+<para>critical-flag: critical or not-critical</para>
+	</listitem>
+	<listitem>
+<para>filename: full path to a file containing an encoded extension</para>
+	</listitem>
+	</itemizedlist>
+        </listitem>
       </varlistentry>
 
       <varlistentry>
@@ -222,7 +252,7 @@ If this option is not used, the validity check defaults to the current system ti
 
       <varlistentry>
         <term>-g keysize</term>
-        <listitem><para>Set a key size to use when generating new public and private key pairs. The minimum is 512 bits and the maximum is 16384 bits. The default is 1024 bits. Any size between the minimum and maximum is allowed.</para></listitem>
+        <listitem><para>Set a key size to use when generating new public and private key pairs. The minimum is 512 bits and the maximum is 16384 bits. The default is 2048 bits. Any size between the minimum and maximum is allowed.</para></listitem>
       </varlistentry>
 
 
@@ -284,28 +314,27 @@ If this option is not used, the validity check defaults to the current system ti
         <term>-q pqgfile or curve-name</term>
         <listitem>
         <para>Read an alternate PQG value from the specified file when generating DSA key pairs. If this argument is not used, <command>certutil</command> generates its own PQG value. PQG files are created with a separate DSA utility.</para>
-        <para>Elliptic curve name is one of the ones from SUITE B: nistp256, nistp384, nistp521</para>
+        <para>Elliptic curve name is one of the ones from nistp256, nistp384, nistp521, curve25519.</para>
         <para>
-           If NSS has been compiled with support curves outside of SUITE B:
-              sect163k1, nistk163, sect163r1, sect163r2,            
-              nistb163,  sect193r1, sect193r2, sect233k1, nistk233,            
-              sect233r1, nistb233, sect239k1, sect283k1, nistk283,            
-              sect283r1, nistb283, sect409k1, nistk409, sect409r1,            
-              nistb409,  sect571k1, nistk571, sect571r1, nistb571,            
-              secp160k1, secp160r1, secp160r2, secp192k1, secp192r1,            
-              nistp192,  secp224k1, secp224r1, nistp224, secp256k1,            
-              secp256r1, secp384r1, secp521r1,       
-              prime192v1, prime192v2, prime192v3,          
-              prime239v1, prime239v2, prime239v3, c2pnb163v1,             
-              c2pnb163v2, c2pnb163v3, c2pnb176v1, c2tnb191v1,             
-              c2tnb191v2, c2tnb191v3,              
-              c2pnb208w1, c2tnb239v1, c2tnb239v2, c2tnb239v3,             
-              c2pnb272w1, c2pnb304w1,             
-              c2tnb359w1, c2pnb368w1, c2tnb431r1, secp112r1,             
-              secp112r2, secp128r1, secp128r2, sect113r1, sect113r2            
-              sect131r1, sect131r2    
+           If a token is available that supports more curves, the foolowing curves are supported as well:
+           sect163k1, nistk163, sect163r1, sect163r2,
+           nistb163,  sect193r1, sect193r2, sect233k1, nistk233,
+           sect233r1, nistb233, sect239k1, sect283k1, nistk283,
+           sect283r1, nistb283, sect409k1, nistk409, sect409r1,
+           nistb409,  sect571k1, nistk571, sect571r1, nistb571,
+           secp160k1, secp160r1, secp160r2, secp192k1, secp192r1,
+           nistp192,  secp224k1, secp224r1, nistp224, secp256k1,
+           secp256r1, secp384r1, secp521r1,
+           prime192v1, prime192v2, prime192v3,
+           prime239v1, prime239v2, prime239v3, c2pnb163v1,
+           c2pnb163v2, c2pnb163v3, c2pnb176v1, c2tnb191v1,
+           c2tnb191v2, c2tnb191v3,
+           c2pnb208w1, c2tnb239v1, c2tnb239v2, c2tnb239v3,
+           c2pnb272w1, c2pnb304w1,
+           c2tnb359w1, c2pnb368w1, c2tnb431r1, secp112r1,
+           secp112r2, secp128r1, secp128r2, sect113r1, sect113r2,
+           sect131r1, sect131r2
         </para>
-
         </listitem>
         
       </varlistentry>
@@ -343,26 +372,23 @@ of the attribute codes:
 	</listitem>
 	<listitem>
 	<para>
-		<command>T</command> - Trusted CA (implies c)
+		<command>C</command> - Trusted CA (implies c)
 	</para>
 	</listitem>
 	<listitem>
 	<para>
-		<command>C</command> - trusted CA for client authentication (ssl server only)
-	</para>
-	</listitem>
-	<listitem>
-	<para>
-		<command>u</command> - user
+		<command>T</command> - trusted CA for client authentication (ssl server only)
 	</para>
 	</listitem>
 	</itemizedlist>
 	<para>
 		The attribute codes for the categories are separated by commas, and the entire set of attributes enclosed by quotation marks. For example:
 	</para>
-<para><command>-t "TCu,Cu,Tu"</command></para>
+<para><command>-t "TC,C,T"</command></para>
 	<para>
-	Use the -L option to see a list of the current certificates and trust attributes in a certificate database. </para></listitem>
+	Use the -L option to see a list of the current certificates and trust attributes in a certificate database. </para>
+	<para>
+	Note that the output of the -L option may include "u" flag, which means that there is a private key associated with the certificate. It is a dynamic flag and you cannot set it with certutil. </para></listitem>
       </varlistentry>
 
       <varlistentry>
@@ -374,6 +400,15 @@ of the attribute codes:
 	</listitem>
 	<listitem>
 <para><command>V</command> (as an SSL server)</para>
+	</listitem>
+	<listitem>
+<para><command>L</command> (as an SSL CA)</para>
+	</listitem>
+	<listitem>
+<para><command>A</command> (as Any CA)</para>
+	</listitem>
+	<listitem>
+<para><command>Y</command> (Verify CA)</para>
 	</listitem>
 	<listitem>
 <para><command>S</command> (as an email signer)</para>
@@ -423,6 +458,23 @@ of the attribute codes:
       <varlistentry>
         <term>-z noise-file</term>
         <listitem><para>Read a seed value from the specified file to generate a new private and public key pair. This argument makes it possible to use hardware-generated seed values or manually create a value from the keyboard. The minimum file size is 20 bytes.</para></listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>-Z hashAlg</term>
+        <listitem>
+        <para>Specify the hash algorithm to use with the -C, -S or -R command options. Possible keywords:</para>
+        <itemizedlist>
+          <listitem><para>MD2</para></listitem>
+          <listitem><para>MD4</para></listitem>
+          <listitem><para>MD5</para></listitem>
+          <listitem><para>SHA1</para></listitem>
+          <listitem><para>SHA224</para></listitem>
+          <listitem><para>SHA256</para></listitem>
+          <listitem><para>SHA384</para></listitem>
+          <listitem><para>SHA512</para></listitem>
+        </itemizedlist>
+        </listitem>
       </varlistentry>
 
       <varlistentry>
@@ -649,6 +701,17 @@ of the attribute codes:
       </varlistentry>
 
       <varlistentry>
+        <term>--extSAN type:name[,type:name]...</term>
+        <listitem><para>
+Create a Subject Alt Name extension with one or multiple names.
+          </para>
+          <para>
+-type: directory, dn, dns, edi, ediparty, email, ip, ipaddr, other, registerid, rfc822, uri, x400, x400addr
+        </para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term>--empty-password</term>
         <listitem><para>Use empty password when creating new certificate database with -N.</para></listitem>
       </varlistentry>
@@ -667,6 +730,11 @@ PKCS #11 key Operation Flags.
 Comma separated list of one or more of the following:
 {token | session} {public | private} {sensitive | insensitive} {modifiable | unmodifiable} {extractable | unextractable}
           </para></listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>--new-n nickname</term>
+        <listitem><para>A new nickname, used when renaming a certificate.</para></listitem>
       </varlistentry>
 
       <varlistentry>
@@ -788,7 +856,7 @@ The interative prompts for key usage and whether any extensions are critical and
 	<para>
 		From there, new certificates can reference the self-signed certificate:
 	</para>
-<programlisting>$ certutil -S -s "CN=My Server Cert" -n my-server-cert -c "my-ca-cert" -t "u,u,u" -1 -5 -6 -8 -m 730</programlisting>
+<programlisting>$ certutil -S -s "CN=My Server Cert" -n my-server-cert -c "my-ca-cert" -t ",," -1 -5 -6 -8 -m 730</programlisting>
 
 	<para><command>Generating a Certificate from a Certificate Request</command></para>
 	<para>
@@ -951,11 +1019,11 @@ certutil: Checking token "NSS Certificate DB" in slot "NSS User Private Key and 
 	<para>
 		For example:
 	</para>
-<programlisting>$ certutil -A -n "CN=My SSL Certificate" -t "u,u,u" -d sql:/home/my/sharednssdb -i /home/example-certs/cert.cer</programlisting>
+<programlisting>$ certutil -A -n "CN=My SSL Certificate" -t ",," -d sql:/home/my/sharednssdb -i /home/example-certs/cert.cer</programlisting>
 	<para>
 		A related command option, <option>-E</option>, is used specifically to add email certificates to the certificate database. The <option>-E</option> command has the same arguments as the <option>-A</option> command. The trust arguments for certificates have the format <emphasis>SSL,S/MIME,Code-signing</emphasis>, so the middle trust settings relate most to email certificates (though the others can be set). For example:
 	</para>
-<programlisting>$ certutil -E -n "CN=John Smith Email Cert" -t ",Pu," -d sql:/home/my/sharednssdb -i /home/example-certs/email.cer</programlisting>
+<programlisting>$ certutil -E -n "CN=John Smith Email Cert" -t ",P," -d sql:/home/my/sharednssdb -i /home/example-certs/email.cer</programlisting>
 
 	<para><command>Deleting Certificates to the Database</command></para>
 	<para>
@@ -985,7 +1053,7 @@ certutil: Checking token "NSS Certificate DB" in slot "NSS User Private Key and 
 	<para>
 		For example:
 	</para>
-<programlisting>$ certutil -M -n "My CA Certificate" -d sql:/home/my/sharednssdb -t "CTu,CTu,CTu"</programlisting>
+<programlisting>$ certutil -M -n "My CA Certificate" -d sql:/home/my/sharednssdb -t "CT,CT,CT"</programlisting>
 
 	<para><command>Printing the Certificate Chain</command></para>
 	<para>

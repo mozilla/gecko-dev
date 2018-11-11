@@ -17,7 +17,7 @@ function loadXULTreeAndDoTest(aDoTestFunc, aTreeID, aTreeView)
 
     this.invoke = function loadXULTree_invoke()
     {
-      this.treeNode.treeBoxObject.view = aTreeView;
+      this.treeNode.view = aTreeView;
     }
 
     this.getID = function loadXULTree_getID()
@@ -60,7 +60,7 @@ function nsTableTreeView(aRowCount)
 function nsTreeTreeView()
 {
   this.__proto__ = new nsTreeView();
-  
+
   this.mData = [
     new treeItem("row1"),
     new treeItem("row2_", true, [new treeItem("row2.1_"), new treeItem("row2.2_")]),
@@ -275,12 +275,6 @@ function treeItem(aText, aOpen, aChildren)
   this.cyclerState = 0;
   if (aChildren)
     this.children = aChildren;
-}
-
-function createAtom(aName)
-{
-  return Components.classes["@mozilla.org/atom-service;1"]
-    .getService(Components.interfaces.nsIAtomService).getAtom(aName);
 }
 
 /**

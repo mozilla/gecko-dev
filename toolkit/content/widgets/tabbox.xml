@@ -47,11 +47,7 @@
       </property>
 
       <field name="_handleMetaAltArrows" readonly="true">
-#ifdef XP_MACOSX
-        true
-#else
-        false
-#endif
+        /Mac/.test(navigator.platform)
       </field>
 
       <!-- _tabs and _tabpanels are deprecated, they exist only for
@@ -184,7 +180,7 @@
             case event.DOM_VK_RIGHT:
               if (event.metaKey && event.altKey && !event.shiftKey && !event.ctrlKey)
                 if (this.tabs && this._handleMetaAltArrows) {
-                  var offset = window.getComputedStyle(this, "")
+                  offset = window.getComputedStyle(this, "")
                                      .direction == "ltr" ? 1 : -1;
                   this.tabs.advanceSelectedTab(offset, true);
                   event.preventDefault();
@@ -353,15 +349,26 @@
         </setter>
       </property>
 
-      <field name="tabbox" readonly="true"><![CDATA[
-        var parent = this.parentNode;
-        while (parent) {
-          if (parent.localName == "tabbox")
-            break;
-          parent = parent.parentNode;
-        }
-        parent;
-      ]]></field>
+      <field name="_tabbox">null</field>
+      <property name="tabbox" readonly="true">
+        <getter><![CDATA[
+          // Memoize the result in a field rather than replacing this property,
+          // so that it can be reset along with the binding.
+          if (this._tabbox) {
+            return this._tabbox;
+          }
+
+          let parent = this.parentNode;
+          while (parent) {
+            if (parent.localName == "tabbox") {
+              break;
+            }
+            parent = parent.parentNode;
+          }
+
+          return this._tabbox = parent;
+        ]]></getter>
+      </property>
 
       <!-- _tabbox is deprecated, it exists only for backwards compatibility. -->
       <field name="_tabbox" readonly="true"><![CDATA[
@@ -495,7 +502,7 @@
                   el = el.parentNode;
                 }
                 aNewTab.focus();
-              } catch(e) {
+              } catch (e) {
               }
             }
           }
@@ -637,15 +644,26 @@
       </method>
 
       <!-- public -->
-      <field name="tabbox" readonly="true"><![CDATA[
-        var parent = this.parentNode;
-        while (parent) {
-          if (parent.localName == "tabbox")
-            break;
-          parent = parent.parentNode;
-        }
-        parent;
-      ]]></field>
+      <field name="_tabbox">null</field>
+      <property name="tabbox" readonly="true">
+        <getter><![CDATA[
+          // Memoize the result in a field rather than replacing this property,
+          // so that it can be reset along with the binding.
+          if (this._tabbox) {
+            return this._tabbox;
+          }
+
+          let parent = this.parentNode;
+          while (parent) {
+            if (parent.localName == "tabbox") {
+              break;
+            }
+            parent = parent.parentNode;
+          }
+
+          return this._tabbox = parent;
+        ]]></getter>
+      </property>
 
       <field name="_selectedPanel">this.childNodes.item(this.selectedIndex)</field>
 
@@ -701,7 +719,7 @@
     </resources>
 
     <content>
-      <xul:hbox class="tab-middle box-inherit" xbl:inherits="align,dir,pack,orient,selected" flex="1">
+      <xul:hbox class="tab-middle box-inherit" xbl:inherits="align,dir,pack,orient,selected,visuallyselected" flex="1">
         <xul:image class="tab-icon"
                    xbl:inherits="validate,src=image"
                    role="presentation"/>
@@ -728,52 +746,65 @@
                 onget="return this.getAttribute('selected') == 'true';"/>
 
       <property name="_selected">
-        <setter>
-          <![CDATA[
-          if (val)
+        <setter><![CDATA[
+          if (val) {
             this.setAttribute("selected", "true");
-          else
+            this.setAttribute("visuallyselected", "true");
+          } else {
             this.removeAttribute("selected");
+            this.removeAttribute("visuallyselected");
+          }
 
+          this._setPositionAttributes(val);
+
+          return val;
+        ]]></setter>
+      </property>
+
+      <method name="_setPositionAttributes">
+        <parameter name="aSelected"/>
+        <body><![CDATA[
           if (this.previousSibling && this.previousSibling.localName == "tab") {
-            if (val)
+            if (aSelected)
               this.previousSibling.setAttribute("beforeselected", "true");
             else
               this.previousSibling.removeAttribute("beforeselected");
             this.removeAttribute("first-tab");
-          }
-          else
+          } else {
             this.setAttribute("first-tab", "true");
+          }
 
           if (this.nextSibling && this.nextSibling.localName == "tab") {
-            if (val)
+            if (aSelected)
               this.nextSibling.setAttribute("afterselected", "true");
             else
               this.nextSibling.removeAttribute("afterselected");
             this.removeAttribute("last-tab");
-          }
-          else
+          } else {
             this.setAttribute("last-tab", "true");
-          return val;
-        ]]>
-        </setter>
-      </property>
+          }
+        ]]></body>
+      </method>
 
       <property name="linkedPanel" onget="return this.getAttribute('linkedpanel')"
                                    onset="this.setAttribute('linkedpanel', val); return val;"/>
 
       <field name="arrowKeysShouldWrap" readonly="true">
-#ifdef XP_MACOSX
-        true
-#else
-        false
-#endif
+        /Mac/.test(navigator.platform)
       </field>
-      <field name="TelemetryStopwatch" readonly="true">
-        let tmp = {};
-        Cu.import("resource://gre/modules/TelemetryStopwatch.jsm", tmp);
-        tmp.TelemetryStopwatch;
-      </field>
+      <property name="TelemetryStopwatch" readonly="true">
+        <getter><![CDATA[
+          let module = {};
+          Cu.import("resource://gre/modules/TelemetryStopwatch.jsm", module);
+          Object.defineProperty(this, "TelemetryStopwatch", {
+            configurable: true,
+            enumerable: true,
+            writable: true,
+            value: module.TelemetryStopwatch
+          });
+          return module.TelemetryStopwatch;
+        ]]></getter>
+      </property>
     </implementation>
 
     <handlers>
@@ -803,7 +834,7 @@
           // '-moz-user-focus' so that tabs can be focused by keyboard again.
           if (!isTabFocused) {
             this.setAttribute("ignorefocus", "true");
-            setTimeout(function (tab) tab.removeAttribute("ignorefocus"), 0, this);
+            setTimeout(tab => tab.removeAttribute("ignorefocus"), 0, this);
           }
 
           if (stopwatchid) {

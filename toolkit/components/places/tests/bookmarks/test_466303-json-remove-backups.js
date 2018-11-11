@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,7 @@
 // Since PlacesBackups.getbackupFiles() is a lazy getter, these tests must
 // run in the given order, to avoid making it out-of-sync.
 
-add_task(function check_max_backups_is_respected() {
+add_task(function* check_max_backups_is_respected() {
   // Get bookmarkBackups directory
   let backupFolder = yield PlacesBackups.getBackupFolder();
 
@@ -25,7 +25,6 @@ add_task(function check_max_backups_is_respected() {
   // Export bookmarks to JSON.
   // Allow 2 backups, the older one should be removed.
   yield PlacesBackups.create(2);
-  let backupFilename = PlacesBackups.getFilenameForDate();
 
   let count = 0;
   let lastBackupPath = null;
@@ -46,14 +45,13 @@ add_task(function check_max_backups_is_respected() {
   do_check_true(yield OS.File.exists(jsonPath));
 });
 
-add_task(function check_max_backups_greater_than_backups() {
+add_task(function* check_max_backups_greater_than_backups() {
   // Get bookmarkBackups directory
   let backupFolder = yield PlacesBackups.getBackupFolder();
 
   // Export bookmarks to JSON.
   // Allow 3 backups, none should be removed.
   yield PlacesBackups.create(3);
-  let backupFilename = PlacesBackups.getFilenameForDate();
 
   let count = 0;
   let lastBackupPath = null;
@@ -71,7 +69,7 @@ add_task(function check_max_backups_greater_than_backups() {
   do_check_neq(lastBackupPath, null);
 });
 
-add_task(function check_max_backups_null() {
+add_task(function* check_max_backups_null() {
   // Get bookmarkBackups directory
   let backupFolder = yield PlacesBackups.getBackupFolder();
 
@@ -79,7 +77,6 @@ add_task(function check_max_backups_null() {
   // Allow infinite backups, none should be removed, a new one is not created
   // since one for today already exists.
   yield PlacesBackups.create(null);
-  let backupFilename = PlacesBackups.getFilenameForDate();
 
   let count = 0;
   let lastBackupPath = null;
@@ -97,7 +94,7 @@ add_task(function check_max_backups_null() {
   do_check_neq(lastBackupPath, null);
 });
 
-add_task(function check_max_backups_undefined() {
+add_task(function* check_max_backups_undefined() {
   // Get bookmarkBackups directory
   let backupFolder = yield PlacesBackups.getBackupFolder();
 
@@ -105,7 +102,6 @@ add_task(function check_max_backups_undefined() {
   // Allow infinite backups, none should be removed, a new one is not created
   // since one for today already exists.
   yield PlacesBackups.create();
-  let backupFilename = PlacesBackups.getFilenameForDate();
 
   let count = 0;
   let lastBackupPath = null;

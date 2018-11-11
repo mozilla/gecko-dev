@@ -1,19 +1,67 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 MOCHITEST_MANIFESTS += ['test/mochitest.ini']
+MOCHITEST_CHROME_MANIFESTS += ['test/chrome.ini']
 
 EXPORTS.mozilla.dom += [
+    'Animation.h',
+    'AnimationEffectReadOnly.h',
+    'AnimationEffectTiming.h',
+    'AnimationEffectTimingReadOnly.h',
     'AnimationTimeline.h',
+    'CSSPseudoElement.h',
+    'DocumentTimeline.h',
+    'KeyframeEffect.h',
+    'KeyframeEffectReadOnly.h',
 ]
 
-SOURCES += [
+EXPORTS.mozilla += [
+    'AnimationComparator.h',
+    'AnimationPerformanceWarning.h',
+    'AnimationTarget.h',
+    'AnimationUtils.h',
+    'AnimValuesStyleRule.h',
+    'ComputedTiming.h',
+    'ComputedTimingFunction.h',
+    'EffectCompositor.h',
+    'EffectSet.h',
+    'KeyframeEffectParams.h',
+    'KeyframeUtils.h',
+    'PendingAnimationTracker.h',
+    'PseudoElementHashEntry.h',
+    'TimingParams.h',
+]
+
+UNIFIED_SOURCES += [
+    'Animation.cpp',
+    'AnimationEffectReadOnly.cpp',
+    'AnimationEffectTiming.cpp',
+    'AnimationEffectTimingReadOnly.cpp',
+    'AnimationPerformanceWarning.cpp',
     'AnimationTimeline.cpp',
+    'AnimationUtils.cpp',
+    'AnimValuesStyleRule.cpp',
+    'ComputedTimingFunction.cpp',
+    'CSSPseudoElement.cpp',
+    'DocumentTimeline.cpp',
+    'EffectCompositor.cpp',
+    'EffectSet.cpp',
+    'KeyframeEffect.cpp',
+    'KeyframeEffectParams.cpp',
+    'KeyframeEffectReadOnly.cpp',
+    'KeyframeUtils.cpp',
+    'PendingAnimationTracker.cpp',
+    'TimingParams.cpp',
 ]
 
-FAIL_ON_WARNINGS = True
+LOCAL_INCLUDES += [
+    '/dom/base',
+    '/layout/base',
+    '/layout/style',
+]
 
-FINAL_LIBRARY = 'gklayout'
+FINAL_LIBRARY = 'xul'

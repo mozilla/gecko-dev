@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 **********************************************************************
-* Copyright (c) 2002-2012, International Business Machines
+* Copyright (c) 2002-2014, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -73,6 +75,8 @@ public:
      */
     static UClassID U_EXPORT2 getStaticClassID();
 
+    static UStringEnumeration * U_EXPORT2 fromUEnumeration(
+            UEnumeration *enumToAdopt, UErrorCode &status);
 private:
     UEnumeration *uenum; // owned
 };

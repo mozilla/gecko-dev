@@ -186,7 +186,7 @@ function checkResult()
     document.getElementById(test.autohide).hidePopup();
     return;
   }
-  
+
   goNextStep();
 }
 
@@ -262,7 +262,7 @@ function openMenu(menu)
   }
   else {
     var bo = menu.boxObject;
-    if (bo instanceof SpecialPowers.Ci.nsIMenuBoxObject)
+    if (bo instanceof MenuBoxObject)
       bo.openMenu(true);
     else
       synthesizeMouse(menu, 4, 4, { });
@@ -276,7 +276,7 @@ function closeMenu(menu, popup)
   }
   else {
     var bo = menu.boxObject;
-    if (bo instanceof SpecialPowers.Ci.nsIMenuBoxObject)
+    if (bo instanceof MenuBoxObject)
       bo.openMenu(false);
     else
       popup.hidePopup();
@@ -303,7 +303,7 @@ function checkOpen(menuid, testname)
   var menu = document.getElementById(menuid);
   if ("open" in menu)
     ok(menu.open, testname + " " + menuid + " menu is open");
-  else if (menu.boxObject instanceof SpecialPowers.Ci.nsIMenuBoxObject)
+  else if (menu.boxObject instanceof MenuBoxObject)
     ok(menu.getAttribute("open") == "true", testname + " " + menuid + " menu is open");
 }
 
@@ -312,7 +312,7 @@ function checkClosed(menuid, testname)
   var menu = document.getElementById(menuid);
   if ("open" in menu)
     ok(!menu.open, testname + " " + menuid + " menu is open");
-  else if (menu.boxObject instanceof SpecialPowers.Ci.nsIMenuBoxObject)
+  else if (menu.boxObject instanceof MenuBoxObject)
     ok(!menu.hasAttribute("open"), testname + " " + menuid + " menu is closed");
 }
 
@@ -365,8 +365,8 @@ function compareEdge(anchor, popup, edge, offsetX, offsetY, testname)
   var spaceIdx = edge.indexOf(" ");
   if (spaceIdx > 0) {
     let cornerX, cornerY;
-    let [anchor, align] = edge.split(" ");
-    switch (anchor) {
+    let [position, align] = edge.split(" ");
+    switch (position) {
       case "topleft": cornerX = anchorrect.left; cornerY = anchorrect.top; break;
       case "topcenter": cornerX = anchorrect.left + anchorrect.width / 2; cornerY = anchorrect.top; break;
       case "topright": cornerX = anchorrect.right; cornerY = anchorrect.top; break;

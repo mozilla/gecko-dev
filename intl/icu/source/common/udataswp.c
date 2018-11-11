@@ -1,7 +1,9 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 *******************************************************************************
 *
-*   Copyright (C) 2003, International Business Machines
+*   Copyright (C) 2003-2014, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *
 *******************************************************************************
@@ -113,6 +115,55 @@ uprv_copyArray32(const UDataSwapper *ds,
         return 0;
     }
     if(ds==NULL || inData==NULL || length<0 || (length&3)!=0 || outData==NULL) {
+        *pErrorCode=U_ILLEGAL_ARGUMENT_ERROR;
+        return 0;
+    }
+
+    if(length>0 && inData!=outData) {
+        uprv_memcpy(outData, inData, length);
+    }
+    return length;
+}
+
+static int32_t U_CALLCONV
+uprv_swapArray64(const UDataSwapper *ds,
+                 const void *inData, int32_t length, void *outData,
+                 UErrorCode *pErrorCode) {
+    const uint64_t *p;
+    uint64_t *q;
+    int32_t count;
+
+    if(pErrorCode==NULL || U_FAILURE(*pErrorCode)) {
+        return 0;
+    }
+    if(ds==NULL || inData==NULL || length<0 || (length&7)!=0 || outData==NULL) {
+        *pErrorCode=U_ILLEGAL_ARGUMENT_ERROR;
+        return 0;
+    }
+
+    /* setup and swapping */
+    p=(const uint64_t *)inData;
+    q=(uint64_t *)outData;
+    count=length/8;
+    while(count>0) {
+        uint64_t x=*p++;
+        x=(x<<56)|((x&0xff00)<<40)|((x&0xff0000)<<24)|((x&0xff000000)<<8)|
+            ((x>>8)&0xff000000)|((x>>24)&0xff0000)|((x>>40)&0xff00)|(x>>56);
+        *q++=x;
+        --count;
+    }
+
+    return length;
+}
+
+static int32_t U_CALLCONV
+uprv_copyArray64(const UDataSwapper *ds,
+                 const void *inData, int32_t length, void *outData,
+                 UErrorCode *pErrorCode) {
+    if(pErrorCode==NULL || U_FAILURE(*pErrorCode)) {
+        return 0;
+    }
+    if(ds==NULL || inData==NULL || length<0 || (length&7)!=0 || outData==NULL) {
         *pErrorCode=U_ILLEGAL_ARGUMENT_ERROR;
         return 0;
     }
@@ -249,7 +300,7 @@ udata_swapDataHeader(const UDataSwapper *ds,
 
     /* check minimum length and magic bytes */
     pHeader=(const DataHeader *)inData;
-    if( (length>=0 && length<sizeof(DataHeader)) ||
+    if( (length>=0 && length<(int32_t)sizeof(DataHeader)) ||
         pHeader->dataHeader.magic1!=0xda ||
         pHeader->dataHeader.magic2!=0x27 ||
         pHeader->info.sizeofUChar!=2
@@ -344,8 +395,15 @@ udata_openSwapper(UBool inIsBigEndian, uint8_t inCharset,
 
     swapper->compareInvChars= outCharset==U_ASCII_FAMILY ? uprv_compareInvAscii : uprv_compareInvEbcdic;
 
-    swapper->swapArray16= inIsBigEndian==outIsBigEndian ? uprv_copyArray16 : uprv_swapArray16;
-    swapper->swapArray32= inIsBigEndian==outIsBigEndian ? uprv_copyArray32 : uprv_swapArray32;
+    if(inIsBigEndian==outIsBigEndian) {
+        swapper->swapArray16=uprv_copyArray16;
+        swapper->swapArray32=uprv_copyArray32;
+        swapper->swapArray64=uprv_copyArray64;
+    } else {
+        swapper->swapArray16=uprv_swapArray16;
+        swapper->swapArray32=uprv_swapArray32;
+        swapper->swapArray64=uprv_swapArray64;
+    }
 
     if(inCharset==U_ASCII_FAMILY) {
         swapper->swapInvChars= outCharset==U_ASCII_FAMILY ? uprv_copyAscii : uprv_ebcdicFromAscii;
@@ -369,7 +427,7 @@ udata_openSwapperForInputData(const void *data, int32_t length,
         return NULL;
     }
     if( data==NULL ||
-        (length>=0 && length<sizeof(DataHeader)) ||
+        (length>=0 && length<(int32_t)sizeof(DataHeader)) ||
         outCharset>U_EBCDIC_FAMILY
     ) {
         *pErrorCode=U_ILLEGAL_ARGUMENT_ERROR;

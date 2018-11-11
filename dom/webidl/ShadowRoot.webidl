@@ -10,7 +10,7 @@
  * liability, trademark and document use rules apply.
  */
 
-[Pref="dom.webcomponents.enabled"]
+[Func="nsDocument::IsWebComponentsEnabled"]
 interface ShadowRoot : DocumentFragment
 {
   Element? getElementById(DOMString elementId);
@@ -19,6 +19,8 @@ interface ShadowRoot : DocumentFragment
   HTMLCollection getElementsByClassName(DOMString classNames);
   [SetterThrows,TreatNullAs=EmptyString]
   attribute DOMString innerHTML;
+  readonly attribute Element host;
+  readonly attribute ShadowRoot? olderShadowRoot;
   attribute boolean applyAuthorStyles;
   readonly attribute StyleSheetList styleSheets;
 };

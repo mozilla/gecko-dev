@@ -1,15 +1,16 @@
 /*
-* jstdhuff.c
-*
-* This file was part of the Independent JPEG Group's software:
-* Copyright (C) 1991-1998, Thomas G. Lane.
-* libjpeg-turbo Modifications:
-* Copyright (C) 2013, D. R. Commander.
-* For conditions of distribution and use, see the accompanying README file.
-*
-* This file contains routines to set the default Huffman tables, if they are
-* not already set.
-*/
+ * jstdhuff.c
+ *
+ * This file was part of the Independent JPEG Group's software:
+ * Copyright (C) 1991-1998, Thomas G. Lane.
+ * libjpeg-turbo Modifications:
+ * Copyright (C) 2013, D. R. Commander.
+ * For conditions of distribution and use, see the accompanying README.ijg
+ * file.
+ *
+ * This file contains routines to set the default Huffman tables, if they are
+ * not already set.
+ */
 
 /*
  * Huffman table setup routines
@@ -17,7 +18,7 @@
 
 LOCAL(void)
 add_huff_table (j_common_ptr cinfo,
-		JHUFF_TBL **htblptr, const UINT8 *bits, const UINT8 *val)
+                JHUFF_TBL **htblptr, const UINT8 *bits, const UINT8 *val)
 /* Define a Huffman table */
 {
   int nsymbols, len;
@@ -28,7 +29,7 @@ add_huff_table (j_common_ptr cinfo,
     return;
 
   /* Copy the number-of-symbols-of-each-code-length counts */
-  MEMCOPY((*htblptr)->bits, bits, SIZEOF((*htblptr)->bits));
+  MEMCOPY((*htblptr)->bits, bits, sizeof((*htblptr)->bits));
 
   /* Validate the counts.  We do this here mainly so we can copy the right
    * number of symbols from the val[] array, without risking marching off
@@ -40,7 +41,8 @@ add_huff_table (j_common_ptr cinfo,
   if (nsymbols < 1 || nsymbols > 256)
     ERREXIT(cinfo, JERR_BAD_HUFF_TABLE);
 
-  MEMCOPY((*htblptr)->huffval, val, nsymbols * SIZEOF(UINT8));
+  MEMCOPY((*htblptr)->huffval, val, nsymbols * sizeof(UINT8));
+  MEMZERO(&((*htblptr)->huffval[nsymbols]), (256 - nsymbols) * sizeof(UINT8));
 
   /* Initialize sent_table FALSE so table will be written to JPEG file. */
   (*htblptr)->sent_table = FALSE;

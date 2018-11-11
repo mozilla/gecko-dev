@@ -1,22 +1,30 @@
 /* run some tests on the data: protocol handler */
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 // The behaviour wrt spaces is:
 // - Textual content keeps all spaces
 // - Other content strips unescaped spaces
 // - Base64 content strips escaped and unescaped spaces
 var urls = [
+  ["data:,",                                        "text/plain",               ""],
   ["data:,foo",                                     "text/plain",               "foo"],
   ["data:application/octet-stream,foo bar",         "application/octet-stream", "foobar"],
   ["data:application/octet-stream,foo%20bar",       "application/octet-stream", "foo bar"],
   ["data:application/xhtml+xml,foo bar",            "application/xhtml+xml",    "foo bar"],
   ["data:application/xhtml+xml,foo%20bar",          "application/xhtml+xml",    "foo bar"],
   ["data:text/plain,foo%00 bar",                    "text/plain",               "foo\x00 bar"],
+  ["data:text/plain;x=y,foo%00 bar",                "text/plain",               "foo\x00 bar"],
+  ["data:;x=y,foo%00 bar",                          "text/plain",               "foo\x00 bar"],
   ["data:text/plain;base64,Zm9 vI%20GJ%0Dhc%0Ag==", "text/plain",               "foo bar"],
   ["DATA:TEXT/PLAIN;BASE64,Zm9 vI%20GJ%0Dhc%0Ag==", "text/plain",               "foo bar"],
+  ["DaTa:;BaSe64,Zm9 vI%20GJ%0Dhc%0Ag==",           "text/plain",               "foo bar"],
+  ["data:;x=y;base64,Zm9 vI%20GJ%0Dhc%0Ag==",       "text/plain",               "foo bar"],
   // Bug 774240
   ["data:application/octet-stream;base64=y,foobar", "application/octet-stream", "foobar"],
   // Bug 781693
-  ["data:text/plain;base64;x=y,dGVzdA==",           "text/plain",               "test"]
+  ["data:text/plain;base64;x=y,dGVzdA==",           "text/plain",               "test"],
+  ["data:text/plain;x=y;base64,dGVzdA==",           "text/plain",               "test"],
+  ["data:text/plain;x=y;base64,",                   "text/plain",               ""]
 ];
 
 function run_test() {
@@ -39,9 +47,12 @@ function run_test() {
   for (var i = 0; i < urls.length; ++i) {
     dump("*** opening channel " + i + "\n");
     do_test_pending();
-    var chan = ios.newChannel(urls[i][0], "", null);
+    var chan = NetUtil.newChannel({
+      uri: urls[i][0],
+      loadUsingSystemPrincipal: true
+    });
     chan.contentType = "foo/bar"; // should be ignored
-    chan.asyncOpen(new ChannelListener(on_read_complete, i), null);
+    chan.asyncOpen2(new ChannelListener(on_read_complete, i));
   }
 }
 

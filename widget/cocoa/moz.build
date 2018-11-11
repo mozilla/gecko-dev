@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,14 +12,15 @@ XPIDL_MODULE = 'widget_cocoa'
 
 EXPORTS += [
     'mozView.h',
+    'nsBidiKeyboard.h',
     'nsChangeObserver.h',
+    'nsCocoaDebugUtils.h',
     'nsCocoaFeatures.h',
     'nsCocoaUtils.h',
 ]
 
-LIBRARY_NAME = 'widget_mac'
-
 UNIFIED_SOURCES += [
+    'ComplexTextInputPanel.mm',
     'GfxInfo.mm',
     'NativeKeyBindings.mm',
     'nsAppShell.mm',
@@ -42,7 +43,6 @@ UNIFIED_SOURCES += [
     'nsMenuItemX.mm',
     'nsMenuUtilsX.mm',
     'nsMenuX.mm',
-    'nsNativeThemeCocoa.mm',
     'nsPrintDialogX.mm',
     'nsPrintOptionsX.mm',
     'nsPrintSettingsX.mm',
@@ -50,35 +50,45 @@ UNIFIED_SOURCES += [
     'nsScreenManagerCocoa.mm',
     'nsSound.mm',
     'nsStandaloneNativeMenu.mm',
+    'nsSystemStatusBarCocoa.mm',
     'nsToolkit.mm',
     'nsWidgetFactory.mm',
     'nsWindowMap.mm',
     'OSXNotificationCenter.mm',
+    'RectTextureImage.mm',
+    'SwipeTracker.mm',
+    'TextInputHandler.mm',
+    'VibrancyManager.mm',
+    'ViewRegion.mm',
     'WidgetTraceEvent.mm',
 ]
 
-# These files cannot be built in unified mode because they force NSPR logging.
+# These files cannot be built in unified mode because they cause symbol conflicts
 SOURCES += [
     'nsChildView.mm',
     'nsClipboard.mm',
+    'nsCocoaDebugUtils.mm',
     'nsDragService.mm',
-    'TextInputHandler.mm',
+    'nsNativeThemeCocoa.mm',
 ]
 
-if CONFIG['TARGET_CPU'] == 'x86_64':
-    UNIFIED_SOURCES += [
-        'ComplexTextInputPanel.mm',
+if not CONFIG['RELEASE_OR_BETA'] or CONFIG['MOZ_DEBUG']:
+    SOURCES += [
+        'nsSandboxViolationSink.mm',
     ]
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
+# XXX: We should fix these warnings.
+ALLOW_COMPILER_WARNINGS = True
+
 FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
-    '../shared',
-    '../xpwidgets',
     '/layout/forms',
     '/layout/generic',
+    '/layout/style',
     '/layout/xul',
+    '/widget',
 ]
 
 RESOURCE_FILES.cursors += [
@@ -128,3 +138,4 @@ RESOURCE_FILES.__setattr__('MainMenu.nib', [
     'resources/MainMenu.nib/keyedobjects.nib',
 ])
 
+CXXFLAGS += CONFIG['TK_CFLAGS']

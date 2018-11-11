@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 // Copyright (c) 2006-2008 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -5,14 +7,18 @@
 #ifndef BASE_MESSAGE_PUMP_H_
 #define BASE_MESSAGE_PUMP_H_
 
-#include "base/ref_counted.h"
+#include "nsISupportsImpl.h"
+
+class nsIEventTarget;
 
 namespace base {
 
 class TimeTicks;
 
-class MessagePump : public RefCountedThreadSafe<MessagePump> {
+class MessagePump {
  public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MessagePump)
+
   // Please see the comments above the Run method for an illustration of how
   // these delegate methods are used.
   class Delegate {
@@ -38,8 +44,6 @@ class MessagePump : public RefCountedThreadSafe<MessagePump> {
     // Returns true to indicate that idle work was done.
     virtual bool DoIdleWork() = 0;
   };
-
-  virtual ~MessagePump() {}
 
   // The Run method is called to enter the message pump's run loop.
   //
@@ -123,6 +127,15 @@ class MessagePump : public RefCountedThreadSafe<MessagePump> {
   // cancelling any pending DoDelayedWork callback.  This method may only be
   // used on the thread that called Run.
   virtual void ScheduleDelayedWork(const TimeTicks& delayed_work_time) = 0;
+
+  // If returned, just use the nsThread.
+  virtual nsIEventTarget* GetXPCOMThread()
+  {
+    return nullptr;
+  }
+
+protected:
+  virtual ~MessagePump() {};
 };
 
 }  // namespace base

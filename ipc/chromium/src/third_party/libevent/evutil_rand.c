@@ -58,8 +58,8 @@ evutil_secure_rng_global_setup_locks_(const int enable_locks)
 static void
 ev_arc4random_buf(void *buf, size_t n)
 {
-#if defined(_EVENT_HAVE_ARC4RANDOM_BUF) && !defined(__APPLE__)
-	return arc4random_buf(buf, n);
+#if defined(_EVENT_HAVE_ARC4RANDOM_BUF) && !(defined(__APPLE__) || defined(__ANDROID__))
+	arc4random_buf(buf, n);
 #else
 	unsigned char *b = buf;
 
@@ -139,7 +139,7 @@ evutil_secure_rng_get_bytes(void *buf, size_t n)
 	ev_arc4random_buf(buf, n);
 }
 
-#ifndef __OpenBSD__
+#if !defined(__OpenBSD__) && !defined(ANDROID)
 void
 evutil_secure_rng_add_bytes(const char *buf, size_t n)
 {

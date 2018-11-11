@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,33 +11,38 @@ XPIDL_SOURCES += [
 XPIDL_MODULE = 'MobileComponents'
 
 EXTRA_COMPONENTS += [
-    'ActivitiesGlue.js',
+    'AboutRedirector.js',
     'AddonUpdateService.js',
     'BlocklistPrompt.js',
+    'BrowserCLH.js',
     'ColorPicker.js',
     'ContentDispatchChooser.js',
     'ContentPermissionPrompt.js',
-    'DownloadManagerUI.js',
+    'DirectoryProvider.js',
     'FilePicker.js',
+    'FxAccountsPush.js',
+    'HelperAppDialog.js',
+    'ImageBlockingPolicy.js',
     'LoginManagerPrompter.js',
     'NSSDialogService.js',
-    'PaymentsUI.js',
+    'PersistentNotificationHandler.js',
+    'PresentationDevicePrompt.js',
+    'PresentationRequestUIGlue.js',
     'PromptService.js',
+    'SessionStore.js',
     'SiteSpecificUserAgent.js',
     'Snippets.js',
     'TabSource.js',
-    'WebappsUpdateTimer.js',
     'XPIDialogService.js',
 ]
 
+# Keep it this way if at all possible.  If you need preprocessing,
+# consider adding fields to AppConstants.jsm.
 EXTRA_PP_COMPONENTS += [
-    'AboutRedirector.js',
-    'BrowserCLH.js',
-    'DirectoryProvider.js',
-    'HelperAppDialog.js',
     'MobileComponents.manifest',
-    'SessionStore.js',
-    'Sidebar.js',
 ]
 
-DEFINES['ANDROID_PACKAGE_NAME'] = CONFIG['ANDROID_PACKAGE_NAME']
+DIRS += [
+    'extensions',
+    'build',
+]

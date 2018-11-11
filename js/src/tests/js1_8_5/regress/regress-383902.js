@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /*
  * Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/licenses/publicdomain/
@@ -24,10 +24,8 @@ f(w);
 c = 2;
 try {
   eval('"use strict"; function g(x) { const y = x; y = 1 + x; } c = 3');
-  assertEq(0, 1);
 } catch (e) {
-  assertEq(e.name, 'TypeError');
-  assertEq(2, c);
+  assertEq(0, 1);
 }
 
 c = 4;

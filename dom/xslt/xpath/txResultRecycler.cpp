@@ -8,9 +8,9 @@
 #include "txNodeSet.h"
 
 txResultRecycler::txResultRecycler()
-    : mEmptyStringResult(nullptr),
-      mTrueResult(nullptr),
-      mFalseResult(nullptr)
+    : mEmptyStringResult(new StringResult(nullptr)),
+      mTrueResult(new BooleanResult(true)),
+      mFalseResult(new BooleanResult(false))
 {
 }
 
@@ -28,34 +28,6 @@ txResultRecycler::~txResultRecycler()
     while (numberIter.hasNext()) {
         delete static_cast<NumberResult*>(numberIter.next());
     }
-
-    NS_IF_RELEASE(mEmptyStringResult);
-    NS_IF_RELEASE(mTrueResult);
-    NS_IF_RELEASE(mFalseResult);
-}
-
-
-nsresult
-txResultRecycler::init()
-{
-    NS_ASSERTION(!mEmptyStringResult && !mTrueResult && !mFalseResult,
-                 "Already inited");
-    mEmptyStringResult = new StringResult(nullptr);
-    NS_ENSURE_TRUE(mEmptyStringResult, NS_ERROR_OUT_OF_MEMORY);
-
-    NS_ADDREF(mEmptyStringResult);
-
-    mTrueResult = new BooleanResult(true);
-    NS_ENSURE_TRUE(mTrueResult, NS_ERROR_OUT_OF_MEMORY);
-
-    NS_ADDREF(mTrueResult);
-
-    mFalseResult = new BooleanResult(false);
-    NS_ENSURE_TRUE(mFalseResult, NS_ERROR_OUT_OF_MEMORY);
-
-    NS_ADDREF(mFalseResult);
-
-    return NS_OK;
 }
 
 
@@ -63,7 +35,7 @@ void
 txResultRecycler::recycle(txAExprResult* aResult)
 {
     NS_ASSERTION(aResult->mRefCnt == 0, "In-use txAExprResult recycled");
-    nsRefPtr<txResultRecycler> kungFuDeathGrip;
+    RefPtr<txResultRecycler> kungFuDeathGrip;
     aResult->mRecycler.swap(kungFuDeathGrip);
 
     nsresult rv = NS_OK;
@@ -105,7 +77,6 @@ txResultRecycler::getStringResult(StringResult** aResult)
 {
     if (mStringResults.isEmpty()) {
         *aResult = new StringResult(this);
-        NS_ENSURE_TRUE(*aResult, NS_ERROR_OUT_OF_MEMORY);
     }
     else {
         *aResult = static_cast<StringResult*>(mStringResults.pop());
@@ -123,7 +94,6 @@ txResultRecycler::getStringResult(const nsAString& aValue,
 {
     if (mStringResults.isEmpty()) {
         *aResult = new StringResult(aValue, this);
-        NS_ENSURE_TRUE(*aResult, NS_ERROR_OUT_OF_MEMORY);
     }
     else {
         StringResult* strRes =
@@ -149,7 +119,6 @@ txResultRecycler::getNodeSet(txNodeSet** aResult)
 {
     if (mNodeSetResults.isEmpty()) {
         *aResult = new txNodeSet(this);
-        NS_ENSURE_TRUE(*aResult, NS_ERROR_OUT_OF_MEMORY);
     }
     else {
         *aResult = static_cast<txNodeSet*>(mNodeSetResults.pop());
@@ -165,7 +134,6 @@ txResultRecycler::getNodeSet(txNodeSet* aNodeSet, txNodeSet** aResult)
 {
     if (mNodeSetResults.isEmpty()) {
         *aResult = new txNodeSet(*aNodeSet, this);
-        NS_ENSURE_TRUE(*aResult, NS_ERROR_OUT_OF_MEMORY);
     }
     else {
         *aResult = static_cast<txNodeSet*>(mNodeSetResults.pop());
@@ -182,7 +150,6 @@ txResultRecycler::getNodeSet(const txXPathNode& aNode, txAExprResult** aResult)
 {
     if (mNodeSetResults.isEmpty()) {
         *aResult = new txNodeSet(aNode, this);
-        NS_ENSURE_TRUE(*aResult, NS_ERROR_OUT_OF_MEMORY);
     }
     else {
         txNodeSet* nodes = static_cast<txNodeSet*>(mNodeSetResults.pop());
@@ -200,7 +167,6 @@ txResultRecycler::getNumberResult(double aValue, txAExprResult** aResult)
 {
     if (mNumberResults.isEmpty()) {
         *aResult = new NumberResult(aValue, this);
-        NS_ENSURE_TRUE(*aResult, NS_ERROR_OUT_OF_MEMORY);
     }
     else {
         NumberResult* numRes =

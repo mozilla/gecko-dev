@@ -1,0 +1,23 @@
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+DIRS += [
+    'message-types'
+]
+
+DevToolsModules(
+    'collapse-button.js',
+    'console-output.js',
+    'console-table.js',
+    'filter-bar.js',
+    'filter-button.js',
+    'grip-message-body.js',
+    'message-container.js',
+    'message-icon.js',
+    'message-indent.js',
+    'message-repeat.js',
+    'message.js',
+    'variables-view-link.js'
+)

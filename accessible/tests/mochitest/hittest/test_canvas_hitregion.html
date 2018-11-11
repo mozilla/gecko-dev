@@ -13,8 +13,6 @@
           src="../layout.js"></script>
 
   <script type="application/javascript">
-    SpecialPowers.setBoolPref("canvas.hitregions.enabled", true);
-
     function redrawCheckbox(context, element, x, y)
     {
       context.save();
@@ -43,37 +41,39 @@
 
     function doTest()
     {
+      var offsetX = 20, offsetY = 40;
       getNode("hitcanvas").scrollIntoView(true);
 
       var context = document.getElementById("hitcanvas").getContext('2d');
-      redrawCheckbox(context, document.getElementById('hitcheck'), 20, 40);
+      redrawCheckbox(context, document.getElementById('hitcheck'),
+                     offsetX, offsetY);
 
       var hitcanvas = getAccessible("hitcanvas");
       var hitcheck = getAccessible("hitcheck");
 
       var [hitX, hitY, hitWidth, hitHeight] = getBounds(hitcanvas);
+      var [deltaX, deltaY] = CSSToDevicePixels(window, offsetX, offsetY);
 
       var docAcc = getAccessible(document);
-      var tgtX = hitX+25;
-      var tgtY = hitY+45;
-      hitAcc = docAcc.getDeepestChildAtPoint(tgtX, tgtY);
+
       // test if we hit the region associated with the shadow dom checkbox
-      is(hitAcc, hitcheck, "Hit match at " + tgtX + "," + tgtY +
-                          ". Found: " + prettyName(hitAcc));
-
-      tgtY = hitY+75;
+      var tgtX = hitX + deltaX;
+      var tgtY = hitY + deltaY;
       hitAcc = docAcc.getDeepestChildAtPoint(tgtX, tgtY);
-      // test that we don't hit the region associated with the shadow dom checkbox
-      is(hitAcc, hitcanvas, "Hit match at " + tgtX + "," + tgtY +
-                          ". Found: " + prettyName(hitAcc));
+      isObject(hitAcc, hitcheck, `Hit match at (${tgtX}, ${tgtY}`);
 
-      SpecialPowers.setBoolPref("canvas.hitregions.enabled", false);
+      // test that we don't hit the region associated with the shadow dom checkbox
+      tgtY = hitY + deltaY * 2;
+      hitAcc = docAcc.getDeepestChildAtPoint(tgtX, tgtY);
+      isObject(hitAcc, hitcanvas, `Hit match at (${tgtX}, ${tgtY}`);
+
       SimpleTest.finish();
     }
-
     SimpleTest.waitForExplicitFinish();
-    addA11yLoadEvent(doTest);
-  </script>
+    addA11yLoadEvent(function() {
+      SpecialPowers.pushPrefEnv({"set": [['canvas.hitregions.enabled', true]]}, doTest);
+    });
+ </script>
 </head>
 <body>
 

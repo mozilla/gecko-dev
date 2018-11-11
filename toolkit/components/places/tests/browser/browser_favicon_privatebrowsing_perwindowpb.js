@@ -18,9 +18,9 @@ function test() {
   function testOnWindow(aIsPrivate, aCallback) {
     whenNewWindowLoaded({private: aIsPrivate}, function(aWin) {
       windowsToClose.push(aWin);
-      executeSoon(function() aCallback(aWin));
+      executeSoon(() => aCallback(aWin));
     });
-  };
+  }
 
   function waitForTabLoad(aWin, aCallback) {
     aWin.gBrowser.selectedBrowser.addEventListener("load", function onLoad() {

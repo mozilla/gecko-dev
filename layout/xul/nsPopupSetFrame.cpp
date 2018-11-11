@@ -17,7 +17,7 @@
 nsIFrame*
 NS_NewPopupSetFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
-  return new (aPresShell) nsPopupSetFrame (aPresShell, aContext);
+  return new (aPresShell) nsPopupSetFrame(aContext);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsPopupSetFrame)
@@ -122,10 +122,10 @@ nsPopupSetFrame::DestroyFrom(nsIFrame* aDestructRoot)
 }
 
 NS_IMETHODIMP
-nsPopupSetFrame::DoLayout(nsBoxLayoutState& aState)
+nsPopupSetFrame::DoXULLayout(nsBoxLayoutState& aState)
 {
   // lay us out
-  nsresult rv = nsBoxFrame::DoLayout(aState);
+  nsresult rv = nsBoxFrame::DoXULLayout(aState);
 
   // lay out all of our currently open popups.
   for (nsFrameList::Enumerator e(mPopupList); !e.AtEnd(); e.Next()) {

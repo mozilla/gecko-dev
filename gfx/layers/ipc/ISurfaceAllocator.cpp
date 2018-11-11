@@ -6,205 +6,97 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ISurfaceAllocator.h"
-#include <sys/types.h>                  // for int32_t
-#include "gfx2DGlue.h"                  // for IntSize
-#include "gfxPlatform.h"                // for gfxPlatform, gfxImageFormat
-#include "gfxSharedImageSurface.h"      // for gfxSharedImageSurface
-#include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
-#include "mozilla/Atomics.h"            // for PrimitiveIntrinsics
-#include "mozilla/ipc/SharedMemory.h"   // for SharedMemory, etc
-#include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor, etc
-#include "mozilla/layers/SharedBufferManagerChild.h"
-#include "ShadowLayerUtils.h"
-#include "mozilla/mozalloc.h"           // for operator delete[], etc
-#include "nsAutoPtr.h"                  // for nsRefPtr, getter_AddRefs, etc
-#include "nsDebug.h"                    // for NS_RUNTIMEABORT
-#include "nsXULAppAPI.h"                // for XRE_GetProcessType, etc
-#include "mozilla/ipc/Shmem.h"
-#include "mozilla/layers/ImageDataSerializer.h"
-#ifdef DEBUG
-#include "prenv.h"
-#endif
 
-using namespace mozilla::ipc;
+#include "gfxPrefs.h"
+#include "mozilla/layers/ImageBridgeParent.h" // for ImageBridgeParent
+#include "mozilla/layers/TextureHost.h"       // for TextureHost
+#include "mozilla/layers/TextureForwarder.h"
 
 namespace mozilla {
 namespace layers {
 
 NS_IMPL_ISUPPORTS(GfxMemoryImageReporter, nsIMemoryReporter)
 
-mozilla::Atomic<size_t> GfxMemoryImageReporter::sAmount(0);
+mozilla::Atomic<ptrdiff_t> GfxMemoryImageReporter::sAmount(0);
 
 mozilla::ipc::SharedMemory::SharedMemoryType OptimalShmemType()
 {
-  return mozilla::ipc::SharedMemory::TYPE_BASIC;
-}
-
-bool
-IsSurfaceDescriptorValid(const SurfaceDescriptor& aSurface)
-{
-  return aSurface.type() != SurfaceDescriptor::T__None &&
-         aSurface.type() != SurfaceDescriptor::Tnull_t;
-}
-
-ISurfaceAllocator::~ISurfaceAllocator()
-{
-  // Check if we're not leaking..
-  MOZ_ASSERT(mUsedShmems.empty());
+  return ipc::SharedMemory::SharedMemoryType::TYPE_BASIC;
 }
 
 void
-ISurfaceAllocator::Finalize()
+HostIPCAllocator::SendPendingAsyncMessages()
 {
-  ShrinkShmemSectionHeap();
-}
-
-static inline uint8_t*
-GetAddressFromDescriptor(const SurfaceDescriptor& aDescriptor, size_t& aSize)
-{
-  MOZ_ASSERT(IsSurfaceDescriptorValid(aDescriptor));
-  MOZ_ASSERT(aDescriptor.type() == SurfaceDescriptor::TSurfaceDescriptorShmem ||
-             aDescriptor.type() == SurfaceDescriptor::TSurfaceDescriptorMemory);
-  if (aDescriptor.type() == SurfaceDescriptor::TSurfaceDescriptorShmem) {
-    Shmem shmem(aDescriptor.get_SurfaceDescriptorShmem().data());
-    aSize = shmem.Size<uint8_t>();
-    return shmem.get<uint8_t>();
-  } else {
-    const SurfaceDescriptorMemory& image = aDescriptor.get_SurfaceDescriptorMemory();
-    aSize = std::numeric_limits<size_t>::max();
-    return reinterpret_cast<uint8_t*>(image.data());
+  if (mPendingAsyncMessage.empty()) {
+    return;
   }
-}
 
-TemporaryRef<gfx::DrawTarget>
-GetDrawTargetForDescriptor(const SurfaceDescriptor& aDescriptor, gfx::BackendType aBackend)
-{
-  size_t size;
-  uint8_t* data = GetAddressFromDescriptor(aDescriptor, size);
-  ImageDataDeserializer image(data, size);
-  return image.GetAsDrawTarget(aBackend);
-}
-
-TemporaryRef<gfx::DataSourceSurface>
-GetSurfaceForDescriptor(const SurfaceDescriptor& aDescriptor)
-{
-  size_t size;
-  uint8_t* data = GetAddressFromDescriptor(aDescriptor, size);
-  ImageDataDeserializer image(data, size);
-  return image.GetAsSurface();
-}
-
-bool
-ISurfaceAllocator::AllocSurfaceDescriptor(const gfx::IntSize& aSize,
-                                          gfxContentType aContent,
-                                          SurfaceDescriptor* aBuffer)
-{
-  return AllocSurfaceDescriptorWithCaps(aSize, aContent, DEFAULT_BUFFER_CAPS, aBuffer);
-}
-
-bool
-ISurfaceAllocator::AllocSurfaceDescriptorWithCaps(const gfx::IntSize& aSize,
-                                                  gfxContentType aContent,
-                                                  uint32_t aCaps,
-                                                  SurfaceDescriptor* aBuffer)
-{
-  gfx::SurfaceFormat format =
-    gfxPlatform::GetPlatform()->Optimal2DFormatForContent(aContent);
-  size_t size = ImageDataSerializer::ComputeMinBufferSize(aSize, format);
-  if (IsSameProcess()) {
-    uint8_t *data = new (std::nothrow) uint8_t[size];
-    if (!data) {
-      return false;
-    }
-    GfxMemoryImageReporter::DidAlloc(data);
-#ifdef XP_MACOSX
-    // Workaround a bug in Quartz where drawing an a8 surface to another a8
-    // surface with OPERATOR_SOURCE still requires the destination to be clear.
-    if (format == gfx::SurfaceFormat::A8) {
-      memset(data, 0, size);
-    }
+  // Some type of AsyncParentMessageData message could have
+  // one file descriptor (e.g. OpDeliverFence).
+  // A number of file descriptors per gecko ipc message have a limitation
+  // on OS_POSIX (MACOSX or LINUX).
+#if defined(OS_POSIX)
+  static const uint32_t kMaxMessageNumber = FileDescriptorSet::MAX_DESCRIPTORS_PER_MESSAGE;
+#else
+  // default number that works everywhere else
+  static const uint32_t kMaxMessageNumber = 250;
 #endif
-    *aBuffer = SurfaceDescriptorMemory((uintptr_t)data, format);
-  } else {
 
-    mozilla::ipc::SharedMemory::SharedMemoryType shmemType = OptimalShmemType();
-    mozilla::ipc::Shmem shmem;
-    if (!AllocUnsafeShmem(size, shmemType, &shmem)) {
-      return false;
+  InfallibleTArray<AsyncParentMessageData> messages;
+  messages.SetCapacity(mPendingAsyncMessage.size());
+  for (size_t i = 0; i < mPendingAsyncMessage.size(); i++) {
+    messages.AppendElement(mPendingAsyncMessage[i]);
+    // Limit maximum number of messages.
+    if (messages.Length() >= kMaxMessageNumber) {
+      SendAsyncMessage(messages);
+      // Initialize Messages.
+      messages.Clear();
     }
+  }
 
-    *aBuffer = SurfaceDescriptorShmem(shmem, format);
+  if (messages.Length() > 0) {
+    SendAsyncMessage(messages);
   }
-  
-  uint8_t* data = GetAddressFromDescriptor(*aBuffer, size);
-  ImageDataSerializer serializer(data, size);
-  serializer.InitializeBufferInfo(aSize, format);
-  return true;
-}
-
-/* static */ bool
-ISurfaceAllocator::IsShmem(SurfaceDescriptor* aSurface)
-{
-  return aSurface && (aSurface->type() == SurfaceDescriptor::TSurfaceDescriptorShmem);
-}
-
-void
-ISurfaceAllocator::DestroySharedSurface(SurfaceDescriptor* aSurface)
-{
-  MOZ_ASSERT(aSurface);
-  if (!aSurface) {
-    return;
-  }
-  if (!IPCOpen()) {
-    return;
-  }
-  switch (aSurface->type()) {
-    case SurfaceDescriptor::TSurfaceDescriptorShmem:
-      DeallocShmem(aSurface->get_SurfaceDescriptorShmem().data());
-      break;
-    case SurfaceDescriptor::TSurfaceDescriptorMemory:
-      GfxMemoryImageReporter::WillFree((uint8_t*)aSurface->get_SurfaceDescriptorMemory().data());
-      delete [] (uint8_t*)aSurface->get_SurfaceDescriptorMemory().data();
-      break;
-    case SurfaceDescriptor::Tnull_t:
-    case SurfaceDescriptor::T__None:
-      break;
-    default:
-      NS_RUNTIMEABORT("surface type not implemented!");
-  }
-  *aSurface = SurfaceDescriptor();
+  mPendingAsyncMessage.clear();
 }
 
 // XXX - We should actually figure out the minimum shmem allocation size on
 // a certain platform and use that.
 const uint32_t sShmemPageSize = 4096;
+
+#ifdef DEBUG
 const uint32_t sSupportedBlockSize = 4;
+#endif
 
-enum AllocationStatus
+FixedSizeSmallShmemSectionAllocator::FixedSizeSmallShmemSectionAllocator(LayersIPCChannel* aShmProvider)
+: mShmProvider(aShmProvider)
 {
-  STATUS_ALLOCATED,
-  STATUS_FREED
-};
+  MOZ_ASSERT(mShmProvider);
+}
 
-struct ShmemSectionHeapHeader
+FixedSizeSmallShmemSectionAllocator::~FixedSizeSmallShmemSectionAllocator()
 {
-  Atomic<uint32_t> mTotalBlocks;
-  Atomic<uint32_t> mAllocatedBlocks;
-};
-
-struct ShmemSectionHeapAllocation
-{
-  Atomic<uint32_t> mStatus;
-  uint32_t mSize;
-};
+  ShrinkShmemSectionHeap();
+}
 
 bool
-ISurfaceAllocator::AllocShmemSection(size_t aSize, mozilla::layers::ShmemSection* aShmemSection)
+FixedSizeSmallShmemSectionAllocator::IPCOpen() const
+{
+  return mShmProvider->IPCOpen();
+}
+
+bool
+FixedSizeSmallShmemSectionAllocator::AllocShmemSection(uint32_t aSize, ShmemSection* aShmemSection)
 {
   // For now we only support sizes of 4. If we want to support different sizes
   // some more complicated bookkeeping should be added.
   MOZ_ASSERT(aSize == sSupportedBlockSize);
   MOZ_ASSERT(aShmemSection);
+
+  if (!IPCOpen()) {
+    gfxCriticalError() << "Attempt to allocate a ShmemSection after shutdown.";
+    return false;
+  }
 
   uint32_t allocationSize = (aSize + sizeof(ShmemSectionHeapAllocation));
 
@@ -219,7 +111,7 @@ ISurfaceAllocator::AllocShmemSection(size_t aSize, mozilla::layers::ShmemSection
 
   if (!aShmemSection->shmem().IsWritable()) {
     ipc::Shmem tmp;
-    if (!AllocUnsafeShmem(sShmemPageSize, ipc::SharedMemory::TYPE_BASIC, &tmp)) {
+    if (!mShmProvider->AllocUnsafeShmem(sShmemPageSize, OptimalShmemType(), &tmp)) {
       return false;
     }
 
@@ -269,10 +161,14 @@ ISurfaceAllocator::AllocShmemSection(size_t aSize, mozilla::layers::ShmemSection
 }
 
 void
-ISurfaceAllocator::FreeShmemSection(mozilla::layers::ShmemSection& aShmemSection)
+FixedSizeSmallShmemSectionAllocator::FreeShmemSection(mozilla::layers::ShmemSection& aShmemSection)
 {
   MOZ_ASSERT(aShmemSection.size() == sSupportedBlockSize);
   MOZ_ASSERT(aShmemSection.offset() < sShmemPageSize - sSupportedBlockSize);
+
+  if (!aShmemSection.shmem().IsWritable()) {
+    return;
+  }
 
   ShmemSectionHeapAllocation* allocHeader =
     reinterpret_cast<ShmemSectionHeapAllocation*>(aShmemSection.shmem().get<char>() +
@@ -287,42 +183,53 @@ ISurfaceAllocator::FreeShmemSection(mozilla::layers::ShmemSection& aShmemSection
 
   ShmemSectionHeapHeader* header = aShmemSection.shmem().get<ShmemSectionHeapHeader>();
   header->mAllocatedBlocks--;
-
-  ShrinkShmemSectionHeap();
 }
 
 void
-ISurfaceAllocator::ShrinkShmemSectionHeap()
+FixedSizeSmallShmemSectionAllocator::DeallocShmemSection(mozilla::layers::ShmemSection& aShmemSection)
 {
-  for (size_t i = 0; i < mUsedShmems.size(); i++) {
+  if (!IPCOpen()) {
+    gfxCriticalNote << "Attempt to dealloc a ShmemSections after shutdown.";
+    return;
+  }
+
+  FreeShmemSection(aShmemSection);
+  ShrinkShmemSectionHeap();
+}
+
+
+void
+FixedSizeSmallShmemSectionAllocator::ShrinkShmemSectionHeap()
+{
+  if (!IPCOpen()) {
+    mUsedShmems.clear();
+    return;
+  }
+
+  // The loop will terminate as we either increase i, or decrease size
+  // every time through.
+  size_t i = 0;
+  while (i < mUsedShmems.size()) {
     ShmemSectionHeapHeader* header = mUsedShmems[i].get<ShmemSectionHeapHeader>();
     if (header->mAllocatedBlocks == 0) {
-      DeallocShmem(mUsedShmems[i]);
-
+      mShmProvider->DeallocShmem(mUsedShmems[i]);
       // We don't particularly care about order, move the last one in the array
       // to this position.
-      mUsedShmems[i] = mUsedShmems[mUsedShmems.size() - 1];
+      if (i < mUsedShmems.size() - 1) {
+        mUsedShmems[i] = mUsedShmems[mUsedShmems.size() - 1];
+      }
       mUsedShmems.pop_back();
-      i--;
-      break;
+    } else {
+      i++;
     }
   }
 }
 
-bool
-ISurfaceAllocator::AllocGrallocBuffer(const gfx::IntSize& aSize,
-                                      uint32_t aFormat,
-                                      uint32_t aUsage,
-                                      MaybeMagicGrallocBufferHandle* aHandle)
+int32_t
+ClientIPCAllocator::GetMaxTextureSize() const
 {
-  return SharedBufferManagerChild::GetSingleton()->AllocGrallocBuffer(aSize, aFormat, aUsage, aHandle);
+  return gfxPrefs::MaxTextureSize();
 }
 
-void
-ISurfaceAllocator::DeallocGrallocBuffer(MaybeMagicGrallocBufferHandle* aHandle)
-{
-  SharedBufferManagerChild::GetSingleton()->DeallocGrallocBuffer(*aHandle);
-}
-
-} // namespace
-} // namespace
+} // namespace layers
+} // namespace mozilla

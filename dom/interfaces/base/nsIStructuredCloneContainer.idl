@@ -19,7 +19,7 @@ interface nsIDocument;
  * structured clone algorithm.
  *
  * You can copy an object into an nsIStructuredCloneContainer using
- * initFromVariant or initFromBase64.  It's an error to initialize an
+ * initFromJSVal or initFromBase64.  It's an error to initialize an
  * nsIStructuredCloneContainer more than once.
  *
  * Once you've initialized the container, you can get a copy of the object it
@@ -27,7 +27,7 @@ interface nsIDocument;
  * string containing a copy of the container's serialized data, using
  * getDataAsBase64.
  */
-[scriptable, uuid(c8852f01-4c05-47c3-acca-253a958f39f6)]
+[scriptable, uuid(c664aae7-0d67-4155-a2dd-a3861778626f)]
 interface nsIStructuredCloneContainer : nsISupports
 {
   /**
@@ -42,12 +42,19 @@ interface nsIStructuredCloneContainer : nsISupports
    * stream, stored in aData.  aFormatVersion should be the version of the
    * structured clone algorithm which was used to generate aData.
    */
-  [implicit_jscontext]
-  void initFromBase64(in AString aData,in unsigned long aFormatVersion);
+  void initFromBase64(in AString aData, in unsigned long aFormatVersion);
 
   /**
-   * Deserialize the object this conatiner holds, returning it wrapped as
+   * Deserializes this structured clone container returning it as a jsval.
+   * Can be called on main and worker threads.
+   */
+  [implicit_jscontext]
+  jsval deserializeToJsval();
+
+  /**
+   * Deserialize the object this container holds, returning it wrapped as
    * an nsIVariant.
+   * Main thread only!
    */
   [implicit_jscontext]
   nsIVariant deserializeToVariant();

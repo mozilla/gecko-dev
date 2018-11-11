@@ -1,0 +1,98 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <script type="application/javascript" src="pc.js"></script>
+  <script type="application/javascript" src="/tests/dom/canvas/test/captureStream_common.js"></script>
+</head>
+<body>
+<pre id="test">
+<script type="application/javascript;version=1.8">
+createHTML({
+  bug: "1219711",
+  title: "Disabling locally should be reflected remotely"
+});
+
+runNetworkTest(() => {
+  var test = new PeerConnectionTest();
+
+  // Always use fake tracks since we depend on video to be somewhat green and
+  // audio to have a large 1000Hz component (or 440Hz if using fake devices).
+  test.setMediaConstraints([{audio: true, video: true, fake: true}], []);
+  test.chain.append([
+    function CHECK_ASSUMPTIONS() {
+      is(test.pcLocal.localMediaElements.length, 2,
+         "pcLocal should have one media element");
+      is(test.pcRemote.remoteMediaElements.length, 2,
+         "pcRemote should have one media element");
+      is(test.pcLocal._pc.getLocalStreams().length, 1,
+         "pcLocal should have one stream");
+      is(test.pcRemote._pc.getRemoteStreams().length, 1,
+         "pcRemote should have one stream");
+    },
+    function CHECK_VIDEO() {
+      var h = new CaptureStreamTestHelper2D();
+      var localVideo = test.pcLocal.localMediaElements
+        .find(e => e instanceof HTMLVideoElement);
+      var remoteVideo = test.pcRemote.remoteMediaElements
+        .find(e => e instanceof HTMLVideoElement);
+      // We check a pixel somewhere away from the top left corner since
+      // MediaEngineDefault puts semi-transparent time indicators there.
+      const offsetX = 50;
+      const offsetY = 50;
+      const threshold = 128;
+
+      // We're regarding black as disabled here, and we're setting the alpha
+      // channel of the pixel to 255 to disregard alpha when testing.
+      var checkVideoEnabled = video =>
+        h.waitForPixel(video, offsetX, offsetY,
+                       px => (px[3] = 255, h.isPixelNot(px, h.black, threshold)));
+      var checkVideoDisabled = video =>
+        h.waitForPixel(video, offsetX, offsetY,
+                       px => (px[3] = 255, h.isPixel(px, h.black, threshold, offsetX*2, offsetY*2)));
+      return Promise.resolve()
+        .then(() => info("Checking local video enabled"))
+        .then(() => checkVideoEnabled(localVideo))
+        .then(() => info("Checking remote video enabled"))
+        .then(() => checkVideoEnabled(remoteVideo))
+
+        .then(() => info("Disabling original"))
+        .then(() => test.pcLocal._pc.getLocalStreams()[0].getVideoTracks()[0].enabled = false)
+
+        .then(() => info("Checking local video disabled"))
+        .then(() => checkVideoDisabled(localVideo))
+        .then(() => info("Checking remote video disabled"))
+        .then(() => checkVideoDisabled(remoteVideo))
+    },
+    function CHECK_AUDIO() {
+      var ac = new AudioContext();
+      var localAnalyser = new AudioStreamAnalyser(ac, test.pcLocal._pc.getLocalStreams()[0]);
+      var remoteAnalyser = new AudioStreamAnalyser(ac, test.pcRemote._pc.getRemoteStreams()[0]);
+
+      var checkAudio = (analyser, fun) => analyser.waitForAnalysisSuccess(fun);
+
+      var freq1k = localAnalyser.binIndexForFrequency(1000);
+      var checkAudioEnabled = analyser =>
+        checkAudio(analyser, array => array[freq1k] > 200);
+      var checkAudioDisabled = analyser =>
+        checkAudio(analyser, array => array[freq1k] < 50);
+
+      return Promise.resolve()
+        .then(() => info("Checking local audio enabled"))
+        .then(() => checkAudioEnabled(localAnalyser))
+        .then(() => info("Checking remote audio enabled"))
+        .then(() => checkAudioEnabled(remoteAnalyser))
+
+        .then(() => test.pcLocal._pc.getLocalStreams()[0].getAudioTracks()[0].enabled = false)
+
+        .then(() => info("Checking local audio disabled"))
+        .then(() => checkAudioDisabled(localAnalyser))
+        .then(() => info("Checking remote audio disabled"))
+        .then(() => checkAudioDisabled(remoteAnalyser))
+    }
+  ]);
+  test.run();
+});
+</script>
+</pre>
+</body>
+</html>

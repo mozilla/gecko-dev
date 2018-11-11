@@ -1,11 +1,11 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/StorageEvent.h"
-#include "nsIDOMStorage.h"
+#include "mozilla/dom/DOMStorage.h"
 
 namespace mozilla {
 namespace dom {
@@ -45,9 +45,9 @@ StorageEvent::AsStorageEvent()
 }
 
 JSObject*
-StorageEvent::WrapObject(JSContext* aCx)
+StorageEvent::WrapObjectInternal(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return StorageEventBinding::Wrap(aCx, this);
+  return StorageEventBinding::Wrap(aCx, this, aGivenProto);
 }
 
 already_AddRefed<StorageEvent>
@@ -55,7 +55,7 @@ StorageEvent::Constructor(EventTarget* aOwner,
                           const nsAString& aType,
                           const StorageEventInit& aEventInitDict)
 {
-  nsRefPtr<StorageEvent> e = new StorageEvent(aOwner);
+  RefPtr<StorageEvent> e = new StorageEvent(aOwner);
 
   bool trusted = e->Init(aOwner);
   e->InitEvent(aType, aEventInitDict.mBubbles, aEventInitDict.mCancelable);
@@ -65,7 +65,7 @@ StorageEvent::Constructor(EventTarget* aOwner,
   e->mUrl = aEventInitDict.mUrl;
   e->mStorageArea = aEventInitDict.mStorageArea;
   e->SetTrusted(trusted);
-
+  e->SetComposed(aEventInitDict.mComposed);
   return e.forget();
 }
 
@@ -85,14 +85,11 @@ StorageEvent::InitStorageEvent(const nsAString& aType, bool aCanBubble,
                                const nsAString& aOldValue,
                                const nsAString& aNewValue,
                                const nsAString& aURL,
-                               nsIDOMStorage* aStorageArea,
-                               ErrorResult& aRv)
+                               DOMStorage* aStorageArea)
 {
-  aRv = InitEvent(aType, aCanBubble, aCancelable);
-  if (aRv.Failed()) {
-    return;
-  }
+  NS_ENSURE_TRUE_VOID(!mEvent->mFlags.mIsBeingDispatched);
 
+  InitEvent(aType, aCanBubble, aCancelable);
   mKey = aKey;
   mOldValue = aOldValue;
   mNewValue = aNewValue;
@@ -103,16 +100,15 @@ StorageEvent::InitStorageEvent(const nsAString& aType, bool aCanBubble,
 } // namespace dom
 } // namespace mozilla
 
-nsresult
-NS_NewDOMStorageEvent(nsIDOMEvent** aDOMEvent,
-                      mozilla::dom::EventTarget* aOwner)
+using namespace mozilla;
+using namespace mozilla::dom;
+
+already_AddRefed<StorageEvent>
+NS_NewDOMStorageEvent(EventTarget* aOwner)
 {
-  nsRefPtr<mozilla::dom::StorageEvent> e =
-    new mozilla::dom::StorageEvent(aOwner);
+  RefPtr<StorageEvent> e = new StorageEvent(aOwner);
 
   e->SetTrusted(e->Init(aOwner));
-  e.forget(aDOMEvent);
-
-  return NS_OK;
+  return e.forget();
 }
 

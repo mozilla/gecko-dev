@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80 filetype=javascript: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,21 +14,19 @@ this.EXPORTED_SYMBOLS = [
   "Downloads",
 ];
 
-////////////////////////////////////////////////////////////////////////////////
-//// Globals
+// Globals
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 const Cr = Components.results;
 
+Cu.import("resource://gre/modules/Integration.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/DownloadCore.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadCombinedList",
                                   "resource://gre/modules/DownloadList.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "DownloadIntegration",
-                                  "resource://gre/modules/DownloadIntegration.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadList",
                                   "resource://gre/modules/DownloadList.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadSummary",
@@ -40,8 +38,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "Promise",
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
 
-////////////////////////////////////////////////////////////////////////////////
-//// Downloads
+Integration.downloads.defineModuleGetter(this, "DownloadIntegration",
+            "resource://gre/modules/DownloadIntegration.jsm");
+
+// Downloads
 
 /**
  * This object is exposed directly to the consumers of this JavaScript module,
@@ -51,15 +51,21 @@ this.Downloads = {
   /**
    * Work on downloads that were not started from a private browsing window.
    */
-  get PUBLIC() "{Downloads.PUBLIC}",
+  get PUBLIC() {
+    return "{Downloads.PUBLIC}";
+  },
   /**
    * Work on downloads that were started from a private browsing window.
    */
-  get PRIVATE() "{Downloads.PRIVATE}",
+  get PRIVATE() {
+    return "{Downloads.PRIVATE}";
+  },
   /**
    * Work on both Downloads.PRIVATE and Downloads.PUBLIC downloads.
    */
-  get ALL() "{Downloads.ALL}",
+  get ALL() {
+    return "{Downloads.ALL}";
+  },
 
   /**
    * Creates a new Download object.
@@ -166,7 +172,7 @@ this.Downloads = {
   getList: function (aType)
   {
     if (!this._promiseListsInitialized) {
-      this._promiseListsInitialized = Task.spawn(function () {
+      this._promiseListsInitialized = Task.spawn(function* () {
         let publicList = new DownloadList();
         let privateList = new DownloadList();
         let combinedList = new DownloadCombinedList(publicList, privateList);

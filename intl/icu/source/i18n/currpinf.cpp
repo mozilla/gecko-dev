@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
  *******************************************************************************
- * Copyright (C) 2009-2011, International Business Machines Corporation and
+ * Copyright (C) 2009-2014, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -338,7 +340,7 @@ CurrencyPluralInfo::deleteHash(Hashtable* hTable)
     if ( hTable == NULL ) {
         return;
     }
-    int32_t pos = -1;
+    int32_t pos = UHASH_FIRST;
     const UHashElement* element = NULL;
     while ( (element = hTable->nextElement(pos)) != NULL ) {
         const UHashTok valueTok = element->value;
@@ -376,7 +378,7 @@ CurrencyPluralInfo::copyHash(const Hashtable* source,
     if ( U_FAILURE(status) ) {
         return;
     }
-    int32_t pos = -1;
+    int32_t pos = UHASH_FIRST;
     const UHashElement* element = NULL;
     if ( source ) {
         while ( (element = source->nextElement(pos)) != NULL ) {

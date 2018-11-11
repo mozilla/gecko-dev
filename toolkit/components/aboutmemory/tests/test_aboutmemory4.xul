@@ -54,7 +54,7 @@
       let actual = SpecialPowers.getClipboardData("text/unicode");
       actual = actual.replace(/\(pid \d+\)/, "(pid NNN)");
 
-      if (actual === aExpected) {
+      if (actual.trim() === aExpected.trim()) {
         SimpleTest.ok(true, "Clipboard has the expected contents");
         aNext();
       } else {
@@ -161,7 +161,7 @@ End of Other-only process\n\
   // This is the output for a malformed data file.
   let expectedBad =
 "\
-Invalid memory report(s): missing 'hasMozMallocUsableSize' property";
+Error: Invalid memory report(s): missing 'hasMozMallocUsableSize' property";
 
   let frames = [
     // This loads a pre-existing file that is valid.

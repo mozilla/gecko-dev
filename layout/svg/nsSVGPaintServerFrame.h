@@ -14,25 +14,31 @@
 #include "nsSVGContainerFrame.h"
 #include "nsSVGUtils.h"
 
+namespace mozilla {
+namespace gfx {
+class DrawTarget;
+} // namespace gfx
+} // namespace mozilla
+
 class gfxContext;
 class gfxPattern;
 class nsStyleContext;
 
 struct gfxRect;
 
-typedef nsSVGContainerFrame nsSVGPaintServerFrameBase;
-
-class nsSVGPaintServerFrame : public nsSVGPaintServerFrameBase
+class nsSVGPaintServerFrame : public nsSVGContainerFrame
 {
 protected:
-  nsSVGPaintServerFrame(nsStyleContext* aContext)
-    : nsSVGPaintServerFrameBase(aContext)
+  typedef mozilla::gfx::DrawTarget DrawTarget;
+
+  explicit nsSVGPaintServerFrame(nsStyleContext* aContext)
+    : nsSVGContainerFrame(aContext)
   {
     AddStateBits(NS_FRAME_IS_NONDISPLAY);
   }
 
 public:
-  NS_DECL_FRAMEARENA_HELPERS
+  NS_DECL_ABSTRACT_FRAME(nsSVGPaintServerFrame)
 
   /**
    * Constructs a gfxPattern of the paint server rendering.
@@ -44,28 +50,20 @@ public:
    */
   virtual already_AddRefed<gfxPattern>
     GetPaintServerPattern(nsIFrame *aSource,
+                          const DrawTarget* aDrawTarget,
                           const gfxMatrix& aContextMatrix,
                           nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                           float aOpacity,
                           const gfxRect *aOverrideBounds = nullptr) = 0;
 
-  /**
-   * Configure paint server prior to rendering
-   * @return false to skip rendering
-   */
-  virtual bool SetupPaintServer(gfxContext *aContext,
-                                nsIFrame *aSource,
-                                nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
-                                float aOpacity);
-
   // nsIFrame methods:
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE {}
+                                const nsDisplayListSet& aLists) override {}
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE
+  virtual bool IsFrameOfType(uint32_t aFlags) const override
   {
-    return nsSVGPaintServerFrameBase::IsFrameOfType(aFlags & ~nsIFrame::eSVGPaintServer);
+    return nsSVGContainerFrame::IsFrameOfType(aFlags & ~nsIFrame::eSVGPaintServer);
   }
 };
 

@@ -13,6 +13,8 @@
 #ifndef nsGridCell_h___
 #define nsGridCell_h___
 
+#include "mozilla/Attributes.h"
+
 class nsBoxLayoutState;
 struct nsSize;
 class nsIFrame;
@@ -25,16 +27,16 @@ class nsIFrame;
  * biggest sizes.
  */
 
-class nsGridCell
+class nsGridCell final
 {
 public:
     nsGridCell();
-    virtual ~nsGridCell();
+    ~nsGridCell();
 
-    nsSize      GetPrefSize(nsBoxLayoutState& aBoxLayoutState);
-    nsSize      GetMinSize(nsBoxLayoutState& aBoxLayoutState);
-    nsSize      GetMaxSize(nsBoxLayoutState& aBoxLayoutState);
-    bool        IsCollapsed();
+    nsSize      GetXULPrefSize(nsBoxLayoutState& aBoxLayoutState);
+    nsSize      GetXULMinSize(nsBoxLayoutState& aBoxLayoutState);
+    nsSize      GetXULMaxSize(nsBoxLayoutState& aBoxLayoutState);
+    bool        IsXULCollapsed();
 
 // accessors
     nsIFrame*   GetBoxInColumn()               { return mBoxInColumn; }

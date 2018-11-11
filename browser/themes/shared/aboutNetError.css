@@ -1,0 +1,169 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+@import url("chrome://browser/skin/error-pages.css");
+
+body {
+  background-image: linear-gradient(-45deg, #eeeeee,     #eeeeee 33%,
+                                            #fbfbfb 33%, #fbfbfb 66%,
+                                            #eeeeee 66%, #eeeeee);
+}
+
+body.certerror {
+  background-image: linear-gradient(-45deg, #f0d000,     #f0d000 33%,
+                                            #fedc00 33%, #fedc00 66%,
+                                            #f0d000 66%, #f0d000);
+}
+
+body.captiveportal .title {
+  background-image: url("wifi.svg");
+}
+
+body.certerror .title {
+  background-image: url("cert-error.svg");
+}
+
+#errorContainer {
+  display: none;
+}
+
+/* Pressing the retry button will cause the cursor to flicker from a pointer to
+ * not-allowed. Override the disabled cursor behaviour since we will never show
+ * the button disabled as the initial state. */
+button:disabled {
+  cursor: pointer;
+}
+
+#prefChangeContainer {
+  display: none;
+}
+
+#learnMoreContainer {
+  display: none;
+}
+
+#certErrorAndCaptivePortalButtonContainer {
+  display: none;
+}
+
+body:not(.neterror) #certErrorAndCaptivePortalButtonContainer {
+  display: flex;
+}
+
+body:not(.neterror) #netErrorButtonContainer {
+  display: none;
+}
+
+#errorTryAgain {
+  margin-top: 1.2em;
+  min-width: 150px;
+}
+
+#returnButton {
+  min-width: 250px;
+}
+
+#advancedButton {
+  display: none;
+}
+
+body.captiveportal #returnButton {
+  display: none;
+}
+
+body:not(.captiveportal) #openPortalLoginPageButton {
+  display: none;
+}
+
+#openPortalLoginPageButton {
+  margin-inline-start: 0;
+}
+
+body:not(.neterror) #advancedButton {
+  display: block;
+}
+
+#certificateErrorReporting {
+  display: none;
+}
+
+.container {
+  position: relative;
+}
+
+#advancedPanelContainer {
+  position: absolute;
+  padding: 24px 0;
+  width: 100%;
+}
+
+.advanced-panel {
+  /* Hidden until the link is clicked */
+  display: none;
+  background-color: white;
+  border: 1px lightgray solid;
+  /* Don't use top padding because the default p style has top padding, and it
+   * makes the overall div look uneven */
+  padding: 0 12px 12px 12px;
+  box-shadow: 0 0 4px #ddd;
+  font-size: 0.9em;
+}
+
+#overrideWeakCryptoPanel {
+  display: none;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-content: space-between;
+  align-items: flex-start;
+  margin-top: 1em;
+}
+
+span#hostname {
+  font-weight: bold;
+}
+
+#automaticallyReportInFuture {
+  cursor: pointer;
+  display: inline-block;
+  padding-inline-start: 2.3em;
+  text-indent: -2.3em;
+  line-height: 16px
+}
+
+#errorCode:not([href]) {
+  color: var(--in-content-page-color);
+  cursor: text;
+  text-decoration: none;
+}
+
+#errorCode[href] {
+  white-space: nowrap;
+}
+
+#badCertTechnicalInfo {
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+#certificateErrorReporting {
+  display: none;
+}
+
+#certificateErrorDebugInformation {
+  display: none;
+  background-color: var(--in-content-box-background-hover) !important;
+  border-top: 1px solid var(--in-content-border-color);
+  position: absolute;
+  left: 0%;
+  top: 100%;
+  width: 65%;
+  padding: 1em 17.5%;
+}
+
+#certificateErrorText {
+  font-family: monospace;
+  white-space: pre-wrap;
+  padding: 1em 0;
+}

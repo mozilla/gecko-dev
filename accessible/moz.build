@@ -1,9 +1,36 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-DIRS += ['public', 'src']
-TEST_DIRS += ['tests']
+toolkit = CONFIG['MOZ_WIDGET_TOOLKIT']
 
+if 'gtk' in toolkit:
+    DIRS += ['atk']
+elif toolkit == 'windows':
+    DIRS += ['windows']
+elif toolkit == 'cocoa':
+    DIRS += ['mac']
+else:
+    DIRS += ['other']
+
+DIRS += [ 'aom',
+          'base',
+          'generic',
+          'html',
+          'interfaces',
+          'ipc',
+          'jsat',
+          'xpcom'
+]
+
+if CONFIG['MOZ_XUL']:
+    DIRS += ['xul']
+
+TEST_DIRS += ['tests/mochitest']
+
+BROWSER_CHROME_MANIFESTS += [
+  'tests/browser/browser.ini',
+  'tests/browser/e10s/browser.ini'
+]

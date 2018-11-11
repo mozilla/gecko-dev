@@ -3,9 +3,9 @@
  */
 
 // Tests whether
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
 
 Cu.import("resource://testing-common/httpd.js");
 
@@ -20,7 +20,7 @@ function load_blocklist(file, aCallback) {
 
     do_execute_soon(aCallback);
   }, "blocklist-updated", false);
-  
+
   Services.prefs.setCharPref("extensions.blocklist.url", "http://localhost:" +
                              gPort + "/data/" + file);
   var blocklist = Cc["@mozilla.org/extensions/blocklist;1"].

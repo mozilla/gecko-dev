@@ -23,14 +23,17 @@ public:
   NS_DECL_NSIOBSERVER
 
   static MediaPermissionManager* GetInstance();
+
+protected:
   virtual ~MediaPermissionManager();
 
 private:
   MediaPermissionManager();
   nsresult Deinit();
-  nsresult HandleRequest(nsRefPtr<dom::GetUserMediaRequest> &req);
+  nsresult HandleRequest(RefPtr<dom::GetUserMediaRequest> &req);
 };
 
 } // namespace mozilla
+
 #endif // DOM_MEDIA_MEDIAPERMISSIONGONK_H
 

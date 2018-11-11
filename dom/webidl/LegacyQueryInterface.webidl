@@ -7,15 +7,20 @@
 interface nsISupports;
 interface IID;
 
-[NoInterfaceObject]
+[NoInterfaceObject,
+ // Need Exposed here, because this is a mixin onto things like Event
+ // that are exposed in workers.
+ Exposed=(Window,Worker,System)]
 interface LegacyQueryInterface {
   // Legacy QueryInterface, only exposed to chrome or XBL code on the
   // main thread.
+  [Exposed=Window]
   nsISupports queryInterface(IID iid);
 };
 
 Attr implements LegacyQueryInterface;
 BarProp implements LegacyQueryInterface;
+BoxObject implements LegacyQueryInterface;
 CaretPosition implements LegacyQueryInterface;
 Comment implements LegacyQueryInterface;
 Crypto implements LegacyQueryInterface;
@@ -37,7 +42,7 @@ FormData implements LegacyQueryInterface;
 HTMLCollection implements LegacyQueryInterface;
 History implements LegacyQueryInterface;
 MimeTypeArray implements LegacyQueryInterface;
-MozNamedAttrMap implements LegacyQueryInterface;
+NamedNodeMap implements LegacyQueryInterface;
 MutationObserver implements LegacyQueryInterface;
 MutationRecord implements LegacyQueryInterface;
 Navigator implements LegacyQueryInterface;
@@ -76,7 +81,6 @@ Touch implements LegacyQueryInterface;
 TouchList implements LegacyQueryInterface;
 TreeColumns implements LegacyQueryInterface;
 TreeWalker implements LegacyQueryInterface;
-UndoManager implements LegacyQueryInterface;
 ValidityState implements LegacyQueryInterface;
 WebSocket implements LegacyQueryInterface;
 Window implements LegacyQueryInterface;

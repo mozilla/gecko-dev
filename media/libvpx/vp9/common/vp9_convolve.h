@@ -13,10 +13,26 @@
 #include "./vpx_config.h"
 #include "vpx/vpx_integer.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef void (*convolve_fn_t)(const uint8_t *src, ptrdiff_t src_stride,
                               uint8_t *dst, ptrdiff_t dst_stride,
                               const int16_t *filter_x, int x_step_q4,
                               const int16_t *filter_y, int y_step_q4,
                               int w, int h);
+
+#if CONFIG_VP9_HIGHBITDEPTH
+typedef void (*highbd_convolve_fn_t)(const uint8_t *src, ptrdiff_t src_stride,
+                                     uint8_t *dst, ptrdiff_t dst_stride,
+                                     const int16_t *filter_x, int x_step_q4,
+                                     const int16_t *filter_y, int y_step_q4,
+                                     int w, int h, int bd);
+#endif
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // VP9_COMMON_VP9_CONVOLVE_H_

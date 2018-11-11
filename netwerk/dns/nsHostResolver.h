@@ -9,13 +9,15 @@
 #include "nscore.h"
 #include "prclist.h"
 #include "prnetdb.h"
-#include "pldhash.h"
+#include "PLDHashTable.h"
 #include "mozilla/CondVar.h"
 #include "mozilla/Mutex.h"
 #include "nsISupportsImpl.h"
 #include "nsIDNSListener.h"
+#include "nsIDNSService.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "GetAddrInfo.h"
 #include "mozilla/net/DNS.h"
 #include "mozilla/net/DashboardTypes.h"
 #include "mozilla/TimeStamp.h"
@@ -36,6 +38,7 @@ struct nsHostKey
     const char *host;
     uint16_t    flags;
     uint16_t    af;
+    const char *netInterface;
 };
 
 /**
@@ -77,9 +80,33 @@ public:
                                 (though never for more than 60 seconds), but a use
                                 of that negative entry forces an asynchronous refresh. */
 
-    mozilla::TimeStamp expiration;
+    enum ExpirationStatus {
+        EXP_VALID,
+        EXP_GRACE,
+        EXP_EXPIRED,
+    };
 
-    bool HasUsableResult(uint16_t queryFlags) const;
+    ExpirationStatus CheckExpiration(const mozilla::TimeStamp& now) const;
+
+    // When the record began being valid. Used mainly for bookkeeping.
+    mozilla::TimeStamp mValidStart;
+
+    // When the record is no longer valid (it's time of expiration)
+    mozilla::TimeStamp mValidEnd;
+
+    // When the record enters its grace period. This must be before mValidEnd.
+    // If a record is in its grace period (and not expired), it will be used
+    // but a request to refresh it will be made.
+    mozilla::TimeStamp mGraceStart;
+
+    // Convenience function for setting the timestamps above (mValidStart,
+    // mValidEnd, and mGraceStart). valid and grace are durations in seconds.
+    void SetExpiration(const mozilla::TimeStamp& now, unsigned int valid,
+                       unsigned int grace);
+    void CopyExpirationTimesAndFlagsFrom(const nsHostRecord *aFromHostRecord);
+
+    // Checks if the record is usable (not expired and has a value)
+    bool HasUsableResult(const mozilla::TimeStamp& now, uint16_t queryFlags = 0) const;
 
     // hold addr_info_lock when calling the blacklist functions
     bool   Blacklisted(mozilla::net::NetAddr *query);
@@ -88,8 +115,19 @@ public:
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
+    enum DnsPriority {
+        DNS_PRIORITY_LOW,
+        DNS_PRIORITY_MEDIUM,
+        DNS_PRIORITY_HIGH,
+    };
+    static DnsPriority GetPriority(uint16_t aFlags);
+
+    bool RemoveOrRefresh(); // Mark records currently being resolved as needed
+                            // to resolve again.
+
 private:
     friend class nsHostResolver;
+
 
     PRCList callbacks; /* list of callbacks */
 
@@ -101,12 +139,24 @@ private:
     bool    usingAnyThread; /* true if off queue and contributing to mActiveAnyThreadCount */
     bool    mDoomed; /* explicitly expired */
 
+#if TTL_AVAILABLE
+    bool    mGetTtl;
+#endif
+
+    // The number of times ReportUnusable() has been called in the record's
+    // lifetime.
+    uint32_t mBlacklistedCount;
+
+    // when the results from this resolve is returned, it is not to be
+    // trusted, but instead a new resolve must be made!
+    bool    mResolveAgain;
+
     // a list of addresses associated with this record that have been reported
     // as unusable. the list is kept as a set of strings to make it independent
     // of gencnt.
     nsTArray<nsCString> mBlacklistedItems;
 
-    nsHostRecord(const nsHostKey *key);           /* use Create() instead */
+    explicit nsHostRecord(const nsHostKey *key);           /* use Create() instead */
    ~nsHostRecord();
 };
 
@@ -172,9 +222,9 @@ public:
     /**
      * creates an addref'd instance of a nsHostResolver object.
      */
-    static nsresult Create(uint32_t         maxCacheEntries,  // zero disables cache
-                           uint32_t         maxCacheLifetime, // seconds
-                           uint32_t         lifetimeGracePeriod, // seconds
+    static nsresult Create(uint32_t maxCacheEntries, // zero disables cache
+                           uint32_t defaultCacheEntryLifetime, // seconds
+                           uint32_t defaultGracePeriod, // seconds
                            nsHostResolver **resolver);
     
     /**
@@ -193,6 +243,7 @@ public:
     nsresult ResolveHost(const char            *hostname,
                          uint16_t               flags,
                          uint16_t               af,
+                         const char            *netInterface,
                          nsResolveHostCallback *callback);
 
     /**
@@ -204,6 +255,7 @@ public:
     void DetachCallback(const char            *hostname,
                         uint16_t               flags,
                         uint16_t               af,
+                        const char            *netInterface,
                         nsResolveHostCallback *callback,
                         nsresult               status);
 
@@ -217,6 +269,7 @@ public:
     void CancelAsyncRequest(const char            *host,
                             uint16_t               flags,
                             uint16_t               af,
+                            const char            *netInterface,
                             nsIDNSListener        *aListener,
                             nsresult               status);
     /**
@@ -227,26 +280,40 @@ public:
      *       to the flags defined on nsIDNSService.
      */
     enum {
-        RES_BYPASS_CACHE = 1 << 0,
-        RES_CANON_NAME   = 1 << 1,
-        RES_PRIORITY_MEDIUM   = 1 << 2,
-        RES_PRIORITY_LOW  = 1 << 3,
-        RES_SPECULATE     = 1 << 4,
-        //RES_DISABLE_IPV6 = 1 << 5, // Not used
-        RES_OFFLINE       = 1 << 6
+        RES_BYPASS_CACHE = nsIDNSService::RESOLVE_BYPASS_CACHE,
+        RES_CANON_NAME = nsIDNSService::RESOLVE_CANONICAL_NAME,
+        RES_PRIORITY_MEDIUM = nsIDNSService::RESOLVE_PRIORITY_MEDIUM,
+        RES_PRIORITY_LOW = nsIDNSService::RESOLVE_PRIORITY_LOW,
+        RES_SPECULATE = nsIDNSService::RESOLVE_SPECULATE,
+        //RES_DISABLE_IPV6 = nsIDNSService::RESOLVE_DISABLE_IPV6, // Not used
+        RES_OFFLINE = nsIDNSService::RESOLVE_OFFLINE,
+        //RES_DISABLE_IPv4 = nsIDNSService::RESOLVE_DISABLE_IPV4, // Not Used
+        RES_ALLOW_NAME_COLLISION = nsIDNSService::RESOLVE_ALLOW_NAME_COLLISION
     };
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
+    /**
+     * Flush the DNS cache.
+     */
+    void FlushCache();
+
 private:
-    nsHostResolver(uint32_t maxCacheEntries = 50, uint32_t maxCacheLifetime = 60,
-                   uint32_t lifetimeGracePeriod = 0);
+   explicit nsHostResolver(uint32_t maxCacheEntries,
+                           uint32_t defaultCacheEntryLifetime,
+                           uint32_t defaultGracePeriod);
    ~nsHostResolver();
 
     nsresult Init();
     nsresult IssueLookup(nsHostRecord *);
     bool     GetHostToLookup(nsHostRecord **m);
-    void     OnLookupComplete(nsHostRecord *, nsresult, mozilla::net::AddrInfo *);
+
+    enum LookupStatus {
+      LOOKUP_OK,
+      LOOKUP_RESOLVEAGAIN,
+    };
+
+    LookupStatus OnLookupComplete(nsHostRecord *, nsresult, mozilla::net::AddrInfo *);
     void     DeQueue(PRCList &aQ, nsHostRecord **aResult);
     void     ClearPendingQueue(PRCList *aPendingQueue);
     nsresult ConditionallyCreateThread(nsHostRecord *rec);
@@ -256,7 +323,7 @@ private:
      * period with a failed connect or all cached entries are negative.
      */
     nsresult ConditionallyRefreshRecord(nsHostRecord *rec, const char *host);
-    
+
     static void  MoveQueue(nsHostRecord *aRec, PRCList &aDestQ);
     
     static void ThreadFunc(void *);
@@ -272,24 +339,28 @@ private:
     };
 
     uint32_t      mMaxCacheEntries;
-    mozilla::TimeDuration mMaxCacheLifetime; // granularity seconds
-    mozilla::TimeDuration mGracePeriod; // granularity seconds
+    uint32_t      mDefaultCacheLifetime; // granularity seconds
+    uint32_t      mDefaultGracePeriod; // granularity seconds
     mutable Mutex mLock;    // mutable so SizeOfIncludingThis can be const
     CondVar       mIdleThreadCV;
-    uint32_t      mNumIdleThreads;
-    uint32_t      mThreadCount;
-    uint32_t      mActiveAnyThreadCount;
     PLDHashTable  mDB;
     PRCList       mHighQ;
     PRCList       mMediumQ;
     PRCList       mLowQ;
     PRCList       mEvictionQ;
     uint32_t      mEvictionQSize;
-    uint32_t      mPendingCount;
     PRTime        mCreationTime;
-    bool          mShutdown;
     PRIntervalTime mLongIdleTimeout;
     PRIntervalTime mShortIdleTimeout;
+
+    mozilla::Atomic<bool>     mShutdown;
+    mozilla::Atomic<uint32_t> mNumIdleThreads;
+    mozilla::Atomic<uint32_t> mThreadCount;
+    mozilla::Atomic<uint32_t> mActiveAnyThreadCount;
+    mozilla::Atomic<uint32_t> mPendingCount;
+
+    // Set the expiration time stamps appropriately.
+    void PrepareRecordExpiration(nsHostRecord* rec) const;
 
 public:
     /*

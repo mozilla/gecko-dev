@@ -4,9 +4,9 @@
 
 Cu.import("resource://gre/modules/Promise.jsm");
 
-let cs = Cc["@mozilla.org/consoleservice;1"].
+var cs = Cc["@mozilla.org/consoleservice;1"].
   getService(Ci.nsIConsoleService);
-let ps = Cc["@mozilla.org/preferences-service;1"].
+var ps = Cc["@mozilla.org/preferences-service;1"].
   getService(Ci.nsIPrefService);
 
 function makeBuffer(length) {
@@ -24,7 +24,7 @@ function checkWarning(pref, buffer) {
     observe: function(event) {
       let message = event.message;
       if (!(message.startsWith("Warning: attempting to write")
-            && message.contains(pref))) {
+            && message.includes(pref))) {
         return;
       }
       if (complete) {

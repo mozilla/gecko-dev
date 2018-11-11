@@ -22,30 +22,22 @@ class gfxContext;
 class gfxWindowsSurface : public gfxASurface {
 public:
     enum {
-        FLAG_TAKE_DC = (1 << 0),
-        FLAG_FOR_PRINTING = (1 << 1),
         FLAG_IS_TRANSPARENT = (1 << 2)
     };
 
-    gfxWindowsSurface(HWND wnd, uint32_t flags = 0);
     gfxWindowsSurface(HDC dc, uint32_t flags = 0);
 
     // Create from a shared d3d9surface
     gfxWindowsSurface(IDirect3DSurface9 *surface, uint32_t flags = 0);
 
     // Create a DIB surface
-    gfxWindowsSurface(const gfxIntSize& size,
-                      gfxImageFormat imageFormat = gfxImageFormat::RGB24);
-
-    // Create a DDB surface; dc may be nullptr to use the screen DC
-    gfxWindowsSurface(HDC dc,
-                      const gfxIntSize& size,
-                      gfxImageFormat imageFormat = gfxImageFormat::RGB24);
+    gfxWindowsSurface(const mozilla::gfx::IntSize& size,
+                      gfxImageFormat imageFormat = mozilla::gfx::SurfaceFormat::X8R8G8B8_UINT32);
 
     gfxWindowsSurface(cairo_surface_t *csurf);
 
     virtual already_AddRefed<gfxASurface> CreateSimilarSurface(gfxContentType aType,
-                                                               const gfxIntSize& aSize);
+                                                               const mozilla::gfx::IntSize& aSize);
 
     void InitWithDC(uint32_t flags);
 
@@ -53,29 +45,14 @@ public:
 
     HDC GetDC();
 
-    HDC GetDCWithClip(gfxContext *);
-
     already_AddRefed<gfxImageSurface> GetAsImageSurface();
 
-    nsresult BeginPrinting(const nsAString& aTitle, const nsAString& aPrintToFileName);
-    nsresult EndPrinting();
-    nsresult AbortPrinting();
-    nsresult BeginPage();
-    nsresult EndPage();
-
-    virtual int32_t GetDefaultContextFlags() const;
-
-    const gfxIntSize GetSize() const;
-
-    // The memory used by this surface lives in this process's address space,
-    // but not in the heap.
-    virtual gfxMemoryLocation GetMemoryLocation() const;
+    const mozilla::gfx::IntSize GetSize() const;
 
 private:
-    void MakeInvalid(gfxIntSize& size);
+    void MakeInvalid(mozilla::gfx::IntSize& size);
 
     bool mOwnsDC;
-    bool mForPrinting;
 
     HDC mDC;
     HWND mWnd;

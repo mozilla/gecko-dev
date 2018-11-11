@@ -2,6 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#PopupSearchAutoComplete {
+  /* JS code forces the panel to have the width of the searchbar rather than
+   * the width of the textfield. Alignment of the panel with the searchbar is
+   * obtained with negative margins here: margin-inline-start when the text
+   * field is in the same direction as the rest of the UI, margin-inline-end
+   * when the textfield's direction has been reversed.
+   * (eg. using ctrl+shift+X) */
+  margin-inline-start: -25px;
+  margin-inline-end: -18px;
+}
+
 .autocomplete-textbox-container {
   -moz-box-align: stretch;
 }
@@ -15,37 +26,9 @@
 .searchbar-engine-image {
   height: 16px;
   width: 16px;
-  list-style-image: url("chrome://global/skin/icons/folder-item.png");
-  -moz-image-region: rect(0px, 16px, 16px, 0px);
-  -moz-margin-start: 2px;
+  list-style-image: url("chrome://mozapps/skin/places/defaultFavicon.png");
+  margin-inline-start: -1px;
 }
-
-.searchbar-engine-button {
-  -moz-appearance: none;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  -moz-padding-end: 2px;
-  -moz-box-align: center;
-  background: none;
-  border: none;
-}
-
-.searchbar-engine-button > .button-box {
-  -moz-appearance: none;
-  padding: 0;
-  border: 0;
-}
-
-.searchbar-dropmarker-image {
-  list-style-image: url("chrome://browser/skin/searchbar-dropdown-arrow.png");
-  -moz-image-region: rect(0, 13px, 11px, 0);
-}
-
-.searchbar-engine-button[open="true"] > .searchbar-dropmarker-image {
-  -moz-image-region: rect(0, 26px, 11px, 13px);
-}
-
 
 /* ::::: search-go-button ::::: */
 
@@ -55,8 +38,9 @@
 
 .search-go-button {
   padding: 1px;
-  list-style-image: url("chrome://global/skin/icons/Search-glass.png");
-  -moz-image-region: rect(0px 16px 16px 0px);
+  list-style-image: url("chrome://browser/skin/reload-stop-go.png");
+  -moz-image-region: rect(0, 42px, 14px, 28px);
+  width: 14px;
 }
 
 .search-go-button:-moz-locale-dir(rtl) {
@@ -64,13 +48,281 @@
 }
 
 .search-go-button:hover {
-  -moz-image-region: rect(0px 32px 16px 16px);
+  -moz-image-region: rect(14px, 42px, 28px, 28px);
 }
 
 .search-go-button:hover:active {
-  -moz-image-region: rect(0px, 48px, 16px, 32px);
+  -moz-image-region: rect(28px, 42px, 42px, 28px);
 }
 
-.searchbar-engine-menuitem[selected="true"] > .menu-iconic-text {
-  font-weight: bold;
+
+.searchbar-search-button-container {
+  -moz-box-align: center;
+}
+
+.searchbar-search-button {
+  list-style-image: url("chrome://browser/skin/search-indicator.png");
+  -moz-image-region: rect(0, 20px, 20px, 0);
+  margin-top: 1px;
+  margin-bottom: 1px;
+  margin-inline-start: 4px;
+  width: 20px;
+}
+
+.searchbar-search-button[addengines="true"] {
+  list-style-image: url("chrome://browser/skin/search-indicator-badge-add.png");
+}
+
+.searchbar-search-button:hover {
+  -moz-image-region: rect(0, 40px, 20px, 20px);
+}
+
+.searchbar-search-button:hover:active {
+  -moz-image-region: rect(0, 60px, 20px, 40px);
+}
+
+@media (min-resolution: 1.1dppx) {
+  .searchbar-engine-image {
+    list-style-image: url("chrome://mozapps/skin/places/defaultFavicon@2x.png");
+  }
+
+  .searchbar-search-button {
+    list-style-image: url("chrome://browser/skin/search-indicator@2x.png");
+    -moz-image-region: rect(0, 40px, 40px, 0);
+  }
+
+  .searchbar-search-button[addengines="true"] {
+    list-style-image: url("chrome://browser/skin/search-indicator-badge-add@2x.png");
+  }
+
+  .searchbar-search-button:hover {
+    -moz-image-region: rect(0, 80px, 40px, 40px);
+  }
+
+  .searchbar-search-button:hover:active {
+    -moz-image-region: rect(0, 120px, 40px, 80px);
+  }
+
+  .search-go-button {
+    list-style-image: url("chrome://browser/skin/reload-stop-go@2x.png");
+    -moz-image-region: rect(0, 84px, 28px, 56px);
+  }
+
+  .search-go-button:hover {
+    -moz-image-region: rect(28px, 84px, 56px, 56px);
+  }
+
+  .search-go-button:hover:active {
+    -moz-image-region: rect(56px, 84px, 84px, 56px);
+  }
+}
+
+.search-panel-current-engine {
+  -moz-box-align: center;
+}
+
+/**
+ * The borders of the various elements are specified as follows.
+ *
+ * The current engine always has a bottom border.
+ * The search results never have a border.
+ *
+ * When the search results are not collapsed:
+ * - The elements underneath the search results all have a top border.
+ *
+ * When the search results are collapsed:
+ * - The elements underneath the search results all have a bottom border, except
+ *   the lowest one: search-setting-button.
+ */
+
+.search-panel-current-engine {
+  border-top: none !important;
+  border-bottom: 1px solid var(--panel-separator-color) !important;
+}
+
+.search-panel-tree[collapsed=true] + .search-one-offs > .search-panel-header,
+.search-panel-tree[collapsed=true] + .search-one-offs > .search-panel-one-offs,
+.search-panel-tree[collapsed=true] + .search-one-offs > vbox > .addengine-item:first-of-type {
+  border-top: none !important;
+}
+
+.search-panel-tree[collapsed=true] + .search-one-offs > .searchbar-engine-one-off-item,
+.search-panel-tree[collapsed=true] + .search-one-offs > .search-panel-current-input,
+.search-panel-tree[collapsed=true] + .search-one-offs > .search-panel-one-offs,
+.search-panel-tree[collapsed=true] + .search-one-offs > vbox > .addengine-item:last-of-type {
+  border-bottom: 1px solid var(--panel-separator-color) !important;
+}
+
+.search-panel-header {
+  font-weight: normal;
+  background-color: var(--arrowpanel-dimmed);
+  border: none;
+  border-top: 1px solid var(--panel-separator-color);
+  margin: 0;
+  padding: 3px 6px;
+  color: GrayText;
+}
+
+.search-panel-header > label {
+  margin-top: 2px !important;
+  margin-bottom: 1px !important;
+}
+
+.search-panel-current-input > label {
+  margin: 2px 0 1px !important;
+}
+
+.search-panel-input-value {
+  color: -moz-fieldtext;
+}
+
+.search-panel-one-offs {
+  margin: 0 !important;
+  border-top: 1px solid var(--panel-separator-color);
+  line-height: 0;
+}
+
+.searchbar-engine-one-off-item {
+  -moz-appearance: none;
+  display: inline-block;
+  border: none;
+  min-width: 48px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(transparent 15%, var(--panel-separator-color) 15%, var(--panel-separator-color) 85%, transparent 85%);
+  background-size: 1px auto;
+  background-repeat: no-repeat;
+  background-position: right center;
+  color: GrayText;
+}
+
+.searchbar-engine-one-off-item:-moz-locale-dir(rtl) {
+  background-position: left center;
+}
+
+.searchbar-engine-one-off-item:not(.last-row) {
+  box-sizing: content-box;
+  border-bottom: 1px solid var(--panel-separator-color);
+}
+
+.search-setting-button-compact {
+  border-bottom: none !important;
+}
+
+.search-panel-one-offs:not([compact=true]) > .searchbar-engine-one-off-item.last-of-row,
+.search-panel-one-offs[compact=true] > .searchbar-engine-one-off-item.last-of-row:not(.dummy),
+.search-panel-one-offs[compact=true] > .searchbar-engine-one-off-item.dummy:not(.last-of-row),
+.search-panel-one-offs[compact=true] > .searchbar-engine-one-off-item.last-engine,
+.search-setting-button-compact {
+  background-image: none;
+}
+
+.searchbar-engine-one-off-item[selected] {
+  background-color: Highlight;
+  background-image: none;
+  color: HighlightText;
+}
+
+.searchbar-engine-one-off-item > .button-box {
+  border: none;
+  padding: 0;
+}
+
+.searchbar-engine-one-off-item > .button-box > .button-text {
+  display: none;
+}
+
+.searchbar-engine-one-off-item > .button-box > .button-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.addengine-item {
+  -moz-appearance: none;
+  border: none;
+  height: 32px;
+  margin: 0;
+  padding: 0 10px;
+}
+
+.addengine-item > .button-box {
+  -moz-box-pack: start;
+}
+
+.addengine-item:first-of-type {
+  border-top: 1px solid var(--panel-separator-color);
+}
+
+.addengine-item[selected] {
+  background-color: Highlight;
+  color: HighlightText;
+}
+
+.addengine-icon {
+  width: 16px;
+}
+
+.addengine-badge {
+  width: 16px;
+  height: 16px;
+  margin: -7px -9px 7px 9px;
+  list-style-image: url("chrome://browser/skin/badge-add-engine.png");
+}
+
+.addengine-item > .button-box > .button-text {
+  -moz-box-flex: 1;
+  text-align: start;
+  padding-inline-start: 10px;
+}
+
+.addengine-item:not([image]) {
+  list-style-image: url("chrome://browser/skin/search-engine-placeholder.png");
+}
+
+@media (min-resolution: 1.1dppx) {
+  .addengine-badge {
+    list-style-image: url("chrome://browser/skin/badge-add-engine@2x.png");
+  }
+
+  .addengine-item:not([image]) {
+    list-style-image: url("chrome://browser/skin/search-engine-placeholder@2x.png");
+  }
+}
+
+.search-panel-tree > .autocomplete-treebody::-moz-tree-cell {
+  border-top: none !important;
+}
+
+.search-panel-tree > .autocomplete-treebody::-moz-tree-cell-text {
+  padding-inline-start: 4px;
+}
+
+.search-panel-tree > .autocomplete-treebody::-moz-tree-image {
+  padding-inline-start: 5px;
+  width: 14px;
+  height: 14px;
+}
+
+.search-panel-tree > .autocomplete-treebody::-moz-tree-image(fromhistory) {
+  list-style-image: url("chrome://browser/skin/search-history-icon.svg#search-history-icon");
+}
+
+.search-panel-tree > .autocomplete-treebody::-moz-tree-image(fromhistory, selected) {
+  list-style-image: url("chrome://browser/skin/search-history-icon.svg#search-history-icon-active");
+}
+
+.search-setting-button {
+  -moz-appearance: none;
+  min-height: 32px;
+}
+
+.search-setting-button[selected] {
+  background-color: var(--arrowpanel-dimmed-further);
+}
+
+.search-setting-button-compact > .button-box > .button-icon {
+  list-style-image: url("chrome://browser/skin/gear.svg");
+  filter: url(chrome://browser/skin/filters.svg#fill);
+  fill: currentColor;
 }

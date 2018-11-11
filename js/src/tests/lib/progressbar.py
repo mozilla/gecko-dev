@@ -15,7 +15,8 @@ class NullProgressBar(object):
     def finish(self, complete=True): pass
     def beginline(self): pass
     def message(self, msg): sys.stdout.write(msg + '\n')
-    def update_granularity(self): return timedelta.max
+    @staticmethod
+    def update_granularity(): return timedelta.max
 
 class ProgressBar(object):
     def __init__(self, limit, fmt):
@@ -37,7 +38,8 @@ class ProgressBar(object):
 
         self.barlen = 64 - self.counters_width
 
-    def update_granularity(self):
+    @staticmethod
+    def update_granularity():
         return timedelta(seconds=0.1)
 
     def update(self, current, data):
@@ -49,7 +51,8 @@ class ProgressBar(object):
         sys.stdout.write('\r[')
         for layout in self.counters_fmt:
             Terminal.set_color(layout['color'])
-            sys.stdout.write(('%' + str(self.limit_digits) + 'd') % data[layout['value']])
+            sys.stdout.write(('{:' + str(self.limit_digits) + 'd}').format(
+                data[layout['value']]))
             Terminal.reset_color()
             if layout != self.counters_fmt[-1]:
                 sys.stdout.write('|')
@@ -58,7 +61,7 @@ class ProgressBar(object):
 
         # Build the bar.
         pct = int(100.0 * current / self.limit)
-        sys.stdout.write('%3d%% ' % pct)
+        sys.stdout.write('{:3d}% '.format(pct))
 
         barlen = int(1.0 * self.barlen * current / self.limit) - 1
         bar = '=' * barlen + '>' + ' ' * (self.barlen - barlen - 1)
@@ -67,7 +70,7 @@ class ProgressBar(object):
         # Update the bar.
         dt = datetime.now() - self.t0
         dt = dt.seconds + dt.microseconds * 1e-6
-        sys.stdout.write('%6.1fs' % dt)
+        sys.stdout.write('{:6.1f}s'.format(dt))
         Terminal.clear_right()
 
         # Force redisplay, since we didn't write a \n.
@@ -79,6 +82,10 @@ class ProgressBar(object):
         self.update(*self.prior)
 
     def finish(self, complete=True):
+        if not self.prior:
+            sys.stdout.write('No test run... You can try adding'
+                            ' --run-slow-tests or --run-skipped to run more tests\n')
+            return
         final_count = self.limit if complete else self.prior[0]
         self.update(final_count, self.prior[1])
         sys.stdout.write('\n')

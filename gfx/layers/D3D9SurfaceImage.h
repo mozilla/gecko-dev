@@ -8,64 +8,76 @@
 
 #include "mozilla/RefPtr.h"
 #include "ImageContainer.h"
-#include "nsAutoPtr.h"
 #include "d3d9.h"
+#include "mozilla/layers/TextureClientRecycleAllocator.h"
 
 namespace mozilla {
 namespace layers {
+
+class TextureClient;
+
+class D3D9RecycleAllocator : public TextureClientRecycleAllocator
+{
+public:
+  explicit D3D9RecycleAllocator(KnowsCompositor* aAllocator,
+                                IDirect3DDevice9* aDevice)
+    : TextureClientRecycleAllocator(aAllocator)
+    , mDevice(aDevice)
+  {}
+
+  already_AddRefed<TextureClient>
+  CreateOrRecycleClient(gfx::SurfaceFormat aFormat,
+                        const gfx::IntSize& aSize);
+
+protected:
+  virtual already_AddRefed<TextureClient>
+  Allocate(gfx::SurfaceFormat aFormat,
+           gfx::IntSize aSize,
+           BackendSelector aSelector,
+           TextureFlags aTextureFlags,
+           TextureAllocationFlags aAllocFlags) override;
+
+  RefPtr<IDirect3DDevice9> mDevice;
+};
 
 // Image class that wraps a IDirect3DSurface9. This class copies the image
 // passed into SetData(), so that it can be accessed from other D3D devices.
 // This class also manages the synchronization of the copy, to ensure the
 // resource is ready to use.
-class D3D9SurfaceImage : public Image
-                       , public ISharedImage {
+class D3D9SurfaceImage : public Image {
 public:
-
-  struct Data {
-    Data(IDirect3DSurface9* aSurface, const nsIntRect& aRegion)
-      : mSurface(aSurface), mRegion(aRegion) {}
-    RefPtr<IDirect3DSurface9> mSurface;
-    nsIntRect mRegion;
-  };
-
-  D3D9SurfaceImage();
+  explicit D3D9SurfaceImage();
   virtual ~D3D9SurfaceImage();
 
-  virtual ISharedImage* AsSharedImage() MOZ_OVERRIDE { return this; }
-
-  // Copies the surface into a sharable texture's surface, and initializes
-  // the image.
-  HRESULT SetData(const Data& aData);
+  HRESULT AllocateAndCopy(D3D9RecycleAllocator* aAllocator,
+                          IDirect3DSurface9* aSurface,
+                          const gfx::IntRect& aRegion);
 
   // Returns the description of the shared surface.
   const D3DSURFACE_DESC& GetDesc() const;
 
-  // Returns the HANDLE that can be used to open the image as a shared resource.
-  // If the operation to copy the original resource to the shared resource
-  // hasn't finished yet, this function blocks until the synchronization is
-  // complete.
-  HANDLE GetShareHandle();
+  gfx::IntSize GetSize() override;
 
-  gfx::IntSize GetSize() MOZ_OVERRIDE;
+  virtual already_AddRefed<gfx::SourceSurface> GetAsSourceSurface() override;
 
-  virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() MOZ_OVERRIDE;
+  virtual TextureClient* GetTextureClient(KnowsCompositor* aForwarder) override;
 
-  virtual TextureClient* GetTextureClient(CompositableClient* aClient) MOZ_OVERRIDE;
-  virtual uint8_t* GetBuffer() MOZ_OVERRIDE { return nullptr; }
+  already_AddRefed<IDirect3DSurface9> GetD3D9Surface();
+
+  HANDLE GetShareHandle() const;
+
+  virtual bool IsValid() override { return mValid; }
+
+  void Invalidate() { mValid = false; }
 
 private:
 
-  // Blocks the calling thread until the copy operation started in SetData()
-  // is complete, whereupon the texture is safe to use.
-  void EnsureSynchronized();
-
   gfx::IntSize mSize;
-  RefPtr<IDirect3DTexture9> mTexture;
-  RefPtr<IDirect3DQuery9> mQuery;
   RefPtr<TextureClient> mTextureClient;
+  RefPtr<IDirect3DTexture9> mTexture;
   HANDLE mShareHandle;
   D3DSURFACE_DESC mDesc;
+  bool mValid;
 };
 
 } // namepace layers

@@ -16,9 +16,9 @@
 /**
  * moz_places
  */
-#define CREATE_IDX_MOZ_PLACES_URL \
+#define CREATE_IDX_MOZ_PLACES_URL_HASH \
   CREATE_PLACES_IDX( \
-    "url_uniqueindex", "moz_places", "url", "UNIQUE" \
+    "url_hashindex", "moz_places", "url_hash", "" \
   )
 
 #define CREATE_IDX_MOZ_PLACES_FAVICON \
@@ -113,12 +113,12 @@
   )
 
 /**
- * moz_favicons
+ * moz_keywords
  */
 
-#define CREATE_IDX_MOZ_FAVICONS_GUID \
+#define CREATE_IDX_MOZ_KEYWORDS_PLACEPOSTDATA \
   CREATE_PLACES_IDX( \
-    "guid_uniqueindex", "moz_favicons", "guid", "UNIQUE" \
+    "placepostdata_uniqueindex", "moz_keywords", "place_id, post_data", "UNIQUE" \
   )
 
 #endif // nsPlacesIndexes_h__

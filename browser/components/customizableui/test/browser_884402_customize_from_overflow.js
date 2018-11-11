@@ -1,10 +1,10 @@
 "use strict";
 
-let overflowPanel = document.getElementById("widget-overflow");
+var overflowPanel = document.getElementById("widget-overflow");
 
 const isOSX = (Services.appinfo.OS === "Darwin");
 
-let originalWindowWidth;
+var originalWindowWidth;
 registerCleanupFunction(function() {
   overflowPanel.removeAttribute("animate");
   window.resizeTo(originalWindowWidth, window.outerHeight);
@@ -12,14 +12,13 @@ registerCleanupFunction(function() {
 
 // Right-click on an item within the overflow panel should
 // show a context menu with options to move it.
-add_task(function() {
+add_task(function*() {
 
   overflowPanel.setAttribute("animate", "false");
 
   originalWindowWidth = window.outerWidth;
   let navbar = document.getElementById(CustomizableUI.AREA_NAVBAR);
   ok(!navbar.hasAttribute("overflowing"), "Should start with a non-overflowing toolbar.");
-  let oldChildCount = navbar.customizationTarget.childElementCount;
   window.resizeTo(400, window.outerHeight);
 
   yield waitForCondition(() => navbar.hasAttribute("overflowing"));
@@ -74,7 +73,7 @@ add_task(function() {
   yield waitForCondition(() => navbar.hasAttribute("overflowing"));
   ok(navbar.hasAttribute("overflowing"), "Should have an overflowing toolbar.");
 
-  let homeButtonPlacement = CustomizableUI.getPlacementOfWidget("home-button");
+  homeButtonPlacement = CustomizableUI.getPlacementOfWidget("home-button");
   ok(homeButtonPlacement, "Home button should still have a placement");
   is(homeButtonPlacement && homeButtonPlacement.area, "nav-bar", "Home button should be back in the navbar now");
 

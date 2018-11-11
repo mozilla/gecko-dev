@@ -9,7 +9,6 @@
  */
 
 #import <Cocoa/Cocoa.h>
-#include <dlfcn.h>
 
 #include "CustomCocoaEvents.h"
 #include "mozilla/WidgetTraceEvent.h"
@@ -34,8 +33,10 @@
 #include "mozilla/HangMonitor.h"
 #include "GeckoProfiler.h"
 #include "pratom.h"
+#if !defined(RELEASE_OR_BETA) || defined(DEBUG)
+#include "nsSandboxViolationSink.h"
+#endif
 
-#include "npapi.h"
 #include <IOKit/pwr_mgt/IOPMLib.h>
 #include "nsIDOMWakeLockListener.h"
 #include "nsIPowerManagerService.h"
@@ -46,59 +47,50 @@ using namespace mozilla::widget;
 // Gecko. For example when we're playing video in a foreground tab we
 // don't want the screen saver to turn on.
 
-class MacWakeLockListener : public nsIDOMMozWakeLockListener {
+class MacWakeLockListener final : public nsIDOMMozWakeLockListener {
 public:
   NS_DECL_ISUPPORTS;
 
 private:
+  ~MacWakeLockListener() {}
+
   IOPMAssertionID mAssertionID = kIOPMNullAssertionID;
 
-  NS_IMETHOD Callback(const nsAString& aTopic, const nsAString& aState) {
-    bool isLocked = mLockedTopics.Contains(aTopic);
-    bool shouldLock = aState.EqualsLiteral("locked-foreground");
-    if (isLocked == shouldLock) {
+  NS_IMETHOD Callback(const nsAString& aTopic, const nsAString& aState) override {
+    if (!aTopic.EqualsASCII("screen")) {
       return NS_OK;
     }
-    if (shouldLock) {
-      if (!mLockedTopics.Count()) {
-        // This is the first topic to request the screen saver be disabled.
-        // Prevent screen saver.
-        CFStringRef cf_topic =
-          ::CFStringCreateWithCharacters(kCFAllocatorDefault,
-                                         reinterpret_cast<const UniChar*>
-                                           (aTopic.Data()),
-                                         aTopic.Length());
-        IOReturn success =
-          ::IOPMAssertionCreateWithName(kIOPMAssertionTypeNoDisplaySleep,
-                                        kIOPMAssertionLevelOn,
-                                        cf_topic,
-                                        &mAssertionID);
-        CFRelease(cf_topic);
-        if (success != kIOReturnSuccess) {
-          NS_WARNING("fail to disable screensaver");
-        }
+    // Note the wake lock code ensures that we're not sent duplicate
+    // "locked-foreground" notifications when multiple wake locks are held.
+    if (aState.EqualsASCII("locked-foreground")) {
+      // Prevent screen saver.
+      CFStringRef cf_topic =
+        ::CFStringCreateWithCharacters(kCFAllocatorDefault,
+                                       reinterpret_cast<const UniChar*>
+                                         (aTopic.Data()),
+                                       aTopic.Length());
+      IOReturn success =
+        ::IOPMAssertionCreateWithName(kIOPMAssertionTypeNoDisplaySleep,
+                                      kIOPMAssertionLevelOn,
+                                      cf_topic,
+                                      &mAssertionID);
+      CFRelease(cf_topic);
+      if (success != kIOReturnSuccess) {
+        NS_WARNING("failed to disable screensaver");
       }
-      mLockedTopics.PutEntry(aTopic);
     } else {
-      mLockedTopics.RemoveEntry(aTopic);
-      if (!mLockedTopics.Count()) {
-        // No other outstanding topics have requested screen saver be disabled.
-        // Re-enable screen saver.
-        if (mAssertionID != kIOPMNullAssertionID) {
-          IOReturn result = ::IOPMAssertionRelease(mAssertionID);
-          if (result != kIOReturnSuccess) {
-            NS_WARNING("fail to release screensaver");
-          }
+      // Re-enable screen saver.
+      NS_WARNING("Releasing screensaver");
+      if (mAssertionID != kIOPMNullAssertionID) {
+        IOReturn result = ::IOPMAssertionRelease(mAssertionID);
+        if (result != kIOReturnSuccess) {
+          NS_WARNING("failed to release screensaver");
         }
       }
     }
     return NS_OK;
   }
-  // Keep track of all the topics that have requested a wake lock. When the
-  // number of topics in the hashtable reaches zero, we can uninhibit the
-  // screensaver again.
-  nsTHashtable<nsStringHashKey> mLockedTopics;
-};
+}; // MacWakeLockListener
 
 // defined in nsCocoaWindow.mm
 extern int32_t             gXULModalLevel;
@@ -118,7 +110,14 @@ static bool gAppShellMethodsSwizzled = false;
   [super sendEvent:anEvent];
 }
 
+#if defined(MAC_OS_X_VERSION_10_12) && \
+    MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12 && \
+    __LP64__
+// 10.12 changed `mask` to NSEventMask (unsigned long long) for x86_64 builds.
+- (NSEvent*)nextEventMatchingMask:(NSEventMask)mask
+#else
 - (NSEvent*)nextEventMatchingMask:(NSUInteger)mask
+#endif
                         untilDate:(NSDate*)expiration
                            inMode:(NSString*)mode
                           dequeue:(BOOL)flag
@@ -126,12 +125,15 @@ static bool gAppShellMethodsSwizzled = false;
   if (expiration) {
     mozilla::HangMonitor::Suspend();
   }
-  return [super nextEventMatchingMask:mask
-          untilDate:expiration inMode:mode dequeue:flag];
+  NSEvent* nextEvent = [super nextEventMatchingMask:mask
+                        untilDate:expiration inMode:mode dequeue:flag];
+  if (expiration) {
+    mozilla::HangMonitor::NotifyActivity();
+  }
+  return nextEvent;
 }
 
 @end
-
 
 // AppShellDelegate
 //
@@ -177,7 +179,7 @@ nsAppShell::nsAppShell()
 , mNativeEventScheduledDepth(0)
 {
   // A Cocoa event loop is running here if (and only if) we've been embedded
-  // by a Cocoa app (like Camino).
+  // by a Cocoa app.
   mRunningCocoaEmbedded = [NSApp isRunning] ? true : false;
 }
 
@@ -232,6 +234,11 @@ RemoveScreenWakeLockListener()
     sWakeLockListener = nullptr;
   }
 }
+
+// An undocumented CoreGraphics framework method, present in the same form
+// since at least OS X 10.5.
+extern "C" CGError CGSSetDebugOptions(int options);
+
 // Init
 //
 // Loads the nib (see bug 316076c21) and sets up the CFRunLoopSource used to
@@ -243,8 +250,8 @@ nsAppShell::Init()
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
-  // No event loop is running yet (unless Camino is running, or another
-  // embedding app that uses NSApplicationMain()).
+  // No event loop is running yet (unless an embedding app that uses
+  // NSApplicationMain() is running).
   NSAutoreleasePool* localPool = [[NSAutoreleasePool alloc] init];
 
   // mAutoreleasePools is used as a stack of NSAutoreleasePool objects created
@@ -269,9 +276,8 @@ nsAppShell::Init()
   // This call initializes NSApplication unless:
   // 1) we're using xre -- NSApp's already been initialized by
   //    MacApplicationDelegate.mm's EnsureUseCocoaDockAPI().
-  // 2) Camino is running (or another embedding app that uses
-  //    NSApplicationMain()) -- NSApp's already been initialized and
-  //    its main run loop is already running.
+  // 2) an embedding app that uses NSApplicationMain() is running -- NSApp's
+  //    already been initialized and its main run loop is already running.
   [NSBundle loadNibFile:
                      [NSString stringWithUTF8String:(const char*)nibPath.get()]
       externalNameTable:
@@ -302,19 +308,31 @@ nsAppShell::Init()
 
   rv = nsBaseAppShell::Init();
 
-#ifndef __LP64__
-  TextInputHandler::InstallPluginKeyEventsHandler();
-#endif
-
   if (!gAppShellMethodsSwizzled) {
     // We should only replace the original terminate: method if we're not
-    // running in a Cocoa embedder (like Camino).  See bug 604901.
+    // running in a Cocoa embedder. See bug 604901.
     if (!mRunningCocoaEmbedded) {
       nsToolkit::SwizzleMethods([NSApplication class], @selector(terminate:),
                                 @selector(nsAppShell_NSApplication_terminate:));
     }
     gAppShellMethodsSwizzled = true;
   }
+
+  if (nsCocoaFeatures::OnYosemiteOrLater()) {
+    // Explicitly turn off CGEvent logging.  This works around bug 1092855.
+    // If there are already CGEvents in the log, turning off logging also
+    // causes those events to be written to disk.  But at this point no
+    // CGEvents have yet been processed.  CGEvents are events (usually
+    // input events) pulled from the WindowServer.  An option of 0x80000008
+    // turns on CGEvent logging.
+    CGSSetDebugOptions(0x80000007);
+  }
+
+#if !defined(RELEASE_OR_BETA) || defined(DEBUG)
+  if (Preferences::GetBool("security.sandbox.mac.track.violations", false)) {
+    nsSandboxViolationSink::Start();
+  }
+#endif
 
   [localPool release];
 
@@ -351,7 +369,7 @@ nsAppShell::ProcessGeckoEvents(void* aInfo)
     // presentable.
     //
     // But _don't_ set windowNumber to '-1' -- that can lead to nasty
-    // wierdness like bmo bug 397039 (a crash in [NSApp sendEvent:] on one of
+    // weirdness like bmo bug 397039 (a crash in [NSApp sendEvent:] on one of
     // these fake events, because the -1 has gotten changed into the number
     // of an actual NSWindow object, and that NSWindow object has just been
     // destroyed).  Setting windowNumber to '0' seems to work fine -- this
@@ -573,15 +591,17 @@ nsAppShell::ProcessNextNativeEvent(bool aMayWait)
       }
       EventAttributes attrs = GetEventAttributes(currentEvent);
       UInt32 eventKind = GetEventKind(currentEvent);
+      UInt32 eventClass = GetEventClass(currentEvent);
       bool osCocoaEvent =
-        ((GetEventClass(currentEvent) == 'cgs ') &&
-         ((eventKind == NSAppKitDefined) || (eventKind == NSSystemDefined)));
+        ((eventClass == 'appl') || (eventClass == kEventClassAppleEvent) ||
+         ((eventClass == 'cgs ') && (eventKind != NSApplicationDefined)));
       // If attrs is kEventAttributeUserEvent or kEventAttributeMonitored
       // (i.e. a user input event), we shouldn't process it here while
       // aMayWait is false.  Likewise if currentEvent will eventually be
-      // turned into an OS-defined Cocoa event.  Doing otherwise risks
-      // doing too much work here, and preventing the event from being
-      // properly processed as a Cocoa event.
+      // turned into an OS-defined Cocoa event, or otherwise needs AppKit
+      // processing.  Doing otherwise risks doing too much work here, and
+      // preventing the event from being properly processed by the AppKit
+      // framework.
       if ((attrs != kEventAttributeNone) || osCocoaEvent) {
         // Since we can't process the next event here (while aMayWait is false),
         // we want moreEvents to be false on return.
@@ -628,8 +648,8 @@ nsAppShell::ProcessNextNativeEvent(bool aMayWait)
 // to be processed elsewhere (in NativeEventCallback(), called from
 // ProcessGeckoEvents()).
 //
-// Camino calls [NSApp run] on its own (via NSApplicationMain()), and so
-// doesn't call nsAppShell::Run().
+// Camino called [NSApp run] on its own (via NSApplicationMain()), and so
+// didn't call nsAppShell::Run().
 //
 // public
 NS_IMETHODIMP
@@ -667,8 +687,8 @@ nsAppShell::Exit(void)
 
   mTerminated = true;
 
-#ifndef __LP64__
-  TextInputHandler::RemovePluginKeyEventsHandler();
+#if !defined(RELEASE_OR_BETA) || defined(DEBUG)
+  nsSandboxViolationSink::Stop();
 #endif
 
   // Quoting from Apple's doc on the [NSApplication stop:] method (from their
@@ -716,8 +736,7 @@ nsAppShell::Exit(void)
 //
 // public
 NS_IMETHODIMP
-nsAppShell::OnProcessNextEvent(nsIThreadInternal *aThread, bool aMayWait,
-                               uint32_t aRecursionDepth)
+nsAppShell::OnProcessNextEvent(nsIThreadInternal *aThread, bool aMayWait)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
@@ -727,7 +746,7 @@ nsAppShell::OnProcessNextEvent(nsIThreadInternal *aThread, bool aMayWait,
   NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
   ::CFArrayAppendValue(mAutoreleasePools, pool);
 
-  return nsBaseAppShell::OnProcessNextEvent(aThread, aMayWait, aRecursionDepth);
+  return nsBaseAppShell::OnProcessNextEvent(aThread, aMayWait);
 
   NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
 }
@@ -741,7 +760,6 @@ nsAppShell::OnProcessNextEvent(nsIThreadInternal *aThread, bool aMayWait,
 // public
 NS_IMETHODIMP
 nsAppShell::AfterProcessNextEvent(nsIThreadInternal *aThread,
-                                  uint32_t aRecursionDepth,
                                   bool aEventWasProcessed)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
@@ -756,8 +774,7 @@ nsAppShell::AfterProcessNextEvent(nsIThreadInternal *aThread,
   ::CFArrayRemoveValueAtIndex(mAutoreleasePools, count - 1);
   [pool release];
 
-  return nsBaseAppShell::AfterProcessNextEvent(aThread, aRecursionDepth,
-                                               aEventWasProcessed);
+  return nsBaseAppShell::AfterProcessNextEvent(aThread, aEventWasProcessed);
 
   NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
 }
@@ -853,7 +870,7 @@ nsAppShell::AfterProcessNextEvent(nsIThreadInternal *aThread,
     nsIRollupListener* rollupListener = nsBaseWidget::GetActiveRollupListener();
     nsCOMPtr<nsIWidget> rollupWidget = rollupListener->GetRollupWidget();
     if (rollupWidget)
-      rollupListener->Rollup(0, nullptr, nullptr);
+      rollupListener->Rollup(0, true, nullptr, nullptr);
   }
 
   NS_OBJC_END_TRY_ABORT_BLOCK;

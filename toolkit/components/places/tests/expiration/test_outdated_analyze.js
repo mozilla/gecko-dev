@@ -38,7 +38,7 @@ function run_test() {
       title: "Title" + i,
       visits: [new VisitInfo]
     });
-  };
+  }
   gHistory.updatePlaces(places);
 
   // Set interval to a small value to expire on it.
@@ -52,7 +52,7 @@ function run_test() {
     let stmt = DBConn().createAsyncStatement(
       "SELECT (SELECT COUNT(*) FROM moz_places) - "
       +        "(SELECT SUBSTR(stat,1,LENGTH(stat)-2) FROM sqlite_stat1 "
-      +         "WHERE idx = 'moz_places_url_uniqueindex')"
+      +         "WHERE idx = 'moz_places_url_hashindex')"
     );
     stmt.executeAsync({
       handleResult: function(aResultSet) {

@@ -7,9 +7,9 @@ Cu.import("resource://services-sync/identity.js");
 Cu.import("resource://services-sync/resource.js");
 Cu.import("resource://services-sync/util.js");
 
-let logger;
+var logger;
 
-let fetched = false;
+var fetched = false;
 function server_open(metadata, response) {
   let body;
   if (metadata.method == "GET") {
@@ -45,7 +45,7 @@ function server_404(metadata, response) {
   response.bodyOutputStream.write(body, body.length);
 }
 
-let pacFetched = false;
+var pacFetched = false;
 function server_pac(metadata, response) {
   pacFetched = true;
   let body = 'function FindProxyForURL(url, host) { return "DIRECT"; }';
@@ -55,7 +55,7 @@ function server_pac(metadata, response) {
 }
 
 
-let sample_data = {
+var sample_data = {
   some: "sample_data",
   injson: "format",
   number: 42
@@ -140,7 +140,7 @@ function server_headers(metadata, response) {
   header_names = header_names.sort();
 
   headers = {};
-  for each (let header in header_names) {
+  for (let header of header_names) {
     headers[header] = metadata.getHeader(header);
   }
   let body = JSON.stringify(headers);
@@ -153,7 +153,7 @@ function run_test() {
 
   do_test_pending();
 
-  logger = Log.repository.getLogger('Test');
+  let logger = Log.repository.getLogger('Test');
   Log.repository.rootLogger.addAppender(new Log.DumpAppender());
 
   let server = httpd_setup({
@@ -206,7 +206,7 @@ function run_test() {
   do_check_eq(res.data, content);
 
   // Observe logging messages.
-  let logger = res._log;
+  logger = res._log;
   let dbg    = logger.debug;
   let debugMessages = [];
   logger.debug = function (msg) {
@@ -442,6 +442,8 @@ function run_test() {
   // It throws and logs.
   do_check_eq(error.result, Cr.NS_ERROR_MALFORMED_URI);
   do_check_eq(error, "Error: NS_ERROR_MALFORMED_URI");
+  // Note the strings haven't been formatted yet, but that's OK for this test.
+  do_check_eq(warnings.pop(), "${action} request to ${url} failed: ${ex}");
   do_check_eq(warnings.pop(),
               "Got exception calling onProgress handler during fetch of " +
               server.baseURI + "/json");
@@ -465,6 +467,7 @@ function run_test() {
   // It throws and logs.
   do_check_eq(error.result, Cr.NS_ERROR_XPC_JS_THREW_STRING);
   do_check_eq(error, "Error: NS_ERROR_XPC_JS_THREW_STRING");
+  do_check_eq(warnings.pop(), "${action} request to ${url} failed: ${ex}");
   do_check_eq(warnings.pop(),
               "Got exception calling onProgress handler during fetch of " +
               server.baseURI + "/json");

@@ -11,15 +11,25 @@
 
 #include "xpcprivate.h"
 #include "jsprf.h"
+#include "MainThreadUtils.h"
+#include "mozilla/Assertions.h"
 #include "nsGlobalWindow.h"
 #include "nsPIDOMWindow.h"
 #include "nsILoadContext.h"
 #include "nsIDocShell.h"
+#include "nsIScriptError.h"
+#include "nsISensitiveInfoHiddenURI.h"
 
-NS_IMPL_ISUPPORTS(nsScriptError, nsIConsoleMessage, nsIScriptError)
+static_assert(nsIScriptError::errorFlag == JSREPORT_ERROR &&
+              nsIScriptError::warningFlag == JSREPORT_WARNING &&
+              nsIScriptError::exceptionFlag == JSREPORT_EXCEPTION &&
+              nsIScriptError::strictFlag == JSREPORT_STRICT &&
+              nsIScriptError::infoFlag == JSREPORT_USER_1,
+              "flags should be consistent");
 
-nsScriptError::nsScriptError()
+nsScriptErrorBase::nsScriptErrorBase()
     :  mMessage(),
+       mMessageName(),
        mSourceName(),
        mLineNumber(0),
        mSourceLine(),
@@ -29,15 +39,46 @@ nsScriptError::nsScriptError()
        mOuterWindowID(0),
        mInnerWindowID(0),
        mTimeStamp(0),
+       mInitializedOnMainThread(false),
        mIsFromPrivateWindow(false)
 {
 }
 
-nsScriptError::~nsScriptError() {}
+nsScriptErrorBase::~nsScriptErrorBase() {}
+
+void
+nsScriptErrorBase::InitializeOnMainThread()
+{
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(!mInitializedOnMainThread);
+
+    if (mInnerWindowID) {
+        nsGlobalWindow* window =
+          nsGlobalWindow::GetInnerWindowWithId(mInnerWindowID);
+        if (window) {
+            nsPIDOMWindowOuter* outer = window->GetOuterWindow();
+            if (outer)
+                mOuterWindowID = outer->WindowID();
+
+            nsIDocShell* docShell = window->GetDocShell();
+            nsCOMPtr<nsILoadContext> loadContext = do_QueryInterface(docShell);
+
+            if (loadContext) {
+                // Never mark exceptions from chrome windows as having come from
+                // private windows, since we always want them to be reported.
+                nsIPrincipal* winPrincipal = window->GetPrincipal();
+                mIsFromPrivateWindow = loadContext->UsePrivateBrowsing() &&
+                                       !nsContentUtils::IsSystemPrincipal(winPrincipal);
+            }
+        }
+    }
+
+    mInitializedOnMainThread = true;
+}
 
 // nsIConsoleMessage methods
 NS_IMETHODIMP
-nsScriptError::GetMessageMoz(char16_t **result) {
+nsScriptErrorBase::GetMessageMoz(char16_t** result) {
     nsresult rv;
 
     nsAutoCString message;
@@ -52,57 +93,94 @@ nsScriptError::GetMessageMoz(char16_t **result) {
     return NS_OK;
 }
 
+
+NS_IMETHODIMP
+nsScriptErrorBase::GetLogLevel(uint32_t* aLogLevel)
+{
+  if (mFlags & (uint32_t)nsIScriptError::infoFlag) {
+    *aLogLevel = nsIConsoleMessage::info;
+  } else if (mFlags & (uint32_t)nsIScriptError::warningFlag) {
+    *aLogLevel = nsIConsoleMessage::warn;
+  } else {
+    *aLogLevel = nsIConsoleMessage::error;
+  }
+  return NS_OK;
+}
+
 // nsIScriptError methods
 NS_IMETHODIMP
-nsScriptError::GetErrorMessage(nsAString& aResult) {
+nsScriptErrorBase::GetErrorMessage(nsAString& aResult) {
     aResult.Assign(mMessage);
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsScriptError::GetSourceName(nsAString& aResult) {
+nsScriptErrorBase::GetSourceName(nsAString& aResult) {
     aResult.Assign(mSourceName);
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsScriptError::GetSourceLine(nsAString& aResult) {
+nsScriptErrorBase::GetSourceLine(nsAString& aResult) {
     aResult.Assign(mSourceLine);
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsScriptError::GetLineNumber(uint32_t *result) {
+nsScriptErrorBase::GetLineNumber(uint32_t* result) {
     *result = mLineNumber;
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsScriptError::GetColumnNumber(uint32_t *result) {
+nsScriptErrorBase::GetColumnNumber(uint32_t* result) {
     *result = mColumnNumber;
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsScriptError::GetFlags(uint32_t *result) {
+nsScriptErrorBase::GetFlags(uint32_t* result) {
     *result = mFlags;
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsScriptError::GetCategory(char **result) {
+nsScriptErrorBase::GetCategory(char** result) {
     *result = ToNewCString(mCategory);
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsScriptError::Init(const nsAString& message,
-                    const nsAString& sourceName,
-                    const nsAString& sourceLine,
-                    uint32_t lineNumber,
-                    uint32_t columnNumber,
-                    uint32_t flags,
-                    const char *category)
+nsScriptErrorBase::GetStack(JS::MutableHandleValue aStack) {
+    aStack.setUndefined();
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsScriptErrorBase::SetStack(JS::HandleValue aStack) {
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsScriptErrorBase::GetErrorMessageName(nsAString& aErrorMessageName) {
+    aErrorMessageName = mMessageName;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsScriptErrorBase::SetErrorMessageName(const nsAString& aErrorMessageName) {
+    mMessageName = aErrorMessageName;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsScriptErrorBase::Init(const nsAString& message,
+                        const nsAString& sourceName,
+                        const nsAString& sourceLine,
+                        uint32_t lineNumber,
+                        uint32_t columnNumber,
+                        uint32_t flags,
+                        const char* category)
 {
     return InitWithWindowID(message, sourceName, sourceLine, lineNumber,
                             columnNumber, flags,
@@ -112,17 +190,36 @@ nsScriptError::Init(const nsAString& message,
 }
 
 NS_IMETHODIMP
-nsScriptError::InitWithWindowID(const nsAString& message,
-                                const nsAString& sourceName,
-                                const nsAString& sourceLine,
-                                uint32_t lineNumber,
-                                uint32_t columnNumber,
-                                uint32_t flags,
-                                const nsACString& category,
-                                uint64_t aInnerWindowID)
+nsScriptErrorBase::InitWithWindowID(const nsAString& message,
+                                    const nsAString& sourceName,
+                                    const nsAString& sourceLine,
+                                    uint32_t lineNumber,
+                                    uint32_t columnNumber,
+                                    uint32_t flags,
+                                    const nsACString& category,
+                                    uint64_t aInnerWindowID)
 {
     mMessage.Assign(message);
-    mSourceName.Assign(sourceName);
+
+    if (!sourceName.IsEmpty()) {
+        mSourceName.Assign(sourceName);
+
+        nsCOMPtr<nsIURI> uri;
+        nsAutoCString pass;
+        if (NS_SUCCEEDED(NS_NewURI(getter_AddRefs(uri), sourceName)) &&
+            NS_SUCCEEDED(uri->GetPassword(pass)) &&
+            !pass.IsEmpty()) {
+            nsCOMPtr<nsISensitiveInfoHiddenURI> safeUri =
+                do_QueryInterface(uri);
+
+            nsAutoCString loc;
+            if (safeUri &&
+                NS_SUCCEEDED(safeUri->GetSensitiveInfoHiddenSpec(loc))) {
+                mSourceName.Assign(NS_ConvertUTF8toUTF16(loc));
+            }
+        }
+    }
+
     mLineNumber = lineNumber;
     mSourceLine.Assign(sourceLine);
     mColumnNumber = columnNumber;
@@ -131,33 +228,15 @@ nsScriptError::InitWithWindowID(const nsAString& message,
     mTimeStamp = JS_Now() / 1000;
     mInnerWindowID = aInnerWindowID;
 
-    if (aInnerWindowID) {
-        nsGlobalWindow* window =
-          nsGlobalWindow::GetInnerWindowWithId(aInnerWindowID);
-        if (window) {
-            nsPIDOMWindow* outer = window->GetOuterWindow();
-            if (outer)
-                mOuterWindowID = outer->WindowID();
-
-            nsIDocShell* docShell = window->GetDocShell();
-            nsCOMPtr<nsILoadContext> loadContext = do_QueryInterface(docShell);
-
-            if (loadContext) {
-                // Never mark exceptions from chrome windows as having come from
-                // private windows, since we always want them to be reported.
-                nsIPrincipal* winPrincipal = window->GetPrincipal();
-                mIsFromPrivateWindow = loadContext->UsePrivateBrowsing() &&
-                                       !nsContentUtils::IsSystemPrincipal(winPrincipal);
-            }
-
-        }
+    if (aInnerWindowID && NS_IsMainThread()) {
+        InitializeOnMainThread();
     }
 
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsScriptError::ToString(nsACString& /*UTF8*/ aResult)
+nsScriptErrorBase::ToString(nsACString& /*UTF8*/ aResult)
 {
     static const char format0[] =
         "[%s: \"%s\" {file: \"%s\" line: %d column: %d source: \"%s\"}]";
@@ -179,9 +258,11 @@ nsScriptError::ToString(nsACString& /*UTF8*/ aResult)
     if (!mMessage.IsEmpty())
         tempMessage = ToNewUTF8String(mMessage);
     if (!mSourceName.IsEmpty())
-        tempSourceName = ToNewUTF8String(mSourceName);
+        // Use at most 512 characters from mSourceName.
+        tempSourceName = ToNewUTF8String(StringHead(mSourceName, 512));
     if (!mSourceLine.IsEmpty())
-        tempSourceLine = ToNewUTF8String(mSourceLine);
+        // Use at most 512 characters from mSourceLine.
+        tempSourceLine = ToNewUTF8String(StringHead(mSourceLine, 512));
 
     if (nullptr != tempSourceName && nullptr != tempSourceLine)
         temp = JS_smprintf(format0,
@@ -203,11 +284,11 @@ nsScriptError::ToString(nsACString& /*UTF8*/ aResult)
                            tempMessage);
 
     if (nullptr != tempMessage)
-        nsMemory::Free(tempMessage);
+        free(tempMessage);
     if (nullptr != tempSourceName)
-        nsMemory::Free(tempSourceName);
+        free(tempSourceName);
     if (nullptr != tempSourceLine)
-        nsMemory::Free(tempSourceLine);
+        free(tempSourceLine);
 
     if (!temp)
         return NS_ERROR_OUT_OF_MEMORY;
@@ -218,29 +299,47 @@ nsScriptError::ToString(nsACString& /*UTF8*/ aResult)
 }
 
 NS_IMETHODIMP
-nsScriptError::GetOuterWindowID(uint64_t *aOuterWindowID)
+nsScriptErrorBase::GetOuterWindowID(uint64_t* aOuterWindowID)
 {
+    NS_WARNING_ASSERTION(NS_IsMainThread() || mInitializedOnMainThread,
+                         "This can't be safely determined off the main thread, "
+                         "returning an inaccurate value!");
+
+    if (!mInitializedOnMainThread && NS_IsMainThread()) {
+        InitializeOnMainThread();
+    }
+
     *aOuterWindowID = mOuterWindowID;
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsScriptError::GetInnerWindowID(uint64_t *aInnerWindowID)
+nsScriptErrorBase::GetInnerWindowID(uint64_t* aInnerWindowID)
 {
     *aInnerWindowID = mInnerWindowID;
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsScriptError::GetTimeStamp(int64_t *aTimeStamp)
+nsScriptErrorBase::GetTimeStamp(int64_t* aTimeStamp)
 {
     *aTimeStamp = mTimeStamp;
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsScriptError::GetIsFromPrivateWindow(bool *aIsFromPrivateWindow)
+nsScriptErrorBase::GetIsFromPrivateWindow(bool* aIsFromPrivateWindow)
 {
+    NS_WARNING_ASSERTION(NS_IsMainThread() || mInitializedOnMainThread,
+                         "This can't be safely determined off the main thread, "
+                         "returning an inaccurate value!");
+
+    if (!mInitializedOnMainThread && NS_IsMainThread()) {
+        InitializeOnMainThread();
+    }
+
     *aIsFromPrivateWindow = mIsFromPrivateWindow;
     return NS_OK;
 }
+
+NS_IMPL_ISUPPORTS(nsScriptError, nsIConsoleMessage, nsIScriptError)

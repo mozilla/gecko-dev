@@ -15,6 +15,8 @@
 //         to be COMPLETE_LENGTH.
 //   expectCompletion: boolean indicating whether the server should respond
 //                     with a full hash.
+//   forceServerError: boolean indicating whether the server should respond
+//                     with a 503.
 //   table: name of the table that the hash corresponds to. Only needs to be set
 //          if a completion is expected.
 //   chunkId: positive integer corresponding to the chunk that the hash belongs
@@ -28,7 +30,7 @@
 //                used when |multipleCompletions| is set to true.
 
 // Basic prefixes with 2/3 completions.
-let basicCompletionSet = [
+var basicCompletionSet = [
   {
     hash: "abcdefgh",
     expectCompletion: true,
@@ -48,7 +50,7 @@ let basicCompletionSet = [
 ];
 
 // 3 prefixes with 0 completions to test HashCompleter handling a 204 status.
-let falseCompletionSet = [
+var falseCompletionSet = [
   {
     hash: "1234",
     expectCompletion: false,
@@ -65,7 +67,7 @@ let falseCompletionSet = [
 
 // The current implementation (as of Mar 2011) sometimes sends duplicate
 // entries to HashCompleter and even expects responses for duplicated entries.
-let dupedCompletionSet = [
+var dupedCompletionSet = [
   {
     hash: "1234",
     expectCompletion: true,
@@ -94,7 +96,7 @@ let dupedCompletionSet = [
 
 // It is possible for a hash completion request to return with multiple
 // completions, the HashCompleter should return all of these.
-let multipleResponsesCompletionSet = [
+var multipleResponsesCompletionSet = [
   {
     hash: "1234",
     expectCompletion: true,
@@ -114,12 +116,65 @@ let multipleResponsesCompletionSet = [
   }
 ];
 
-// The fifth completion set is added at runtime by addRandomCompletionSet.
+function buildCompletionRequest(aCompletionSet) {
+  let prefixes = [];
+  let prefixSet = new Set();
+  aCompletionSet.forEach(s => {
+    let prefix = s.hash.substring(0, 4);
+    if (prefixSet.has(prefix)) {
+      return;
+    }
+    prefixSet.add(prefix);
+    prefixes.push(prefix);
+  });
+  return 4 + ":" + (4 * prefixes.length) + "\n" + prefixes.join("");
+}
+
+function parseCompletionRequest(aRequest) {
+  // Format: [partial_length]:[num_of_prefix * partial_length]\n[prefixes_data]
+
+  let tokens = /(\d):(\d+)/.exec(aRequest);
+  if (tokens.length < 3) {
+    dump("Request format error.");
+    return null;
+  }
+
+  let partialLength = parseInt(tokens[1]);
+  let payloadLength = parseInt(tokens[2]);
+
+  let payloadStart = tokens[1].length + // partial length
+                     1 +                // ':'
+                     tokens[2].length + // payload length
+                     1;                 // '\n'
+
+  let prefixSet = [];
+  for (let i = payloadStart; i < aRequest.length; i += partialLength) {
+    let prefix = aRequest.substr(i, partialLength);
+    if (prefix.length !== partialLength) {
+      dump("Header info not correct: " + aRequest.substr(0, payloadStart));
+      return null;
+    }
+    prefixSet.push(prefix);
+  }
+  prefixSet.sort();
+
+  return prefixSet;
+}
+
+// Compare the requests in string format.
+function compareCompletionRequest(aRequest1, aRequest2) {
+  let prefixSet1 = parseCompletionRequest(aRequest1);
+  let prefixSet2 = parseCompletionRequest(aRequest2);
+
+  return equal(JSON.stringify(prefixSet1), JSON.stringify(prefixSet2));
+}
+
+// The fifth completion set is added at runtime by getRandomCompletionSet.
 // Each completion in the set only has one response and its purpose is to
 // provide an easy way to test the HashCompleter handling an arbitrarily large
 // completion set (determined by SIZE_OF_RANDOM_SET).
 const SIZE_OF_RANDOM_SET = 16;
-function addRandomCompletionSet() {
+function getRandomCompletionSet(forceServerError) {
   let completionSet = [];
   let hashPrefixes = [];
 
@@ -128,7 +183,7 @@ function addRandomCompletionSet() {
   let rand = new LFSRgenerator(seed);
 
   for (let i = 0; i < SIZE_OF_RANDOM_SET; i++) {
-    let completion = {};
+    let completion = { expectCompletion: false, forceServerError: false, _finished: false };
 
     // Generate a random 256 bit hash. First we get a random number and then
     // convert it to a string.
@@ -145,7 +200,11 @@ function addRandomCompletionSet() {
     hashPrefixes.push(prefix);
     completion.hash = hash;
 
-    completion.expectCompletion = rand.nextNum(1) == 1;
+    if (!forceServerError) {
+      completion.expectCompletion = rand.nextNum(1) == 1;
+    } else {
+      completion.forceServerError = true;
+    }
     if (completion.expectCompletion) {
       // Generate a random alpha-numeric string of length at most 6 for the
       // table name.
@@ -153,39 +212,52 @@ function addRandomCompletionSet() {
 
       completion.chunkId = rand.nextNum(16);
     }
-
     completionSet.push(completion);
   }
 
-  completionSets.push(completionSet);
+  return completionSet;
 }
 
-let completionSets = [basicCompletionSet, falseCompletionSet,
+var completionSets = [basicCompletionSet, falseCompletionSet,
                       dupedCompletionSet, multipleResponsesCompletionSet];
-let currentCompletionSet = -1;
-let finishedCompletions = 0;
+var currentCompletionSet = -1;
+var finishedCompletions = 0;
 
 const SERVER_PORT = 8080;
 const SERVER_PATH = "/hash-completer";
-let server;
+var server;
 
 // Completion hashes are automatically right-padded with null chars to have a
 // length of COMPLETE_LENGTH.
 // Taken from nsUrlClassifierDBService.h
 const COMPLETE_LENGTH = 32;
 
-let completer = Cc["@mozilla.org/url-classifier/hashcompleter;1"].
+var completer = Cc["@mozilla.org/url-classifier/hashcompleter;1"].
                   getService(Ci.nsIUrlClassifierHashCompleter);
 
+var gethashUrl;
+
+// Expected highest completion set for which the server sends a response.
+var expectedMaxServerCompletionSet = 0;
+var maxServerCompletionSet = 0;
+
 function run_test() {
-  addRandomCompletionSet();
+  // Generate a random completion set that return successful responses.
+  completionSets.push(getRandomCompletionSet(false));
+  // We backoff after receiving an error, so requests shouldn't reach the
+  // server after that.
+  expectedMaxServerCompletionSet = completionSets.length;
+  // Generate some completion sets that return 503s.
+  for (let j = 0; j < 10; ++j) {
+    completionSets.push(getRandomCompletionSet(true));
+  }
 
   // Fix up the completions before running the test.
-  for each (let completionSet in completionSets) {
-    for each (let completion in completionSet) {
+  for (let completionSet of completionSets) {
+    for (let completion of completionSet) {
       // Pad the right of each |hash| so that the length is COMPLETE_LENGTH.
       if (completion.multipleCompletions) {
-        for each (let responseCompletion in completion.completions) {
+        for (let responseCompletion of completion.completions) {
           let numChars = COMPLETE_LENGTH - responseCompletion.hash.length;
           responseCompletion.hash += (new Array(numChars + 1)).join("\u0000");
         }
@@ -201,35 +273,29 @@ function run_test() {
   server = new HttpServer();
   server.registerPathHandler(SERVER_PATH, hashCompleterServer);
 
-  const SERVER_PORT = 8080;
-  server.start(SERVER_PORT);
+  server.start(-1);
+  const SERVER_PORT = server.identity.primaryPort;
 
-  completer.gethashUrl = "http://localhost:" + SERVER_PORT + SERVER_PATH;
-
-  runNextCompletion();
-}
-
-function doneCompletionSet() {
-  do_check_eq(finishedCompletions, completionSets[currentCompletionSet].length);
-
-  for each (let completion in completionSets[currentCompletionSet])
-    do_check_true(completion._finished);
+  gethashUrl = "http://localhost:" + SERVER_PORT + SERVER_PATH;
 
   runNextCompletion();
 }
 
 function runNextCompletion() {
+  // The server relies on currentCompletionSet to send the correct response, so
+  // don't increment it until we start the new set of callbacks.
   currentCompletionSet++;
-  finishedCompletions = 0;
-
   if (currentCompletionSet >= completionSets.length) {
     finish();
     return;
   }
 
-  dump("Now on completion set index " + currentCompletionSet + "\n");
-  for each (let completion in completionSets[currentCompletionSet]) {
-    completer.complete(completion.hash.substring(0,4),
+  dump("Now on completion set index " + currentCompletionSet + ", length " +
+       completionSets[currentCompletionSet].length + "\n");
+  // Number of finished completions for this set.
+  finishedCompletions = 0;
+  for (let completion of completionSets[currentCompletionSet]) {
+    completer.complete(completion.hash.substring(0,4), gethashUrl,
                        (new callback(completion)));
   }
 }
@@ -243,6 +309,10 @@ function hashCompleterServer(aRequest, aResponse) {
   let len = stream.available();
   let data = wrapperStream.readBytes(len);
 
+  // Check if we got the expected completion request.
+  let expectedRequest = buildCompletionRequest(completionSets[currentCompletionSet]);
+  compareCompletionRequest(data, expectedRequest);
+
   // To avoid a response with duplicate hash completions, we keep track of all
   // completed hash prefixes so far.
   let completedHashes = [];
@@ -251,7 +321,10 @@ function hashCompleterServer(aRequest, aResponse) {
   function responseForCompletion(x) {
     return x.table + ":" + x.chunkId + ":" + x.hash.length + "\n" + x.hash;
   }
-  for each (let completion in completionSets[currentCompletionSet]) {
+  // As per the spec, a server should response with a 204 if there are no
+  // full-length hashes that match the prefixes.
+  let httpStatus = 204;
+  for (let completion of completionSets[currentCompletionSet]) {
     if (completion.expectCompletion &&
         (completedHashes.indexOf(completion.hash) == -1)) {
       completedHashes.push(completion.hash);
@@ -261,26 +334,30 @@ function hashCompleterServer(aRequest, aResponse) {
       else
         responseText += responseForCompletion(completion);
     }
+    if (completion.forceServerError) {
+      httpStatus = 503;
+    }
   }
 
-  // As per the spec, a server should response with a 204 if there are no
-  // full-length hashes that match the prefixes.
-  if (responseText)
+  dump("Server sending response for " + currentCompletionSet + "\n");
+  maxServerCompletionSet = currentCompletionSet;
+  if (responseText && httpStatus != 503) {
     aResponse.write(responseText);
-  else
-    aResponse.setStatusLine(null, 204, null);
+  } else {
+    aResponse.setStatusLine(null, httpStatus, null);
+  }
 }
 
 
 function callback(completion) {
   this._completion = completion;
 }
+
 callback.prototype = {
   completion: function completion(hash, table, chunkId, trusted) {
     do_check_true(this._completion.expectCompletion);
-
     if (this._completion.multipleCompletions) {
-      for each (let completion in this._completion.completions) {
+      for (let completion of this._completion.completions) {
         if (completion.hash == hash) {
           do_check_eq(JSON.stringify(hash), JSON.stringify(completion.hash));
           do_check_eq(table, completion.table);
@@ -288,7 +365,7 @@ callback.prototype = {
 
           completion._completed = true;
 
-          if (this._completion.completions.every(function(x) x._completed))
+          if (this._completion.completions.every(x => x._completed))
             this._completed = true;
 
           break;
@@ -306,16 +383,20 @@ callback.prototype = {
   },
 
   completionFinished: function completionFinished(status) {
+    finishedCompletions++;
     do_check_eq(!!this._completion.expectCompletion, !!this._completed);
     this._completion._finished = true;
 
-    finishedCompletions++;
-    if (finishedCompletions == completionSets[currentCompletionSet].length)
-      doneCompletionSet();
+    // currentCompletionSet can mutate before all of the callbacks are complete.
+    if (currentCompletionSet < completionSets.length &&
+        finishedCompletions == completionSets[currentCompletionSet].length) {
+      runNextCompletion();
+    }
   },
 };
 
 function finish() {
+  do_check_eq(expectedMaxServerCompletionSet, maxServerCompletionSet);
   server.stop(function() {
     do_test_finished();
   });

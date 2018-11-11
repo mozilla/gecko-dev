@@ -5,7 +5,6 @@
 
 #include "gfxAlphaRecovery.h"
 #include "gfxImageSurface.h"
-#include "nsRect.h"
 #include <emmintrin.h>
 
 // This file should only be compiled on x86 and x64 systems.  Additionally,
@@ -31,13 +30,13 @@ bool
 gfxAlphaRecovery::RecoverAlphaSSE2(gfxImageSurface* blackSurf,
                                    const gfxImageSurface* whiteSurf)
 {
-    gfxIntSize size = blackSurf->GetSize();
+    mozilla::gfx::IntSize size = blackSurf->GetSize();
 
     if (size != whiteSurf->GetSize() ||
-        (blackSurf->Format() != gfxImageFormat::ARGB32 &&
-         blackSurf->Format() != gfxImageFormat::RGB24) ||
-        (whiteSurf->Format() != gfxImageFormat::ARGB32 &&
-         whiteSurf->Format() != gfxImageFormat::RGB24))
+        (blackSurf->Format() != mozilla::gfx::SurfaceFormat::A8R8G8B8_UINT32 &&
+         blackSurf->Format() != mozilla::gfx::SurfaceFormat::X8R8G8B8_UINT32) ||
+        (whiteSurf->Format() != mozilla::gfx::SurfaceFormat::A8R8G8B8_UINT32 &&
+         whiteSurf->Format() != mozilla::gfx::SurfaceFormat::X8R8G8B8_UINT32))
         return false;
 
     blackSurf->Flush();
@@ -137,11 +136,11 @@ ByteAlignment(int32_t aAlignToLog2, int32_t aX, int32_t aY=0, int32_t aStride=1)
     return (aX + aStride * aY) & ((1 << aAlignToLog2) - 1);
 }
 
-/*static*/ nsIntRect
-gfxAlphaRecovery::AlignRectForSubimageRecovery(const nsIntRect& aRect,
+/*static*/ mozilla::gfx::IntRect
+gfxAlphaRecovery::AlignRectForSubimageRecovery(const mozilla::gfx::IntRect& aRect,
                                                gfxImageSurface* aSurface)
 {
-    NS_ASSERTION(gfxImageFormat::ARGB32 == aSurface->Format(),
+    NS_ASSERTION(mozilla::gfx::SurfaceFormat::A8R8G8B8_UINT32 == aSurface->Format(),
                  "Thebes grew support for non-ARGB32 COLOR_ALPHA?");
     static const int32_t kByteAlignLog2 = GoodAlignmentLog2();
     static const int32_t bpp = 4;
@@ -188,7 +187,7 @@ gfxAlphaRecovery::AlignRectForSubimageRecovery(const nsIntRect& aRect,
     // SIMD-ized alpha recovery won't make a difference so this code
     // shouldn't be called.)
     //
-    gfxIntSize surfaceSize = aSurface->GetSize();
+    mozilla::gfx::IntSize surfaceSize = aSurface->GetSize();
     const int32_t stride = bpp * surfaceSize.width;
     if (stride != aSurface->Stride()) {
         NS_WARNING("Unexpected stride, falling back on slow alpha recovery");
@@ -229,8 +228,8 @@ gfxAlphaRecovery::AlignRectForSubimageRecovery(const nsIntRect& aRect,
     return aRect;
 
 FOUND_SOLUTION:
-    nsIntRect solution = nsIntRect(x - dx, y - dy, w + dr + dx, h + dy);
-    NS_ABORT_IF_FALSE(nsIntRect(0, 0, sw, surfaceSize.height).Contains(solution),
-                      "'Solution' extends outside surface bounds!");
+    mozilla::gfx::IntRect solution = mozilla::gfx::IntRect(x - dx, y - dy, w + dr + dx, h + dy);
+    MOZ_ASSERT(mozilla::gfx::IntRect(0, 0, sw, surfaceSize.height).Contains(solution),
+               "'Solution' extends outside surface bounds!");
     return solution;
 }

@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -15,11 +15,18 @@
 class nsIPrincipal;
 
 namespace mozilla {
+
+namespace ipc {
+
+class PrincipalInfo;
+
+} // namespace ipc
+
 namespace dom {
 
 namespace quota {
 class Client;
-}
+} // namespace quota
 
 namespace asmjscache {
 
@@ -80,8 +87,8 @@ struct WriteParams
 // Parameters specific to opening a cache entry for reading
 struct ReadParams
 {
-  const jschar* mBegin;
-  const jschar* mLimit;
+  const char16_t* mBegin;
+  const char16_t* mLimit;
 
   ReadParams()
   : mBegin(nullptr),
@@ -103,8 +110,8 @@ struct ReadParams
 
 bool
 OpenEntryForRead(nsIPrincipal* aPrincipal,
-                 const jschar* aBegin,
-                 const jschar* aLimit,
+                 const char16_t* aBegin,
+                 const char16_t* aLimit,
                  size_t* aSize,
                  const uint8_t** aMemory,
                  intptr_t *aHandle);
@@ -112,11 +119,11 @@ void
 CloseEntryForRead(size_t aSize,
                   const uint8_t* aMemory,
                   intptr_t aHandle);
-bool
+JS::AsmJSCacheResult
 OpenEntryForWrite(nsIPrincipal* aPrincipal,
                   bool aInstalled,
-                  const jschar* aBegin,
-                  const jschar* aEnd,
+                  const char16_t* aBegin,
+                  const char16_t* aEnd,
                   size_t aSize,
                   uint8_t** aMemory,
                   intptr_t* aHandle);
@@ -124,9 +131,6 @@ void
 CloseEntryForWrite(size_t aSize,
                    uint8_t* aMemory,
                    intptr_t aHandle);
-
-bool
-GetBuildId(JS::BuildIdCharVector* aBuildId);
 
 // Called from QuotaManager.cpp:
 
@@ -137,7 +141,7 @@ CreateClient();
 
 PAsmJSCacheEntryParent*
 AllocEntryParent(OpenMode aOpenMode, WriteParams aWriteParams,
-                 nsIPrincipal* aPrincipal);
+                 const mozilla::ipc::PrincipalInfo& aPrincipalInfo);
 
 void
 DeallocEntryParent(PAsmJSCacheEntryParent* aActor);
@@ -165,7 +169,7 @@ struct ParamTraits<mozilla::dom::asmjscache::Metadata>
 {
   typedef mozilla::dom::asmjscache::Metadata paramType;
   static void Write(Message* aMsg, const paramType& aParam);
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult);
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult);
   static void Log(const paramType& aParam, std::wstring* aLog);
 };
 
@@ -174,9 +178,16 @@ struct ParamTraits<mozilla::dom::asmjscache::WriteParams>
 {
   typedef mozilla::dom::asmjscache::WriteParams paramType;
   static void Write(Message* aMsg, const paramType& aParam);
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult);
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult);
   static void Log(const paramType& aParam, std::wstring* aLog);
 };
+
+template <>
+struct ParamTraits<JS::AsmJSCacheResult> :
+  public ContiguousEnumSerializer<JS::AsmJSCacheResult,
+                                  JS::AsmJSCache_MIN,
+                                  JS::AsmJSCache_LIMIT>
+{ };
 
 } // namespace IPC
 

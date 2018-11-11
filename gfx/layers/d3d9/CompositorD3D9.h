@@ -7,6 +7,7 @@
 #define MOZILLA_GFX_COMPOSITORD3D9_H
 
 #include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/Point.h"
 #include "gfx2DGlue.h"
 #include "mozilla/layers/Compositor.h"
 #include "mozilla/layers/TextureD3D9.h"
@@ -20,76 +21,78 @@ namespace layers {
 class CompositorD3D9 : public Compositor
 {
 public:
-  CompositorD3D9(PCompositorParent* aParent, nsIWidget *aWidget);
+  CompositorD3D9(CompositorBridgeParent* aParent, widget::CompositorWidget* aWidget);
   ~CompositorD3D9();
 
-  virtual bool Initialize() MOZ_OVERRIDE;
-  virtual void Destroy() MOZ_OVERRIDE {}
+  virtual CompositorD3D9* AsCompositorD3D9() override { return this; }
+
+  virtual bool Initialize(nsCString* const out_failureReason) override;
 
   virtual TextureFactoryIdentifier
-    GetTextureFactoryIdentifier() MOZ_OVERRIDE;
+    GetTextureFactoryIdentifier() override;
 
-  virtual bool CanUseCanvasLayerForSize(const gfx::IntSize &aSize) MOZ_OVERRIDE;
-  virtual int32_t GetMaxTextureSize() const MOZ_FINAL;
+  virtual bool CanUseCanvasLayerForSize(const gfx::IntSize &aSize) override;
+  virtual int32_t GetMaxTextureSize() const final;
 
-  virtual void MakeCurrent(MakeCurrentFlags aFlags = 0) MOZ_OVERRIDE {}
+  virtual void MakeCurrent(MakeCurrentFlags aFlags = 0) override {}
 
-  virtual TemporaryRef<CompositingRenderTarget>
+  virtual already_AddRefed<CompositingRenderTarget>
     CreateRenderTarget(const gfx::IntRect &aRect,
-                       SurfaceInitMode aInit) MOZ_OVERRIDE;
+                       SurfaceInitMode aInit) override;
 
-  virtual TemporaryRef<CompositingRenderTarget>
+  virtual already_AddRefed<CompositingRenderTarget>
     CreateRenderTargetFromSource(const gfx::IntRect &aRect,
                                  const CompositingRenderTarget *aSource,
-                                 const gfx::IntPoint &aSourcePoint) MOZ_OVERRIDE;
+                                 const gfx::IntPoint &aSourcePoint) override;
 
-  virtual void SetRenderTarget(CompositingRenderTarget *aSurface);
-  virtual CompositingRenderTarget* GetCurrentRenderTarget() const MOZ_OVERRIDE
+  virtual void SetRenderTarget(CompositingRenderTarget *aSurface) override;
+  virtual CompositingRenderTarget* GetCurrentRenderTarget() const override
   {
     return mCurrentRT;
   }
 
-  virtual void SetDestinationSurfaceSize(const gfx::IntSize& aSize) MOZ_OVERRIDE {}
+  virtual void SetDestinationSurfaceSize(const gfx::IntSize& aSize) override {}
 
-  virtual void ClearRect(const gfx::Rect& aRect) MOZ_OVERRIDE;
+  virtual void ClearRect(const gfx::Rect& aRect) override;
 
   virtual void DrawQuad(const gfx::Rect &aRect,
-                        const gfx::Rect &aClipRect,
+                        const gfx::IntRect &aClipRect,
                         const EffectChain &aEffectChain,
                         gfx::Float aOpacity,
-                        const gfx::Matrix4x4 &aTransform) MOZ_OVERRIDE;
+                        const gfx::Matrix4x4& aTransform,
+                        const gfx::Rect& aVisibleRect) override;
 
   virtual void BeginFrame(const nsIntRegion& aInvalidRegion,
-                          const gfx::Rect *aClipRectIn,
-                          const gfx::Matrix& aTransform,
-                          const gfx::Rect& aRenderBounds,
-                          gfx::Rect *aClipRectOut = nullptr,
-                          gfx::Rect *aRenderBoundsOut = nullptr) MOZ_OVERRIDE;
+                          const gfx::IntRect *aClipRectIn,
+                          const gfx::IntRect& aRenderBounds,
+                          const nsIntRegion& aOpaqueRegion,
+                          gfx::IntRect *aClipRectOut = nullptr,
+                          gfx::IntRect *aRenderBoundsOut = nullptr) override;
 
-  virtual void EndFrame() MOZ_OVERRIDE;
+  virtual void EndFrame() override;
 
-  virtual void EndFrameForExternalComposition(const gfx::Matrix& aTransform) MOZ_OVERRIDE {}
+  virtual void EndFrameForExternalComposition(const gfx::Matrix& aTransform) override {}
 
-  virtual void AbortFrame() MOZ_OVERRIDE {}
+  virtual void PrepareViewport(const gfx::IntSize& aSize);
 
-  virtual void PrepareViewport(const gfx::IntSize& aSize,
-                               const gfx::Matrix& aWorldTransform) MOZ_OVERRIDE;
+  virtual bool SupportsPartialTextureUpdate() override{ return true; }
 
-  virtual bool SupportsPartialTextureUpdate() MOZ_OVERRIDE{ return true; }
+  virtual bool SupportsEffect(EffectTypes aEffect) override;
 
 #ifdef MOZ_DUMP_PAINTING
-  virtual const char* Name() const MOZ_OVERRIDE { return "Direct3D9"; }
+  virtual const char* Name() const override { return "Direct3D9"; }
 #endif
 
-  virtual LayersBackend GetBackendType() const MOZ_OVERRIDE {
+  virtual LayersBackend GetBackendType() const override {
     return LayersBackend::LAYERS_D3D9;
   }
 
-  virtual nsIWidget* GetWidget() const MOZ_OVERRIDE { return mWidget; }
-
   IDirect3DDevice9* device() const
   {
-    return mDeviceManager
+    // If the reset counts don't match it means the device was lost and we are
+    // in the process of recreating a new one or will be soon.
+    // cf. comment in EnsureSwapChain.
+    return mDeviceManager && mDeviceResetCount == mDeviceManager->GetDeviceResetCount()
            ? mDeviceManager->device()
            : nullptr;
   }
@@ -103,13 +106,13 @@ public:
    * schedule another composite so we get another go at rendering, thus we shouldn't
    * miss a composite due to re-creating a device.
    */
-  virtual bool Ready() MOZ_OVERRIDE;
+  virtual bool Ready() override;
 
   /**
    * Declare an offset to use when rendering layers. This will be ignored when
    * rendering to a target instead of the screen.
    */
-  virtual void SetScreenRenderOffset(const ScreenPoint& aOffset) MOZ_OVERRIDE
+  virtual void SetScreenRenderOffset(const ScreenPoint& aOffset) override
   {
     if (aOffset.x || aOffset.y) {
       NS_RUNTIMEABORT("SetScreenRenderOffset not supported by CompositorD3D9.");
@@ -117,12 +120,12 @@ public:
     // If the offset is 0, 0 that's okay.
   }
 
-  virtual TemporaryRef<DataTextureSource>
-    CreateDataTextureSource(TextureFlags aFlags = TextureFlags::NO_FLAGS) MOZ_OVERRIDE;
+  virtual already_AddRefed<DataTextureSource>
+    CreateDataTextureSource(TextureFlags aFlags = TextureFlags::NO_FLAGS) override;
 private:
   // ensure mSize is up to date with respect to mWidget
   void EnsureSize();
-  void SetSamplerForFilter(gfx::Filter aFilter);
+  void SetSamplerForSamplingFilter(gfx::SamplingFilter aSamplingFilter);
   void PaintToTarget();
   void SetMask(const EffectChain &aEffectChain, uint32_t aMaskTexture);
   /**
@@ -136,6 +139,20 @@ private:
    */
   bool EnsureSwapChain();
 
+  already_AddRefed<IDirect3DTexture9>
+  CreateTexture(const gfx::IntRect& aRect,
+                const CompositingRenderTarget* aSource,
+                const gfx::IntPoint& aSourcePoint);
+
+  /**
+   * Complete a mix-blend step at the end of DrawQuad().
+   */
+  void FinishMixBlend(const gfx::IntRect& aBackdropRect,
+                      const gfx::Rect& aBackdropDest,
+                      const gfx::Matrix4x4& aBackdropTransform,
+                      RefPtr<IDirect3DTexture9> aBackdrop,
+                      gfx::CompositionOp aBlendMode);
+
   /**
    * DeviceManagerD3D9 keeps a count of the number of times its device is
    * reset or recreated. We keep a parallel count (mDeviceResetCount). It
@@ -147,28 +164,23 @@ private:
    */
   void CheckResetCount();
 
+  void FailedToResetDevice();
+
   void ReportFailure(const nsACString &aMsg, HRESULT aCode);
 
-  virtual gfx::IntSize GetWidgetSize() const MOZ_OVERRIDE
-  {
-    return gfx::ToIntSize(mSize);
-  }
-
   /* Device manager instance for this compositor */
-  nsRefPtr<DeviceManagerD3D9> mDeviceManager;
+  RefPtr<DeviceManagerD3D9> mDeviceManager;
 
   /* Swap chain associated with this compositor */
-  nsRefPtr<SwapChainD3D9> mSwapChain;
-
-  /* Widget associated with this layer manager */
-  nsIWidget *mWidget;
+  RefPtr<SwapChainD3D9> mSwapChain;
 
   RefPtr<CompositingRenderTargetD3D9> mDefaultRT;
   RefPtr<CompositingRenderTargetD3D9> mCurrentRT;
 
-  nsIntSize mSize;
+  LayoutDeviceIntSize mSize;
 
   uint32_t mDeviceResetCount;
+  uint32_t mFailedResetAttempts;
 };
 
 }

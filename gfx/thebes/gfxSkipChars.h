@@ -25,6 +25,9 @@
  */
 class gfxSkipChars
 {
+    friend struct SkippedRangeStartComparator;
+    friend struct SkippedRangeOffsetComparator;
+
 private:
     class SkippedRange
     {
@@ -174,17 +177,20 @@ public:
           mCurrentRangeIndex(-1),
           mOriginalStringToSkipCharsOffset(aOriginalStringToSkipCharsOffset)
     {
-          SetOriginalOffset(aOriginalStringOffset);
+        SetOriginalOffset(aOriginalStringOffset);
     }
 
-    gfxSkipCharsIterator(const gfxSkipChars& aSkipChars,
-                         int32_t aOriginalStringToSkipCharsOffset = 0)
+    explicit gfxSkipCharsIterator(const gfxSkipChars& aSkipChars,
+                                  int32_t aOriginalStringToSkipCharsOffset = 0)
         : mSkipChars(&aSkipChars),
           mOriginalStringOffset(0),
           mSkippedStringOffset(0),
-          mCurrentRangeIndex(-1),
           mOriginalStringToSkipCharsOffset(aOriginalStringToSkipCharsOffset)
-    { }
+    {
+        mCurrentRangeIndex =
+            mSkipChars->mRanges.IsEmpty() ||
+            mSkipChars->mRanges[0].Start() > 0 ? -1 : 0;
+    }
 
     gfxSkipCharsIterator(const gfxSkipCharsIterator& aIterator)
         : mSkipChars(aIterator.mSkipChars),
@@ -229,7 +235,7 @@ public:
         return GetSkippedOffset();
     }
 
-    uint32_t ConvertSkippedToOriginal(int32_t aSkippedStringOffset)
+    int32_t ConvertSkippedToOriginal(uint32_t aSkippedStringOffset)
     {
         SetSkippedOffset(aSkippedStringOffset);
         return GetOriginalOffset();

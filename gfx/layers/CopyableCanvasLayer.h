@@ -17,20 +17,15 @@
 #include "mozilla/RefPtr.h"             // for RefPtr
 #include "mozilla/gfx/2D.h"             // for DrawTarget
 #include "mozilla/mozalloc.h"           // for operator delete, etc
-#include "nsAutoPtr.h"                  // for nsRefPtr
 #include "nsISupportsImpl.h"            // for MOZ_COUNT_CTOR, etc
 
 namespace mozilla {
 
-namespace gfx {
-class SurfaceStream;
+namespace gl {
 class SharedSurface;
-class SurfaceFactory;
-}
+} // namespace gl
 
 namespace layers {
-
-class CanvasClientWebGL;
 
 /**
  * A shared CanvasLayer implementation that supports copying
@@ -40,37 +35,33 @@ class CopyableCanvasLayer : public CanvasLayer
 {
 public:
   CopyableCanvasLayer(LayerManager* aLayerManager, void *aImplData);
+
+protected:
   virtual ~CopyableCanvasLayer();
 
-  virtual void Initialize(const Data& aData);
+public:
+  virtual void Initialize(const Data& aData) override;
 
-  virtual bool IsDataValid(const Data& aData);
+  virtual bool IsDataValid(const Data& aData) override;
 
   bool IsGLLayer() { return !!mGLContext; }
 
 protected:
-  void UpdateTarget(gfx::DrawTarget* aDestTarget = nullptr);
+  RefPtr<gl::GLContext> mGLContext;
+  RefPtr<PersistentBufferProvider> mBufferProvider;
+  UniquePtr<gl::SharedSurface> mGLFrontbuffer;
 
-  RefPtr<gfx::SourceSurface> mSurface;
-  nsRefPtr<mozilla::gl::GLContext> mGLContext;
-  mozilla::RefPtr<mozilla::gfx::DrawTarget> mDrawTarget;
-
-  RefPtr<gfx::SurfaceStream> mStream;
-
-  uint32_t mCanvasFramebuffer;
-
-  bool mIsGLAlphaPremult;
-  bool mNeedsYFlip;
+  bool mIsAlphaPremultiplied;
+  gl::OriginPos mOriginPos;
+  bool mIsMirror;
 
   RefPtr<gfx::DataSourceSurface> mCachedTempSurface;
 
   gfx::DataSourceSurface* GetTempSurface(const gfx::IntSize& aSize,
                                          const gfx::SurfaceFormat aFormat);
-
-  void DiscardTempSurface();
 };
 
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 #endif

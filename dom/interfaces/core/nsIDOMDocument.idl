@@ -14,6 +14,7 @@
 #endif
 %}
 
+interface mozIDOMWindowProxy;
 interface nsIDOMNodeIterator;
 interface nsIDOMNodeFilter;
 interface nsIDOMTreeWalker;
@@ -32,7 +33,7 @@ interface nsIDOMLocation;
  * http://dvcs.w3.org/hg/domcore/raw-file/tip/Overview.html
  */
 
-[uuid(d24d1118-a527-4d5a-9c4e-fb07dfc2fc27)]
+[uuid(b15fa0f4-97c1-4388-af62-2ceff7a89bdf)]
 interface nsIDOMDocument : nsIDOMNode
 {
   readonly attribute nsIDOMDocumentType         doctype;
@@ -105,7 +106,7 @@ interface nsIDOMDocument : nsIDOMNode
    *
    * @see <http://www.whatwg.org/html/#dom-document-defaultview>
    */
-  readonly attribute nsIDOMWindow   defaultView;
+  readonly attribute mozIDOMWindowProxy   defaultView;
 
   /**
    * @see <http://www.whatwg.org/html/#dom-document-characterset>
@@ -396,9 +397,7 @@ interface nsIDOMDocument : nsIDOMNode
    * Visibility API implementation.
    */
   readonly attribute boolean hidden;
-  readonly attribute boolean mozHidden;
   readonly attribute DOMString visibilityState;
-  readonly attribute DOMString mozVisibilityState;
 
   /**
    * Returns "BackCompat" if we're in quirks mode or "CSS1Compat" if we're in

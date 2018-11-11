@@ -44,6 +44,7 @@ struct hb_ot_shape_plan_t
   hb_mask_t kern_mask;
   unsigned int has_frac : 1;
   unsigned int has_kern : 1;
+  unsigned int has_mark : 1;
 
   inline void collect_lookups (hb_tag_t table_tag, hb_set_t *lookups) const
   {
@@ -76,11 +77,13 @@ struct hb_ot_shape_planner_t
 			 map (face, &props) {}
   ~hb_ot_shape_planner_t (void) { map.finish (); }
 
-  inline void compile (hb_ot_shape_plan_t &plan)
+  inline void compile (hb_ot_shape_plan_t &plan,
+		       const int          *coords,
+		       unsigned int        num_coords)
   {
     plan.props = props;
     plan.shaper = shaper;
-    map.compile (plan.map);
+    map.compile (plan.map, coords, num_coords);
 
     plan.rtlm_mask = plan.map.get_1_mask (HB_TAG ('r','t','l','m'));
     plan.frac_mask = plan.map.get_1_mask (HB_TAG ('f','r','a','c'));
@@ -92,6 +95,7 @@ struct hb_ot_shape_planner_t
 
     plan.has_frac = plan.frac_mask || (plan.numr_mask && plan.dnom_mask);
     plan.has_kern = !!plan.kern_mask;
+    plan.has_mark = !!plan.map.get_1_mask (HB_TAG ('m','a','r','k'));
   }
 
   private:

@@ -9,11 +9,13 @@
 
 #include "jscntxt.h"
 
+#include "gc/Zone.h"
+
 namespace js {
 
 /*
  * Used to add entries to a js::HashMap or HashSet where the key depends on a GC
- * thing that may be moved by generational collection between the call to
+ * thing that may be moved by generational or compacting GC between the call to
  * lookupForAdd() and relookupOrAdd().
  */
 template <class T>
@@ -23,41 +25,61 @@ struct DependentAddPtr
     typedef typename T::Entry Entry;
 
     template <class Lookup>
-    DependentAddPtr(const ExclusiveContext *cx, const T &table, const Lookup &lookup)
+    DependentAddPtr(const ExclusiveContext* cx, const T& table, const Lookup& lookup)
       : addPtr(table.lookupForAdd(lookup))
-#ifdef JSGC_GENERATIONAL
       , originalGcNumber(cx->zone()->gcNumber())
-#endif
-        {}
+    {}
+
+    DependentAddPtr(DependentAddPtr&& other)
+      : addPtr(other.addPtr)
+      , originalGcNumber(other.originalGcNumber)
+    {}
 
     template <class KeyInput, class ValueInput>
-    bool add(const ExclusiveContext *cx, T &table, const KeyInput &key, const ValueInput &value) {
-#ifdef JSGC_GENERATIONAL
-        bool gcHappened = originalGcNumber != cx->zone()->gcNumber();
-        if (gcHappened)
-            addPtr = table.lookupForAdd(key);
-#endif
-        return table.relookupOrAdd(addPtr, key, value);
+    bool add(ExclusiveContext* cx, T& table, const KeyInput& key, const ValueInput& value) {
+        refreshAddPtr(cx, table, key);
+        if (!table.relookupOrAdd(addPtr, key, value)) {
+            ReportOutOfMemory(cx);
+            return false;
+        }
+        return true;
     }
 
-    typedef void (DependentAddPtr::* ConvertibleToBool)();
-    void nonNull() {}
+    template <class KeyInput>
+    void remove(ExclusiveContext* cx, T& table, const KeyInput& key) {
+        refreshAddPtr(cx, table, key);
+        table.remove(addPtr);
+    }
 
     bool found() const                 { return addPtr.found(); }
-    operator ConvertibleToBool() const { return found() ? &DependentAddPtr::nonNull : 0; }
-    const Entry &operator*() const     { return *addPtr; }
-    const Entry *operator->() const    { return &*addPtr; }
+    explicit operator bool() const     { return found(); }
+    const Entry& operator*() const     { return *addPtr; }
+    const Entry* operator->() const    { return &*addPtr; }
 
   private:
     AddPtr addPtr ;
-#ifdef JSGC_GENERATIONAL
     const uint64_t originalGcNumber;
-#endif
 
-    DependentAddPtr() MOZ_DELETE;
-    DependentAddPtr(const DependentAddPtr&) MOZ_DELETE;
-    DependentAddPtr& operator=(const DependentAddPtr&) MOZ_DELETE;
+    template <class KeyInput>
+    void refreshAddPtr(ExclusiveContext* cx, T& table, const KeyInput& key) {
+        bool gcHappened = originalGcNumber != cx->zone()->gcNumber();
+        if (gcHappened)
+            addPtr = table.lookupForAdd(key);
+    }
+
+    DependentAddPtr() = delete;
+    DependentAddPtr(const DependentAddPtr&) = delete;
+    DependentAddPtr& operator=(const DependentAddPtr&) = delete;
 };
+
+template <typename T, typename Lookup>
+inline auto
+MakeDependentAddPtr(const ExclusiveContext* cx, T& table, const Lookup& lookup)
+  -> DependentAddPtr<typename mozilla::RemoveReference<decltype(table)>::Type>
+{
+    using Ptr = DependentAddPtr<typename mozilla::RemoveReference<decltype(table)>::Type>;
+    return Ptr(cx, table, lookup);
+}
 
 } // namespace js
 

@@ -10,7 +10,6 @@
  * liability, trademark and document use rules apply.
  */
 
-interface Blob;
 interface InputStream;
 interface MozChannel;
 interface IID;
@@ -54,7 +53,8 @@ dictionary MozXMLHttpRequestParameters
  // things like this:
  //   c = new(window.ActiveXObject || XMLHttpRequest)("Microsoft.XMLHTTP")
  // To handle that, we need a constructor that takes a string.
- Constructor(DOMString ignored)]
+ Constructor(DOMString ignored),
+ Exposed=(Window,DedicatedWorker,SharedWorker)]
 interface XMLHttpRequest : XMLHttpRequestEventTarget {
   // event handler
   attribute EventHandler onreadystatechange;
@@ -73,7 +73,7 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   void open(ByteString method, DOMString url);
   [Throws]
   void open(ByteString method, DOMString url, boolean async,
-            optional DOMString? user, optional DOMString? password);
+            optional DOMString? user=null, optional DOMString? password=null);
   [Throws]
   void setRequestHeader(ByteString header, ByteString value);
 
@@ -83,7 +83,7 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   [SetterThrows]
   attribute boolean withCredentials;
 
-  [Throws=Workers]
+  [Throws]
   readonly attribute XMLHttpRequestUpload upload;
 
   [Throws]
@@ -102,48 +102,58 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   void send(FormData data);
   [Throws]
   void send(InputStream data);
+  [Throws]
+  void send(URLSearchParams data);
 
-  [Throws=Workers]
+  [Throws]
   void abort();
 
   // response
   readonly attribute DOMString responseURL;
 
-  [Throws=Workers]
+  [Throws]
   readonly attribute unsigned short status;
 
+  [Throws]
   readonly attribute ByteString statusText;
+
   [Throws]
   ByteString? getResponseHeader(ByteString header);
 
-  [Throws=Workers]
+  [Throws]
   ByteString getAllResponseHeaders();
 
-  [Throws=Workers]
+  [Throws]
   void overrideMimeType(DOMString mime);
 
   [SetterThrows]
   attribute XMLHttpRequestResponseType responseType;
   [Throws]
   readonly attribute any response;
-  [Throws]
+  [Cached, Pure, Throws]
   readonly attribute DOMString? responseText;
 
-  [Throws=MainThread]
+  [Throws, Exposed=Window]
   readonly attribute Document? responseXML;
 
   // Mozilla-specific stuff
 
-  [SetterThrows=Workers]
+  [ChromeOnly, SetterThrows]
   attribute boolean mozBackgroundRequest;
 
-  [ChromeOnly]
+  [ChromeOnly, Exposed=Window]
   readonly attribute MozChannel? channel;
 
-  [Throws]
-  void sendAsBinary(DOMString body);
-  [Throws, ChromeOnly]
+  // A platform-specific identifer to represent the network interface 
+  // which the HTTP request would occur on.
+  [ChromeOnly, Exposed=Window]
+  attribute ByteString? networkInterfaceId;
+
+  [Throws, ChromeOnly, Exposed=Window]
   any getInterface(IID iid);
+
+  [ChromeOnly, Exposed=Window]
+  void setOriginAttributes(optional OriginAttributesDictionary originAttributes);
 
   readonly attribute boolean mozAnon;
   readonly attribute boolean mozSystem;

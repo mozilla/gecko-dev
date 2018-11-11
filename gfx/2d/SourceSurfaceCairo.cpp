@@ -22,6 +22,8 @@ CairoFormatToSurfaceFormat(cairo_format_t format)
       return SurfaceFormat::B8G8R8A8;
     case CAIRO_FORMAT_RGB24:
       return SurfaceFormat::B8G8R8X8;
+    case CAIRO_FORMAT_RGB16_565:
+      return SurfaceFormat::R5G6B5_UINT16;
     case CAIRO_FORMAT_A8:
       return SurfaceFormat::A8;
     default:
@@ -58,7 +60,7 @@ SourceSurfaceCairo::GetFormat() const
   return mFormat;
 }
 
-TemporaryRef<DataSourceSurface>
+already_AddRefed<DataSourceSurface>
 SourceSurfaceCairo::GetDataSurface()
 {
   RefPtr<DataSourceSurface> dataSurf;
@@ -81,7 +83,7 @@ SourceSurfaceCairo::GetDataSurface()
 
   // We also need to make sure that the returned surface has
   // surface->GetType() == SurfaceType::DATA.
-  return new DataSourceSurfaceWrapper(dataSurf);
+  return MakeAndAddRef<DataSourceSurfaceWrapper>(dataSurf);
 }
 
 cairo_surface_t*
@@ -158,5 +160,5 @@ DataSourceSurfaceCairo::GetSurface() const
   return mImageSurface;
 }
 
-}
-}
+} // namespace gfx
+} // namespace mozilla

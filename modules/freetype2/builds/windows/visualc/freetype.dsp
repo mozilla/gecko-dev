@@ -7,23 +7,23 @@
 CFG=freetype - Win32 Debug Singlethreaded
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
-!MESSAGE 
+!MESSAGE
 !MESSAGE NMAKE /f "freetype.mak".
-!MESSAGE 
+!MESSAGE
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
-!MESSAGE 
+!MESSAGE
 !MESSAGE NMAKE /f "freetype.mak" CFG="freetype - Win32 Debug Singlethreaded"
-!MESSAGE 
+!MESSAGE
 !MESSAGE Possible choices for configuration are:
-!MESSAGE 
+!MESSAGE
 !MESSAGE "freetype - Win32 Release" (based on "Win32 (x86) Static Library")
 !MESSAGE "freetype - Win32 Debug" (based on "Win32 (x86) Static Library")
 !MESSAGE "freetype - Win32 Debug Multithreaded" (based on "Win32 (x86) Static Library")
 !MESSAGE "freetype - Win32 Release Multithreaded" (based on "Win32 (x86) Static Library")
 !MESSAGE "freetype - Win32 Release Singlethreaded" (based on "Win32 (x86) Static Library")
 !MESSAGE "freetype - Win32 Debug Singlethreaded" (based on "Win32 (x86) Static Library")
-!MESSAGE 
+!MESSAGE
 
 # Begin Project
 # PROP AllowPerConfigDependencies 0
@@ -54,7 +54,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo /out:"..\..\..\objs\freetype253.lib"
+# ADD LIB32 /nologo /out:"..\..\..\objs\freetype271.lib"
 
 !ELSEIF  "$(CFG)" == "freetype - Win32 Debug"
 
@@ -78,7 +78,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo /out:"..\..\..\objs\freetype253_D.lib"
+# ADD LIB32 /nologo /out:"..\..\..\objs\freetype271_D.lib"
 
 !ELSEIF  "$(CFG)" == "freetype - Win32 Debug Multithreaded"
 
@@ -102,8 +102,8 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
-# ADD BASE LIB32 /nologo /out:"lib\freetype253_D.lib"
-# ADD LIB32 /nologo /out:"..\..\..\objs\freetype253MT_D.lib"
+# ADD BASE LIB32 /nologo /out:"lib\freetype271_D.lib"
+# ADD LIB32 /nologo /out:"..\..\..\objs\freetype271MT_D.lib"
 
 !ELSEIF  "$(CFG)" == "freetype - Win32 Release Multithreaded"
 
@@ -126,8 +126,8 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
-# ADD BASE LIB32 /nologo /out:"lib\freetype253.lib"
-# ADD LIB32 /nologo /out:"..\..\..\objs\freetype253MT.lib"
+# ADD BASE LIB32 /nologo /out:"lib\freetype271.lib"
+# ADD LIB32 /nologo /out:"..\..\..\objs\freetype271MT.lib"
 
 !ELSEIF  "$(CFG)" == "freetype - Win32 Release Singlethreaded"
 
@@ -151,8 +151,8 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
-# ADD BASE LIB32 /nologo /out:"..\..\..\objs\freetype253.lib"
-# ADD LIB32 /out:"..\..\..\objs\freetype253ST.lib"
+# ADD BASE LIB32 /nologo /out:"..\..\..\objs\freetype271.lib"
+# ADD LIB32 /out:"..\..\..\objs\freetype271ST.lib"
 # SUBTRACT LIB32 /nologo
 
 !ELSEIF  "$(CFG)" == "freetype - Win32 Debug Singlethreaded"
@@ -177,10 +177,10 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
-# ADD BASE LIB32 /nologo /out:"..\..\..\objs\freetype253_D.lib"
-# ADD LIB32 /nologo /out:"..\..\..\objs\freetype253ST_D.lib"
+# ADD BASE LIB32 /nologo /out:"..\..\..\objs\freetype271_D.lib"
+# ADD LIB32 /nologo /out:"..\..\..\objs\freetype271ST_D.lib"
 
-!ENDIF 
+!ENDIF
 
 # Begin Target
 
@@ -223,6 +223,10 @@ SOURCE=..\..\..\src\base\ftbdf.c
 # Begin Source File
 
 SOURCE=..\..\..\src\base\ftbitmap.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\src\base\ftfntfmt.c
 # End Source File
 # Begin Source File
 
@@ -301,10 +305,6 @@ SOURCE=..\..\..\src\base\ftwinfnt.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\src\base\ftxf86.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\..\src\pcf\pcf.c
 # SUBTRACT CPP /Fr
 # End Source File
@@ -377,23 +377,23 @@ SOURCE=..\..\..\include\ft2build.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\include\config\ftconfig.h
+SOURCE=..\..\..\include\freetype\config\ftconfig.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\include\config\ftheader.h
+SOURCE=..\..\..\include\freetype\config\ftheader.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\include\config\ftmodule.h
+SOURCE=..\..\..\include\freetype\config\ftmodule.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\include\config\ftoption.h
+SOURCE=..\..\..\include\freetype\config\ftoption.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\include\config\ftstdlib.h
+SOURCE=..\..\..\include\freetype\config\ftstdlib.h
 # End Source File
 # End Group
 # End Target

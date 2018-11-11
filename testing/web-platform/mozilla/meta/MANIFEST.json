@@ -1,0 +1,28 @@
+{
+  "items": {
+    "manual": [],
+    "reftest": [],
+    "stub": [],
+    "testharness": [],
+    "wdspec": []
+  },
+  "local_changes": {
+    "deleted": [],
+    "deleted_reftests": {},
+    "items": {
+      "testharness": {
+        "html/syntax/parsing/math-parse01.html": [
+          {
+            "path": "html/syntax/parsing/math-parse01.html",
+            "url": "/_mozilla/html/syntax/parsing/math-parse01.html"
+          }
+        ]
+      }
+    },
+    "reftest_nodes": {}
+  },
+  "reftest_nodes": {},
+  "rev": null,
+  "url_base": "/_mozilla/",
+  "version": 3
+}

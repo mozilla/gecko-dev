@@ -7,12 +7,12 @@
 #ifndef nsWindowMemoryReporter_h__
 #define nsWindowMemoryReporter_h__
 
+#include "nsGlobalWindow.h"
 #include "nsIMemoryReporter.h"
 #include "nsIObserver.h"
 #include "nsITimer.h"
 #include "nsDataHashtable.h"
 #include "nsWeakReference.h"
-#include "nsAutoPtr.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/MemoryReporting.h"
@@ -36,7 +36,7 @@ class nsWindowSizes {
   macro(Other, mPropertyTablesSize) \
 
 public:
-  nsWindowSizes(mozilla::MallocSizeOf aMallocSizeOf)
+  explicit nsWindowSizes(mozilla::MallocSizeOf aMallocSizeOf)
     :
       #define ZERO_SIZE(kind, mSize)  mSize(0),
       FOR_EACH_SIZE(ZERO_SIZE)
@@ -139,9 +139,9 @@ public:
  *   the tab.
  *
  */
-class nsWindowMemoryReporter MOZ_FINAL : public nsIMemoryReporter,
-                                         public nsIObserver,
-                                         public nsSupportsWeakReference
+class nsWindowMemoryReporter final : public nsIMemoryReporter,
+                                     public nsIObserver,
+                                     public nsSupportsWeakReference
 {
 public:
   NS_DECL_ISUPPORTS
@@ -149,8 +149,6 @@ public:
   NS_DECL_NSIOBSERVER
 
   static void Init();
-
-  ~nsWindowMemoryReporter();
 
 #ifdef DEBUG
   /**
@@ -160,22 +158,29 @@ public:
   static void UnlinkGhostWindows();
 #endif
 
+  static nsWindowMemoryReporter* Get();
+  void ObserveDOMWindowDetached(nsGlobalWindow* aWindow);
+
 private:
+  ~nsWindowMemoryReporter();
+
   /**
    * nsGhostWindowReporter generates the "ghost-windows" report, which counts
    * the number of ghost windows present.
    */
-  class GhostWindowsReporter MOZ_FINAL : public nsIMemoryReporter
+  class GhostWindowsReporter final : public nsIMemoryReporter
   {
+    ~GhostWindowsReporter() {}
   public:
     NS_DECL_ISUPPORTS
 
     static int64_t DistinguishedAmount();
 
     NS_IMETHOD
-    CollectReports(nsIHandleReportCallback* aHandleReport, nsISupports* aData)
+    CollectReports(nsIHandleReportCallback* aHandleReport, nsISupports* aData,
+                   bool aAnonymize) override
     {
-      return MOZ_COLLECT_REPORT(
+      MOZ_COLLECT_REPORT(
         "ghost-windows", KIND_OTHER, UNITS_COUNT, DistinguishedAmount(),
 "The number of ghost windows present (the number of nodes underneath "
 "explicit/window-objects/top(none)/ghost, modulo race conditions).  A ghost "
@@ -185,6 +190,8 @@ private:
 "about:memory's minimize memory usage button.\n\n"
 "Ghost windows can happen legitimately, but they are often indicative of "
 "leaks in the browser or add-ons.");
+
+      return NS_OK;
     }
   };
 
@@ -197,7 +204,6 @@ private:
    */
   uint32_t GetGhostTimeout();
 
-  void ObserveDOMWindowDetached(nsISupports* aWindow);
   void ObserveAfterMinimizeMemoryUsage();
 
   /**

@@ -1,0 +1,54 @@
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+include('../templates.mozbuild')
+
+DIRS += [
+    'aboutdebugging',
+    'animationinspector',
+    'canvasdebugger',
+    'commandline',
+    'debugger',
+    'dom',
+    'framework',
+    'inspector',
+    'jsonview',
+    'locales',
+    'memory',
+    'netmonitor',
+    'performance',
+    'preferences',
+    'projecteditor',
+    'responsive.html',
+    'responsivedesign',
+    'scratchpad',
+    'shadereditor',
+    'shared',
+    'shims',
+    'sourceeditor',
+    'storage',
+    'styleeditor',
+    'themes',
+    'webaudioeditor',
+    'webconsole',
+    'webide',
+]
+
+# Shim old theme paths used by DevTools add-ons
+if CONFIG['MOZ_BUILD_APP'] == 'browser':
+    DIRS += ['themes/shims']
+
+EXTRA_COMPONENTS += [
+    'devtools-startup.js',
+    'devtools-startup.manifest',
+]
+
+JAR_MANIFESTS += ['jar.mn']
+
+DevToolsModules(
+    'definitions.js',
+    'menus.js',
+)

@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
- 
+
 /**
  * Test for bug 549340.
  * Test for browser.js::contentAreaClick() util.
@@ -14,7 +14,7 @@
  * correctly prevent default events, and follows the correct code path.
  */
 
-let gTests = [
+var gTests = [
 
   {
     desc: "Simple left click",
@@ -45,7 +45,7 @@ let gTests = [
       gPrefService.setBoolPref("browser.altClickSave", true);
     },
     clean: function() {
-      gPrefService.clearUserPref("browser.altClickSave"); 
+      gPrefService.clearUserPref("browser.altClickSave");
     },
     event: { shiftKey: true,
              altKey: true },
@@ -60,7 +60,7 @@ let gTests = [
       gPrefService.setBoolPref("browser.altClickSave", true);
     },
     clean: function() {
-      gPrefService.clearUserPref("browser.altClickSave"); 
+      gPrefService.clearUserPref("browser.altClickSave");
     },
     event: { shiftKey: true,
              altKey: true },
@@ -85,7 +85,7 @@ let gTests = [
       gPrefService.setBoolPref("browser.altClickSave", true);
     },
     clean: function() {
-      gPrefService.clearUserPref("browser.altClickSave"); 
+      gPrefService.clearUserPref("browser.altClickSave");
     },
     event: { altKey: true },
     targets: [ "commonlink", "maplink" ],
@@ -99,7 +99,7 @@ let gTests = [
       gPrefService.setBoolPref("browser.altClickSave", true);
     },
     clean: function() {
-      gPrefService.clearUserPref("browser.altClickSave"); 
+      gPrefService.clearUserPref("browser.altClickSave");
     },
     event: { altKey: true },
     targets: [ "mathxlink", "svgxlink" ],
@@ -160,7 +160,7 @@ let gTests = [
 ];
 
 // Array of method names that will be replaced in the new window.
-let gReplacedMethods = [
+var gReplacedMethods = [
   "middleMousePaste",
   "urlSecurityCheck",
   "loadURI",
@@ -171,13 +171,13 @@ let gReplacedMethods = [
 ];
 
 // Reference to the new window.
-let gTestWin = null;
+var gTestWin = null;
 
 // List of methods invoked by a specific call to contentAreaClick.
-let gInvokedMethods = [];
+var gInvokedMethods = [];
 
 // The test currently running.
-let gCurrentTest = null;
+var gCurrentTest = null;
 
 function test() {
   waitForExplicitFinish();
@@ -198,7 +198,7 @@ function test() {
 }
 
 // Click handler used to steal click events.
-let gClickHandler = {
+var gClickHandler = {
   handleEvent: function (event) {
     let linkId = event.target.id || event.target.localName;
     is(event.type, "click",
@@ -215,10 +215,10 @@ let gClickHandler = {
       isnot(gInvokedMethods.indexOf(aExpectedMethodName), -1,
             gCurrentTest.desc + ":" + aExpectedMethodName + " was invoked");
     });
-    
+
     if (gInvokedMethods.length != gCurrentTest.expectedInvokedMethods.length) {
       ok(false, "Wrong number of invoked methods");
-      gInvokedMethods.forEach(function (method) info(method + " was invoked"));
+      gInvokedMethods.forEach(method => info(method + " was invoked"));
     }
 
     event.preventDefault();

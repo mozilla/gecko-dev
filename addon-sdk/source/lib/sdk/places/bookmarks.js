@@ -7,7 +7,8 @@
 module.metadata = {
   "stability": "unstable",
   "engines": {
-    "Firefox": "*"
+    "Firefox": "*",
+    "SeaMonkey": "*"
   }
 };
 
@@ -61,7 +62,7 @@ const Bookmark = Class({
     merge(this, bookmarkContract(extend(defaults, options)));
   },
   type: 'bookmark',
-  toString: function () '[object Bookmark]'
+  toString: () => '[object Bookmark]'
 });
 exports.Bookmark = Bookmark;
 
@@ -77,7 +78,7 @@ const Group = Class({
       merge(this, groupContract(extend(defaults, options)));
   },
   type: 'group',
-  toString: function () '[object Group]'
+  toString: () => '[object Group]'
 });
 exports.Group = Group;
 
@@ -89,7 +90,7 @@ const Separator = Class({
     merge(this, separatorContract(extend(defaults, options)));
   },
   type: 'separator',
-  toString: function () '[object Separator]'
+  toString: () => '[object Separator]'
 });
 exports.Separator = Separator;
 
@@ -374,13 +375,13 @@ function getId (item) {
  * Set up the default, root groups
  */
 
-let defaultGroupMap = {
+var defaultGroupMap = {
   MENU: bmsrv.bookmarksMenuFolder,
   TOOLBAR: bmsrv.toolbarFolder,
   UNSORTED: bmsrv.unfiledBookmarksFolder
 };
 
-let rootGroups = new Map();
+var rootGroups = new Map();
 
 for (let i in defaultGroupMap) {
   let group = Object.freeze(Group({ title: i, id: defaultGroupMap[i] }));
@@ -388,7 +389,7 @@ for (let i in defaultGroupMap) {
   exports[i] = group;
 }
 
-let defaults = {
+var defaults = {
   group: exports.UNSORTED,
   index: -1
 };

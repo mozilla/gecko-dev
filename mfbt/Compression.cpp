@@ -7,11 +7,20 @@
 #include "mozilla/Compression.h"
 #include "mozilla/CheckedInt.h"
 
+// Without including <string>, MSVC 2015 complains about e.g. the impossibility
+// to convert `const void* const` to `void*` when calling memchr from
+// corecrt_memory.h.
+#include <string>
+
 using namespace mozilla::Compression;
 
 namespace {
 
+extern "C" {
+
 #include "lz4.c"
+
+}
 
 }/* anonymous namespace */
 
@@ -22,7 +31,8 @@ LZ4::compress(const char* aSource, size_t aInputSize, char* aDest)
 {
   CheckedInt<int> inputSizeChecked = aInputSize;
   MOZ_ASSERT(inputSizeChecked.isValid());
-  return LZ4_compress(aSource, aDest, inputSizeChecked.value());
+  return LZ4_compress_default(aSource, aDest, inputSizeChecked.value(),
+                              LZ4_compressBound(inputSizeChecked.value()));
 }
 
 size_t
@@ -33,8 +43,8 @@ LZ4::compressLimitedOutput(const char* aSource, size_t aInputSize, char* aDest,
   MOZ_ASSERT(inputSizeChecked.isValid());
   CheckedInt<int> maxOutputSizeChecked = aMaxOutputSize;
   MOZ_ASSERT(maxOutputSizeChecked.isValid());
-  return LZ4_compress_limitedOutput(aSource, aDest, inputSizeChecked.value(),
-                                    maxOutputSizeChecked.value());
+  return LZ4_compress_default(aSource, aDest, inputSizeChecked.value(),
+                              maxOutputSizeChecked.value());
 }
 
 bool
@@ -48,7 +58,7 @@ LZ4::decompress(const char* aSource, char* aDest, size_t aOutputSize)
 
 bool
 LZ4::decompress(const char* aSource, size_t aInputSize, char* aDest,
-                size_t aMaxOutputSize, size_t *aOutputSize)
+                size_t aMaxOutputSize, size_t* aOutputSize)
 {
   CheckedInt<int> maxOutputSizeChecked = aMaxOutputSize;
   MOZ_ASSERT(maxOutputSizeChecked.isValid());

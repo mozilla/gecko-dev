@@ -16,19 +16,19 @@ const NEW_TSTAMP = 1396046918000;
 
 const gAppDir = FileUtils.getFile(KEY_APPDIR, []);
 
-let oldAddon = {
+var oldAddon = {
   id: "old@tests.mozilla.org",
   version: 1
 }
-let newAddon = {
+var newAddon = {
   id: "new@tests.mozilla.org",
   version: 1
 }
-let ancientAddon = {
+var ancientAddon = {
   id: "ancient@tests.mozilla.org",
   version: 1
 }
-let invalidAddon = {
+var invalidAddon = {
   id: "invalid@tests.mozilla.org",
   version: 1
 }
@@ -187,8 +187,8 @@ add_test(function test_missing() {
   startupManager(false);
 
   reloadBlocklist();
-  let blocklist = AM_Cc["@mozilla.org/extensions/blocklist;1"].
-                  getService(AM_Ci.nsIBlocklistService);
+  blocklist = AM_Cc["@mozilla.org/extensions/blocklist;1"].
+              getService(AM_Ci.nsIBlocklistService);
   do_check_false(blocklist.isAddonBlocklisted(invalidAddon));
   do_check_false(blocklist.isAddonBlocklisted(ancientAddon));
   do_check_true(blocklist.isAddonBlocklisted(oldAddon));

@@ -7,29 +7,49 @@ this.EXPORTED_SYMBOLS = ["PermissionsUtils"];
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/BrowserUtils.jsm")
 
 
-let gImportedPrefBranches = new Set();
+var gImportedPrefBranches = new Set();
 
 function importPrefBranch(aPrefBranch, aPermission, aAction) {
   let list = Services.prefs.getChildList(aPrefBranch, {});
 
   for (let pref of list) {
-    let hosts = "";
+    let origins = "";
     try {
-      hosts = Services.prefs.getCharPref(pref);
+      origins = Services.prefs.getCharPref(pref);
     } catch (e) {}
 
-    if (!hosts)
+    if (!origins)
       continue;
 
-    hosts = hosts.split(",");
+    origins = origins.split(",");
 
-    for (let host of hosts) {
+    for (let origin of origins) {
+      let principals = [];
       try {
-        let uri = Services.io.newURI("http://" + host, null, null);
-        Services.perms.add(uri, aPermission, aAction);
-      } catch (e) {}
+        principals = [ Services.scriptSecurityManager.createCodebasePrincipalFromOrigin(origin) ];
+      } catch (e) {
+        // This preference used to contain a list of hosts. For back-compat
+        // reasons, we convert these hosts into http:// and https:// permissions
+        // on default ports.
+        try {
+          let httpURI = Services.io.newURI("http://" + origin, null, null);
+          let httpsURI = Services.io.newURI("https://" + origin, null, null);
+
+          principals = [
+            Services.scriptSecurityManager.createCodebasePrincipal(httpURI, {}),
+            Services.scriptSecurityManager.createCodebasePrincipal(httpsURI, {})
+          ];
+        } catch (e2) {}
+      }
+
+      for (let principal of principals) {
+        try {
+          Services.perms.addFromPrincipal(principal, aPermission, aAction);
+        } catch (e) {}
+      }
     }
 
     Services.prefs.setCharPref(pref, "");

@@ -9,6 +9,7 @@
 #ifndef mozilla_Alignment_h
 #define mozilla_Alignment_h
 
+#include "mozilla/Attributes.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -64,8 +65,8 @@ template<size_t Align>
 struct AlignedElem;
 
 /*
- * We have to specialize this template because GCC doesn't like __attribute__((aligned(foo))) where
- * foo is a template parameter.
+ * We have to specialize this template because GCC doesn't like
+ * __attribute__((aligned(foo))) where foo is a template parameter.
  */
 
 template<>
@@ -119,10 +120,17 @@ struct AlignedStorage
 
   const void* addr() const { return u.mBytes; }
   void* addr() { return u.mBytes; }
+
+  AlignedStorage() = default;
+
+  // AlignedStorage is non-copyable: the default copy constructor violates
+  // strict aliasing rules, per bug 1269319.
+  AlignedStorage(const AlignedStorage&) = delete;
+  void operator=(const AlignedStorage&) = delete;
 };
 
 template<typename T>
-struct AlignedStorage2
+struct MOZ_INHERIT_TYPE_ANNOTATIONS_FROM_TEMPLATE_ARGS AlignedStorage2
 {
   union U
   {
@@ -132,6 +140,13 @@ struct AlignedStorage2
 
   const T* addr() const { return reinterpret_cast<const T*>(u.mBytes); }
   T* addr() { return static_cast<T*>(static_cast<void*>(u.mBytes)); }
+
+  AlignedStorage2() = default;
+
+  // AlignedStorage2 is non-copyable: the default copy constructor violates
+  // strict aliasing rules, per bug 1269319.
+  AlignedStorage2(const AlignedStorage2&) = delete;
+  void operator=(const AlignedStorage2&) = delete;
 };
 
 } /* namespace mozilla */

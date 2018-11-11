@@ -12,8 +12,8 @@ dictionary NetworkInterface {
  */
 [Constructor(optional NetworkInterface networkinterface),
  JSImplementation="@mozilla.org/networkstatsinterface;1",
- Pref="dom.mozNetworkStats.enabled",
- Func="Navigator::HasNetworkStatsSupport"]
+ ChromeOnly, 
+ Pref="dom.mozNetworkStats.enabled"]
 interface MozNetworkStatsInterface {
   readonly attribute long type;
 

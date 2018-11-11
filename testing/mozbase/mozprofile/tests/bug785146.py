@@ -12,6 +12,7 @@ import tempfile
 import unittest
 from mozprofile.permissions import Permissions
 
+
 class PermissionsTest(unittest.TestCase):
 
     locations = """http://mochi.test:8888  primary,privileged
@@ -44,7 +45,7 @@ http://127.0.0.1:8888           privileged
         entries = cur.fetchall()
 
         schema_version = entries[0][0]
-        self.assertEqual(schema_version, 2)
+        self.assertEqual(schema_version, 5)
 
 if __name__ == '__main__':
     unittest.main()

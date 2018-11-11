@@ -10,7 +10,6 @@
 // Interfaces
 #include "nsCOMPtr.h"
 #include "nsIPresShell.h"
-#include "nsStyleSet.h"
 #include "nsViewManager.h"
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeOwner.h"
@@ -44,13 +43,13 @@ public:
   nsCOMPtr<nsIDocShellTreeOwner> mTreeOwner;
   nsCOMPtr<nsIDocument>    mDocument;
 
-  nsRefPtr<nsPresContext>  mPresContext;
+  RefPtr<nsPresContext>  mPresContext;
   nsCOMPtr<nsIPresShell>   mPresShell;
-  nsRefPtr<nsViewManager> mViewManager;
+  RefPtr<nsViewManager> mViewManager;
 
   nsCOMPtr<nsIContent>     mContent;
   PrintObjectType  mFrameType;
-  
+
   nsTArray<nsPrintObject*> mKids;
   nsPrintObject*   mParent;
   bool             mHasBeenPrinted;
@@ -63,7 +62,7 @@ public:
   float            mZoomRatio;
 
 private:
-  nsPrintObject& operator=(const nsPrintObject& aOther) MOZ_DELETE;
+  nsPrintObject& operator=(const nsPrintObject& aOther) = delete;
 };
 
 

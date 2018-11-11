@@ -1,6 +1,8 @@
 amazondotcom
-google
+google:hidden
+google-nocodes
 twitter
 wikipedia
 yahoo
 bing
+duckduckgo

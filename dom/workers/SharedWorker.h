@@ -1,4 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,35 +10,35 @@
 #include "Workers.h"
 
 #include "mozilla/dom/BindingDeclarations.h"
-#include "mozilla/dom/workers/bindings/MessagePort.h"
 #include "mozilla/DOMEventTargetHelper.h"
 
 class nsIDOMEvent;
-class nsPIDOMWindow;
+class nsPIDOMWindowInner;
 
 namespace mozilla {
 class EventChainPreVisitor;
+
+namespace dom {
+class MessagePort;
+}
 } // namespace mozilla
 
 BEGIN_WORKERS_NAMESPACE
 
-class MessagePort;
 class RuntimeService;
 class WorkerPrivate;
 
-class SharedWorker MOZ_FINAL : public DOMEventTargetHelper
+class SharedWorker final : public DOMEventTargetHelper
 {
-  friend class MessagePort;
   friend class RuntimeService;
 
   typedef mozilla::ErrorResult ErrorResult;
   typedef mozilla::dom::GlobalObject GlobalObject;
 
-  nsRefPtr<WorkerPrivate> mWorkerPrivate;
-  nsRefPtr<MessagePort> mMessagePort;
-  nsTArray<nsCOMPtr<nsIDOMEvent>> mSuspendedEvents;
-  uint64_t mSerial;
-  bool mSuspended;
+  RefPtr<WorkerPrivate> mWorkerPrivate;
+  RefPtr<MessagePort> mMessagePort;
+  nsTArray<nsCOMPtr<nsIDOMEvent>> mFrozenEvents;
+  bool mFrozen;
 
 public:
   static already_AddRefed<SharedWorker>
@@ -45,26 +46,20 @@ public:
               const nsAString& aScriptURL, const Optional<nsAString>& aName,
               ErrorResult& aRv);
 
-  already_AddRefed<MessagePort>
+  MessagePort*
   Port();
 
-  uint64_t
-  Serial() const
-  {
-    return mSerial;
-  }
-
   bool
-  IsSuspended() const
+  IsFrozen() const
   {
-    return mSuspended;
+    return mFrozen;
   }
 
   void
-  Suspend();
+  Freeze();
 
   void
-  Resume();
+  Thaw();
 
   void
   QueueEvent(nsIDOMEvent* aEvent);
@@ -78,10 +73,10 @@ public:
   IMPL_EVENT_HANDLER(error)
 
   virtual JSObject*
-  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   virtual nsresult
-  PreHandleEvent(EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
+  PreHandleEvent(EventChainPreVisitor& aVisitor) override;
 
   WorkerPrivate*
   GetWorkerPrivate() const
@@ -91,8 +86,9 @@ public:
 
 private:
   // This class can only be created from the RuntimeService.
-  SharedWorker(nsPIDOMWindow* aWindow,
-               WorkerPrivate* aWorkerPrivate);
+  SharedWorker(nsPIDOMWindowInner* aWindow,
+               WorkerPrivate* aWorkerPrivate,
+               MessagePort* aMessagePort);
 
   // This class is reference-counted and will be destroyed from Release().
   ~SharedWorker();
@@ -102,10 +98,6 @@ private:
   PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
               const Optional<Sequence<JS::Value>>& aTransferable,
               ErrorResult& aRv);
-
-  // Only called by RuntimeService.
-  void
-  NoteDeadWorker(JSContext* aCx);
 };
 
 END_WORKERS_NAMESPACE

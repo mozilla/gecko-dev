@@ -7,10 +7,6 @@
  * nsWindowGfx - Painting and aceleration.
  */
 
-// XXX Future: this should really be a stand alone class stored as
-// a member of nsWindow with getters and setters for things like render
-// mode and methods for handling paint.
-
 /**************************************************************
  **************************************************************
  **
@@ -21,11 +17,14 @@
  **************************************************************
  **************************************************************/
 
+#include "mozilla/dom/ContentParent.h"
 #include "mozilla/plugins/PluginInstanceParent.h"
 using mozilla::plugins::PluginInstanceParent;
 
 #include "nsWindowGfx.h"
+#include "nsAppRunner.h"
 #include <windows.h>
+#include "gfxEnv.h"
 #include "gfxImageSurface.h"
 #include "gfxUtils.h"
 #include "gfxWindowsSurface.h"
@@ -34,35 +33,28 @@ using mozilla::plugins::PluginInstanceParent;
 #include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "mozilla/gfx/Tools.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/UniquePtrExtensions.h"
 #include "nsGfxCIID.h"
 #include "gfxContext.h"
-#include "nsRenderingContext.h"
 #include "prmem.h"
 #include "WinUtils.h"
 #include "nsIWidgetListener.h"
-#include "mozilla/unused.h"
+#include "mozilla/Unused.h"
+#include "nsDebug.h"
+#include "nsIXULRuntime.h"
 
-#ifdef MOZ_ENABLE_D3D9_LAYER
-#include "LayerManagerD3D9.h"
-#endif
-#ifdef MOZ_ENABLE_D3D10_LAYER
-#include "LayerManagerD3D10.h"
-#endif
-#include "mozilla/layers/CompositorParent.h"
+#include "mozilla/layers/CompositorBridgeParent.h"
+#include "mozilla/layers/CompositorBridgeChild.h"
 #include "ClientLayerManager.h"
 
 #include "nsUXThemeData.h"
 #include "nsUXThemeConstants.h"
 
-extern "C" {
-#define PIXMAN_DONT_DEFINE_STDINT
-#include "pixman.h"
-}
-
 using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::layers;
 using namespace mozilla::widget;
+using namespace mozilla::plugins;
 
 /**************************************************************
  **************************************************************
@@ -80,8 +72,8 @@ using namespace mozilla::widget;
  *
  **************************************************************/
 
-static nsAutoPtr<uint8_t>  sSharedSurfaceData;
-static gfxIntSize          sSharedSurfaceSize;
+static UniquePtr<uint8_t[]> sSharedSurfaceData;
+static IntSize             sSharedSurfaceSize;
 
 struct IconMetrics {
   int32_t xMetric;
@@ -94,22 +86,6 @@ static IconMetrics sIconMetrics[] = {
   {SM_CXSMICON, SM_CYSMICON, 16}, // small icon
   {SM_CXICON,   SM_CYICON,   32}  // regular icon
 };
-
-/**************************************************************
- **************************************************************
- **
- ** BLOCK: nsWindowGfx impl.
- **
- ** Misc. graphics related utilities.
- **
- **************************************************************
- **************************************************************/
-
-/* static */ bool
-nsWindow::IsRenderMode(gfxWindowsPlatform::RenderMode rmode)
-{
-  return gfxWindowsPlatform::GetPlatform()->GetRenderMode() == rmode;
-}
 
 /**************************************************************
  **************************************************************
@@ -148,9 +124,9 @@ nsIntRegion nsWindow::GetRegionToPaint(bool aForceFullRepaint,
 
 #define WORDSSIZE(x) ((x).width * (x).height)
 static bool
-EnsureSharedSurfaceSize(gfxIntSize size)
+EnsureSharedSurfaceSize(IntSize size)
 {
-  gfxIntSize screenSize;
+  IntSize screenSize;
   screenSize.height = GetSystemMetrics(SM_CYSCREEN);
   screenSize.width = GetSystemMetrics(SM_CXSCREEN);
 
@@ -162,11 +138,11 @@ EnsureSharedSurfaceSize(gfxIntSize size)
 
   if (!sSharedSurfaceData || (WORDSSIZE(size) > WORDSSIZE(sSharedSurfaceSize))) {
     sSharedSurfaceSize = size;
-    sSharedSurfaceData = nullptr;
-    sSharedSurfaceData = (uint8_t *)malloc(WORDSSIZE(sSharedSurfaceSize) * 4);
+    sSharedSurfaceData =
+      MakeUniqueFallible<uint8_t[]>(WORDSSIZE(sSharedSurfaceSize) * 4);
   }
 
-  return (sSharedSurfaceData != nullptr);
+  return !sSharedSurfaceData;
 }
 
 nsIWidgetListener* nsWindow::GetPaintListener()
@@ -174,6 +150,15 @@ nsIWidgetListener* nsWindow::GetPaintListener()
   if (mDestroyCalled)
     return nullptr;
   return mAttachedWidgetListener ? mAttachedWidgetListener : mWidgetListener;
+}
+
+void nsWindow::ForcePresent()
+{
+  if (mResizeState != RESIZING) {
+    if (CompositorBridgeChild* remoteRenderer = GetRemoteRenderer()) {
+      remoteRenderer->SendForcePresent();
+    }
+  }
 }
 
 bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
@@ -185,14 +170,26 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
   if (mozilla::ipc::MessageChannel::IsSpinLoopActive() && mPainting)
     return false;
 
-  if (mWindowType == eWindowType_plugin) {
+  DeviceResetReason resetReason = DeviceResetReason::OK;
+  if (gfxWindowsPlatform::GetPlatform()->DidRenderingDeviceReset(&resetReason)) {
 
-    /**
-     * After we CallUpdateWindow to the child, occasionally a WM_PAINT message
-     * is posted to the parent event loop with an empty update rect. Do a
-     * dummy paint so that Windows stops dispatching WM_PAINT in an inifinite
-     * loop. See bug 543788.
-     */
+    gfxCriticalNote << "(nsWindow) Detected device reset: " << (int)resetReason;
+
+    gfxWindowsPlatform::GetPlatform()->UpdateRenderMode();
+    EnumAllWindows([] (nsWindow* aWindow) -> void {
+      aWindow->OnRenderingDeviceReset();
+    });
+
+    gfxCriticalNote << "(nsWindow) Finished device reset.";
+
+    return false;
+  }
+
+  // After we CallUpdateWindow to the child, occasionally a WM_PAINT message
+  // is posted to the parent event loop with an empty update rect. Do a
+  // dummy paint so that Windows stops dispatching WM_PAINT in an inifinite
+  // loop. See bug 543788.
+  if (IsPlugin()) {
     RECT updateRect;
     if (!GetUpdateRect(mWnd, &updateRect, FALSE) ||
         (updateRect.left == updateRect.right &&
@@ -203,10 +200,17 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
       return true;
     }
 
+    if (mWindowType == eWindowType_plugin_ipc_chrome) {
+      // Fire off an async request to the plugin to paint its window
+      mozilla::dom::ContentParent::SendAsyncUpdate(this);
+      ValidateRect(mWnd, nullptr);
+      return true;
+    }
+
     PluginInstanceParent* instance = reinterpret_cast<PluginInstanceParent*>(
       ::GetPropW(mWnd, L"PluginInstanceParentProperty"));
     if (instance) {
-      unused << instance->CallUpdateWindow();
+      Unused << instance->CallUpdateWindow();
     } else {
       // We should never get here since in-process plugins should have
       // subclassed our HWND and handled WM_PAINT, but in some cases that
@@ -218,17 +222,12 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
     return true;
   }
 
-  ClientLayerManager *clientLayerManager =
-      (GetLayerManager()->GetBackendType() == LayersBackend::LAYERS_CLIENT)
-      ? static_cast<ClientLayerManager*>(GetLayerManager())
-      : nullptr;
+  ClientLayerManager *clientLayerManager = GetLayerManager()->AsClientLayerManager();
 
-  if (clientLayerManager && mCompositorParent &&
-      !mBounds.IsEqualEdges(mLastPaintBounds))
-  {
+  if (clientLayerManager && !mBounds.IsEqualEdges(mLastPaintBounds)) {
     // Do an early async composite so that we at least have something on the
     // screen in the right place, even if the content is out of date.
-    mCompositorParent->ScheduleRenderOnCompositorThread();
+    clientLayerManager->Composite();
   }
   mLastPaintBounds = mBounds;
 
@@ -246,7 +245,8 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
     ::BeginPaint(mWnd, &ps);
     ::EndPaint(mWnd, &ps);
 
-    aDC = mMemoryDC;
+    // We're guaranteed to have a widget proxy since we called GetLayerManager().
+    aDC = mCompositorWidgetDelegate->GetTransparentDC();
   }
 #endif
 
@@ -274,12 +274,14 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
 #endif
   nsIntRegion region = GetRegionToPaint(forceRepaint, ps, hDC);
 
-  if (clientLayerManager && mCompositorParent) {
+  if (clientLayerManager) {
     // We need to paint to the screen even if nothing changed, since if we
     // don't have a compositing window manager, our pixels could be stale.
     clientLayerManager->SetNeedsComposite(true);
     clientLayerManager->SendInvalidRegion(region);
   }
+
+  RefPtr<nsWindow> strongThis(this);
 
   nsIWidgetListener* listener = GetPaintListener();
   if (listener) {
@@ -291,8 +293,8 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
     return false;
   }
 
-  if (clientLayerManager && mCompositorParent && clientLayerManager->NeedsComposite()) {
-    mCompositorParent->ScheduleRenderOnCompositorThread();
+  if (clientLayerManager && clientLayerManager->NeedsComposite()) {
+    clientLayerManager->Composite();
     clientLayerManager->SetNeedsComposite(false);
   }
 
@@ -306,61 +308,29 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
     debug_DumpPaintEvent(stdout,
                          this,
                          region,
-                         nsAutoCString("noname"),
+                         "noname",
                          (int32_t) mWnd);
 #endif // WIDGET_DEBUG_OUTPUT
 
     switch (GetLayerManager()->GetBackendType()) {
       case LayersBackend::LAYERS_BASIC:
         {
-          nsRefPtr<gfxASurface> targetSurface;
+          RefPtr<gfxASurface> targetSurface;
 
 #if defined(MOZ_XUL)
           // don't support transparency for non-GDI rendering, for now
-          if ((IsRenderMode(gfxWindowsPlatform::RENDER_GDI) ||
-               IsRenderMode(gfxWindowsPlatform::RENDER_DIRECT2D)) &&
-              eTransparencyTransparent == mTransparencyMode) {
-            if (mTransparentSurface == nullptr)
-              SetupTranslucentWindowMemoryBitmap(mTransparencyMode);
-            targetSurface = mTransparentSurface;
+          if (eTransparencyTransparent == mTransparencyMode) {
+            targetSurface = mBasicLayersSurface->EnsureTransparentSurface();
           }
 #endif
 
-          nsRefPtr<gfxWindowsSurface> targetSurfaceWin;
-          if (!targetSurface &&
-              (IsRenderMode(gfxWindowsPlatform::RENDER_GDI) ||
-               IsRenderMode(gfxWindowsPlatform::RENDER_DIRECT2D)))
+          RefPtr<gfxWindowsSurface> targetSurfaceWin;
+          if (!targetSurface)
           {
             uint32_t flags = (mTransparencyMode == eTransparencyOpaque) ? 0 :
                 gfxWindowsSurface::FLAG_IS_TRANSPARENT;
             targetSurfaceWin = new gfxWindowsSurface(hDC, flags);
             targetSurface = targetSurfaceWin;
-          }
-
-          nsRefPtr<gfxImageSurface> targetSurfaceImage;
-          if (!targetSurface &&
-              (IsRenderMode(gfxWindowsPlatform::RENDER_IMAGE_STRETCH32) ||
-               IsRenderMode(gfxWindowsPlatform::RENDER_IMAGE_STRETCH24)))
-          {
-            gfxIntSize surfaceSize(ps.rcPaint.right - ps.rcPaint.left,
-                                   ps.rcPaint.bottom - ps.rcPaint.top);
-
-            if (!EnsureSharedSurfaceSize(surfaceSize)) {
-              NS_ERROR("Couldn't allocate a shared image surface!");
-              return false;
-            }
-
-            // don't use the shared surface directly; instead, create a new one
-            // that just reuses its buffer.
-            targetSurfaceImage = new gfxImageSurface(sSharedSurfaceData.get(),
-                                                     surfaceSize,
-                                                     surfaceSize.width * 4,
-                                                     gfxImageFormat::RGB24);
-
-            if (targetSurfaceImage && !targetSurfaceImage->CairoStatus()) {
-              targetSurfaceImage->SetDeviceOffset(gfxPoint(-ps.rcPaint.left, -ps.rcPaint.top));
-              targetSurface = targetSurfaceImage;
-            }
           }
 
           if (!targetSurface) {
@@ -374,175 +344,62 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
             gfxPlatform::GetPlatform()->CreateDrawTargetForSurface(targetSurface,
                                                                    IntSize(paintRect.right - paintRect.left,
                                                                    paintRect.bottom - paintRect.top));
-          nsRefPtr<gfxContext> thebesContext = new gfxContext(dt);
+          if (!dt || !dt->IsValid()) {
+            gfxWarning() << "nsWindow::OnPaint failed in CreateDrawTargetForSurface";
+            return false;
+          }
 
           // don't need to double buffer with anything but GDI
           BufferMode doubleBuffering = mozilla::layers::BufferMode::BUFFER_NONE;
-          if (IsRenderMode(gfxWindowsPlatform::RENDER_GDI) ||
-              IsRenderMode(gfxWindowsPlatform::RENDER_DIRECT2D)) {
 #ifdef MOZ_XUL
-            switch (mTransparencyMode) {
-              case eTransparencyGlass:
-              case eTransparencyBorderlessGlass:
-              default:
-                // If we're not doing translucency, then double buffer
-                doubleBuffering = mozilla::layers::BufferMode::BUFFERED;
-                break;
-              case eTransparencyTransparent:
-                // If we're rendering with translucency, we're going to be
-                // rendering the whole window; make sure we clear it first
-                thebesContext->SetOperator(gfxContext::OPERATOR_CLEAR);
-                thebesContext->Paint();
-                thebesContext->SetOperator(gfxContext::OPERATOR_OVER);
-                break;
-            }
-#else
-            doubleBuffering = mozilla::layers::BufferMode::BUFFERED;
-#endif
+          switch (mTransparencyMode) {
+            case eTransparencyGlass:
+            case eTransparencyBorderlessGlass:
+            default:
+              // If we're not doing translucency, then double buffer
+              doubleBuffering = mozilla::layers::BufferMode::BUFFERED;
+              break;
+            case eTransparencyTransparent:
+              // If we're rendering with translucency, we're going to be
+              // rendering the whole window; make sure we clear it first
+              dt->ClearRect(Rect(0.f, 0.f,
+                                 dt->GetSize().width, dt->GetSize().height));
+              break;
           }
+#else
+          doubleBuffering = mozilla::layers::BufferMode::BUFFERED;
+#endif
+
+          RefPtr<gfxContext> thebesContext = gfxContext::CreateOrNull(dt);
+          MOZ_ASSERT(thebesContext); // already checked draw target above
 
           {
             AutoLayerManagerSetup
-                setupLayerManager(this, thebesContext, doubleBuffering);
-            result = listener->PaintWindow(this, region);
+              setupLayerManager(this, thebesContext, doubleBuffering);
+            result = listener->PaintWindow(
+              this, LayoutDeviceIntRegion::FromUnknownRegion(region));
           }
 
 #ifdef MOZ_XUL
-          if ((IsRenderMode(gfxWindowsPlatform::RENDER_GDI) ||
-               IsRenderMode(gfxWindowsPlatform::RENDER_DIRECT2D))&&
-              eTransparencyTransparent == mTransparencyMode) {
+          if (eTransparencyTransparent == mTransparencyMode) {
             // Data from offscreen drawing surface was copied to memory bitmap of transparent
             // bitmap. Now it can be read from memory bitmap to apply alpha channel and after
             // that displayed on the screen.
-            UpdateTranslucentWindow();
-          } else
-#endif
-
-          if (result) {
-            if (IsRenderMode(gfxWindowsPlatform::RENDER_IMAGE_STRETCH24) ||
-                IsRenderMode(gfxWindowsPlatform::RENDER_IMAGE_STRETCH32))
-            {
-              gfxIntSize surfaceSize = targetSurfaceImage->GetSize();
-
-              // Just blit this directly
-              BITMAPINFOHEADER bi;
-              memset(&bi, 0, sizeof(BITMAPINFOHEADER));
-              bi.biSize = sizeof(BITMAPINFOHEADER);
-              bi.biWidth = surfaceSize.width;
-              bi.biHeight = - surfaceSize.height;
-              bi.biPlanes = 1;
-              bi.biBitCount = 32;
-              bi.biCompression = BI_RGB;
-
-              if (IsRenderMode(gfxWindowsPlatform::RENDER_IMAGE_STRETCH24)) {
-                // On Windows CE/Windows Mobile, 24bpp packed-pixel sources
-                // seem to be far faster to blit than 32bpp (see bug 484864).
-                // So, convert the bits to 24bpp by stripping out the unused
-                // alpha byte.  24bpp DIBs also have scanlines that are 4-byte
-                // aligned though, so that must be taken into account.
-                int srcstride = surfaceSize.width*4;
-                int dststride = surfaceSize.width*3;
-                dststride = (dststride + 3) & ~3;
-
-                // Convert in place
-                for (int j = 0; j < surfaceSize.height; ++j) {
-                  unsigned int *src = (unsigned int*) (targetSurfaceImage->Data() + j*srcstride);
-                  unsigned int *dst = (unsigned int*) (targetSurfaceImage->Data() + j*dststride);
-
-                  // go 4 pixels at a time, since each 4 pixels
-                  // turns into 3 DWORDs when converted into BGR:
-                  // BGRx BGRx BGRx BGRx -> BGRB GRBG RBGR
-                  //
-                  // However, since we're dealing with little-endian ints, this is actually:
-                  // xRGB xrgb xRGB xrgb -> bRGB GBrg rgbR
-                  int width_left = surfaceSize.width;
-                  while (width_left >= 4) {
-                    unsigned int a = *src++;
-                    unsigned int b = *src++;
-                    unsigned int c = *src++;
-                    unsigned int d = *src++;
-
-                    *dst++ =  (a & 0x00ffffff)        | (b << 24);
-                    *dst++ = ((b & 0x00ffff00) >> 8)  | (c << 16);
-                    *dst++ = ((c & 0x00ff0000) >> 16) | (d << 8);
-
-                    width_left -= 4;
-                  }
-
-                  // then finish up whatever number of pixels are left,
-                  // using bytes.
-                  unsigned char *bsrc = (unsigned char*) src;
-                  unsigned char *bdst = (unsigned char*) dst;
-                  switch (width_left) {
-                    case 3:
-                      *bdst++ = *bsrc++;
-                      *bdst++ = *bsrc++;
-                      *bdst++ = *bsrc++;
-                      bsrc++;
-                    case 2:
-                      *bdst++ = *bsrc++;
-                      *bdst++ = *bsrc++;
-                      *bdst++ = *bsrc++;
-                      bsrc++;
-                    case 1:
-                      *bdst++ = *bsrc++;
-                      *bdst++ = *bsrc++;
-                      *bdst++ = *bsrc++;
-                      bsrc++;
-                    case 0:
-                      break;
-                  }
-                }
-
-                bi.biBitCount = 24;
-              }
-
-              StretchDIBits(hDC,
-                            ps.rcPaint.left, ps.rcPaint.top,
-                            surfaceSize.width, surfaceSize.height,
-                            0, 0,
-                            surfaceSize.width, surfaceSize.height,
-                            targetSurfaceImage->Data(),
-                            (BITMAPINFO*) &bi,
-                            DIB_RGB_COLORS,
-                            SRCCOPY);
-            }
+            mBasicLayersSurface->RedrawTransparentWindow();
           }
+#endif
         }
         break;
-#ifdef MOZ_ENABLE_D3D9_LAYER
-      case LayersBackend::LAYERS_D3D9:
-        {
-          nsRefPtr<LayerManagerD3D9> layerManagerD3D9 =
-            static_cast<mozilla::layers::LayerManagerD3D9*>(GetLayerManager());
-          layerManagerD3D9->SetClippingRegion(region);
-          result = listener->PaintWindow(this, region);
-          if (layerManagerD3D9->DeviceWasRemoved()) {
-            mLayerManager->Destroy();
-            mLayerManager = nullptr;
-            // When our device was removed, we should have gfxWindowsPlatform
-            // check if its render mode is up to date!
-            gfxWindowsPlatform::GetPlatform()->UpdateRenderMode();
-            Invalidate();
-          }
-        }
-        break;
-#endif
-#ifdef MOZ_ENABLE_D3D10_LAYER
-      case LayersBackend::LAYERS_D3D10:
-        {
-          gfxWindowsPlatform::GetPlatform()->UpdateRenderMode();
-          LayerManagerD3D10 *layerManagerD3D10 = static_cast<mozilla::layers::LayerManagerD3D10*>(GetLayerManager());
-          if (layerManagerD3D10->device() != gfxWindowsPlatform::GetPlatform()->GetD3D10Device()) {
-            Invalidate();
-          } else {
-            result = listener->PaintWindow(this, region);
-          }
-        }
-        break;
-#endif
       case LayersBackend::LAYERS_CLIENT:
-        result = listener->PaintWindow(this, region);
+        {
+          result = listener->PaintWindow(
+            this, LayoutDeviceIntRegion::FromUnknownRegion(region));
+          if (!gfxEnv::DisableForcePresent() && gfxWindowsPlatform::GetPlatform()->DwmCompositionEnabled()) {
+            nsCOMPtr<nsIRunnable> event =
+              NewRunnableMethod(this, &nsWindow::ForcePresent);
+            NS_DispatchToMainThread(event);
+          }
+        }
         break;
       default:
         NS_ERROR("Unknown layers backend used!");
@@ -588,7 +445,7 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
   return result;
 }
 
-gfxIntSize nsWindowGfx::GetIconMetrics(IconSizeType aSizeType) {
+IntSize nsWindowGfx::GetIconMetrics(IconSizeType aSizeType) {
   int32_t width = ::GetSystemMetrics(sIconMetrics[aSizeType].xMetric);
   int32_t height = ::GetSystemMetrics(sIconMetrics[aSizeType].yMetric);
 
@@ -596,14 +453,14 @@ gfxIntSize nsWindowGfx::GetIconMetrics(IconSizeType aSizeType) {
     width = height = sIconMetrics[aSizeType].defaultSize;
   }
 
-  return gfxIntSize(width, height);
+  return IntSize(width, height);
 }
 
 nsresult nsWindowGfx::CreateIcon(imgIContainer *aContainer,
                                   bool aIsCursor,
                                   uint32_t aHotspotX,
                                   uint32_t aHotspotY,
-                                  gfxIntSize aScaledSize,
+                                  IntSize aScaledSize,
                                   HICON *aIcon) {
 
   MOZ_ASSERT((aScaledSize.width > 0 && aScaledSize.height > 0) ||
@@ -643,6 +500,10 @@ nsresult nsWindowGfx::CreateIcon(imgIContainer *aContainer,
                                        dataSurface->GetSize(),
                                        map.mStride,
                                        SurfaceFormat::B8G8R8A8);
+    if (!dt) {
+      gfxWarning() << "nsWindowGfx::CreatesIcon failed in CreateDrawTargetForData";
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
     dt->DrawSurface(surface,
                     Rect(0, 0, iconSize.width, iconSize.height),
                     Rect(0, 0, frameSize.width, frameSize.height),
@@ -664,7 +525,7 @@ nsresult nsWindowGfx::CreateIcon(imgIContainer *aContainer,
   MOZ_ASSERT(dataSurface->GetFormat() == SurfaceFormat::B8G8R8A8);
 
   uint8_t* data = nullptr;
-  nsAutoArrayPtr<uint8_t> autoDeleteArray;
+  UniquePtr<uint8_t[]> autoDeleteArray;
   if (map.mStride == BytesPerPixel(dataSurface->GetFormat()) * iconSize.width) {
     // Mapped data is already packed
     data = map.mData;
@@ -677,7 +538,8 @@ nsresult nsWindowGfx::CreateIcon(imgIContainer *aContainer,
     dataSurface->Unmap();
     map.mData = nullptr;
 
-    data = autoDeleteArray = SurfaceToPackedBGRA(dataSurface);
+    autoDeleteArray = SurfaceToPackedBGRA(dataSurface);
+    data = autoDeleteArray.get();
     NS_ENSURE_TRUE(data, NS_ERROR_FAILURE);
   }
 

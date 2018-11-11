@@ -47,7 +47,7 @@ function test() {
       is(historyObserver.visitCount[aURI], 1,
          "onVisit has been received right number of times for " + aURI);
     }
-    promiseClearHistory().then(finish);
+    PlacesTestUtils.clearHistory().then(finish);
   }
 
   var loadCount = 0;
@@ -57,7 +57,7 @@ function test() {
 
     if (loadCount == 3) {
       gBrowser.removeEventListener("DOMContentLoaded", handleLoad, true);
-      content.location.href = "about:blank";
+      gBrowser.loadURI("about:blank");
       executeSoon(check_next_uri);
     }
   }
@@ -67,7 +67,7 @@ function test() {
       let uri = URIs.shift();
       loadCount = 0;
       gBrowser.addEventListener("DOMContentLoaded", handleLoad, true);
-      content.location.href = uri;
+      gBrowser.loadURI(uri);
     }
     else {
       confirm_results();

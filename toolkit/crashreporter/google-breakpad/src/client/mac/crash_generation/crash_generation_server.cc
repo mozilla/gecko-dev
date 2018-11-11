@@ -29,6 +29,8 @@
 
 #include "client/mac/crash_generation/crash_generation_server.h"
 
+#include <pthread.h>
+
 #include "client/mac/crash_generation/client_info.h"
 #include "client/mac/handler/minidump_generator.h"
 #include "common/mac/scoped_task_suspend-inl.h"
@@ -45,9 +47,9 @@ CrashGenerationServer::CrashGenerationServer(
     void *exit_context,
     bool generate_dumps,
     const std::string &dump_path)
-    : dump_callback_(dump_callback),
-      filter_(filter),
+    : filter_(filter),
       filter_context_(filter_context),
+      dump_callback_(dump_callback),
       dump_context_(dump_context),
       exit_callback_(exit_callback),
       exit_context_(exit_context),

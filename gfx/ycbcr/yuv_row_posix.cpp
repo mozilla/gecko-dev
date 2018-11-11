@@ -427,6 +427,7 @@ void ScaleYUVToRGB32Row(const uint8* y_buf,
   if (mozilla::supports_sse()) {
     ScaleYUVToRGB32Row_SSE(y_buf, u_buf, v_buf, rgb_buf,
                            width, source_dx);
+    return;
   }
 
   ScaleYUVToRGB32Row_C(y_buf, u_buf, v_buf, rgb_buf,
@@ -558,6 +559,7 @@ void LinearScaleYUVToRGB32Row(const uint8* y_buf,
   if (mozilla::supports_sse()) {
     LinearScaleYUVToRGB32Row_SSE(y_buf, u_buf, v_buf, rgb_buf,
                                  width, source_dx);
+    return;
   }
 
   LinearScaleYUVToRGB32Row_C(y_buf, u_buf, v_buf, rgb_buf,
@@ -571,7 +573,7 @@ void PICConvertYUVToRGB32Row_SSE(const uint8* y_buf,
                                  const uint8* v_buf,
                                  uint8* rgb_buf,
                                  int width,
-                                 int16 *kCoefficientsRgbY);
+                                 const int16 *kCoefficientsRgbY);
 
   asm(
   ".text\n"
@@ -654,7 +656,7 @@ void PICScaleYUVToRGB32Row_SSE(const uint8* y_buf,
                                uint8* rgb_buf,
                                int width,
                                int source_dx,
-                               int16 *kCoefficientsRgbY);
+                               const int16 *kCoefficientsRgbY);
 
   asm(
   ".text\n"
@@ -752,7 +754,7 @@ void PICLinearScaleYUVToRGB32Row_SSE(const uint8* y_buf,
                                      uint8* rgb_buf,
                                      int width,
                                      int source_dx,
-                                     int16 *kCoefficientsRgbY);
+                                     const int16 *kCoefficientsRgbY);
 
   asm(
   ".text\n"

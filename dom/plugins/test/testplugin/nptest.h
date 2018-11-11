@@ -112,6 +112,8 @@ typedef struct InstanceData {
   bool asyncCallbackResult;
   bool invalidateDuringPaint;
   bool slowPaint;
+  bool playingAudio;
+  bool audioMuted;
   int32_t winX;
   int32_t winY;
   int32_t lastMouseX;
@@ -148,14 +150,22 @@ typedef struct InstanceData {
   bool closeStream;
   std::string lastKeyText;
   bool wantsAllStreams;
-  AsyncDrawing asyncDrawing;
-  NPAsyncSurface *frontBuffer;
-  NPAsyncSurface *backBuffer;
   int32_t mouseUpEventCount;
   int32_t bugMode;
   std::string javaCodebase;
+  AsyncDrawing asyncDrawing;
+  NPAsyncSurface *frontBuffer;
+  NPAsyncSurface *backBuffer;
+  std::string lastComposition;
+  void* placeholderWnd;
+  double cssZoomFactor;
 } InstanceData;
 
 void notifyDidPaint(InstanceData* instanceData);
+
+#if defined(XP_WIN)
+bool setupDxgiSurfaces(NPP npp, InstanceData* instanceData);
+void drawDxgiBitmapColor(InstanceData* instanceData);
+#endif
 
 #endif // nptest_h_

@@ -3,6 +3,7 @@
  */
 
 // Tests various aspects of the details view
+Components.utils.import("resource://gre/modules/Preferences.jsm");
 
 var gManagerWindow;
 var gCategoryUtilities;
@@ -69,7 +70,6 @@ function installAddon(aCallback) {
 function checkScrolling(aShouldHaveScrolled) {
   var detailView = gManagerWindow.document.getElementById("detail-view");
   var boxObject = detailView.boxObject;
-  boxObject.QueryInterface(Ci.nsIScrollBoxObject);
   ok(detailView.scrollHeight > boxObject.height, "Page should require scrolling");
   if (aShouldHaveScrolled)
     isnot(detailView.scrollTop, 0, "Page should have scrolled");
@@ -89,14 +89,14 @@ function test() {
     optionsURL: CHROMEROOT + "options.xul",
     optionsType: AddonManager.OPTIONS_TYPE_INLINE,
     operationsRequiringRestart: AddonManager.OP_NEEDS_RESTART_DISABLE,
-  },{
+  }, {
     id: "inlinesettings3@tests.mozilla.org",
     name: "Inline Settings (More Options)",
     description: "Tests for option types introduced after Mozilla 7.0",
     version: "1",
     optionsURL: CHROMEROOT + "more_options.xul",
     optionsType: AddonManager.OPTIONS_TYPE_INLINE
-  },{
+  }, {
     id: "noninlinesettings@tests.mozilla.org",
     name: "Non-Inline Settings",
     version: "1",
@@ -219,7 +219,7 @@ add_test(function() {
 
     ok(!settings[1].hasAttribute("first-row"), "Not the first row");
     Services.prefs.setIntPref("extensions.inlinesettings1.boolint", 0);
-    var input = gManagerWindow.document.getAnonymousElementByAttribute(settings[1], "anonid", "input");
+    input = gManagerWindow.document.getAnonymousElementByAttribute(settings[1], "anonid", "input");
     isnot(input.checked, true, "Checkbox should have initial value");
     EventUtils.synthesizeMouseAtCenter(input, { clickCount: 1 }, gManagerWindow);
     is(input.checked, true, "Checkbox should have updated value");
@@ -230,7 +230,7 @@ add_test(function() {
 
     ok(!settings[2].hasAttribute("first-row"), "Not the first row");
     Services.prefs.setIntPref("extensions.inlinesettings1.integer", 0);
-    var input = gManagerWindow.document.getAnonymousElementByAttribute(settings[2], "anonid", "input");
+    input = gManagerWindow.document.getAnonymousElementByAttribute(settings[2], "anonid", "input");
     is(input.value, "0", "Number box should have initial value");
     input.select();
     EventUtils.synthesizeKey("1", {}, gManagerWindow);
@@ -243,20 +243,21 @@ add_test(function() {
 
     ok(!settings[3].hasAttribute("first-row"), "Not the first row");
     Services.prefs.setCharPref("extensions.inlinesettings1.string", "foo");
-    var input = gManagerWindow.document.getAnonymousElementByAttribute(settings[3], "anonid", "input");
+    input = gManagerWindow.document.getAnonymousElementByAttribute(settings[3], "anonid", "input");
     is(input.value, "foo", "Text box should have initial value");
     input.select();
     EventUtils.synthesizeKey("b", {}, gManagerWindow);
     EventUtils.synthesizeKey("a", {}, gManagerWindow);
     EventUtils.synthesizeKey("r", {}, gManagerWindow);
     is(input.value, "bar", "Text box should have updated value");
+    input.value += "\u03DE"; // Cheat to add this non-ASCII character without typing it.
     EventUtils.synthesizeKey("/", {}, gManagerWindow);
-    is(input.value, "bar/", "Text box should have updated value");
+    is(input.value, "bar\u03DE/", "Text box should have updated value");
     is(gManagerWindow.document.getBindingParent(gManagerWindow.document.activeElement), input, "Search box should not have focus");
-    is(Services.prefs.getCharPref("extensions.inlinesettings1.string"), "bar/", "String pref should have been updated");
+    is(Preferences.get("extensions.inlinesettings1.string", "wrong"), "bar\u03DE/", "String pref should have been updated");
 
     ok(!settings[4].hasAttribute("first-row"), "Not the first row");
-    var input = settings[4].firstElementChild;
+    input = settings[4].firstElementChild;
     is(input.value, "1", "Menulist should have initial value");
     input.focus();
     EventUtils.synthesizeKey("b", {}, gManagerWindow);
@@ -283,24 +284,25 @@ add_test(function() {
       is(input.value, "", "Label value should be empty");
       is(input.tooltipText, "", "Label tooltip should be empty");
 
-      var profD = Services.dirsvc.get("ProfD", Ci.nsIFile);
+      var testFile = Services.dirsvc.get("ProfD", Ci.nsIFile);
+      testFile.append("\u2622");
       var curProcD = Services.dirsvc.get("CurProcD", Ci.nsIFile);
 
-      MockFilePicker.returnFiles = [profD];
+      MockFilePicker.returnFiles = [testFile];
       MockFilePicker.returnValue = Ci.nsIFilePicker.returnOK;
       EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
       is(MockFilePicker.mode, Ci.nsIFilePicker.modeOpen, "File picker mode should be open file");
-      is(input.value, profD.path, "Label value should match file chosen");
-      is(input.tooltipText, profD.path, "Label tooltip should match file chosen");
-      is(Services.prefs.getCharPref("extensions.inlinesettings1.file"), profD.path, "File pref should match file chosen");
+      is(input.value, testFile.path, "Label value should match file chosen");
+      is(input.tooltipText, testFile.path, "Label tooltip should match file chosen");
+      is(Preferences.get("extensions.inlinesettings1.file", "wrong"), testFile.path, "File pref should match file chosen");
 
       MockFilePicker.returnFiles = [curProcD];
       MockFilePicker.returnValue = Ci.nsIFilePicker.returnCancel;
       EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
       is(MockFilePicker.mode, Ci.nsIFilePicker.modeOpen, "File picker mode should be open file");
-      is(input.value, profD.path, "Label value should not have changed");
-      is(input.tooltipText, profD.path, "Label tooltip should not have changed");
-      is(Services.prefs.getCharPref("extensions.inlinesettings1.file"), profD.path, "File pref should not have changed");
+      is(input.value, testFile.path, "Label value should not have changed");
+      is(input.tooltipText, testFile.path, "Label tooltip should not have changed");
+      is(Preferences.get("extensions.inlinesettings1.file", "wrong"), testFile.path, "File pref should not have changed");
 
       ok(!settings[7].hasAttribute("first-row"), "Not the first row");
       button = gManagerWindow.document.getAnonymousElementByAttribute(settings[7], "anonid", "button");
@@ -308,21 +310,21 @@ add_test(function() {
       is(input.value, "", "Label value should be empty");
       is(input.tooltipText, "", "Label tooltip should be empty");
 
-      MockFilePicker.returnFiles = [profD];
+      MockFilePicker.returnFiles = [testFile];
       MockFilePicker.returnValue = Ci.nsIFilePicker.returnOK;
       EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
       is(MockFilePicker.mode, Ci.nsIFilePicker.modeGetFolder, "File picker mode should be directory");
-      is(input.value, profD.path, "Label value should match file chosen");
-      is(input.tooltipText, profD.path, "Label tooltip should match file chosen");
-      is(Services.prefs.getCharPref("extensions.inlinesettings1.directory"), profD.path, "Directory pref should match file chosen");
+      is(input.value, testFile.path, "Label value should match file chosen");
+      is(input.tooltipText, testFile.path, "Label tooltip should match file chosen");
+      is(Preferences.get("extensions.inlinesettings1.directory", "wrong"), testFile.path, "Directory pref should match file chosen");
 
       MockFilePicker.returnFiles = [curProcD];
       MockFilePicker.returnValue = Ci.nsIFilePicker.returnCancel;
       EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
       is(MockFilePicker.mode, Ci.nsIFilePicker.modeGetFolder, "File picker mode should be directory");
-      is(input.value, profD.path, "Label value should not have changed");
-      is(input.tooltipText, profD.path, "Label tooltip should not have changed");
-      is(Services.prefs.getCharPref("extensions.inlinesettings1.directory"), profD.path, "Directory pref should not have changed");
+      is(input.value, testFile.path, "Label value should not have changed");
+      is(input.tooltipText, testFile.path, "Label tooltip should not have changed");
+      is(Preferences.get("extensions.inlinesettings1.directory", "wrong"), testFile.path, "Directory pref should not have changed");
 
       var unsizedInput = gManagerWindow.document.getAnonymousElementByAttribute(settings[2], "anonid", "input");
       var sizedInput = gManagerWindow.document.getAnonymousElementByAttribute(settings[8], "anonid", "input");
@@ -365,7 +367,7 @@ add_test(function() {
 
     ok(!settings[1].hasAttribute("first-row"), "Not the first row");
     Services.prefs.setIntPref("extensions.inlinesettings3.radioInt", 5);
-    var radios = settings[1].getElementsByTagName("radio");
+    radios = settings[1].getElementsByTagName("radio");
     isnot(radios[0].selected, true, "Correct radio button should be selected");
     is(radios[1].selected, true, "Correct radio button should be selected");
     isnot(radios[2].selected, true, "Correct radio button should be selected");
@@ -376,14 +378,14 @@ add_test(function() {
 
     ok(!settings[2].hasAttribute("first-row"), "Not the first row");
     Services.prefs.setCharPref("extensions.inlinesettings3.radioString", "juliet");
-    var radios = settings[2].getElementsByTagName("radio");
+    radios = settings[2].getElementsByTagName("radio");
     isnot(radios[0].selected, true, "Correct radio button should be selected");
     is(radios[1].selected, true, "Correct radio button should be selected");
     isnot(radios[2].selected, true, "Correct radio button should be selected");
     EventUtils.synthesizeMouseAtCenter(radios[0], { clickCount: 1 }, gManagerWindow);
-    is(Services.prefs.getCharPref("extensions.inlinesettings3.radioString"), "india", "Radio pref should have been updated");
+    is(Preferences.get("extensions.inlinesettings3.radioString", "wrong"), "india", "Radio pref should have been updated");
     EventUtils.synthesizeMouseAtCenter(radios[2], { clickCount: 1 }, gManagerWindow);
-    is(Services.prefs.getCharPref("extensions.inlinesettings3.radioString"), "kilo", "Radio pref should have been updated");
+    is(Preferences.get("extensions.inlinesettings3.radioString", "wrong"), "kilo \u338F", "Radio pref should have been updated");
 
     ok(!settings[3].hasAttribute("first-row"), "Not the first row");
     Services.prefs.setIntPref("extensions.inlinesettings3.menulist", 8);
@@ -447,7 +449,7 @@ add_test(function() {
     is_element_hidden(node, "Unsupported settings should not be visible");
     ok(!node.hasAttribute("first-row"), "Hidden row is not the first row");
 
-    var button = gManagerWindow.document.getElementById("detail-prefs-btn");
+    button = gManagerWindow.document.getElementById("detail-prefs-btn");
     is_element_hidden(button, "Preferences button should not be visible");
 
     gCategoryUtilities.openType("extension", run_next_test);
@@ -501,7 +503,7 @@ add_test(function() {
 
     // disable
     var button = gManagerWindow.document.getElementById("detail-disable-btn");
-    button.focus(); // make sure it's in view
+    button.scrollIntoView();
     EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
 
     observer.checkHidden("inlinesettings1@tests.mozilla.org");
@@ -562,7 +564,7 @@ add_test(function() {
 
     // disable
     var button = gManagerWindow.document.getElementById("detail-disable-btn");
-    button.focus(); // make sure it's in view
+    button.scrollIntoView();
     EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
     observer.checkNotHidden();
 
@@ -571,7 +573,7 @@ add_test(function() {
 
     // cancel pending disable
     button = gManagerWindow.document.getElementById("detail-enable-btn");
-    button.focus(); // make sure it's in view
+    button.scrollIntoView();
     EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
     observer.checkNotDisplayed();
 
@@ -589,7 +591,7 @@ add_test(function() {
   Services.prefs.setBoolPref("extensions.inlinesettings1.bool", false);
   Services.prefs.setIntPref("extensions.inlinesettings1.boolint", 1);
   Services.prefs.setIntPref("extensions.inlinesettings1.integer", 12);
-  Services.prefs.setCharPref("extensions.inlinesettings1.string", "bar/");
+  Preferences.set("extensions.inlinesettings1.string", "bar\u03DE/");
   Services.prefs.setCharPref("extensions.inlinesettings1.color", "#FF9900");
   Services.prefs.setCharPref("extensions.inlinesettings1.file", profD.path);
   Services.prefs.setCharPref("extensions.inlinesettings1.directory", profD.path);
@@ -609,14 +611,14 @@ add_test(function() {
     var input = gManagerWindow.document.getAnonymousElementByAttribute(settings[0], "anonid", "input");
     is(input.checked, false, "Checkbox should have initial value");
 
-    var input = gManagerWindow.document.getAnonymousElementByAttribute(settings[1], "anonid", "input");
+    input = gManagerWindow.document.getAnonymousElementByAttribute(settings[1], "anonid", "input");
     is(input.checked, true, "Checkbox should have initial value");
 
-    var input = gManagerWindow.document.getAnonymousElementByAttribute(settings[2], "anonid", "input");
+    input = gManagerWindow.document.getAnonymousElementByAttribute(settings[2], "anonid", "input");
     is(input.value, "12", "Number box should have initial value");
 
-    var input = gManagerWindow.document.getAnonymousElementByAttribute(settings[3], "anonid", "input");
-    is(input.value, "bar/", "Text box should have initial value");
+    input = gManagerWindow.document.getAnonymousElementByAttribute(settings[3], "anonid", "input");
+    is(input.value, "bar\u03DE/", "Text box should have initial value");
 
     input = gManagerWindow.document.getAnonymousElementByAttribute(settings[5], "anonid", "input");
     is(input.color, "#FF9900", "Color picker should have initial value");
@@ -641,7 +643,7 @@ add_test(function() {
   // change the tests above.
   Services.prefs.setBoolPref("extensions.inlinesettings3.radioBool", false);
   Services.prefs.setIntPref("extensions.inlinesettings3.radioInt", 6);
-  Services.prefs.setCharPref("extensions.inlinesettings3.radioString", "kilo");
+  Preferences.set("extensions.inlinesettings3.radioString", "kilo \u338F");
   Services.prefs.setIntPref("extensions.inlinesettings3.menulist", 9);
 
   var addon = get_addon_element(gManagerWindow, "inlinesettings3@tests.mozilla.org");
@@ -660,12 +662,12 @@ add_test(function() {
     isnot(radios[0].selected, true, "Correct radio button should be selected");
     is(radios[1].selected, true, "Correct radio button should be selected");
 
-    var radios = settings[1].getElementsByTagName("radio");
+    radios = settings[1].getElementsByTagName("radio");
     isnot(radios[0].selected, true, "Correct radio button should be selected");
     isnot(radios[1].selected, true, "Correct radio button should be selected");
     is(radios[2].selected, true, "Correct radio button should be selected");
 
-    var radios = settings[2].getElementsByTagName("radio");
+    radios = settings[2].getElementsByTagName("radio");
     isnot(radios[0].selected, true, "Correct radio button should be selected");
     isnot(radios[1].selected, true, "Correct radio button should be selected");
     is(radios[2].selected, true, "Correct radio button should be selected");

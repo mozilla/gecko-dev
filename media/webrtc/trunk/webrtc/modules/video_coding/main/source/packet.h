@@ -21,10 +21,10 @@ class VCMPacket {
 public:
     VCMPacket();
     VCMPacket(const uint8_t* ptr,
-              const uint32_t size,
+              const size_t size,
               const WebRtcRTPHeader& rtpHeader);
     VCMPacket(const uint8_t* ptr,
-              uint32_t size,
+              size_t size,
               uint16_t seqNum,
               uint32_t timestamp,
               bool markerBit);
@@ -33,9 +33,11 @@ public:
 
     uint8_t           payloadType;
     uint32_t          timestamp;
+    // NTP time of the capture time in local timebase in milliseconds.
+    int64_t ntp_time_ms_;
     uint16_t          seqNum;
     const uint8_t*    dataPtr;
-    uint32_t          sizeBytes;
+    size_t          sizeBytes;
     bool                    markerBit;
 
     FrameType               frameType;

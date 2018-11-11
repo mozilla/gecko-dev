@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-*/
-/* vim: set ts=2 sw=2 et tw=79: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -13,16 +13,20 @@
 #ifndef mozilla_dom_BindingDeclarations_h__
 #define mozilla_dom_BindingDeclarations_h__
 
-#include "nsStringGlue.h"
-#include "js/Value.h"
 #include "js/RootingAPI.h"
-#include "mozilla/Maybe.h"
-#include "nsCOMPtr.h"
-#include "nsTArray.h"
-#include "nsAutoPtr.h" // for nsRefPtr member variables
-#include "mozilla/dom/DOMString.h"
-#include "mozilla/dom/OwningNonNull.h"
+#include "js/Value.h"
 
+#include "mozilla/Maybe.h"
+#include "mozilla/RootedOwningNonNull.h"
+#include "mozilla/RootedRefPtr.h"
+
+#include "mozilla/dom/DOMString.h"
+
+#include "nsCOMPtr.h"
+#include "nsStringGlue.h"
+#include "nsTArray.h"
+
+class nsIPrincipal;
 class nsWrapperCache;
 
 namespace mozilla {
@@ -35,6 +39,31 @@ struct DictionaryBase
 protected:
   bool ParseJSON(JSContext* aCx, const nsAString& aJSON,
                  JS::MutableHandle<JS::Value> aVal);
+
+  bool StringifyToJSON(JSContext* aCx,
+                       JS::Handle<JSObject*> aObj,
+                       nsAString& aJSON) const;
+
+  // Struct used as a way to force a dictionary constructor to not init the
+  // dictionary (via constructing from a pointer to this class).  We're putting
+  // it here so that all the dictionaries will have access to it, but outside
+  // code will not.
+  struct FastDictionaryInitializer {
+  };
+
+  bool mIsAnyMemberPresent = false;
+
+private:
+  // aString is expected to actually be an nsAString*.  Should only be
+  // called from StringifyToJSON.
+  static bool AppendJSONToString(const char16_t* aJSONData,
+                                 uint32_t aDataLength, void* aString);
+
+public:
+  bool IsAnyMemberPresent() const
+  {
+    return mIsAnyMemberPresent;
+  }
 };
 
 // Struct that serves as a base class for all typed arrays and array buffers and
@@ -80,11 +109,17 @@ public:
     return !Get();
   }
 
+  // It returns the subjectPrincipal if called on the main-thread, otherwise
+  // a nullptr is returned.
+  nsIPrincipal* GetSubjectPrincipal() const;
+
 protected:
   JS::Rooted<JSObject*> mGlobalJSObject;
   JSContext* mCx;
-  mutable nsISupports* mGlobalObject;
-  mutable nsCOMPtr<nsISupports> mGlobalObjectRef;
+  mutable nsISupports* MOZ_UNSAFE_REF("Valid because GlobalObject is a stack "
+                                      "class, and mGlobalObject points to the "
+                                      "global, so it won't be destroyed as long "
+                                      "as GlobalObject lives on the stack") mGlobalObject;
 };
 
 // Class for representing optional arguments.
@@ -97,63 +132,53 @@ public:
 
   explicit Optional_base(const T& aValue)
   {
-    mImpl.construct(aValue);
+    mImpl.emplace(aValue);
+  }
+
+  bool operator==(const Optional_base<T, InternalType>& aOther) const
+  {
+    return mImpl == aOther.mImpl;
   }
 
   template<typename T1, typename T2>
   explicit Optional_base(const T1& aValue1, const T2& aValue2)
   {
-    mImpl.construct(aValue1, aValue2);
+    mImpl.emplace(aValue1, aValue2);
   }
 
   bool WasPassed() const
   {
-    return !mImpl.empty();
+    return mImpl.isSome();
   }
 
   // Return InternalType here so we can work with it usefully.
-  InternalType& Construct()
+  template<typename... Args>
+  InternalType& Construct(Args&&... aArgs)
   {
-    mImpl.construct();
-    return mImpl.ref();
-  }
-
-  template <class T1>
-  InternalType& Construct(const T1 &t1)
-  {
-    mImpl.construct(t1);
-    return mImpl.ref();
-  }
-
-  template <class T1, class T2>
-  InternalType& Construct(const T1 &t1, const T2 &t2)
-  {
-    mImpl.construct(t1, t2);
-    return mImpl.ref();
+    mImpl.emplace(Forward<Args>(aArgs)...);
+    return *mImpl;
   }
 
   void Reset()
   {
-    if (WasPassed()) {
-      mImpl.destroy();
-    }
+    mImpl.reset();
   }
 
   const T& Value() const
   {
-    return mImpl.ref();
+    return *mImpl;
   }
 
   // Return InternalType here so we can work with it usefully.
   InternalType& Value()
   {
-    return mImpl.ref();
+    return *mImpl;
   }
 
   // And an explicit way to get the InternalType even if we're const.
   const InternalType& InternalValue() const
   {
-    return mImpl.ref();
+    return *mImpl;
   }
 
   // If we ever decide to add conversion operators for optional arrays
@@ -162,8 +187,8 @@ public:
 
 private:
   // Forbid copy-construction and assignment
-  Optional_base(const Optional_base& other) MOZ_DELETE;
-  const Optional_base &operator=(const Optional_base &other) MOZ_DELETE;
+  Optional_base(const Optional_base& other) = delete;
+  const Optional_base &operator=(const Optional_base &other) = delete;
 
 protected:
   Maybe<InternalType> mImpl;
@@ -191,7 +216,7 @@ public:
     Optional_base<JS::Handle<T>, JS::Rooted<T> >()
   {}
 
-  Optional(JSContext* cx) :
+  explicit Optional(JSContext* cx) :
     Optional_base<JS::Handle<T>, JS::Rooted<T> >()
   {
     this->Construct(cx);
@@ -205,14 +230,14 @@ public:
   // returning references to temporaries.
   JS::Handle<T> Value() const
   {
-    return this->mImpl.ref();
+    return *this->mImpl;
   }
 
   // And we have to override the non-const one too, since we're
   // shadowing the one on the superclass.
   JS::Rooted<T>& Value()
   {
-    return this->mImpl.ref();
+    return *this->mImpl;
   }
 };
 
@@ -252,9 +277,9 @@ template<>
 class Optional<JS::Value>
 {
 private:
-  Optional() MOZ_DELETE;
+  Optional() = delete;
 
-  explicit Optional(JS::Value aValue) MOZ_DELETE;
+  explicit Optional(const JS::Value& aValue) = delete;
 };
 
 // A specialization of Optional for NonNull that lets us get a T& from Value()
@@ -268,14 +293,14 @@ public:
   // types...
   T& Value() const
   {
-    return *this->mImpl.ref().get();
+    return *this->mImpl->get();
   }
 
   // And we have to override the non-const one too, since we're
   // shadowing the one on the superclass.
   NonNull<T>& Value()
   {
-    return this->mImpl.ref();
+    return *this->mImpl;
   }
 };
 
@@ -290,24 +315,24 @@ public:
   // types...
   T& Value() const
   {
-    return *this->mImpl.ref().get();
+    return *this->mImpl->get();
   }
 
   // And we have to override the non-const one too, since we're
   // shadowing the one on the superclass.
   OwningNonNull<T>& Value()
   {
-    return this->mImpl.ref();
+    return *this->mImpl;
   }
 };
 
 // Specialization for strings.
-// XXXbz we can't pull in FakeDependentString here, because it depends on
-// internal strings.  So we just have to forward-declare it and reimplement its
+// XXXbz we can't pull in FakeString here, because it depends on internal
+// strings.  So we just have to forward-declare it and reimplement its
 // ToAStringPtr.
 
 namespace binding_detail {
-struct FakeDependentString;
+struct FakeString;
 } // namespace binding_detail
 
 template<>
@@ -329,11 +354,11 @@ public:
   }
 
   // If this code ever goes away, remove the comment pointing to it in the
-  // FakeDependentString class in BindingUtils.h.
-  void operator=(const binding_detail::FakeDependentString* str)
+  // FakeString class in BindingUtils.h.
+  void operator=(const binding_detail::FakeString* str)
   {
     MOZ_ASSERT(str);
-    mStr = reinterpret_cast<const nsDependentString*>(str);
+    mStr = reinterpret_cast<const nsString*>(str);
     mPassed = true;
   }
 
@@ -345,8 +370,8 @@ public:
 
 private:
   // Forbid copy-construction and assignment
-  Optional(const Optional& other) MOZ_DELETE;
-  const Optional &operator=(const Optional &other) MOZ_DELETE;
+  Optional(const Optional& other) = delete;
+  const Optional &operator=(const Optional &other) = delete;
 
   bool mPassed;
   const nsAString* mStr;
@@ -362,19 +387,14 @@ public:
 #endif
   {}
 
-  operator T&() {
+  // This is no worse than get() in terms of const handling.
+  operator T&() const {
     MOZ_ASSERT(inited);
     MOZ_ASSERT(ptr, "NonNull<T> was set to null");
     return *ptr;
   }
 
-  operator const T&() const {
-    MOZ_ASSERT(inited);
-    MOZ_ASSERT(ptr, "NonNull<T> was set to null");
-    return *ptr;
-  }
-
-  operator T*() {
+  operator T*() const {
     MOZ_ASSERT(inited);
     MOZ_ASSERT(ptr, "NonNull<T> was set to null");
     return ptr;
@@ -457,16 +477,16 @@ GetWrapperCache(const SmartPtr<T>& aObject)
   return GetWrapperCache(aObject.get());
 }
 
-struct ParentObject {
+struct MOZ_STACK_CLASS ParentObject {
   template<class T>
-  ParentObject(T* aObject) :
+  MOZ_IMPLICIT ParentObject(T* aObject) :
     mObject(aObject),
     mWrapperCache(GetWrapperCache(aObject)),
     mUseXBLScope(false)
   {}
 
   template<class T, template<typename> class SmartPtr>
-  ParentObject(const SmartPtr<T>& aObject) :
+  MOZ_IMPLICIT ParentObject(const SmartPtr<T>& aObject) :
     mObject(aObject.get()),
     mWrapperCache(GetWrapperCache(aObject.get())),
     mUseXBLScope(false)
@@ -478,9 +498,35 @@ struct ParentObject {
     mUseXBLScope(false)
   {}
 
-  nsISupports* const mObject;
+  // We don't want to make this an nsCOMPtr because of performance reasons, but
+  // it's safe because ParentObject is a stack class.
+  nsISupports* const MOZ_NON_OWNING_REF mObject;
   nsWrapperCache* const mWrapperCache;
   bool mUseXBLScope;
+};
+
+namespace binding_detail {
+
+// Class for simple sequence arguments, only used internally by codegen.
+template<typename T>
+class AutoSequence : public AutoTArray<T, 16>
+{
+public:
+  AutoSequence() : AutoTArray<T, 16>()
+  {}
+
+  // Allow converting to const sequences as needed
+  operator const Sequence<T>&() const {
+    return *reinterpret_cast<const Sequence<T>*>(this);
+  }
+};
+
+} // namespace binding_detail
+
+// Enum to represent a system or non-system caller type.
+enum class CallerType : uint32_t {
+  System,
+  NonSystem
 };
 
 } // namespace dom

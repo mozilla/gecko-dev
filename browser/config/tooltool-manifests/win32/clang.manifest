@@ -1,0 +1,31 @@
+[
+{
+"size": 266240,
+"digest": "bb345b0e700ffab4d09436981f14b5de84da55a3f18a7f09ebc4364a4488acdeab8d46f447b12ac70f2da1444a68b8ce8b8675f0dae2ccf845e966d1df0f0869",
+"algorithm": "sha512",
+"filename": "mozmake.exe"
+},
+{
+"version": "rustc 1.13.0 (2c6933acc 2016-11-07) repack",
+"size": 58997576,
+"digest": "be97bb7f60fea39b9b0411b7ce247036a9373b01ed8cc60f30ed3c6254473ab7ef1881f222f10845253e0608c6f3d21add0871d0485d9de413297906d5c5409c",
+"algorithm": "sha512",
+"filename": "rustc.tar.bz2",
+"unpack": true
+},
+{
+"size": 167175,
+"digest": "0b71a936edf5bd70cf274aaa5d7abc8f77fe8e7b5593a208f805cc9436fac646b9c4f0b43c2b10de63ff3da671497d35536077ecbc72dba7f8159a38b580f831",
+"algorithm": "sha512",
+"filename": "sccache.tar.bz2",
+"unpack": true
+},
+{
+"version": "clang 3.9.0/r262971",
+"size": 169861843,
+"digest": "8caa5a89aea981b618233d39f01bb934b79b85ee8167104bfa4f07936145df5e8ca5e8e007123d75ccc12d2baa926ffc827b40bf793fa9d4bc2670fa519b0ec0",
+"algorithm": "sha512",
+"filename": "clang32.tar.bz2",
+"unpack": true
+}
+]

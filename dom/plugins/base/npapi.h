@@ -46,6 +46,7 @@
 #if defined(MOZ_X11)
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include "X11UndefineNone.h"
 #endif
 #endif
 
@@ -59,7 +60,7 @@
 /*----------------------------------------------------------------------*/
 
 #define NP_VERSION_MAJOR 0
-#define NP_VERSION_MINOR 27
+#define NP_VERSION_MINOR 29
 
 
 /* The OS/2 version of Netscape uses RC_DATA to define the
@@ -194,7 +195,7 @@ typedef enum {
   /* 32-bit per pixel 8-bit per channel - premultiplied alpha */
   NPImageFormatBGRA32     = 0x1,
   /* 32-bit per pixel 8-bit per channel - 1 unused channel */
-  NPImageFormatBGRX32     = 0x2 
+  NPImageFormatBGRX32     = 0x2
 } NPImageFormat;
 
 typedef struct _NPAsyncSurface
@@ -258,23 +259,44 @@ typedef struct
 
 #endif /* XP_UNIX */
 
+#if defined(XP_WIN)
+/*
+ * Windows specific structures and definitions
+ */
+
+/*
+ * Information about the default audio device.  These values share meaning with
+ * the parameters to the Windows API IMMNotificationClient object.
+ * This is the value of the NPNVaudioDeviceChangeDetails variable.
+ */
+typedef struct _NPAudioDeviceChangeDetails
+{
+  int32_t flow;
+  int32_t role;
+  const wchar_t* defaultDevice;  // this pointer is only valid during the call
+                                 // to NPPSetValue.
+} NPAudioDeviceChangeDetails;
+
+#endif /* XP_WIN */
+
 typedef enum {
+  NPDrawingModelDUMMY
 #if defined(XP_MACOSX)
 #ifndef NP_NO_QUICKDRAW
-  NPDrawingModelQuickDraw = 0,
+  , NPDrawingModelQuickDraw = 0
 #endif
-  NPDrawingModelCoreGraphics = 1,
-  NPDrawingModelOpenGL = 2,
-  NPDrawingModelCoreAnimation = 3,
-  NPDrawingModelInvalidatingCoreAnimation = 4,
+  , NPDrawingModelCoreGraphics = 1
+  , NPDrawingModelOpenGL = 2
+  , NPDrawingModelCoreAnimation = 3
+  , NPDrawingModelInvalidatingCoreAnimation = 4
 #endif
 #if defined(XP_WIN)
-  NPDrawingModelSyncWin = 5,
+  , NPDrawingModelSyncWin = 5
 #endif
 #if defined(MOZ_X11)
-  NPDrawingModelSyncX = 6,
+  , NPDrawingModelSyncX = 6
 #endif
-  NPDrawingModelAsyncBitmapSurface = 7
+  , NPDrawingModelAsyncBitmapSurface = 7
 #if defined(XP_WIN)
   , NPDrawingModelAsyncWindowsDXGISurface = 8
 #endif
@@ -375,6 +397,12 @@ typedef enum {
   /* In the NPDrawingModelCoreAnimation drawing model, the browser asks the plug-in for a Core Animation layer. */
   , NPPVpluginCoreAnimationLayer = 1003
 #endif
+  /* Notification that the plugin just started or stopped playing audio */
+  , NPPVpluginIsPlayingAudio = 4000
+#if defined(XP_WIN)
+  /* Notification that the plugin requests notification when the default audio device has changed */
+  , NPPVpluginRequiresAudioDeviceChanges = 4001
+#endif
 
 } NPPVariable;
 
@@ -409,9 +437,13 @@ typedef enum {
 
   NPNVdocumentOrigin = 22,
 
+  NPNVCSSZoomFactor = 23,
+
   NPNVpluginDrawingModel = 1000 /* Get the current drawing model (NPDrawingModel) */
-#if defined(XP_MACOSX)
+#if defined(XP_MACOSX) || defined(XP_WIN)
   , NPNVcontentsScaleFactor = 1001
+#endif
+#if defined(XP_MACOSX)
 #ifndef NP_NO_QUICKDRAW
   , NPNVsupportsQuickDrawBool = 2000
 #endif
@@ -423,6 +455,7 @@ typedef enum {
   , NPNVsupportsAsyncBitmapSurfaceBool = 2007
 #if defined(XP_WIN)
   , NPNVsupportsAsyncWindowsDXGISurfaceBool = 2008
+  , NPNVpreferredDXGIAdapter = 2009
 #endif
 #if defined(XP_MACOSX)
 #ifndef NP_NO_CARBON
@@ -431,6 +464,12 @@ typedef enum {
   , NPNVsupportsCocoaBool = 3001 /* TRUE if the browser supports the Cocoa event model */
   , NPNVsupportsUpdatedCocoaTextInputBool = 3002 /* TRUE if the browser supports the updated
                                                     Cocoa text input specification. */
+#endif
+  , NPNVmuteAudioBool = 4000 /* Request that the browser wants to mute or unmute the plugin */
+#if defined(XP_WIN)
+  , NPNVaudioDeviceChangeDetails = 4001 /* Provides information about the new default audio device */
+#endif
+#if defined(XP_MACOSX)
   , NPNVsupportsCompositingCoreAnimationPluginsBool = 74656 /* TRUE if the browser supports
                                                                CA model compositing */
 #endif

@@ -1,7 +1,9 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 //
 //  regexcmp.h
 //
-//  Copyright (C) 2002-2012, International Business Machines Corporation and others.
+//  Copyright (C) 2002-2016, International Business Machines Corporation and others.
 //  All Rights Reserved.
 //
 //  This file contains declarations for the class RegexCompile
@@ -17,11 +19,13 @@
 #include "unicode/utypes.h"
 #if !UCONFIG_NO_REGULAR_EXPRESSIONS
 
-#include "unicode/uobject.h"
-#include "unicode/uniset.h"
 #include "unicode/parseerr.h"
+#include "unicode/uniset.h"
+#include "unicode/uobject.h"
+#include "unicode/utext.h"
 #include "uhash.h"
 #include "uvector.h"
+#include "uvectr32.h"
 
 
 
@@ -37,7 +41,7 @@ struct  RegexTableEl;
 class   RegexPattern;
 
 
-class RegexCompile : public UMemory {
+class U_I18N_API RegexCompile : public UMemory {
 public:
 
     enum {
@@ -103,6 +107,13 @@ private:
     void        fixLiterals(UBool split=FALSE);      // Generate code for pending literal characters.
     void        insertOp(int32_t where);             // Open up a slot for a new op in the
                                                      //   generated code at the specified location.
+    void        appendOp(int32_t op);                // Append a new op to the compiled pattern.
+    void        appendOp(int32_t type, int32_t val); // Build & append a new op to the compiled pattern.
+    int32_t     buildOp(int32_t type, int32_t val);  // Construct a new pcode instruction.
+    int32_t     allocateData(int32_t size);          // Allocate space in the matcher data area.
+                                                     //   Return index of the newly allocated data.
+    int32_t     allocateStackData(int32_t size);     // Allocate space in the match back-track stack frame.
+                                                     //   Return offset index in the frame.
     int32_t     minMatchLength(int32_t start,
                                int32_t end);
     int32_t     maxMatchLength(int32_t start,
@@ -114,6 +125,10 @@ private:
     void        setPushOp(int32_t op);
     UChar32     scanNamedChar();
     UnicodeSet *createSetForProperty(const UnicodeString &propName, UBool negated);
+
+public:   // Public for testing only.
+    static void U_EXPORT2 findCaseInsensitiveStarters(UChar32 c, UnicodeSet *starterChars);
+private:
 
 
     UErrorCode                    *fStatus;
@@ -182,7 +197,9 @@ private:
     int32_t                       fMatchOpenParen;   // The position in the compiled pattern
                                                      //   of the slot reserved for a state save
                                                      //   at the start of the most recently processed
-                                                     //   parenthesized block.
+                                                     //   parenthesized block. Updated when processing
+                                                     //   a close to the location for the corresponding open.
+
     int32_t                       fMatchCloseParen;  // The position in the pattern of the first
                                                      //   location after the most recently processed
                                                      //   parenthesized block.
@@ -206,6 +223,9 @@ private:
     UChar32                       fLastSetLiteral;   // The last single code point added to a set.
                                                      //   needed when "-y" is scanned, and we need
                                                      //   to turn "x-y" into a range.
+
+    UnicodeString                *fCaptureName;      // Named Capture, the group name is built up
+                                                     //   in this string while being scanned.
 };
 
 // Constant values to be pushed onto fSetOpStack while scanning & evalueating [set expressions]

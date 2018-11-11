@@ -54,19 +54,20 @@ typedef OffsetListOf<PosLookup> JstfMax;
 
 struct JstfPriority
 {
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
-    return TRACE_RETURN (c->check_struct (this) &&
-			 shrinkageEnableGSUB.sanitize (c, this) &&
-			 shrinkageDisableGSUB.sanitize (c, this) &&
-			 shrinkageEnableGPOS.sanitize (c, this) &&
-			 shrinkageDisableGPOS.sanitize (c, this) &&
-			 shrinkageJstfMax.sanitize (c, this) &&
-			 extensionEnableGSUB.sanitize (c, this) &&
-			 extensionDisableGSUB.sanitize (c, this) &&
-			 extensionEnableGPOS.sanitize (c, this) &&
-			 extensionDisableGPOS.sanitize (c, this) &&
-			 extensionJstfMax.sanitize (c, this));
+    return_trace (c->check_struct (this) &&
+		  shrinkageEnableGSUB.sanitize (c, this) &&
+		  shrinkageDisableGSUB.sanitize (c, this) &&
+		  shrinkageEnableGPOS.sanitize (c, this) &&
+		  shrinkageDisableGPOS.sanitize (c, this) &&
+		  shrinkageJstfMax.sanitize (c, this) &&
+		  extensionEnableGSUB.sanitize (c, this) &&
+		  extensionDisableGSUB.sanitize (c, this) &&
+		  extensionEnableGPOS.sanitize (c, this) &&
+		  extensionDisableGPOS.sanitize (c, this) &&
+		  extensionJstfMax.sanitize (c, this));
   }
 
   protected:
@@ -123,9 +124,10 @@ struct JstfPriority
 struct JstfLangSys : OffsetListOf<JstfPriority>
 {
   inline bool sanitize (hb_sanitize_context_t *c,
-			const Record<JstfLangSys>::sanitize_closure_t * = NULL) {
+			const Record<JstfLangSys>::sanitize_closure_t * = NULL) const
+  {
     TRACE_SANITIZE (this);
-    return TRACE_RETURN (OffsetListOf<JstfPriority>::sanitize (c));
+    return_trace (OffsetListOf<JstfPriority>::sanitize (c));
   }
 };
 
@@ -163,11 +165,12 @@ struct JstfScript
   inline const JstfLangSys& get_default_lang_sys (void) const { return this+defaultLangSys; }
 
   inline bool sanitize (hb_sanitize_context_t *c,
-			const Record<JstfScript>::sanitize_closure_t * = NULL) {
+			const Record<JstfScript>::sanitize_closure_t * = NULL) const
+  {
     TRACE_SANITIZE (this);
-    return TRACE_RETURN (extenderGlyphs.sanitize (c, this) &&
-			 defaultLangSys.sanitize (c, this) &&
-			 langSys.sanitize (c, this));
+    return_trace (extenderGlyphs.sanitize (c, this) &&
+		  defaultLangSys.sanitize (c, this) &&
+		  langSys.sanitize (c, this));
   }
 
   protected:
@@ -206,15 +209,17 @@ struct JSTF
   inline bool find_script_index (hb_tag_t tag, unsigned int *index) const
   { return scriptList.find_index (tag, index); }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
-    return TRACE_RETURN (version.sanitize (c) && likely (version.major == 1) &&
-			 scriptList.sanitize (c, this));
+    return_trace (version.sanitize (c) &&
+		  likely (version.major == 1) &&
+		  scriptList.sanitize (c, this));
   }
 
   protected:
-  FixedVersion	version;	/* Version of the JSTF table--initially set
-				 * to 0x00010000 */
+  FixedVersion<>version;	/* Version of the JSTF table--initially set
+				 * to 0x00010000u */
   RecordArrayOf<JstfScript>
 		scriptList;  	/* Array of JstfScripts--listed
 				 * alphabetically by ScriptTag */

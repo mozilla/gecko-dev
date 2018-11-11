@@ -29,18 +29,15 @@
 
 #include "hb.h"
 
-#ifndef _WIN32_WINNT
-#define _WIN32_WINNT 0x0600
-#endif
 #include <windows.h>
 
 HB_BEGIN_DECLS
 
 
-LOGFONTW *
+HB_EXTERN LOGFONTW *
 hb_uniscribe_font_get_logfontw (hb_font_t *font);
 
-HFONT
+HB_EXTERN HFONT
 hb_uniscribe_font_get_hfont (hb_font_t *font);
 
 

@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,6 +12,8 @@ const nsIFilePicker   = Components.interfaces.nsIFilePicker;
 const STDURL_CTRID    = "@mozilla.org/network/standard-url;1";
 const nsIURI          = Components.interfaces.nsIURI;
 
+Components.utils.import("resource://gre/modules/NetUtil.jsm");
+
 var gStop = false;
 
 function loadFile(aUriSpec)
@@ -22,10 +24,13 @@ function loadFile(aUriSpec)
     if (!serv) {
         throw Components.results.ERR_FAILURE;
     }
-    var chan = serv.newChannel(aUriSpec, null, null);
+    var chan = NetUtil.newChannel({
+        uri: aUriSpec,
+        loadUsingSystemPrincipal: true
+    });
     var instream = 
         Components.classes[SIS_CTRID].createInstance(nsISIS);
-    instream.init(chan.open());
+    instream.init(chan.open2());
 
     return instream.read(instream.available());
 }

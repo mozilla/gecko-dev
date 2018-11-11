@@ -14,7 +14,6 @@
     "mobileconnection":{},
     "bluetooth":{},
     "telephony":{},
-    "voicemail":{},
     "device-storage:pictures":{ "access": "readwrite" },
     "device-storage:sdcard":{ "access": "readwrite" },
     "settings":{ "access": "readwrite" },
@@ -27,17 +26,14 @@
     "network-events":{},
     "embed-apps":{},
     "audio-channel-content":{},
-    "audio-channel-alarm":{}
+    "audio-channel-alarm":{},
+    "before-after-keyboard-event":{}
   },
   "locales": {
     "en-US": {
       "name": "Mochitest",
       "description": "Mochitests"
     }
-  },
-  "datastores-access" : {
-    "foo" : { "readonly": false },
-    "bar" : { "readonly": false }
   },
   "default_locale": "en-US"
 }

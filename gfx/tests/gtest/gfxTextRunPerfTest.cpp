@@ -43,7 +43,10 @@ MakeContext ()
     RefPtr<DrawTarget> drawTarget = gfxPlatform::GetPlatform()->
         CreateOffscreenContentDrawTarget(IntSize(size, size),
                                          SurfaceFormat::B8G8R8X8);
-    nsRefPtr<gfxContext> ctx = new gfxContext(drawTarget);
+    RefPtr<gfxContext> ctx = gfxContext::CreateOrNull(drawTarget);
+    if (!ctx) {
+        MOZ_CRASH("gfxContext creation failed");
+    }
 
     return ctx.forget();
 }
@@ -52,21 +55,21 @@ const char* lastFamilies = nullptr;
 
 static void
 RunTest (TestEntry *test, gfxContext *ctx) {
-    nsRefPtr<gfxFontGroup> fontGroup;
+    RefPtr<gfxFontGroup> fontGroup;
     if (!lastFamilies || strcmp(lastFamilies, test->mFamilies)) {
         gfxFontStyle style_western_normal_16 (mozilla::gfx::FontStyle::NORMAL,
                                               400,
                                               0,
                                               16.0,
-                                              NS_NewPermanentAtom(NS_LITERAL_STRING("en")),
+                                              NS_Atomize(NS_LITERAL_STRING("en")),
                                               0.0,
                                               false, false,
                                               NS_LITERAL_STRING(""));
 
-        fontGroup = gfxPlatform::GetPlatform()->CreateFontGroup(NS_ConvertUTF8toUTF16(test->mFamilies), &style_western_normal_16, nullptr);
+        fontGroup = gfxPlatform::GetPlatform()->CreateFontGroup(NS_ConvertUTF8toUTF16(test->mFamilies), &style_western_normal_16, nullptr, nullptr, 1.0);
     }
 
-    nsAutoPtr<gfxTextRun> textRun;
+    RefPtr<gfxTextRun> textRun;
     uint32_t i;
     bool isASCII = true;
     for (i = 0; test->mString[i]; ++i) {
@@ -84,7 +87,8 @@ RunTest (TestEntry *test, gfxContext *ctx) {
         flags |= gfxTextRunFactory::TEXT_IS_ASCII |
                  gfxTextRunFactory::TEXT_IS_8BIT;
         length = strlen(test->mString);
-        textRun = fontGroup->MakeTextRun(reinterpret_cast<const uint8_t*>(test->mString), length, &params, flags);
+        textRun = fontGroup->MakeTextRun(
+            reinterpret_cast<const uint8_t*>(test->mString), length, &params, flags);
     } else {
         NS_ConvertUTF8toUTF16 str(nsDependentCString(test->mString));
         length = str.Length();
@@ -101,7 +105,7 @@ RunTest (TestEntry *test, gfxContext *ctx) {
 uint32_t iterations = 1;
 
 TEST(Gfx, TextRunPref) {
-    nsRefPtr<gfxContext> context = MakeContext();
+    RefPtr<gfxContext> context = MakeContext();
 
     // Start timing
     PRIntervalTime start = PR_IntervalNow();

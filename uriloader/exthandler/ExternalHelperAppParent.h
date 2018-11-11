@@ -10,10 +10,11 @@
 #include "nsIResumableChannel.h"
 #include "nsIStreamListener.h"
 #include "nsHashPropertyBag.h"
+#include "PrivateBrowsingChannel.h"
 
 namespace IPC {
 class URI;
-}
+} // namespace IPC
 
 namespace mozilla {
 
@@ -27,6 +28,23 @@ class PChannelDiverterParent;
 
 namespace dom {
 
+#define NS_IEXTERNALHELPERAPPPARENT_IID \
+{ 0x127a01bc, 0x2a49, 0x46a8, \
+  { 0x8c, 0x63, 0x4b, 0x5d, 0x3c, 0xa4, 0x07, 0x9c } }
+
+class nsIExternalHelperAppParent : public nsISupports
+{
+public:
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IEXTERNALHELPERAPPPARENT_IID)
+
+  /**
+   * Returns true if this fake channel represented a file channel in the child.
+   */
+  virtual bool WasFileChannel() = 0;
+};
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsIExternalHelperAppParent, NS_IEXTERNALHELPERAPPPARENT_IID)
+
 class ContentParent;
 class PBrowserParent;
 
@@ -36,11 +54,13 @@ class ExternalHelperAppParent : public PExternalHelperAppParent
                               , public nsIMultiPartChannel
                               , public nsIResumableChannel
                               , public nsIStreamListener
+                              , public net::PrivateBrowsingChannel<ExternalHelperAppParent>
+                              , public nsIExternalHelperAppParent
 {
     typedef mozilla::ipc::OptionalURIParams OptionalURIParams;
 
 public:
-    NS_DECL_ISUPPORTS
+    NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_NSIREQUEST
     NS_DECL_NSICHANNEL
     NS_DECL_NSIMULTIPARTCHANNEL
@@ -48,15 +68,20 @@ public:
     NS_DECL_NSISTREAMLISTENER
     NS_DECL_NSIREQUESTOBSERVER
 
-    bool RecvOnStartRequest(const nsCString& entityID) MOZ_OVERRIDE;
+    bool RecvOnStartRequest(const nsCString& entityID) override;
     bool RecvOnDataAvailable(const nsCString& data,
                              const uint64_t& offset,
-                             const uint32_t& count) MOZ_OVERRIDE;
-    bool RecvOnStopRequest(const nsresult& code) MOZ_OVERRIDE;
+                             const uint32_t& count) override;
+    bool RecvOnStopRequest(const nsresult& code) override;
 
-    bool RecvDivertToParentUsing(PChannelDiverterParent* diverter) MOZ_OVERRIDE;
+    bool RecvDivertToParentUsing(PChannelDiverterParent* diverter) override;
 
-    ExternalHelperAppParent(const OptionalURIParams& uri, const int64_t& contentLength);
+    bool WasFileChannel() override {
+      return mWasFileChannel;
+    }
+
+    ExternalHelperAppParent(const OptionalURIParams& uri, const int64_t& contentLength,
+                            const bool& wasFileChannel);
     void Init(ContentParent *parent,
               const nsCString& aMimeContentType,
               const nsCString& aContentDisposition,
@@ -65,21 +90,25 @@ public:
               const bool& aForceSave,
               const OptionalURIParams& aReferrer,
               PBrowserParent* aBrowser);
-    virtual ~ExternalHelperAppParent();
 
 protected:
-  virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
+  virtual ~ExternalHelperAppParent();
+
+  virtual void ActorDestroy(ActorDestroyReason why) override;
   void Delete();
 
 private:
   nsCOMPtr<nsIStreamListener> mListener;
   nsCOMPtr<nsIURI> mURI;
   bool mPending;
-  DebugOnly<bool> mDiverted;
+#ifdef DEBUG
+  bool mDiverted;
+#endif
   bool mIPCClosed;
   nsLoadFlags mLoadFlags;
   nsresult mStatus;
   int64_t mContentLength;
+  bool mWasFileChannel;
   uint32_t mContentDisposition;
   nsString mContentDispositionFilename;
   nsCString mContentDispositionHeader;

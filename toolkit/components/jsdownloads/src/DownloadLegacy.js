@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,8 +16,7 @@
 
 "use strict";
 
-////////////////////////////////////////////////////////////////////////////////
-//// Globals
+// Globals
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -31,8 +30,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "Downloads",
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
                                   "resource://gre/modules/Promise.jsm");
 
-////////////////////////////////////////////////////////////////////////////////
-//// DownloadLegacyTransfer
+// DownloadLegacyTransfer
 
 /**
  * nsITransfer implementation that provides a bridge to a Download object.
@@ -70,15 +68,13 @@ function DownloadLegacyTransfer()
 DownloadLegacyTransfer.prototype = {
   classID: Components.ID("{1b4c85df-cbdd-4bb6-b04e-613caece083c}"),
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// nsISupports
+  // nsISupports
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
                                          Ci.nsIWebProgressListener2,
                                          Ci.nsITransfer]),
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// nsIWebProgressListener
+  // nsIWebProgressListener
 
   onStateChange: function DLT_onStateChange(aWebProgress, aRequest, aStateFlags,
                                             aStatus)
@@ -90,10 +86,20 @@ DownloadLegacyTransfer.prototype = {
     if ((aStateFlags & Ci.nsIWebProgressListener.STATE_START) &&
         (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK)) {
 
-      // If the request's response has been blocked by Windows Parental Controls
-      // with an HTTP 450 error code, we must cancel the request synchronously.
-      let blockedByParentalControls = aRequest instanceof Ci.nsIHttpChannel &&
+      let blockedByParentalControls = false;
+      // If it is a failed download, aRequest.responseStatus doesn't exist.
+      // (missing file on the server, network failure to download)
+      try {
+        // If the request's response has been blocked by Windows Parental Controls
+        // with an HTTP 450 error code, we must cancel the request synchronously.
+        blockedByParentalControls = aRequest instanceof Ci.nsIHttpChannel &&
                                       aRequest.responseStatus == 450;
+      } catch (e) {
+        if (e.result == Cr.NS_ERROR_NOT_AVAILABLE) {
+          aRequest.cancel(Cr.NS_BINDING_ABORTED);
+        }
+      }
+
       if (blockedByParentalControls) {
         aRequest.cancel(Cr.NS_BINDING_ABORTED);
       }
@@ -180,8 +186,7 @@ DownloadLegacyTransfer.prototype = {
 
   onSecurityChange: function () { },
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// nsIWebProgressListener2
+  // nsIWebProgressListener2
 
   onProgressChange64: function DLT_onProgressChange64(aWebProgress, aRequest,
                                                       aCurSelfProgress,
@@ -203,8 +208,7 @@ DownloadLegacyTransfer.prototype = {
     return true;
   },
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// nsITransfer
+  // nsITransfer
 
   init: function DLT_init(aSource, aTarget, aDisplayName, aMIMEInfo, aStartTime,
                           aTempFile, aCancelable, aIsPrivate)
@@ -243,7 +247,7 @@ DownloadLegacyTransfer.prototype = {
       }
 
       // Start the download before allowing it to be controlled.  Ignore errors.
-      aDownload.start().then(null, () => {});
+      aDownload.start().catch(() => {});
 
       // Start processing all the other events received through nsITransfer.
       this._deferDownload.resolve(aDownload);
@@ -268,8 +272,7 @@ DownloadLegacyTransfer.prototype = {
     this._redirects = redirects;
   },
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// Private methods and properties
+  // Private methods and properties
 
   /**
    * This deferred object contains a promise that is resolved with the Download
@@ -301,7 +304,6 @@ DownloadLegacyTransfer.prototype = {
   _signatureInfo: null,
 };
 
-////////////////////////////////////////////////////////////////////////////////
-//// Module
+// Module
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([DownloadLegacyTransfer]);

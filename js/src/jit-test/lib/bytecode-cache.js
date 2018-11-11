@@ -9,11 +9,10 @@ function evalWithCache(code, ctx) {
 
   // We create a new global ...
   if (!("global" in ctx))
-    ctx.global = newGlobal();
+    ctx.global = newGlobal({ cloneSingletons: true });
 
-  // ... and by default enable compileAndGo.
-  if (!("compileAndGo" in ctx))
-    ctx.compileAndGo = true;
+  if (!("isRunOnce" in ctx))
+    ctx.isRunOnce = true;
 
   // Fetch the verification function from the evaluation context.  This function
   // is used to assert the state of the script/function after each run of the
@@ -43,5 +42,11 @@ function evalWithCache(code, ctx) {
     assertEq(res0, res1);
     assertEq(res0, res2);
     assertEq(res0, res3);
+  }
+
+  if (ctx.checkFrozen) {
+    assertEq(Object.isFrozen(res0), Object.isFrozen(res1));
+    assertEq(Object.isFrozen(res0), Object.isFrozen(res2));
+    assertEq(Object.isFrozen(res0), Object.isFrozen(res3));
   }
 }

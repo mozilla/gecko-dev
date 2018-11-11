@@ -14,7 +14,6 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Casting.h"
 #include "mozilla/FloatingPoint.h"
-#include "mozilla/NullPtr.h"
 
 #include <cmath>
 #include <cstring>
@@ -34,18 +33,12 @@
 
 #define ASSERT_NOT_REACHED() MOZ_ASSERT_UNREACHABLE("moz-decimal-utils.h")
 
+#define STACK_ALLOCATED() DISALLOW_NEW()
+
 #define WTF_MAKE_NONCOPYABLE(ClassName) \
   private: \
-    ClassName(const ClassName&) MOZ_DELETE; \
-    void operator=(const ClassName&) MOZ_DELETE;
-
-#if defined(_MSC_VER)
-namespace std {
-  inline bool isinf(double num) { return mozilla::IsInfinite(num); }
-  inline bool isnan(double num) { return mozilla::IsNaN(num); }
-  inline bool isfinite(double num) { return mozilla::IsFinite(num); }
-}
-#endif
+    ClassName(const ClassName&) = delete; \
+    void operator=(const ClassName&) = delete;
 
 typedef std::string String;
 
@@ -54,7 +47,7 @@ double mozToDouble(const String &aStr, bool *valid) {
     double_conversion::StringToDoubleConverter::NO_FLAGS,
     mozilla::UnspecifiedNaN<double>(), mozilla::UnspecifiedNaN<double>(), nullptr, nullptr);
   const char* str = aStr.c_str();
-  int length = mozilla::SafeCast<int>(strlen(str));
+  int length = mozilla::AssertedCast<int>(strlen(str));
   int processed_char_count; // unused - NO_FLAGS requires the whole string to parse
   double result = converter.StringToDouble(str, length, &processed_char_count);
   *valid = mozilla::IsFinite(result);
@@ -107,7 +100,7 @@ private:
   std::string mStr;
 };
 
-} // namespace moz-decimal-utils
+} // namespace moz_decimal_utils
 
 #endif
 

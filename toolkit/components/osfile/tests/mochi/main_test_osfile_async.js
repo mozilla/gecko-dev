@@ -11,16 +11,16 @@ Components.utils.import("resource://gre/modules/NetUtil.jsm");
 Components.utils.import("resource://gre/modules/FileUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
-let myok = ok;
-let myis = is;
-let myinfo = info;
-let myisnot = isnot;
+var myok = ok;
+var myis = is;
+var myinfo = info;
+var myisnot = isnot;
 
-let isPromise = function ispromise(value) {
+var isPromise = function ispromise(value) {
   return value != null && typeof value == "object" && "then" in value;
 };
 
-let maketest = function(prefix, test) {
+var maketest = function(prefix, test) {
   let utils = {
     ok: function ok(t, m) {
       myok(t, prefix + ": " + m);
@@ -85,12 +85,14 @@ let maketest = function(prefix, test) {
  * @return {promise}
  * @resolves {string} The contents of the file.
  */
-let reference_fetch_file = function reference_fetch_file(path, test) {
+var reference_fetch_file = function reference_fetch_file(path, test) {
   test.info("Fetching file " + path);
   let promise = Promise.defer();
   let file = new FileUtils.File(path);
-  NetUtil.asyncFetch(file,
-    function(stream, status) {
+  NetUtil.asyncFetch({
+    uri: NetUtil.newURI(file),
+    loadUsingSystemPrincipal: true
+  }, function(stream, status) {
       if (!Components.isSuccessCode(status)) {
         promise.reject(status);
         return;
@@ -107,7 +109,8 @@ let reference_fetch_file = function reference_fetch_file(path, test) {
       } else {
         promise.resolve(result);
       }
-  });
+    });
+
   return promise.promise;
 };
 
@@ -121,14 +124,14 @@ let reference_fetch_file = function reference_fetch_file(path, test) {
  *
  * @resolves {null}
  */
-let reference_compare_files = function reference_compare_files(a, b, test) {
+var reference_compare_files = function reference_compare_files(a, b, test) {
   test.info("Comparing files " + a + " and " + b);
   let a_contents = yield reference_fetch_file(a, test);
   let b_contents = yield reference_fetch_file(b, test);
   is(a_contents, b_contents, "Contents of files " + a + " and " + b + " match");
 };
 
-let reference_dir_contents = function reference_dir_contents(path) {
+var reference_dir_contents = function reference_dir_contents(path) {
   let result = [];
   let entries = new FileUtils.File(path).directoryEntries;
   while (entries.hasMoreElements()) {
@@ -146,13 +149,12 @@ function toggleDebugTest (pref, consoleListener) {
     consoleListener);
 }
 
-let test = maketest("Main", function main(test) {
+var test = maketest("Main", function main(test) {
   return Task.spawn(function() {
     SimpleTest.waitForExplicitFinish();
     yield test_stat();
     yield test_debug();
     yield test_info_features_detect();
-    yield test_read_write();
     yield test_position();
     yield test_iter();
     yield test_exists();
@@ -165,13 +167,13 @@ let test = maketest("Main", function main(test) {
 /**
  * A file that we know exists and that can be used for reading.
  */
-let EXISTING_FILE = OS.Path.join("chrome", "toolkit", "components",
+var EXISTING_FILE = OS.Path.join("chrome", "toolkit", "components",
   "osfile", "tests", "mochi", "main_test_osfile_async.js");
 
 /**
  * Test OS.File.stat and OS.File.prototype.stat
  */
-let test_stat = maketest("stat", function stat(test) {
+var test_stat = maketest("stat", function stat(test) {
   return Task.spawn(function() {
     // Open a file and stat it
     let file = yield OS.File.open(EXISTING_FILE);
@@ -200,7 +202,7 @@ let test_stat = maketest("stat", function stat(test) {
 /**
  * Test feature detection using OS.File.Info.prototype on main thread
  */
-let test_info_features_detect = maketest("features_detect", function features_detect(test) {
+var test_info_features_detect = maketest("features_detect", function features_detect(test) {
   return Task.spawn(function() {
     if (OS.Constants.Win) {
       // see if winBirthDate is defined
@@ -221,76 +223,15 @@ let test_info_features_detect = maketest("features_detect", function features_de
 });
 
 /**
- * Test OS.File.prototype.{read, readTo, write}
- */
-let test_read_write = maketest("read_write", function read_write(test) {
-  return Task.spawn(function() {
-    // Test readTo/write
-    let currentDir = yield OS.File.getCurrentDirectory();
-    let pathSource = OS.Path.join(currentDir, EXISTING_FILE);
-    let pathDest = OS.Path.join(OS.Constants.Path.tmpDir,
-      "osfile async test.tmp");
-
-    let fileSource = yield OS.File.open(pathSource);
-    test.info("Input file opened");
-    let fileDest = yield OS.File.open(pathDest,
-      { truncate: true, read: true, write: true});
-    test.info("Output file opened");
-
-    let stat = yield fileSource.stat();
-    test.info("Input stat worked");
-    let size = stat.size;
-    let array = new Uint8Array(size);
-
-    try {
-      test.info("Now calling readTo");
-      let readLength = yield fileSource.readTo(array);
-      test.info("ReadTo worked");
-      test.is(readLength, size, "ReadTo got all bytes");
-      let writeLength = yield fileDest.write(array);
-      test.info("Write worked");
-      test.is(writeLength, size, "Write wrote all bytes");
-
-      // Test read
-      yield fileSource.setPosition(0);
-      let readAllResult = yield fileSource.read();
-      test.info("ReadAll worked");
-      test.is(readAllResult.length, size, "ReadAll read all bytes");
-      test.is(Array.prototype.join.call(readAllResult),
-              Array.prototype.join.call(array),
-              "ReadAll result is correct");
-    } finally {
-      // Close stuff
-      yield fileSource.close();
-      yield fileDest.close();
-      test.info("Files are closed");
-    }
-
-    stat = yield OS.File.stat(pathDest);
-    test.is(stat.size, size, "Both files have the same size");
-    yield reference_compare_files(pathSource, pathDest, test);
-
-    // Cleanup.
-    OS.File.remove(pathDest);
-  });
-});
-
-
-/**
  * Test file.{getPosition, setPosition}
  */
-let test_position = maketest("position", function position(test) {
+var test_position = maketest("position", function position(test) {
   return Task.spawn(function() {
     let file = yield OS.File.open(EXISTING_FILE);
 
     try {
-      let stat = yield file.stat();
-      test.info("Obtained file length");
-
-      let view = new Uint8Array(stat.size);
-      yield file.readTo(view);
+      let view = yield file.read();
       test.info("First batch of content read");
-
       let CHUNK_SIZE = 178;// An arbitrary number of bytes to read from the file
       let pos = yield file.getPosition();
       test.info("Obtained position");
@@ -299,8 +240,7 @@ let test_position = maketest("position", function position(test) {
       test.info("Changed position");
       test.is(pos, view.byteLength - CHUNK_SIZE, "setPosition returned the correct position");
 
-      let view2 = new Uint8Array(CHUNK_SIZE);
-      yield file.readTo(view2);
+      let view2 = yield file.read();
       test.info("Read the end of the file");
       for (let i = 0; i < CHUNK_SIZE; ++i) {
         if (view2[i] != view[i + view.byteLength - CHUNK_SIZE]) {
@@ -316,7 +256,7 @@ let test_position = maketest("position", function position(test) {
 /**
  * Test OS.File.prototype.{DirectoryIterator}
  */
-let test_iter = maketest("iter", function iter(test) {
+var test_iter = maketest("iter", function iter(test) {
   return Task.spawn(function() {
     let currentDir = yield OS.File.getCurrentDirectory();
 
@@ -441,7 +381,7 @@ let test_iter = maketest("iter", function iter(test) {
 /**
  * Test OS.File.prototype.{exists}
  */
-let test_exists = maketest("exists", function exists(test) {
+var test_exists = maketest("exists", function exists(test) {
   return Task.spawn(function() {
     let fileExists = yield OS.File.exists(EXISTING_FILE);
     test.ok(fileExists, "file exists");
@@ -453,7 +393,7 @@ let test_exists = maketest("exists", function exists(test) {
 /**
  * Test changes to OS.Shared.DEBUG flag.
  */
-let test_debug = maketest("debug", function debug(test) {
+var test_debug = maketest("debug", function debug(test) {
   return Task.spawn(function() {
     function testSetDebugPref (pref) {
       try {
@@ -478,7 +418,7 @@ let test_debug = maketest("debug", function debug(test) {
  * Test logging in the main thread with set OS.Shared.DEBUG and
  * OS.Shared.TEST flags.
  */
-let test_debug_test = maketest("debug_test", function debug_test(test) {
+var test_debug_test = maketest("debug_test", function debug_test(test) {
   return Task.spawn(function () {
     // Create a console listener.
     let consoleListener = {

@@ -14,7 +14,6 @@ namespace mozilla {
 namespace system {
 
 class Volume;
-class VolumeMountLock;
 
 class nsVolume : public nsIVolume
 {
@@ -25,12 +24,17 @@ public:
   // This constructor is used by the UpdateVolumeRunnable constructor
   nsVolume(const Volume* aVolume);
 
+  // This constructor is used by nsVolumeService::SetFakeVolumeState
+  nsVolume(const nsVolume* aVolume);
+
   // This constructor is used by ContentChild::RecvFileSystemUpdate which is
   // used to update the volume cache maintained in the child process.
   nsVolume(const nsAString& aName, const nsAString& aMountPoint,
            const int32_t& aState, const int32_t& aMountGeneration,
            const bool& aIsMediaPresent, const bool& aIsSharing,
-           const bool& aIsFormatting, const bool& aIsFake)
+           const bool& aIsFormatting, const bool& aIsFake,
+           const bool& aIsUnmounting, const bool& aIsRemovable,
+           const bool& aIsHotSwappable)
     : mName(aName),
       mMountPoint(aMountPoint),
       mState(aState),
@@ -39,31 +43,22 @@ public:
       mIsFake(aIsFake),
       mIsMediaPresent(aIsMediaPresent),
       mIsSharing(aIsSharing),
-      mIsFormatting(aIsFormatting)
-  {
-  }
-
-  // This constructor is used by nsVolumeService::FindAddVolumeByName, and
-  // will be followed shortly by a Set call.
-  nsVolume(const nsAString& aName)
-    : mName(aName),
-      mState(STATE_INIT),
-      mMountGeneration(-1),
-      mMountLocked(true),  // Needs to agree with Volume::Volume
-      mIsFake(false),
-      mIsMediaPresent(false),
-      mIsSharing(false),
-      mIsFormatting(false)
+      mIsFormatting(aIsFormatting),
+      mIsUnmounting(aIsUnmounting),
+      mIsRemovable(aIsRemovable),
+      mIsHotSwappable(aIsHotSwappable)
   {
   }
 
   bool Equals(nsIVolume* aVolume);
-  void Set(nsIVolume* aVolume);
+  void UpdateMountLock(nsVolume* aOldVolume);
 
   void LogState() const;
 
   const nsString& Name() const        { return mName; }
   nsCString NameStr() const           { return NS_LossyConvertUTF16toASCII(mName); }
+
+  void Dump(const char* aLabel) const;
 
   int32_t MountGeneration() const     { return mMountGeneration; }
   bool IsMountLocked() const          { return mMountLocked; }
@@ -78,8 +73,11 @@ public:
   bool IsMediaPresent() const         { return mIsMediaPresent; }
   bool IsSharing() const              { return mIsSharing; }
   bool IsFormatting() const           { return mIsFormatting; }
+  bool IsUnmounting() const           { return mIsUnmounting; }
+  bool IsRemovable() const            { return mIsRemovable; }
+  bool IsHotSwappable() const         { return mIsHotSwappable; }
 
-  typedef nsTArray<nsRefPtr<nsVolume> > Array;
+  typedef nsTArray<RefPtr<nsVolume> > Array;
 
 private:
   virtual ~nsVolume() {}  // MozExternalRefCountType complains if this is non-virtual
@@ -89,6 +87,8 @@ private:
   void UpdateMountLock(bool aMountLocked);
 
   void SetIsFake(bool aIsFake);
+  void SetIsRemovable(bool aIsRemovable);
+  void SetIsHotSwappable(bool aIsHotSwappble);
   void SetState(int32_t aState);
   static void FormatVolumeIOThread(const nsCString& aVolume);
   static void MountVolumeIOThread(const nsCString& aVolume);
@@ -103,6 +103,9 @@ private:
   bool     mIsMediaPresent;
   bool     mIsSharing;
   bool     mIsFormatting;
+  bool     mIsUnmounting;
+  bool     mIsRemovable;
+  bool     mIsHotSwappable;
 };
 
 } // system

@@ -7,12 +7,12 @@
 #include "TestHarness.h"
 #include "nsMemory.h"
 #include "nsThreadUtils.h"
-#include "nsNetUtil.h"
 #include "nsDocShellCID.h"
 
 #include "nsToolkitCompsCID.h"
 #include "nsINavHistoryService.h"
 #include "nsIObserverService.h"
+#include "nsIURI.h"
 #include "mozilla/IHistory.h"
 #include "mozIStorageConnection.h"
 #include "mozIStorageStatement.h"
@@ -22,6 +22,7 @@
 #include "nsPIPlacesDatabase.h"
 #include "nsIObserver.h"
 #include "prinrval.h"
+#include "prtime.h"
 #include "mozilla/Attributes.h"
 
 #define WAITFORTOPIC_TIMEOUT_SECONDS 5
@@ -97,12 +98,12 @@ void do_test_finished();
 /**
  * Spins current thread until a topic is received.
  */
-class WaitForTopicSpinner MOZ_FINAL : public nsIObserver
+class WaitForTopicSpinner final : public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS
 
-  WaitForTopicSpinner(const char* const aTopic)
+  explicit WaitForTopicSpinner(const char* const aTopic)
   : mTopicReceived(false)
   , mStartTime(PR_IntervalNow())
   {
@@ -125,7 +126,7 @@ public:
 
   NS_IMETHOD Observe(nsISupports* aSubject,
                      const char* aTopic,
-                     const char16_t* aData)
+                     const char16_t* aData) override
   {
     mTopicReceived = true;
     nsCOMPtr<nsIObserverService> observerService =
@@ -136,6 +137,8 @@ public:
   }
 
 private:
+  ~WaitForTopicSpinner() {}
+
   bool mTopicReceived;
   PRIntervalTime mStartTime;
 };
@@ -147,7 +150,7 @@ NS_IMPL_ISUPPORTS(
 /**
  * Spins current thread until an async statement is executed.
  */
-class AsyncStatementSpinner MOZ_FINAL : public mozIStorageStatementCallback
+class AsyncStatementSpinner final : public mozIStorageStatementCallback
 {
 public:
   NS_DECL_ISUPPORTS
@@ -158,6 +161,8 @@ public:
   uint16_t completionReason;
 
 protected:
+  ~AsyncStatementSpinner() {}
+
   volatile bool mCompleted;
 };
 
@@ -264,7 +269,7 @@ do_get_place(nsIURI* aURI, PlaceRecord& result)
 
   rv = dbConn->CreateStatement(NS_LITERAL_CSTRING(
     "SELECT id, hidden, typed, visit_count, guid FROM moz_places "
-    "WHERE url=?1 "
+    "WHERE url_hash = hash(?1) AND url = ?1"
   ), getter_AddRefs(stmt));
   do_check_success(rv);
 
@@ -342,7 +347,7 @@ do_wait_async_updates() {
 
   db->CreateAsyncStatement(NS_LITERAL_CSTRING("COMMIT"),
                            getter_AddRefs(stmt));
-  nsRefPtr<AsyncStatementSpinner> spinner = new AsyncStatementSpinner();
+  RefPtr<AsyncStatementSpinner> spinner = new AsyncStatementSpinner();
   (void)stmt->ExecuteAsync(spinner, getter_AddRefs(pending));
 
   spinner->SpinUntilCompleted();
@@ -368,9 +373,12 @@ addURI(nsIURI* aURI)
 static const char TOPIC_PROFILE_CHANGE[] = "profile-before-change";
 static const char TOPIC_PLACES_CONNECTION_CLOSED[] = "places-connection-closed";
 
-class WaitForConnectionClosed MOZ_FINAL : public nsIObserver
+class WaitForConnectionClosed final : public nsIObserver
 {
-  nsRefPtr<WaitForTopicSpinner> mSpinner;
+  RefPtr<WaitForTopicSpinner> mSpinner;
+
+  ~WaitForConnectionClosed() {}
+
 public:
   NS_DECL_ISUPPORTS
 
@@ -380,20 +388,20 @@ public:
       do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
     MOZ_ASSERT(os);
     if (os) {
-      MOZ_ALWAYS_TRUE(NS_SUCCEEDED(os->AddObserver(this, TOPIC_PROFILE_CHANGE, false)));
+      MOZ_ALWAYS_SUCCEEDS(os->AddObserver(this, TOPIC_PROFILE_CHANGE, false));
     }
     mSpinner = new WaitForTopicSpinner(TOPIC_PLACES_CONNECTION_CLOSED);
   }
 
   NS_IMETHOD Observe(nsISupports* aSubject,
                      const char* aTopic,
-                     const char16_t* aData)
+                     const char16_t* aData) override
   {
     nsCOMPtr<nsIObserverService> os =
       do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
     MOZ_ASSERT(os);
     if (os) {
-      MOZ_ALWAYS_TRUE(NS_SUCCEEDED(os->RemoveObserver(this, aTopic)));
+      MOZ_ALWAYS_SUCCEEDS(os->RemoveObserver(this, aTopic));
     }
 
     mSpinner->Spin();

@@ -7,14 +7,15 @@ import sys
 
 version = '0.5'
 
-deps = ['httplib2 >= 0.7.3',
-        'mozfile >= 1.1',
-        'mozhttpd >= 0.7',
-        'mozinfo >= 0.7',
-        'mozinstall >= 1.9',
-        'mozprocess >= 0.18',
-        'mozprofile >= 0.21',
-        'mozrunner >= 5.35',
+deps = ['httplib2 == 0.9.2',
+        'mozfile == 1.2',
+        'mozhttpd == 0.7',
+        'mozinfo == 0.9',
+        'mozinstall == 1.12',
+        'mozprocess == 0.23',
+        'mozprofile == 0.28',
+        'mozrunner == 6.12',
+        'mozversion == 1.4',
        ]
 
 # we only support python 2.6+ right now

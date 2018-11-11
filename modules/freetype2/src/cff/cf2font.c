@@ -36,6 +36,9 @@
 /***************************************************************************/
 
 
+#include <ft2build.h>
+#include FT_INTERNAL_CALC_H
+
 #include "cf2ft.h"
 
 #include "cf2glue.h"
@@ -105,6 +108,7 @@
     /* adjusting for emRatio converts darkenAmount to character */
     /* space (font units).                                      */
     CF2_Fixed  stemWidthPer1000, scaledStem;
+    FT_Int     logBase2;
 
 
     *darkenAmount = 0;
@@ -131,25 +135,32 @@
       /* convert from true character space to 1000 unit character space; */
       /* add synthetic emboldening effect                                */
 
-      /* we have to assure that the computation of `scaledStem' */
-      /* and `stemWidthPer1000' don't overflow                  */
+      /* `stemWidthPer1000' will not overflow for a legitimate font      */
 
       stemWidthPer1000 = FT_MulFix( stemWidth + boldenAmount, emRatio );
 
-      if ( emRatio > CF2_FIXED_ONE                          &&
-           stemWidthPer1000 <= ( stemWidth + boldenAmount ) )
-      {
-        stemWidthPer1000 = 0;                      /* to pacify compiler */
-        scaledStem       = cf2_intToFixed( x4 );
-      }
-      else
-      {
-        scaledStem = FT_MulFix( stemWidthPer1000, ppem );
+      /* `scaledStem' can easily overflow, so we must clamp its maximum  */
+      /* value; the test doesn't need to be precise, but must be         */
+      /* conservative.  The clamp value (default 2333) where             */
+      /* `darkenAmount' is zero is well below the overflow value of      */
+      /* 32767.                                                          */
+      /*                                                                 */
+      /* FT_MSB computes the integer part of the base 2 logarithm.  The  */
+      /* number of bits for the product is 1 or 2 more than the sum of   */
+      /* logarithms; remembering that the 16 lowest bits of the fraction */
+      /* are dropped this is correct to within a factor of almost 4.     */
+      /* For example, 0x80.0000 * 0x80.0000 = 0x4000.0000 is 23+23 and   */
+      /* is flagged as possible overflow because 0xFF.FFFF * 0xFF.FFFF = */
+      /* 0xFFFF.FE00 is also 23+23.                                      */
 
-        if ( ppem > CF2_FIXED_ONE           &&
-             scaledStem <= stemWidthPer1000 )
-          scaledStem = cf2_intToFixed( x4 );
-      }
+      logBase2 = FT_MSB( (FT_UInt32)stemWidthPer1000 ) +
+                   FT_MSB( (FT_UInt32)ppem );
+
+      if ( logBase2 >= 46 )
+        /* possible overflow */
+        scaledStem = cf2_intToFixed( x4 );
+      else
+        scaledStem = FT_MulFix( stemWidthPer1000, ppem );
 
       /* now apply the darkening parameters */
 
@@ -223,7 +234,8 @@
   }
 
 
-  /* set up values for the current FontDict and matrix */
+  /* set up values for the current FontDict and matrix; */
+  /* called for each glyph to be rendered               */
 
   /* caller's transform is adjusted for subpixel positioning */
   static void
@@ -235,12 +247,18 @@
 
     FT_Bool  needExtraSetup = FALSE;
 
+    CFF_VStoreRec*  vstore;
+    FT_Bool         hasVariations = FALSE;
+
     /* character space units */
     CF2_Fixed  boldenX = font->syntheticEmboldeningAmountX;
     CF2_Fixed  boldenY = font->syntheticEmboldeningAmountY;
 
     CFF_SubFont  subFont;
     CF2_Fixed    ppem;
+
+    CF2_UInt   lenNormalizedV = 0;
+    FT_Fixed*  normalizedV    = NULL;
 
 
     /* clear previous error */
@@ -253,6 +271,48 @@
     {
       font->lastSubfont = subFont;
       needExtraSetup    = TRUE;
+    }
+
+    /* check for variation vectors */
+    vstore        = cf2_getVStore( decoder );
+    hasVariations = ( vstore->dataCount != 0 );
+
+    if ( hasVariations )
+    {
+#ifdef TT_CONFIG_OPTION_GX_VAR_SUPPORT
+      /* check whether Private DICT in this subfont needs to be reparsed */
+      font->error = cf2_getNormalizedVector( decoder,
+                                             &lenNormalizedV,
+                                             &normalizedV );
+      if ( font->error )
+        return;
+
+      if ( cff_blend_check_vector( &subFont->blend,
+                                   subFont->private_dict.vsindex,
+                                   lenNormalizedV,
+                                   normalizedV ) )
+      {
+        /* blend has changed, reparse */
+        cff_load_private_dict( decoder->cff,
+                               subFont,
+                               lenNormalizedV,
+                               normalizedV );
+        needExtraSetup = TRUE;
+      }
+#endif
+
+      /* copy from subfont */
+      font->blend.font = subFont->blend.font;
+
+      /* clear state of charstring blend */
+      font->blend.usedBV = FALSE;
+
+      /* initialize value for charstring */
+      font->vsindex = subFont->private_dict.vsindex;
+
+      /* store vector inputs for blends in charstring */
+      font->lenNDV = lenNormalizedV;
+      font->NDV    = normalizedV;
     }
 
     /* if ppem has changed, we need to recompute some cached data         */
@@ -412,7 +472,8 @@
 
       /* compute blue zones for this instance */
       cf2_blues_init( &font->blues, font );
-    }
+
+    } /* needExtraSetup */
   }
 
 

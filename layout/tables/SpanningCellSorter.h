@@ -11,11 +11,9 @@
  * Code to sort cells by their colspan, used by BasicTableLayoutStrategy.
  */
 
-#include "pldhash.h"
+#include "PLDHashTable.h"
 #include "nsDebug.h"
 #include "StackArena.h"
-
-class nsIPresShell;
 
 /**
  * The SpanningCellSorter is responsible for accumulating lists of cells
@@ -72,15 +70,9 @@ private:
 
     static const PLDHashTableOps HashTableOps;
 
-    static PLDHashNumber
-        HashTableHashKey(PLDHashTable *table, const void *key);
+    static PLDHashNumber HashTableHashKey(const void *key);
     static bool
-        HashTableMatchEntry(PLDHashTable *table, const PLDHashEntryHdr *hdr,
-                            const void *key);
-
-    static PLDHashOperator
-        FillSortedArray(PLDHashTable *table, PLDHashEntryHdr *hdr,
-                        uint32_t number, void *arg);
+        HashTableMatchEntry(const PLDHashEntryHdr *hdr, const void *key);
 
     static int SortArray(const void *a, const void *b, void *closure);
 

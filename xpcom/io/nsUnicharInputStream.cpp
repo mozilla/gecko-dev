@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,10 +23,10 @@
 
 #define STRING_BUFFER_SIZE 8192
 
-class StringUnicharInputStream MOZ_FINAL : public nsIUnicharInputStream
+class StringUnicharInputStream final : public nsIUnicharInputStream
 {
 public:
-  StringUnicharInputStream(const nsAString& aString) :
+  explicit StringUnicharInputStream(const nsAString& aString) :
     mString(aString), mPos(0), mLen(aString.Length()) { }
 
   NS_DECL_ISUPPORTS
@@ -123,7 +124,7 @@ NS_IMPL_ISUPPORTS(StringUnicharInputStream, nsIUnicharInputStream)
 
 //----------------------------------------------------------------------
 
-class UTF8InputStream MOZ_FINAL : public nsIUnicharInputStream
+class UTF8InputStream final : public nsIUnicharInputStream
 {
 public:
   UTF8InputStream();
@@ -161,8 +162,8 @@ UTF8InputStream::UTF8InputStream() :
 nsresult
 UTF8InputStream::Init(nsIInputStream* aStream)
 {
-  if (!mByteData.SetCapacity(STRING_BUFFER_SIZE) ||
-      !mUnicharData.SetCapacity(STRING_BUFFER_SIZE)) {
+  if (!mByteData.SetCapacity(STRING_BUFFER_SIZE, mozilla::fallible) ||
+      !mUnicharData.SetCapacity(STRING_BUFFER_SIZE, mozilla::fallible)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   mInput = aStream;
@@ -379,71 +380,19 @@ UTF8InputStream::CountValidUTF8Bytes(const char* aBuffer, uint32_t aMaxBytes,
   aValidUTF16CodeUnits = utf16length;
 }
 
-NS_IMPL_QUERY_INTERFACE(nsSimpleUnicharStreamFactory,
-                        nsIFactory,
-                        nsISimpleUnicharStreamFactory)
-
-NS_IMETHODIMP_(MozExternalRefCountType)
-nsSimpleUnicharStreamFactory::AddRef()
-{
-  return 2;
-}
-NS_IMETHODIMP_(MozExternalRefCountType)
-nsSimpleUnicharStreamFactory::Release()
-{
-  return 1;
-}
-
-NS_IMETHODIMP
-nsSimpleUnicharStreamFactory::CreateInstance(nsISupports* aOuter, REFNSIID aIID,
-                                             void** aResult)
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-nsSimpleUnicharStreamFactory::LockFactory(bool aLock)
-{
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsSimpleUnicharStreamFactory::CreateInstanceFromString(const nsAString& aString,
-                                                       nsIUnicharInputStream** aResult)
-{
-  StringUnicharInputStream* it = new StringUnicharInputStream(aString);
-  if (!it) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  NS_ADDREF(*aResult = it);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsSimpleUnicharStreamFactory::CreateInstanceFromUTF8Stream(nsIInputStream* aStreamToWrap,
-                                                           nsIUnicharInputStream** aResult)
+nsresult
+NS_NewUnicharInputStream(nsIInputStream* aStreamToWrap,
+                         nsIUnicharInputStream** aResult)
 {
   *aResult = nullptr;
 
   // Create converter input stream
-  nsRefPtr<UTF8InputStream> it = new UTF8InputStream();
-  if (!it) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
+  RefPtr<UTF8InputStream> it = new UTF8InputStream();
   nsresult rv = it->Init(aStreamToWrap);
   if (NS_FAILED(rv)) {
     return rv;
   }
 
-  NS_ADDREF(*aResult = it);
+  it.forget(aResult);
   return NS_OK;
-}
-
-nsSimpleUnicharStreamFactory*
-nsSimpleUnicharStreamFactory::GetInstance()
-{
-  static const nsSimpleUnicharStreamFactory kInstance;
-  return const_cast<nsSimpleUnicharStreamFactory*>(&kInstance);
 }

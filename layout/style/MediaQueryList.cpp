@@ -1,3 +1,4 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set shiftwidth=2 tabstop=8 autoindent cindent expandtab: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,15 +15,13 @@
 namespace mozilla {
 namespace dom {
 
-MediaQueryList::MediaQueryList(nsPresContext *aPresContext,
+MediaQueryList::MediaQueryList(nsIDocument *aDocument,
                                const nsAString &aMediaQueryList)
-  : mPresContext(aPresContext),
+  : mDocument(aDocument),
     mMediaList(new nsMediaList),
     mMatchesValid(false)
 {
   PR_INIT_CLIST(this);
-
-  SetIsDOMBinding();
 
   nsCSSParser parser;
   parser.ParseMediaList(aMediaQueryList, nullptr, 0, mMediaList, false);
@@ -30,7 +29,7 @@ MediaQueryList::MediaQueryList(nsPresContext *aPresContext,
 
 MediaQueryList::~MediaQueryList()
 {
-  if (mPresContext) {
+  if (mDocument) {
     PR_REMOVE_LINK(this);
   }
 }
@@ -38,15 +37,15 @@ MediaQueryList::~MediaQueryList()
 NS_IMPL_CYCLE_COLLECTION_CLASS(MediaQueryList)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(MediaQueryList)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPresContext)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDocument)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCallbacks)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(MediaQueryList)
-  if (tmp->mPresContext) {
+  if (tmp->mDocument) {
     PR_REMOVE_LINK(tmp);
-    NS_IMPL_CYCLE_COLLECTION_UNLINK(mPresContext)
+    NS_IMPL_CYCLE_COLLECTION_UNLINK(mDocument)
   }
   tmp->RemoveAllListeners();
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
@@ -73,8 +72,8 @@ bool
 MediaQueryList::Matches()
 {
   if (!mMatchesValid) {
-    NS_ABORT_IF_FALSE(!HasListeners(),
-                      "when listeners present, must keep mMatches current");
+    MOZ_ASSERT(!HasListeners(),
+               "when listeners present, must keep mMatches current");
     RecomputeMatches();
   }
 
@@ -92,8 +91,8 @@ MediaQueryList::AddListener(MediaQueryListListener& aListener)
   }
 
   if (!mMatchesValid) {
-    NS_ABORT_IF_FALSE(!HasListeners(),
-                      "when listeners present, must keep mMatches current");
+    MOZ_ASSERT(!HasListeners(),
+               "when listeners present, must keep mMatches current");
     RecomputeMatches();
   }
 
@@ -104,10 +103,11 @@ MediaQueryList::AddListener(MediaQueryListListener& aListener)
     }
   }
 
-  mCallbacks.AppendElement(&aListener);
-  if (!HasListeners()) {
-    // Append failed; undo the AddRef above.
-    NS_RELEASE_THIS();
+  if (!mCallbacks.AppendElement(&aListener, fallible)) {
+    if (!HasListeners()) {
+      // Append failed; undo the AddRef above.
+      NS_RELEASE_THIS();
+    }
   }
 }
 
@@ -140,16 +140,39 @@ MediaQueryList::RemoveAllListeners()
 void
 MediaQueryList::RecomputeMatches()
 {
-  if (!mPresContext) {
+  if (!mDocument) {
     return;
   }
 
-  mMatches = mMediaList->Matches(mPresContext, nullptr);
+  if (mDocument->GetParentDocument()) {
+    // Flush frames on the parent so our prescontext will get
+    // recreated as needed.
+    mDocument->GetParentDocument()->FlushPendingNotifications(Flush_Frames);
+    // That might have killed our document, so recheck that.
+    if (!mDocument) {
+      return;
+    }
+  }
+
+  nsIPresShell* shell = mDocument->GetShell();
+  if (!shell) {
+    // XXXbz What's the right behavior here?  Spec doesn't say.
+    return;
+  }
+
+  nsPresContext* presContext = shell->GetPresContext();
+  if (!presContext) {
+    // XXXbz What's the right behavior here?  Spec doesn't say.
+    return;
+  }
+
+  mMatches = mMediaList->Matches(presContext, nullptr);
   mMatchesValid = true;
 }
 
 void
-MediaQueryList::MediumFeaturesChanged(NotifyList &aListenersToNotify)
+MediaQueryList::MediumFeaturesChanged(
+    nsTArray<HandleChangeData>& aListenersToNotify)
 {
   mMatchesValid = false;
 
@@ -158,7 +181,7 @@ MediaQueryList::MediumFeaturesChanged(NotifyList &aListenersToNotify)
     RecomputeMatches();
     if (mMatches != oldMatches) {
       for (uint32_t i = 0, i_end = mCallbacks.Length(); i != i_end; ++i) {
-        HandleChangeData *d = aListenersToNotify.AppendElement();
+        HandleChangeData *d = aListenersToNotify.AppendElement(fallible);
         if (d) {
           d->mql = this;
           d->callback = mCallbacks[i];
@@ -171,16 +194,13 @@ MediaQueryList::MediumFeaturesChanged(NotifyList &aListenersToNotify)
 nsISupports*
 MediaQueryList::GetParentObject() const
 {
-  if (!mPresContext) {
-    return nullptr;
-  }
-  return mPresContext->Document();
+  return mDocument;
 }
 
 JSObject*
-MediaQueryList::WrapObject(JSContext* aCx)
+MediaQueryList::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return MediaQueryListBinding::Wrap(aCx, this);
+  return MediaQueryListBinding::Wrap(aCx, this, aGivenProto);
 }
 
 } // namespace dom

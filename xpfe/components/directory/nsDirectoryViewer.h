@@ -6,7 +6,7 @@
 #ifndef nsdirectoryviewer__h____
 #define nsdirectoryviewer__h____
 
-#include "nsNetUtil.h"
+#include "nsCOMPtr.h"
 #include "nsIStreamListener.h"
 #include "nsIContentViewer.h"
 #include "nsIHTTPIndex.h"
@@ -15,29 +15,34 @@
 #include "nsIRDFLiteral.h"
 #include "nsIDocumentLoaderFactory.h"
 #include "nsITimer.h"
-#include "nsISupportsArray.h"
 #include "nsXPIDLString.h"
 #include "nsIDirIndexListener.h"
 #include "nsIFTPChannel.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsIInterfaceRequestor.h"
+#include "nsIURI.h"
+
+class nsIMutableArray;
 
 class nsDirectoryViewerFactory : public nsIDocumentLoaderFactory
 {
 public:
     nsDirectoryViewerFactory();
-    virtual ~nsDirectoryViewerFactory();
 
     // nsISupports interface
     NS_DECL_ISUPPORTS
     NS_DECL_NSIDOCUMENTLOADERFACTORY
+
+protected:
+    virtual ~nsDirectoryViewerFactory();
 };
 
-class nsHTTPIndex : public nsIHTTPIndex,
-                    public nsIRDFDataSource,
-                    public nsIStreamListener,
-                    public nsIDirIndexListener,
-                    public nsIInterfaceRequestor,
-                    public nsIFTPEventSink
+class nsHTTPIndex final : public nsIHTTPIndex,
+                          public nsIRDFDataSource,
+                          public nsIStreamListener,
+                          public nsIDirIndexListener,
+                          public nsIInterfaceRequestor,
+                          public nsIFTPEventSink
 {
 private:
 
@@ -67,8 +72,8 @@ protected:
     // an OnStartRequest() notification
 
     nsCOMPtr<nsIRDFDataSource>   mInner;
-    nsCOMPtr<nsISupportsArray>   mConnectionList;
-    nsCOMPtr<nsISupportsArray>   mNodeList;
+    nsCOMPtr<nsIMutableArray>    mConnectionList;
+    nsCOMPtr<nsIMutableArray>    mNodeList;
     nsCOMPtr<nsITimer>           mTimer;
     nsCOMPtr<nsIDirIndexParser>  mParser;
     nsCString mBaseURL;
@@ -77,7 +82,7 @@ protected:
     nsIInterfaceRequestor*       mRequestor; // WEAK
     nsCOMPtr<nsIRDFResource>     mDirectory;
 
-    nsHTTPIndex(nsIInterfaceRequestor* aRequestor);
+    explicit nsHTTPIndex(nsIInterfaceRequestor* aRequestor);
     nsresult CommonInit(void);
     nsresult Init(nsIURI* aBaseURL);
     void        GetDestination(nsIRDFResource* r, nsXPIDLCString& dest);
@@ -87,9 +92,10 @@ protected:
 
     static void FireTimer(nsITimer* aTimer, void* aClosure);
 
+    virtual ~nsHTTPIndex();
+
 public:
     nsHTTPIndex();
-    virtual ~nsHTTPIndex();
     nsresult Init(void);
 
     static nsresult Create(nsIURI* aBaseURI, nsIInterfaceRequestor* aContainer,

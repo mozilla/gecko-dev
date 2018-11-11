@@ -10,39 +10,39 @@
 
 using mozilla::ArrayLength;
 
-BEGIN_TEST(testAtomizedIsNotInterned)
+BEGIN_TEST(testAtomizedIsNotPinned)
 {
     /* Try to pick a string that won't be interned by other tests in this runtime. */
     static const char someChars[] = "blah blah blah? blah blah blah";
     JS::Rooted<JSAtom*> atom(cx, js::Atomize(cx, someChars, ArrayLength(someChars)));
-    CHECK(!JS_StringHasBeenInterned(cx, atom));
-    CHECK(JS_InternJSString(cx, atom));
-    CHECK(JS_StringHasBeenInterned(cx, atom));
+    CHECK(!JS_StringHasBeenPinned(cx, atom));
+    CHECK(JS_AtomizeAndPinJSString(cx, atom));
+    CHECK(JS_StringHasBeenPinned(cx, atom));
     return true;
 }
-END_TEST(testAtomizedIsNotInterned)
+END_TEST(testAtomizedIsNotPinned)
 
 struct StringWrapperStruct
 {
-    JSString *str;
+    JSString* str;
     bool     strOk;
 } sw;
 
-BEGIN_TEST(testInternAcrossGC)
+BEGIN_TEST(testPinAcrossGC)
 {
-    sw.str = JS_InternString(cx, "wrapped chars that another test shouldn't be using");
+    sw.str = JS_AtomizeAndPinString(cx, "wrapped chars that another test shouldn't be using");
     sw.strOk = false;
     CHECK(sw.str);
-    JS_AddFinalizeCallback(rt, FinalizeCallback, nullptr);
-    JS_GC(rt);
+    JS_AddFinalizeCallback(cx, FinalizeCallback, nullptr);
+    JS_GC(cx);
     CHECK(sw.strOk);
     return true;
 }
 
 static void
-FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, bool isCompartmentGC, void *data)
+FinalizeCallback(JSFreeOp* fop, JSFinalizeStatus status, bool isZoneGC, void* data)
 {
     if (status == JSFINALIZE_GROUP_START)
-        sw.strOk = js::gc::IsStringMarked(&sw.str);
+        sw.strOk = js::gc::IsMarkedUnbarriered(fop->runtime(), &sw.str);
 }
-END_TEST(testInternAcrossGC)
+END_TEST(testPinAcrossGC)

@@ -23,16 +23,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef THIRD_PARTY_COMPILER_ARRAY_BOUNDS_CLAMPER_H_
-#define THIRD_PARTY_COMPILER_ARRAY_BOUNDS_CLAMPER_H_
+#ifndef THIRD_PARTY_COMPILER_ARRAYBOUNDSCLAMPER_H_
+#define THIRD_PARTY_COMPILER_ARRAYBOUNDSCLAMPER_H_
 
-#include "GLSLANG/ShaderLang.h"
+#include "compiler/translator/InfoSink.h"
+#include "compiler/translator/IntermNode.h"
 
-#include "compiler/InfoSink.h"
-#include "compiler/intermediate.h"
+namespace sh
+{
 
-class ArrayBoundsClamper {
-public:
+class ArrayBoundsClamper
+{
+  public:
     ArrayBoundsClamper();
 
     // Must be set before compiling any shaders to ensure consistency
@@ -59,4 +61,6 @@ private:
     bool mArrayBoundsClampDefinitionNeeded;
 };
 
-#endif // THIRD_PARTY_COMPILER_ARRAY_BOUNDS_CLAMPER_H_
+}  // namespace sh
+
+#endif // THIRD_PARTY_COMPILER_ARRAYBOUNDSCLAMPER_H_

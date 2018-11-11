@@ -20,7 +20,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=531585
   transition: 500ms color;
   border-color: black; /* don't derive from color */
   -moz-column-rule-color: black; /* don't derive from color */
-  -moz-text-decoration-color: black; /* don't derive from color */
+  text-decoration-color: black; /* don't derive from color */
+  outline-color: black; /* don't derive from color */
 }
 
 #four {
@@ -56,6 +57,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=531585
 /** Test for Bug 531585 (transitionend event) **/
 
 SimpleTest.waitForExplicitFinish();
+SimpleTest.requestFlakyTimeout("untriaged");
 var gTestCount = 0;
 function started_test() { ++gTestCount; }
 function finished_test() { if (--gTestCount == 0) { SimpleTest.finish(); } }
@@ -65,12 +67,6 @@ function cs(id) { return getComputedStyle($(id), ""); }
 
 var got_one_root = false;
 var got_one_target = false;
-var got_one_target_bordertop = false;
-var got_one_target_borderright = false;
-var got_one_target_borderbottom = false;
-var got_one_target_borderleft = false;
-var got_one_target_columnrule = false;
-var got_one_target_textdecorationcolor = false;
 var got_two_target = false;
 var got_three_top = false;
 var got_three_right = false;
@@ -80,6 +76,7 @@ var got_four_root = false;
 var got_body = false;
 var did_stops = false;
 var got_before = false;
+var got_after = false;
 
 document.documentElement.addEventListener("transitionend",
   function(event) {
@@ -119,10 +116,13 @@ document.documentElement.addEventListener("transitionend",
         got_before = true;
         is(event.pseudoElement, "::before");
       } else {
+        ok(!got_after, "transitionend on #seven::after");
+        got_after = true;
         is(event.pseudoElement, "::after");
       }
       is(event.propertyName, "color");
       is(event.isTrusted, true);
+      finished_test();
     } else {
       if (!did_stops &&
           (event.target == $("five") || event.target == $("six"))) {
@@ -140,53 +140,12 @@ document.documentElement.addEventListener("transitionend",
 
 $("one").addEventListener("transitionend",
   function(event) {
-    switch (event.propertyName) {
-      case "color":
-        ok(!got_one_target,
-           "transitionend on one on target (color)");
-        got_one_target = true;
-        event.stopPropagation();
-        break;
-      case "border-top-color":
-        ok(!got_one_target_bordertop,
-           "transitionend on one on target (border-top-color)");
-        got_one_target_bordertop = true;
-        event.stopPropagation();
-        break;
-      case "border-right-color":
-        ok(!got_one_target_borderright,
-           "transitionend on one on target (border-right-color)");
-        got_one_target_borderright = true;
-        // Let this event through to body
-        break;
-      case "border-bottom-color":
-        ok(!got_one_target_borderbottom,
-           "transitionend on one on target (border-bottom-color)");
-        got_one_target_borderbottom = true;
-        event.stopPropagation();
-        break;
-      case "border-left-color":
-        ok(!got_one_target_borderleft,
-           "transitionend on one on target (border-left-color)");
-        got_one_target_borderleft = true;
-        event.stopPropagation();
-        break;
-      case "-moz-column-rule-color":
-        ok(!got_one_target_columnrule,
-           "transitionend on one on target (-moz-column-rule-color)");
-        got_one_target_columnrule = true;
-        event.stopPropagation();
-        break;
-      case "-moz-text-decoration-color":
-        ok(!got_one_target_textdecorationcolor,
-           "transitionend on one on target (-moz-text-decoration-color)");
-        got_one_target_textdecorationcolor = true;
-        event.stopPropagation();
-        break;
-      default:
-        ok(false, "unexpected property name " + event.propertyName +
-                  " for transitionend on one on target");
-    }
+    is(event.propertyName, "color", "unexpected " +
+       "property name for transitionend on one on target");
+    ok(!got_one_target,
+        "transitionend on one on target (color)");
+    got_one_target = true;
+    event.stopPropagation();
     is(event.elapsedTime, 0.5,
        "elapsedTime for transitionend on one");
     is(cs("one").getPropertyValue(event.propertyName), "rgb(0, 255, 0)",
@@ -194,12 +153,7 @@ $("one").addEventListener("transitionend",
     finished_test();
   }, false);
 
-started_test();
-started_test();
-started_test();
-started_test();
-started_test();
-started_test();
+started_test(); // color on #one
 $("one").style.color = "lime";
 
 
@@ -222,7 +176,7 @@ $("two").addEventListener("transitionend",
     finished_test();
   }, false);
 
-started_test();
+started_test(); // #two
 $("two").className = "bar";
 
 $("three").addEventListener("transitionend",
@@ -257,15 +211,15 @@ $("three").addEventListener("transitionend",
     finished_test();
   }, true);
 
-started_test();
-started_test();
-started_test();
-started_test();
+started_test(); // margin-top on #three
+started_test(); // margin-right on #three
+started_test(); // margin-bottom on #three
+started_test(); // margin-left on #three
 $("three").className = "bar";
 
 // We reverse the transition on four, and we should only get an event
 // at the end of the second transition.
-started_test();
+started_test(); // #four (listener on root)
 $("four").style.color = "lime";
 
 // We cancel the transition on five by changing 'transition-property',
@@ -276,8 +230,8 @@ $("five").style.color = "lime";
 // then changing the value, so we should get no event.
 $("six").style.color = "lime";
 
-started_test();
-started_test();
+started_test(); // #seven::before (listener on root)
+started_test(); // #seven::after (listener on root)
 $("seven").setAttribute("foo", "bar");
 
 setTimeout(function() {
@@ -303,7 +257,7 @@ function poll_start_reversal() {
 setTimeout(poll_start_reversal, 200);
 
 // And make our own event to dispatch to the body.
-started_test();
+started_test(); // synthesized event to body (listener on root)
 
 var e = new TransitionEvent("transitionend",
                             {
@@ -316,7 +270,7 @@ var e = new TransitionEvent("transitionend",
 is(e.bubbles, true);
 is(e.cancelable, true);
 is(e.propertyName, "some-unknown-prop");
-is(e.elapsedTime, "0.5");
+is(e.elapsedTime, 0.5);
 is(e.pseudoElement, "pseudo");
 is(e.isTrusted, false)
 

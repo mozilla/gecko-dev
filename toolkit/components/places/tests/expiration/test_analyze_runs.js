@@ -1,19 +1,16 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-////////////////////////////////////////////////////////////////////////////////
-//// Constants
+// Constants
 
 const TOPIC_AUTOCOMPLETE_FEEDBACK_INCOMING = "autocomplete-will-enter-text";
 
-////////////////////////////////////////////////////////////////////////////////
-//// Helpers
+// Helpers
 
 /**
  * Ensures that we have no data in the tables created by ANALYZE.
  */
-function clearAnalyzeData()
-{
+function clearAnalyzeData() {
   let db = DBConn();
   if (!db.tableExists("sqlite_stat1")) {
     return;
@@ -29,8 +26,7 @@ function clearAnalyzeData()
  * @param aRan
  *        True if it was expected to run, false otherwise
  */
-function do_check_analyze_ran(aTableName, aRan)
-{
+function do_check_analyze_ran(aTableName, aRan) {
   let db = DBConn();
   do_check_true(db.tableExists("sqlite_stat1"));
   let stmt = db.createStatement("SELECT idx FROM sqlite_stat1 WHERE tbl = :table");
@@ -49,22 +45,22 @@ function do_check_analyze_ran(aTableName, aRan)
   }
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//// Tests
+// Tests
 
-function run_test()
-{
+function run_test() {
   run_next_test();
 }
 
-add_task(function init_tests()
-{
+add_task(function* init_tests() {
   const TEST_URI = NetUtil.newURI("http://mozilla.org/");
   const TEST_TITLE = "This is a test";
-  let bs = PlacesUtils.bookmarks;
-  bs.insertBookmark(PlacesUtils.unfiledBookmarksFolderId, TEST_URI,
-                    bs.DEFAULT_INDEX, TEST_TITLE);
-  yield promiseAddVisits(TEST_URI);
+
+  yield PlacesUtils.bookmarks.insert({
+    parentGuid: PlacesUtils.bookmarks.unfiledGuid,
+    title: TEST_TITLE,
+    url: TEST_URI
+  });
+  yield PlacesTestUtils.addVisits(TEST_URI);
   let thing = {
     QueryInterface: XPCOMUtils.generateQI([Ci.nsIAutoCompleteInput,
                                            Ci.nsIAutoCompletePopup,
@@ -80,8 +76,7 @@ add_task(function init_tests()
                                null);
 });
 
-add_task(function test_timed()
-{
+add_task(function* test_timed() {
   clearAnalyzeData();
 
   // Set a low interval and wait for the timed expiration to start.
@@ -96,8 +91,7 @@ add_task(function test_timed()
   do_check_analyze_ran("moz_inputhistory", true);
 });
 
-add_task(function test_debug()
-{
+add_task(function* test_debug() {
   clearAnalyzeData();
 
   yield promiseForceExpirationStep(1);
@@ -108,8 +102,7 @@ add_task(function test_debug()
   do_check_analyze_ran("moz_inputhistory", true);
 });
 
-add_task(function test_clear_history()
-{
+add_task(function* test_clear_history() {
   clearAnalyzeData();
 
   let promise = promiseTopicObserved(PlacesUtils.TOPIC_EXPIRATION_FINISHED);

@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # This code is made available to you under your choice of the following sets
 # of licensing terms:
 #
@@ -20,11 +20,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-UNIFIED_SOURCES += [
+SOURCES += [
+    'pkixtestalg.cpp',
+    'pkixtestnss.cpp',
     'pkixtestutil.cpp',
 ]
 
-LIBRARY_NAME = 'pkixtestutil'
+Library('pkixtestutil')
 
 LOCAL_INCLUDES += [
     '../../include',
@@ -33,4 +35,5 @@ LOCAL_INCLUDES += [
 
 FINAL_LIBRARY = 'xul-gtest'
 
-FAIL_ON_WARNINGS = True
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wno-error=shadow']

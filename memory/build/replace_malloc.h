@@ -51,15 +51,21 @@
  * even more especially when these types come from XPCOM or other parts of the
  * Mozilla codebase.
  * It is recommended to add the following to a replace-malloc implementation's
- * Makefile.in:
- *   MOZ_GLUE_LDFLAGS = # Don't link against mozglue
- *   WRAP_LDFLAGS = # Never wrap malloc function calls with -Wl,--wrap
- * and the following to the implementation's moz.build:
+ * moz.build:
  *   DISABLE_STL_WRAPPING = True # Avoid STL wrapping
  *
  * If your replace-malloc implementation lives under memory/replace, these
  * are taken care of by memory/replace/defs.mk.
  */
+
+#ifdef replace_malloc_bridge_h
+#error Do not include replace_malloc_bridge.h before replace_malloc.h. \
+  In fact, you only need the latter.
+#endif
+
+#define REPLACE_MALLOC_IMPL
+
+#include "replace_malloc_bridge.h"
 
 /* Implementing a replace-malloc library is incompatible with using mozalloc. */
 #define MOZ_NO_MOZALLOC 1
@@ -67,19 +73,6 @@
 #include "mozilla/Types.h"
 
 MOZ_BEGIN_EXTERN_C
-
-#define MALLOC_DECL(name, return_type, ...) \
-  typedef return_type(name ## _impl_t)(__VA_ARGS__);
-
-#include "malloc_decls.h"
-
-#define MALLOC_DECL(name, return_type, ...) \
-  name ## _impl_t * name;
-
-typedef struct {
-#include "malloc_decls.h"
-} malloc_table_t;
-
 
 /* MOZ_NO_REPLACE_FUNC_DECL and MOZ_REPLACE_WEAK are only defined in
  * replace_malloc.c. Normally including this header will add function

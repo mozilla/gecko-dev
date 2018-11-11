@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,6 +20,7 @@ if CONFIG['ENABLE_TESTS']:
         'gtest/include/gtest/gtest.h',
         'gtest/include/gtest/gtest_pred_impl.h',
         'gtest/include/gtest/gtest_prod.h',
+        'mozilla/MozGTestBench.h',
     ]
 
     # GTest internal are exposed in gtest.h. See comment in gtest.h
@@ -60,15 +61,14 @@ if CONFIG['ENABLE_TESTS']:
         'gmock/src/gmock-all.cc',
         'gtest/src/gtest-all.cc',
         'mozilla/GTestRunner.cpp',
+        'mozilla/MozGTestBench.cpp',
     ]
 
-    LIBRARY_NAME = 'gtest'
+    Library('gtest')
 
     SOURCES += [
         'mozilla/SanityTest.cpp',
     ]
-
-    EXPORT_LIBRARY = True
 
     LOCAL_INCLUDES += [
         'gmock',
@@ -77,4 +77,9 @@ if CONFIG['ENABLE_TESTS']:
         'gtest/include',
     ]
 
+    if CONFIG['OS_ARCH'] == 'WINNT':
+        LOCAL_INCLUDES += [
+            '/security/sandbox/chromium',
+        ]    
+    
     FINAL_LIBRARY = 'xul-gtest'

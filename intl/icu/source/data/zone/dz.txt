@@ -1,16 +1,7 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/dz.xml
-// *
-// ***************************************************************************
-/**
- * ICU <specials> source: <path>/common/main/dz.xml
- */
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 dz{
-    Version{"2.0.92.87"}
+    Version{"2.1.29.61"}
     zoneStrings{
         "Africa:Cairo"{
             ec{"ཀཱའི་རོ"}
@@ -89,9 +80,6 @@ dz{
         }
         "America:Moncton"{
             ec{"མཱོངཀ་ཊོན"}
-        }
-        "America:Montreal"{
-            ec{"མཱོནཊ་རི་ཡལ"}
         }
         "America:Nipigon"{
             ec{"ནི་པི་གཱོན"}

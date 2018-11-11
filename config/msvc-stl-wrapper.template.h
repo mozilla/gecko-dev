@@ -12,28 +12,17 @@
 #  error "STL code can only be used with -fno-exceptions"
 #endif
 
-// Suppress windef.h min and max macros - they make std::min/max not compile.
-#define NOMINMAX 1
+// Include mozalloc after the STL header and all other headers it includes
+// have been preprocessed.
+#if !defined(MOZ_INCLUDE_MOZALLOC_H)
+#  define MOZ_INCLUDE_MOZALLOC_H
+#  define MOZ_INCLUDE_MOZALLOC_H_FROM_${HEADER}
+#endif
 
 // Code built with !_HAS_EXCEPTIONS calls std::_Throw(), but the win2k
 // CRT doesn't export std::_Throw().  So we define it.
 #ifndef mozilla_Throw_h
 #  include "mozilla/throw_msvc.h"
-#endif
-
-// Code might include <new> before other wrapped headers, but <new>
-// includes <exception> and so we want to wrap it.  But mozalloc.h
-// wants <new> also, so we break the cycle by always explicitly
-// including <new> here.
-#include <${NEW_HEADER_PATH}>
-
-// See if we're in code that can use mozalloc.  NB: this duplicates
-// code in nscore.h because nscore.h pulls in prtypes.h, and chromium
-// can't build with that being included before base/basictypes.h.
-#if !defined(XPCOM_GLUE) && !defined(NS_NO_XPCOM) && !defined(MOZ_NO_MOZALLOC)
-#  include "mozilla/mozalloc.h"
-#else
-#  error "STL code can only be used with infallible ::operator new()"
 #endif
 
 #ifdef _DEBUG
@@ -70,8 +59,23 @@
 #pragma warning( push )
 #pragma warning( disable : 4275 4530 )
 
+#ifdef __clang__
+#include_next <${HEADER}>
+#else
 #include <${HEADER_PATH}>
+#endif
 
 #pragma warning( pop )
+
+#ifdef MOZ_INCLUDE_MOZALLOC_H_FROM_${HEADER}
+// See if we're in code that can use mozalloc.  NB: this duplicates
+// code in nscore.h because nscore.h pulls in prtypes.h, and chromium
+// can't build with that being included before base/basictypes.h.
+#  if !defined(XPCOM_GLUE) && !defined(NS_NO_XPCOM) && !defined(MOZ_NO_MOZALLOC)
+#    include "mozilla/mozalloc.h"
+#  else
+#    error "STL code can only be used with infallible ::operator new()"
+#  endif
+#endif
 
 #endif  // if mozilla_${HEADER}_h

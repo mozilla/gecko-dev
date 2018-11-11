@@ -22,8 +22,11 @@ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CacheIndexIterator)
 
   CacheIndexIterator(CacheIndex *aIndex, bool aAddNew);
+
+protected:
   virtual ~CacheIndexIterator();
 
+public:
   // Returns a hash of a next entry. If there is no entry NS_ERROR_NOT_AVAILABLE
   // is returned and the iterator is closed. Other error is returned when the
   // iterator is closed for other reason, e.g. shutdown.
@@ -40,18 +43,17 @@ protected:
 
   bool ShouldBeNewAdded() { return mAddNew; }
   virtual void AddRecord(CacheIndexRecord *aRecord);
-  virtual void AddRecords(const nsTArray<CacheIndexRecord *> &aRecords);
   bool RemoveRecord(CacheIndexRecord *aRecord);
   bool ReplaceRecord(CacheIndexRecord *aOldRecord,
                      CacheIndexRecord *aNewRecord);
 
   nsresult                     mStatus;
-  nsRefPtr<CacheIndex>         mIndex;
+  RefPtr<CacheIndex>           mIndex;
   nsTArray<CacheIndexRecord *> mRecords;
   bool                         mAddNew;
 };
 
-} // net
-} // mozilla
+} // namespace net
+} // namespace mozilla
 
 #endif

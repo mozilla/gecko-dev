@@ -5,11 +5,11 @@
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
-let Scope = {}
+var Scope = {}
 Components.utils.import("resource://gre/modules/CrashMonitor.jsm", Scope);
-let MonitorAPI = Scope.CrashMonitor;
+var MonitorAPI = Scope.CrashMonitor;
 
-function CrashMonitor() {};
+function CrashMonitor() {}
 
 CrashMonitor.prototype = {
 

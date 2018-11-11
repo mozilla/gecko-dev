@@ -1,9 +1,10 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-NO_DIST_INSTALL = True
+
+DIST_INSTALL = False
 
 XPCSHELL_TESTS_MANIFESTS += ['unit/xpcshell.ini']
 MOCHITEST_CHROME_MANIFESTS += ['chrome/chrome.ini']
@@ -14,11 +15,16 @@ UNIFIED_SOURCES += [
     'jsctypes-test.cpp',
 ]
 
-LIBRARY_NAME = 'jsctypes-test'
-
-FORCE_SHARED_LIB = True
+SharedLibrary('jsctypes-test')
 
 LOCAL_INCLUDES += [
     '/js/src/ctypes',
 ]
 
+# Don't use STL wrappers here (i.e. wrapped <new>); they require mozalloc.
+DISABLE_STL_WRAPPING = True
+
+if CONFIG['COMPILE_ENVIRONMENT']:
+    shared_library = '!%sjsctypes-test%s' % (CONFIG['DLL_PREFIX'], CONFIG['DLL_SUFFIX'])
+    TEST_HARNESS_FILES.xpcshell.toolkit.components.ctypes.tests.unit += [shared_library]
+    TEST_HARNESS_FILES.testing.mochitest.chrome.toolkit.components.ctypes.tests.chrome += [shared_library]

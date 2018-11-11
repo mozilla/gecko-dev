@@ -10,15 +10,16 @@
 
 #include <windows.h>
 #include "mozilla/GuardObjects.h"
-#include "nscore.h"
+#include "mozilla/Attributes.h"
 
 #define HAS_DLL_BLOCKLIST
 
-NS_IMPORT void DllBlocklist_Initialize();
-NS_IMPORT void DllBlocklist_SetInXPCOMLoadOnMainThread(bool inXPCOMLoadOnMainThread);
-NS_IMPORT void DllBlocklist_WriteNotes(HANDLE file);
+MFBT_API void DllBlocklist_Initialize();
+MFBT_API void DllBlocklist_SetInXPCOMLoadOnMainThread(bool inXPCOMLoadOnMainThread);
+MFBT_API void DllBlocklist_WriteNotes(HANDLE file);
+MFBT_API bool DllBlocklist_CheckStatus();
 
-class AutoSetXPCOMLoadOnMainThread
+class MOZ_RAII AutoSetXPCOMLoadOnMainThread
 {
   public:
     AutoSetXPCOMLoadOnMainThread(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM) {

@@ -115,9 +115,7 @@ nsMathMLmoFrame::ProcessTextData()
   mFlags = 0;
 
   nsAutoString data;
-  if (!nsContentUtils::GetNodeTextContent(mContent, false, data)) {
-    NS_RUNTIMEABORT("OOM");
-  }
+  nsContentUtils::GetNodeTextContent(mContent, false, data);
 
   data.CompressWhitespace();
   int32_t length = data.Length();
@@ -135,7 +133,7 @@ nsMathMLmoFrame::ProcessTextData()
   nsPresContext* presContext = PresContext();
   if (mFrames.GetLength() != 1) {
     data.Truncate(); // empty data to reset the char
-    mMathMLChar.SetData(presContext, data);
+    mMathMLChar.SetData(data);
     ResolveMathMLCharStyle(presContext, mContent, mStyleContext, &mMathMLChar);
     return;
   }
@@ -179,7 +177,7 @@ nsMathMLmoFrame::ProcessTextData()
   }
 
   // cache the operator
-  mMathMLChar.SetData(presContext, data);
+  mMathMLChar.SetData(data);
 
   // cache the native direction -- beware of bug 133429...
   // mEmbellishData.direction must always retain our native direction, whereas
@@ -206,6 +204,7 @@ nsMathMLmoFrame::ProcessOperatorData()
   // if we have been here before, we will just use our cached form
   nsOperatorFlags form = NS_MATHML_OPERATOR_GET_FORM(mFlags);
   nsAutoString value;
+  float fontSizeInflation = nsLayoutUtils::FontSizeInflationFor(this);
 
   // special bits are always kept in mFlags.
   // remember the mutable bit from ProcessTextData().
@@ -363,8 +362,8 @@ nsMathMLmoFrame::ProcessOperatorData()
       // Cache the default values of lspace and rspace.
       // since these values are relative to the 'em' unit, convert to twips now
       nscoord em;
-      nsRefPtr<nsFontMetrics> fm;
-      nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm));
+      RefPtr<nsFontMetrics> fm =
+        nsLayoutUtils::GetFontMetricsForFrame(this, fontSizeInflation);
       GetEmHeight(fm, em);
 
       mEmbellishData.leadingSpace = NSToCoordRound(lspace * em);
@@ -405,7 +404,8 @@ nsMathMLmoFrame::ProcessOperatorData()
       if ((eCSSUnit_Number == cssValue.GetUnit()) && !cssValue.GetFloatValue())
         leadingSpace = 0;
       else if (cssValue.IsLengthUnit())
-        leadingSpace = CalcLength(presContext, mStyleContext, cssValue);
+        leadingSpace = CalcLength(presContext, mStyleContext, cssValue,
+                                  fontSizeInflation);
       mFlags |= NS_MATHML_OPERATOR_LSPACE_ATTR;
     }
   }
@@ -431,7 +431,8 @@ nsMathMLmoFrame::ProcessOperatorData()
       if ((eCSSUnit_Number == cssValue.GetUnit()) && !cssValue.GetFloatValue())
         trailingSpace = 0;
       else if (cssValue.IsLengthUnit())
-        trailingSpace = CalcLength(presContext, mStyleContext, cssValue);
+        trailingSpace = CalcLength(presContext, mStyleContext, cssValue,
+                                   fontSizeInflation);
       mFlags |= NS_MATHML_OPERATOR_RSPACE_ATTR;
     }
   }
@@ -451,8 +452,9 @@ nsMathMLmoFrame::ProcessOperatorData()
   mEmbellishData.trailingSpace = trailingSpace;
 
   // Now see if there are user-defined attributes that override the dictionary.
-  // XXX If an attribute can be forced to be true when it is false in the
-  // dictionary, then the following code has to change...
+  // XXX Bug 1197771 - forcing an attribute to true when it is false in the
+  // dictionary can cause conflicts in the rest of the stretching algorithms
+  // (e.g. all largeops are assumed to have a vertical direction)
 
   // For each attribute overriden by the user, turn off its bit flag.
   // symmetric|movablelimits|separator|largeop|accent|fence|stretchy|form
@@ -469,6 +471,8 @@ nsMathMLmoFrame::ProcessOperatorData()
     mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::fence_, value);
     if (value.EqualsLiteral("false"))
       mFlags &= ~NS_MATHML_OPERATOR_FENCE;
+    else
+      mEmbellishData.flags |= NS_MATHML_EMBELLISH_FENCE;
   }
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::largeop_, value);
   if (value.EqualsLiteral("false")) {
@@ -480,6 +484,8 @@ nsMathMLmoFrame::ProcessOperatorData()
     mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::separator_, value);
     if (value.EqualsLiteral("false"))
       mFlags &= ~NS_MATHML_OPERATOR_SEPARATOR;
+    else
+      mEmbellishData.flags |= NS_MATHML_EMBELLISH_SEPARATOR;
   }
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::symmetric_, value);
   if (value.EqualsLiteral("false"))
@@ -514,7 +520,8 @@ nsMathMLmoFrame::ProcessOperatorData()
       else if (eCSSUnit_Percent == unit)
         mMinSize = cssValue.GetPercentValue();
       else if (eCSSUnit_Null != unit) {
-        mMinSize = float(CalcLength(presContext, mStyleContext, cssValue));
+        mMinSize = float(CalcLength(presContext, mStyleContext, cssValue,
+                                    fontSizeInflation));
         mFlags |= NS_MATHML_OPERATOR_MINSIZE_ABSOLUTE;
       }
     }
@@ -546,7 +553,8 @@ nsMathMLmoFrame::ProcessOperatorData()
       else if (eCSSUnit_Percent == unit)
         mMaxSize = cssValue.GetPercentValue();
       else if (eCSSUnit_Null != unit) {
-        mMaxSize = float(CalcLength(presContext, mStyleContext, cssValue));
+        mMaxSize = float(CalcLength(presContext, mStyleContext, cssValue,
+                                    fontSizeInflation));
         mFlags |= NS_MATHML_OPERATOR_MAXSIZE_ABSOLUTE;
       }
     }
@@ -595,10 +603,10 @@ GetStretchHint(nsOperatorFlags aFlags, nsPresentationData aPresentationData,
 //       On input  - it contains our current size
 //       On output - the same size or the new size that we want
 NS_IMETHODIMP
-nsMathMLmoFrame::Stretch(nsRenderingContext& aRenderingContext,
+nsMathMLmoFrame::Stretch(DrawTarget*          aDrawTarget,
                          nsStretchDirection   aStretchDirection,
                          nsBoundingMetrics&   aContainerSize,
-                         nsHTMLReflowMetrics& aDesiredStretchSize)
+                         ReflowOutput& aDesiredStretchSize)
 {
   if (NS_MATHML_STRETCH_WAS_DONE(mPresentationData.flags)) {
     NS_WARNING("it is wrong to fire stretch more than once on a frame");
@@ -609,11 +617,11 @@ nsMathMLmoFrame::Stretch(nsRenderingContext& aRenderingContext,
   nsIFrame* firstChild = mFrames.FirstChild();
 
   // get the axis height;
-  nsRefPtr<nsFontMetrics> fm;
-  nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm));
-  aRenderingContext.SetFont(fm);
+  float fontSizeInflation = nsLayoutUtils::FontSizeInflationFor(this);
+  RefPtr<nsFontMetrics> fm =
+    nsLayoutUtils::GetFontMetricsForFrame(this, fontSizeInflation);
   nscoord axisHeight, height;
-  GetAxisHeight(aRenderingContext, fm, axisHeight);
+  GetAxisHeight(aDrawTarget, fm, axisHeight);
 
   // get the leading to be left at the top and the bottom of the stretched char
   // this seems more reliable than using fm->GetLeading() on suspicious fonts
@@ -738,7 +746,8 @@ nsMathMLmoFrame::Stretch(nsRenderingContext& aRenderingContext,
     }
 
     // let the MathMLChar stretch itself...
-    nsresult res = mMathMLChar.Stretch(PresContext(), aRenderingContext,
+    nsresult res = mMathMLChar.Stretch(PresContext(), aDrawTarget,
+                                       fontSizeInflation,
                                        aStretchDirection, container, charSize,
                                        stretchHint,
                                        StyleVisibility()->mDirection);
@@ -752,7 +761,7 @@ nsMathMLmoFrame::Stretch(nsRenderingContext& aRenderingContext,
 
   // Place our children using the default method
   // This will allow our child text frame to get its DidReflow()
-  nsresult rv = Place(aRenderingContext, true, aDesiredStretchSize);
+  nsresult rv = Place(aDrawTarget, true, aDesiredStretchSize);
   if (NS_MATHML_HAS_ERROR(mPresentationData.flags) || NS_FAILED(rv)) {
     // Make sure the child frames get their DidReflow() calls.
     DidReflowChildren(mFrames.FirstChild());
@@ -935,8 +944,8 @@ nsMathMLmoFrame::SetInitialChildList(ChildListID     aListID,
 
 void
 nsMathMLmoFrame::Reflow(nsPresContext*          aPresContext,
-                        nsHTMLReflowMetrics&     aDesiredSize,
-                        const nsHTMLReflowState& aReflowState,
+                        ReflowOutput&     aDesiredSize,
+                        const ReflowInput& aReflowInput,
                         nsReflowStatus&          aStatus)
 {
   // certain values use units that depend on our style context, so
@@ -944,11 +953,64 @@ nsMathMLmoFrame::Reflow(nsPresContext*          aPresContext,
   ProcessOperatorData();
 
   nsMathMLTokenFrame::Reflow(aPresContext, aDesiredSize,
-                             aReflowState, aStatus);
+                             aReflowInput, aStatus);
+}
+
+nsresult
+nsMathMLmoFrame::Place(DrawTarget*          aDrawTarget,
+                       bool                 aPlaceOrigin,
+                       ReflowOutput& aDesiredSize)
+{
+  nsresult rv = nsMathMLTokenFrame::Place(aDrawTarget, aPlaceOrigin, aDesiredSize);
+
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  /* Special behaviour for largeops.
+     In MathML "stretchy" and displaystyle "largeop" are different notions,
+     even if we use the same technique to draw them (picking size variants).
+     So largeop display operators should be considered "non-stretchy" and
+     thus their sizes should be taken into account for the stretch size of
+     other elements.
+
+     This is a preliminary stretch - exact sizing/placement is handled by the
+     Stretch() method.
+  */
+
+  if (!aPlaceOrigin &&
+      StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK &&
+      NS_MATHML_OPERATOR_IS_LARGEOP(mFlags) && UseMathMLChar()) {
+    nsBoundingMetrics newMetrics;
+    rv = mMathMLChar.Stretch(PresContext(), aDrawTarget,
+                             nsLayoutUtils::FontSizeInflationFor(this),
+                             NS_STRETCH_DIRECTION_VERTICAL,
+                             aDesiredSize.mBoundingMetrics, newMetrics,
+                             NS_STRETCH_LARGEOP, StyleVisibility()->mDirection);
+
+    if (NS_FAILED(rv)) {
+      // Just use the initial size
+      return NS_OK;
+    }
+
+    aDesiredSize.mBoundingMetrics = newMetrics;
+     /* Treat the ascent/descent values calculated in the TokenFrame place
+       calculations as the minimum for aDesiredSize calculations, rather
+       than fetching them from font metrics again.
+    */
+    aDesiredSize.SetBlockStartAscent(std::max(mBoundingMetrics.ascent,
+                                              newMetrics.ascent));
+    aDesiredSize.Height() = aDesiredSize.BlockStartAscent() +
+                            std::max(mBoundingMetrics.descent,
+                                     newMetrics.descent);
+    aDesiredSize.Width() = newMetrics.width;
+    mBoundingMetrics = newMetrics;
+  }
+  return NS_OK;
 }
 
 /* virtual */ void
-nsMathMLmoFrame::MarkIntrinsicWidthsDirty()
+nsMathMLmoFrame::MarkIntrinsicISizesDirty()
 {
   // if we get this, it may mean that something changed in the text
   // content. So blow away everything an re-build the automatic data
@@ -969,23 +1031,24 @@ nsMathMLmoFrame::MarkIntrinsicWidthsDirty()
   // so that we don't rebuild multiple times for the same change.
   RebuildAutomaticDataForChildren(target);
 
-  nsMathMLContainerFrame::MarkIntrinsicWidthsDirty();
+  nsMathMLContainerFrame::MarkIntrinsicISizesDirty();
 }
 
 /* virtual */ void
-nsMathMLmoFrame::GetIntrinsicWidthMetrics(nsRenderingContext *aRenderingContext, nsHTMLReflowMetrics& aDesiredSize)
+nsMathMLmoFrame::GetIntrinsicISizeMetrics(nsRenderingContext* aRenderingContext,
+                                          ReflowOutput& aDesiredSize)
 {
   ProcessOperatorData();
   if (UseMathMLChar()) {
     uint32_t stretchHint = GetStretchHint(mFlags, mPresentationData, true,
                                           StyleFont());
     aDesiredSize.Width() = mMathMLChar.
-      GetMaxWidth(PresContext(), *aRenderingContext,
-                  stretchHint, mMaxSize,
-                  NS_MATHML_OPERATOR_MAXSIZE_IS_ABSOLUTE(mFlags));
+      GetMaxWidth(PresContext(), aRenderingContext->GetDrawTarget(),
+                  nsLayoutUtils::FontSizeInflationFor(this),
+                  stretchHint);
   }
   else {
-    nsMathMLTokenFrame::GetIntrinsicWidthMetrics(aRenderingContext,
+    nsMathMLTokenFrame::GetIntrinsicISizeMetrics(aRenderingContext,
                                                  aDesiredSize);
   }
 

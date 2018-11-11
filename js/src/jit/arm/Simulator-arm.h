@@ -29,17 +29,26 @@
 #ifndef jit_arm_Simulator_arm_h
 #define jit_arm_Simulator_arm_h
 
-#ifdef JS_ARM_SIMULATOR
+#ifdef JS_SIMULATOR_ARM
 
 #include "jit/arm/Architecture-arm.h"
+#include "jit/arm/disasm/Disasm-arm.h"
 #include "jit/IonTypes.h"
+#include "threading/Thread.h"
+#include "vm/MutexIDs.h"
 
 namespace js {
 namespace jit {
 
-class SimulatorRuntime;
-SimulatorRuntime *CreateSimulatorRuntime();
-void DestroySimulatorRuntime(SimulatorRuntime *srt);
+class Simulator;
+class Redirection;
+class CachePage;
+class AutoLockSimulator;
+
+// When the SingleStepCallback is called, the simulator is about to execute
+// sim->get_pc() and the current machine state represents the completed
+// execution of the previous pc.
+typedef void (*SingleStepCallback)(void* arg, Simulator* sim, void* pc);
 
 // VFP rounding modes. See ARM DDI 0406B Page A2-29.
 enum VFPRoundingMode {
@@ -63,6 +72,7 @@ class SimInstruction;
 class Simulator
 {
     friend class Redirection;
+    friend class AutoLockSimulatorCache;
 
   public:
     friend class ArmDebugger;
@@ -89,16 +99,47 @@ class Simulator
         num_q_registers = 16
     };
 
-    explicit Simulator(SimulatorRuntime *srt);
+    // Returns nullptr on OOM.
+    static Simulator* Create(JSContext* cx);
+
+    static void Destroy(Simulator* simulator);
+
+    // Constructor/destructor are for internal use only; use the static methods above.
+    explicit Simulator(JSContext* cx);
     ~Simulator();
 
     // The currently executing Simulator instance. Potentially there can be one
     // for each native thread.
-    static Simulator *Current();
+    static Simulator* Current();
 
     static inline uintptr_t StackLimit() {
         return Simulator::Current()->stackLimit();
     }
+
+    // Disassemble some instructions starting at instr and print them
+    // on stdout.  Useful for working within GDB after a MOZ_CRASH(),
+    // among other things.
+    //
+    // Typical use within a crashed instruction decoding method is simply:
+    //
+    //   call Simulator::disassemble(instr, 1)
+    //
+    // or use one of the more convenient inline methods below.
+    static void disassemble(SimInstruction* instr, size_t n);
+
+    // Disassemble one instruction.
+    // "call disasm(instr)"
+    void disasm(SimInstruction* instr);
+
+    // Disassemble n instructions starting at instr.
+    // "call disasm(instr, 3)"
+    void disasm(SimInstruction* instr, size_t n);
+
+    // Skip backwards m instructions before starting, then disassemble n instructions.
+    // "call disasm(instr, 3, 7)"
+    void disasm(SimInstruction* instr, size_t m, size_t n);
+
+    uintptr_t* addressOfStackLimit();
 
     // Accessors for register state. Reading the pc value adheres to the ARM
     // architecture specification and is off by a 8 from the currently executing
@@ -124,29 +165,37 @@ class Simulator
     void set_d_register_from_double(int dreg, const double& dbl) {
         setVFPRegister<double, 2>(dreg, dbl);
     }
-    double get_double_from_d_register(int dreg) {
-        return getFromVFPRegister<double, 2>(dreg);
+    void get_double_from_d_register(int dreg, double* out) {
+        getFromVFPRegister<double, 2>(dreg, out);
     }
     void set_s_register_from_float(int sreg, const float flt) {
         setVFPRegister<float, 1>(sreg, flt);
     }
-    float get_float_from_s_register(int sreg) {
-        return getFromVFPRegister<float, 1>(sreg);
+    void get_float_from_s_register(int sreg, float* out) {
+        getFromVFPRegister<float, 1>(sreg, out);
     }
     void set_s_register_from_sinteger(int sreg, const int sint) {
         setVFPRegister<int, 1>(sreg, sint);
     }
     int get_sinteger_from_s_register(int sreg) {
-        return getFromVFPRegister<int, 1>(sreg);
+        int ret;
+        getFromVFPRegister<int, 1>(sreg, &ret);
+        return ret;
     }
 
     // Special case of set_register and get_register to access the raw PC value.
     void set_pc(int32_t value);
     int32_t get_pc() const;
 
-    void set_resume_pc(int32_t value) {
-        resume_pc_ = value;
+    template <typename T>
+    T get_pc_as() const { return reinterpret_cast<T>(get_pc()); }
+
+    void set_resume_pc(void* value) {
+        resume_pc_ = int32_t(value);
     }
+
+    void enable_single_stepping(SingleStepCallback cb, void* arg);
+    void disable_single_stepping();
 
     uintptr_t stackLimit() const;
     bool overRecursed(uintptr_t newsp = 0) const;
@@ -157,11 +206,11 @@ class Simulator
     void execute();
 
     // Sets up the simulator state and grabs the result on return.
-    int64_t call(uint8_t* entry, int argument_count, ...);
+    int32_t call(uint8_t* entry, int argument_count, ...);
 
     // Debugger input.
-    void setLastDebuggerInput(char *input);
-    char *lastDebuggerInput() { return lastDebuggerInput_; }
+    void setLastDebuggerInput(char* input);
+    char* lastDebuggerInput() { return lastDebuggerInput_; }
 
     // Returns true if pc register contains one of the 'special_values' defined
     // below (bad_lr, end_sim_pc).
@@ -172,12 +221,28 @@ class Simulator
         // Known bad pc value to ensure that the simulator does not execute
         // without being properly setup.
         bad_lr = -1,
-        // A pc value used to signal the simulator to stop execution.  Generally
+        // A pc value used to signal the simulator to stop execution. Generally
         // the lr is set to this value on transition from native C code to
         // simulated execution, so that the simulator can "return" to the native
         // C code.
         end_sim_pc = -2
     };
+
+    // ForbidUnaligned means "always fault on unaligned access".
+    //
+    // AllowUnaligned means "allow the unaligned access if other conditions are
+    // met".  The "other conditions" vary with the instruction: For all
+    // instructions the base condition is !HasAlignmentFault(), ie, the chip is
+    // configured to allow unaligned accesses.  For instructions like VLD1
+    // there is an additional constraint that the alignment attribute in the
+    // instruction must be set to "default alignment".
+
+    enum UnalignedPolicy {
+        ForbidUnaligned,
+        AllowUnaligned
+    };
+
+    bool init();
 
     // Checks if the current instruction should be executed based on its
     // condition bits.
@@ -196,19 +261,20 @@ class Simulator
     // Support for VFP.
     void compute_FPSCR_Flags(double val1, double val2);
     void copy_FPSCR_to_APSR();
-    inline double canonicalizeNaN(double value);
+    inline void canonicalizeNaN(double* value);
+    inline void canonicalizeNaN(float* value);
 
     // Helper functions to decode common "addressing" modes
-    int32_t getShiftRm(SimInstruction *instr, bool* carry_out);
-    int32_t getImm(SimInstruction *instr, bool* carry_out);
-    int32_t processPU(SimInstruction *instr, int num_regs, int operand_size,
-                      intptr_t *start_address, intptr_t *end_address);
-    void handleRList(SimInstruction *instr, bool load);
-    void handleVList(SimInstruction *inst);
-    void softwareInterrupt(SimInstruction *instr);
+    int32_t getShiftRm(SimInstruction* instr, bool* carry_out);
+    int32_t getImm(SimInstruction* instr, bool* carry_out);
+    int32_t processPU(SimInstruction* instr, int num_regs, int operand_size,
+                      intptr_t* start_address, intptr_t* end_address);
+    void handleRList(SimInstruction* instr, bool load);
+    void handleVList(SimInstruction* inst);
+    void softwareInterrupt(SimInstruction* instr);
 
     // Stop helper functions.
-    inline bool isStopInstruction(SimInstruction *instr);
+    inline bool isStopInstruction(SimInstruction* instr);
     inline bool isWatchedStop(uint32_t bkpt_code);
     inline bool isEnabledStop(uint32_t bkpt_code);
     inline void enableStop(uint32_t bkpt_code);
@@ -216,72 +282,103 @@ class Simulator
     inline void increaseStopCounter(uint32_t bkpt_code);
     void printStopInfo(uint32_t code);
 
+    // Handle any wasm faults, returning true if the fault was handled.
+    inline bool handleWasmFault(int32_t addr, unsigned numBytes);
+
     // Read and write memory.
     inline uint8_t readBU(int32_t addr);
     inline int8_t readB(int32_t addr);
     inline void writeB(int32_t addr, uint8_t value);
     inline void writeB(int32_t addr, int8_t value);
 
-    inline uint16_t readHU(int32_t addr, SimInstruction *instr);
-    inline int16_t readH(int32_t addr, SimInstruction *instr);
+    inline uint8_t readExBU(int32_t addr);
+    inline int32_t writeExB(int32_t addr, uint8_t value);
+
+    inline uint16_t readHU(int32_t addr, SimInstruction* instr);
+    inline int16_t readH(int32_t addr, SimInstruction* instr);
     // Note: Overloaded on the sign of the value.
-    inline void writeH(int32_t addr, uint16_t value, SimInstruction *instr);
-    inline void writeH(int32_t addr, int16_t value, SimInstruction *instr);
+    inline void writeH(int32_t addr, uint16_t value, SimInstruction* instr);
+    inline void writeH(int32_t addr, int16_t value, SimInstruction* instr);
 
-    inline int readW(int32_t addr, SimInstruction *instr);
-    inline void writeW(int32_t addr, int value, SimInstruction *instr);
+    inline uint16_t readExHU(int32_t addr, SimInstruction* instr);
+    inline int32_t writeExH(int32_t addr, uint16_t value, SimInstruction* instr);
 
-    int32_t *readDW(int32_t addr);
+    inline int readW(int32_t addr, SimInstruction* instr, UnalignedPolicy f = ForbidUnaligned);
+    inline void writeW(int32_t addr, int value, SimInstruction* instr, UnalignedPolicy f = ForbidUnaligned);
+
+    inline uint64_t readQ(int32_t addr, SimInstruction* instr, UnalignedPolicy f = ForbidUnaligned);
+    inline void writeQ(int32_t addr, uint64_t value, SimInstruction* instr, UnalignedPolicy f = ForbidUnaligned);
+
+    inline int readExW(int32_t addr, SimInstruction* instr);
+    inline int writeExW(int32_t addr, int value, SimInstruction* instr);
+
+    int32_t* readDW(int32_t addr);
     void writeDW(int32_t addr, int32_t value1, int32_t value2);
+
+    int32_t readExDW(int32_t addr, int32_t* hibits);
+    int32_t writeExDW(int32_t addr, int32_t value1, int32_t value2);
 
     // Executing is handled based on the instruction type.
     // Both type 0 and type 1 rolled into one.
-    void decodeType01(SimInstruction *instr);
-    void decodeType2(SimInstruction *instr);
-    void decodeType3(SimInstruction *instr);
-    void decodeType4(SimInstruction *instr);
-    void decodeType5(SimInstruction *instr);
-    void decodeType6(SimInstruction *instr);
-    void decodeType7(SimInstruction *instr);
+    void decodeType01(SimInstruction* instr);
+    void decodeType2(SimInstruction* instr);
+    void decodeType3(SimInstruction* instr);
+    void decodeType4(SimInstruction* instr);
+    void decodeType5(SimInstruction* instr);
+    void decodeType6(SimInstruction* instr);
+    void decodeType7(SimInstruction* instr);
 
     // Support for VFP.
-    void decodeTypeVFP(SimInstruction *instr);
-    void decodeType6CoprocessorIns(SimInstruction *instr);
-    void decodeSpecialCondition(SimInstruction *instr);
+    void decodeTypeVFP(SimInstruction* instr);
+    void decodeType6CoprocessorIns(SimInstruction* instr);
+    void decodeSpecialCondition(SimInstruction* instr);
 
-    void decodeVMOVBetweenCoreAndSinglePrecisionRegisters(SimInstruction *instr);
-    void decodeVCMP(SimInstruction *instr);
-    void decodeVCVTBetweenDoubleAndSingle(SimInstruction *instr);
-    void decodeVCVTBetweenFloatingPointAndInteger(SimInstruction *instr);
-    void decodeVCVTBetweenFloatingPointAndIntegerFrac(SimInstruction *instr);
+    void decodeVMOVBetweenCoreAndSinglePrecisionRegisters(SimInstruction* instr);
+    void decodeVCMP(SimInstruction* instr);
+    void decodeVCVTBetweenDoubleAndSingle(SimInstruction* instr);
+    void decodeVCVTBetweenFloatingPointAndInteger(SimInstruction* instr);
+    void decodeVCVTBetweenFloatingPointAndIntegerFrac(SimInstruction* instr);
+
+    // Support for some system functions.
+    void decodeType7CoprocessorIns(SimInstruction* instr);
 
     // Executes one instruction.
-    void instructionDecode(SimInstruction *instr);
+    void instructionDecode(SimInstruction* instr);
 
   public:
     static bool ICacheCheckingEnabled;
-    static void FlushICache(void *start, size_t size);
+    static void FlushICache(void* start, size_t size);
 
     static int64_t StopSimAt;
 
+    // For testing the MoveResolver code, a MoveResolver is set up, and
+    // the VFP registers are loaded with pre-determined values,
+    // then the sequence of code is simulated.  In order to test this with the
+    // simulator, the callee-saved registers can't be trashed. This flag
+    // disables that feature.
+    bool skipCalleeSavedRegsCheck;
+
     // Runtime call support.
-    static void *RedirectNativeFunction(void *nativeFunction, ABIFunctionType type);
+    static void* RedirectNativeFunction(void* nativeFunction, ABIFunctionType type);
 
   private:
     // Handle arguments and return value for runtime FP functions.
-    void getFpArgs(double *x, double *y, int32_t *z);
+    void getFpArgs(double* x, double* y, int32_t* z);
+    void getFpFromStack(int32_t* stack, double* x1);
     void setCallResultDouble(double result);
     void setCallResultFloat(float result);
     void setCallResult(int64_t res);
     void scratchVolatileRegisters(bool scratchFloat = true);
 
     template<class ReturnType, int register_size>
-    ReturnType getFromVFPRegister(int reg_index);
+    void getFromVFPRegister(int reg_index, ReturnType* out);
 
     template<class InputType, int register_size>
     void setVFPRegister(int reg_index, const InputType& value);
 
     void callInternal(uint8_t* entry);
+
+    JSContext* const cx_;
 
     // Architecture state.
     // Saturating instructions require a Q flag to indicate saturation.
@@ -312,20 +409,24 @@ class Simulator
     bool inexact_vfp_flag_;
 
     // Simulator support.
-    char *stack_;
+    char* stack_;
+    uintptr_t stackLimit_;
     bool pc_modified_;
     int64_t icount_;
 
     int32_t resume_pc_;
 
     // Debugger input.
-    char *lastDebuggerInput_;
+    char* lastDebuggerInput_;
 
     // Registered breakpoints.
-    SimInstruction *break_pc_;
+    SimInstruction* break_pc_;
     Instr break_instr_;
 
-    SimulatorRuntime *srt_;
+    // Single-stepping support
+    bool single_stepping_;
+    SingleStepCallback single_step_callback_;
+    void* single_step_callback_arg_;
 
     // A stop is watched if its code is less than kNumOfWatchedStops.
     // Only watched stops support enabling/disabling and the counter feature.
@@ -340,7 +441,7 @@ class Simulator
     // the breakpoint was hit or gone through.
     struct StopCountAndDesc {
         uint32_t count;
-        char *desc;
+        char* desc;
     };
     StopCountAndDesc watched_stops_[kNumOfWatchedStops];
 
@@ -349,12 +450,63 @@ class Simulator
         return icount_;
     }
 
+  private:
+    // ICache checking.
+    struct ICacheHasher {
+        typedef void* Key;
+        typedef void* Lookup;
+        static HashNumber hash(const Lookup& l);
+        static bool match(const Key& k, const Lookup& l);
+    };
+
+  public:
+    typedef HashMap<void*, CachePage*, ICacheHasher, SystemAllocPolicy> ICacheMap;
+
+  private:
+    // This lock creates a critical section around 'redirection_' and
+    // 'icache_', which are referenced both by the execution engine
+    // and by the off-thread compiler (see Redirection::Get in the cpp file).
+    Mutex cacheLock_;
+#ifdef DEBUG
+    mozilla::Maybe<Thread::Id> cacheLockHolder_;
+#endif
+
+    Redirection* redirection_;
+    ICacheMap icache_;
+
+  public:
+    ICacheMap& icache() {
+        // Technically we need the lock to access the innards of the
+        // icache, not to take its address, but the latter condition
+        // serves as a useful complement to the former.
+        MOZ_ASSERT(cacheLockHolder_.isSome());
+        return icache_;
+    }
+
+    Redirection* redirection() const {
+        MOZ_ASSERT(cacheLockHolder_.isSome());
+        return redirection_;
+    }
+
+    void setRedirection(js::jit::Redirection* redirection) {
+        MOZ_ASSERT(cacheLockHolder_.isSome());
+        redirection_ = redirection;
+    }
+
+  private:
+    // Exclusive access monitor
+    void exclusiveMonitorSet(uint64_t value);
+    uint64_t exclusiveMonitorGetAndClear(bool* held);
+    void exclusiveMonitorClear();
+
+    bool exclusiveMonitorHeld_;
+    uint64_t exclusiveMonitor_;
 };
 
 #define JS_CHECK_SIMULATOR_RECURSION_WITH_EXTRA(cx, extra, onerror)             \
     JS_BEGIN_MACRO                                                              \
-        if (cx->mainThread().simulator()->overRecursedWithExtra(extra)) {       \
-            js_ReportOverRecursed(cx);                                          \
+        if (cx->runtime()->simulator()->overRecursedWithExtra(extra)) {         \
+            js::ReportOverRecursed(cx);                                         \
             onerror;                                                            \
         }                                                                       \
     JS_END_MACRO
@@ -362,6 +514,6 @@ class Simulator
 } // namespace jit
 } // namespace js
 
-#endif /* JS_ARM_SIMULATOR */
+#endif /* JS_SIMULATOR_ARM */
 
 #endif /* jit_arm_Simulator_arm_h */

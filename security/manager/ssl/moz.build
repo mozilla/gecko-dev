@@ -1,9 +1,194 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-DIRS += ['src', 'public']
-
 TEST_DIRS += [ 'tests' ]
+
+XPIDL_SOURCES += [
+    'nsIASN1Object.idl',
+    'nsIASN1PrintableItem.idl',
+    'nsIASN1Sequence.idl',
+    'nsIAssociatedContentSecurity.idl',
+    'nsIBadCertListener2.idl',
+    'nsICertBlocklist.idl',
+    'nsICertificateDialogs.idl',
+    'nsICertOverrideService.idl',
+    'nsIClientAuthDialogs.idl',
+    'nsIContentSignatureVerifier.idl',
+    'nsIDataSignatureVerifier.idl',
+    'nsIGenKeypairInfoDlg.idl',
+    'nsIKeygenThread.idl',
+    'nsIKeyModule.idl',
+    'nsILocalCertService.idl',
+    'nsINSSU2FToken.idl',
+    'nsINSSVersion.idl',
+    'nsIPK11Token.idl',
+    'nsIPK11TokenDB.idl',
+    'nsIPKCS11.idl',
+    'nsIPKCS11Module.idl',
+    'nsIPKCS11ModuleDB.idl',
+    'nsIPKCS11Slot.idl',
+    'nsIProtectedAuthThread.idl',
+    'nsISecretDecoderRing.idl',
+    'nsISecurityUITelemetry.idl',
+    'nsISiteSecurityService.idl',
+    'nsISSLStatus.idl',
+    'nsISSLStatusProvider.idl',
+    'nsITokenDialogs.idl',
+    'nsITokenPasswordDialogs.idl',
+    'nsIU2FToken.idl',
+    'nsIWeakCryptoOverride.idl',
+    'nsIX509Cert.idl',
+    'nsIX509CertDB.idl',
+    'nsIX509CertList.idl',
+    'nsIX509CertValidity.idl',
+]
+
+if CONFIG['MOZ_XUL']:
+    XPIDL_SOURCES += [
+        'nsICertTree.idl',
+    ]
+
+XPIDL_MODULE = 'pipnss'
+
+EXTRA_JS_MODULES.psm += [
+    'DER.jsm',
+    'X509.jsm',
+]
+
+EXPORTS += [
+    'CryptoTask.h',
+    'nsClientAuthRemember.h',
+    'nsCrypto.h',
+    'nsNSSCallbacks.h',
+    'nsNSSCertificate.h',
+    'nsNSSComponent.h',
+    'nsNSSHelper.h',
+    'nsNSSShutDown.h',
+    'nsNSSU2FToken.h',
+    'nsRandomGenerator.h',
+    'nsSecurityHeaderParser.h',
+    'NSSErrorsService.h',
+    'ScopedNSSTypes.h',
+    'SharedCertVerifier.h',
+]
+
+EXPORTS.mozilla += [
+    'DataStorage.h',
+    'PublicSSL.h',
+]
+
+EXPORTS.mozilla.psm += [
+    'PSMContentListener.h',
+]
+
+EXPORTS.ipc += [
+    'DataStorageIPCUtils.h',
+]
+
+UNIFIED_SOURCES += [
+    'CertBlocklist.cpp',
+    'ContentSignatureVerifier.cpp',
+    'CryptoTask.cpp',
+    'CSTrustDomain.cpp',
+    'DataStorage.cpp',
+    'LocalCertService.cpp',
+    'nsCertOverrideService.cpp',
+    'nsClientAuthRemember.cpp',
+    'nsCrypto.cpp',
+    'nsCryptoHash.cpp',
+    'nsDataSignatureVerifier.cpp',
+    'nsKeygenHandler.cpp',
+    'nsKeygenHandlerContent.cpp',
+    'nsKeygenThread.cpp',
+    'nsKeyModule.cpp',
+    'nsNSSASN1Object.cpp',
+    'nsNSSCallbacks.cpp',
+    'nsNSSCertHelper.cpp',
+    'nsNSSCertificate.cpp',
+    'nsNSSCertificateDB.cpp',
+    'nsNSSCertificateFakeTransport.cpp',
+    'nsNSSCertTrust.cpp',
+    'nsNSSCertValidity.cpp',
+    'nsNSSComponent.cpp',
+    'nsNSSErrors.cpp',
+    'nsNSSIOLayer.cpp',
+    'nsNSSModule.cpp',
+    'nsNSSShutDown.cpp',
+    'nsNSSU2FToken.cpp',
+    'nsNSSVersion.cpp',
+    'nsNTLMAuthModule.cpp',
+    'nsPK11TokenDB.cpp',
+    'nsPKCS11Slot.cpp',
+    'nsPKCS12Blob.cpp',
+    'nsProtectedAuthThread.cpp',
+    'nsRandomGenerator.cpp',
+    'nsSecureBrowserUIImpl.cpp',
+    'nsSecurityHeaderParser.cpp',
+    'NSSErrorsService.cpp',
+    'nsSiteSecurityService.cpp',
+    'nsSSLSocketProvider.cpp',
+    'nsSSLStatus.cpp',
+    'nsTLSSocketProvider.cpp',
+    'PSMContentListener.cpp',
+    'PSMRunnable.cpp',
+    'PublicKeyPinningService.cpp',
+    'RootCertificateTelemetryUtils.cpp',
+    'SecretDecoderRing.cpp',
+    'SharedSSLState.cpp',
+    'SSLServerCertVerification.cpp',
+    'TransportSecurityInfo.cpp',
+    'WeakCryptoOverride.cpp',
+]
+
+IPDL_SOURCES += [
+    'PPSMContentDownloader.ipdl',
+]
+
+if not CONFIG['MOZ_NO_SMART_CARDS']:
+    UNIFIED_SOURCES += [
+        'nsSmartCardMonitor.cpp',
+    ]
+
+if CONFIG['MOZ_XUL']:
+    UNIFIED_SOURCES += [
+        'nsCertTree.cpp',
+    ]
+
+UNIFIED_SOURCES += [
+    'md4.c',
+]
+
+FINAL_LIBRARY = 'xul'
+
+LOCAL_INCLUDES += [
+    '/dom/base',
+    '/dom/crypto',
+    '/security/certverifier',
+    '/security/pkix/include',
+]
+
+LOCAL_INCLUDES += [
+    '!/dist/public/nss',
+]
+
+if CONFIG['NSS_DISABLE_DBM']:
+    DEFINES['NSS_DISABLE_DBM'] = '1'
+
+DEFINES['SSL_DISABLE_DEPRECATED_CIPHER_SUITE_NAMES'] = 'True'
+DEFINES['NSS_ENABLE_ECC'] = 'True'
+for var in ('DLL_PREFIX', 'DLL_SUFFIX'):
+    DEFINES[var] = '"%s"' % CONFIG[var]
+
+DEFINES['CERT_AddTempCertToPerm'] = '__CERT_AddTempCertToPerm'
+
+USE_LIBS += [
+    'crmf',
+]
+
+include('/ipc/chromium/chromium-config.mozbuild')
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wno-error=shadow']

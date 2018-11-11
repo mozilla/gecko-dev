@@ -134,7 +134,7 @@ enum myanmar_category_t {
   OT_D   = 19, /* Digits except zero */
   OT_D0  = 20, /* Digit zero */
   OT_DB  = OT_N, /* Dot below */
-  OT_GB  = OT_DOTTEDCIRCLE,
+  OT_GB  = OT_PLACEHOLDER,
   OT_MH  = 21, /* Various consonant medial types */
   OT_MR  = 22, /* Various consonant medial types */
   OT_MW  = 23, /* Various consonant medial types */
@@ -154,15 +154,9 @@ is_one_of (const hb_glyph_info_t &info, unsigned int flags)
 {
   /* If it ligated, all bets are off. */
   if (_hb_glyph_info_ligated (&info)) return false;
-  return !!(FLAG (info.myanmar_category()) & flags);
+  return !!(FLAG_SAFE (info.myanmar_category()) & flags);
 }
 
-/* Note:
- *
- * We treat Vowels and placeholders as if they were consonants.  This is safe because Vowels
- * cannot happen in a consonant syllable.  The plus side however is, we can call the
- * consonant syllable logic from the vowel syllable function and get it all right! */
-#define CONSONANT_FLAGS (FLAG (OT_C) | FLAG (OT_CM) | FLAG (OT_Ra) | FLAG (OT_V) | FLAG (OT_NBSP) | FLAG (OT_GB))
 static inline bool
 is_consonant (const hb_glyph_info_t &info)
 {
@@ -175,83 +169,90 @@ set_myanmar_properties (hb_glyph_info_t &info)
 {
   hb_codepoint_t u = info.codepoint;
   unsigned int type = hb_indic_get_categories (u);
-  indic_category_t cat = (indic_category_t) (type & 0x7F);
+  indic_category_t cat = (indic_category_t) (type & 0x7Fu);
   indic_position_t pos = (indic_position_t) (type >> 8);
 
   /* Myanmar
    * http://www.microsoft.com/typography/OpenTypeDev/myanmar/intro.htm#analyze
    */
-  if (unlikely (hb_in_range<hb_codepoint_t> (u, 0xFE00, 0xFE0F)))
+  if (unlikely (hb_in_range (u, 0xFE00u, 0xFE0Fu)))
     cat = (indic_category_t) OT_VS;
-  else if (unlikely (u == 0x200C)) cat = (indic_category_t) OT_ZWNJ;
-  else if (unlikely (u == 0x200D)) cat = (indic_category_t) OT_ZWJ;
 
   switch (u)
   {
-    case 0x104E:
+    case 0x104Eu:
       cat = (indic_category_t) OT_C; /* The spec says C, IndicSyllableCategory doesn't have. */
       break;
 
-    case 0x002D: case 0x00A0: case 0x00D7: case 0x2012:
-    case 0x2013: case 0x2014: case 0x2015: case 0x2022:
-    case 0x25CC: case 0x25FB: case 0x25FC: case 0x25FD:
-    case 0x25FE:
+    case 0x002Du: case 0x00A0u: case 0x00D7u: case 0x2012u:
+    case 0x2013u: case 0x2014u: case 0x2015u: case 0x2022u:
+    case 0x25CCu: case 0x25FBu: case 0x25FCu: case 0x25FDu:
+    case 0x25FEu:
       cat = (indic_category_t) OT_GB;
       break;
 
-    case 0x1004: case 0x101B: case 0x105A:
+    case 0x1004u: case 0x101Bu: case 0x105Au:
       cat = (indic_category_t) OT_Ra;
       break;
 
-    case 0x1032: case 0x1036:
+    case 0x1032u: case 0x1036u:
       cat = (indic_category_t) OT_A;
       break;
 
-    case 0x103A:
+    case 0x1039u:
+      cat = (indic_category_t) OT_H;
+      break;
+
+    case 0x103Au:
       cat = (indic_category_t) OT_As;
       break;
 
-    case 0x1041: case 0x1042: case 0x1043: case 0x1044:
-    case 0x1045: case 0x1046: case 0x1047: case 0x1048:
-    case 0x1049: case 0x1090: case 0x1091: case 0x1092:
-    case 0x1093: case 0x1094: case 0x1095: case 0x1096:
-    case 0x1097: case 0x1098: case 0x1099:
+    case 0x1041u: case 0x1042u: case 0x1043u: case 0x1044u:
+    case 0x1045u: case 0x1046u: case 0x1047u: case 0x1048u:
+    case 0x1049u: case 0x1090u: case 0x1091u: case 0x1092u:
+    case 0x1093u: case 0x1094u: case 0x1095u: case 0x1096u:
+    case 0x1097u: case 0x1098u: case 0x1099u:
       cat = (indic_category_t) OT_D;
       break;
 
-    case 0x1040:
+    case 0x1040u:
       cat = (indic_category_t) OT_D; /* XXX The spec says D0, but Uniscribe doesn't seem to do. */
       break;
 
-    case 0x103E: case 0x1060:
+    case 0x103Eu: case 0x1060u:
       cat = (indic_category_t) OT_MH;
       break;
 
-    case 0x103C:
+    case 0x103Cu:
       cat = (indic_category_t) OT_MR;
       break;
 
-    case 0x103D: case 0x1082:
+    case 0x103Du: case 0x1082u:
       cat = (indic_category_t) OT_MW;
       break;
 
-    case 0x103B: case 0x105E: case 0x105F:
+    case 0x103Bu: case 0x105Eu: case 0x105Fu:
       cat = (indic_category_t) OT_MY;
       break;
 
-    case 0x1063: case 0x1064: case 0x1069: case 0x106A:
-    case 0x106B: case 0x106C: case 0x106D: case 0xAA7B:
+    case 0x1063u: case 0x1064u: case 0x1069u: case 0x106Au:
+    case 0x106Bu: case 0x106Cu: case 0x106Du: case 0xAA7Bu:
       cat = (indic_category_t) OT_PT;
       break;
 
-    case 0x1038: case 0x1087: case 0x1088: case 0x1089:
-    case 0x108A: case 0x108B: case 0x108C: case 0x108D:
-    case 0x108F: case 0x109A: case 0x109B: case 0x109C:
+    case 0x1038u: case 0x1087u: case 0x1088u: case 0x1089u:
+    case 0x108Au: case 0x108Bu: case 0x108Cu: case 0x108Du:
+    case 0x108Fu: case 0x109Au: case 0x109Bu: case 0x109Cu:
       cat = (indic_category_t) OT_SM;
       break;
 
-    case 0x104A: case 0x104B:
+    case 0x104Au: case 0x104Bu:
       cat = (indic_category_t) OT_P;
+      break;
+
+    case 0xAA74u: case 0xAA75u: case 0xAA76u:
+      /* https://github.com/roozbehp/unicode-data/issues/3 */
+      cat = (indic_category_t) OT_C;
       break;
   }
 
@@ -285,8 +286,9 @@ setup_masks_myanmar (const hb_ot_shape_plan_t *plan HB_UNUSED,
    * and setup masks later on in a pause-callback. */
 
   unsigned int count = buffer->len;
+  hb_glyph_info_t *info = buffer->info;
   for (unsigned int i = 0; i < count; i++)
-    set_myanmar_properties (buffer->info[i]);
+    set_myanmar_properties (info[i]);
 }
 
 static void
@@ -311,9 +313,7 @@ compare_myanmar_order (const hb_glyph_info_t *pa, const hb_glyph_info_t *pb)
  * http://www.microsoft.com/typography/OpenTypeDev/myanmar/intro.htm */
 
 static void
-initial_reordering_consonant_syllable (const hb_ot_shape_plan_t *plan,
-				       hb_face_t *face,
-				       hb_buffer_t *buffer,
+initial_reordering_consonant_syllable (hb_buffer_t *buffer,
 				       unsigned int start, unsigned int end)
 {
   hb_glyph_info_t *info = buffer->info;
@@ -400,41 +400,9 @@ initial_reordering_consonant_syllable (const hb_ot_shape_plan_t *plan,
     }
   }
 
-  buffer->merge_clusters (start, end);
   /* Sit tight, rock 'n roll! */
-  hb_bubble_sort (info + start, end - start, compare_myanmar_order);
+  buffer->sort (start, end, compare_myanmar_order);
 }
-
-static void
-initial_reordering_broken_cluster (const hb_ot_shape_plan_t *plan,
-				   hb_face_t *face,
-				   hb_buffer_t *buffer,
-				   unsigned int start, unsigned int end)
-{
-  /* We already inserted dotted-circles, so just call the consonant_syllable. */
-  initial_reordering_consonant_syllable (plan, face, buffer, start, end);
-}
-
-static void
-initial_reordering_punctuation_cluster (const hb_ot_shape_plan_t *plan HB_UNUSED,
-					hb_face_t *face HB_UNUSED,
-					hb_buffer_t *buffer HB_UNUSED,
-					unsigned int start HB_UNUSED, unsigned int end HB_UNUSED)
-{
-  /* Nothing to do right now.  If we ever switch to using the output
-   * buffer in the reordering process, we'd need to next_glyph() here. */
-}
-
-static void
-initial_reordering_non_myanmar_cluster (const hb_ot_shape_plan_t *plan HB_UNUSED,
-					hb_face_t *face HB_UNUSED,
-					hb_buffer_t *buffer HB_UNUSED,
-					unsigned int start HB_UNUSED, unsigned int end HB_UNUSED)
-{
-  /* Nothing to do right now.  If we ever switch to using the output
-   * buffer in the reordering process, we'd need to next_glyph() here. */
-}
-
 
 static void
 initial_reordering_syllable (const hb_ot_shape_plan_t *plan,
@@ -444,10 +412,15 @@ initial_reordering_syllable (const hb_ot_shape_plan_t *plan,
 {
   syllable_type_t syllable_type = (syllable_type_t) (buffer->info[start].syllable() & 0x0F);
   switch (syllable_type) {
-  case consonant_syllable:	initial_reordering_consonant_syllable  (plan, face, buffer, start, end); return;
-  case punctuation_cluster:	initial_reordering_punctuation_cluster (plan, face, buffer, start, end); return;
-  case broken_cluster:		initial_reordering_broken_cluster      (plan, face, buffer, start, end); return;
-  case non_myanmar_cluster:	initial_reordering_non_myanmar_cluster (plan, face, buffer, start, end); return;
+
+    case broken_cluster: /* We already inserted dotted-circles, so just call the consonant_syllable. */
+    case consonant_syllable:
+      initial_reordering_consonant_syllable  (buffer, start, end);
+      break;
+
+    case punctuation_cluster:
+    case non_myanmar_cluster:
+      break;
   }
 }
 
@@ -459,8 +432,10 @@ insert_dotted_circles (const hb_ot_shape_plan_t *plan HB_UNUSED,
   /* Note: This loop is extra overhead, but should not be measurable. */
   bool has_broken_syllables = false;
   unsigned int count = buffer->len;
+  hb_glyph_info_t *info = buffer->info;
   for (unsigned int i = 0; i < count; i++)
-    if ((buffer->info[i].syllable() & 0x0F) == broken_cluster) {
+    if ((info[i].syllable() & 0x0F) == broken_cluster)
+    {
       has_broken_syllables = true;
       break;
     }
@@ -469,11 +444,11 @@ insert_dotted_circles (const hb_ot_shape_plan_t *plan HB_UNUSED,
 
 
   hb_codepoint_t dottedcircle_glyph;
-  if (!font->get_glyph (0x25CC, 0, &dottedcircle_glyph))
+  if (!font->get_nominal_glyph (0x25CCu, &dottedcircle_glyph))
     return;
 
   hb_glyph_info_t dottedcircle = {0};
-  dottedcircle.codepoint = 0x25CC;
+  dottedcircle.codepoint = 0x25CCu;
   set_myanmar_properties (dottedcircle);
   dottedcircle.codepoint = dottedcircle_glyph;
 
@@ -481,7 +456,7 @@ insert_dotted_circles (const hb_ot_shape_plan_t *plan HB_UNUSED,
 
   buffer->idx = 0;
   unsigned int last_syllable = 0;
-  while (buffer->idx < buffer->len)
+  while (buffer->idx < buffer->len && !buffer->in_error)
   {
     unsigned int syllable = buffer->cur().syllable();
     syllable_type_t syllable_type = (syllable_type_t) (syllable & 0x0F);
@@ -489,12 +464,12 @@ insert_dotted_circles (const hb_ot_shape_plan_t *plan HB_UNUSED,
     {
       last_syllable = syllable;
 
-      hb_glyph_info_t info = dottedcircle;
-      info.cluster = buffer->cur().cluster;
-      info.mask = buffer->cur().mask;
-      info.syllable() = buffer->cur().syllable();
+      hb_glyph_info_t ginfo = dottedcircle;
+      ginfo.cluster = buffer->cur().cluster;
+      ginfo.mask = buffer->cur().mask;
+      ginfo.syllable() = buffer->cur().syllable();
 
-      buffer->output_info (info);
+      buffer->output_info (ginfo);
     }
     else
       buffer->next_glyph ();
@@ -510,18 +485,8 @@ initial_reordering (const hb_ot_shape_plan_t *plan,
 {
   insert_dotted_circles (plan, font, buffer);
 
-  hb_glyph_info_t *info = buffer->info;
-  unsigned int count = buffer->len;
-  if (unlikely (!count)) return;
-  unsigned int last = 0;
-  unsigned int last_syllable = info[0].syllable();
-  for (unsigned int i = 1; i < count; i++)
-    if (last_syllable != info[i].syllable()) {
-      initial_reordering_syllable (plan, font->face, buffer, last, i);
-      last = i;
-      last_syllable = info[last].syllable();
-    }
-  initial_reordering_syllable (plan, font->face, buffer, last, count);
+  foreach_syllable (buffer, start, end)
+    initial_reordering_syllable (plan, font->face, buffer, start, end);
 }
 
 static void
@@ -541,6 +506,26 @@ final_reordering (const hb_ot_shape_plan_t *plan,
 }
 
 
+/* Uniscribe seems to have a shaper for 'mymr' that is like the
+ * generic shaper, except that it zeros mark advances GDEF_LATE. */
+const hb_ot_complex_shaper_t _hb_ot_complex_shaper_myanmar_old =
+{
+  "default",
+  NULL, /* collect_features */
+  NULL, /* override_features */
+  NULL, /* data_create */
+  NULL, /* data_destroy */
+  NULL, /* preprocess_text */
+  NULL, /* postprocess_glyphs */
+  HB_OT_SHAPE_NORMALIZATION_MODE_DEFAULT,
+  NULL, /* decompose */
+  NULL, /* compose */
+  NULL, /* setup_masks */
+  NULL, /* disable_otl */
+  HB_OT_SHAPE_ZERO_WIDTH_MARKS_BY_GDEF_LATE,
+  true, /* fallback_position */
+};
+
 const hb_ot_complex_shaper_t _hb_ot_complex_shaper_myanmar =
 {
   "myanmar",
@@ -549,10 +534,12 @@ const hb_ot_complex_shaper_t _hb_ot_complex_shaper_myanmar =
   NULL, /* data_create */
   NULL, /* data_destroy */
   NULL, /* preprocess_text */
+  NULL, /* postprocess_glyphs */
   HB_OT_SHAPE_NORMALIZATION_MODE_COMPOSED_DIACRITICS_NO_SHORT_CIRCUIT,
   NULL, /* decompose */
   NULL, /* compose */
   setup_masks_myanmar,
+  NULL, /* disable_otl */
   HB_OT_SHAPE_ZERO_WIDTH_MARKS_BY_GDEF_EARLY,
   false, /* fallback_position */
 };

@@ -1,208 +1,146 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+"use strict";
 
-'use strict';
+const { Cu } = require("chrome");
+const memory = require("sdk/test/memory");
+const { add, remove, has, clear, iterator } = require("sdk/lang/weak-set");
+const { setInterval, clearInterval } = require("sdk/timers");
 
-const { Cu } = require('chrome');
-const { Loader } = require('sdk/test/loader');
-const { defer } = require('sdk/core/promise');
+function gc(assert) {
+  let wait = 1;
+  let interval = setInterval(function() {
+    assert.pass("waited " + (wait++ * 0.250) + "secs for gc()..");
+  }, 250);
 
-function gc() {
-  let { promise, resolve } = defer();
+  return memory.gc().then(() => {
+    assert.pass("gc completed!");
+    clearInterval(interval);
+  });
+}
 
-  Cu.schedulePreciseGC(resolve);
+exports['test add/remove/iterate/clear item'] = function*(assert) {
+  let addItems = {};
+  let removeItems = {};
+  let iterateItems = {};
+  let clearItems = {};
+  let nonReferencedItems = {};
 
-  return promise;
-};
-
-exports['test adding item'] = function(assert, done) {
-  let loader = Loader(module);
-  let { add, remove, has, clear, iterator } = loader.require('sdk/lang/weak-set');
-
-  let items = {};
   let item = {};
-
-  add(items, item);
-
-  gc().
-    then(() => {
-      assert.ok(has(items, item),
-        'the item is in the weak set');
-    }).
-    then(loader.unload).
-    then(done, assert.fail);
-};
-
-exports['test remove item'] = function(assert, done) {
-  let loader = Loader(module);
-  let { add, remove, has, clear, iterator } = loader.require('sdk/lang/weak-set');
-
-  let items = {};
-  let item = {};
-
-  add(items, item);
-
-  remove(items, item);
-
-  gc().
-    then(() => {
-      assert.ok(!has(items, item),
-        'the item is not in weak set');
-    }).
-    then(loader.unload).
-    then(done, assert.fail);
-};
-
-exports['test iterate'] = function(assert, done) {
-  let loader = Loader(module);
-  let { add, remove, has, clear, iterator } = loader.require('sdk/lang/weak-set');
-
-  let items = {};
   let addedItems = [{}, {}];
 
-  add(items, addedItems[0]);
-  add(items, addedItems[1]);
-  add(items, addedItems[0]); // weak set shouldn't add this twice
+  assert.pass("adding things to items");
+  add(addItems, item);
+  add(removeItems, item);
+  add(iterateItems, addedItems[0]);
+  add(iterateItems, addedItems[1]);
+  add(iterateItems, addedItems[0]); // weak set shouldn't add this twice
+  add(clearItems, addedItems[0]);
+  add(clearItems, addedItems[1]);
+  add(nonReferencedItems, {});
 
-  gc().
-    then(() => {
-      let count = 0;
+  assert.pass("removing things from removeItems");
+  remove(removeItems, item);
 
-      for (let item of iterator(items)) {
-        assert.equal(item, addedItems[count],
-          'item in the expected order');
+  assert.pass("clear things from clearItems");
+  clear(clearItems);
 
-        count++;
-      }
+  assert.pass("starting gc..");
+  yield gc(assert);
+  let count = 0;
 
-      assert.equal(count, 2,
-        'items in the expected number');
-    }).
-    then(loader.unload).
-    then(done, assert.fail);
-};
+  assert.equal(has(addItems, item), true, 'the addItems is in the weak set');
+  assert.equal(has(removeItems, item), false, 'the removeItems is not in weak set');
 
-exports['test clear'] = function(assert, done) {
-  let loader = Loader(module);
-  let { add, remove, has, clear, iterator } = loader.require('sdk/lang/weak-set');
+  assert.pass("iterating iterateItems..");
+  for (let item of iterator(iterateItems)) {
+    assert.equal(item, addedItems[count], "item in the expected order");
+    count++;
+  }
 
-  let items = {};
-  let addedItems = [{}, {}];
+  assert.equal(count, 2, 'items in the expected number');
 
-  add(items, addedItems[0]);
-  add(items, addedItems[1]);
+  assert.pass("iterating clearItems..");
+  for (let item of iterator(clearItems)) {
+    assert.fail("the loop should not be executed");
+    count++
+  }
 
-  clear(items)
+  for (let item of iterator(nonReferencedItems)) {
+    assert.fail("the loop should not be executed");
+    count++
+  }
 
-  gc().
-    then(() => {
-      let count = 0;
-
-      for (let item of iterator(items))
-        assert.fail('the loop should not be executed');
-
-      assert.equal(count, 0,
-        'no items in the weak set');
-    }).
-    then(loader.unload).
-    then(done, assert.fail);
-};
-
-exports['test adding item without reference'] = function(assert, done) {
-  let loader = Loader(module);
-  let { add, remove, has, clear, iterator } = loader.require('sdk/lang/weak-set');
-
-  let items = {};
-
-  add(items, {});
-
-  gc().
-    then(() => {
-      let count = 0;
-
-      for (let item of iterator(items))
-        assert.fail('the loop should not be executed');
-
-      assert.equal(count, 0,
-        'no items in the weak set');
-    }).
-    then(loader.unload).
-    then(done, assert.fail);
+  assert.equal(count, 2, 'items in the expected number');
 };
 
 exports['test adding non object or null item'] = function(assert) {
-  let loader = Loader(module);
-  let { add, remove, has, clear, iterator } = loader.require('sdk/lang/weak-set');
-
   let items = {};
 
   assert.throws(() => {
     add(items, 'foo');
   },
-  /^value is not a non-null object/,
+  /^\w+ is not a non-null object/,
   'only non-null object are allowed');
 
   assert.throws(() => {
     add(items, 0);
   },
-  /^value is not a non-null object/,
+  /^\w+ is not a non-null object/,
   'only non-null object are allowed');
 
   assert.throws(() => {
     add(items, undefined);
   },
-  /^value is not a non-null object/,
+  /^\w+ is not a non-null object/,
   'only non-null object are allowed');
 
   assert.throws(() => {
     add(items, null);
   },
-  /^value is not a non-null object/,
+  /^\w+ is not a non-null object/,
   'only non-null object are allowed');
 
   assert.throws(() => {
     add(items, true);
   },
-  /^value is not a non-null object/,
+  /^\w+ is not a non-null object/,
   'only non-null object are allowed');
 };
 
 exports['test adding to non object or null item'] = function(assert) {
-  let loader = Loader(module);
-  let { add, remove, has, clear, iterator } = loader.require('sdk/lang/weak-set');
-
   let item = {};
 
   assert.throws(() => {
     add('foo', item);
   },
-  /^value is not a non-null object/,
+  /^\w+ is not a non-null object/,
   'only non-null object are allowed');
 
   assert.throws(() => {
     add(0, item);
   },
-  /^value is not a non-null object/,
+  /^\w+ is not a non-null object/,
   'only non-null object are allowed');
 
   assert.throws(() => {
     add(undefined, item);
   },
-  /^value is not a non-null object/,
+  /^\w+ is not a non-null object/,
   'only non-null object are allowed');
 
   assert.throws(() => {
     add(null, item);
   },
-  /^value is not a non-null object/,
+  /^\w+ is not a non-null object/,
   'only non-null object are allowed');
 
   assert.throws(() => {
     add(true, item);
   },
-  /^value is not a non-null object/,
+  /^\w+ is not a non-null object/,
   'only non-null object are allowed');
 };
 
-require('test').run(exports);
+require("sdk/test").run(exports);

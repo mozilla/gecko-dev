@@ -12,8 +12,8 @@
 
 namespace mozilla {
 class CSSVariableResolver;
-}
-class nsRuleData;
+} // namespace mozilla
+struct nsRuleData;
 
 namespace mozilla {
 
@@ -130,17 +130,6 @@ private:
    * Adds all the variable declarations from aOther into this object.
    */
   void CopyVariablesFrom(const CSSVariableDeclarations& aOther);
-  static PLDHashOperator EnumerateVariableForCopy(const nsAString& aName,
-                                                  nsString aValue,
-                                                  void* aData);
-  static PLDHashOperator
-    EnumerateVariableForMapRuleInfoInto(const nsAString& aName,
-                                        nsString aValue,
-                                        void* aData);
-  static PLDHashOperator
-    EnumerateVariableForAddVariablesToResolver(const nsAString& aName,
-                                               nsString aValue,
-                                               void* aData);
 
   nsDataHashtable<nsStringHashKey, nsString> mVariables;
 };

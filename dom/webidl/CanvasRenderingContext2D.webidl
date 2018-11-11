@@ -21,9 +21,15 @@ dictionary ContextAttributes2D {
 };
 
 dictionary HitRegionOptions {
+  Path2D? path = null;
   DOMString id = "";
   Element? control = null;
 };
+
+typedef (HTMLImageElement or
+         HTMLCanvasElement or
+         HTMLVideoElement or
+         ImageBitmap) CanvasImageSource;
 
 interface CanvasRenderingContext2D {
 
@@ -47,7 +53,8 @@ interface CanvasRenderingContext2D {
   void transform(double a, double b, double c, double d, double e, double f);
   [Throws, LenientFloat]
   void setTransform(double a, double b, double c, double d, double e, double f);
-// NOT IMPLEMENTED  void resetTransform();
+  [Throws]
+  void resetTransform();
 
   // compositing
            attribute unrestricted double globalAlpha; // (default 1.0)
@@ -62,7 +69,7 @@ interface CanvasRenderingContext2D {
   [NewObject, Throws]
   CanvasGradient createRadialGradient(double x0, double y0, double r0, double x1, double y1, double r1);
   [NewObject, Throws]
-  CanvasPattern createPattern((HTMLImageElement or HTMLCanvasElement or HTMLVideoElement) image, [TreatNullAs=EmptyString] DOMString repetition);
+  CanvasPattern? createPattern(CanvasImageSource image, [TreatNullAs=EmptyString] DOMString repetition);
 
   // shadows
            [LenientFloat]
@@ -72,6 +79,9 @@ interface CanvasRenderingContext2D {
            [LenientFloat]
            attribute double shadowBlur; // (default 0)
            attribute DOMString shadowColor; // (default transparent black)
+
+  [Pref="canvas.filters.enabled", SetterThrows]
+  attribute DOMString filter; // (default empty string = no filter)
 
   // rects
   [LenientFloat]
@@ -87,7 +97,7 @@ interface CanvasRenderingContext2D {
   void fill(Path2D path, optional CanvasWindingRule winding = "nonzero");
   void stroke();
   void stroke(Path2D path);
-  [Pref="canvas.focusring.enabled"] void drawFocusIfNeeded(Element element);
+  [Pref="canvas.focusring.enabled", Throws] void drawFocusIfNeeded(Element element);
 // NOT IMPLEMENTED  void drawSystemFocusRing(Path path, HTMLElement element);
   [Pref="canvas.customfocusring.enabled"] boolean drawCustomFocusRing(Element element);
 // NOT IMPLEMENTED  boolean drawCustomFocusRing(Path path, HTMLElement element);
@@ -110,17 +120,19 @@ interface CanvasRenderingContext2D {
   TextMetrics measureText(DOMString text);
 
   // drawing images
-// NOT IMPLEMENTED           attribute boolean imageSmoothingEnabled; // (default true)
+  attribute boolean imageSmoothingEnabled;
+
   [Throws, LenientFloat]
-  void drawImage((HTMLImageElement or HTMLCanvasElement or HTMLVideoElement) image, double dx, double dy);
+  void drawImage(CanvasImageSource image, double dx, double dy);
   [Throws, LenientFloat]
-  void drawImage((HTMLImageElement or HTMLCanvasElement or HTMLVideoElement) image, double dx, double dy, double dw, double dh);
+  void drawImage(CanvasImageSource image, double dx, double dy, double dw, double dh);
   [Throws, LenientFloat]
-  void drawImage((HTMLImageElement or HTMLCanvasElement or HTMLVideoElement) image, double sx, double sy, double sw, double sh, double dx, double dy, double dw, double dh);
+  void drawImage(CanvasImageSource image, double sx, double sy, double sw, double sh, double dx, double dy, double dw, double dh);
 
   // hit regions
   [Pref="canvas.hitregions.enabled", Throws] void addHitRegion(optional HitRegionOptions options);
   [Pref="canvas.hitregions.enabled"] void removeHitRegion(DOMString id);
+  [Pref="canvas.hitregions.enabled"] void clearHitRegions();
 
   // pixel manipulation
   [NewObject, Throws]
@@ -141,19 +153,12 @@ interface CanvasRenderingContext2D {
   [Throws]
   attribute object mozCurrentTransformInverse;
 
-  attribute DOMString mozFillRule; /* "evenodd", "nonzero" (default) */
-
-  [Throws]
-  attribute any mozDash; /* default |null| */
-
-  [LenientFloat]
-  attribute double mozDashOffset; /* default 0.0 */
-
   [SetterThrows]
   attribute DOMString mozTextStyle;
 
   // image smoothing mode -- if disabled, images won't be smoothed
   // if scaled.
+  [Deprecated="PrefixedImageSmoothingEnabled"]
   attribute boolean mozImageSmoothingEnabled;
 
   // Show the caret if appropriate when drawing
@@ -218,6 +223,7 @@ interface CanvasRenderingContext2D {
   void asyncDrawXULElement(XULElement elem, double x, double y, double w,
                            double h, DOMString bgColor,
                            optional unsigned long flags = 0);
+
   /**
    * This causes a context that is currently using a hardware-accelerated
    * backend to fallback to a software one. All state should be preserved.
@@ -240,7 +246,7 @@ interface CanvasDrawingStyles {
            attribute double miterLimit; // (default 10)
 
   // dashed lines
-    [LenientFloat] void setLineDash(sequence<double> segments); // default empty
+    [LenientFloat, Throws] void setLineDash(sequence<double> segments); // default empty
     sequence<double> getLineDash();
     [LenientFloat] attribute double lineDashOffset;
 
@@ -274,7 +280,9 @@ interface CanvasPathMethods {
 
   [Throws, LenientFloat]
   void arc(double x, double y, double radius, double startAngle, double endAngle, optional boolean anticlockwise = false); 
-// NOT IMPLEMENTED  [LenientFloat] void ellipse(double x, double y, double radiusX, double radiusY, double rotation, double startAngle, double endAngle, boolean anticlockwise);
+
+  [Throws, LenientFloat]
+  void ellipse(double x, double y, double radiusX, double radiusY, double rotation, double startAngle, double endAngle, optional boolean anticlockwise = false);
 };
 
 interface CanvasGradient {
@@ -323,5 +331,7 @@ interface TextMetrics {
  Constructor(Path2D other),
  Constructor(DOMString pathString)]
 interface Path2D
-{};
+{
+  void addPath(Path2D path, optional SVGMatrix transformation);
+};
 Path2D implements CanvasPathMethods;

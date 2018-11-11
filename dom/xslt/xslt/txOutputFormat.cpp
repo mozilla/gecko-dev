@@ -5,6 +5,7 @@
 
 #include "txOutputFormat.h"
 #include "txXMLUtils.h"
+#include "txExpandedName.h"
 
 txOutputFormat::txOutputFormat() : mMethod(eMethodNotSet),
                                    mOmitXMLDeclaration(eNotSet),
@@ -80,7 +81,7 @@ void txOutputFormat::setFromDefaults()
         case eMethodNotSet:
         {
             mMethod = eXMLOutput;
-            // Fall through
+            MOZ_FALLTHROUGH;
         }
         case eXMLOutput:
         {

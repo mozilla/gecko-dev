@@ -1,6 +1,8 @@
+# Copyright (C) 2016 and later: Unicode, Inc. and others.
+# License & terms of use: http://www.unicode.org/copyright.html
 #******************************************************************************
 #
-#   Copyright (C) 1998-2013, International Business Machines
+#   Copyright (C) 1998-2016, International Business Machines
 #   Corporation and others.  All Rights Reserved.
 #
 #******************************************************************************
@@ -29,7 +31,7 @@ subdir = .
 #AUTOCONF = @AUTOCONF@
 
 ## Optional directory setup
-@LAYOUT_TRUE@LAYOUT = layout layoutex
+@LAYOUTEX_TRUE@LAYOUTEX = layoutex
 @ICUIO_TRUE@ICUIO = io
 @EXTRAS_TRUE@EXTRA = extra
 @TESTS_TRUE@TEST = test
@@ -38,7 +40,7 @@ subdir = .
 
 ## pkgconfig setup. Always have uc and i18n. Others are optional.
 ALL_PKGCONFIG_SUFFIX=uc i18n
-@LAYOUT_TRUE@ALL_PKGCONFIG_SUFFIX+= le lx
+@LAYOUTEX_TRUE@ALL_PKGCONFIG_SUFFIX+= lx
 @ICUIO_TRUE@ALL_PKGCONFIG_SUFFIX+= io
 
 DOXYGEN = @DOXYGEN@
@@ -56,7 +58,7 @@ INSTALLED_BUILT_FILES = $(top_builddir)/config/Makefile.inc $(top_builddir)/conf
 LOCAL_BUILT_FILES = icudefs.mk config/icucross.mk config/icucross.inc
 
 DOCDIRS = common i18n
-SUBDIRS =  stubdata common i18n $(LAYOUT) $(ICUIO) $(TOOLS) data $(EXTRA) $(SAMPLE) $(TEST)
+SUBDIRS =  stubdata common i18n $(LAYOUTEX) $(ICUIO) $(TOOLS) data $(EXTRA) $(SAMPLE) $(TEST)
 
 SECTION = 1
 
@@ -111,13 +113,13 @@ doc doc-searchengine:
 else
 doc: doc/html/index.html
 
-doc-searchengine: Doxyfile $(wildcard ./common/unicode/platform.h $(srcdir)/common/unicode/*.h $(srcdir)/i18n/unicode/*.h $(srcdir)/layout/unicode/*.h $(srcdir)/io/unicode/*.h)
+doc-searchengine: Doxyfile $(wildcard ./common/unicode/platform.h $(srcdir)/common/unicode/*.h $(srcdir)/i18n/unicode/*.h $(srcdir)/io/unicode/*.h)
 	sed < Doxyfile -e 's%[^#]*SEARCHENGINE.*%SEARCHENGINE=YES%' | $(DOXYGEN) -
 	@echo adding links from non-namespaced class files
 	find doc/html -name 'classicu_1_1*' -print | sed -e 's%^\(.*class\)icu_1_1\(.*\)$$%ln & \1\2%' | sh
 	@echo Docs created - WARNING, probably contains non-GPL .js files
 
-doc/html/index.html: Doxyfile $(wildcard ./common/unicode/platform.h $(srcdir)/common/unicode/*.h $(srcdir)/i18n/unicode/*.h $(srcdir)/layout/unicode/*.h $(srcdir)/io/unicode/*.h)
+doc/html/index.html: Doxyfile $(wildcard ./common/unicode/platform.h $(srcdir)/common/unicode/*.h $(srcdir)/i18n/unicode/*.h $(srcdir)/io/unicode/*.h)
 	$(DOXYGEN)
 	@echo adding links from non-namespaced class files
 	find doc/html -name 'classicu_1_1*' -print | sed -e 's%^\(.*class\)icu_1_1\(.*\)$$%ln & \1\2%' | sh
@@ -137,6 +139,10 @@ $(LIBDIR) $(BINDIR):
 	-$(MKINSTALLDIRS) $@
 
 ## Recursive targets
+## Strictly speaking, the $(MAKEOVERRIDES) is not necessary when recursing, but
+## there is a bug in GNU make 3.82 that throws away the original overrides in
+## favor of RECURSIVE=YES when the submake in the subdirectory restarts itself
+## after dependency files have been created.
 all-recursive install-recursive clean-recursive distclean-recursive dist-recursive check-recursive check-exhaustive-recursive: $(LIBDIR) $(BINDIR)
 	@dot_seen=no; \
 	target=`echo $@ | sed s/-recursive//`; \
@@ -148,7 +154,7 @@ all-recursive install-recursive clean-recursive distclean-recursive dist-recursi
 	  else \
 	    local_target="$$target"; \
 	  fi; \
-	  (cd $$subdir && $(MAKE) RECURSIVE=YES $$local_target) || exit; \
+	  (cd $$subdir && $(MAKE) $(MAKEOVERRIDES) RECURSIVE=YES $$local_target) || exit; \
 	done; \
 	if test "$$dot_seen" = "no"; then \
 	  $(MAKE) "$$target-local" || exit; \
@@ -163,6 +169,11 @@ ifndef VERBOSE
 endif
 install-local: install-icu install-manx
 
+# always installs. Used by layoutex.
+install-pkgconfig: $(ALL_PKGCONFIG_FILES)
+	@$(MKINSTALLDIRS) $(DESTDIR)$(libdir)/pkgconfig
+	$(INSTALL_DATA) $(ALL_PKGCONFIG_FILES) $(DESTDIR)$(libdir)/pkgconfig/
+
 install-icu: $(INSTALLED_BUILT_FILES)
 	@$(MKINSTALLDIRS) $(DESTDIR)$(pkgdatadir)/config
 	@$(MKINSTALLDIRS) $(DESTDIR)$(pkglibdir)
@@ -173,7 +184,7 @@ install-icu: $(INSTALLED_BUILT_FILES)
 	$(INSTALL_SCRIPT) $(top_srcdir)/install-sh $(DESTDIR)$(pkgdatadir)/install-sh
 	@$(MKINSTALLDIRS) $(DESTDIR)$(libdir)/pkgconfig
 	$(INSTALL_DATA) $(ALL_PKGCONFIG_FILES) $(DESTDIR)$(libdir)/pkgconfig/
-	$(INSTALL_DATA) $(top_srcdir)/../license.html $(DESTDIR)$(pkgdatadir)/license.html
+	$(INSTALL_DATA) $(top_srcdir)/../LICENSE $(DESTDIR)$(pkgdatadir)/LICENSE
 	$(INSTALL_SCRIPT) $(top_builddir)/config/icu-config $(DESTDIR)$(bindir)/icu-config
 	$(INSTALL_DATA) $(top_builddir)/config/Makefile.inc $(DESTDIR)$(pkglibdir)/Makefile.inc
 	$(INSTALL_DATA) $(top_builddir)/config/pkgdata.inc $(DESTDIR)$(pkglibdir)/pkgdata.inc
@@ -276,19 +287,22 @@ config/icu-io.pc: config/icu.pc Makefile icudefs.mk
 	@echo "Libs:" "${ICULIBS_IO}" >> $@
 	@echo $@ updated.
 
-config/icu-le.pc: config/icu.pc Makefile icudefs.mk
-	@cat config/icu.pc > $@
-	@echo "Description: $(PACKAGE_ICU_DESCRIPTION): Layout library" >> $@
-	@echo "Name: $(PACKAGE)-le" >> $@
-	@echo "Requires: icu-uc" >> $@
-	@echo "Libs:" "${ICULIBS_LE}" >> $@
-	@echo $@ updated.
+ICULEHB_LIBS=@ICULEHB_LIBS@
+USING_HB=
+ifneq ($(ICULEHB_LIBS),)
+USING_HB=(Using HarfBuzz)
+endif
+
 
 config/icu-lx.pc: config/icu.pc Makefile icudefs.mk
 	@cat config/icu.pc > $@
-	@echo "Description: $(PACKAGE_ICU_DESCRIPTION): Paragraph Layout library" >> $@
+	@echo "Description: $(PACKAGE_ICU_DESCRIPTION): Paragraph Layout library $(USING_HB)" >> $@
 	@echo "Name: $(PACKAGE)-lx" >> $@
+ifneq ($(ICULEHB_LIBS),)
+	@echo "Requires: icu-le-hb icu-uc" >> $@
+else
 	@echo "Requires: icu-le" >> $@
+endif
 	@echo "Libs:" "${ICULIBS_LX}" >> $@
 	@echo $@ updated.
 
@@ -317,7 +331,6 @@ $(top_builddir)/config/icu-config: $(top_builddir)/Makefile $(top_srcdir)/config
 	LC_ALL=C sed -f $(top_srcdir)/config/make2sh.sed < $(top_builddir)/config/Makefile.inc | grep -v '#M#' | uniq >> $@
 	LC_ALL=C sed -f $(top_srcdir)/config/make2sh.sed < @platform_make_fragment@ | grep -v '#M#' | uniq >> $@
 	cat $(top_srcdir)/config/icu-config-bottom >> $@
-	echo "# Rebuilt on "`date` >> $@
 	chmod u-w $@
 
 config.status: $(srcdir)/configure $(srcdir)/common/unicode/uvernum.h

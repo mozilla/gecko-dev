@@ -104,6 +104,7 @@ class ExpandArgs(list):
         '''Creates a clone of the |args| list and performs file expansion on
         each item it contains'''
         super(ExpandArgs, self).__init__()
+        self._descs = set()
         for arg in args:
             self += self._expand(arg)
 
@@ -112,34 +113,31 @@ class ExpandArgs(list):
         (root, ext) = os.path.splitext(arg)
         if ext != conf.LIB_SUFFIX or not os.path.basename(root).startswith(conf.LIB_PREFIX):
             return [relativize(arg)]
-        if len(conf.IMPORT_LIB_SUFFIX):
-            dll = root + conf.IMPORT_LIB_SUFFIX
-        else:
+        if conf.LIB_PREFIX:
             dll = root.replace(conf.LIB_PREFIX, conf.DLL_PREFIX, 1) + conf.DLL_SUFFIX
+        else:
+            dll = root + conf.DLL_SUFFIX
         if os.path.exists(dll):
-            return [relativize(dll)]
-        if os.path.exists(arg):
-            return [relativize(arg)]
+            if conf.IMPORT_LIB_SUFFIX:
+                return [relativize(root + conf.IMPORT_LIB_SUFFIX)]
+            else:
+                return [relativize(dll)]
         return self._expand_desc(arg)
 
     def _expand_desc(self, arg):
         '''Internal function taking care of lib descriptor expansion only'''
-        if os.path.exists(arg + conf.LIBS_DESC_SUFFIX):
-            with open(arg + conf.LIBS_DESC_SUFFIX, 'r') as f:
+        desc = os.path.abspath(arg + conf.LIBS_DESC_SUFFIX)
+        if os.path.exists(desc):
+            if desc in self._descs:
+                return []
+            self._descs.add(desc)
+            with open(desc, 'r') as f:
                 desc = LibDescriptor(f.readlines())
             objs = [relativize(o) for o in desc['OBJS']]
             for lib in desc['LIBS']:
                 objs += self._expand(lib)
             return objs
-        return [arg]
-
-class ExpandLibsDeps(ExpandArgs):
-    '''Same as ExpandArgs, but also adds the library descriptor to the list'''
-    def _expand_desc(self, arg):
-        objs = super(ExpandLibsDeps, self)._expand_desc(arg)
-        if os.path.exists(arg + conf.LIBS_DESC_SUFFIX):
-            objs += [relativize(arg + conf.LIBS_DESC_SUFFIX)]
-        return objs
+        return [relativize(arg)]
 
 if __name__ == '__main__':
     print " ".join(ExpandArgs(sys.argv[1:]))

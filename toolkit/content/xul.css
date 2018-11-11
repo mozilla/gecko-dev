@@ -115,23 +115,30 @@ button[type="menu-button"] {
   -moz-binding: url("chrome://global/content/bindings/button.xml#menu-button");
 }
 
-%ifdef MOZ_WIDGET_GTK
-/********* detection of system setting to use icons in buttons ***********/
-button[label]:not([label=""]) > .button-box > .button-icon:not(:-moz-system-metric(images-in-buttons)),
-button[label]:not([label=""]) > .button-box > .box-inherit > .button-icon:not(:-moz-system-metric(images-in-buttons)) {
-  display: none;
-}
-%endif
-
 /********** toolbarbutton **********/
 
 toolbarbutton {
   -moz-binding: url("chrome://global/content/bindings/toolbarbutton.xml#toolbarbutton");
 }
 
+toolbarbutton.badged-button > toolbarbutton,
+toolbarbutton.badged-button {
+  -moz-binding: url("chrome://global/content/bindings/toolbarbutton.xml#toolbarbutton-badged");
+}
+
+.toolbarbutton-badge:not([value]),
+.toolbarbutton-badge[value=""] {
+  display: none;
+}
+
 toolbarbutton[type="menu"],
 toolbarbutton[type="panel"] {
   -moz-binding: url("chrome://global/content/bindings/toolbarbutton.xml#menu");
+}
+
+toolbarbutton.badged-button[type="menu"],
+toolbarbutton.badged-button[type="panel"] {
+  -moz-binding: url("chrome://global/content/bindings/toolbarbutton.xml#toolbarbutton-badged-menu");
 }
 
 toolbarbutton[type="menu-button"] {
@@ -232,6 +239,30 @@ caption {
   -moz-box-pack: inherit;
   -moz-box-align: inherit;
   -moz-box-orient: vertical;
+}
+
+/******** draggable elements *********/
+
+%ifdef XP_MACOSX
+titlebar,
+toolbar:not([nowindowdrag="true"]):not([customizing="true"]),
+statusbar:not([nowindowdrag="true"]),
+%endif
+windowdragbox {
+  -moz-window-dragging: drag;
+}
+
+/* The list below is non-comprehensive and will probably need some tweaking. */
+toolbaritem,
+toolbarbutton,
+button,
+textbox,
+tab,
+radio,
+splitter,
+scale,
+menulist {
+  -moz-window-dragging: no-drag;
 }
 
 /******* toolbar *******/
@@ -349,21 +380,13 @@ menuitem.menuitem-non-iconic {
   -moz-binding: url("chrome://global/content/bindings/menu.xml#menubutton-item");
 }
 
+menucaption {
+  -moz-binding: url("chrome://global/content/bindings/menu.xml#menucaption");
+}
+
 .menu-text {
   -moz-box-flex: 1;
 }
-
-%ifdef MOZ_WIDGET_GTK
-/********* detection of system setting to use icons in menus ***********/
-@media not all and (-moz-images-in-menus) {
-  .menu-iconic-left {
-    visibility: hidden;
-  }
-  :-moz-any(menuitem[type], .menuitem-with-favicon) > .menu-iconic-left {
-    visibility: visible;
-  }
-}
-%endif
 
 /********* menuseparator ***********/
 
@@ -421,50 +444,48 @@ panel[type="arrow"][animate="open"] {
   opacity: 1.0;
 }
 
-panel[arrowposition="after_start"] {
+panel[type="arrow"][animate="cancel"] {
+  transform: none;
+}
+
+panel[arrowposition="after_start"]:-moz-locale-dir(ltr),
+panel[arrowposition="after_end"]:-moz-locale-dir(rtl) {
   transform-origin: 20px top;
 }
 
-panel[arrowposition="after_end"] {
+panel[arrowposition="after_end"]:-moz-locale-dir(ltr),
+panel[arrowposition="after_start"]:-moz-locale-dir(rtl) {
   transform-origin: calc(100% - 20px) top;
 }
 
-panel[arrowposition="before_start"] {
+panel[arrowposition="before_start"]:-moz-locale-dir(ltr),
+panel[arrowposition="before_end"]:-moz-locale-dir(rtl) {
   transform-origin: 20px bottom;
 }
 
-panel[arrowposition="before_end"] {
+panel[arrowposition="before_end"]:-moz-locale-dir(ltr),
+panel[arrowposition="before_start"]:-moz-locale-dir(rtl) {
   transform-origin: calc(100% - 20px) bottom;
 }
 
-panel[arrowposition="start_before"] {
+panel[arrowposition="start_before"]:-moz-locale-dir(ltr),
+panel[arrowposition="end_before"]:-moz-locale-dir(rtl) {
   transform-origin: right 20px;
 }
 
-panel[arrowposition="start_after"] {
+panel[arrowposition="start_after"]:-moz-locale-dir(ltr),
+panel[arrowposition="end_after"]:-moz-locale-dir(rtl) {
   transform-origin: right calc(100% - 20px);
 }
 
-panel[arrowposition="end_before"] {
+panel[arrowposition="end_before"]:-moz-locale-dir(ltr),
+panel[arrowposition="start_before"]:-moz-locale-dir(rtl) {
   transform-origin: left 20px;
 }
 
-panel[arrowposition="end_after"] {
+panel[arrowposition="end_after"]:-moz-locale-dir(ltr),
+panel[arrowposition="start_after"]:-moz-locale-dir(rtl) {
   transform-origin: left calc(100% - 20px);
-}
-
-panel[arrowposition="after_start"][animate="cancel"],
-panel[arrowposition="before_end"][animate="cancel"],
-panel[arrowposition="end_before"][animate="cancel"],
-panel[arrowposition="start_after"][animate="cancel"] {
-  transform: none;
-}
-
-panel[arrowposition="after_end"][animate="cancel"],
-panel[arrowposition="before_start"][animate="cancel"],
-panel[arrowposition="start_before"][animate="cancel"],
-panel[arrowposition="end_after"][animate="cancel"] {
-  transform: none;
 }
 
 %endif
@@ -798,6 +819,25 @@ panel[type="autocomplete"] {
   -moz-binding: url("chrome://global/content/autocomplete.xml#history-dropmarker");
 }
 
+panel[type="autocomplete-richlistbox"] {
+  -moz-binding: url("chrome://global/content/bindings/autocomplete.xml#autocomplete-rich-result-popup");
+}
+
+.autocomplete-richlistbox {
+  -moz-binding: url("chrome://global/content/bindings/autocomplete.xml#autocomplete-richlistbox");
+  -moz-user-focus: ignore;
+}
+
+.autocomplete-richlistbox > scrollbox {
+  overflow-x: hidden !important;
+}
+
+.autocomplete-richlistitem {
+  -moz-binding: url("chrome://global/content/bindings/autocomplete.xml#autocomplete-richlistitem");
+  -moz-box-orient: vertical;
+  overflow: -moz-hidden-unscrollable;
+}
+
 %else
 
 textbox[type="autocomplete"] {
@@ -851,18 +891,7 @@ panel[type="autocomplete-richlistbox"] {
   -moz-binding: url("chrome://global/content/bindings/autocomplete.xml#history-dropmarker");
 }
 
-.ac-ellipsis-after {
-  visibility: hidden;
-}
-
-.ac-url-text[type~="action"],
-.ac-action-text:not([type~="action"]) {
-  visibility: collapse;
-}
-
 %endif
-
-
 
 /* the C++ implementation of widgets is too eager to make popups visible.
    this causes problems (bug 120155 and others), thus this workaround: */
@@ -902,6 +931,14 @@ menulist {
   -moz-binding: url("chrome://global/content/bindings/menulist.xml#menulist");
 }
 
+menulist[popuponly="true"] {
+  -moz-binding: url("chrome://global/content/bindings/menulist.xml#menulist-popuponly");
+  -moz-appearance: none !important;
+  margin: 0 !important;
+  height: 0 !important;
+  border: 0 !important;
+}
+
 menulist[editable="true"] {
   -moz-binding: url("chrome://global/content/bindings/menulist.xml#menulist-editable");
 }
@@ -912,6 +949,10 @@ menulist[type="description"] {
 
 menulist > menupopup > menuitem {
   -moz-binding: url("chrome://global/content/bindings/menu.xml#menuitem-iconic-noaccel");
+}
+
+menulist > menupopup > menucaption {
+  -moz-binding: url("chrome://global/content/bindings/menu.xml#menucaption-inmenulist");
 }
 
 dropmarker {
@@ -934,6 +975,14 @@ grippy {
   min-width: 0% ! important;
   min-height: 0% ! important;
   -moz-box-ordinal-group: 2147483646;
+}
+
+/******** scrollbar ********/
+
+slider {
+  /* This is a hint to layerization that the scrollbar thumb can never leave
+     the scrollbar track. */
+  overflow: hidden;
 }
 
 /******** scrollbox ********/

@@ -5,8 +5,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsIEventTarget.idl"
+#include "nsIIdlePeriod.idl"
+
+%{C++
+#include "mozilla/AlreadyAddRefed.h"
+%}
 
 [ptr] native PRThread(PRThread);
+
+native alreadyAddRefed_nsIIdlePeriod(already_AddRefed<nsIIdlePeriod>);
 
 /**
  * This interface provides a high-level abstraction for an operating system
@@ -17,7 +24,7 @@
  *
  * See nsIThreadManager for the API used to create and locate threads.
  */
-[scriptable, uuid(9c889946-a73a-4af3-ae9a-ea64f7d4e3ca)]
+[scriptable, uuid(5801d193-29d1-4964-a6b7-70eb697ddf2b)]
 interface nsIThread : nsIEventTarget
 {
   /**
@@ -25,6 +32,14 @@ interface nsIThread : nsIEventTarget
    *   The NSPR thread object corresponding to this nsIThread.
    */
   [noscript] readonly attribute PRThread PRThread;
+
+  /**
+   * @returns
+   *  Whether or not this thread may call into JS. Used in the profiler
+   *  to avoid some unnecessary locking.
+   */
+  [noscript] attribute boolean CanInvokeJS;
+
 
   /**
    * Shutdown the thread.  This method prevents further dispatch of events to
@@ -82,4 +97,53 @@ interface nsIThread : nsIEventTarget
    *   not the current thread.
    */
   boolean processNextEvent(in boolean mayWait);
+
+  /**
+   * Shutdown the thread asynchronously.  This method immediately prevents
+   * further dispatch of events to the thread, and it causes any pending events
+   * to run to completion before this thread joins with the current thread.
+   *
+   * UNLIKE shutdown() this does not process events on the current thread.
+   * Instead it merely ensures that the current thread continues running until
+   * this thread has shut down.
+   *
+   * This method MAY NOT be executed from the thread itself.  Instead, it is
+   * meant to be executed from another thread (usually the thread that created
+   * this thread or the main application thread).  When this function returns,
+   * the thread will continue running until it exhausts its event queue.
+   *
+   * @throws NS_ERROR_UNEXPECTED
+   *   Indicates that this method was erroneously called when this thread was
+   *   the current thread, that this thread was not created with a call to
+   *   nsIThreadManager::NewThread, or if this method was called more than once
+   *   on the thread object.
+   */
+  void asyncShutdown();
+
+  /**
+   * Register an instance of nsIIdlePeriod which works as a facade of
+   * the abstract notion of a "current idle period". The
+   * nsIIdlePeriod should always represent the "current" idle period
+   * with regard to expected work for the thread. The thread is free
+   * to use this when there are no higher prioritized tasks to process
+   * to determine if it is reasonable to schedule tasks that could run
+   * when the thread is idle. The responsibility of the registered
+   * nsIIdlePeriod is to answer with an estimated deadline at which
+   * the thread should expect that it could receive new higher
+   * priority tasks.
+   */
+  [noscript] void registerIdlePeriod(in alreadyAddRefed_nsIIdlePeriod aIdlePeriod);
+
+  /**
+   * Dispatch an event to the thread's idle queue.  This function may be called
+   * from any thread, and it may be called re-entrantly.
+   *
+   * @param event
+   *   The alreadyAddRefed<> event to dispatch.
+   *   NOTE that the event will be leaked if it fails to dispatch.
+   *
+   * @throws NS_ERROR_INVALID_ARG
+   *   Indicates that event is null.
+   */
+  [noscript] void idleDispatch(in alreadyAddRefed_nsIRunnable event);
 };

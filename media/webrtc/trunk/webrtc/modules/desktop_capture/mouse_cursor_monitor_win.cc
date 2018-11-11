@@ -10,9 +10,12 @@
 
 #include "webrtc/modules/desktop_capture/mouse_cursor_monitor.h"
 
+#include <assert.h>
+
 #include "webrtc/modules/desktop_capture/desktop_frame.h"
 #include "webrtc/modules/desktop_capture/mouse_cursor.h"
 #include "webrtc/modules/desktop_capture/win/cursor.h"
+#include "webrtc/modules/desktop_capture/win/window_capture_utils.h"
 #include "webrtc/system_wrappers/interface/logging.h"
 
 namespace webrtc {
@@ -23,10 +26,14 @@ class MouseCursorMonitorWin : public MouseCursorMonitor {
   explicit MouseCursorMonitorWin(ScreenId screen);
   virtual ~MouseCursorMonitorWin();
 
-  virtual void Init(Callback* callback, Mode mode) OVERRIDE;
-  virtual void Capture() OVERRIDE;
+  void Start(Callback* callback, Mode mode) override;
+  void Stop() override;
+  void Capture() override;
 
  private:
+  // Get the rect of the currently selected screen, relative to the primary
+  // display's top-left. If the screen is disabled or disconnected, or any error
+  // happens, an empty rect is returned.
   DesktopRect GetScreenRect();
 
   HWND window_;
@@ -64,9 +71,10 @@ MouseCursorMonitorWin::~MouseCursorMonitorWin() {
     ReleaseDC(NULL, desktop_dc_);
 }
 
-void MouseCursorMonitorWin::Init(Callback* callback, Mode mode) {
+void MouseCursorMonitorWin::Start(Callback* callback, Mode mode) {
   assert(!callback_);
   assert(callback);
+  assert(IsGUIThread(false));
 
   callback_ = callback;
   mode_ = mode;
@@ -74,7 +82,16 @@ void MouseCursorMonitorWin::Init(Callback* callback, Mode mode) {
   desktop_dc_ = GetDC(NULL);
 }
 
+void MouseCursorMonitorWin::Stop() {
+  callback_ = NULL;
+
+  if (desktop_dc_)
+    ReleaseDC(NULL, desktop_dc_);
+  desktop_dc_ = NULL;
+}
+
 void MouseCursorMonitorWin::Capture() {
+  assert(IsGUIThread(false));
   assert(callback_);
 
   CURSORINFO cursor_info;
@@ -87,7 +104,7 @@ void MouseCursorMonitorWin::Capture() {
   if (last_cursor_ != cursor_info.hCursor) {
     last_cursor_ = cursor_info.hCursor;
     // Note that |cursor_info.hCursor| does not need to be freed.
-    scoped_ptr<MouseCursor> cursor(
+    rtc::scoped_ptr<MouseCursor> cursor(
         CreateMouseCursorFromHCursor(desktop_dc_, cursor_info.hCursor));
     if (cursor.get())
       callback_->OnMouseCursor(cursor.release());
@@ -100,8 +117,9 @@ void MouseCursorMonitorWin::Capture() {
   bool inside = cursor_info.flags == CURSOR_SHOWING;
 
   if (window_) {
-    RECT rect;
-    if (!GetWindowRect(window_, &rect)) {
+    DesktopRect original_rect;
+    DesktopRect cropped_rect;
+    if (!GetCroppedWindowRect(window_, &cropped_rect, &original_rect)) {
       position.set(0, 0);
       inside = false;
     } else {
@@ -110,7 +128,7 @@ void MouseCursorMonitorWin::Capture() {
         inside = windowUnderCursor ?
             (window_ == GetAncestor(windowUnderCursor, GA_ROOT)) : false;
       }
-      position = position.subtract(DesktopVector(rect.left, rect.top));
+      position = position.subtract(cropped_rect.top_left());
     }
   } else {
     assert(screen_ != kInvalidScreenId);
@@ -124,6 +142,7 @@ void MouseCursorMonitorWin::Capture() {
 }
 
 DesktopRect MouseCursorMonitorWin::GetScreenRect() {
+  assert(IsGUIThread(false));
   assert(screen_ != kInvalidScreenId);
   if (screen_ == kFullDesktopScreenId) {
     return DesktopRect::MakeXYWH(
@@ -146,11 +165,10 @@ DesktopRect MouseCursorMonitorWin::GetScreenRect() {
   if (!result)
     return DesktopRect();
 
-  return DesktopRect::MakeXYWH(
-      GetSystemMetrics(SM_XVIRTUALSCREEN) + device_mode.dmPosition.x,
-      GetSystemMetrics(SM_YVIRTUALSCREEN) + device_mode.dmPosition.y,
-      device_mode.dmPelsWidth,
-      device_mode.dmPelsHeight);
+  return DesktopRect::MakeXYWH(device_mode.dmPosition.x,
+                               device_mode.dmPosition.y,
+                               device_mode.dmPelsWidth,
+                               device_mode.dmPelsHeight);
 }
 
 MouseCursorMonitor* MouseCursorMonitor::CreateForWindow(

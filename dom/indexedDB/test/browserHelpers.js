@@ -3,15 +3,10 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-let testGenerator = testSteps();
+var testGenerator = testSteps();
 
-let testResult;
-let testException;
-
-function testFinishedCallback(result, exception)
-{
-  throw new Error("Bad testFinishedCallback!");
-}
+var testResult;
+var testException;
 
 function runTest()
 {
@@ -29,7 +24,18 @@ function finishTestNow()
 function finishTest()
 {
   setTimeout(finishTestNow, 0);
-  setTimeout(testFinishedCallback, 0, testResult, testException);
+  setTimeout(() => {
+    if (window.testFinishedCallback)
+      window.testFinishedCallback(testResult, testException);
+    else {
+      let message;
+      if (testResult)
+        message = "ok";
+      else
+        message = testException;
+      window.parent.postMessage(message, "*");
+    }
+  }, 0);
 }
 
 function grabEventAndContinueHandler(event)

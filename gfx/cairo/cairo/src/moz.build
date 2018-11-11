@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,6 +7,7 @@
 CONFIGURE_SUBST_FILES += ['cairo-features.h']
 
 EXPORTS.cairo += [
+    '!cairo-features.h',
     'cairo-deprecated.h',
     'cairo-platform.h',
     'cairo-rename.h',
@@ -56,7 +57,7 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
         ]
     else:
         DEFINES['CAIRO_OMIT_WIN32_PRINTING'] = True
-elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+elif CONFIG['MOZ_WIDGET_TOOLKIT'] in {'cocoa', 'uikit'}:
     EXPORTS.cairo += [
         'cairo-quartz-image.h',
         'cairo-quartz.h',
@@ -73,19 +74,12 @@ elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'beos':
     SOURCES += [
         'cairo-beos-surface.cpp',
     ]
-elif CONFIG['MOZ_WIDGET_GTK']:
+elif 'gtk' in CONFIG['MOZ_WIDGET_TOOLKIT']:
     EXPORTS.cairo += [
         'cairo-ps.h',
     ]
     SOURCES += [
         'cairo-ps-surface.c',
-    ]
-elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'qt':
-    EXPORTS.cairo += [
-        'cairo-qt.h',
-    ]
-    SOURCES += [
-        'cairo-qt-surface.cpp',
     ]
 
 if CONFIG['MOZ_X11']:
@@ -185,7 +179,8 @@ UNIFIED_SOURCES += [
     'cairo.c',
 ]
 
-MSVC_ENABLE_PGO = True
+# We allow warnings for third-party code that can be updated from upstream.
+ALLOW_COMPILER_WARNINGS = True
 
 FINAL_LIBRARY = 'gkmedias'
 
@@ -199,21 +194,58 @@ for var in ('MOZ_TREE_CAIRO', 'MOZ_TREE_PIXMAN'):
     if CONFIG[var]:
         DEFINES[var] = True
 
+if CONFIG['GNU_CC']:
+    DEFINES['HAVE_CXX11_ATOMIC_PRIMITIVES'] = True
+    # We would normally use autoconf to set these up, using AC_CHECK_SIZEOF.
+    # But AC_CHECK_SIZEOF requires running programs to determine the sizes,
+    # and that doesn't work so well with cross-compiling.  So instead we
+    # use these magic macros, available since at least GCC 4.3, to define
+    # the preprocessor macros cairo wanted from autoconf.
+    DEFINES['SIZEOF_VOID_P'] = '__SIZEOF_POINTER__'
+    DEFINES['SIZEOF_INT'] = '__SIZEOF_INT__'
+    DEFINES['SIZEOF_LONG'] = '__SIZEOF_LONG__'
+    DEFINES['SIZEOF_LONG_LONG'] = '__SIZEOF_LONG_LONG__'
+
+# Normally determined by cairo's configure script.
+DEFINES['HAVE_UINT64_T'] = True
+
 if CONFIG['MOZ_TREE_FREETYPE']:
     DEFINES['HAVE_FT_LIBRARY_SETLCDFILTER'] = True
     DEFINES['FT_LCD_FILTER_H'] = '%s/modules/freetype2/include/freetype/ftlcdfil.h' % TOPSRCDIR
 
 # Suppress warnings in third-party code.
-if CONFIG['GNU_CC']:
+if CONFIG['GNU_CC'] or CONFIG['CLANG_CL']:
     CFLAGS += [
         '-Wno-enum-compare',
         '-Wno-int-to-pointer-cast',
         '-Wno-sign-compare',
         '-Wno-type-limits',
+        '-Wno-missing-field-initializers',
+        '-Wno-conversion',
+        '-Wno-unused-but-set-variable',
     ]
-    if CONFIG['CLANG_CXX']:
-        CFLAGS += [
-            '-Wno-incompatible-pointer-types',
-            '-Wno-tautological-compare',
-            '-Wno-tautological-constant-out-of-range-compare',
-        ]
+if CONFIG['CLANG_CXX'] or CONFIG['CLANG_CL']:
+    CFLAGS += [
+        '-Wno-incompatible-pointer-types',
+        '-Wno-tautological-compare',
+        '-Wno-tautological-constant-out-of-range-compare',
+        '-Wno-error=uninitialized',
+    ]
+if CONFIG['CLANG_CL']:
+    CFLAGS += [
+        '-Wno-deprecated-register',
+        '-Wno-macro-redefined',
+        '-Wno-unused-variable',
+    ]
+
+# See bug 386897.
+if CONFIG['GNU_CC'] and CONFIG['OS_TARGET'] == 'Android' and CONFIG['MOZ_OPTIMIZE']:
+    CFLAGS += ['-O2']
+    CXXFLAGS += ['-O2']
+
+if CONFIG['MOZ_X11']:
+    CFLAGS += CONFIG['XCFLAGS']
+
+if CONFIG['MOZ_ENABLE_CAIRO_FT']:
+    CFLAGS += CONFIG['CAIRO_FT_CFLAGS']
+    CXXFLAGS += CONFIG['CAIRO_FT_CFLAGS']

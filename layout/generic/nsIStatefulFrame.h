@@ -10,6 +10,7 @@
 #ifndef _nsIStatefulFrame_h
 #define _nsIStatefulFrame_h
 
+#include "nsContentUtils.h"
 #include "nsQueryFrame.h"
 
 class nsPresState;
@@ -25,6 +26,14 @@ class nsIStatefulFrame
 
   // Restore the state for this frame from aState
   NS_IMETHOD RestoreState(nsPresState* aState) = 0;
+
+  // Generate a key for this stateful frame
+  NS_IMETHOD GenerateStateKey(nsIContent* aContent,
+                              nsIDocument* aDocument,
+                              nsACString& aKey)
+  {
+    return nsContentUtils::GenerateStateKey(aContent, aDocument, aKey);
+  };
 };
 
 #endif /* _nsIStatefulFrame_h */

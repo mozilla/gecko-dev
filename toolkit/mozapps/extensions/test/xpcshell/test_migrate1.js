@@ -103,24 +103,23 @@ function run_test() {
   let stagedXPIs = profileDir.clone();
   stagedXPIs.append("staged-xpis");
   stagedXPIs.append("addon6@tests.mozilla.org");
-  stagedXPIs.create(AM_Ci.nsIFile.DIRECTORY_TYPE, 0755);
+  stagedXPIs.create(AM_Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
 
   let addon6 = do_get_addon("test_migrate6");
   addon6.copyTo(stagedXPIs, "tmp.xpi");
   stagedXPIs = stagedXPIs.parent;
 
   stagedXPIs.append("addon7@tests.mozilla.org");
-  stagedXPIs.create(AM_Ci.nsIFile.DIRECTORY_TYPE, 0755);
+  stagedXPIs.create(AM_Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
 
   let addon7 = do_get_addon("test_migrate7");
   addon7.copyTo(stagedXPIs, "tmp.xpi");
   stagedXPIs = stagedXPIs.parent;
 
   stagedXPIs.append("addon8@tests.mozilla.org");
-  stagedXPIs.create(AM_Ci.nsIFile.DIRECTORY_TYPE, 0755);
-
-  let addon7 = do_get_addon("test_migrate8");
-  addon7.copyTo(stagedXPIs, "tmp.xpi");
+  stagedXPIs.create(AM_Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+  let addon8 = do_get_addon("test_migrate8");
+  addon8.copyTo(stagedXPIs, "tmp.xpi");
   stagedXPIs = stagedXPIs.parent;
 
   let old = do_get_file("data/test_migrate.rdf");
@@ -164,6 +163,7 @@ function run_test() {
     do_check_true(a1.isActive);
     do_check_true(isExtensionInAddonsList(profileDir, a1.id));
     do_check_false(a1.hasBinaryComponents);
+    do_check_true(a1.seen);
 
     // addon2 was user disabled and app enabled in the old extensions.rdf
     do_check_neq(a2, null);
@@ -172,6 +172,7 @@ function run_test() {
     do_check_false(a2.isActive);
     do_check_false(isExtensionInAddonsList(profileDir, a2.id));
     do_check_false(a2.hasBinaryComponents);
+    do_check_true(a2.seen);
 
     // addon3 was pending user disable and app disabled in the old extensions.rdf
     do_check_neq(a3, null);
@@ -180,6 +181,7 @@ function run_test() {
     do_check_false(a3.isActive);
     do_check_false(isExtensionInAddonsList(profileDir, a3.id));
     do_check_false(a3.hasBinaryComponents);
+    do_check_true(a3.seen);
 
     // addon4 was pending user enable and app disabled in the old extensions.rdf
     do_check_neq(a4, null);
@@ -188,6 +190,7 @@ function run_test() {
     do_check_false(a4.isActive);
     do_check_false(isExtensionInAddonsList(profileDir, a4.id));
     do_check_false(a4.hasBinaryComponents);
+    do_check_true(a4.seen);
 
     // addon5 was disabled and compatible but a new version has been installed
     // since, it should still be disabled but should be incompatible
@@ -197,36 +200,13 @@ function run_test() {
     do_check_false(a5.isActive);
     do_check_false(isExtensionInAddonsList(profileDir, a5.id));
     do_check_false(a5.hasBinaryComponents);
+    do_check_true(a5.seen);
 
-    // addon6 should be installed and compatible and packed unless unpacking is
-    // forced
-    do_check_neq(a6, null);
-    do_check_false(a6.userDisabled);
-    do_check_false(a6.appDisabled);
-    do_check_true(a6.isActive);
-    do_check_true(isExtensionInAddonsList(profileDir, a6.id));
-    if (Services.prefs.getBoolPref("extensions.alwaysUnpack"))
-      do_check_eq(a6.getResourceURI("install.rdf").scheme, "file");
-    else
-      do_check_eq(a6.getResourceURI("install.rdf").scheme, "jar");
-    do_check_false(a6.hasBinaryComponents);
-
-    // addon7 should be installed and compatible and unpacked
-    do_check_neq(a7, null);
-    do_check_false(a7.userDisabled);
-    do_check_false(a7.appDisabled);
-    do_check_true(a7.isActive);
-    do_check_true(isExtensionInAddonsList(profileDir, a7.id));
-    do_check_eq(a7.getResourceURI("install.rdf").scheme, "file");
-    do_check_false(a7.hasBinaryComponents);
-
-    // addon8 should be installed and compatible and have binary components
-    do_check_neq(a8, null);
-    do_check_false(a8.userDisabled);
-    do_check_false(a8.appDisabled);
-    do_check_true(a8.isActive);
-    do_check_true(isExtensionInAddonsList(profileDir, a8.id));
-    do_check_true(a8.hasBinaryComponents);
+    // addon6, addon7 and addon8 will have been lost as they were staged in the
+    // pre-Firefox 4.0 directory
+    do_check_eq(a6, null);
+    do_check_eq(a7, null);
+    do_check_eq(a8, null);
 
     // Theme 1 was previously enabled
     do_check_neq(t1, null);
@@ -235,16 +215,16 @@ function run_test() {
     do_check_true(t1.isActive);
     do_check_true(isThemeInAddonsList(profileDir, t1.id));
     do_check_false(hasFlag(t1.permissions, AddonManager.PERM_CAN_ENABLE));
+    do_check_true(t1.seen);
 
     // Theme 2 was previously disabled
-    do_check_neq(t1, null);
+    do_check_neq(t2, null);
     do_check_true(t2.userDisabled);
     do_check_false(t2.appDisabled);
     do_check_false(t2.isActive);
     do_check_false(isThemeInAddonsList(profileDir, t2.id));
     do_check_true(hasFlag(t2.permissions, AddonManager.PERM_CAN_ENABLE));
-
-    do_check_false(stagedXPIs.exists());
+    do_check_true(t2.seen);
 
     do_execute_soon(do_test_finished);
   });

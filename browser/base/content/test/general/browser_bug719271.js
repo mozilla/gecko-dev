@@ -6,12 +6,12 @@
 const TEST_PAGE = "http://example.org/browser/browser/base/content/test/general/zoom_test.html";
 const TEST_VIDEO = "http://example.org/browser/browser/base/content/test/general/video.ogg";
 
-var gTab1, gTab2, gLevel1, gLevel2;
+var gTab1, gTab2, gLevel1;
 
 function test() {
   waitForExplicitFinish();
 
-  Task.spawn(function () {
+  Task.spawn(function* () {
     gTab1 = gBrowser.addTab();
     gTab2 = gBrowser.addTab();
 
@@ -22,8 +22,14 @@ function test() {
 }
 
 function zoomTab1() {
-  Task.spawn(function () {
+  Task.spawn(function* () {
     is(gBrowser.selectedTab, gTab1, "Tab 1 is selected");
+
+    // Reset zoom level if we run this test > 1 time in same browser session.
+    var level1 = ZoomManager.getZoomForBrowser(gBrowser.getBrowserForTab(gTab1));
+    if (level1 > 1)
+      FullZoom.reduce();
+
     FullZoomHelper.zoomTest(gTab1, 1, "Initial zoom of tab 1 should be 1");
     FullZoomHelper.zoomTest(gTab2, 1, "Initial zoom of tab 2 should be 1");
 
@@ -40,13 +46,13 @@ function zoomTab1() {
 }
 
 function zoomTab2() {
-  Task.spawn(function () {
+  Task.spawn(function* () {
     is(gBrowser.selectedTab, gTab2, "Tab 2 is selected");
 
     FullZoom.reduce();
-    let gLevel2 = ZoomManager.getZoomForBrowser(gBrowser.getBrowserForTab(gTab2));
+    let level2 = ZoomManager.getZoomForBrowser(gBrowser.getBrowserForTab(gTab2));
 
-    ok(gLevel2 < 1, "New zoom for tab 2 should be less than 1");
+    ok(level2 < 1, "New zoom for tab 2 should be less than 1");
     FullZoomHelper.zoomTest(gTab1, gLevel1, "Zooming tab 2 should not affect tab 1");
 
     yield FullZoomHelper.selectTabAndWaitForLocationChange(gTab1);
@@ -55,7 +61,7 @@ function zoomTab2() {
 }
 
 function testNavigation() {
-  Task.spawn(function () {
+  Task.spawn(function* () {
     yield FullZoomHelper.load(gTab1, TEST_VIDEO);
     FullZoomHelper.zoomTest(gTab1, 1, "Zoom should be 1 when a video was loaded");
     yield waitForNextTurn(); // trying to fix orange bug 806046
@@ -69,21 +75,21 @@ function testNavigation() {
 
 function waitForNextTurn() {
   let deferred = Promise.defer();
-  setTimeout(function () deferred.resolve(), 0);
+  setTimeout(() => deferred.resolve(), 0);
   return deferred.promise;
 }
 
 var finishTestStarted  = false;
 function finishTest() {
-  Task.spawn(function () {
+  Task.spawn(function* () {
     ok(!finishTestStarted, "finishTest called more than once");
     finishTestStarted = true;
 
     yield FullZoomHelper.selectTabAndWaitForLocationChange(gTab1);
-    FullZoom.reset();
+    yield FullZoom.reset();
     yield FullZoomHelper.removeTabAndWaitForLocationChange(gTab1);
     yield FullZoomHelper.selectTabAndWaitForLocationChange(gTab2);
-    FullZoom.reset();
+    yield FullZoom.reset();
     yield FullZoomHelper.removeTabAndWaitForLocationChange(gTab2);
   }).then(finish, FullZoomHelper.failAndContinue(finish));
 }

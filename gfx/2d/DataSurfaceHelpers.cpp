@@ -9,25 +9,114 @@
 #include "DataSurfaceHelpers.h"
 #include "Logging.h"
 #include "mozilla/MathAlgorithms.h"
+#include "mozilla/PodOperations.h"
 #include "Tools.h"
 
 namespace mozilla {
 namespace gfx {
 
-void
-ConvertBGRXToBGRA(uint8_t* aData, const IntSize &aSize, int32_t aStride)
+already_AddRefed<DataSourceSurface>
+CreateDataSourceSurfaceFromData(const IntSize& aSize,
+                                SurfaceFormat aFormat,
+                                const uint8_t* aData,
+                                int32_t aDataStride)
 {
-  uint32_t* pixel = reinterpret_cast<uint32_t*>(aData);
+  RefPtr<DataSourceSurface> srcSurface =
+      Factory::CreateWrappingDataSourceSurface(const_cast<uint8_t*>(aData),
+                                               aDataStride,
+                                               aSize,
+                                               aFormat);
+  RefPtr<DataSourceSurface> destSurface =
+      Factory::CreateDataSourceSurface(aSize, aFormat, false);
 
-  for (int row = 0; row < aSize.height; ++row) {
-    for (int column = 0; column < aSize.width; ++column) {
+  if (!srcSurface || !destSurface) {
+    return nullptr;
+  }
+
+  if (CopyRect(srcSurface,
+               destSurface,
+               IntRect(IntPoint(), srcSurface->GetSize()),
+               IntPoint())) {
+    return destSurface.forget();
+  }
+
+  return nullptr;
+}
+
+already_AddRefed<DataSourceSurface>
+CreateDataSourceSurfaceWithStrideFromData(const IntSize &aSize,
+                                          SurfaceFormat aFormat,
+                                          int32_t aStride,
+                                          const uint8_t* aData,
+                                          int32_t aDataStride)
+{
+  RefPtr<DataSourceSurface> srcSurface =
+      Factory::CreateWrappingDataSourceSurface(const_cast<uint8_t*>(aData),
+                                               aDataStride,
+                                               aSize,
+                                               aFormat);
+  RefPtr<DataSourceSurface> destSurface =
+      Factory::CreateDataSourceSurfaceWithStride(aSize, aFormat, aStride, false);
+
+  if (!srcSurface || !destSurface) {
+    return nullptr;
+  }
+
+  if (CopyRect(srcSurface,
+               destSurface,
+               IntRect(IntPoint(), srcSurface->GetSize()),
+               IntPoint())) {
+    return destSurface.forget();
+  }
+
+  return nullptr;
+}
+
+uint8_t*
+DataAtOffset(DataSourceSurface* aSurface,
+             const DataSourceSurface::MappedSurface* aMap,
+             IntPoint aPoint)
+{
+  if (!SurfaceContainsPoint(aSurface, aPoint)) {
+    MOZ_CRASH("GFX: sample position needs to be inside surface!");
+  }
+
+  MOZ_ASSERT(Factory::CheckSurfaceSize(aSurface->GetSize()),
+             "surface size overflows - this should have been prevented when the surface was created");
+
+  uint8_t* data = aMap->mData + aPoint.y * aMap->mStride +
+    aPoint.x * BytesPerPixel(aSurface->GetFormat());
+
+  if (data < aMap->mData) {
+    MOZ_CRASH("GFX: out-of-range data access");
+  }
+
+  return data;
+}
+
+// This check is safe against integer overflow.
+bool
+SurfaceContainsPoint(SourceSurface* aSurface, const IntPoint& aPoint)
+{
+  IntSize size = aSurface->GetSize();
+  return aPoint.x >= 0 && aPoint.x < size.width &&
+         aPoint.y >= 0 && aPoint.y < size.height;
+}
+
+void
+ConvertBGRXToBGRA(uint8_t* aData, const IntSize &aSize, const int32_t aStride)
+{
+  int height = aSize.height, width = aSize.width * 4;
+
+  for (int row = 0; row < height; ++row) {
+    for (int column = 0; column < width; column += 4) {
 #ifdef IS_BIG_ENDIAN
-      pixel[column] |= 0x000000FF;
+      aData[column] = 0xFF;
 #else
-      pixel[column] |= 0xFF000000;
+      aData[column + 3] = 0xFF;
 #endif
     }
-    pixel += (aStride/4);
+    aData += aStride;
   }
 }
 
@@ -65,7 +154,7 @@ CopyBGRXSurfaceDataToPackedBGRArray(uint8_t* aSrc, uint8_t* aDst,
   uint8_t* dstPx = aDst;
 
   for (int row = 0; row < aSrcSize.height; ++row) {
-    for (int col = 0; col < aSrcSize.height; ++col) {
+    for (int col = 0; col < aSrcSize.width; ++col) {
       dstPx[0] = srcPx[0];
       dstPx[1] = srcPx[1];
       dstPx[2] = srcPx[2];
@@ -78,7 +167,7 @@ CopyBGRXSurfaceDataToPackedBGRArray(uint8_t* aSrc, uint8_t* aDst,
   }
 }
 
-uint8_t*
+UniquePtr<uint8_t[]>
 SurfaceToPackedBGRA(DataSourceSurface *aSurface)
 {
   SurfaceFormat format = aSurface->GetFormat();
@@ -88,25 +177,25 @@ SurfaceToPackedBGRA(DataSourceSurface *aSurface)
 
   IntSize size = aSurface->GetSize();
 
-  uint8_t* imageBuffer = new (std::nothrow) uint8_t[size.width * size.height * sizeof(uint32_t)];
+  UniquePtr<uint8_t[]> imageBuffer(
+    new (std::nothrow) uint8_t[size.width * size.height * sizeof(uint32_t)]);
   if (!imageBuffer) {
     return nullptr;
   }
 
   DataSourceSurface::MappedSurface map;
   if (!aSurface->Map(DataSourceSurface::MapType::READ, &map)) {
-    delete [] imageBuffer;
     return nullptr;
   }
 
-  CopySurfaceDataToPackedArray(map.mData, imageBuffer, size,
+  CopySurfaceDataToPackedArray(map.mData, imageBuffer.get(), size,
                                map.mStride, 4 * sizeof(uint8_t));
 
   aSurface->Unmap();
 
   if (format == SurfaceFormat::B8G8R8X8) {
     // Convert BGRX to BGRA by setting a to 255.
-    ConvertBGRXToBGRA(reinterpret_cast<uint8_t *>(imageBuffer), size, size.width * sizeof(uint32_t));
+    ConvertBGRXToBGRA(imageBuffer.get(), size, size.width * sizeof(uint32_t));
   }
 
   return imageBuffer;
@@ -176,7 +265,7 @@ BufferSizeFromStrideAndHeight(int32_t aStride,
                               int32_t aHeight,
                               int32_t aExtraBytes)
 {
-  if (MOZ_UNLIKELY(aHeight <= 0)) {
+  if (MOZ_UNLIKELY(aHeight <= 0) || MOZ_UNLIKELY(aStride <= 0)) {
     return 0;
   }
 
@@ -190,11 +279,96 @@ BufferSizeFromStrideAndHeight(int32_t aStride,
   CheckedInt32 requiredBytes =
     CheckedInt32(aStride) * CheckedInt32(aHeight) + CheckedInt32(aExtraBytes);
   if (MOZ_UNLIKELY(!requiredBytes.isValid())) {
-    gfxWarning() << "Buffer size too big; returning zero";
+    gfxWarning() << "Buffer size too big; returning zero " << aStride << ", " << aHeight << ", " << aExtraBytes;
     return 0;
   }
   return requiredBytes.value();
 }
 
+size_t
+BufferSizeFromDimensions(int32_t aWidth,
+                         int32_t aHeight,
+                         int32_t aDepth,
+                         int32_t aExtraBytes)
+{
+  if (MOZ_UNLIKELY(aHeight <= 0) ||
+      MOZ_UNLIKELY(aWidth <= 0) ||
+      MOZ_UNLIKELY(aDepth <= 0)) {
+    return 0;
+  }
+
+  // Similar to BufferSizeFromStrideAndHeight, but with an extra parameter.
+
+  CheckedInt32 requiredBytes = CheckedInt32(aWidth) * CheckedInt32(aHeight) * CheckedInt32(aDepth) + CheckedInt32(aExtraBytes);
+  if (MOZ_UNLIKELY(!requiredBytes.isValid())) {
+    gfxWarning() << "Buffer size too big; returning zero " << aWidth << ", " << aHeight << ", " << aDepth << ", " << aExtraBytes;
+    return 0;
+  }
+  return requiredBytes.value();
 }
+
+/**
+ * aSrcRect: Rect relative to the aSrc surface
+ * aDestPoint: Point inside aDest surface
+ */
+bool
+CopyRect(DataSourceSurface* aSrc, DataSourceSurface* aDest,
+         IntRect aSrcRect, IntPoint aDestPoint)
+{
+  if (aSrcRect.Overflows() ||
+      IntRect(aDestPoint, aSrcRect.Size()).Overflows()) {
+    MOZ_CRASH("GFX: we should never be getting invalid rects at this point");
+  }
+
+  MOZ_RELEASE_ASSERT(aSrc->GetFormat() == aDest->GetFormat(),
+                     "GFX: different surface formats");
+  MOZ_RELEASE_ASSERT(IntRect(IntPoint(), aSrc->GetSize()).Contains(aSrcRect),
+                     "GFX: source rect too big for source surface");
+  MOZ_RELEASE_ASSERT(IntRect(IntPoint(), aDest->GetSize()).Contains(IntRect(aDestPoint, aSrcRect.Size())),
+                     "GFX: dest surface too small");
+
+  if (aSrcRect.IsEmpty()) {
+    return false;
+  }
+
+  DataSourceSurface::ScopedMap srcMap(aSrc, DataSourceSurface::READ);
+  DataSourceSurface::ScopedMap destMap(aDest, DataSourceSurface::WRITE);
+  if (MOZ2D_WARN_IF(!srcMap.IsMapped() || !destMap.IsMapped())) {
+    return false;
+  }
+
+  uint8_t* sourceData = DataAtOffset(aSrc, srcMap.GetMappedSurface(), aSrcRect.TopLeft());
+  uint32_t sourceStride = srcMap.GetStride();
+  uint8_t* destData = DataAtOffset(aDest, destMap.GetMappedSurface(), aDestPoint);
+  uint32_t destStride = destMap.GetStride();
+
+  if (BytesPerPixel(aSrc->GetFormat()) == 4) {
+    for (int32_t y = 0; y < aSrcRect.height; y++) {
+      PodCopy((int32_t*)destData, (int32_t*)sourceData, aSrcRect.width);
+      sourceData += sourceStride;
+      destData += destStride;
+    }
+  } else if (BytesPerPixel(aSrc->GetFormat()) == 1) {
+    for (int32_t y = 0; y < aSrcRect.height; y++) {
+      PodCopy(destData, sourceData, aSrcRect.width);
+      sourceData += sourceStride;
+      destData += destStride;
+    }
+  }
+
+  return true;
 }
+
+already_AddRefed<DataSourceSurface>
+CreateDataSourceSurfaceByCloning(DataSourceSurface* aSource)
+{
+  RefPtr<DataSourceSurface> copy =
+    Factory::CreateDataSourceSurface(aSource->GetSize(), aSource->GetFormat(), true);
+  if (copy) {
+    CopyRect(aSource, copy, IntRect(IntPoint(), aSource->GetSize()), IntPoint());
+  }
+  return copy.forget();
+}
+
+} // namespace gfx
+} // namespace mozilla

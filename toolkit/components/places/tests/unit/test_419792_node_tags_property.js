@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -31,7 +31,7 @@ function run_test() {
   do_check_eq(node.itemId, bookmarkId);
 
   // confirm there's no tags via the .tags property
-  do_check_eq(node.tags, null); 
+  do_check_eq(node.tags, null);
 
   // add a tag
   tagssvc.tagURI(bookmarkURI, ["foo"]);
@@ -43,7 +43,7 @@ function run_test() {
 
   // remove the tags, confirming the property is cleared
   tagssvc.untagURI(bookmarkURI, null);
-  do_check_eq(node.tags, null); 
+  do_check_eq(node.tags, null);
 
   toolbarNode.containerOpen = false;
 }

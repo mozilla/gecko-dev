@@ -2,7 +2,9 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-const Ci = Components.interfaces;
+Components.utils.import("resource://testing-common/MockRegistrar.jsm");
+
+var Ci = Components.interfaces;
 
 // This verifies that duplicate plugins are coalesced and maintain their ID
 // across restarts.
@@ -13,7 +15,9 @@ var PLUGINS = [{
   version: "1",
   blocklisted: false,
   enabledState: Ci.nsIPluginTag.STATE_ENABLED,
-  get disabled() this.enabledState == Ci.nsIPluginTag.STATE_DISABLED,
+  get disabled() {
+    return this.enabledState == Ci.nsIPluginTag.STATE_DISABLED;
+  },
   filename: "/home/mozilla/.plugins/dupplugin1.so"
 }, {
   name: "Duplicate Plugin 1",
@@ -21,8 +25,9 @@ var PLUGINS = [{
   version: "1",
   blocklisted: false,
   enabledState: Ci.nsIPluginTag.STATE_ENABLED,
-  get disabled() this.enabledState == Ci.nsIPluginTag.STATE_DISABLED,
-  filename: "",
+  get disabled() {
+    return this.enabledState == Ci.nsIPluginTag.STATE_DISABLED;
+  },
   filename: "/usr/lib/plugins/dupplugin1.so"
 }, {
   name: "Duplicate Plugin 2",
@@ -30,7 +35,9 @@ var PLUGINS = [{
   version: "1",
   blocklisted: false,
   enabledState: Ci.nsIPluginTag.STATE_ENABLED,
-  get disabled() this.enabledState == Ci.nsIPluginTag.STATE_DISABLED,
+  get disabled() {
+    return this.enabledState == Ci.nsIPluginTag.STATE_DISABLED;
+  },
   filename: "/home/mozilla/.plugins/dupplugin2.so"
 }, {
   name: "Duplicate Plugin 2",
@@ -38,8 +45,9 @@ var PLUGINS = [{
   version: "1",
   blocklisted: false,
   enabledState: Ci.nsIPluginTag.STATE_ENABLED,
-  get disabled() this.enabledState == Ci.nsIPluginTag.STATE_DISABLED,
-  filename: "",
+  get disabled() {
+    return this.enabledState == Ci.nsIPluginTag.STATE_DISABLED;
+  },
   filename: "/usr/lib/plugins/dupplugin2.so"
 }, {
   name: "Non-duplicate Plugin", // 3
@@ -47,7 +55,9 @@ var PLUGINS = [{
   version: "1",
   blocklisted: false,
   enabledState: Ci.nsIPluginTag.STATE_ENABLED,
-  get disabled() this.enabledState == Ci.nsIPluginTag.STATE_DISABLED,
+  get disabled() {
+    return this.enabledState == Ci.nsIPluginTag.STATE_DISABLED;
+  },
   filename: "/home/mozilla/.plugins/dupplugin3.so"
 }, {
   name: "Non-duplicate Plugin", // 4
@@ -55,8 +65,9 @@ var PLUGINS = [{
   version: "1",
   blocklisted: false,
   enabledState: Ci.nsIPluginTag.STATE_ENABLED,
-  get disabled() this.enabledState == Ci.nsIPluginTag.STATE_DISABLED,
-  filename: "",
+  get disabled() {
+    return this.enabledState == Ci.nsIPluginTag.STATE_DISABLED;
+  },
   filename: "/usr/lib/plugins/dupplugin4.so"
 }, {
   name: "Another Non-duplicate Plugin", // 5
@@ -64,7 +75,9 @@ var PLUGINS = [{
   version: "1",
   blocklisted: false,
   enabledState: Ci.nsIPluginTag.STATE_ENABLED,
-  get disabled() this.enabledState == Ci.nsIPluginTag.STATE_DISABLED,
+  get disabled() {
+    return this.enabledState == Ci.nsIPluginTag.STATE_DISABLED;
+  },
   filename: "/home/mozilla/.plugins/dupplugin5.so"
 }];
 
@@ -79,29 +92,19 @@ var PluginHost = {
     if (iid.equals(Components.interfaces.nsIPluginHost)
      || iid.equals(Components.interfaces.nsISupports))
       return this;
-  
+
     throw Components.results.NS_ERROR_NO_INTERFACE;
   }
 }
 
-var PluginHostFactory = {
-  createInstance: function (outer, iid) {
-    if (outer != null)
-      throw Components.results.NS_ERROR_NO_AGGREGATION;
-    return PluginHost.QueryInterface(iid);
-  }
-};
-
-var registrar = Components.manager.QueryInterface(Components.interfaces.nsIComponentRegistrar);
-registrar.registerFactory(Components.ID("{721c3e73-969e-474b-a6dc-059fd288c428}"),
-                          "Fake Plugin Host",
-                          "@mozilla.org/plugin/host;1", PluginHostFactory);
+MockRegistrar.register("@mozilla.org/plugin/host;1", PluginHost);
 
 var gPluginIDs = [null, null, null, null, null];
 
 function run_test() {
   do_test_pending();
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9.2");
+  Services.prefs.setBoolPref("media.gmp-provider.enabled", false);
 
   startupManager();
 
@@ -173,10 +176,10 @@ function run_test_3() {
     [PLUGINS[0], PLUGINS[1]] = [PLUGINS[1], PLUGINS[0]];
     restartManager();
 
-    AddonManager.getAddonByID(gPluginIDs[0], function(p) {
-      do_check_neq(p, null);
-      do_check_eq(p.name, "Duplicate Plugin 1");
-      do_check_eq(p.description, "A duplicate plugin");
+    AddonManager.getAddonByID(gPluginIDs[0], function(p_2) {
+      do_check_neq(p_2, null);
+      do_check_eq(p_2.name, "Duplicate Plugin 1");
+      do_check_eq(p_2.description, "A duplicate plugin");
 
       do_execute_soon(do_test_finished);
     });

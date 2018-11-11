@@ -1,62 +1,92 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* import-globals-from pippki.js */
+"use strict";
 
-const nsIDialogParamBlock = Components.interfaces.nsIDialogParamBlock;
-const nsIPKIParamBlock = Components.interfaces.nsIPKIParamBlock;
-const nsIX509Cert = Components.interfaces.nsIX509Cert;
+/**
+ * @file Implements the functionality of downloadcert.xul: a dialog that allows
+ *       a user to confirm whether to import a certificate, and if so what trust
+ *       to give it.
+ * @argument {nsISupports} window.arguments[0]
+ *           Certificate to confirm import of, queryable to nsIX509Cert.
+ * @argument {nsISupports} window.arguments[1]
+ *           Object to set the return values of calling the dialog on, queryable
+ *           to the underlying type of DownloadCertReturnValues.
+ */
 
-var pkiParams;
-var params;
-var caName;
-var cert;
+/**
+ * @typedef DownloadCertReturnValues
+ * @type nsIWritablePropertyBag2
+ * @property {Boolean} importConfirmed
+ *           Set to true if the user confirmed import of the cert and accepted
+ *           the dialog, false otherwise.
+ * @property {Boolean} trustForSSL
+ *           Set to true if the cert should be trusted for SSL, false otherwise.
+ *           Undefined value if |importConfirmed| is not true.
+ * @property {Boolean} trustForEmail
+ *           Set to true if the cert should be trusted for e-mail, false
+ *           otherwise. Undefined value if |importConfirmed| is not true.
+ * @property {Boolean} trustForObjSign
+ *           Set to true if the cert should be trusted for object signing, false
+ *           otherwise. Undefined value if |importConfirmed| is not true.
+ */
 
-function onLoad()
-{
-  pkiParams = window.arguments[0].QueryInterface(nsIPKIParamBlock);
-  params = pkiParams.QueryInterface(nsIDialogParamBlock);
-  var isupport = pkiParams.getISupportAtIndex(1);
-  cert = isupport.QueryInterface(nsIX509Cert);
+const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
-  caName = cert.commonName; 
+/**
+ * The cert to potentially import.
+ * @type nsIX509Cert
+ */
+var gCert;
 
-  var bundle = document.getElementById("pippki_bundle");
+/**
+ * onload() handler.
+ */
+function onLoad() {
+  gCert = window.arguments[0].QueryInterface(Ci.nsIX509Cert);
 
-  if (!caName.length)
+  let bundle = document.getElementById("pippki_bundle");
+  let caName = gCert.commonName;
+  if (caName.length == 0) {
     caName = bundle.getString("unnamedCA");
+  }
 
-  var message2 = bundle.getFormattedString("newCAMessage1", [caName]);
-  setText("message2", message2);
+  setText("trustHeader", bundle.getFormattedString("newCAMessage1", [caName]));
 }
 
-function viewCert()
-{
-  viewCertHelper(window, cert);
+/**
+ * Handler for the "View Cert" button.
+ */
+function viewCert() {
+  viewCertHelper(window, gCert);
 }
 
-function doOK()
-{
-  var checkSSL = document.getElementById("trustSSL");
-  var checkEmail = document.getElementById("trustEmail");
-  var checkObjSign = document.getElementById("trustObjSign");
-  if (checkSSL.checked)
-    params.SetInt(2,1);
-  else
-    params.SetInt(2,0);
-  if (checkEmail.checked)
-    params.SetInt(3,1);
-  else
-    params.SetInt(3,0);
-  if (checkObjSign.checked)
-    params.SetInt(4,1);
-  else
-    params.SetInt(4,0);
-  params.SetInt(1,1);
+/**
+ * ondialogaccept() handler.
+ *
+ * @returns {Boolean} true to make the dialog close, false otherwise.
+ */
+function onDialogAccept() {
+  let checkSSL = document.getElementById("trustSSL");
+  let checkEmail = document.getElementById("trustEmail");
+  let checkObjSign = document.getElementById("trustObjSign");
+
+  let retVals = window.arguments[1].QueryInterface(Ci.nsIWritablePropertyBag2);
+  retVals.setPropertyAsBool("importConfirmed", true);
+  retVals.setPropertyAsBool("trustForSSL", checkSSL.checked);
+  retVals.setPropertyAsBool("trustForEmail", checkEmail.checked);
+  retVals.setPropertyAsBool("trustForObjSign", checkObjSign.checked);
   return true;
 }
 
-function doCancel()
-{
-  params.SetInt(1,0);
+/**
+ * ondialogcancel() handler.
+ *
+ * @returns {Boolean} true to make the dialog close, false otherwise.
+ */
+function onDialogCancel() {
+  let retVals = window.arguments[1].QueryInterface(Ci.nsIWritablePropertyBag2);
+  retVals.setPropertyAsBool("importConfirmed", false);
   return true;
 }

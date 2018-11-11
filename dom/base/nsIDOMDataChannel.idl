@@ -1,0 +1,37 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsIDOMEventTarget.idl"
+
+%{C++
+#ifdef GetBinaryType
+// Windows apparently has a #define for GetBinaryType...
+#undef GetBinaryType
+#endif
+%}
+
+interface nsIVariant;
+
+[builtinclass, uuid(b00a4ca7-312e-4926-84f6-8ebb43e53d83)]
+interface nsIDOMDataChannel : nsIDOMEventTarget
+{
+  readonly attribute DOMString label;
+  readonly attribute DOMString protocol;
+  readonly attribute boolean reliable;
+  readonly attribute boolean ordered;
+
+  readonly attribute DOMString readyState;
+  readonly attribute unsigned long bufferedAmount;
+
+  readonly attribute unsigned short id;
+
+  [implicit_jscontext] attribute jsval onopen;
+  [implicit_jscontext] attribute jsval onerror;
+  [implicit_jscontext] attribute jsval onclose;
+  [implicit_jscontext] attribute jsval onmessage;
+
+  attribute DOMString binaryType;
+
+  void close();
+};

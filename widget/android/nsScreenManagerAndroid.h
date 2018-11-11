@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 40; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 40; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: ts=4 sw=4 expandtab:
+ * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -10,34 +11,56 @@
 
 #include "nsBaseScreen.h"
 #include "nsIScreenManager.h"
-#include "WidgetUtils.h"
+#include "nsRect.h"
+#include "mozilla/WidgetUtils.h"
 
-class nsScreenAndroid MOZ_FINAL : public nsBaseScreen
+class nsScreenAndroid final : public nsBaseScreen
 {
 public:
-    nsScreenAndroid(void *nativeScreen);
+    nsScreenAndroid(DisplayType aDisplayType, nsIntRect aRect);
     ~nsScreenAndroid();
 
-    NS_IMETHOD GetRect(int32_t* aLeft, int32_t* aTop, int32_t* aWidth, int32_t* aHeight);
-    NS_IMETHOD GetAvailRect(int32_t* aLeft, int32_t* aTop, int32_t* aWidth, int32_t* aHeight);
-    NS_IMETHOD GetPixelDepth(int32_t* aPixelDepth);
-    NS_IMETHOD GetColorDepth(int32_t* aColorDepth);
+    NS_IMETHOD GetId(uint32_t* aId) override;
+    NS_IMETHOD GetRect(int32_t* aLeft, int32_t* aTop, int32_t* aWidth, int32_t* aHeight) override;
+    NS_IMETHOD GetAvailRect(int32_t* aLeft, int32_t* aTop, int32_t* aWidth, int32_t* aHeight) override;
+    NS_IMETHOD GetPixelDepth(int32_t* aPixelDepth) override;
+    NS_IMETHOD GetColorDepth(int32_t* aColorDepth) override;
+
+    uint32_t GetId() const { return mId; };
+    DisplayType GetDisplayType() const { return mDisplayType; }
+
+    void SetDensity(double aDensity) { mDensity = aDensity; }
+    float GetDensity();
 
 protected:
-    virtual void ApplyMinimumBrightness(uint32_t aBrightness) MOZ_OVERRIDE;
+    virtual void ApplyMinimumBrightness(uint32_t aBrightness) override;
+
+private:
+    uint32_t mId;
+    DisplayType mDisplayType;
+    nsIntRect mRect;
+    float mDensity;
 };
 
-class nsScreenManagerAndroid MOZ_FINAL : public nsIScreenManager
+class nsScreenManagerAndroid final : public nsIScreenManager
 {
-public:
-    nsScreenManagerAndroid();
+private:
     ~nsScreenManagerAndroid();
+
+public:
+    class ScreenManagerHelperSupport;
+
+    nsScreenManagerAndroid();
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSISCREENMANAGER
 
+    already_AddRefed<nsScreenAndroid> AddScreen(DisplayType aDisplayType,
+                                                nsIntRect aRect = nsIntRect());
+    void RemoveScreen(uint32_t aScreenId);
+
 protected:
-    nsCOMPtr<nsIScreen> mOneScreen;
+    nsTArray<RefPtr<nsScreenAndroid>> mScreens;
 };
 
 #endif /* nsScreenManagerAndroid_h___ */

@@ -1,29 +1,36 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set sw=4 ts=8 et tw=80 : 
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "CrashReporterParent.h"
+#include "mozilla/Sprintf.h"
 #include "mozilla/dom/ContentParent.h"
+#include "mozilla/ipc/CrashReporterHost.h"
+#include "nsAutoPtr.h"
 #include "nsXULAppAPI.h"
 #include <time.h>
+
+#include "mozilla/Telemetry.h"
 
 #ifdef MOZ_CRASHREPORTER
 #include "nsExceptionHandler.h"
 #include "nsICrashService.h"
+#include "mozilla/SyncRunnable.h"
+#include "nsThreadUtils.h"
 #endif
-
-using namespace base;
 
 namespace mozilla {
 namespace dom {
+
+using namespace mozilla::ipc;
 
 void
 CrashReporterParent::AnnotateCrashReport(const nsCString& key,
                                          const nsCString& data)
 {
 #ifdef MOZ_CRASHREPORTER
-    mNotes.Put(key, data);
+  mNotes.Put(key, data);
 #endif
 }
 
@@ -36,134 +43,102 @@ CrashReporterParent::ActorDestroy(ActorDestroyReason aWhy)
 bool
 CrashReporterParent::RecvAppendAppNotes(const nsCString& data)
 {
-    mAppNotes.Append(data);
-    return true;
-}
-
-mozilla::ipc::IProtocol*
-CrashReporterParent::CloneProtocol(Channel* aChannel,
-                                   mozilla::ipc::ProtocolCloneContext* aCtx)
-{
-#ifdef MOZ_CRASHREPORTER
-    ContentParent* contentParent = aCtx->GetContentParent();
-    CrashReporter::ThreadId childThreadId = contentParent->Pid();
-    GeckoProcessType childProcessType =
-        contentParent->Process()->GetProcessType();
-
-    nsAutoPtr<PCrashReporterParent> actor(
-        contentParent->AllocPCrashReporterParent(childThreadId,
-                                                 childProcessType)
-    );
-    if (!actor ||
-        !contentParent->RecvPCrashReporterConstructor(actor,
-                                                      childThreadId,
-                                                      childThreadId)) {
-      return nullptr;
-    }
-
-    return actor.forget();
-#else
-    MOZ_CRASH("Not Implemented");
-    return nullptr;
-#endif
+  mAppNotes.Append(data);
+  return true;
 }
 
 CrashReporterParent::CrashReporterParent()
-    :
+  :
 #ifdef MOZ_CRASHREPORTER
-      mNotes(4),
+    mNotes(4),
 #endif
-      mStartTime(::time(nullptr))
-    , mInitialized(false)
+    mStartTime(::time(nullptr))
+  , mInitialized(false)
 {
-    MOZ_COUNT_CTOR(CrashReporterParent);
+  MOZ_COUNT_CTOR(CrashReporterParent);
 }
 
 CrashReporterParent::~CrashReporterParent()
 {
-    MOZ_COUNT_DTOR(CrashReporterParent);
+  MOZ_COUNT_DTOR(CrashReporterParent);
 }
 
 void
 CrashReporterParent::SetChildData(const NativeThreadId& tid,
                                   const uint32_t& processType)
 {
-    mInitialized = true;
-    mMainThread = tid;
-    mProcessType = processType;
+  mInitialized = true;
+  mMainThread = tid;
+  mProcessType = GeckoProcessType(processType);
 }
 
 #ifdef MOZ_CRASHREPORTER
 bool
 CrashReporterParent::GenerateCrashReportForMinidump(nsIFile* minidump,
-    const AnnotationTable* processNotes)
+                                                    const AnnotationTable* processNotes)
 {
-    if (!CrashReporter::GetIDFromMinidump(minidump, mChildDumpID))
-        return false;
-    return GenerateChildData(processNotes);
+  if (!CrashReporter::GetIDFromMinidump(minidump, mChildDumpID)) {
+    return false;
+  }
+
+  bool result = GenerateChildData(processNotes);
+  FinalizeChildData();
+  return result;
 }
 
 bool
 CrashReporterParent::GenerateChildData(const AnnotationTable* processNotes)
 {
-    MOZ_ASSERT(mInitialized);
+  MOZ_ASSERT(mInitialized);
 
-    nsAutoCString type;
-    switch (mProcessType) {
-        case GeckoProcessType_Content:
-            type = NS_LITERAL_CSTRING("content");
-            break;
-        case GeckoProcessType_Plugin:
-            type = NS_LITERAL_CSTRING("plugin");
-            break;
-        default:
-            NS_ERROR("unknown process type");
-            break;
-    }
-    mNotes.Put(NS_LITERAL_CSTRING("ProcessType"), type);
+  if (mChildDumpID.IsEmpty()) {
+    NS_WARNING("problem with GenerateChildData: no child dump id yet!");
+    return false;
+  }
 
-    char startTime[32];
-    sprintf(startTime, "%lld", static_cast<long long>(mStartTime));
-    mNotes.Put(NS_LITERAL_CSTRING("StartupTime"), nsDependentCString(startTime));
+  nsAutoCString type;
+  switch (mProcessType) {
+    case GeckoProcessType_Content:
+      type = NS_LITERAL_CSTRING("content");
+      break;
+    case GeckoProcessType_Plugin:
+    case GeckoProcessType_GMPlugin:
+      type = NS_LITERAL_CSTRING("plugin");
+      break;
+    default:
+      NS_ERROR("unknown process type");
+      break;
+  }
+  mNotes.Put(NS_LITERAL_CSTRING("ProcessType"), type);
 
-    if (!mAppNotes.IsEmpty())
-        mNotes.Put(NS_LITERAL_CSTRING("Notes"), mAppNotes);
+  char startTime[32];
+  SprintfLiteral(startTime, "%lld", static_cast<long long>(mStartTime));
+  mNotes.Put(NS_LITERAL_CSTRING("StartupTime"), nsDependentCString(startTime));
 
-    bool ret = CrashReporter::AppendExtraData(mChildDumpID, mNotes);
-    if (ret && processNotes)
-        ret = CrashReporter::AppendExtraData(mChildDumpID, *processNotes);
-    if (!ret)
-        NS_WARNING("problem appending child data to .extra");
+  if (!mAppNotes.IsEmpty()) {
+    mNotes.Put(NS_LITERAL_CSTRING("Notes"), mAppNotes);
+  }
 
-    NotifyCrashService();
+  // Append these notes to the end of the extra file based on the current
+  // dump id we obtained from CreatePairedMinidumps.
+  bool ret = CrashReporter::AppendExtraData(mChildDumpID, mNotes);
+  if (ret && processNotes) {
+    ret = CrashReporter::AppendExtraData(mChildDumpID, *processNotes);
+  }
 
-    return ret;
+  if (!ret) {
+    NS_WARNING("problem appending child data to .extra");
+  }
+  return ret;
 }
 
 void
-CrashReporterParent::NotifyCrashService()
+CrashReporterParent::FinalizeChildData()
 {
-    nsCOMPtr<nsICrashService> crashService =
-        do_GetService("@mozilla.org/crashservice;1");
-    if (!crashService) {
-        return;
-    }
+  MOZ_ASSERT(mInitialized);
 
-    if (mProcessType == GeckoProcessType_Content) {
-        crashService->AddCrash(nsICrashService::PROCESS_TYPE_CONTENT,
-                               nsICrashService::CRASH_TYPE_CRASH,
-                               mChildDumpID);
-    }
-    else if (mProcessType == GeckoProcessType_Plugin) {
-        nsAutoCString val;
-        int32_t crashType = nsICrashService::CRASH_TYPE_CRASH;
-        if (mNotes.Get(NS_LITERAL_CSTRING("PluginHang"), &val) &&
-            val.Equals(NS_LITERAL_CSTRING("1"))) {
-            crashType = nsICrashService::CRASH_TYPE_HANG;
-        }
-        crashService->AddCrash(nsICrashService::PROCESS_TYPE_PLUGIN, crashType,
-                               mChildDumpID);
-    }
+  CrashReporterHost::NotifyCrashService(mProcessType, mChildDumpID, &mNotes);
+  mNotes.Clear();
 }
 #endif
 

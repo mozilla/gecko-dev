@@ -14,22 +14,21 @@
 
 namespace mozilla {
 namespace dom {
-class MediaStreamConstraints;
+
+struct MediaStreamConstraints;
 
 class GetUserMediaRequest : public nsISupports, public nsWrapperCache
 {
 public:
-  GetUserMediaRequest(nsPIDOMWindow* aInnerWindow,
+  GetUserMediaRequest(nsPIDOMWindowInner* aInnerWindow,
                       const nsAString& aCallID,
                       const MediaStreamConstraints& aConstraints,
                       bool aIsSecure);
-  virtual ~GetUserMediaRequest() {};
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(GetUserMediaRequest)
 
-  virtual JSObject* WrapObject(JSContext* cx)
-    MOZ_OVERRIDE;
+  JSObject* WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override;
   nsISupports* GetParentObject();
 
   uint64_t WindowID();
@@ -39,6 +38,8 @@ public:
   void GetConstraints(MediaStreamConstraints &result);
 
 private:
+  virtual ~GetUserMediaRequest() {}
+
   uint64_t mInnerWindowID, mOuterWindowID;
   const nsString mCallID;
   nsAutoPtr<MediaStreamConstraints> mConstraints;

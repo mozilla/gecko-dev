@@ -25,7 +25,7 @@ NS_IMPL_ISUPPORTS_INHERITED0(AppCacheStorage, CacheStorage)
 
 AppCacheStorage::AppCacheStorage(nsILoadContextInfo* aInfo,
                                  nsIApplicationCache* aAppCache)
-: CacheStorage(aInfo, true /* disk */, false /* lookup app cache */)
+: CacheStorage(aInfo, true /* disk */, false /* lookup app cache */, false /* skip size check */, false /* pin */)
 , mAppCache(aAppCache)
 {
   MOZ_COUNT_CTOR(AppCacheStorage);
@@ -71,17 +71,38 @@ NS_IMETHODIMP AppCacheStorage::AsyncOpenURI(nsIURI *aURI,
   rv = noRefURI->GetAsciiSpec(cacheKey);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  // This is the only way how to recognize appcache data by the anonymous
+  // flag.  There is no way to switch to e.g. a different session, because
+  // there is just a single session for an appcache version (identified
+  // by the client id).
+  if (LoadInfo()->IsAnonymous()) {
+    cacheKey = NS_LITERAL_CSTRING("anon&") + cacheKey;
+  }
+
   nsAutoCString scheme;
   rv = noRefURI->GetScheme(scheme);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsRefPtr<_OldCacheLoad> appCacheLoad =
+  RefPtr<_OldCacheLoad> appCacheLoad =
     new _OldCacheLoad(scheme, cacheKey, aCallback, appCache,
                       LoadInfo(), WriteToDisk(), aFlags);
   rv = appCacheLoad->Start();
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
+}
+
+NS_IMETHODIMP AppCacheStorage::OpenTruncate(nsIURI *aURI, const nsACString & aIdExtension,
+                                            nsICacheEntry **aCacheEntry)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP AppCacheStorage::Exists(nsIURI *aURI, const nsACString & aIdExtension,
+                                      bool *aResult)
+{
+  *aResult = false;
+  return NS_ERROR_NOT_AVAILABLE;
 }
 
 NS_IMETHODIMP AppCacheStorage::AsyncDoomURI(nsIURI *aURI, const nsACString & aIdExtension,
@@ -94,7 +115,7 @@ NS_IMETHODIMP AppCacheStorage::AsyncDoomURI(nsIURI *aURI, const nsACString & aId
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  nsRefPtr<_OldStorage> old = new _OldStorage(
+  RefPtr<_OldStorage> old = new _OldStorage(
     LoadInfo(), WriteToDisk(), LookupAppCache(), true, mAppCache);
   return old->AsyncDoomURI(aURI, aIdExtension, aCallback);
 }
@@ -106,32 +127,17 @@ NS_IMETHODIMP AppCacheStorage::AsyncEvictStorage(nsICacheEntryDoomCallback* aCal
 
   nsresult rv;
 
-  nsCOMPtr<nsIApplicationCacheService> appCacheService =
-    do_GetService(NS_APPLICATIONCACHESERVICE_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   if (!mAppCache) {
-    if (LoadInfo()->AppId() == nsILoadContextInfo::NO_APP_ID &&
-        !LoadInfo()->IsInBrowserElement()) {
+    // Discard everything under this storage context
+    nsCOMPtr<nsIApplicationCacheService> appCacheService =
+      do_GetService(NS_APPLICATIONCACHESERVICE_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-      // Clear everything.
-      nsCOMPtr<nsICacheService> serv =
-          do_GetService(NS_CACHESERVICE_CONTRACTID, &rv);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = nsCacheService::GlobalInstance()->EvictEntriesInternal(nsICache::STORE_OFFLINE);
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-    else {
-      // Clear app or inbrowser staff.
-      rv = appCacheService->DiscardByAppId(LoadInfo()->AppId(),
-                                           LoadInfo()->IsInBrowserElement());
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-  }
-  else {
+    rv = appCacheService->Evict(LoadInfo());
+    NS_ENSURE_SUCCESS(rv, rv);
+  } else {
     // Discard the group
-    nsRefPtr<_OldStorage> old = new _OldStorage(
+    RefPtr<_OldStorage> old = new _OldStorage(
       LoadInfo(), WriteToDisk(), LookupAppCache(), true, mAppCache);
     rv = old->AsyncEvictStorage(aCallback);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -159,7 +165,7 @@ NS_IMETHODIMP AppCacheStorage::AsyncVisitStorage(nsICacheStorageVisitor* aVisito
     do_GetService(NS_CACHESERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsRefPtr<_OldVisitCallbackWrapper> cb = new _OldVisitCallbackWrapper(
+  RefPtr<_OldVisitCallbackWrapper> cb = new _OldVisitCallbackWrapper(
     "offline", aVisitor, aVisitEntries, LoadInfo());
   rv = nsCacheService::GlobalInstance()->VisitEntriesInternal(cb);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -167,5 +173,5 @@ NS_IMETHODIMP AppCacheStorage::AsyncVisitStorage(nsICacheStorageVisitor* aVisito
   return NS_OK;
 }
 
-} // net
-} // mozilla
+} // namespace net
+} // namespace mozilla

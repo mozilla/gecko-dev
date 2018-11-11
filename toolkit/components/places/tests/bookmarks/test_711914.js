@@ -14,8 +14,8 @@ function run_test() {
   }
 
   let observer = {
-    onBeginUpdateBatch: function () forceBookmarkCaching(itemId1),
-    onEndUpdateBatch: function () forceBookmarkCaching(itemId1),
+    onBeginUpdateBatch: () => forceBookmarkCaching(itemId1),
+    onEndUpdateBatch: () => forceBookmarkCaching(itemId1),
     onItemAdded: forceBookmarkCaching,
     onItemChanged: forceBookmarkCaching,
     onItemMoved: forceBookmarkCaching,
@@ -38,11 +38,10 @@ function run_test() {
                            .createFolder(folder1,
                                          "Folder2",
                                          PlacesUtils.bookmarks.DEFAULT_INDEX);
-  let itemId = PlacesUtils.bookmarks
-                           .insertBookmark(folder2,
-                                           NetUtil.newURI("http://mozilla.org/"),
-                                           PlacesUtils.bookmarks.DEFAULT_INDEX,
-                                           "Mozilla");
+  PlacesUtils.bookmarks.insertBookmark(folder2,
+                                       NetUtil.newURI("http://mozilla.org/"),
+                                       PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                       "Mozilla");
 
   PlacesUtils.bookmarks.removeFolderChildren(folder1);
 

@@ -1,9 +1,4 @@
 const CWD = do_get_cwd();
-function checkOS(os) {
-  const nsILocalFile_ = "nsILocalFile" + os;
-  return nsILocalFile_ in Components.interfaces &&
-         CWD instanceof Components.interfaces[nsILocalFile_];
-}
 
 const DIR_TARGET     = "target";
 const DIR_LINK       = "link";
@@ -15,10 +10,6 @@ const FILE_LINK_LINK = "link_link.txt";
 const DOES_NOT_EXIST = "doesnotexist";
 const DANGLING_LINK  = "dangling_link";
 const LOOP_LINK      = "loop_link";
-
-const isWin = checkOS("Win");
-const isMac = checkOS("Mac");
-const isUnix = !(isWin || isMac);
 
 const nsIFile = Components.interfaces.nsIFile;
 
@@ -78,13 +69,13 @@ function setupTestDir(testDir, relative) {
   }
   do_check_true(!testDir.exists());
 
-  testDir.create(nsIFile.DIRECTORY_TYPE, 0777);
+  testDir.create(nsIFile.DIRECTORY_TYPE, 0o777);
 
-  targetDir.create(nsIFile.DIRECTORY_TYPE, 0777);
+  targetDir.create(nsIFile.DIRECTORY_TYPE, 0o777);
 
   var targetFile = testDir.clone();
   targetFile.append(FILE_TARGET);
-  targetFile.create(nsIFile.NORMAL_FILE_TYPE, 0666);
+  targetFile.create(nsIFile.NORMAL_FILE_TYPE, 0o666);
 
   var imaginary = testDir.clone();
   imaginary.append(DOES_NOT_EXIST);
@@ -109,7 +100,9 @@ function setupTestDir(testDir, relative) {
 }
 
 function createSpaces(dirs, files, links) {
-  function longest(a, b) a.length > b.length ? a : b;
+  function longest(a, b) {
+    return a.length > b.length ? a : b;
+  }
   return dirs.concat(files, links).reduce(longest, "").replace(/./g, " ");
 }
 
@@ -140,7 +133,7 @@ function testSymLinks(testDir, relative) {
 
 function run_test() {
   // Skip this test on Windows
-  if (isWin)
+  if (mozinfo.os == "win")
     return;
 
   var testDir = CWD;

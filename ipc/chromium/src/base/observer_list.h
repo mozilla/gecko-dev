@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 // Copyright (c) 2006-2008 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -77,7 +79,7 @@ class ObserverList {
   };
 
   ObserverList() : notify_depth_(0), type_(NOTIFY_ALL) {}
-  ObserverList(NotificationType type) : notify_depth_(0), type_(type) {}
+  explicit ObserverList(NotificationType type) : notify_depth_(0), type_(type) {}
   ~ObserverList() {
     // When check_empty is true, assert that the list is empty on destruction.
     if (check_empty) {
@@ -118,7 +120,7 @@ class ObserverList {
   // also the FOREACH_OBSERVER macro defined below.
   class Iterator {
    public:
-    Iterator(const ObserverList<ObserverType>& list)
+    explicit Iterator(const ObserverList<ObserverType>& list)
         : list_(list),
           index_(0),
           max_index_(list.type_ == NOTIFY_ALL ?

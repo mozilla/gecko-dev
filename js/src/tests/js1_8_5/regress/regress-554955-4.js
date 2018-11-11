@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
 /*
  * Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/licenses/publicdomain/
@@ -11,7 +11,8 @@ function f() {
         // purge for the JSOP_DEFVAR will not change the global's shape,
         // and the property cache entry will remain valid.
         eval(a);
-        let (c = 3) {
+        {
+            let c = 3;
             // This eval forces the block to be cloned, so its shape gets
             // used as the property cache key shape.
             eval('');

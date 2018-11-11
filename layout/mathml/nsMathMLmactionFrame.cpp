@@ -7,7 +7,6 @@
 #include "nsCOMPtr.h"
 #include "nsPresContext.h"
 #include "nsNameSpaceManager.h"
-#include "prprf.h"         // For PR_snprintf()
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeOwner.h"
 #include "nsIWebBrowserChrome.h"
@@ -240,7 +239,7 @@ NS_IMPL_ISUPPORTS(nsMathMLmactionFrame::MouseListener,
 
 
 // helper to show a msg on the status bar
-// curled from nsObjectFrame.cpp ...
+// curled from nsPluginFrame.cpp ...
 void
 ShowStatus(nsPresContext* aPresContext, nsString& aStatusMsg)
 {
@@ -291,8 +290,7 @@ nsMathMLmactionFrame::MouseOver()
     if (!content) return;
 
     // check whether the content is mtext or not
-    if (content->GetNameSpaceID() == kNameSpaceID_MathML &&
-        content->Tag() == nsGkAtoms::mtext_) {
+    if (content->IsMathMLElement(nsGkAtoms::mtext_)) {
       // get the text to be displayed
       content = content->GetFirstChild();
       if (!content) return;
@@ -327,9 +325,7 @@ nsMathMLmactionFrame::MouseClick()
     if (mChildCount > 1) {
       int32_t selection = (mSelection == mChildCount)? 1 : mSelection + 1;
       nsAutoString value;
-      char cbuf[10];
-      PR_snprintf(cbuf, sizeof(cbuf), "%d", selection);
-      value.AssignASCII(cbuf);
+      value.AppendInt(selection);
       bool notify = false; // don't yet notify the document
       mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::selection_, value, notify);
 

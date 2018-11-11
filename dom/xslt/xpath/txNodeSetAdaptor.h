@@ -19,12 +19,15 @@ class txNodeSetAdaptor : public txXPathObjectAdaptor,
 {
 public:
     txNodeSetAdaptor();
-    txNodeSetAdaptor(txNodeSet *aNodeSet);
+    explicit txNodeSetAdaptor(txNodeSet* aNodeSet);
 
     nsresult Init();
 
     NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_TXINODESET
+
+protected:
+    ~txNodeSetAdaptor() {}
 
 private:
     txNodeSet* NodeSet()

@@ -31,6 +31,20 @@ To ship chrome files in a JAR, an indented line indicates a file to be packaged:
    <jarfile>.jar:
      path/in/jar/file_name.xul     (source/tree/location/file_name.xul)
 
+The JAR location may be preceded with a base path between square brackets::
+   [base/path] <jarfile>.jar:
+     path/in/jar/file_name.xul     (source/tree/location/file_name.xul)
+
+In this case, the jar will be directly located under the given ``base/bath``,
+while without a base path, it will be under a ``chrome`` directory.
+
+If the JAR manifest and packaged file live in the same directory, the path and
+parenthesis can be omitted. In other words, the following two lines are
+equivalent::
+
+   path/in/jar/same_place.xhtml     (same_place.xhtml)
+   path/in/jar/same_place.xhtml
+
 The source tree location may also be an *absolute* path (taken from the
 top of the source tree::
 
@@ -41,15 +55,8 @@ file should be processed by the :ref:`preprocessor` before being packaged::
 
    * path/in/jar/preprocessed.xul  (source/tree/location/file_name.xul)
 
-A plus marker (``+``) at the beginning of the line indicates that the file
-should replace an existing file, even if the source file's timestamp isn't
-newer than the existing file::
-
-   + path/in/jar/file_name.xul     (source/tree/location/my_file_name.xul)
-
 Preprocessed files always replace existing files, to ensure that changes in
-``#expand`` or ``#include`` directives are picked up, so ``+`` and ``*`` are
-equivalent.
+``#expand`` or ``#include`` directives are picked up.
 
 There is a special source-directory format for localized files (note the
 percent sign in the source file location): this format reads ``localized.dtd``
@@ -58,6 +65,15 @@ file from the alternate localization source tree
 ``/l10n/<locale>/path/localized.dtd`` if building a localized version::
 
    locale/path/localized.dtd     (%localized/path/localized.dtd)
+
+The source tree location can also use wildcards, in which case the path in
+jar is expected to be a base directory. Paths before the wildcard are not
+made part of the destination path::
+
+     path/in/jar/                (source/tree/location/*.xul)
+
+The above will install all xul files under ``source/tree/location`` as
+``path/in/jar/*.xul``.
 
 Register Chrome
 ===============

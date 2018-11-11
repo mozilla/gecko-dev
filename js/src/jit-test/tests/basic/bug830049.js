@@ -1,10 +1,12 @@
-// |jit-test| error: InternalError
+// |jit-test| error: TypeError
+load(libdir + "immutable-prototype.js");
 
-p = Proxy.create({
-  has: function() function r() s += ''
-})
-Object.prototype.__proto__ = p
+Object.defineProperty(Object.prototype, "name",
+                      { set(v) { throw new TypeError("hit name"); },
+                        enumerable: true,
+                        configurable: true });
+
 function TestCase(n) {
-    this.name = n
+    this.name = n;
 }
-new TestCase()
+new TestCase();

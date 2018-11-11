@@ -7,7 +7,7 @@
 #ifndef jit_x64_Lowering_x64_h
 #define jit_x64_Lowering_x64_h
 
-#include "jit/shared/Lowering-x86-shared.h"
+#include "jit/x86-shared/Lowering-x86-shared.h"
 
 namespace js {
 namespace jit {
@@ -15,52 +15,61 @@ namespace jit {
 class LIRGeneratorX64 : public LIRGeneratorX86Shared
 {
   public:
-    LIRGeneratorX64(MIRGenerator *gen, MIRGraph &graph, LIRGraph &lirGraph)
+    LIRGeneratorX64(MIRGenerator* gen, MIRGraph& graph, LIRGraph& lirGraph)
       : LIRGeneratorX86Shared(gen, graph, lirGraph)
     { }
 
   protected:
-    void lowerUntypedPhiInput(MPhi *phi, uint32_t inputPosition, LBlock *block, size_t lirIndex);
-    bool defineUntypedPhi(MPhi *phi, size_t lirIndex);
+    void lowerUntypedPhiInput(MPhi* phi, uint32_t inputPosition, LBlock* block, size_t lirIndex);
+    void defineUntypedPhi(MPhi* phi, size_t lirIndex);
+    void lowerInt64PhiInput(MPhi* phi, uint32_t inputPosition, LBlock* block, size_t lirIndex);
+    void defineInt64Phi(MPhi* phi, size_t lirIndex);
 
-    // Adds a use at operand |n| of a value-typed insturction.
-    bool useBox(LInstruction *lir, size_t n, MDefinition *mir,
-                LUse::Policy policy = LUse::REGISTER, bool useAtStart = false);
-    bool useBoxFixed(LInstruction *lir, size_t n, MDefinition *mir, Register reg1, Register);
+    void lowerForALUInt64(LInstructionHelper<INT64_PIECES, 2 * INT64_PIECES, 0>* ins,
+                          MDefinition* mir, MDefinition* lhs, MDefinition* rhs);
+    void lowerForMulInt64(LMulI64* ins, MMul* mir, MDefinition* lhs, MDefinition* rhs);
+
+    // Returns a box allocation. reg2 is ignored on 64-bit platforms.
+    LBoxAllocation useBoxFixed(MDefinition* mir, Register reg1, Register, bool useAtStart = false);
 
     // x86 has constraints on what registers can be formatted for 1-byte
     // stores and loads; on x64 all registers are okay.
-    LAllocation useByteOpRegister(MDefinition *mir);
-    LAllocation useByteOpRegisterOrNonDoubleConstant(MDefinition *mir);
+    LAllocation useByteOpRegister(MDefinition* mir);
+    LAllocation useByteOpRegisterAtStart(MDefinition* mir);
+    LAllocation useByteOpRegisterOrNonDoubleConstant(MDefinition* mir);
+    LDefinition tempByteOpRegister();
 
     LDefinition tempToUnbox();
 
-    bool needTempForPostBarrier() { return false; }
+    bool needTempForPostBarrier() { return true; }
 
-    // x64 has a scratch register, so no need for another temp for dispatch
-    // ICs.
-    LDefinition tempForDispatchCache(MIRType outputType = MIRType_None) {
-        return LDefinition::BogusTemp();
-    }
+    void lowerDivI64(MDiv* div);
+    void lowerModI64(MMod* mod);
+    void lowerUDivI64(MDiv* div);
+    void lowerUModI64(MMod* mod);
 
   public:
-    bool visitBox(MBox *box);
-    bool visitUnbox(MUnbox *unbox);
-    bool visitReturn(MReturn *ret);
-    bool visitAsmJSUnsignedToDouble(MAsmJSUnsignedToDouble *ins);
-    bool visitAsmJSUnsignedToFloat32(MAsmJSUnsignedToFloat32 *ins);
-    bool visitAsmJSLoadHeap(MAsmJSLoadHeap *ins);
-    bool visitAsmJSStoreHeap(MAsmJSStoreHeap *ins);
-    bool visitAsmJSLoadFuncPtr(MAsmJSLoadFuncPtr *ins);
-    bool visitStoreTypedArrayElementStatic(MStoreTypedArrayElementStatic *ins);
-
-    static bool allowFloat32Optimizations() {
-        return true;
-    }
-
-    static bool allowInlineForkJoinGetSlice() {
-        return true;
-    }
+    void visitBox(MBox* box);
+    void visitUnbox(MUnbox* unbox);
+    void visitReturn(MReturn* ret);
+    void visitCompareExchangeTypedArrayElement(MCompareExchangeTypedArrayElement* ins);
+    void visitAtomicExchangeTypedArrayElement(MAtomicExchangeTypedArrayElement* ins);
+    void visitAtomicTypedArrayElementBinop(MAtomicTypedArrayElementBinop* ins);
+    void visitWasmUnsignedToDouble(MWasmUnsignedToDouble* ins);
+    void visitWasmUnsignedToFloat32(MWasmUnsignedToFloat32* ins);
+    void visitAsmJSLoadHeap(MAsmJSLoadHeap* ins);
+    void visitAsmJSStoreHeap(MAsmJSStoreHeap* ins);
+    void visitAsmJSCompareExchangeHeap(MAsmJSCompareExchangeHeap* ins);
+    void visitAsmJSAtomicExchangeHeap(MAsmJSAtomicExchangeHeap* ins);
+    void visitAsmJSAtomicBinopHeap(MAsmJSAtomicBinopHeap* ins);
+    void visitWasmLoad(MWasmLoad* ins);
+    void visitWasmStore(MWasmStore* ins);
+    void visitStoreTypedArrayElementStatic(MStoreTypedArrayElementStatic* ins);
+    void visitSubstr(MSubstr* ins);
+    void visitRandom(MRandom* ins);
+    void visitWasmTruncateToInt64(MWasmTruncateToInt64* ins);
+    void visitInt64ToFloatingPoint(MInt64ToFloatingPoint* ins);
+    void visitExtendInt32ToInt64(MExtendInt32ToInt64* ins);
 };
 
 typedef LIRGeneratorX64 LIRGeneratorSpecific;

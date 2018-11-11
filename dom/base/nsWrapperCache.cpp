@@ -6,8 +6,10 @@
 
 #include "nsWrapperCacheInlines.h"
 
-#include "jsproxy.h"
+#include "js/Class.h"
+#include "js/Proxy.h"
 #include "mozilla/dom/DOMJSProxyHandler.h"
+#include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/HoldDropJSObjects.h"
 #include "nsCycleCollectionTraversalCallback.h"
 #include "nsCycleCollector.h"
@@ -15,11 +17,33 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-/* static */ void
+#ifdef DEBUG
+/* static */ bool
+nsWrapperCache::HasJSObjectMovedOp(JSObject* aWrapper)
+{
+    return js::HasObjectMovedOp(aWrapper);
+}
+#endif
+
+void
 nsWrapperCache::HoldJSObjects(void* aScriptObjectHolder,
                               nsScriptObjectTracer* aTracer)
 {
   cyclecollector::HoldJSObjectsImpl(aScriptObjectHolder, aTracer);
+  if (mWrapper && !JS::ObjectIsTenured(mWrapper)) {
+    CycleCollectedJSContext::Get()->NurseryWrapperPreserved(mWrapper);
+  }
+}
+
+void
+nsWrapperCache::SetWrapperJSObject(JSObject* aWrapper)
+{
+  mWrapper = aWrapper;
+  UnsetWrapperFlags(kWrapperFlagsMask & ~WRAPPER_IS_NOT_DOM_BINDING);
+
+  if (aWrapper && !JS::ObjectIsTenured(aWrapper)) {
+    CycleCollectedJSContext::Get()->NurseryWrapperAdded(this);
+  }
 }
 
 void
@@ -31,7 +55,7 @@ nsWrapperCache::ReleaseWrapper(void* aScriptObjectHolder)
     // from both here.
     JSObject* obj = GetWrapperPreserveColor();
     if (IsDOMBinding() && obj && js::IsProxy(obj)) {
-      DOMProxyHandler::GetAndClearExpandoObject(obj);
+      DOMProxyHandler::ClearExternalRefsForWrapperRelease(obj);
     }
     SetPreservingWrapper(false);
     cyclecollector::DropJSObjectsImpl(aScriptObjectHolder);
@@ -43,9 +67,9 @@ nsWrapperCache::ReleaseWrapper(void* aScriptObjectHolder)
 class DebugWrapperTraversalCallback : public nsCycleCollectionTraversalCallback
 {
 public:
-  DebugWrapperTraversalCallback(void* aWrapper)
+  explicit DebugWrapperTraversalCallback(JSObject* aWrapper)
     : mFound(false)
-    , mWrapper(aWrapper)
+    , mWrapper(JS::GCCellPtr(aWrapper))
   {
     mFlags = WANT_ALL_TRACES;
   }
@@ -60,7 +84,7 @@ public:
   {
   }
 
-  NS_IMETHOD_(void) NoteJSChild(void* aChild)
+  NS_IMETHOD_(void) NoteJSChild(const JS::GCCellPtr& aChild)
   {
     if (aChild == mWrapper) {
       mFound = true;
@@ -81,15 +105,17 @@ public:
   bool mFound;
 
 private:
-  void* mWrapper;
+  JS::GCCellPtr mWrapper;
 };
 
 static void
-DebugWrapperTraceCallback(void* aP, const char* aName, void* aClosure)
+DebugWrapperTraceCallback(JS::GCCellPtr aPtr, const char* aName, void* aClosure)
 {
   DebugWrapperTraversalCallback* callback =
     static_cast<DebugWrapperTraversalCallback*>(aClosure);
-  callback->NoteJSChild(aP);
+  if (aPtr.is<JSObject>()) {
+    callback->NoteJSChild(aPtr);
+  }
 }
 
 void
@@ -102,6 +128,10 @@ nsWrapperCache::CheckCCWrapperTraversal(void* aScriptObjectHolder,
   }
 
   DebugWrapperTraversalCallback callback(wrapper);
+
+  // The CC traversal machinery cannot trigger GC; however, the analysis cannot
+  // see through the COM layer, so we use a suppression to help it.
+  JS::AutoSuppressGCAnalysis suppress;
 
   aTracer->Traverse(aScriptObjectHolder, callback);
   MOZ_ASSERT(callback.mFound,

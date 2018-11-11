@@ -8,8 +8,7 @@
 
 interface nsIFile;
 interface nsIURI;
-interface nsIDOMFile;
-interface nsIDOMWindow;
+interface mozIDOMWindowProxy;
 interface nsISimpleEnumerator;
 
 [scriptable, function, uuid(0d79adad-b244-49A5-9997-2a8cad93fc44)]
@@ -24,7 +23,7 @@ interface nsIFilePickerShownCallback : nsISupports
   void done(in short aResult);
 };
 
-[scriptable, uuid(f93509a0-0434-11e3-8ffd-0800200c9a66)]
+[scriptable, uuid(9285b984-02d3-46b4-9514-7da8c471a747)]
 interface nsIFilePicker : nsISupports
 {
   const short modeOpen        = 0;              // Load a file or directory
@@ -63,13 +62,13 @@ interface nsIFilePicker : nsISupports
   * Initialize the file picker widget.  The file picker is not valid until this
   * method is called.
   *
-  * @param      parent   nsIDOMWindow parent.  This dialog will be dependent
+  * @param      parent   mozIDOMWindow parent.  This dialog will be dependent
   *                      on this parent. parent must be non-null.
   * @param      title    The title for the file widget
   * @param      mode     load, save, or get folder
   *
   */
-  void init(in nsIDOMWindow parent, in AString title, in short mode);
+  void init(in mozIDOMWindowProxy parent, in AString title, in short mode);
 
  /**
   * Append to the  filter list with things from the predefined list
@@ -143,19 +142,19 @@ interface nsIFilePicker : nsISupports
   readonly attribute nsISimpleEnumerator files;
 
  /**
-  * Get the nsIDOMFile for the file.
+  * Get the DOM File or the DOM Directory
   *
-  * @return Returns the file currently selected as DOMFile
+  * @return Returns the file or directory currently selected DOM object.
   */
-  readonly attribute nsIDOMFile domfile;
+  readonly attribute nsISupports domFileOrDirectory;
 
  /**
-  * Get the enumerator for the selected files
+  * Get the enumerator for the selected files or directories
   * only works in the modeOpenMultiple mode
   *
-  * @return Returns the files currently selected as DOMFiles
+  * @return Returns the files/directories currently selected as DOM object.
   */
-  readonly attribute nsISimpleEnumerator domfiles;
+  readonly attribute nsISimpleEnumerator domFileOrDirectoryEnumerator;
 
  /**
   * Controls whether the chosen file(s) should be added to the system's recent
@@ -185,4 +184,11 @@ interface nsIFilePicker : nsISupports
   * (one of the modeOpen et. al. constants specified above).
   */
   readonly attribute short mode;
+
+  /**
+   * If set to non-empty string, the nsIFilePicker implementation
+   * may use okButtonLabel as the label for the button the user uses to accept
+   * file selection.
+   */
+  attribute AString okButtonLabel;
 };

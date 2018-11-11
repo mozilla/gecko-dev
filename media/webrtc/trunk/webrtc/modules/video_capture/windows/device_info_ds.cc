@@ -17,6 +17,8 @@
 #include "webrtc/system_wrappers/interface/trace.h"
 
 #include <Dvdmedia.h>
+#include <dbt.h>
+#include <ks.h>
 
 namespace webrtc
 {
@@ -41,8 +43,30 @@ const DelayValues WindowsCaptureDelays[NoWindowsCaptureDelays] = {
   },
 };
 
+LRESULT CALLBACK WndProc(HWND hWnd, UINT uiMsg, WPARAM wParam, LPARAM lParam)
+{
+    DeviceInfoDS* pParent;
+    if (uiMsg == WM_CREATE)
+    {
+        pParent = (DeviceInfoDS*)((LPCREATESTRUCT)lParam)->lpCreateParams;
+        SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)pParent);
+    }
+    else if (uiMsg == WM_DESTROY)
+    {
+        SetWindowLongPtr(hWnd, GWLP_USERDATA, NULL);
+    }
+    else if (uiMsg == WM_DEVICECHANGE)
+    {
+        pParent = (DeviceInfoDS*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+        if (pParent)
+        {
+            pParent->DeviceChange();
+        }
+    }
+    return DefWindowProc(hWnd, uiMsg, wParam, lParam);
+}
 
-  void _FreeMediaType(AM_MEDIA_TYPE& mt)
+void _FreeMediaType(AM_MEDIA_TYPE& mt)
 {
     if (mt.cbFormat != 0)
     {
@@ -112,6 +136,18 @@ DeviceInfoDS::DeviceInfoDS(const int32_t id)
                          hr);
         }
     }
+
+    _hInstance = reinterpret_cast<HINSTANCE>(GetModuleHandle(NULL));
+    _wndClass = {0};
+    _wndClass.lpfnWndProc = &WndProc;
+    _wndClass.lpszClassName = TEXT("DeviceInfoDS");
+    _wndClass.hInstance = _hInstance;
+
+    if (RegisterClass(&_wndClass))
+    {
+        _hwnd = CreateWindow(_wndClass.lpszClassName, NULL, 0, CW_USEDEFAULT,
+            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, _hInstance, this);
+    }
 }
 
 DeviceInfoDS::~DeviceInfoDS()
@@ -121,6 +157,11 @@ DeviceInfoDS::~DeviceInfoDS()
     {
         CoUninitialize();
     }
+    if (_hwnd != NULL)
+    {
+        DestroyWindow(_hwnd);
+    }
+    UnregisterClass(_wndClass.lpszClassName, _hInstance);
 }
 
 int32_t DeviceInfoDS::Init()
@@ -138,7 +179,7 @@ int32_t DeviceInfoDS::Init()
 uint32_t DeviceInfoDS::NumberOfDevices()
 {
     ReadLockScoped cs(_apiLock);
-    return GetDeviceInfo(0, 0, 0, 0, 0, 0, 0);
+    return GetDeviceInfo(0, 0, 0, 0, 0, 0, 0, 0);
 }
 
 int32_t DeviceInfoDS::GetDeviceName(
@@ -148,7 +189,8 @@ int32_t DeviceInfoDS::GetDeviceName(
                                        char* deviceUniqueIdUTF8,
                                        uint32_t deviceUniqueIdUTF8Length,
                                        char* productUniqueIdUTF8,
-                                       uint32_t productUniqueIdUTF8Length)
+                                       uint32_t productUniqueIdUTF8Length,
+                                       pid_t* pid)
 {
     ReadLockScoped cs(_apiLock);
     const int32_t result = GetDeviceInfo(deviceNumber, deviceNameUTF8,
@@ -156,7 +198,8 @@ int32_t DeviceInfoDS::GetDeviceName(
                                          deviceUniqueIdUTF8,
                                          deviceUniqueIdUTF8Length,
                                          productUniqueIdUTF8,
-                                         productUniqueIdUTF8Length);
+                                         productUniqueIdUTF8Length,
+                                         pid);
     return result > (int32_t) deviceNumber ? 0 : -1;
 }
 
@@ -167,7 +210,8 @@ int32_t DeviceInfoDS::GetDeviceInfo(
                                        char* deviceUniqueIdUTF8,
                                        uint32_t deviceUniqueIdUTF8Length,
                                        char* productUniqueIdUTF8,
-                                       uint32_t productUniqueIdUTF8Length)
+                                       uint32_t productUniqueIdUTF8Length,
+                                       pid_t* pid)
 
 {
 
@@ -492,7 +536,8 @@ int32_t DeviceInfoDS::CreateCapabilityMap(
     {
         hr = streamConfig->GetStreamCaps(tmp, &pmt,
                                          reinterpret_cast<BYTE*> (&caps));
-        if (!FAILED(hr))
+        // Bug 1181265 - perhaps a helper dll returns success with nullptr
+        if (!FAILED(hr) && pmt)
         {
             if (pmt->majortype == MEDIATYPE_Video
                 && pmt->formattype == FORMAT_VideoInfo2)
@@ -616,6 +661,10 @@ int32_t DeviceInfoDS::CreateCapabilityMap(
                     else
                         capability.maxFPS = 0;
                 }
+
+                if (frameDurationList) {
+                  CoTaskMemFree((PVOID)frameDurationList); // NULL not safe
+                }
             }
             else // use existing method in case IAMVideoControl is not supported
             {
@@ -673,24 +722,27 @@ int32_t DeviceInfoDS::CreateCapabilityMap(
                 StringFromGUID2(pmt->subtype, strGuid, 39);
                 WEBRTC_TRACE( webrtc::kTraceWarning,
                              webrtc::kTraceVideoCapture, _id,
-                             "Device support unknown media type %ls, width %d, height %d",
+                             "Device supports unknown media type %ls",
                              strGuid);
-                continue;
+                // leave rawType=kVideoUnknown
+                assert(capability.rawType == kVideoUnknown);
             }
 
-            // Get the expected capture delay from the static list
-            capability.expectedCaptureDelay
-                            = GetExpectedCaptureDelay(WindowsCaptureDelays,
-                                                      NoWindowsCaptureDelays,
-                                                      productId,
-                                                      capability.width,
-                                                      capability.height);
-            _captureCapabilities.push_back(capability);
-            _captureCapabilitiesWindows.push_back(capability);
-            WEBRTC_TRACE( webrtc::kTraceInfo, webrtc::kTraceVideoCapture, _id,
-                         "Camera capability, width:%d height:%d type:%d fps:%d",
-                         capability.width, capability.height,
-                         capability.rawType, capability.maxFPS);
+            if (capability.rawType != kVideoUnknown) {
+              // Get the expected capture delay from the static list
+              capability.expectedCaptureDelay
+                = GetExpectedCaptureDelay(WindowsCaptureDelays,
+                                          NoWindowsCaptureDelays,
+                                          productId,
+                                          capability.width,
+                                          capability.height);
+              _captureCapabilities.push_back(capability);
+              _captureCapabilitiesWindows.push_back(capability);
+              WEBRTC_TRACE( webrtc::kTraceInfo, webrtc::kTraceVideoCapture, _id,
+                            "Camera capability, width:%d height:%d type:%d fps:%d",
+                            capability.width, capability.height,
+                            capability.rawType, capability.maxFPS);
+            }
         }
         _FreeMediaType(*pmt);
         pmt = NULL;

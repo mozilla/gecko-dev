@@ -1,14 +1,8 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-XPIDL_SOURCES += [
-    'nsIRemoteOpenFileListener.idl',
-]
-
-XPIDL_MODULE = 'necko_ipc'
 
 EXPORTS.mozilla.net += [
     'ChannelEventQueue.h',
@@ -16,8 +10,6 @@ EXPORTS.mozilla.net += [
     'NeckoCommon.h',
     'NeckoMessageUtils.h',
     'NeckoParent.h',
-    'RemoteOpenFileChild.h',
-    'RemoteOpenFileParent.h',
 ]
 
 UNIFIED_SOURCES += [
@@ -25,27 +17,24 @@ UNIFIED_SOURCES += [
     'NeckoChild.cpp',
     'NeckoCommon.cpp',
     'NeckoParent.cpp',
-    'RemoteOpenFileChild.cpp',
-    'RemoteOpenFileParent.cpp',
 ]
 
 IPDL_SOURCES = [
     'NeckoChannelParams.ipdlh',
     'PChannelDiverter.ipdl',
+    'PDataChannel.ipdl',
     'PNecko.ipdl',
-    'PRemoteOpenFile.ipdl',
     'PRtspChannel.ipdl',
     'PRtspController.ipdl',
 ]
 
-FAIL_ON_WARNINGS = True
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
-FINAL_LIBRARY = 'necko'
+FINAL_LIBRARY = 'xul'
 
 LOCAL_INCLUDES += [
-    '../base/src',
-    '../protocol/http',
+    '/caps',
     '/modules/libjar',
+    '/netwerk/base',
+    '/netwerk/protocol/http',
 ]

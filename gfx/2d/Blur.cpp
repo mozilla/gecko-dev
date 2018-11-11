@@ -11,11 +11,14 @@
 #include <string.h>
 
 #include "mozilla/CheckedInt.h"
-#include "mozilla/Constants.h"
 
 #include "2D.h"
 #include "DataSurfaceHelpers.h"
 #include "Tools.h"
+
+#ifdef BUILD_ARM_NEON
+#include "mozilla/arm.h"
+#endif
 
 using namespace std;
 
@@ -335,7 +338,7 @@ AlphaBoxBlur::AlphaBoxBlur(const Rect& aRect,
                            const Rect* aSkipRect)
  : mSpreadRadius(aSpreadRadius),
    mBlurRadius(aBlurRadius),
-   mSurfaceAllocationSize(-1)
+   mSurfaceAllocationSize(0)
 {
   Rect rect(aRect);
   rect.Inflate(Size(aBlurRadius + aSpreadRadius));
@@ -400,7 +403,7 @@ AlphaBoxBlur::AlphaBoxBlur(const Rect& aRect,
     mSpreadRadius(),
     mBlurRadius(CalculateBlurRadius(Point(aSigmaX, aSigmaY))),
     mStride(aStride),
-    mSurfaceAllocationSize(-1)
+    mSurfaceAllocationSize(0)
 {
   IntRect intRect;
   if (aRect.ToIntRect(&intRect)) {
@@ -445,7 +448,7 @@ AlphaBoxBlur::GetDirtyRect()
   return nullptr;
 }
 
-int32_t
+size_t
 AlphaBoxBlur::GetSurfaceAllocationSize() const
 {
   return mSurfaceAllocationSize;
@@ -498,7 +501,11 @@ AlphaBoxBlur::Blur(uint8_t* aData)
 
       // No need to use CheckedInt here - we have validated it in the constructor.
       size_t szB = stride * size.height;
-      uint8_t* tmpData = new uint8_t[szB];
+      uint8_t* tmpData = new (std::nothrow) uint8_t[szB];
+      if (!tmpData) {
+        return;
+      }
+
       memset(tmpData, 0, szB);
 
       uint8_t* a = aData;
@@ -525,7 +532,10 @@ AlphaBoxBlur::Blur(uint8_t* aData)
       }
       delete [] tmpData;
     } else {
-      size_t integralImageStride = GetAlignedStride<16>(integralImageSize.width * 4);
+      size_t integralImageStride = GetAlignedStride<16>(integralImageSize.width, 4);
+      if (integralImageStride == 0) {
+        return;
+      }
 
       // We need to leave room for an additional 12 bytes for a maximum overrun
       // of 3 pixels in the blurring code.
@@ -540,6 +550,7 @@ AlphaBoxBlur::Blur(uint8_t* aData)
       if (!integralImage) {
         return;
       }
+
 #ifdef USE_SSE2
       if (Factory::HasSSE2()) {
         BoxBlur_SSE2(aData, horizontalLobes[0][0], horizontalLobes[0][1], verticalLobes[0][0],
@@ -550,13 +561,32 @@ AlphaBoxBlur::Blur(uint8_t* aData)
                      verticalLobes[2][1], integralImage, integralImageStride);
       } else
 #endif
+#ifdef BUILD_ARM_NEON
+      if (mozilla::supports_neon()) {
+        BoxBlur_NEON(aData, horizontalLobes[0][0], horizontalLobes[0][1], verticalLobes[0][0],
+                     verticalLobes[0][1], integralImage, integralImageStride);
+        BoxBlur_NEON(aData, horizontalLobes[1][0], horizontalLobes[1][1], verticalLobes[1][0],
+                     verticalLobes[1][1], integralImage, integralImageStride);
+        BoxBlur_NEON(aData, horizontalLobes[2][0], horizontalLobes[2][1], verticalLobes[2][0],
+                     verticalLobes[2][1], integralImage, integralImageStride);
+      } else
+#endif
       {
+#ifdef _MIPS_ARCH_LOONGSON3A
+        BoxBlur_LS3(aData, horizontalLobes[0][0], horizontalLobes[0][1], verticalLobes[0][0],
+                     verticalLobes[0][1], integralImage, integralImageStride);
+        BoxBlur_LS3(aData, horizontalLobes[1][0], horizontalLobes[1][1], verticalLobes[1][0],
+                     verticalLobes[1][1], integralImage, integralImageStride);
+        BoxBlur_LS3(aData, horizontalLobes[2][0], horizontalLobes[2][1], verticalLobes[2][0],
+                     verticalLobes[2][1], integralImage, integralImageStride);
+#else
         BoxBlur_C(aData, horizontalLobes[0][0], horizontalLobes[0][1], verticalLobes[0][0],
                   verticalLobes[0][1], integralImage, integralImageStride);
         BoxBlur_C(aData, horizontalLobes[1][0], horizontalLobes[1][1], verticalLobes[1][0],
                   verticalLobes[1][1], integralImage, integralImageStride);
         BoxBlur_C(aData, horizontalLobes[2][0], horizontalLobes[2][1], verticalLobes[2][0],
                   verticalLobes[2][1], integralImage, integralImageStride);
+#endif
       }
     }
   }
@@ -730,11 +760,11 @@ static const Float GAUSSIAN_SCALE_FACTOR = Float((3 * sqrt(2 * M_PI) / 4) * 1.5)
 IntSize
 AlphaBoxBlur::CalculateBlurRadius(const Point& aStd)
 {
-    IntSize size(static_cast<int32_t>(floor(aStd.x * GAUSSIAN_SCALE_FACTOR + 0.5)),
-                 static_cast<int32_t>(floor(aStd.y * GAUSSIAN_SCALE_FACTOR + 0.5)));
+    IntSize size(static_cast<int32_t>(floor(aStd.x * GAUSSIAN_SCALE_FACTOR + 0.5f)),
+                 static_cast<int32_t>(floor(aStd.y * GAUSSIAN_SCALE_FACTOR + 0.5f)));
 
     return size;
 }
 
-}
-}
+} // namespace gfx
+} // namespace mozilla

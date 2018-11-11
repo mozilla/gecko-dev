@@ -1,4 +1,4 @@
-// |jit-test| debug
+load(libdir + "evalInFrame.js");
 
 function g() {
     var x = 100;

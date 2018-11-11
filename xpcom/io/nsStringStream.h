@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -50,18 +51,6 @@ extern nsresult
 NS_NewByteInputStream(nsIInputStream** aStreamResult,
                       const char* aStringToRead, int32_t aLength = -1,
                       nsAssignmentType aAssignment = NS_ASSIGNMENT_DEPEND);
-
-/**
- * Factory method to get an nsInputStream from an nsAString.  Result will
- * implement nsIStringInputStream and nsISeekableStream.
- *
- * The given string data will be converted to a single-byte data buffer via
- * truncation (i.e., the high-order byte of each character will be discarded).
- * This could result in data-loss, so be careful when using this function.
- */
-extern nsresult
-NS_NewStringInputStream(nsIInputStream** aStreamResult,
-                        const nsAString& aStringToRead);
 
 /**
  * Factory method to get an nsInputStream from an nsACString.  Result will

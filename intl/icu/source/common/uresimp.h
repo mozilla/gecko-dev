@@ -1,6 +1,8 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 **********************************************************************
-*   Copyright (C) 2000-2011, International Business Machines
+*   Copyright (C) 2000-2016, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 **********************************************************************
 */
@@ -31,17 +33,6 @@
 #define URES_MAX_BUFFER_SIZE 256
 
 #define EMPTY_SET 0x2205
-
-/*
-enum UResEntryType {
-    ENTRY_OK = 0,
-    ENTRY_GOTO_ROOT = 1,
-    ENTRY_GOTO_DEFAULT = 2,
-    ENTRY_INVALID = 3
-};
-
-typedef enum UResEntryType UResEntryType;
-*/
 
 struct UResourceDataEntry;
 typedef struct UResourceDataEntry UResourceDataEntry;
@@ -90,6 +81,17 @@ struct UResourceBundle {
 };
 
 U_CAPI void U_EXPORT2 ures_initStackObject(UResourceBundle* resB);
+
+/**
+ * Opens a resource bundle for the locale;
+ * if there is not even a base language bundle, then loads the root bundle;
+ * never falls back to the default locale.
+ *
+ * This is used for algorithms that have good pan-Unicode default behavior,
+ * such as case mappings, collation, and segmentation (BreakIterator).
+ */
+U_CAPI UResourceBundle* U_EXPORT2
+ures_openNoDefault(const char* path, const char* localeID, UErrorCode* status);
 
 /* Some getters used by the copy constructor */
 U_CFUNC const char* ures_getName(const UResourceBundle* resB);
@@ -221,6 +223,14 @@ ures_getStringByKeyWithFallback(const UResourceBundle *resB,
                           const char* inKey,  
                           int32_t* len,
                           UErrorCode *status);
+
+#ifdef __cplusplus
+
+U_CAPI void U_EXPORT2
+ures_getAllItemsWithFallback(const UResourceBundle *bundle, const char *path,
+                             icu::ResourceSink &sink, UErrorCode &errorCode);
+
+#endif  /* __cplusplus */
 
 /**
  * Get a version number by key

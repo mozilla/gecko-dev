@@ -19,7 +19,7 @@
 <script type="application/javascript">
 <![CDATA[
 
-gPrefToCheck = PREF_APP_UPDATE_NEVER_BRANCH + Services.appinfo.version;
+gPrefToCheck = PREFBRANCH_APP_UPDATE_NEVER + Services.appinfo.version;
 
 const TESTS = [ {
   pageid: PAGEID_FOUND_BASIC,
@@ -33,7 +33,7 @@ function runTest() {
 
   let url = URL_HTTP_UPDATE_XML + "?showDetails=1&showPrompt=1" +
             getVersionParams();
-  setUpdateURLOverride(url);
+  setUpdateURL(url);
 
   // add the never preference for this version to verify that checking for
   // updates clears the preference.

@@ -20,7 +20,7 @@
 
 #include "mozilla/Observer.h"
 #include "mozilla/dom/ScreenOrientation.h"
-#include "mozilla/Scoped.h"
+#include "mozilla/UniquePtr.h"
 
 namespace mozilla {
 class ProcessOrientation;
@@ -32,7 +32,7 @@ typedef mozilla::Observer<SensorData> ISensorObserver;
 
 using mozilla::hal::ISensorObserver;
 using mozilla::hal::SensorData;
-using mozilla::dom::ScreenOrientation;
+using mozilla::dom::ScreenOrientationInternal;
 
 class OrientationObserver : public ISensorObserver {
 public:
@@ -51,7 +51,7 @@ public:
   void DisableAutoOrientation();
 
   // Methods called by methods in hal_impl namespace.
-  bool LockScreenOrientation(ScreenOrientation aOrientation);
+  bool LockScreenOrientation(ScreenOrientationInternal aOrientation);
   void UnlockScreenOrientation();
 
   static OrientationObserver* GetInstance();
@@ -59,7 +59,7 @@ public:
 private:
   bool mAutoOrientationEnabled;
   uint32_t mAllowedOrientations;
-  mozilla::ScopedDeletePtr<mozilla::ProcessOrientation> mOrientation;
+  mozilla::UniquePtr<mozilla::ProcessOrientation> mOrientation;
 
   static const uint32_t sDefaultOrientations =
       mozilla::dom::eScreenOrientation_PortraitPrimary |

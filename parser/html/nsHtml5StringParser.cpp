@@ -49,7 +49,7 @@ nsHtml5StringParser::ParseFragment(const nsAString& aSourceBuffer,
 
 #ifdef DEBUG
   if (!aPreventScriptExecution) {
-    NS_ASSERTION(!aTargetNode->IsInDoc(),
+    NS_ASSERTION(!aTargetNode->IsInUncomposedDoc(),
                  "If script execution isn't prevented, "
                  "the target node must not be in doc.");
     nsCOMPtr<nsIDOMDocumentFragment> domFrag = do_QueryInterface(aTargetNode);
@@ -109,6 +109,10 @@ nsHtml5StringParser::Tokenize(const nsAString& aSourceBuffer,
       buffer.adjust(lastWasCR);
       lastWasCR = false;
       if (buffer.hasMore()) {
+        if (!mTokenizer->EnsureBufferSpace(buffer.getLength())) {
+          rv = mBuilder->MarkAsBroken(NS_ERROR_OUT_OF_MEMORY);
+          break;
+        }
         lastWasCR = mTokenizer->tokenizeBuffer(&buffer);
         if (NS_FAILED(rv = mBuilder->IsBroken())) {
           break;
@@ -116,7 +120,9 @@ nsHtml5StringParser::Tokenize(const nsAString& aSourceBuffer,
       }
     }
   }
-  mTokenizer->eof();
+  if (NS_SUCCEEDED(rv)) {
+    mTokenizer->eof();
+  }
   mTokenizer->end();
   mBuilder->Finish();
   mAtomTable.Clear();

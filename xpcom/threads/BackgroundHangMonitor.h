@@ -1,4 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,8 +7,11 @@
 #ifndef mozilla_BackgroundHangMonitor_h
 #define mozilla_BackgroundHangMonitor_h
 
-#include "mozilla/RefPtr.h"
+#include "mozilla/HangAnnotations.h"
 #include "mozilla/Monitor.h"
+#include "mozilla/RefPtr.h"
+
+#include "nsString.h"
 
 #include <stdint.h>
 
@@ -15,20 +19,14 @@ namespace mozilla {
 
 namespace Telemetry {
 class ThreadHangStats;
-};
-
-// Disabled for Beta/Release builds because of bug 965392.
-// Disabled for debug builds because of bug 979069.
-#if !defined(RELEASE_BUILD) && !defined(DEBUG)
-// Undefine to disable background hang monitor
-#define MOZ_ENABLE_BACKGROUND_HANG_MONITOR
-#endif
+} // namespace Telemetry
 
 class BackgroundHangThread;
+class BackgroundHangManager;
 
 /**
  * The background hang monitor is responsible for detecting and reporting
- * hangs in background (non-main) threads. A thread registers itself using
+ * hangs in main and background threads. A thread registers itself using
  * the BackgroundHangMonitor object and periodically calls its methods to
  * inform the hang monitor of the thread's activity. Each thread is given
  * a thread name, a timeout, and a maximum timeout. If one of the thread's
@@ -105,15 +103,29 @@ class BackgroundHangThread;
  *      process_nonsync_event();
  *    }
  *  }
- *
  */
 class BackgroundHangMonitor
 {
 private:
+  friend BackgroundHangManager;
+
   RefPtr<BackgroundHangThread> mThread;
+
+  static bool ShouldDisableOnBeta(const nsCString &);
+  static bool DisableOnBeta();
 
 public:
   static const uint32_t kNoTimeout = 0;
+  enum ThreadType {
+    // For a new BackgroundHangMonitor for thread T, only create a new
+    // monitoring thread for T if one doesn't already exist. If one does,
+    // share that pre-existing monitoring thread.
+    THREAD_SHARED,
+    // For a new BackgroundHangMonitor for thread T, create a new
+    // monitoring thread for T even if there are other, pre-existing
+    // monitoring threads for T.
+    THREAD_PRIVATE
+  };
 
   /**
    * ThreadHangStatsIterator is used to iterate through the ThreadHangStats
@@ -166,6 +178,11 @@ public:
   static void Shutdown();
 
   /**
+   * Returns true if BHR is disabled.
+   */
+  static bool IsDisabled();
+
+  /**
    * Start monitoring hangs for the current thread.
    *
    * @param aName Name to identify the thread with
@@ -173,10 +190,14 @@ public:
    *  activity before registering a hang
    * @param aMaxTimeoutMs Amount of time in milliseconds without
    *  activity before registering a permanent hang
+   * @param aThreadType
+   *  The ThreadType type of monitoring thread that should be created
+   *  for this monitor. See the documentation for ThreadType.
    */
   BackgroundHangMonitor(const char* aName,
                         uint32_t aTimeoutMs,
-                        uint32_t aMaxTimeoutMs);
+                        uint32_t aMaxTimeoutMs,
+                        ThreadType aThreadType = THREAD_SHARED);
 
   /**
    * Monitor hangs using an existing monitor
@@ -203,6 +224,21 @@ public:
    * NotifyActivity when subsequently exiting the wait state.
    */
   void NotifyWait();
+
+  /**
+   * Register an annotator with BHR for the current thread.
+   * @param aAnnotator annotator to register
+   * @return true if the annotator was registered, otherwise false.
+   */
+  static bool RegisterAnnotator(HangMonitor::Annotator& aAnnotator);
+
+  /**
+   * Unregister an annotator that was previously registered via
+   * RegisterAnnotator.
+   * @param aAnnotator annotator to unregister
+   * @return true if there are still remaining annotators registered
+   */
+  static bool UnregisterAnnotator(HangMonitor::Annotator& aAnnotator);
 };
 
 } // namespace mozilla

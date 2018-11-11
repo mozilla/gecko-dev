@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -18,37 +18,38 @@ USING_ARCHIVEREADER_NAMESPACE
 /**
  * Class used to make asynchronous the ArchiveRequest.
  */
-class ArchiveRequestEvent : public nsRunnable
+class ArchiveRequestEvent : public Runnable
 {
 public:
   NS_DECL_NSIRUNNABLE
 
-  ArchiveRequestEvent(ArchiveRequest* request)
-  : mRequest(request)
+  explicit ArchiveRequestEvent(ArchiveRequest* aRequest)
+  : mRequest(aRequest)
   {
     MOZ_COUNT_CTOR(ArchiveRequestEvent);
   }
 
+protected:
   ~ArchiveRequestEvent()
   {
     MOZ_COUNT_DTOR(ArchiveRequestEvent);
   }
 
 private: //data
-  nsRefPtr<ArchiveRequest> mRequest;
+  RefPtr<ArchiveRequest> mRequest;
 };
 
 NS_IMETHODIMP
 ArchiveRequestEvent::Run()
 {
-  NS_ABORT_IF_FALSE(mRequest, "the request is not longer valid");
+  MOZ_ASSERT(mRequest, "the request is not longer valid");
   mRequest->Run();
   return NS_OK;
 }
 
 // ArchiveRequest
 
-ArchiveRequest::ArchiveRequest(nsPIDOMWindow* aWindow,
+ArchiveRequest::ArchiveRequest(nsPIDOMWindowInner* aWindow,
                                ArchiveReader* aReader)
 : DOMRequest(aWindow),
   mArchiveReader(aReader)
@@ -58,7 +59,7 @@ ArchiveRequest::ArchiveRequest(nsPIDOMWindow* aWindow,
   MOZ_COUNT_CTOR(ArchiveRequest);
 
   /* An event to make this request asynchronous: */
-  nsRefPtr<ArchiveRequestEvent> event = new ArchiveRequestEvent(this);
+  RefPtr<ArchiveRequestEvent> event = new ArchiveRequestEvent(this);
   NS_DispatchToCurrentThread(event);
 }
 
@@ -76,9 +77,9 @@ ArchiveRequest::PreHandleEvent(EventChainPreVisitor& aVisitor)
 }
 
 /* virtual */ JSObject*
-ArchiveRequest::WrapObject(JSContext* aCx)
+ArchiveRequest::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return ArchiveRequestBinding::Wrap(aCx, this);
+  return ArchiveRequestBinding::Wrap(aCx, this, aGivenProto);
 }
 
 ArchiveReader*
@@ -121,7 +122,7 @@ ArchiveRequest::OpGetFiles()
 }
 
 nsresult
-ArchiveRequest::ReaderReady(nsTArray<nsCOMPtr<nsIDOMFile> >& aFileList,
+ArchiveRequest::ReaderReady(nsTArray<RefPtr<File>>& aFileList,
                             nsresult aStatus)
 {
   if (NS_FAILED(aStatus)) {
@@ -131,18 +132,11 @@ ArchiveRequest::ReaderReady(nsTArray<nsCOMPtr<nsIDOMFile> >& aFileList,
 
   nsresult rv;
 
-  nsCOMPtr<nsIGlobalObject> globalObject = do_QueryInterface(GetOwner());
-  if (NS_WARN_IF(!globalObject)) {
+  AutoJSAPI jsapi;
+  if (NS_WARN_IF(!jsapi.Init(GetOwner()))) {
     return NS_ERROR_UNEXPECTED;
   }
-
-  AutoJSAPI jsapi;
   JSContext* cx = jsapi.cx();
-
-  JS::Rooted<JSObject*> global(cx, globalObject->GetGlobalJSObject());
-  NS_ASSERTION(global, "Failed to get global object!");
-
-  JSAutoCompartment ac(cx, global);
 
   JS::Rooted<JS::Value> result(cx);
   switch (mOperation) {
@@ -180,10 +174,9 @@ ArchiveRequest::ReaderReady(nsTArray<nsCOMPtr<nsIDOMFile> >& aFileList,
 nsresult
 ArchiveRequest::GetFilenamesResult(JSContext* aCx,
                                    JS::Value* aValue,
-                                   nsTArray<nsCOMPtr<nsIDOMFile> >& aFileList)
+                                   nsTArray<RefPtr<File>>& aFileList)
 {
   JS::Rooted<JSObject*> array(aCx, JS_NewArrayObject(aCx, aFileList.Length()));
-  nsresult rv;
 
   if (!array) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -191,17 +184,15 @@ ArchiveRequest::GetFilenamesResult(JSContext* aCx,
 
   JS::Rooted<JSString*> str(aCx);
   for (uint32_t i = 0; i < aFileList.Length(); ++i) {
-    nsCOMPtr<nsIDOMFile> file = aFileList[i];
+    RefPtr<File> file = aFileList[i];
 
     nsString filename;
-    rv = file->GetName(filename);
-    NS_ENSURE_SUCCESS(rv, rv);
+    file->GetName(filename);
 
     str = JS_NewUCStringCopyZ(aCx, filename.get());
     NS_ENSURE_TRUE(str, NS_ERROR_OUT_OF_MEMORY);
 
-    if (NS_FAILED(rv) ||
-        !JS_DefineElement(aCx, array, i, str, JSPROP_ENUMERATE)) {
+    if (!JS_DefineElement(aCx, array, i, str, JSPROP_ENUMERATE)) {
       return NS_ERROR_FAILURE;
     }
   }
@@ -210,25 +201,27 @@ ArchiveRequest::GetFilenamesResult(JSContext* aCx,
     return NS_ERROR_FAILURE;
   }
 
-  *aValue = OBJECT_TO_JSVAL(array);
+  aValue->setObject(*array);
   return NS_OK;
 }
 
 nsresult
 ArchiveRequest::GetFileResult(JSContext* aCx,
                               JS::MutableHandle<JS::Value> aValue,
-                              nsTArray<nsCOMPtr<nsIDOMFile> >& aFileList)
+                              nsTArray<RefPtr<File>>& aFileList)
 {
   for (uint32_t i = 0; i < aFileList.Length(); ++i) {
-    nsCOMPtr<nsIDOMFile> file = aFileList[i];
+    RefPtr<File> file = aFileList[i];
 
     nsString filename;
-    nsresult rv = file->GetName(filename);
-    NS_ENSURE_SUCCESS(rv, rv);
+    file->GetName(filename);
 
     if (filename == mFilename) {
-      return nsContentUtils::WrapNative(aCx, file, &NS_GET_IID(nsIDOMFile),
-                                        aValue);
+      if (!ToJSValue(aCx, file, aValue)) {
+        return NS_ERROR_FAILURE;
+      }
+
+      return NS_OK;
     }
   }
 
@@ -238,7 +231,7 @@ ArchiveRequest::GetFileResult(JSContext* aCx,
 nsresult
 ArchiveRequest::GetFilesResult(JSContext* aCx,
                                JS::MutableHandle<JS::Value> aValue,
-                               nsTArray<nsCOMPtr<nsIDOMFile> >& aFileList)
+                               nsTArray<RefPtr<File>>& aFileList)
 {
   JS::Rooted<JSObject*> array(aCx, JS_NewArrayObject(aCx, aFileList.Length()));
   if (!array) {
@@ -246,13 +239,14 @@ ArchiveRequest::GetFilesResult(JSContext* aCx,
   }
 
   for (uint32_t i = 0; i < aFileList.Length(); ++i) {
-    nsCOMPtr<nsIDOMFile> file = aFileList[i];
+    RefPtr<File> file = aFileList[i];
 
     JS::Rooted<JS::Value> value(aCx);
-    nsresult rv = nsContentUtils::WrapNative(aCx, file, &NS_GET_IID(nsIDOMFile),
-                                             &value);
-    if (NS_FAILED(rv) ||
-        !JS_DefineElement(aCx, array, i, value, JSPROP_ENUMERATE)) {
+    if (!ToJSValue(aCx, file, &value)) {
+      return NS_ERROR_FAILURE;
+    }
+
+    if (!JS_DefineElement(aCx, array, i, value, JSPROP_ENUMERATE)) {
       return NS_ERROR_FAILURE;
     }
   }
@@ -263,12 +257,12 @@ ArchiveRequest::GetFilesResult(JSContext* aCx,
 
 // static
 already_AddRefed<ArchiveRequest>
-ArchiveRequest::Create(nsPIDOMWindow* aOwner,
+ArchiveRequest::Create(nsPIDOMWindowInner* aOwner,
                        ArchiveReader* aReader)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  nsRefPtr<ArchiveRequest> request = new ArchiveRequest(aOwner, aReader);
+  RefPtr<ArchiveRequest> request = new ArchiveRequest(aOwner, aReader);
 
   return request.forget();
 }

@@ -1,0 +1,48 @@
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+TEST_DIRS += ['test']
+
+EXPORTS.mozilla.dom += [
+    'ContentVerifier.h',
+    'nsContentSecurityManager.h',
+    'nsCSPContext.h',
+    'nsCSPService.h',
+    'nsCSPUtils.h',
+    'nsMixedContentBlocker.h',
+    'SRICheck.h',
+    'SRILogHelper.h',
+    'SRIMetadata.h',
+]
+
+EXPORTS += [
+    'nsContentSecurityManager.h',
+    'nsMixedContentBlocker.h',
+]
+
+UNIFIED_SOURCES += [
+    'ContentVerifier.cpp',
+    'nsContentSecurityManager.cpp',
+    'nsCSPContext.cpp',
+    'nsCSPParser.cpp',
+    'nsCSPService.cpp',
+    'nsCSPUtils.cpp',
+    'nsMixedContentBlocker.cpp',
+    'SRICheck.cpp',
+    'SRIMetadata.cpp',
+]
+
+include('/ipc/chromium/chromium-config.mozbuild')
+
+FINAL_LIBRARY = 'xul'
+LOCAL_INCLUDES += [
+    '/caps',
+    '/netwerk/base',
+]
+
+if CONFIG['GNU_CC']:
+    CFLAGS += ['-Wformat-security']
+    CXXFLAGS += ['-Wformat-security']

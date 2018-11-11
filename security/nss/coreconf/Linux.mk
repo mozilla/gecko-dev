@@ -3,6 +3,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+CC     ?= gcc
+CCC    ?= g++
+RANLIB ?= ranlib
+
 include $(CORE_DEPTH)/coreconf/UNIX.mk
 
 #
@@ -16,33 +20,35 @@ ifeq ($(USE_PTHREADS),1)
 	IMPL_STRATEGY = _PTH
 endif
 
-CC			= gcc
-CCC			= g++
-RANLIB			= ranlib
-
 DEFAULT_COMPILER = gcc
 
 ifeq ($(OS_TARGET),Android)
 ifndef ANDROID_NDK
 	$(error Must set ANDROID_NDK to the path to the android NDK first)
 endif
+ifndef ANDROID_TOOLCHAIN_VERSION
+	$(error Must set ANDROID_TOOLCHAIN_VERSION to the requested version number)
+endif
 	ANDROID_PREFIX=$(OS_TEST)-linux-androideabi
-	ANDROID_TARGET=$(ANDROID_PREFIX)-4.4.3
+	ANDROID_TARGET=$(ANDROID_PREFIX)-$(ANDROID_TOOLCHAIN_VERSION)
 	# should autodetect which linux we are on, currently android only
 	# supports linux-x86 prebuilts
 	ANDROID_TOOLCHAIN=$(ANDROID_NDK)/toolchains/$(ANDROID_TARGET)/prebuilt/linux-x86
 	ANDROID_SYSROOT=$(ANDROID_NDK)/platforms/android-$(OS_TARGET_RELEASE)/arch-$(OS_TEST)
 	ANDROID_CC=$(ANDROID_TOOLCHAIN)/bin/$(ANDROID_PREFIX)-gcc
+	ANDROID_CCC=$(ANDROID_TOOLCHAIN)/bin/$(ANDROID_PREFIX)-g++
+        NSS_DISABLE_GTESTS=1
 # internal tools need to be built with the native compiler
 ifndef INTERNAL_TOOLS
 	CC = $(ANDROID_CC) --sysroot=$(ANDROID_SYSROOT)
+	CCC = $(ANDROID_CCC) --sysroot=$(ANDROID_SYSROOT)
 	DEFAULT_COMPILER=$(ANDROID_PREFIX)-gcc
 	ARCHFLAG = --sysroot=$(ANDROID_SYSROOT)
 	DEFINES += -DNO_SYSINFO -DNO_FORK_CHECK -DANDROID
 	CROSS_COMPILE = 1
 endif
 endif
-ifeq ($(OS_TEST),ppc64)
+ifeq (,$(filter-out ppc64 ppc64le,$(OS_TEST)))
 	CPU_ARCH	= ppc
 ifeq ($(USE_64),1)
 	ARCHFLAG	= -m64
@@ -125,12 +131,15 @@ ifdef MOZ_DEBUG_SYMBOLS
 endif
 endif
 
+ifndef COMPILER_TAG
+COMPILER_TAG := _$(CC_NAME)
+endif
 
 ifeq ($(USE_PTHREADS),1)
 OS_PTHREAD = -lpthread 
 endif
 
-OS_CFLAGS		= $(DSO_CFLAGS) $(OS_REL_CFLAGS) $(ARCHFLAG) -Wall -Werror-implicit-function-declaration -Wno-switch -pipe -ffunction-sections -fdata-sections -DLINUX -Dlinux -DHAVE_STRERROR
+OS_CFLAGS		= $(DSO_CFLAGS) $(OS_REL_CFLAGS) $(ARCHFLAG) -pipe -ffunction-sections -fdata-sections -DLINUX -Dlinux -DHAVE_STRERROR
 OS_LIBS			= $(OS_PTHREAD) -ldl -lc
 
 ifdef USE_PTHREADS
@@ -144,8 +153,12 @@ DSO_LDOPTS		= -shared $(ARCHFLAG) -Wl,--gc-sections
 # The linker on Red Hat Linux 7.2 and RHEL 2.1 (GNU ld version 2.11.90.0.8)
 # incorrectly reports undefined references in the libraries we link with, so
 # we don't use -z defs there.
+# Also, -z defs conflicts with Address Sanitizer, which emits relocations
+# against the libsanitizer runtime built into the main executable.
 ZDEFS_FLAG		= -Wl,-z,defs
+ifneq ($(USE_ASAN),1)
 DSO_LDOPTS		+= $(if $(findstring 2.11.90.0.8,$(shell ld -v)),,$(ZDEFS_FLAG))
+endif
 LDFLAGS			+= $(ARCHFLAG)
 
 # On Maemo, we need to use the -rpath-link flag for even the standard system
@@ -201,3 +214,11 @@ PROCESS_MAP_FILE = grep -v ';-' $< | \
 ifeq ($(OS_RELEASE),2.4)
 DEFINES += -DNO_FORK_CHECK
 endif
+
+ifdef USE_GCOV
+OS_CFLAGS += --coverage
+LDFLAGS += --coverage
+DSO_LDOPTS += --coverage
+endif
+
+include $(CORE_DEPTH)/coreconf/sanitizers.mk

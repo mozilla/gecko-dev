@@ -23,6 +23,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsXPCOM.h"
 #include "prprf.h"
+#include "mozilla/Sprintf.h"
 
 // Define CIDs...
 static NS_DEFINE_CID(kIOServiceCID,              NS_IOSERVICE_CID);
@@ -53,7 +54,12 @@ nsresult writeoutto(const char* i_pURL, char** o_Result, int32_t urlFactory = UR
                 return NS_ERROR_FAILURE;
             }
             pURL = url;
-            pURL->SetSpec(nsDependentCString(i_pURL));
+            result = pURL->SetSpec(nsDependentCString(i_pURL));
+            if (NS_FAILED(result))
+            {
+                printf("SetSpec failed\n");
+                return NS_ERROR_FAILURE;
+            }
             break;
         }
         case URL_FACTORY_DEFAULT: {
@@ -92,7 +98,7 @@ nsresult writeoutto(const char* i_pURL, char** o_Result, int32_t urlFactory = UR
         output += ',';
         rv = tURL->GetPort(&port);
         char portbuffer[40];
-        PR_snprintf(portbuffer, sizeof(portbuffer), "%d", port);
+        SprintfLiteral(portbuffer, "%d", port);
         output.Append(portbuffer);
         output += ',';
         rv = tURL->GetDirectory(temp);
@@ -227,10 +233,7 @@ nsresult makeAbsTest(const char* i_BaseURI, const char* relativePortion,
     status = baseURL->Resolve(nsDependentCString(relativePortion), newURL);
     if (NS_FAILED(status)) return status;
 
-    nsAutoCString temp;
-    baseURL->GetSpec(temp);
-
-    printf("Analyzing %s\n", temp.get());
+    printf("Analyzing %s\n", baseURL->GetSpecOrDefault().get());
     printf("With      %s\n", relativePortion);
 
     printf("Got       %s\n", newURL.get());
@@ -336,7 +339,7 @@ nsresult doMakeAbsTest(const char* i_URL = 0, const char* i_relativePortion=0)
         { "http://a/b/c/d;p?q#f",     "g/h/../H?http://foo#bar", "http://a/b/c/g/H?http://foo#bar" },
         { "http://a/b/c/d;p?q#f",     "g/h/../H;baz?http://foo", "http://a/b/c/g/H;baz?http://foo" },
         { "http://a/b/c/d;p?q#f",     "g/h/../H;baz?http://foo#bar", "http://a/b/c/g/H;baz?http://foo#bar" },
-        { "http://a/b/c/d;p?q#f",     "g/h/../H;baz?C:\\temp", "http://a/b/c/g/H;baz?C:\\temp" },
+        { "http://a/b/c/d;p?q#f",     R"(g/h/../H;baz?C:\temp)", R"(http://a/b/c/g/H;baz?C:\temp)" },
         { "http://a/b/c/d;p?q#f",     "", "http://a/b/c/d;p?q" },
         { "http://a/b/c/d;p?q#f",     "#", "http://a/b/c/d;p?q#" },
         { "http://a/b/c;p/d;p?q#f",   "../g;p" , "http://a/b/g;p" },
@@ -346,10 +349,10 @@ nsresult doMakeAbsTest(const char* i_URL = 0, const char* i_relativePortion=0)
     const int numTests = sizeof(tests) / sizeof(tests[0]);
     int failed = 0;
     nsresult rv;
-    for (int i = 0 ; i<numTests ; ++i)
+    for (auto & test : tests)
     {
-        rv = makeAbsTest(tests[i].baseURL, tests[i].relativeURL,
-                         tests[i].expectedResult);
+        rv = makeAbsTest(test.baseURL, test.relativeURL,
+                         test.expectedResult);
         if (NS_FAILED(rv))
             failed++;
     }

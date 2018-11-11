@@ -8,7 +8,7 @@
 #ifndef mozilla_layers_ShadowLayerChild_h
 #define mozilla_layers_ShadowLayerChild_h
 
-#include "mozilla/Attributes.h"         // for MOZ_OVERRIDE
+#include "mozilla/Attributes.h"         // for override
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/layers/PLayerChild.h"  // for PLayerChild
 
@@ -20,13 +20,14 @@ class ShadowableLayer;
 class ShadowLayerChild : public PLayerChild
 {
 public:
-  ShadowLayerChild(ShadowableLayer* aLayer);
+  ShadowLayerChild();
   virtual ~ShadowLayerChild();
 
+  void SetShadowableLayer(ShadowableLayer* aLayer);
   ShadowableLayer* layer() const { return mLayer; }
 
 protected:
-  virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
+  virtual void ActorDestroy(ActorDestroyReason why) override;
 
 private:
   ShadowableLayer* mLayer;

@@ -6,5 +6,5 @@ function f() {
     gc();
 }
 
-if (typeof SharedArrayBuffer !== "undefined")
+if (this.SharedArrayBuffer)
     f();

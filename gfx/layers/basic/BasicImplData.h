@@ -15,13 +15,12 @@ namespace mozilla {
 namespace layers {
 
 class ReadbackProcessor;
-class SurfaceDescriptor;
 
 /**
  * This is the ImplData for all Basic layers. It also exposes methods
  * private to the Basic implementation that are common to all Basic layer types.
  * In particular, there is an internal Paint() method that we can use
- * to paint the contents of non-Thebes layers.
+ * to paint the contents of non-PaintedLayers.
  *
  * The class hierarchy for Basic layers is like this:
  *                                 BasicImplData
@@ -31,9 +30,9 @@ class SurfaceDescriptor;
  *  |    |                          |   |   |
  *  |    +-> BasicContainerLayer <--+   |   |
  *  |                                   |   |
- *  +-> ThebesLayer                     |   |
+ *  +-> PaintedLayer                     |   |
  *  |    |                              |   |
- *  |    +-> BasicThebesLayer <---------+   |
+ *  |    +-> BasicPaintedLayer <---------+   |
  *  |                                       |
  *  +-> ImageLayer                          |
  *       |                                  |
@@ -64,17 +63,17 @@ public:
                      Layer* aMaskLayer) {}
 
   /**
-   * Like Paint() but called for ThebesLayers with the additional parameters
+   * Like Paint() but called for PaintedLayers with the additional parameters
    * they need.
    * If mClipToVisibleRegion is set, then the layer must clip to its
    * effective visible region (snapped or unsnapped, it doesn't matter).
    */
   virtual void PaintThebes(gfxContext* aContext,
                            Layer* aMasklayer,
-                           LayerManager::DrawThebesLayerCallback aCallback,
+                           LayerManager::DrawPaintedLayerCallback aCallback,
                            void* aCallbackData) {}
 
-  virtual void Validate(LayerManager::DrawThebesLayerCallback aCallback,
+  virtual void Validate(LayerManager::DrawPaintedLayerCallback aCallback,
                         void* aCallbackData,
                         ReadbackProcessor* aReadback) {}
 
@@ -105,10 +104,6 @@ public:
   }
 
   gfx::CompositionOp GetOperator() const { return mOperator; }
-  gfxContext::GraphicsOperator DeprecatedGetOperator() const
-  {
-    return gfx::ThebesOp(mOperator);
-  }
 
   /**
    * Return a surface for this layer. Will use an existing surface, if
@@ -117,7 +112,7 @@ public:
    * return false if a surface cannot be created.  If true is
    * returned, only one of |aSurface| or |aDescriptor| is valid.
    */
-  virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() { return nullptr; }
+  virtual already_AddRefed<gfx::SourceSurface> GetAsSourceSurface() { return nullptr; }
 
   bool GetClipToVisibleRegion() { return mClipToVisibleRegion; }
   void SetClipToVisibleRegion(bool aClip) { mClipToVisibleRegion = aClip; }
@@ -131,7 +126,7 @@ protected:
   gfx::CompositionOp mOperator;
 };
 
-} // layers
-} // mozilla
+} // namespace layers
+} // namespace mozilla
 
 #endif

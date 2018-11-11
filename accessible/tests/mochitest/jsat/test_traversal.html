@@ -21,7 +21,7 @@
   <script type="application/javascript" src="../layout.js"></script>
 
   <script type="application/javascript">
-    Components.utils.import("resource://gre/modules/accessibility/TraversalRules.jsm");
+    Components.utils.import("resource://gre/modules/accessibility/Traversal.jsm");
     var gBrowserWnd = null;
     var gQueue = null;
 
@@ -56,7 +56,7 @@
                               'select-1-1', 'select-1-2', 'checkbox-1-2',
                               'select-1-3', 'input-1-5', 'button-1-3',
                               'button-2-1', 'button-2-2', 'button-2-3',
-                              'button-2-4', 'checkbox-1-5']);
+                              'button-2-4', 'checkbox-1-5', 'switch-1']);
 
       queueTraversalSequence(gQueue, docAcc, TraversalRules.Button, null,
                              ['button-1-1', 'button-1-2', 'button-1-3',
@@ -67,7 +67,8 @@
                              ['radio-1-1', 'radio-1-2']);
 
       queueTraversalSequence(gQueue, docAcc, TraversalRules.Checkbox, null,
-                             ['checkbox-1-1', 'checkbox-1-2', 'checkbox-1-5']);
+                             ['checkbox-1-1', 'checkbox-1-2', 'checkbox-1-5',
+                              'switch-1']);
 
       queueTraversalSequence(gQueue, docAcc, TraversalRules.Combobox, null,
                              ['select-1-1', 'select-1-2', 'select-1-3']);
@@ -94,7 +95,7 @@
                              ['separator-1', 'separator-2']);
 
       queueTraversalSequence(gQueue, docAcc, TraversalRules.Table, null,
-                             ['table-1', 'table-2']);
+                             ['table-1', 'grid', 'table-2']);
 
       queueTraversalSequence(gQueue, docAcc, TraversalRules.Simple, null,
                              ['heading-1', 'Name:', 'input-1-1', 'label-1-2',
@@ -114,13 +115,31 @@
                               ' power is unfathomable.',
                               '• Lists of Programming Languages', 'Lisp ',
                               '1. Scheme', '2. Racket', '3. Clojure',
-                              '4. Standard Lisp', 'link-0', ' Lisp', 'checkbox-1-5',
-                              ' LeLisp', '• JavaScript', 'heading-5',
-                              'image-2', 'image-3', 'Not actually an image',
-                              'link-1', 'anchor-1', 'link-2', 'anchor-2', 'link-3',
-                              '3', '1', '4', '1', 'Just an innocuous separator',
+                              '4. Standard Lisp', 'link-0', ' Lisp',
+                              'checkbox-1-5', ' LeLisp', '• JavaScript',
+                              'heading-5', 'image-2', 'image-3',
+                              'Not actually an image', 'link-1', 'anchor-1',
+                              'link-2', 'anchor-2', 'link-3', '3', '1', '4',
+                              '1', 'Sunday', 'M', 'Week 1', '3', '4', '7', '2',
+                              '5 8', 'gridcell4', 'Just an innocuous separator',
                               'Dirty Words', 'Meaning', 'Mud', 'Wet Dirt',
-                              'Dirt', 'Messy Stuff']);
+                              'Dirt', 'Messy Stuff', 'statusbar-1', 'statusbar-2',
+                              'switch-1', 'This is a MathML formula ', 'math-1',
+                              'with some text after.']);
+
+      queueTraversalSequence(gQueue, docAcc, TraversalRules.Landmark, null,
+                             ['header-1', 'main-1', 'footer-1']);
+
+
+      queueTraversalSequence(gQueue, docAcc, TraversalRules.Control, null,
+                             ['input-1-1', 'label-1-2', 'button-1-1',
+                              'radio-1-1', 'radio-1-2', 'input-1-3',
+                              'input-1-4', 'button-1-2', 'checkbox-1-1',
+                              'select-1-1', 'select-1-2', 'checkbox-1-2',
+                              'select-1-3', 'input-1-5', 'button-1-3',
+                              'button-2-1', 'button-2-2', 'button-2-3',
+                              'button-2-4', 'link-0', 'checkbox-1-5',
+                              'link-1', 'link-2', 'link-3', 'switch-1']);
 
       gQueue.invoke();
     }

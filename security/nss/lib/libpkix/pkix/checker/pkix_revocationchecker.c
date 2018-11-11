@@ -137,7 +137,7 @@ pkix_RevocationChecker_RegisterSelf(void *plContext)
         PKIX_RETURN(REVOCATIONCHECKER);
 }
 
-/* Sort methods by theirs priorities */
+/* Sort methods by their priorities (lower priority = higher preference) */
 static PKIX_Error *
 pkix_RevocationChecker_SortComparator(
         PKIX_PL_Object *obj1,
@@ -152,7 +152,13 @@ pkix_RevocationChecker_SortComparator(
     method1 = (pkix_RevocationMethod *)obj1;
     method2 = (pkix_RevocationMethod *)obj2;
     
-    *pResult = (method1->priority > method2->priority);
+    if (method1->priority < method2->priority) {
+      *pResult = -1;
+    } else if (method1->priority > method2->priority) {
+      *pResult = 1;
+    } else {
+      *pResult = 0;
+    }
     
     PKIX_RETURN(BUILD);
 }
@@ -343,7 +349,7 @@ PKIX_RevocationChecker_Check(
      *    first we are going to test all local(cached) info
      *    second, all remote info(fetching) */
     for (tries = 0;tries < 2;tries++) {
-        int methodNum = 0;
+        unsigned int methodNum = 0;
         for (;methodNum < revList->length;methodNum++) {
             PKIX_UInt32 methodFlags = 0;
 
@@ -366,7 +372,8 @@ PKIX_RevocationChecker_Check(
                                                methodFlags, 
                                                chainVerificationState,
                                                &revStatus,
-                                               pReasonCode, plContext),
+                                               (CERTCRLEntryReasonCode *)pReasonCode,
+                                               plContext),
                     PKIX_REVCHECKERCHECKFAILED);
                 methodStatus[methodNum] = revStatus;
                 if (revStatus == PKIX_RevStatus_Revoked) {
@@ -391,7 +398,8 @@ PKIX_RevocationChecker_Check(
                         (*method->externalRevChecker)(cert, issuer, date,
                                                       method,
                                                       procParams, methodFlags,
-                                                      &revStatus, pReasonCode,
+                                                      &revStatus,
+                                                      (CERTCRLEntryReasonCode *)pReasonCode,
                                                       &nbioContext, plContext),
                         PKIX_REVCHECKERCHECKFAILED);
                     methodStatus[methodNum] = revStatus;

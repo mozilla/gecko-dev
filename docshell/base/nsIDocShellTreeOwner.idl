@@ -11,28 +11,11 @@
  */
 
 interface nsIDocShellTreeItem;
+interface nsITabParent;
 
-[scriptable, uuid(6cd89e60-1060-491e-8c31-ce969435ec56)]
+[scriptable, uuid(0e3dc4b1-4cea-4a37-af71-79f0afd07574)]
 interface nsIDocShellTreeOwner : nsISupports
 {
-	/*
-	Return the child DocShellTreeItem with the specified name.
-	name - This is the name of the item that is trying to be found.
-	aRequestor - This is the docshellTreeItem that is requesting the find.  This
-	parameter is used to identify when the child is asking its parent to find
-	a child with the specific name.  The parent uses this parameter to ensure
-	a resursive state does not occur by not again asking the requestor for find
-	a shell by the specified name.  Inversely the child uses it to ensure it
-	does not ask its parent to do the search if its parent is the one that
-	asked it to search.
-	aOriginalRequestor - The original treeitem that made the request, if any.
-	This is used to ensure that we don't run into cross-site issues.
-
-	*/
-	nsIDocShellTreeItem findItemWithName(in wstring name, 
-		in nsIDocShellTreeItem aRequestor,
-		in nsIDocShellTreeItem aOriginalRequestor);
-
 	/**
 	 * Called when a content shell is added to the docshell tree.  This is
 	 * _only_ called for "root" content shells (that is, ones whose parent is a
@@ -64,14 +47,40 @@ interface nsIDocShellTreeOwner : nsISupports
 	*/
 	readonly attribute nsIDocShellTreeItem primaryContentShell;
 
-	[implicit_jscontext]
-	readonly attribute jsval contentWindow;
+	void tabParentAdded(in nsITabParent aTab, in boolean aPrimary);
+	void tabParentRemoved(in nsITabParent aTab);
+
+	/*
+	In multiprocess case we may not have primaryContentShell but
+	primaryTabParent.
+	 */
+	readonly attribute nsITabParent primaryTabParent;
 
 	/*
 	Tells the tree owner to size its window or parent window in such a way
 	that the shell passed along will be the size specified.
 	*/
 	void sizeShellTo(in nsIDocShellTreeItem shell, in long cx, in long cy);
+
+	/*
+	Gets the size of the primary content area in CSS pixels. This should work
+	for both in-process and out-of-process content areas.
+	*/
+	void getPrimaryContentSize(out long width, out long height);
+	/*
+	Sets the size of the primary content area in CSS pixels. This should work
+	for both in-process and out-of-process content areas.
+	*/
+	void setPrimaryContentSize(in long width, in long height);
+
+	/*
+	Gets the size of the root docshell in CSS pixels.
+	*/
+	void getRootShellSize(out long width, out long height);
+	/*
+	Sets the size of the root docshell in CSS pixels.
+	*/
+	void setRootShellSize(in long width, in long height);
 
 	/*
 	Sets the persistence of different attributes of the window.
@@ -91,4 +100,10 @@ interface nsIDocShellTreeOwner : nsISupports
 	Gets the number of targettable docshells.
 	*/
 	readonly attribute unsigned long targetableShellCount;
+
+	/*
+	Returns true if there is a primary content shell or a primary
+	tab parent.
+	*/
+	readonly attribute bool hasPrimaryContent;
 };

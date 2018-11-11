@@ -13,7 +13,6 @@
 #include "webrtc/modules/audio_device/win/audio_device_wave_win.h"
 
 #include "webrtc/system_wrappers/interface/event_wrapper.h"
-#include "webrtc/system_wrappers/interface/thread_wrapper.h"
 #include "webrtc/system_wrappers/interface/trace.h"
 
 #include <windows.h>
@@ -56,8 +55,6 @@ AudioDeviceWindowsWave::AudioDeviceWindowsWave(const int32_t id) :
     _hSetCaptureVolumeThread(NULL),
     _hShutdownSetVolumeEvent(NULL),
     _hSetCaptureVolumeEvent(NULL),
-    _ptrThread(NULL),
-    _threadID(0),
     _critSectCb(*CriticalSectionWrapper::CreateCriticalSection()),
     _id(id),
     _mixerManager(id),
@@ -231,43 +228,23 @@ int32_t AudioDeviceWindowsWave::Init()
     }
 
     const char* threadName = "webrtc_audio_module_thread";
-    _ptrThread = ThreadWrapper::CreateThread(ThreadFunc,
-                                             this,
-                                             kRealtimePriority,
-                                             threadName);
-    if (_ptrThread == NULL)
-    {
-        WEBRTC_TRACE(kTraceCritical, kTraceAudioDevice, _id,
-                     "failed to create the audio thread");
-        return -1;
-    }
-
-    unsigned int threadID(0);
-    if (!_ptrThread->Start(threadID))
+    _ptrThread = ThreadWrapper::CreateThread(ThreadFunc, this, threadName);
+    if (!_ptrThread->Start())
     {
         WEBRTC_TRACE(kTraceCritical, kTraceAudioDevice, _id,
                      "failed to start the audio thread");
-        delete _ptrThread;
-        _ptrThread = NULL;
+        _ptrThread.reset();
         return -1;
     }
-    _threadID = threadID;
+    _ptrThread->SetPriority(kRealtimePriority);
 
     const bool periodic(true);
     if (!_timeEvent.StartTimer(periodic, TIMER_PERIOD_MS))
     {
         WEBRTC_TRACE(kTraceCritical, kTraceAudioDevice, _id,
                      "failed to start the timer event");
-        if (_ptrThread->Stop())
-        {
-            delete _ptrThread;
-            _ptrThread = NULL;
-        }
-        else
-        {
-            WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id,
-                         "unable to stop the activated thread");
-        }
+        _ptrThread->Stop();
+        _ptrThread.reset();
         return -1;
     }
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id,
@@ -326,24 +303,13 @@ int32_t AudioDeviceWindowsWave::Terminate()
 
     if (_ptrThread)
     {
-        ThreadWrapper* tmpThread = _ptrThread;
-        _ptrThread = NULL;
+        ThreadWrapper* tmpThread = _ptrThread.release();
         _critSect.Leave();
 
-        tmpThread->SetNotAlive();
         _timeEvent.Set();
 
-        if (tmpThread->Stop())
-        {
-            delete tmpThread;
-        }
-        else
-        {
-            _critSect.Leave();
-            WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id,
-                         "failed to close down the audio thread");
-            return -1;
-        }
+        tmpThread->Stop();
+        delete tmpThread;
     }
     else
     {
@@ -428,7 +394,7 @@ DWORD AudioDeviceWindowsWave::DoGetCaptureVolumeThread()
             default:            // unexpected error
                 WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id,
                     "  unknown wait termination on get volume thread");
-                return -1;
+                return 1;
         }
 
         if (AGC())
@@ -464,7 +430,7 @@ DWORD AudioDeviceWindowsWave::DoSetCaptureVolumeThread()
             default:                // unexpected error
                 WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id,
                     "  unknown wait termination on set volume thread");
-                return -1;
+                return 1;
         }
 
         _critSect.Enter();
@@ -487,33 +453,6 @@ DWORD AudioDeviceWindowsWave::DoSetCaptureVolumeThread()
 bool AudioDeviceWindowsWave::Initialized() const
 {
     return (_initialized);
-}
-
-// ----------------------------------------------------------------------------
-//  SpeakerIsAvailable
-// ----------------------------------------------------------------------------
-
-int32_t AudioDeviceWindowsWave::SpeakerIsAvailable(bool& available)
-{
-
-    // Enumerate all avaliable speakers and make an attempt to open up the
-    // output mixer corresponding to the currently selected output device.
-    //
-    if (InitSpeaker() == -1)
-    {
-        available = false;
-        return 0;
-    }
-
-    // Given that InitSpeaker was successful, we know that a valid speaker exists
-    //
-    available = true;
-
-    // Close the initialized output mixer
-    //
-    _mixerManager.CloseSpeaker();
-
-    return 0;
 }
 
 // ----------------------------------------------------------------------------
@@ -550,33 +489,6 @@ int32_t AudioDeviceWindowsWave::InitSpeaker()
             return -1;
         }
     }
-
-    return 0;
-}
-
-// ----------------------------------------------------------------------------
-//  MicrophoneIsAvailable
-// ----------------------------------------------------------------------------
-
-int32_t AudioDeviceWindowsWave::MicrophoneIsAvailable(bool& available)
-{
-
-    // Enumerate all avaliable microphones and make an attempt to open up the
-    // input mixer corresponding to the currently selected output device.
-    //
-    if (InitMicrophone() == -1)
-    {
-        available = false;
-        return 0;
-    }
-
-    // Given that InitMicrophone was successful, we know that a valid microphone exists
-    //
-    available = true;
-
-    // Close the initialized input mixer
-    //
-    _mixerManager.CloseMicrophone();
 
     return 0;
 }
@@ -3364,7 +3276,7 @@ int32_t AudioDeviceWindowsWave::RecProc(LONGLONG& consumedTime)
         _sndCardPlayDelay = msecOnPlaySide;
         _sndCardRecDelay = msecOnRecordSide;
 
-        LARGE_INTEGER t1,t2;
+        LARGE_INTEGER t1={0},t2={0};
 
         if (send)
         {

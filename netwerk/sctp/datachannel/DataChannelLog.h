@@ -7,23 +7,14 @@
 #ifndef DataChannelLog_h
 #define DataChannelLog_h
 
-#ifdef MOZ_LOGGING
-#define FORCE_PR_LOG
-#endif
-
-#if defined(PR_LOG)
-#error "This file must be #included before any IPDL-generated files or other files that #include prlog.h"
-#endif
-
 #include "base/basictypes.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
-#ifdef PR_LOGGING
-extern PRLogModuleInfo* GetDataChannelLog();
-extern PRLogModuleInfo* GetSCTPLog();
-#endif
+namespace mozilla {
+extern mozilla::LazyLogModule gDataChannelLog;
+}
 
 #undef LOG
-#define LOG(args) PR_LOG(GetDataChannelLog(), PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(mozilla::gDataChannelLog, mozilla::LogLevel::Debug, args)
 
 #endif

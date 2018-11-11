@@ -9,6 +9,7 @@
 #include "nsMemory.h"
 #include "nsString.h"
 #include "nsNativeCharsetUtils.h"
+#include "xpc_make_class.h"
 
 #define JSREFLECT_CONTRACTID \
   "@mozilla.org/jsreflect;1"
@@ -48,12 +49,12 @@ Module::Call(nsIXPConnectWrappedNative* wrapper,
   if (!global)
     return NS_ERROR_NOT_AVAILABLE;
 
-  *_retval = !!JS_InitReflect(cx, global);
+  *_retval = JS_InitReflectParse(cx, global);
   return NS_OK;
 }
 
-}
-}
+} // namespace reflect
+} // namespace mozilla
 
 NS_DEFINE_NAMED_CID(JSREFLECT_CID);
 

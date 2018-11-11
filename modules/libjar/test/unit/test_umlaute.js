@@ -1,6 +1,6 @@
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
 
 function run_test() {
   var dirService = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties); 
@@ -27,7 +27,7 @@ function run_test() {
 
   var target = tmpDir.clone();
   target.append(entryName);
-  target.create(Ci.nsILocalFile.NORMAL_FILE_TYPE, 6 * 64 + 4 * 8 + 0); // 0640
+  target.create(Ci.nsILocalFile.NORMAL_FILE_TYPE, 0o640); // 0640
 
   zipreader.extract(entryName, target);
 

@@ -7,32 +7,27 @@
 # be found in the AUTHORS file in the root of the source tree.
 {
   'conditions': [
-    ['OS=="android"', {
-      # When doing Android builds, the WebRTC code is put in third_party/webrtc
-      # of a Chromium checkout, this is one level above the standalone build.
+    ['OS=="linux" or OS=="mac" or OS=="win" or OS=="android"', {
       'variables': {
-        'isolate_dependency_untracked': [
-          '../../data/',
-          '../../resources/',
+        'files': [
+          '<(DEPTH)/resources/foreman_cif.yuv',
+          '<(DEPTH)/resources/paris_qcif.yuv',
+          '<(DEPTH)/resources/voice_engine/audio_long16.pcm',
+          '<(DEPTH)/resources/difficult_photo_1850_1110.yuv',
+          '<(DEPTH)/resources/photo_1850_1110.yuv',
+          '<(DEPTH)/resources/presentation_1850_1110.yuv',
+          '<(DEPTH)/resources/web_screenshot_1850_1110.yuv',
         ],
       },
     }],
     ['OS=="linux" or OS=="mac" or OS=="win"', {
       'variables': {
         'command': [
-          '../testing/test_env.py',
           '<(PRODUCT_DIR)/webrtc_perf_tests<(EXECUTABLE_SUFFIX)',
         ],
-        'isolate_dependency_tracked': [
-          '../DEPS',
-          '../resources/foreman_cif.yuv',
-          '../resources/paris_qcif.yuv',
-          '../resources/voice_engine/audio_long16.pcm',
-          '../testing/test_env.py',
+        'files': [
+          '<(DEPTH)/DEPS',
           '<(PRODUCT_DIR)/webrtc_perf_tests<(EXECUTABLE_SUFFIX)',
-        ],
-        'isolate_dependency_untracked': [
-          '../tools/swarming_client/',
         ],
       },
     }],

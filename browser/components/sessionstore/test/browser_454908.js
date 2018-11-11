@@ -3,17 +3,13 @@
 
 "use strict";
 
-let tmp = {};
-Cu.import("resource:///modules/sessionstore/SessionSaver.jsm", tmp);
-let {SessionSaver} = tmp;
-
 const URL = ROOT + "browser_454908_sample.html";
 const PASS = "pwd-" + Math.random();
 
 /**
  * Bug 454908 - Don't save/restore values of password fields.
  */
-add_task(function test_dont_save_passwords() {
+add_task(function* test_dont_save_passwords() {
   // Make sure we do save form data.
   Services.prefs.clearUserPref("browser.sessionstore.privacy_level");
 
@@ -28,7 +24,7 @@ add_task(function test_dont_save_passwords() {
   yield setInputValue(browser, {id: "passwd", value: PASS});
 
   // Close and restore the tab.
-  gBrowser.removeTab(tab);
+  yield promiseRemoveTab(tab);
   tab = ss.undoCloseTab(window, 0);
   browser = tab.linkedBrowser;
   yield promiseTabRestored(tab);
@@ -40,13 +36,11 @@ add_task(function test_dont_save_passwords() {
   is(passwd, "", "password wasn't saved/restored");
 
   // Write to disk and read our file.
-  yield SessionSaver.run();
-  let path = OS.Path.join(OS.Constants.Path.profileDir, "sessionstore.js");
-  let data = yield OS.File.read(path);
-  let state = new TextDecoder().decode(data);
-
-  // Ensure that sessionstore.js doesn't contain our password.
-  is(state.indexOf(PASS), -1, "password has not been written to disk");
+  yield forceSaveState();
+  yield promiseForEachSessionRestoreFile((state, key) =>
+    // Ensure that we have not saved our password.
+    ok(!state.includes(PASS), "password has not been written to file " + key)
+  );
 
   // Cleanup.
   gBrowser.removeTab(tab);

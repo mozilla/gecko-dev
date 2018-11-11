@@ -19,7 +19,7 @@ function checkAreaType(widget) {
 }
 
 // widget wrappers in unregisterArea'd areas and nowhere shouldn't throw when checking areaTypes.
-add_task(function() {
+add_task(function*() {
   // Using the ID before it's been created will imply a XUL wrapper; we'll test
   // an API-based wrapper below
   let toolbarNode = createToolbarWithPlacements(kToolbarName, [kUnregisterAreaTestWidget]);
@@ -35,18 +35,18 @@ add_task(function() {
   let spec = {id: kUnregisterAreaTestWidget, type: 'button', removable: true,
               label: "areaType test", tooltiptext: "areaType test"};
   CustomizableUI.createWidget(spec);
-  let toolbarNode = createToolbarWithPlacements(kToolbarName, [kUnregisterAreaTestWidget]);
+  toolbarNode = createToolbarWithPlacements(kToolbarName, [kUnregisterAreaTestWidget]);
   CustomizableUI.unregisterArea(kToolbarName);
   toolbarNode.remove();
   w = CustomizableUI.getWidget(spec.id);
   checkAreaType(w);
   CustomizableUI.removeWidgetFromArea(kUnregisterAreaTestWidget);
   checkAreaType(w);
-  //XXXgijs: ensure cleanup function doesn't barf:
+  // XXXgijs: ensure cleanup function doesn't barf:
   gAddedToolbars.delete(kToolbarName);
 });
 
-add_task(function asyncCleanup() {
+add_task(function* asyncCleanup() {
   yield resetCustomization();
 });
 

@@ -8,9 +8,16 @@
 interface nsIURI;
 interface nsIVariant;
 
-[scriptable, uuid(f816b4df-f733-4dbd-964d-8bfc92a475b2)]
+[scriptable, uuid(9759bd0e-78e2-4421-9ed1-c676e1af3513)]
 interface nsITaggingService : nsISupports
 {
+
+  /**
+   * Defines the maximal length of a tag. Related to the bug 407821 
+   * (https://bugzilla.mozilla.org/show_bug.cgi?id=407821) 
+   */
+  const unsigned long MAX_TAG_LENGTH = 100;
+
   /**
    * Tags a URL with the given set of tags. Current tags set for the URL
    * persist. Tags in aTags which are already set for the given URL are
@@ -22,8 +29,13 @@ interface nsITaggingService : nsISupports
    *        Array of tags to set for the given URL.  Each element within the
    *        array can be either a tag name (non-empty string) or a concrete
    *        itemId of a tag container.
+   * @param [optional] aSource
+   *        A change source constant from nsINavBookmarksService::SOURCE_*.
+   *        Defaults to SOURCE_DEFAULT if omitted.
    */
-  void tagURI(in nsIURI aURI, in nsIVariant aTags);
+  void tagURI(in nsIURI aURI,
+              in nsIVariant aTags,
+              [optional] in unsigned short aSource);
 
   /**
    * Removes tags from a URL. Tags from aTags which are not set for the
@@ -35,8 +47,13 @@ interface nsITaggingService : nsISupports
    *        Array of tags to unset.  Pass null to remove all tags from the given
    *        url.  Each element within the array can be either a tag name
    *        (non-empty string) or a concrete itemId of a tag container.
+   * @param [optional] aSource
+   *        A change source constant from nsINavBookmarksService::SOURCE_*.
+   *        Defaults to SOURCE_DEFAULT if omitted.
    */
-  void untagURI(in nsIURI aURI, in nsIVariant aTags);
+  void untagURI(in nsIURI aURI,
+                in nsIVariant aTags,
+                [optional] in unsigned short aSource);
 
   /**
    * Retrieves all URLs tagged with the given tag.

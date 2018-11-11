@@ -25,12 +25,12 @@
 
 <panel id="panel" type="arrow" animate="false"
        onpopupshown="checkPanelPosition(this)" onpopuphidden="runNextTest.next()">
-  <label id="panellabel" value="This is some text..." height="65"/>
+  <box width="115" height="65"/>
 </panel>
 
 <panel id="bigpanel" type="arrow" animate="false"
        onpopupshown="checkBigPanel(this)" onpopuphidden="runNextTest.next()">
-  <button label="This is some text..." height="3000"/>
+  <box width="125" height="3000"/>
 </panel>
 
 <panel id="animatepanel" type="arrow"
@@ -43,6 +43,8 @@
 <![CDATA[
 
 SimpleTest.waitForExplicitFinish();
+
+const isOSXYosemite = navigator.userAgent.indexOf("Mac OS X 10.10") != -1;
 
 var expectedAnchor = null;
 var expectedSide = "", expectedAnchorEdge = "", expectedPack = "", expectedAlignment = "";
@@ -181,22 +183,21 @@ function nextTest()
   // Test that a transition occurs when opening or closing the popup. The transition is
   // disabled on Linux.
   if (navigator.platform.indexOf("Linux") == -1) {
-    var transitions = 0;
     function transitionEnded(event) {
-      transitions++;
-      // Two properties transition so continue on the second one finishing.
-      if (!(transitions % 2)) {
+      if ($("animatepanel").state != "open") {
+        is($("animatepanel").state, "showing", "state is showing during transitionend");
+        ok(!animatedPopupShown, "popupshown not fired yet")
+      } else {
+        is($("animatepanel").state, "open", "state is open after transitionend");
         ok(animatedPopupShown, "popupshown now fired")
         SimpleTest.executeSoon(() => runNextTest.next());
-      }
-      else {
-        ok(!animatedPopupShown, "popupshown not fired yet")
       }
     }
 
     // Check that the transition occurs for an arrow panel with animate="true"
     window.addEventListener("transitionend", transitionEnded, false);
     $("animatepanel").openPopup($("topleft"), "after_start", 0, 0, false, false, null, "start");
+    is($("animatepanel").state, "showing", "state is showing");
     yield;
     window.removeEventListener("transitionend", transitionEnded, false);
 
@@ -214,7 +215,7 @@ function setScale(win, scale)
   var wn = win.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
               .getInterface(Components.interfaces.nsIWebNavigation);
   var shell = wn.QueryInterface(Components.interfaces.nsIDocShell);
-  var docViewer = shell.contentViewer.QueryInterface(Components.interfaces.nsIMarkupDocumentViewer);
+  var docViewer = shell.contentViewer;
   docViewer.fullZoom = scale;
   zoomFactor = scale;
 }
@@ -233,30 +234,30 @@ function checkPanelPosition(panel)
   // are not, so flip the expected label side and anchor edge.
   var isRTL = (window.getComputedStyle(panel).direction == "rtl");
   if (isRTL) {
-    var flipLeftRight = function (val) val == "left" ? "right" : "left";
+    var flipLeftRight = val => val == "left" ? "right" : "left";
     expectedAnchorEdge = expectedAnchorEdge.replace(/(left|right)/, flipLeftRight);
     expectedSide = expectedSide.replace(/(left|right)/, flipLeftRight);
   }
 
   var panelRect = panel.getBoundingClientRect();
   var anchorRect = anchor.getBoundingClientRect();
-  var labelBO = $("panellabel").boxObject;
-  var labelRect = { top: labelBO.y,
-                    left: labelBO.x,
-                    bottom: labelBO.y + labelBO.height,
-                    right: labelBO.x + labelBO.width };
+  var contentBO = panel.firstChild.boxObject;
+  var contentRect = { top: contentBO.y,
+                      left: contentBO.x,
+                      bottom: contentBO.y + contentBO.height,
+                      right: contentBO.x + contentBO.width };
   switch (expectedSide) {
     case "top":
-      ok(labelRect.top > vwinpos + anchorRect.bottom * zoomFactor + 5, "panel label is below");
+      ok(contentRect.top > vwinpos + anchorRect.bottom * zoomFactor + 5, "panel content is below");
       break;
     case "bottom":
-      ok(labelRect.bottom < vwinpos + anchorRect.top * zoomFactor - 5, "panel label is above");
+      ok(contentRect.bottom < vwinpos + anchorRect.top * zoomFactor - 5, "panel content is above");
       break;
     case "left":
-      ok(labelRect.left > hwinpos + anchorRect.right * zoomFactor + 5, "panel label is right");
+      ok(contentRect.left > hwinpos + anchorRect.right * zoomFactor + 5, "panel content is right");
       break;
     case "right":
-      ok(labelRect.right < hwinpos + anchorRect.left * zoomFactor - 5, "panel label is left");
+      ok(contentRect.right < hwinpos + anchorRect.left * zoomFactor - 5, "panel content is left");
       break;
   }
 
@@ -289,7 +290,8 @@ function checkPanelPosition(panel)
       adj = hwinpos + parseInt(getComputedStyle(panel, "").marginRight);
       if (iscentered)
         adj += Math.round(anchorRect.width) / 2;
-      isWithinHalfPixel(panelRect.right, anchorRect.right * zoomFactor - adj, "anchored on right");
+      if (!isOSXYosemite)
+        isWithinHalfPixel(panelRect.right, anchorRect.right * zoomFactor - adj, "anchored on right");
       break;
   }
 

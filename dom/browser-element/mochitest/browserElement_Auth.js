@@ -8,6 +8,8 @@ SimpleTest.waitForExplicitFinish();
 browserElementTestHelpers.setEnabledPref(true);
 browserElementTestHelpers.addPermission();
 
+const { NetUtil } = SpecialPowers.Cu.import('resource://gre/modules/NetUtil.jsm');
+
 function testFail(msg) {
   ok(false, JSON.stringify(msg));
 }
@@ -16,7 +18,7 @@ var iframe;
 
 function runTest() {
   iframe = document.createElement('iframe');
-  SpecialPowers.wrap(iframe).mozbrowser = true;
+  iframe.setAttribute('mozbrowser', 'true');
   document.body.appendChild(iframe);
 
   // Wait for the initial load to finish, then navigate the page, then start test
@@ -49,6 +51,9 @@ function testHttpAuthCancel(e) {
 
   is(e.detail.realm, 'http_realm', 'expected realm matches');
   is(e.detail.host, 'http://test', 'expected host matches');
+  is(e.detail.path,
+     '/tests/dom/browser-element/mochitest/file_http_401_response.sjs',
+     'expected path matches');
   e.preventDefault();
 
   SimpleTest.executeSoon(function() {
@@ -66,16 +71,85 @@ function testHttpAuth(e) {
     iframe.removeEventListener("mozbrowsertitlechange", onTitleChange);
     iframe.removeEventListener("mozbrowserusernameandpasswordrequired", testFail);
     is(e.detail, 'http auth success', 'expect authentication to succeed');
-    SimpleTest.executeSoon(testAuthJarNoInterfere);
+    SimpleTest.executeSoon(testProxyAuth);
   });
 
   is(e.detail.realm, 'http_realm', 'expected realm matches');
   is(e.detail.host, 'http://test', 'expected host matches');
+  is(e.detail.path,
+     '/tests/dom/browser-element/mochitest/file_http_401_response.sjs',
+     'expected path matches');
+  is(e.detail.isProxy, false, 'expected isProxy is false');
   e.preventDefault();
 
   SimpleTest.executeSoon(function() {
     e.detail.authenticate("httpuser", "httppass");
   });
+}
+
+function testProxyAuth(e) {
+  // The testingSJS simulates the 407 proxy authentication required response
+  // for proxy server, which will trigger the browser element to send prompt
+  // event with proxy infomation.
+  var testingSJS = 'http://test/tests/dom/browser-element/mochitest/file_http_407_response.sjs';
+  var mozproxy;
+
+  function onUserNameAndPasswordRequired(e) {
+    iframe.removeEventListener("mozbrowserusernameandpasswordrequired",
+                               onUserNameAndPasswordRequired);
+    iframe.addEventListener("mozbrowsertitlechange", function onTitleChange(e) {
+      iframe.removeEventListener("mozbrowsertitlechange", onTitleChange);
+      iframe.removeEventListener("mozbrowserusernameandpasswordrequired", testFail);
+      is(e.detail, 'http auth success', 'expect authentication to succeed');
+      SimpleTest.executeSoon(testAuthJarNoInterfere);
+    });
+
+    is(e.detail.realm, 'http_realm', 'expected realm matches');
+    is(e.detail.host, mozproxy, 'expected host matches');
+    is(e.detail.path,
+       '/tests/dom/browser-element/mochitest/file_http_407_response.sjs',
+       'expected path matches');
+    is(e.detail.isProxy, true, 'expected isProxy is true');
+    e.preventDefault();
+
+    SimpleTest.executeSoon(function() {
+      e.detail.authenticate("proxyuser", "proxypass");
+    });
+  }
+
+  // Resolve proxy information used by the test suite, we need it to validate
+  // whether the proxy information delivered with the prompt event is correct.
+  var resolveCallback = SpecialPowers.wrapCallbackObject({
+    QueryInterface: function (iid) {
+      const interfaces = [Ci.nsIProtocolProxyCallback, Ci.nsISupports];
+
+      if (!interfaces.some( function(v) { return iid.equals(v) } )) {
+        throw SpecialPowers.Cr.NS_ERROR_NO_INTERFACE;
+      }
+      return this;
+    },
+
+    onProxyAvailable: function (req, channel, pi, status) {
+      isnot(pi, null, 'expected proxy information available');
+      if (pi) {
+        mozproxy = "moz-proxy://" + pi.host + ":" + pi.port;
+      }
+      iframe.addEventListener("mozbrowserusernameandpasswordrequired",
+                              onUserNameAndPasswordRequired);
+
+      iframe.src = testingSJS;
+    }
+  });
+
+  var channel = NetUtil.newChannel({
+    uri: testingSJS,
+    loadUsingSystemPrincipal: true
+  });
+
+  var pps = SpecialPowers.Cc["@mozilla.org/network/protocol-proxy-service;1"]
+            .getService();
+
+  pps.asyncResolve(channel, 0, resolveCallback);
 }
 
 function testAuthJarNoInterfere(e) {
@@ -89,15 +163,17 @@ function testAuthJarNoInterfere(e) {
 
   // Set a bunch of auth data that should not conflict with the correct auth data already
   // stored in the cache.
-  var principal = secMan.getAppCodebasePrincipal(uri, 1, false);
+  var attrs = {appId: 1};
+  var principal = secMan.createCodebasePrincipal(uri, attrs);
   authMgr.setAuthIdentity('http', 'test', -1, 'basic', 'http_realm',
                           'tests/dom/browser-element/mochitest/file_http_401_response.sjs',
                           '', 'httpuser', 'wrongpass', false, principal);
-  principal = secMan.getAppCodebasePrincipal(uri, 1, true);
+  attrs = {appId: 1, inIsolatedMozBrowser: true};
+  principal = secMan.createCodebasePrincipal(uri, attrs);
   authMgr.setAuthIdentity('http', 'test', -1, 'basic', 'http_realm',
                           'tests/dom/browser-element/mochitest/file_http_401_response.sjs',
                           '', 'httpuser', 'wrongpass', false, principal);
-  principal = secMan.getAppCodebasePrincipal(uri, secMan.NO_APP_ID, false);
+  principal = secMan.createCodebasePrincipal(uri, {});
   authMgr.setAuthIdentity('http', 'test', -1, 'basic', 'http_realm',
                           'tests/dom/browser-element/mochitest/file_http_401_response.sjs',
                           '', 'httpuser', 'wrongpass', false, principal);
@@ -127,7 +203,7 @@ function testAuthJarInterfere(e) {
   var uri = ioService.newURI("http://test/tests/dom/browser-element/mochitest/file_http_401_response.sjs", null, null);
 
   // Set some auth data that should overwrite the successful stored details.
-  var principal = secMan.getAppCodebasePrincipal(uri, secMan.NO_APP_ID, true);
+  var principal = secMan.createCodebasePrincipal(uri, {inIsolatedMozBrowser: true});
   authMgr.setAuthIdentity('http', 'test', -1, 'basic', 'http_realm',
                           'tests/dom/browser-element/mochitest/file_http_401_response.sjs',
                           '', 'httpuser', 'wrongpass', false, principal);

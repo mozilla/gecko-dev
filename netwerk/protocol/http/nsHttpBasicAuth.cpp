@@ -8,6 +8,7 @@
 
 #include "nsHttpBasicAuth.h"
 #include "plbase64.h"
+#include "plstr.h"
 #include "nsString.h"
 
 namespace mozilla {
@@ -47,6 +48,20 @@ nsHttpBasicAuth::ChallengeReceived(nsIHttpAuthenticableChannel *authChannel,
     // have been wrong.
     *identityInvalid = true;
     return NS_OK;
+}
+NS_IMETHODIMP
+nsHttpBasicAuth::GenerateCredentialsAsync(nsIHttpAuthenticableChannel *authChannel,
+                                          nsIHttpAuthenticatorCallback* aCallback,
+                                          const char *challenge,
+                                          bool isProxyAuth,
+                                          const char16_t *domain,
+                                          const char16_t *username,
+                                          const char16_t *password,
+                                          nsISupports *sessionState,
+                                          nsISupports *continuationState,
+                                          nsICancelable **aCancellable)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
@@ -97,5 +112,5 @@ nsHttpBasicAuth::GetAuthFlags(uint32_t *flags)
     return NS_OK;
 }
 
-} // namespace mozilla::net
+} // namespace net
 } // namespace mozilla

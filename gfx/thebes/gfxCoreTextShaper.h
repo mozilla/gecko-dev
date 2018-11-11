@@ -14,15 +14,16 @@ class gfxMacFont;
 
 class gfxCoreTextShaper : public gfxFontShaper {
 public:
-    gfxCoreTextShaper(gfxMacFont *aFont);
+    explicit gfxCoreTextShaper(gfxMacFont *aFont);
 
     virtual ~gfxCoreTextShaper();
 
-    virtual bool ShapeText(gfxContext      *aContext,
+    virtual bool ShapeText(DrawTarget      *aDrawTarget,
                            const char16_t *aText,
                            uint32_t         aOffset,
                            uint32_t         aLength,
-                           int32_t          aScript,
+                           Script           aScript,
+                           bool             aVertical,
                            gfxShapedText   *aShapedText);
 
     // clean up static objects that may have been cached
@@ -30,7 +31,10 @@ public:
 
 protected:
     CTFontRef mCTFont;
-    CFDictionaryRef mAttributesDict;
+
+    // attributes for shaping text with LTR or RTL directionality
+    CFDictionaryRef mAttributesDictLTR;
+    CFDictionaryRef mAttributesDictRTL;
 
     nsresult SetGlyphsFromRun(gfxShapedText *aShapedText,
                               uint32_t       aOffset,
@@ -38,22 +42,30 @@ protected:
                               CTRunRef       aCTRun,
                               int32_t        aStringOffset);
 
-    CTFontRef CreateCTFontWithDisabledLigatures(CGFloat aSize);
+    CTFontRef CreateCTFontWithFeatures(CGFloat aSize,
+                                       CTFontDescriptorRef aDescriptor);
 
-    static void CreateDefaultFeaturesDescriptor();
+    CFDictionaryRef CreateAttrDict(bool aRightToLeft);
+    CFDictionaryRef CreateAttrDictWithoutDirection();
 
-    static CTFontDescriptorRef GetDefaultFeaturesDescriptor() {
-        if (sDefaultFeaturesDescriptor == nullptr) {
-            CreateDefaultFeaturesDescriptor();
-        }
-        return sDefaultFeaturesDescriptor;
-    }
+    static CTFontDescriptorRef
+    CreateFontFeaturesDescriptor(const std::pair<SInt16,SInt16> aFeatures[],
+                                 size_t aCount);
+
+    static CTFontDescriptorRef GetDefaultFeaturesDescriptor();
+    static CTFontDescriptorRef GetDisableLigaturesDescriptor();
+    static CTFontDescriptorRef GetIndicFeaturesDescriptor();
+    static CTFontDescriptorRef GetIndicDisableLigaturesDescriptor();
 
     // cached font descriptor, created the first time it's needed
     static CTFontDescriptorRef    sDefaultFeaturesDescriptor;
 
     // cached descriptor for adding disable-ligatures setting to a font
     static CTFontDescriptorRef    sDisableLigaturesDescriptor;
+
+    // feature descriptors for buggy Indic AAT font workaround
+    static CTFontDescriptorRef    sIndicFeaturesDescriptor;
+    static CTFontDescriptorRef    sIndicDisableLigaturesDescriptor;
 };
 
 #endif /* GFX_CORETEXTSHAPER_H */

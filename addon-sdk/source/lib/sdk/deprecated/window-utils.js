@@ -8,15 +8,11 @@ module.metadata = {
 };
 
 const { Cc, Ci } = require('chrome');
-const { EventEmitter } = require('../deprecated/events');
-const { Trait } = require('../deprecated/traits');
-const { when } = require('../system/unload');
 const events = require('../system/events');
 const { getInnerId, getOuterId, windows, isDocumentLoaded, isBrowser,
-        getMostRecentBrowserWindow, getMostRecentWindow } = require('../window/utils');
-const errors = require('../deprecated/errors');
+        getMostRecentBrowserWindow, getToplevelWindow, getMostRecentWindow } = require('../window/utils');
 const { deprecateFunction } = require('../util/deprecate');
-const { ignoreWindow, isGlobalPBSupported } = require('sdk/private-browsing/utils');
+const { ignoreWindow } = require('sdk/private-browsing/utils');
 const { isPrivateBrowsingSupported } = require('../self');
 
 const windowWatcher = Cc['@mozilla.org/embedcomp/window-watcher;1'].
@@ -25,7 +21,9 @@ const appShellService = Cc['@mozilla.org/appshell/appShellService;1'].
                         getService(Ci.nsIAppShellService);
 
 // Bug 834961: ignore private windows when they are not supported
-function getWindows() windows(null, { includePrivate: isPrivateBrowsingSupported || isGlobalPBSupported });
+function getWindows() {
+  return windows(null, { includePrivate: isPrivateBrowsingSupported });
+}
 
 /**
  * An iterator for XUL windows currently in the application.
@@ -51,7 +49,7 @@ exports.windowIterator = windowIterator;
  *    interface.
  */
 function browserWindowIterator() {
-  for each (let window in windowIterator()) {
+  for (let window of windowIterator()) {
     if (isBrowser(window))
       yield window;
   }
@@ -64,9 +62,8 @@ function WindowTracker(delegate) {
    }
 
   this._delegate = delegate;
-  this._loadingWindows = [];
 
-  for each (let window in getWindows())
+  for (let window of getWindows())
     this._regWindow(window);
   windowWatcher.registerNotification(this);
   this._onToplevelWindowReady = this._onToplevelWindowReady.bind(this);
@@ -83,17 +80,12 @@ WindowTracker.prototype = {
     if (ignoreWindow(window))
       return;
 
-    this._loadingWindows.push(window);
     window.addEventListener('load', this, true);
   },
 
   _unregLoadingWindow: function _unregLoadingWindow(window) {
-    var index = this._loadingWindows.indexOf(window);
-
-    if (index != -1) {
-      this._loadingWindows.splice(index, 1);
-      window.removeEventListener('load', this, true);
-    }
+    // This may have no effect if we ignored the window in _regLoadingWindow().
+    window.removeEventListener('load', this, true);
   },
 
   _regWindow: function _regWindow(window) {
@@ -120,66 +112,46 @@ WindowTracker.prototype = {
   unload: function unload() {
     windowWatcher.unregisterNotification(this);
     events.off('toplevel-window-ready', this._onToplevelWindowReady);
-    for each (let window in getWindows())
+    for (let window of getWindows())
       this._unregWindow(window);
   },
 
-  handleEvent: errors.catchAndLog(function handleEvent(event) {
-    if (event.type == 'load' && event.target) {
-      var window = event.target.defaultView;
-      if (window)
-        this._regWindow(window);
+  handleEvent: function handleEvent(event) {
+    try {
+      if (event.type == 'load' && event.target) {
+        var window = event.target.defaultView;
+        if (window)
+          this._regWindow(getToplevelWindow(window));
+      }
     }
-  }),
+    catch(e) {
+      console.exception(e);
+    }
+  },
 
   _onToplevelWindowReady: function _onToplevelWindowReady({subject}) {
-    let window = subject;
+    let window = getToplevelWindow(subject);
     // ignore private windows if they are not supported
     if (ignoreWindow(window))
       return;
     this._regWindow(window);
   },
 
-  observe: errors.catchAndLog(function observe(subject, topic, data) {
-    var window = subject.QueryInterface(Ci.nsIDOMWindow);
-    // ignore private windows if they are not supported
-    if (ignoreWindow(window))
-      return;
-    if (topic == 'domwindowclosed')
+  observe: function observe(subject, topic, data) {
+    try {
+      var window = subject.QueryInterface(Ci.nsIDOMWindow);
+      // ignore private windows if they are not supported
+      if (ignoreWindow(window))
+        return;
+      if (topic == 'domwindowclosed')
       this._unregWindow(window);
-  })
+    }
+    catch(e) {
+      console.exception(e);
+    }
+  }
 };
 exports.WindowTracker = WindowTracker;
-
-const WindowTrackerTrait = Trait.compose({
-  _onTrack: Trait.required,
-  _onUntrack: Trait.required,
-  constructor: function WindowTrackerTrait() {
-    WindowTracker({
-      onTrack: this._onTrack.bind(this),
-      onUntrack: this._onUntrack.bind(this)
-    });
-  }
-});
-exports.WindowTrackerTrait = WindowTrackerTrait;
-
-var gDocsToClose = [];
-
-function onDocUnload(event) {
-  var index = gDocsToClose.indexOf(event.target);
-  if (index == -1)
-    throw new Error('internal error: unloading document not found');
-  var document = gDocsToClose.splice(index, 1)[0];
-  // Just in case, let's remove the event listener too.
-  document.defaultView.removeEventListener('unload', onDocUnload, false);
-}
-
-onDocUnload = require('./errors').catchAndLog(onDocUnload);
-
-exports.closeOnUnload = function closeOnUnload(window) {
-  window.addEventListener('unload', onDocUnload, false);
-  gDocsToClose.push(window.document);
-};
 
 Object.defineProperties(exports, {
   activeWindow: {
@@ -219,9 +191,3 @@ exports.isBrowser = deprecateFunction(isBrowser,
 );
 
 exports.hiddenWindow = appShellService.hiddenDOMWindow;
-
-when(
-  function() {
-    gDocsToClose.slice().forEach(
-      function(doc) { doc.defaultView.close(); });
-  });

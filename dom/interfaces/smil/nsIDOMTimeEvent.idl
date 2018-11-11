@@ -13,13 +13,8 @@
  * http://www.w3.org/TR/SVG/animate.html#InterfaceTimeEvent
  */
 
-[builtinclass, uuid(4a5a5fa6-2783-4171-b8bb-cae4ab06e6ff)]
+[builtinclass, uuid(b5e7fbac-f572-426c-9320-0ef7630f03c1)]
 interface nsIDOMTimeEvent : nsIDOMEvent
 {
   readonly attribute long detail;
-  readonly attribute nsIDOMWindow view;
-  
-  void initTimeEvent(in DOMString typeArg,
-                     in nsIDOMWindow viewArg,
-                     in long detailArg);
 };

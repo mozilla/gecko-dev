@@ -11,6 +11,8 @@
 #ifndef WEBRTC_AUDIO_DEVICE_AUDIO_DEVICE_MAC_H
 #define WEBRTC_AUDIO_DEVICE_AUDIO_DEVICE_MAC_H
 
+#include "webrtc/base/scoped_ptr.h"
+#include "webrtc/base/thread_annotations.h"
 #include "webrtc/modules/audio_device/audio_device_generic.h"
 #include "webrtc/modules/audio_device/mac/audio_mixer_manager_mac.h"
 #include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
@@ -108,10 +110,8 @@ public:
                                   uint16_t& volumeRight) const;
 
     // Audio mixer initialization
-    virtual int32_t SpeakerIsAvailable(bool& available);
     virtual int32_t InitSpeaker();
     virtual bool SpeakerIsInitialized() const;
-    virtual int32_t MicrophoneIsAvailable(bool& available);
     virtual int32_t InitMicrophone();
     virtual bool MicrophoneIsInitialized() const;
 
@@ -167,7 +167,6 @@ public:
     // CPU load
     virtual int32_t CPULoad(uint16_t& load) const;
 
-public:
     virtual bool PlayoutWarning() const;
     virtual bool PlayoutError() const;
     virtual bool RecordingWarning() const;
@@ -177,24 +176,11 @@ public:
     virtual void ClearRecordingWarning();
     virtual void ClearRecordingError();
 
-public:
     virtual void AttachAudioBuffer(AudioDeviceBuffer* audioBuffer);
 
 private:
-    void Lock()
-    {
-        _critSect.Enter();
-    }
-    ;
-    void UnLock()
-    {
-        _critSect.Leave();
-    }
-    ;
-    int32_t Id()
-    {
-        return _id;
-    }
+    virtual int32_t MicrophoneIsAvailable(bool& available);
+    virtual int32_t SpeakerIsAvailable(bool& available);
 
     static void AtomicSet32(int32_t* theValue, int32_t newValue);
     static int32_t AtomicGet32(int32_t* theValue);
@@ -213,6 +199,10 @@ private:
 
     int32_t InitDevice(uint16_t userDeviceIndex,
                        AudioDeviceID& deviceId, bool isInput);
+
+    // Always work with our preferred playout format inside VoE.
+    // Then convert the output to the OS setting using an AudioConverter.
+    OSStatus SetDesiredPlayoutFormat();
 
     static OSStatus
         objectListenerProc(AudioObjectID objectId, UInt32 numberAddresses,
@@ -236,7 +226,6 @@ private:
     int32_t
         HandleProcessorOverload(AudioObjectPropertyAddress propertyAddress);
 
-private:
     static OSStatus deviceIOProc(AudioDeviceID device,
                                  const AudioTimeStamp *now,
                                  const AudioBufferList *inputData,
@@ -284,10 +273,8 @@ private:
     bool CaptureWorkerThread();
     bool RenderWorkerThread();
 
-private:
     bool KeyPressed();
 
-private:
     AudioDeviceBuffer* _ptrAudioBuffer;
 
     CriticalSectionWrapper& _critSect;
@@ -295,10 +282,11 @@ private:
     EventWrapper& _stopEventRec;
     EventWrapper& _stopEvent;
 
-    ThreadWrapper* _captureWorkerThread;
-    ThreadWrapper* _renderWorkerThread;
-    uint32_t _captureWorkerThreadId;
-    uint32_t _renderWorkerThreadId;
+    // Only valid/running between calls to StartRecording and StopRecording.
+    rtc::scoped_ptr<ThreadWrapper> capture_worker_thread_;
+
+    // Only valid/running between calls to StartPlayout and StopPlayout.
+    rtc::scoped_ptr<ThreadWrapper> render_worker_thread_;
 
     int32_t _id;
 
@@ -325,7 +313,6 @@ private:
 
     AudioDeviceModule::BufferType _playBufType;
 
-private:
     bool _initialized;
     bool _isShutDown;
     bool _recording;
@@ -361,7 +348,6 @@ private:
 
     int32_t _renderDelayOffsetSamples;
 
-private:
     uint16_t _playBufDelayFixed; // fixed playback delay
 
     uint16_t _playWarning;
@@ -378,7 +364,6 @@ private:
     int _captureBufSizeSamples;
     int _renderBufSizeSamples;
 
-private:
     // Typing detection
     // 0x5c is key "9", after that comes function keys.
     bool prev_key_state_[0x5d];

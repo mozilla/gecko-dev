@@ -1,8 +1,3 @@
-
-menugroup > .menuitem-iconic[disabled="true"] > .menu-iconic-left {
-  opacity: .3;
-}
-
 #context-navigation > .menuitem-iconic {
   -moz-box-flex: 1;
   -moz-box-pack: center;
@@ -13,29 +8,36 @@ menugroup > .menuitem-iconic[disabled="true"] > .menu-iconic-left {
   -moz-appearance: none;
 }
 
-#context-navigation > #context-back > .menu-iconic-left {
-  list-style-image: url("chrome://browser/skin/Toolbar.png");
-  -moz-image-region: rect(0, 36px, 18px, 18px);
+#context-navigation > .menuitem-iconic > .menu-iconic-left > .menu-iconic-icon {
+  width: 16px;
+  height: 16px;
+  margin: 7px;
+  filter: url(chrome://browser/skin/filters.svg#fill);
+  fill: currentColor;
 }
 
-#context-navigation > #context-forward > .menu-iconic-left {
-  list-style-image: url("chrome://browser/skin/Toolbar.png");
-  -moz-image-region: rect(0, 72px, 18px, 54px);
+#context-back {
+  list-style-image: url("chrome://browser/skin/content-contextmenu.svg#back");
 }
 
-#context-navigation > #context-reload > .menu-iconic-left {
-  list-style-image: url("chrome://browser/skin/reload-stop-go.png");
-  -moz-image-region: rect(0, 14px, 14px, 0);
+#context-forward {
+  list-style-image: url("chrome://browser/skin/content-contextmenu.svg#forward");
 }
 
-#context-navigation > #context-stop > .menu-iconic-left {
-  list-style-image: url("chrome://browser/skin/reload-stop-go.png");
-  -moz-image-region: rect(0, 28px, 14px, 14px);
+#context-reload {
+  list-style-image: url("chrome://browser/skin/content-contextmenu.svg#reload");
 }
 
-#context-navigation > #context-bookmarkpage > .menu-iconic-left {
-  list-style-image: url("chrome://browser/skin/Toolbar.png");
-  -moz-image-region: rect(0, 144px, 18px, 126px);
+#context-stop {
+  list-style-image: url("chrome://browser/skin/content-contextmenu.svg#stop");
+}
+
+#context-bookmarkpage {
+  list-style-image: url("chrome://browser/skin/content-contextmenu.svg#bookmark");
+}
+
+#context-bookmarkpage[starred=true] {
+  list-style-image: url("chrome://browser/skin/content-contextmenu.svg#bookmarked");
 }
 
 #context-back:-moz-locale-dir(rtl),
@@ -44,8 +46,6 @@ menugroup > .menuitem-iconic[disabled="true"] > .menu-iconic-left {
   transform: scaleX(-1);
 }
 
-#context-navigation > .menuitem-iconic > .menu-iconic-left > .menu-iconic-icon {
-  width: 18px;
-  height: 18px;
-  margin: 7px;
+#context-media-eme-learnmore {
+  list-style-image: url("chrome://browser/skin/drm-icon.svg#chains");
 }

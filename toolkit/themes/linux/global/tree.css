@@ -176,7 +176,7 @@ treechildren::-moz-tree-drop-feedback {
   background-color: Highlight;
   width: 50px;
   height: 2px;
-  -moz-margin-start: 5px;
+  margin-inline-start: 5px;
 }
 
 /* ::::: tree progress meter ::::: */
@@ -191,10 +191,6 @@ treechildren::-moz-tree-progressmeter {
   border-left-color: ThreeDShadow;
   background-color: -moz-Dialog;
   color: ThreeDShadow;
-}
-
-treechildren::-moz-tree-progressmeter(progressUndetermined) {
-  list-style-image: url("chrome://global/skin/progressmeter/progressmeter-busy.gif");
 }
 
 treechildren::-moz-tree-cell-text(progressmeter) {
@@ -249,13 +245,13 @@ treecolpicker:hover:active {
   -moz-border-left-colors: ThreeDShadow -moz-Dialog;
   padding-top: 0px;
   padding-bottom: 0px;
-  -moz-padding-start: 3px;
-  -moz-padding-end: 1px;
+  padding-inline-start: 3px;
+  padding-inline-end: 1px;
 }
 
 .treecol-image:hover:active {
   padding: 0px;
-  -moz-padding-start: 2px;
+  padding-inline-start: 2px;
 }
 
 treecol:hover:active .treecol-text {
@@ -284,11 +280,11 @@ treecol[insertbefore="true"]:-moz-locale-dir(ltr) {
 }
 
 treechildren::-moz-tree-column(insertbefore) {
-  -moz-border-start: 1px solid ThreeDShadow;
+  border-inline-start: 1px solid ThreeDShadow;
 }
 
 treechildren::-moz-tree-column(insertafter) {
-  -moz-border-end: 1px solid ThreeDShadow;
+  border-inline-end: 1px solid ThreeDShadow;
 }
 
 /* ::::: sort direction indicator :::::  */
@@ -307,7 +303,7 @@ treechildren::-moz-tree-column(insertafter) {
 
 treechildren::-moz-tree-twisty {
   -moz-appearance: treetwisty;
-  -moz-padding-end: 4px;
+  padding-inline-end: 4px;
   padding-top: 1px;
   width: 9px; /* The image's width is 9 pixels */
   list-style-image: url("chrome://global/skin/tree/twisty-clsd.png");
@@ -345,6 +341,17 @@ treechildren::-moz-tree-cell-text(selected, editing) {
   color: inherit;
 }
 
+treechildren::-moz-tree-cell(active, selected, focus, editing),
+tree[seltype="cell"] > treechildren::-moz-tree-cell(active, selected, focus, editing),
+tree[seltype="text"] > treechildren::-moz-tree-cell(active, selected, focus, editing) {
+  background-color: transparent;
+  border: none;
+}
+
+treechildren::-moz-tree-cell-text(active, selected, editing) {
+  opacity: 0;
+}
+
 .tree-input {
   -moz-appearance: none;
   border: 1px solid Highlight;
@@ -353,6 +360,6 @@ treechildren::-moz-tree-cell-text(selected, editing) {
   -moz-border-left-colors: Highlight;
   -moz-border-right-colors: Highlight;
   margin: 0;
-  -moz-margin-start: -4px;
+  margin-inline-start: -4px;
   padding: 1px;
 }

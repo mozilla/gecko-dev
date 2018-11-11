@@ -4,25 +4,53 @@
 
 // a place for miscellaneous social tests
 
-let SocialService = Cu.import("resource://gre/modules/SocialService.jsm", {}).SocialService;
+var SocialService = Cu.import("resource:///modules/SocialService.jsm", {}).SocialService;
 
 const URI_EXTENSION_BLOCKLIST_DIALOG = "chrome://mozapps/content/extensions/blocklist.xul";
-let blocklistURL = "http://example.com/browser/browser/base/content/test/social/blocklist.xml";
+var blocklistURL = "http://example.com/browser/browser/base/content/test/social/blocklist.xml";
 
-let manifest = { // normal provider
+var manifest = { // normal provider
   name: "provider ok",
   origin: "https://example.com",
-  sidebarURL: "https://example.com/browser/browser/base/content/test/social/social_sidebar.html",
-  workerURL: "https://example.com/browser/browser/base/content/test/social/social_worker.js",
+  shareURL: "https://example.com/browser/browser/base/content/test/social/social_share.html",
   iconURL: "https://example.com/browser/browser/base/content/test/general/moz.png"
 };
-let manifest_bad = { // normal provider
+var manifest_bad = { // normal provider
   name: "provider blocked",
   origin: "https://test1.example.com",
-  sidebarURL: "https://test1.example.com/browser/browser/base/content/test/social/social_sidebar.html",
-  workerURL: "https://test1.example.com/browser/browser/base/content/test/social/social_worker.js",
+  shareURL: "https://test1.example.com/browser/browser/base/content/test/social/social_share.html",
   iconURL: "https://test1.example.com/browser/browser/base/content/test/general/moz.png"
 };
+
+// blocklist testing
+function updateBlocklist() {
+  var blocklistNotifier = Cc["@mozilla.org/extensions/blocklist;1"]
+                          .getService(Ci.nsITimerCallback);
+  let promise = promiseObserverNotified("blocklist-updated");
+  blocklistNotifier.notify(null);
+  return promise;
+}
+
+var _originalTestBlocklistURL = null;
+function setAndUpdateBlocklist(aURL) {
+  if (!_originalTestBlocklistURL)
+    _originalTestBlocklistURL = Services.prefs.getCharPref("extensions.blocklist.url");
+  Services.prefs.setCharPref("extensions.blocklist.url", aURL);
+  return updateBlocklist();
+}
+
+function resetBlocklist() {
+  // XXX - this has "forked" from the head.js helpers in our parent directory :(
+  // But let's reuse their blockNoPlugins.xml.  Later, we should arrange to
+  // use their head.js helpers directly
+  let noBlockedURL = "http://example.com/browser/browser/base/content/test/plugins/blockNoPlugins.xml";
+  return new Promise(resolve => {
+    setAndUpdateBlocklist(noBlockedURL).then(() => {
+      Services.prefs.setCharPref("extensions.blocklist.url", _originalTestBlocklistURL);
+      resolve();
+    });
+  });
+}
 
 function test() {
   waitForExplicitFinish();
@@ -33,17 +61,17 @@ function test() {
   });
 
   runSocialTests(tests, undefined, undefined, function () {
-    resetBlocklist(finish); //restore to original pref
+    resetBlocklist().then(finish); // restore to original pref
   });
 }
 
 var tests = {
   testSimpleBlocklist: function(next) {
     // this really just tests adding and clearing our blocklist for later tests
-    setAndUpdateBlocklist(blocklistURL, function() {
+    setAndUpdateBlocklist(blocklistURL).then(() => {
       ok(Services.blocklist.isAddonBlocklisted(SocialService.createWrapper(manifest_bad)), "blocking 'blocked'");
       ok(!Services.blocklist.isAddonBlocklisted(SocialService.createWrapper(manifest)), "not blocking 'good'");
-      resetBlocklist(function() {
+      resetBlocklist().then(() => {
         ok(!Services.blocklist.isAddonBlocklisted(SocialService.createWrapper(manifest_bad)), "blocklist cleared");
         next();
       });
@@ -53,23 +81,23 @@ var tests = {
     function finishTest(isgood) {
       ok(isgood, "adding non-blocked provider ok");
       Services.prefs.clearUserPref("social.manifest.good");
-      resetBlocklist(next);
+      resetBlocklist().then(next);
     }
     setManifestPref("social.manifest.good", manifest);
-    setAndUpdateBlocklist(blocklistURL, function() {
+    setAndUpdateBlocklist(blocklistURL).then(() => {
       try {
         SocialService.addProvider(manifest, function(provider) {
           try {
-            SocialService.removeProvider(provider.origin, function() {
+            SocialService.disableProvider(provider.origin, function() {
               ok(true, "added and removed provider");
               finishTest(true);
             });
-          } catch(e) {
-            ok(false, "SocialService.removeProvider threw exception: " + e);
+          } catch (e) {
+            ok(false, "SocialService.disableProvider threw exception: " + e);
             finishTest(false);
           }
         });
-      } catch(e) {
+      } catch (e) {
         ok(false, "SocialService.addProvider threw exception: " + e);
         finishTest(false);
       }
@@ -79,18 +107,18 @@ var tests = {
     function finishTest(good) {
       ok(good, "Unable to add blocklisted provider");
       Services.prefs.clearUserPref("social.manifest.blocked");
-      resetBlocklist(next);
+      resetBlocklist().then(next);
     }
     setManifestPref("social.manifest.blocked", manifest_bad);
-    setAndUpdateBlocklist(blocklistURL, function() {
+    setAndUpdateBlocklist(blocklistURL).then(() => {
       try {
         SocialService.addProvider(manifest_bad, function(provider) {
-          SocialService.removeProvider(provider.origin, function() {
+          SocialService.disableProvider(provider.origin, function() {
             ok(false, "SocialService.addProvider should throw blocklist exception");
             finishTest(false);
           });
         });
-      } catch(e) {
+      } catch (e) {
         ok(true, "SocialService.addProvider should throw blocklist exception: " + e);
         finishTest(true);
       }
@@ -98,30 +126,26 @@ var tests = {
   },
   testInstallingBlockedProvider: function(next) {
     function finishTest(good) {
-      ok(good, "Unable to add blocklisted provider");
-      Services.prefs.clearUserPref("social.whitelist");
-      resetBlocklist(next);
+      ok(good, "Unable to install blocklisted provider");
+      resetBlocklist().then(next);
     }
     let activationURL = manifest_bad.origin + "/browser/browser/base/content/test/social/social_activate.html"
-    addTab(activationURL, function(tab) {
-      let doc = tab.linkedBrowser.contentDocument;
-      let installFrom = doc.nodePrincipal.origin;
-      // whitelist to avoid the 3rd party install dialog, we only want to test
-      // the blocklist inside installProvider.
-      Services.prefs.setCharPref("social.whitelist", installFrom);
-      setAndUpdateBlocklist(blocklistURL, function() {
-        try {
-          // expecting an exception when attempting to install a hard blocked
-          // provider
-          Social.installProvider(doc, manifest_bad, function(addonManifest) {
-            gBrowser.removeTab(tab);
-            finishTest(false);
-          });
-        } catch(e) {
-          gBrowser.removeTab(tab);
-          finishTest(true);
+    setAndUpdateBlocklist(blocklistURL).then(() => {
+      try {
+        // expecting an exception when attempting to install a hard blocked
+        // provider
+        let data = {
+          origin: manifest_bad.origin,
+          url: activationURL,
+          manifest: manifest_bad,
+          window: window
         }
-      });
+        Social.installProvider(data, function(addonManifest) {
+          finishTest(false);
+        });
+      } catch (e) {
+        finishTest(true);
+      }
     });
   },
   testBlockingExistingProvider: function(next) {
@@ -179,7 +203,7 @@ var tests = {
         // to fire.
         setAndUpdateBlocklist(blocklistURL);
       });
-    } catch(e) {
+    } catch (e) {
       ok(false, "unable to add provider " + e);
       next();
     }

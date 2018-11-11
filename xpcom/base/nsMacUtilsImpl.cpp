@@ -37,7 +37,8 @@ nsMacUtilsImpl::GetArchString(nsAString& aArchString)
 
   CFIndex archCount = ::CFArrayGetCount(archList);
   for (CFIndex i = 0; i < archCount; i++) {
-    CFNumberRef arch = static_cast<CFNumberRef>(::CFArrayGetValueAtIndex(archList, i));
+    CFNumberRef arch =
+      static_cast<CFNumberRef>(::CFArrayGetValueAtIndex(archList, i));
 
     int archInt = 0;
     if (!::CFNumberGetValue(arch, kCFNumberIntType, &archInt)) {
@@ -117,7 +118,6 @@ nsMacUtilsImpl::GetArchitecturesInBinary(nsAString& aArchString)
   return GetArchString(aArchString);
 }
 
-/* readonly attribute boolean isTranslated; */
 // True when running under binary translation (Rosetta).
 NS_IMETHODIMP
 nsMacUtilsImpl::GetIsTranslated(bool* aIsTranslated)

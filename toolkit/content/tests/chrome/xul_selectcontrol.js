@@ -133,7 +133,7 @@ function test_nsIDOMXULSelectControlElement(element, childtag, testprefix)
         selectionRequired ? seconditem : null, selectionRequired ? 0 : -1,
         selectionRequired ? secondvalue : "");
 
-  is(removeditem.control, null, testid + "control not set");
+  is(removeditem.control, undefined, testid + "control not set");
 
   var thirditem = element.appendItem("Third Item", "third");
   var fourthitem = element.appendItem("Fourth Item", fourthvalue);
@@ -283,7 +283,7 @@ function test_nsIDOMXULSelectControlElement_UI(element, testprefix)
 
   synthesizeMouseExpectEvent(seconditem, 2, 2, {}, element, "select", testid + "mouse select 2");
   test_nsIDOMXULSelectControlElement_States(element, testid + "mouse select 2", 2, seconditem, 1, "second");
- 
+
   // make sure the element is focused so keyboard navigation will apply
   element.selectedIndex = 1;
   element.focus();
@@ -345,7 +345,7 @@ function test_nsIDOMXULSelectControlElement_UI(element, testprefix)
   // now test whether a disabled item works.
   element.selectedIndex = 0;
   seconditem.disabled = true;
-  
+
   var dontSelectDisabled = (behaviourContains(element.localName, "dont-select-disabled"));
 
   // 'mouse select' - check if clicking an item selects it

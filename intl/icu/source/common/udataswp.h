@@ -1,7 +1,9 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 *******************************************************************************
 *
-*   Copyright (C) 2003-2005, International Business Machines
+*   Copyright (C) 2003-2014, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *
 *******************************************************************************
@@ -178,6 +180,8 @@ struct UDataSwapper {
     UDataSwapFn *swapArray16;
     /** Transform an array of 32-bit integers. @internal ICU 2.8 */
     UDataSwapFn *swapArray32;
+    /** Transform an array of 64-bit integers. @internal ICU 53 */
+    UDataSwapFn *swapArray64;
     /** Transform an invariant-character string. @internal ICU 2.8 */
     UDataSwapFn *swapInvChars;
 
@@ -315,6 +319,20 @@ U_CFUNC int32_t
 uprv_compareInvEbcdic(const UDataSwapper *ds,
                       const char *outString, int32_t outLength,
                       const UChar *localString, int32_t localLength);
+
+/**
+ * \def uprv_compareInvWithUChar
+ * Compare an invariant-character strings with a UChar string
+ * @internal
+ */
+#if U_CHARSET_FAMILY==U_ASCII_FAMILY
+#   define uprv_compareInvWithUChar uprv_compareInvAscii
+#elif U_CHARSET_FAMILY==U_EBCDIC_FAMILY
+#   define uprv_compareInvWithUChar uprv_compareInvEbcdic
+#else
+#   error Unknown charset family!
+#endif
+
 
 /* material... -------------------------------------------------------------- */
 

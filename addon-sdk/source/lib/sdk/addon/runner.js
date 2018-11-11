@@ -6,38 +6,27 @@ module.metadata = {
   "stability": "experimental"
 };
 
-const { Cc, Ci } = require('chrome');
+const { Cc, Ci, Cu } = require('chrome');
+const { rootURI, metadata, isNative } = require('@loader/options');
+const { id, loadReason } = require('../self');
 const { descriptor, Sandbox, evaluate, main, resolveURI } = require('toolkit/loader');
 const { once } = require('../system/events');
 const { exit, env, staticArgs } = require('../system');
 const { when: unload } = require('../system/unload');
-const { loadReason } = require('../self');
-const { rootURI, metadata } = require("@loader/options");
 const globals = require('../system/globals');
 const xulApp = require('../system/xul-app');
-const { id } = require('sdk/self');
+const { get } = require('../preferences/service');
 const appShellService = Cc['@mozilla.org/appshell/appShellService;1'].
                         getService(Ci.nsIAppShellService);
 const { preferences } = metadata;
 
-const NAME2TOPIC = {
-  'Firefox': 'sessionstore-windows-restored',
-  'Fennec': 'sessionstore-windows-restored',
-  'SeaMonkey': 'sessionstore-windows-restored',
-  'Thunderbird': 'mail-startup-done'
-};
+const Startup = Cu.import("resource://gre/modules/sdk/system/Startup.js", {}).exports;
 
-// Set 'final-ui-startup' as default topic for unknown applications
-let appStartup = 'final-ui-startup';
-
-// Gets the topic that fit best as application startup event, in according with
-// the current application (e.g. Firefox, Fennec, Thunderbird...)
-for (let name of Object.keys(NAME2TOPIC)) {
-  if (xulApp.is(name)) {
-    appStartup = NAME2TOPIC[name];
-    break;
-  }
-}
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+XPCOMUtils.defineLazyGetter(this, "BrowserToolboxProcess", function () {
+  return Cu.import("resource://devtools/client/framework/ToolboxProcess.jsm", {}).
+         BrowserToolboxProcess;
+});
 
 // Initializes default preferences
 function setDefaultPrefs(prefsURI) {
@@ -73,48 +62,32 @@ function definePseudo(loader, id, exports) {
   loader.modules[uri] = { exports: exports };
 }
 
-function wait(reason, options) {
-  once(appStartup, function() {
-    startup(null, options);
-  });
-}
-
 function startup(reason, options) {
-  // Try accessing hidden window to guess if we are running during firefox
-  // startup, so that we should wait for session restore event before
-  // running the addon
-  let initialized = false;
-  try {
-    appShellService.hiddenDOMWindow;
-    initialized = true;
-  }
-  catch(e) {}
-  if (reason === 'startup' || !initialized) {
-    return wait(reason, options);
-  }
+  return Startup.onceInitialized.then(() => {
+    // Inject globals ASAP in order to have console API working ASAP
+    Object.defineProperties(options.loader.globals, descriptor(globals));
 
-  // Inject globals ASAP in order to have console API working ASAP
-  Object.defineProperties(options.loader.globals, descriptor(globals));
-
-  // NOTE: Module is intentionally required only now because it relies
-  // on existence of hidden window, which does not exists until startup.
-  let { ready } = require('../addon/window');
-  // Load localization manifest and .properties files.
-  // Run the addon even in case of error (best effort approach)
-  require('../l10n/loader').
-    load(rootURI).
-    then(null, function failure(error) {
-      console.info("Error while loading localization: " + error.message);
-    }).
-    then(function onLocalizationReady(data) {
-      // Exports data to a pseudo module so that api-utils/l10n/core
-      // can get access to it
-      definePseudo(options.loader, '@l10n/data', data ? data : null);
-      return ready;
-    }).then(function() {
-      run(options);
-    }).then(null, console.exception);
+    // NOTE: Module is intentionally required only now because it relies
+    // on existence of hidden window, which does not exists until startup.
+    let { ready } = require('../addon/window');
+    // Load localization manifest and .properties files.
+    // Run the addon even in case of error (best effort approach)
+    require('../l10n/loader').
+      load(rootURI).
+      then(null, function failure(error) {
+        if (!isNative)
+          console.info("Error while loading localization: " + error.message);
+      }).
+      then(function onLocalizationReady(data) {
+        // Exports data to a pseudo module so that api-utils/l10n/core
+        // can get access to it
+        definePseudo(options.loader, '@l10n/data', data ? data : null);
+        return ready;
+      }).then(function() {
+        run(options);
+      }).then(null, console.exception);
     return void 0; // otherwise we raise a warning, see bug 910304
+  });
 }
 
 function run(options) {
@@ -125,8 +98,9 @@ function run(options) {
       // Do not enable HTML localization while running test as it is hard to
       // disable. Because unit tests are evaluated in a another Loader who
       // doesn't have access to this current loader.
-      if (options.main !== 'test-harness/run-tests')
+      if (options.main !== 'sdk/test/runner') {
         require('../l10n/html').enable();
+      }
     }
     catch(error) {
       console.exception(error);
@@ -135,7 +109,9 @@ function run(options) {
     // native-options does stuff directly with preferences key from package.json
     if (preferences && preferences.length > 0) {
       try {
-        require('../preferences/native-options').enable({ preferences: preferences, id: id });
+        require('../preferences/native-options').
+          enable({ preferences: preferences, id: id }).
+          catch(console.exception);
       }
       catch (error) {
         console.exception(error);
@@ -174,7 +150,6 @@ function run(options) {
       unload(program.onUnload);
 
     if (typeof(program.main) === 'function') {
-
       program.main({
         loadReason: loadReason,
         staticArgs: staticArgs
@@ -182,6 +157,10 @@ function run(options) {
         print: function print(_) { dump(_ + '\n') },
         quit: exit
       });
+    }
+
+    if (get("extensions." + id + ".sdk.debug.show", false)) {
+      BrowserToolboxProcess.init({ addonID: id });
     }
   } catch (error) {
     console.exception(error);

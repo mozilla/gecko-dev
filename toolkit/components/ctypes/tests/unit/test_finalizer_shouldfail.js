@@ -2,10 +2,10 @@ try {
   // We might be running without privileges, in which case it's up to the
   // harness to give us the 'ctypes' object.
   Components.utils.import("resource://gre/modules/ctypes.jsm");
-} catch(e) {
+} catch (e) {
 }
 
-let acquire, dispose, null_dispose, compare, dispose_64;
+var acquire, dispose, null_dispose, compare, dispose_64;
 
 function run_test()
 {
@@ -113,7 +113,7 @@ function test_null_dispose()
 
   exception = false;
   try {
-    let v = ctypes.CDataFinalizer(acquire(0), null_dispose);
+    ctypes.CDataFinalizer(acquire(0), null_dispose);
   } catch (x) {
     exception = true;
   }

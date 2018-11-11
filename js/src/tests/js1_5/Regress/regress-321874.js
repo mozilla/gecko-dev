@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -174,7 +174,7 @@ catch(ex)
 reportCompare(expect, actual, summary + section);
 
 const c = 0;
-expect = 0;
+expect = 'error';
 section = ': for(c in b);';
 printStatus(section);
 try
@@ -190,7 +190,7 @@ catch(ex)
 } 
 reportCompare(expect, actual, summary + section);
 
-expect = 0;
+expect = 'error';
 section = ': function foo(){for(c in b);};foo();';
 printStatus(section);
 try

@@ -7,10 +7,12 @@
 #define GFX_ASURFACE_H
 
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/UniquePtr.h"
+
 #include "gfxTypes.h"
-#include "mozilla/Scoped.h"
 #include "nscore.h"
 #include "nsSize.h"
+#include "mozilla/gfx/Rect.h"
 
 #ifdef MOZILLA_INTERNAL_API
 #include "nsStringFwd.h"
@@ -19,8 +21,6 @@
 #endif
 
 class gfxImageSurface;
-struct nsIntPoint;
-struct nsIntRect;
 struct gfxRect;
 struct gfxPoint;
 
@@ -36,10 +36,6 @@ public:
 #ifdef MOZILLA_INTERNAL_API
     nsrefcnt AddRef(void);
     nsrefcnt Release(void);
-
-    // These functions exist so that browsercomps can refcount a gfxASurface
-    virtual nsrefcnt AddRefExternal(void);
-    virtual nsrefcnt ReleaseExternal(void);
 #else
     virtual nsrefcnt AddRef(void);
     virtual nsrefcnt Release(void);
@@ -50,7 +46,7 @@ public:
     /** Wrap the given cairo surface and return a gfxASurface for it.
      * This adds a reference to csurf (owned by the returned gfxASurface).
      */
-    static already_AddRefed<gfxASurface> Wrap(cairo_surface_t *csurf, const gfxIntSize& aSize = gfxIntSize(-1, -1));
+    static already_AddRefed<gfxASurface> Wrap(cairo_surface_t *csurf, const mozilla::gfx::IntSize& aSize = mozilla::gfx::IntSize(-1, -1));
 
     /*** this DOES NOT addref the surface */
     cairo_surface_t *CairoSurface() {
@@ -63,8 +59,6 @@ public:
 
     void SetDeviceOffset(const gfxPoint& offset);
     gfxPoint GetDeviceOffset() const;
-
-    virtual bool GetRotateForLandscape() { return false; }
 
     void Flush() const;
     void MarkDirty();
@@ -90,7 +84,7 @@ public:
      * Returns null on error.
      */
     virtual already_AddRefed<gfxASurface> CreateSimilarSurface(gfxContentType aType,
-                                                               const nsIntSize& aSize);
+                                                               const mozilla::gfx::IntSize& aSize);
 
     /**
      * Returns an image surface for this surface, or nullptr if not supported.
@@ -100,13 +94,6 @@ public:
     virtual already_AddRefed<gfxImageSurface> GetAsImageSurface();
 
     /**
-     * Returns a read-only ARGB32 image surface for this surface. If this is an
-     * optimized surface this may require a copy.
-     * Returns null on error.
-     */
-    virtual already_AddRefed<gfxImageSurface> GetAsReadableARGB32ImageSurface();
-
-    /**
      * Creates a new ARGB32 image surface with the same contents as this surface.
      * Returns null on error.
      */
@@ -114,27 +101,12 @@ public:
 
     int CairoStatus();
 
-    /* Make sure that the given dimensions don't overflow a 32-bit signed int
-     * using 4 bytes per pixel; optionally, make sure that either dimension
-     * doesn't exceed the given limit.
-     */
-    static bool CheckSurfaceSize(const nsIntSize& sz, int32_t limit = 0);
-
     /* Provide a stride value that will respect all alignment requirements of
      * the accelerated image-rendering code.
      */
     static int32_t FormatStrideForWidth(gfxImageFormat format, int32_t width);
 
-    /* Return the default set of context flags for this surface; these are
-     * hints to the context about any special rendering considerations.  See
-     * gfxContext::SetFlag for documentation.
-     */
-    virtual int32_t GetDefaultContextFlags() const { return 0; }
-
     static gfxContentType ContentFromFormat(gfxImageFormat format);
-
-    void SetSubpixelAntialiasingEnabled(bool aEnabled);
-    bool GetSubpixelAntialiasingEnabled();
 
     /**
      * Record number of bytes for given surface type.  Use positive bytes
@@ -165,36 +137,11 @@ public:
     // to a sub-class of gfxASurface.)
     virtual bool SizeOfIsMeasured() const { return false; }
 
-    /**
-     * Where does this surface's memory live?  By default, we say it's in this
-     * process's heap.
-     */
-    virtual gfxMemoryLocation GetMemoryLocation() const;
-
     static int32_t BytePerPixelFromFormat(gfxImageFormat format);
 
-    virtual const nsIntSize GetSize() const;
+    virtual const mozilla::gfx::IntSize GetSize() const;
 
-    /**
-     * Debug functions to encode the current image as a PNG and export it.
-     */
-
-    /**
-     * Writes a binary PNG file.
-     */
-    void WriteAsPNG(const char* aFile);
-
-    /**
-     * Write as a PNG encoded Data URL to a file.
-     */
-    void DumpAsDataURL(FILE* aOutput = stdout);
-
-    /**
-     * Copy a PNG encoded Data URL to the clipboard.
-     */
-    void CopyAsDataURL();
-
-    void WriteAsPNG_internal(FILE* aFile, bool aBinary);
+    virtual mozilla::gfx::SurfaceFormat GetSurfaceFormat() const;
 
     void SetOpaqueRect(const gfxRect& aRect);
 
@@ -203,12 +150,6 @@ public:
             return *mOpaqueRect;
         return GetEmptyOpaqueRect();
     }
-
-    /**
-     * Mark the surface as being allowed/not allowed to be used as a source.
-     */
-    void SetAllowUseAsSource(bool aAllow) { mAllowUseAsSource = aAllow; }
-    bool GetAllowUseAsSource() { return mAllowUseAsSource; }
 
     static uint8_t BytesPerPixel(gfxImageFormat aImageFormat);
 
@@ -230,7 +171,7 @@ protected:
     virtual ~gfxASurface();
 
     cairo_surface_t *mSurface;
-    mozilla::ScopedDeletePtr<gfxRect> mOpaqueRect;
+    mozilla::UniquePtr<gfxRect> mOpaqueRect;
 
 private:
     static void SurfaceDestroyFunc(void *data);
@@ -240,7 +181,6 @@ private:
 
 protected:
     bool mSurfaceValid;
-    bool mAllowUseAsSource;
 };
 
 /**
@@ -248,17 +188,17 @@ protected:
  */
 class gfxUnknownSurface : public gfxASurface {
 public:
-    gfxUnknownSurface(cairo_surface_t *surf, const gfxIntSize& aSize)
+    gfxUnknownSurface(cairo_surface_t *surf, const mozilla::gfx::IntSize& aSize)
         : mSize(aSize)
     {
         Init(surf, true);
     }
 
     virtual ~gfxUnknownSurface() { }
-    virtual const nsIntSize GetSize() const { return mSize; }
+    virtual const mozilla::gfx::IntSize GetSize() const override { return mSize; }
 
 private:
-    nsIntSize mSize;
+    mozilla::gfx::IntSize mSize;
 };
 
 #endif /* GFX_ASURFACE_H */

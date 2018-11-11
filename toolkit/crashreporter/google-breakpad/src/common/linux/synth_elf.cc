@@ -5,14 +5,11 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "common/linux/elf_gnu_compat.h"
 #include "common/using_std_string.h"
 
 namespace google_breakpad {
 namespace synth_elf {
-
-#ifndef NT_GNU_BUILD_ID
-#define NT_GNU_BUILD_ID 3
-#endif
 
 ELF::ELF(uint16_t machine,
          uint8_t file_class,
@@ -216,8 +213,10 @@ void ELF::Finish() {
 SymbolTable::SymbolTable(Endianness endianness,
                          size_t addr_size,
                          StringTable& table) : Section(endianness),
-                                               addr_size_(addr_size),
                                                table_(table) {
+#ifndef NDEBUG
+  addr_size_ = addr_size;
+#endif
   assert(addr_size_ == 4 || addr_size_ == 8);
 }
 

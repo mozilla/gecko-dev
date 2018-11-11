@@ -4,6 +4,8 @@
 
 "use strict";
 
+requestLongerTimeout(2);
+
 const kTestBarID = "testBar";
 const kWidgetID = "characterencoding-button";
 
@@ -50,13 +52,13 @@ function checkRestoredPresence(aWidgetID, aLegacy) {
     CustomizableUI.unregisterArea(testBar.id);
     testBar.remove();
 
-    let placement = CustomizableUI.getPlacementOfWidget(aWidgetID);
+    placement = CustomizableUI.getPlacementOfWidget(aWidgetID);
     is(placement, null, "Expected " + aWidgetID + " to be in the palette");
 
     testBar = createTestBar(aLegacy);
 
     yield startCustomizing();
-    let placement = CustomizableUI.getPlacementOfWidget(aWidgetID);
+    placement = CustomizableUI.getPlacementOfWidget(aWidgetID);
     is(placement.area, kTestBarID,
        "Expected " + aWidgetID + " to be in the test toolbar");
     yield endCustomizing();

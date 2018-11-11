@@ -1,4 +1,5 @@
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "URL", function() {
   return "http://localhost:" + httpServer.identity.primaryPort;
@@ -10,9 +11,7 @@ var redirects = [];
 const numRedirects = 10;
 
 function make_channel(url, callback, ctx) {
-  var ios = Cc["@mozilla.org/network/io-service;1"].
-            getService(Ci.nsIIOService);
-  return ios.newChannel(url, "", null);
+  return NetUtil.newChannel({uri: url, loadUsingSystemPrincipal: true});
 }
 
 const responseBody = "response body";
@@ -26,10 +25,12 @@ function contentHandler(request, response)
 function finish_test(request, buffer)
 {
   do_check_eq(buffer, responseBody);
-  let chan = request.QueryInterface(Ci.nsIRedirectHistory);
-  do_check_eq(numRedirects - 1, chan.redirects.length);
+  let chan = request.QueryInterface(Ci.nsIChannel);
+  let redirectChain = chan.loadInfo.redirectChain;
+
+  do_check_eq(numRedirects - 1, redirectChain.length);
   for (let i = 0; i < numRedirects - 1; ++i) {
-    let principal = chan.redirects.queryElementAt(i, Ci.nsIPrincipal);
+    let principal = redirectChain[i];
     do_check_eq(URL + redirects[i], principal.URI.spec);
   }
   httpServer.stop(do_test_finished);
@@ -58,6 +59,6 @@ function run_test()
   httpServer.start(-1);
 
   var chan = make_channel(URL + redirects[0]);
-  chan.asyncOpen(new ChannelListener(finish_test, null), null);
+  chan.asyncOpen2(new ChannelListener(finish_test, null));
   do_test_pending();
 }

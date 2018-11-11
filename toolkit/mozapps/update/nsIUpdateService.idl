@@ -11,7 +11,6 @@ interface nsIDOMWindow;
 interface nsIRequest;
 interface nsIRequestObserver;
 interface nsISimpleEnumerator;
-interface nsIXMLHttpRequest;
 interface nsIFile;
 
 /**
@@ -87,7 +86,7 @@ interface nsIUpdatePatch : nsISupports
  * that the front end and other application services can use to learn more
  * about what is going on.
  */
-[scriptable, uuid(6b0b7721-6746-443d-8cb0-c6199d7f28a6)]
+[scriptable, uuid(e094c045-f4ff-41fd-92da-cd2effd2c7c9)]
 interface nsIUpdate : nsISupports
 {
   /**
@@ -114,11 +113,6 @@ interface nsIUpdate : nsISupports
   attribute AString appVersion;
 
   /**
-   * The Toolkit version of this update.
-   */
-  attribute AString platformVersion;
-
-  /**
    * The Application version prior to the application being updated.
    */
   attribute AString previousAppVersion;
@@ -138,20 +132,6 @@ interface nsIUpdate : nsISupports
    * which also links to the release notes.
    */
   attribute AString detailsURL;
-
-  /**
-   * The URL to a page that is typically localized to display in the update
-   * prompt.
-   */
-  attribute AString billboardURL;
-
-  /**
-   * The URL to a HTML fragment that contains a license for this update. If
-   * this is specified, the user is shown the license file after they choose
-   * to install the update and they must agree to it before the download
-   * commences.
-   */
-  attribute AString licenseURL;
 
   /**
    * The URL to the Update Service that supplied this update.
@@ -229,6 +209,7 @@ interface nsIUpdate : nsISupports
    *   "downloading"        The update is being downloaded.
    *   "pending"            The update is ready to be applied.
    *   "pending-service"    The update is ready to be applied with the service.
+   *   "pending-elevate"    The update is ready to be applied but requires elevation.
    *   "applying"           The update is being applied.
    *   "applied"            The update is ready to be switched to.
    *   "applied-os"         The update is OS update and to be installed.
@@ -249,6 +230,11 @@ interface nsIUpdate : nsISupports
    *       CERT_ATTR_CHECK_FAILED_* values in nsUpdateService.js)
    */
   attribute long errorCode;
+
+  /**
+   * Whether an elevation failure has been encountered for this update.
+   */
+  attribute boolean elevationFailure;
 
   /**
    * The number of patches supplied by this update.
@@ -283,25 +269,25 @@ interface nsIUpdateCheckListener : nsISupports
   /**
    * The update check was completed.
    * @param   request
-   *          The nsIXMLHttpRequest handling the update check.
+   *          The XMLHttpRequest handling the update check.
    * @param   updates
    *          An array of nsIUpdate objects listing available updates.
    * @param   updateCount
    *          The size of the |updates| array.
    */
-  void onCheckComplete(in nsIXMLHttpRequest request,
+  void onCheckComplete(in jsval request,
                        [array, size_is(updateCount)] in nsIUpdate updates,
                        in unsigned long updateCount);
 
   /**
    * An error occurred while loading the remote update service file.
    * @param   request
-   *          The nsIXMLHttpRequest handling the update check.
+   *          The XMLHttpRequest handling the update check.
    * @param   update
    *          A nsIUpdate object that contains details about the
    *          error in its |statusText| property.
    */
-  void onError(in nsIXMLHttpRequest request,
+  void onError(in jsval request,
                in nsIUpdate update);
 };
 
@@ -352,7 +338,7 @@ interface nsIUpdateChecker : nsISupports
  * background update checks and provides utilities for selecting and
  * downloading update patches.
  */
-[scriptable, uuid(9f9b51f5-340e-47ce-85ae-9eb077c6cd39)]
+[scriptable, uuid(1107d207-a263-403a-b268-05772ec10757)]
 interface nsIApplicationUpdateService : nsISupports
 {
   /**
@@ -432,6 +418,12 @@ interface nsIApplicationUpdateService : nsISupports
   readonly attribute boolean canCheckForUpdates;
 
   /**
+   * Whether or not the installation requires elevation. Currently only
+   * implemented on OSX, returns false on other platforms.
+   */
+  readonly attribute boolean elevationRequired;
+
+  /**
    * Whether or not the Update Service can download and install updates.
    * On Windows, this is a function of whether or not the maintenance service
    * is installed and enabled. On other systems, and as a fallback on Windows,
@@ -443,9 +435,8 @@ interface nsIApplicationUpdateService : nsISupports
   /**
    * Whether or not a different instance is handling updates of this
    * installation.  This currently only ever returns true on Windows
-   * when 2 instances of an application are open or when both the Metro
-   * and Desktop browsers are open.  Only one of the instances will actually
-   * handle updates for the installation.
+   * when 2 instances of an application are open. Only one of the instances
+   * will actually handle updates for the installation.
    */
   readonly attribute boolean isOtherInstanceHandlingUpdates;
 
@@ -477,7 +468,7 @@ interface nsIUpdateProcessor : nsISupports
  * An interface describing a global application service that maintains a list
  * of updates previously performed as well as the current active update.
  */
-[scriptable, uuid(c5df56de-919d-406b-aaf9-106dfa9b685b)]
+[scriptable, uuid(0f1098e9-a447-4af9-b030-6f8f35c85f89)]
 interface nsIUpdateManager : nsISupports
 {
   /**
@@ -506,14 +497,25 @@ interface nsIUpdateManager : nsISupports
   /**
    * Refresh the update status based on the information in update.status.
    */
-  void refreshUpdateStatus(in nsIUpdate update);
+  void refreshUpdateStatus();
+
+  /**
+   * The user agreed to proceed with an elevated update and we are now
+   * permitted to show an elevation prompt.
+   */
+  void elevationOptedIn();
+
+  /**
+   * Clean up and remove the active update without applying it.
+   */
+  void cleanupActiveUpdate();
 };
 
 /**
  * An interface describing an object that can show various kinds of Update
  * notification UI to the user.
  */
-[scriptable, uuid(599fd3c6-ec68-4499-ada5-2997739c97a6)]
+[scriptable, uuid(cee3bd60-c564-42ff-a2bf-d442cb15f75c)]
 interface nsIUpdatePrompt : nsISupports
 {
   /**
@@ -546,14 +548,6 @@ interface nsIUpdatePrompt : nsISupports
                             [optional] in boolean background);
 
   /**
-   * Shows the application update installed user interface advising that an
-   * update was installed successfully. If the app.update.silent preference is
-   * true, the app.update.showInstalledUI preference is false, or the user
-   * interface is already displayed the call will be a no-op.
-   */
-  void showUpdateInstalled();
-
-  /**
    * Shows the application update error user interface advising that an error
    * occurred while checking for or applying an update. If the app.update.silent
    * preference is true the call will be a no-op.
@@ -571,4 +565,11 @@ interface nsIUpdatePrompt : nsISupports
    *          An nsIDOMWindow to set as the parent for this window. Can be null.
    */
   void showUpdateHistory(in nsIDOMWindow parent);
+
+  /**
+   * Shows the application update downloaded user interface advising that an
+   * update, which requires elevation, has now been downloaded and a restart is
+   * necessary to complete the update.
+   */
+  void showUpdateElevationRequired();
 };

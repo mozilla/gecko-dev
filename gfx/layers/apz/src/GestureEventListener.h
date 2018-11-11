@@ -8,15 +8,16 @@
 #define mozilla_layers_GestureEventListener_h
 
 #include "InputData.h"                  // for MultiTouchInput, etc
-#include "Units.h"                      // for ScreenIntPoint
+#include "Units.h"
 #include "mozilla/EventForwards.h"      // for nsEventStatus
-#include "nsAutoPtr.h"                  // for nsRefPtr
+#include "mozilla/RefPtr.h"             // for RefPtr
 #include "nsISupportsImpl.h"
 #include "nsTArray.h"                   // for nsTArray
 
-class CancelableTask;
-
 namespace mozilla {
+
+class CancelableRunnable;
+
 namespace layers {
 
 class AsyncPanZoomController;
@@ -36,11 +37,11 @@ class AsyncPanZoomController;
  * Android doesn't use this class because it has its own built-in gesture event
  * listeners that should generally be preferred.
  */
-class GestureEventListener MOZ_FINAL {
+class GestureEventListener final {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(GestureEventListener)
 
-  GestureEventListener(AsyncPanZoomController* aAsyncPanZoomController);
+  explicit GestureEventListener(AsyncPanZoomController* aAsyncPanZoomController);
 
   // --------------------------------------------------------------------------
   // These methods must only be called on the controller/UI thread.
@@ -59,6 +60,14 @@ public:
    * event contained only one touch.
    */
   int32_t GetLastTouchIdentifier() const;
+
+  /**
+   * Function used to disable long tap gestures.
+   *
+   * On slow running tests, drags and touch events can be misinterpreted
+   * as a long tap. This allows tests to disable long tap gesture detection.
+   */
+  static void SetLongTapEnabled(bool aLongTapEnabled);
 
 private:
   // Private destructor, to discourage deletion outside of Release():
@@ -129,7 +138,7 @@ private:
   nsEventStatus HandleInputTouchMove();
   nsEventStatus HandleInputTouchCancel();
   void HandleInputTimeoutLongTap();
-  void HandleInputTimeoutMaxTap();
+  void HandleInputTimeoutMaxTap(bool aDuringFastFling);
 
   void TriggerSingleTapConfirmedEvent();
 
@@ -140,7 +149,7 @@ private:
    */
   void SetState(GestureState aState);
 
-  nsRefPtr<AsyncPanZoomController> mAsyncPanZoomController;
+  RefPtr<AsyncPanZoomController> mAsyncPanZoomController;
 
   /**
    * Array containing all active touches. When a touch happens it, gets added to
@@ -162,18 +171,31 @@ private:
    * out we are compared to our original pinch span. Note that this does _not_
    * continue to be updated once we jump into the |GESTURE_PINCH| state.
    */
-  float mSpanChange;
+  ParentLayerCoord mSpanChange;
 
   /**
    * Previous span calculated for the purposes of setting inside a
    * PinchGestureInput.
    */
-  float mPreviousSpan;
+  ParentLayerCoord mPreviousSpan;
+
+  /* Properties similar to mSpanChange and mPreviousSpan, but for the focus */
+  ParentLayerCoord mFocusChange;
+  ParentLayerPoint mPreviousFocus;
 
   /**
    * Cached copy of the last touch input.
    */
   MultiTouchInput mLastTouchInput;
+
+  /**
+   * Cached copy of the last tap gesture input.
+   * In the situation when we have a tap followed by a pinch we lose info
+   * about tap since we keep only last input and to dispatch it correctly
+   * we save last tap copy into this variable.
+   * For more info see bug 947892.
+   */
+  MultiTouchInput mLastTapInput;
 
   /**
    * Position of the last touch starting. This is only valid during an attempt
@@ -184,7 +206,7 @@ private:
    * or GESTURE_SECOND_SINGLE_TOUCH_DOWN then we're certain the gesture is
    * not tap.
    */
-  ScreenIntPoint mTouchStartPosition;
+  ParentLayerPoint mTouchStartPosition;
 
   /**
    * Task used to timeout a long tap. This gets posted to the UI thread such
@@ -197,7 +219,7 @@ private:
    * CancelLongTapTimeoutTask: Cancel the mLongTapTimeoutTask and also set
    * it to null.
    */
-  CancelableTask *mLongTapTimeoutTask;
+  RefPtr<CancelableRunnable> mLongTapTimeoutTask;
   void CancelLongTapTimeoutTask();
   void CreateLongTapTimeoutTask();
 
@@ -210,13 +232,21 @@ private:
    * CancelMaxTapTimeoutTask: Cancel the mMaxTapTimeoutTask and also set
    * it to null.
    */
-  CancelableTask *mMaxTapTimeoutTask;
+  RefPtr<CancelableRunnable> mMaxTapTimeoutTask;
   void CancelMaxTapTimeoutTask();
   void CreateMaxTapTimeoutTask();
 
+  /**
+   * Tracks whether the single-tap event was already sent to content. This is
+   * needed because it affects how the double-tap gesture, if detected, is
+   * handled. The value is only valid in states GESTURE_FIRST_SINGLE_TOUCH_UP and
+   * GESTURE_SECOND_SINGLE_TOUCH_DOWN; to more easily catch violations it is
+   * stored in a Maybe which is set to Nothing() at all other times.
+   */
+  Maybe<bool> mSingleTapSent;
 };
 
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 #endif

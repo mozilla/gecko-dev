@@ -7,6 +7,9 @@
 #ifndef mozilla_dom_plugins_NPEventWindows_h
 #define mozilla_dom_plugins_NPEventWindows_h 1
 
+#ifndef WM_MOUSEHWHEEL
+#define WM_MOUSEHWHEEL (0x020E)
+#endif
 
 #include "npapi.h"
 namespace mozilla {
@@ -22,6 +25,7 @@ struct NPRemoteEvent
         RECT rect;
         WINDOWPOS windowpos;
     } lParamData;
+    double contentsScaleFactor;
 };
 
 }
@@ -92,8 +96,23 @@ struct ParamTraits<mozilla::plugins::NPRemoteEvent>
             case WM_MBUTTONDBLCLK:
             case WM_RBUTTONDBLCLK:
 
+            case WM_MOUSEWHEEL:
+            case WM_MOUSEHWHEEL:
+
             case WM_SETFOCUS:
             case WM_KILLFOCUS:
+
+            case WM_IME_STARTCOMPOSITION:
+            case WM_IME_COMPOSITION:
+            case WM_IME_ENDCOMPOSITION:
+            case WM_IME_CHAR:
+            case WM_IME_SETCONTEXT:
+            case WM_IME_COMPOSITIONFULL:
+            case WM_IME_KEYDOWN:
+            case WM_IME_KEYUP:
+            case WM_IME_SELECT:
+            case WM_INPUTLANGCHANGEREQUEST:
+            case WM_INPUTLANGCHANGE:
                 break;
 
             default:
@@ -112,14 +131,11 @@ struct ParamTraits<mozilla::plugins::NPRemoteEvent>
         aMsg->WriteBytes(&paramCopy, sizeof(paramType));
     }
 
-    static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+    static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
     {
-        const char* bytes = 0;
-
-        if (!aMsg->ReadBytes(aIter, &bytes, sizeof(paramType))) {
+        if (!aMsg->ReadBytesInto(aIter, aResult, sizeof(paramType))) {
             return false;
         }
-        memcpy(aResult, bytes, sizeof(paramType));
 
         if (aResult->event.event == WM_PAINT) {
             // restore the lParam to point at the RECT

@@ -30,7 +30,7 @@ var gUpdatedOverrides;
 var gOverrideForHostCache = new Map;
 var gInitialized = false;
 var gOverrideFunctions = [
-  function (aHttpChannel) UserAgentOverrides.getOverrideForURI(aHttpChannel.URI)
+  function (aHttpChannel) { return UserAgentOverrides.getOverrideForURI(aHttpChannel.URI); }
 ];
 var gBuiltUAs = new Map;
 
@@ -46,9 +46,9 @@ this.UserAgentOverrides = {
     Services.prefs.addObserver(PREF_OVERRIDES_ENABLED, buildOverrides, false);
 
     try {
-      Services.obs.addObserver(HTTP_on_modify_request, "http-on-modify-request", false);
+      Services.obs.addObserver(HTTP_on_useragent_request, "http-on-useragent-request", false);
     } catch (x) {
-      // The http-on-modify-request notification is disallowed in content processes.
+      // The http-on-useragent-request notification is disallowed in content processes.
     }
 
     UserAgentUpdates.init(function(overrides) {
@@ -57,7 +57,7 @@ this.UserAgentOverrides = {
         for (let domain in overrides) {
           overrides[domain] = getUserAgentFromOverride(overrides[domain]);
         }
-        overrides.get = function(key) this[key];
+        overrides.get = function(key) { return this[key]; };
       }
       gUpdatedOverrides = overrides;
     });
@@ -118,14 +118,14 @@ this.UserAgentOverrides = {
 
     Services.prefs.removeObserver(PREF_OVERRIDES_ENABLED, buildOverrides);
 
-    Services.obs.removeObserver(HTTP_on_modify_request, "http-on-modify-request");
+    Services.obs.removeObserver(HTTP_on_useragent_request, "http-on-useragent-request");
   },
 
   receiveMessage: function(aMessage) {
     let name = aMessage.name;
     switch (name) {
       case OVERRIDE_MESSAGE:
-        let uri = aMessage.data.uri;
+        let uri = Services.io.newURI(aMessage.data.uri, null, null);
         return this.getOverrideForURI(uri);
       default:
         throw("Wrong Message in UserAgentOverride: " + name);
@@ -169,7 +169,7 @@ function buildOverrides() {
   }
 }
 
-function HTTP_on_modify_request(aSubject, aTopic, aData) {
+function HTTP_on_useragent_request(aSubject, aTopic, aData) {
   let channel = aSubject.QueryInterface(Ci.nsIHttpChannel);
 
   for (let callback of gOverrideFunctions) {

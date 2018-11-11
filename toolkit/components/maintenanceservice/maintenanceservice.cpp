@@ -14,6 +14,11 @@
 #include "workmonitor.h"
 #include "uachelper.h"
 #include "updatehelper.h"
+#include "registrycertificates.h"
+
+// Link w/ subsystem window so we don't get a console when executing
+// this binary through the installer.
+#pragma comment(linker, "/SUBSYSTEM:windows")
 
 SERVICE_STATUS gSvcStatus = { 0 }; 
 SERVICE_STATUS_HANDLE gSvcStatusHandle = nullptr; 
@@ -98,6 +103,10 @@ wmain(int argc, WCHAR **argv)
     return 0;
   }
 
+  if (!lstrcmpi(argv[1], L"check-cert") && argc > 2) {
+    return DoesBinaryMatchAllowedCertificates(argv[2], argv[3], FALSE) ? 0 : 1;
+  }
+
   SERVICE_TABLE_ENTRYW DispatchTable[] = { 
     { SVC_NAME, (LPSERVICE_MAIN_FUNCTIONW) SvcMain }, 
     { nullptr, nullptr } 
@@ -121,18 +130,13 @@ wmain(int argc, WCHAR **argv)
 BOOL
 GetLogDirectoryPath(WCHAR *path)
 {
-  HRESULT hr = SHGetFolderPathW(nullptr, CSIDL_COMMON_APPDATA, nullptr, 
-    SHGFP_TYPE_CURRENT, path);
-  if (FAILED(hr)) {
+  if (!GetModuleFileNameW(nullptr, path, MAX_PATH)) {
     return FALSE;
   }
 
-  if (!PathAppendSafe(path, L"Mozilla")) {
+  if (!PathRemoveFileSpecW(path)) {
     return FALSE;
   }
-  // The directory should already be created from the installer, but
-  // just to be safe in case someone deletes.
-  CreateDirectoryW(path, nullptr);
 
   if (!PathAppendSafe(path, L"logs")) {
     return FALSE;

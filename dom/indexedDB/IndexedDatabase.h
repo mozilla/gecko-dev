@@ -1,156 +1,96 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_indexeddb_indexeddatabase_h__
-#define mozilla_dom_indexeddb_indexeddatabase_h__
+#ifndef mozilla_dom_indexeddatabase_h__
+#define mozilla_dom_indexeddatabase_h__
 
-#include "nsIProgrammingLanguage.h"
-
-#include "mozilla/Attributes.h"
 #include "js/StructuredClone.h"
-#include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
-#include "nsDebug.h"
-#include "nsError.h"
-#include "nsString.h"
 #include "nsTArray.h"
-#include "nsIInputStream.h"
 
-#define BEGIN_INDEXEDDB_NAMESPACE \
-  namespace mozilla { namespace dom { namespace indexedDB {
+namespace JS {
+struct WasmModule;
+} // namespace JS
 
-#define END_INDEXEDDB_NAMESPACE \
-  } /* namespace indexedDB */ } /* namepsace dom */ } /* namespace mozilla */
+namespace mozilla {
+namespace dom {
 
-#define USING_INDEXEDDB_NAMESPACE \
-  using namespace mozilla::dom::indexedDB;
+class Blob;
+class IDBDatabase;
+class IDBMutableFile;
 
-class nsIDOMBlob;
-
-BEGIN_INDEXEDDB_NAMESPACE
+namespace indexedDB {
 
 class FileInfo;
-class IDBDatabase;
-class IDBTransaction;
+class SerializedStructuredCloneReadInfo;
 
 struct StructuredCloneFile
 {
-  bool operator==(const StructuredCloneFile& aOther) const
-  {
-    return this->mFile == aOther.mFile &&
-           this->mFileInfo == aOther.mFileInfo &&
-           this->mInputStream == aOther.mInputStream;
-  }
+  enum FileType {
+    eBlob,
+    eMutableFile,
+    eStructuredClone,
+    eWasmBytecode,
+    eWasmCompiled,
+    eEndGuard
+  };
 
-  nsCOMPtr<nsIDOMBlob> mFile;
-  nsRefPtr<FileInfo> mFileInfo;
-  nsCOMPtr<nsIInputStream> mInputStream;
+  RefPtr<Blob> mBlob;
+  RefPtr<IDBMutableFile> mMutableFile;
+  RefPtr<JS::WasmModule> mWasmModule;
+  RefPtr<FileInfo> mFileInfo;
+  FileType mType;
+
+  // In IndexedDatabaseInlines.h
+  inline
+  StructuredCloneFile();
+
+  // In IndexedDatabaseInlines.h
+  inline
+  ~StructuredCloneFile();
+
+  // In IndexedDatabaseInlines.h
+  inline bool
+  operator==(const StructuredCloneFile& aOther) const;
 };
-
-struct SerializedStructuredCloneReadInfo;
 
 struct StructuredCloneReadInfo
 {
-  // In IndexedDatabaseInlines.h
-  inline StructuredCloneReadInfo();
-
-  inline StructuredCloneReadInfo&
-  operator=(StructuredCloneReadInfo&& aCloneReadInfo);
-
-  // In IndexedDatabaseInlines.h
-  inline bool
-  SetFromSerialized(const SerializedStructuredCloneReadInfo& aOther);
-
-  JSAutoStructuredCloneBuffer mCloneBuffer;
+  JSStructuredCloneData mData;
   nsTArray<StructuredCloneFile> mFiles;
   IDBDatabase* mDatabase;
-};
-
-struct SerializedStructuredCloneReadInfo
-{
-  SerializedStructuredCloneReadInfo()
-  : data(nullptr), dataLength(0)
-  { }
-
-  bool
-  operator==(const SerializedStructuredCloneReadInfo& aOther) const
-  {
-    return this->data == aOther.data &&
-           this->dataLength == aOther.dataLength;
-  }
-
-  SerializedStructuredCloneReadInfo&
-  operator=(const StructuredCloneReadInfo& aOther)
-  {
-    data = aOther.mCloneBuffer.data();
-    dataLength = aOther.mCloneBuffer.nbytes();
-    return *this;
-  }
-
-  // Make sure to update ipc/SerializationHelpers.h when changing members here!
-  uint64_t* data;
-  size_t dataLength;
-};
-
-struct SerializedStructuredCloneWriteInfo;
-
-struct StructuredCloneWriteInfo
-{
-  // In IndexedDatabaseInlines.h
-  inline StructuredCloneWriteInfo();
-  inline StructuredCloneWriteInfo(StructuredCloneWriteInfo&& aCloneWriteInfo);
-
-  bool operator==(const StructuredCloneWriteInfo& aOther) const
-  {
-    return this->mCloneBuffer.nbytes() == aOther.mCloneBuffer.nbytes() &&
-           this->mCloneBuffer.data() == aOther.mCloneBuffer.data() &&
-           this->mFiles == aOther.mFiles &&
-           this->mTransaction == aOther.mTransaction &&
-           this->mOffsetToKeyProp == aOther.mOffsetToKeyProp;
-  }
+  bool mHasPreprocessInfo;
 
   // In IndexedDatabaseInlines.h
-  inline bool
-  SetFromSerialized(const SerializedStructuredCloneWriteInfo& aOther);
+  inline explicit
+  StructuredCloneReadInfo(JS::StructuredCloneScope aScope);
 
-  JSAutoStructuredCloneBuffer mCloneBuffer;
-  nsTArray<StructuredCloneFile> mFiles;
-  IDBTransaction* mTransaction;
-  uint64_t mOffsetToKeyProp;
+  // In IndexedDatabaseInlines.h
+  inline
+  StructuredCloneReadInfo();
+
+  // In IndexedDatabaseInlines.h
+  inline
+  ~StructuredCloneReadInfo();
+
+  // In IndexedDatabaseInlines.h
+  inline
+  StructuredCloneReadInfo(StructuredCloneReadInfo&& aOther);
+
+  // In IndexedDatabaseInlines.h
+  inline StructuredCloneReadInfo&
+  operator=(StructuredCloneReadInfo&& aOther);
+
+  // In IndexedDatabaseInlines.h
+  inline
+  MOZ_IMPLICIT StructuredCloneReadInfo(SerializedStructuredCloneReadInfo&& aOther);
 };
 
-struct SerializedStructuredCloneWriteInfo
-{
-  SerializedStructuredCloneWriteInfo()
-  : data(nullptr), dataLength(0), offsetToKeyProp(0)
-  { }
+} // namespace indexedDB
+} // namespace dom
+} // namespace mozilla
 
-  bool
-  operator==(const SerializedStructuredCloneWriteInfo& aOther) const
-  {
-    return this->data == aOther.data &&
-           this->dataLength == aOther.dataLength &&
-           this->offsetToKeyProp == aOther.offsetToKeyProp;
-  }
-
-  SerializedStructuredCloneWriteInfo&
-  operator=(const StructuredCloneWriteInfo& aOther)
-  {
-    data = aOther.mCloneBuffer.data();
-    dataLength = aOther.mCloneBuffer.nbytes();
-    offsetToKeyProp = aOther.mOffsetToKeyProp;
-    return *this;
-  }
-
-  // Make sure to update ipc/SerializationHelpers.h when changing members here!
-  uint64_t* data;
-  size_t dataLength;
-  uint64_t offsetToKeyProp;
-};
-
-END_INDEXEDDB_NAMESPACE
-
-#endif // mozilla_dom_indexeddb_indexeddatabase_h__
+#endif // mozilla_dom_indexeddatabase_h__

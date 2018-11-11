@@ -1,13 +1,26 @@
 // Test that having two frames that request installs at the same time doesn't
 // cause callback ID conflicts (discussed in bug 926712)
 
-let {Promise} = Cu.import("resource://gre/modules/Promise.jsm");
+var gConcurrentTabs = [];
+var gQueuedForInstall = [];
+var gResults = [];
 
-let gConcurrentTabs = [];
-let gQueuedForInstall = [];
-let gResults = [];
+function frame_script() {
+  /* globals addMessageListener, sendAsyncMessage*/
+  addMessageListener("Test:StartInstall", () => {
+    content.document.getElementById("installnow").click()
+  });
 
-let gAddonAndWindowListener = {
+  addEventListener("load", () => {
+    sendAsyncMessage("Test:Loaded");
+
+    content.addEventListener("InstallComplete", (e) => {
+      sendAsyncMessage("Test:InstallComplete", e.detail);
+    }, true);
+  }, true);
+}
+
+var gAddonAndWindowListener = {
   onOpenWindow: function(win) {
     var window = win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
     info("Window opened");
@@ -33,26 +46,42 @@ let gAddonAndWindowListener = {
 
 function installNext() {
   let tab = gQueuedForInstall.shift();
-  tab.linkedBrowser.contentDocument.getElementById("installnow").click();
+  tab.linkedBrowser.messageManager.sendAsyncMessage("Test:StartInstall");
 }
 
 function winForTab(t) {
-  return t.linkedBrowser.contentDocument.defaultView;
+  return t.linkedBrowser.contentWindow;
+}
+
+function createTab(url) {
+  let tab = gBrowser.addTab(url);
+  tab.linkedBrowser.messageManager.loadFrameScript("data:,(" + frame_script.toString() + ")();", true);
+
+  tab.linkedBrowser.messageManager.addMessageListener("Test:InstallComplete", ({data}) => {
+    gResults.push(data);
+    if (gResults.length == 2) {
+      executeSoon(endThisTest);
+    }
+  });
+
+  return tab;
 }
 
 function test() {
   waitForExplicitFinish();
 
   Services.prefs.setBoolPref(PREF_LOGGING_ENABLED, true);
+  Services.prefs.setBoolPref(PREF_INSTALL_REQUIRESECUREORIGIN, false);
   Services.wm.addListener(gAddonAndWindowListener);
   AddonManager.addInstallListener(gAddonAndWindowListener);
   registerCleanupFunction(function() {
     Services.wm.removeListener(gAddonAndWindowListener);
     AddonManager.removeInstallListener(gAddonAndWindowListener);
     Services.prefs.clearUserPref(PREF_LOGGING_ENABLED);
+    Services.prefs.clearUserPref(PREF_INSTALL_REQUIRESECUREORIGIN);
 
-    Services.perms.remove("example.com", "install");
-    Services.perms.remove("example.org", "install");
+    Services.perms.remove(makeURI("http://example.com"), "install");
+    Services.perms.remove(makeURI("http://example.org"), "install");
 
     while (gConcurrentTabs.length) {
       gBrowser.removeTab(gConcurrentTabs.shift());
@@ -63,24 +92,13 @@ function test() {
   pm.add(makeURI("http://example.com/"), "install", pm.ALLOW_ACTION);
   pm.add(makeURI("http://example.org/"), "install", pm.ALLOW_ACTION);
 
-  gConcurrentTabs.push(gBrowser.addTab(TESTROOT + "concurrent_installs.html"));
-  gConcurrentTabs.push(gBrowser.addTab(TESTROOT2 + "concurrent_installs.html"));
+  gConcurrentTabs.push(createTab(TESTROOT + "concurrent_installs.html"));
+  gConcurrentTabs.push(createTab(TESTROOT2 + "concurrent_installs.html"));
 
   let promises = gConcurrentTabs.map((t) => {
-    let deferred = Promise.defer();
-    t.linkedBrowser.addEventListener("load", () => {
-      let win = winForTab(t);
-      if (win.location.host.startsWith("example")) {
-        win.wrappedJSObject.installTriggerCallback = function(rv) {
-          gResults.push(rv);
-          if (gResults.length == 2) {
-            executeSoon(endThisTest);
-          }
-        };
-        deferred.resolve();
-      }
-    }, true);
-    return deferred.promise;
+    return new Promise(resolve => {
+      t.linkedBrowser.messageManager.addMessageListener("Test:Loaded", resolve);
+    });
   });
 
   Promise.all(promises).then(() => {
@@ -95,10 +113,10 @@ function endThisTest() {
   isnot(gResults[0].xpi, gResults[1].xpi, "Should not have the same XPIs.");
   for (let i = 0; i < 2; i++) {
     let {loc, xpi} = gResults[i];
-    if (loc.contains("example.org")) {
-      ok(xpi.contains("example.org"), "Should get .org XPI for .org loc");
-    } else if (loc.contains("example.com")) {
-      ok(xpi.contains("example.com"), "Should get .com XPI for .com loc");
+    if (loc.includes("example.org")) {
+      ok(xpi.includes("example.org"), "Should get .org XPI for .org loc");
+    } else if (loc.includes("example.com")) {
+      ok(xpi.includes("example.com"), "Should get .com XPI for .com loc");
     } else {
       ok(false, "Should never get anything that isn't from example.org or example.com");
     }

@@ -113,7 +113,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=328885
         ok(mutationCount == 19, "(20) Mutation listener should have been called! ["+ mutationCount + "]");
       }
     ,false);
-    synthesizeMouseAtPoint(5, 5, {}, window);
+    synthesizeMouseAtCenter(inputelement, {}, window);
     SimpleTest.finish();
   }
 
@@ -124,6 +124,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=328885
   }
 
   SimpleTest.waitForExplicitFinish();
+  SimpleTest.requestFlakyTimeout("untriaged");
   addLoadEvent(doTest);
 
 </script>

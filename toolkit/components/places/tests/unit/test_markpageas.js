@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,7 +16,7 @@ function run_test()
   run_next_test();
 }
 
-add_task(function test_execute()
+add_task(function* test_execute()
 {
   let observer;
   let completionPromise = new Promise(resolveCompletionPromise => {
@@ -39,7 +39,7 @@ add_task(function test_execute()
 
   PlacesUtils.history.addObserver(observer, false);
 
-  for each (var visit in gVisits) {
+  for (var visit of gVisits) {
     if (visit.transition == TRANSITION_TYPED)
       PlacesUtils.history.markPageAsTyped(uri(visit.url));
     else if (visit.transition == TRANSITION_BOOKMARK)
@@ -48,8 +48,10 @@ add_task(function test_execute()
      // because it is a top level visit with no referrer,
      // it will result in TRANSITION_LINK
     }
-    yield promiseAddVisits({uri: uri(visit.url),
-                            transition: visit.transition});
+    yield PlacesTestUtils.addVisits({
+      uri: uri(visit.url),
+      transition: visit.transition
+    });
   }
 
   yield completionPromise;

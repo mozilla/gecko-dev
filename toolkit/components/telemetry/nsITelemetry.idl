@@ -12,7 +12,7 @@ interface nsIFetchTelemetryDataCallback : nsISupports
   void complete();
 };
 
-[scriptable, uuid(4e4bfc35-dac6-4b28-ade4-7e45760051d5)]
+[scriptable, uuid(273d2dd0-6c63-475a-b864-cb65160a1909)]
 interface nsITelemetry : nsISupports
 {
   /**
@@ -21,26 +21,58 @@ interface nsITelemetry : nsISupports
    * HISTOGRAM_LINEAR - buckets increase linearly
    * HISTOGRAM_BOOLEAN - For storing 0/1 values
    * HISTOGRAM_FLAG - For storing a single value; its count is always == 1.
+   * HISTOGRAM_COUNT - For storing counter values without bucketing.
+   * HISTOGRAM_CATEGORICAL - For storing enumerated values by label.
    */
   const unsigned long HISTOGRAM_EXPONENTIAL = 0;
   const unsigned long HISTOGRAM_LINEAR = 1;
   const unsigned long HISTOGRAM_BOOLEAN = 2;
   const unsigned long HISTOGRAM_FLAG = 3;
+  const unsigned long HISTOGRAM_COUNT = 4;
+  const unsigned long HISTOGRAM_CATEGORICAL = 5;
 
-  /*
+  /**
+   * Scalar types:
+   * SCALAR_COUNT - for storing a numeric value
+   * SCALAR_STRING - for storing a string value
+   * SCALAR_BOOLEAN - for storing a boolean value
+   */
+  const unsigned long SCALAR_COUNT = 0;
+  const unsigned long SCALAR_STRING = 1;
+  const unsigned long SCALAR_BOOLEAN = 2;
+
+  /**
+   * Dataset types:
+   * DATASET_RELEASE_CHANNEL_OPTOUT - the basic dataset that is on-by-default on all channels
+   * DATASET_RELEASE_CHANNEL_OPTIN - the extended dataset that is opt-in on release,
+   *                                 opt-out on pre-release channels.
+   */
+  const unsigned long DATASET_RELEASE_CHANNEL_OPTOUT = 0;
+  const unsigned long DATASET_RELEASE_CHANNEL_OPTIN = 1;
+
+
+  /**
    * An object containing a snapshot from all of the currently registered histograms.
    * { name1: {data1}, name2:{data2}...}
    * where data is consists of the following properties:
    *   min - Minimal bucket size
    *   max - Maximum bucket size
-   *   histogram_type - HISTOGRAM_EXPONENTIAL, HISTOGRAM_LINEAR, or HISTOGRAM_BOOLEAN
+   *   histogram_type - HISTOGRAM_EXPONENTIAL, HISTOGRAM_LINEAR, HISTOGRAM_BOOLEAN
+   *                    or HISTOGRAM_COUNT
    *   counts - array representing contents of the buckets in the histogram
    *   ranges -  an array with calculated bucket sizes
    *   sum - sum of the bucket contents
-   *   static - true for histograms defined in TelemetryHistograms.h, false for ones defined with newHistogram
    */
   [implicit_jscontext]
   readonly attribute jsval histogramSnapshots;
+
+  /**
+   * Get a snapshot of the internally duplicated subsession histograms.
+   * @param clear Whether to clear out the subsession histograms after snapshotting.
+   * @return An object as histogramSnapshots, except this contains the internally duplicated histograms for subsession telemetry.
+   */
+  [implicit_jscontext]
+  jsval snapshotSubsessionHistograms([optional] in boolean clear);
 
   /**
    * The amount of time, in milliseconds, that the last session took
@@ -85,6 +117,14 @@ interface nsITelemetry : nsISupports
   [implicit_jscontext]
   readonly attribute jsval debugSlowSQL;
 
+  /*
+   * An object containing information about Webrtc related stats. For now it
+   * only contains local and remote ICE candidates avaiable when a Webrtc
+   * PeerConnection gets terminated.
+   */
+  [implicit_jscontext]
+  readonly attribute jsval webrtcStats;
+
   /**
    * A number representing the highest number of concurrent threads
    * reached during this session.
@@ -109,7 +149,7 @@ interface nsITelemetry : nsISupports
    * <time> represents a histogram of time intervals in milliseconds,
    *   with the same format as histogramSnapshots
    * <hang> represents a particular hang,
-   *   {"stack": <stack>, "histogram": <time>}
+   *   {"stack": <stack>, "nativeStack": <stack>, "histogram": <time>}
    * <stack> represents the hang's stack,
    *   ["<frame_0>", "<frame_1>", ...]
    */
@@ -131,55 +171,83 @@ interface nsITelemetry : nsISupports
   /**
    * Returns an array whose values are the names of histograms defined
    * in Histograms.json.
+   *
+   * @param dataset - DATASET_RELEASE_CHANNEL_OPTOUT or DATASET_RELEASE_CHANNEL_OPTIN
    */
-  void registeredHistograms(out uint32_t count,
+  void registeredHistograms(in uint32_t dataset,
+                            out uint32_t count,
                             [retval, array, size_is(count)] out string histograms);
 
-  /** 
-   * Create and return a histogram.  Parameters:
+  /**
+   * Create and return a histogram registered in TelemetryHistograms.h.
    *
-   * @param name Unique histogram name
-   * @param expiration Expiration version
-   * @param min - Minimal bucket size
-   * @param max - Maximum bucket size
-   * @param bucket_count - number of buckets in the histogram.
-   * @param type - HISTOGRAM_EXPONENTIAL, HISTOGRAM_LINEAR or HISTOGRAM_BOOLEAN
+   * @param id - unique identifier from TelemetryHistograms.h
    * The returned object has the following functions:
    *   add(int) - Adds an int value to the appropriate bucket
    *   snapshot() - Returns a snapshot of the histogram with the same data fields as in histogramSnapshots()
    *   clear() - Zeros out the histogram's buckets and sum
-   */
-  [implicit_jscontext]
-  jsval newHistogram(in ACString name, in ACString expiration, in uint32_t min, in uint32_t max, in uint32_t bucket_count, in unsigned long histogram_type);
-
-  /**
-   * Create a histogram using the current state of an existing histogram.  The
-   * existing histogram must be registered in TelemetryHistograms.h.
-   *
-   * @param name Unique histogram name
-   * @param existing_name Existing histogram name
-   * The returned object has the same functions as a histogram returned from newHistogram.
-   */
-  [implicit_jscontext]
-  jsval histogramFrom(in ACString name, in ACString existing_name);
-
-  /**
-   * Same as newHistogram above, but for histograms registered in TelemetryHistograms.h.
-   *
-   * @param id - unique identifier from TelemetryHistograms.h
+   *   dataset() - identifies what dataset this is in: DATASET_RELEASE_CHANNEL_OPTOUT or ...OPTIN
    */
   [implicit_jscontext]
   jsval getHistogramById(in ACString id);
 
-  /**
-   * Set this to false to disable gathering of telemetry statistics.
+  /*
+   * An object containing a snapshot from all of the currently registered keyed histograms.
+   * { name1: {histogramData1}, name2:{histogramData2}...}
+   * where the histogramData is as described in histogramSnapshots.
    */
-  attribute boolean canRecord;
+  [implicit_jscontext]
+  readonly attribute jsval keyedHistogramSnapshots;
 
   /**
-   * A flag indicating whether Telemetry can submit official results.
+   * Returns an array whose values are the names of histograms defined
+   * in Histograms.json.
+   *
+   * @param dataset - DATASET_RELEASE_CHANNEL_OPTOUT or ...OPTIN
    */
-  readonly attribute boolean canSend;
+  void registeredKeyedHistograms(in uint32_t dataset, out uint32_t count,
+                                 [retval, array, size_is(count)] out string histograms);
+
+  /**
+   * Create and return a histogram registered in TelemetryHistograms.h.
+   *
+   * @param id - unique identifier from TelemetryHistograms.h
+   * The returned object has the following functions:
+   *   add(string key, [optional] int) - Add an int value to the histogram for that key. If no histogram for that key exists yet, it is created.
+   *   snapshot([optional] string key) - If key is provided, returns a snapshot for the histogram with that key or null. If key is not provided, returns the snapshots of all the registered keys in the form {key1: snapshot1, key2: snapshot2, ...}.
+   *   keys() - Returns an array with the string keys of the currently registered histograms
+   *   clear() - Clears the registered histograms from this.
+   *   dataset() - identifies what dataset this is in: DATASET_RELEASE_CHANNEL_OPTOUT or ...OPTIN
+   */
+  [implicit_jscontext]
+  jsval getKeyedHistogramById(in ACString id);
+
+  /**
+   * A flag indicating if Telemetry can record base data (FHR data). This is true if the
+   * FHR data reporting service or self-support are enabled.
+   *
+   * In the unlikely event that adding a new base probe is needed, please check the data
+   * collection wiki at https://wiki.mozilla.org/Firefox/Data_Collection and talk to the
+   * Telemetry team.
+   */
+  attribute boolean canRecordBase;
+
+  /**
+   * A flag indicating if Telemetry is allowed to record extended data. Returns false if
+   * the user hasn't opted into "extended Telemetry" on the Release channel, when the
+   * user has explicitly opted out of Telemetry on Nightly/Aurora/Beta or if manually
+   * set to false during tests.
+   *
+   * Set this to false in tests to disable gathering of extended telemetry statistics.
+   */
+  attribute boolean canRecordExtended;
+
+  /**
+   * A flag indicating whether Telemetry can submit official results (for base or extended
+   * data). This is true on official, non-debug builds with built in support for Mozilla
+   * Telemetry reporting.
+   */
+  readonly attribute boolean isOfficialTelemetry;
 
   /** Addon telemetry hooks */
 
@@ -189,16 +257,18 @@ interface nsITelemetry : nsISupports
    *
    * @param addon_id - Unique ID of the addon
    * @param name - Unique histogram name
+   * @param histogram_type - HISTOGRAM_EXPONENTIAL, HISTOGRAM_LINEAR,
+   *        HISTOGRAM_BOOLEAN or HISTOGRAM_COUNT
    * @param min - Minimal bucket size
    * @param max - Maximum bucket size
    * @param bucket_count - number of buckets in the histogram
-   * @param histogram_type - HISTOGRAM_EXPONENTIAL, HISTOGRAM_LINEAR, or
-   *        HISTOGRAM_BOOLEAN
    */
+  [optional_argc]
   void registerAddonHistogram(in ACString addon_id, in ACString name,
-                              in uint32_t min, in uint32_t max,
-                              in uint32_t bucket_count,
-                              in unsigned long histogram_type);
+                              in unsigned long histogram_type,
+                              [optional] in uint32_t min,
+                              [optional] in uint32_t max,
+                              [optional] in uint32_t bucket_count);
 
   /**
    * Return a histogram previously registered via
@@ -208,8 +278,6 @@ interface nsITelemetry : nsISupports
    * @param addon_id - Unique ID of the addon
    * @param name - Registered histogram name
    *
-   * The returned object has the same functions as a histogram returned
-   * from newHistogram.
    */
   [implicit_jscontext]
   jsval getAddonHistogram(in ACString addon_id, in ACString name);
@@ -220,6 +288,16 @@ interface nsITelemetry : nsISupports
    * @param addon_id - Unique ID of the addon
    */
   void unregisterAddonHistograms(in ACString addon_id);
+
+  /**
+   * Enable/disable recording for this histogram at runtime.
+   * Recording is enabled by default, unless listed at kRecordingInitiallyDisabledIDs[].
+   * Name must be a valid Histogram identifier, otherwise an assertion will be triggered.
+   *
+   * @param id - unique identifier from histograms.json
+   * @param enabled - whether or not to enable recording from now on.
+   */
+  void setHistogramRecordingEnabled(in ACString id, in boolean enabled);
 
   /**
    * An object containing a snapshot from all of the currently
@@ -253,9 +331,139 @@ interface nsITelemetry : nsISupports
   readonly attribute jsval fileIOReports;
 
   /**
-   * Return the number of seconds since process start using monotonic
+   * Return the number of milliseconds since process start using monotonic
    * timestamps (unaffected by system clock changes).
    * @throws NS_ERROR_NOT_AVAILABLE if TimeStamp doesn't have the data.
    */
   double msSinceProcessStart();
+
+  /**
+   * Adds the value to the given scalar.
+   *
+   * @param aName The scalar name.
+   * @param aValue The numeric value to add to the scalar. Only unsigned integers supported.
+   */
+  [implicit_jscontext]
+  void scalarAdd(in ACString aName, in jsval aValue);
+
+  /**
+   * Sets the scalar to the given value.
+   *
+   * @param aName The scalar name.
+   * @param aValue The value to set the scalar to. If the type of aValue doesn't match the
+   *        type of the scalar, the function will fail. For scalar string types, the this
+   *        is truncated to 50 characters.
+   */
+  [implicit_jscontext]
+  void scalarSet(in ACString aName, in jsval aValue);
+
+  /**
+   * Sets the scalar to the maximum of the current and the passed value.
+   *
+   * @param aName The scalar name.
+   * @param aValue The numeric value to set the scalar to. Only unsigned integers supported.
+   */
+  [implicit_jscontext]
+  void scalarSetMaximum(in ACString aName, in jsval aValue);
+
+  /**
+   * Serializes the scalars from the given dataset to a JSON-style object and resets them.
+   * The returned structure looks like:
+   *   { "group1.probe": 1, "group1.other_probe": false, ... }
+   *
+   * @param aDataset DATASET_RELEASE_CHANNEL_OPTOUT or DATASET_RELEASE_CHANNEL_OPTIN.
+   * @param [aClear=false] Whether to clear out the scalars after snapshotting.
+   */
+  [implicit_jscontext, optional_argc]
+  jsval snapshotScalars(in uint32_t aDataset, [optional] in boolean aClear);
+
+  /**
+   * Adds the value to the given keyed scalar.
+   *
+   * @param aName The scalar name.
+   * @param aKey The key name.
+   * @param aValue The numeric value to add to the scalar. Only unsigned integers supported.
+   */
+  [implicit_jscontext]
+  void keyedScalarAdd(in ACString aName, in AString aKey, in jsval aValue);
+
+  /**
+   * Sets the keyed scalar to the given value.
+   *
+   * @param aName The scalar name.
+   * @param aKey The key name.
+   * @param aValue The value to set the scalar to. If the type of aValue doesn't match the
+   *        type of the scalar, the function will fail.
+   */
+  [implicit_jscontext]
+  void keyedScalarSet(in ACString aName, in AString aKey, in jsval aValue);
+
+  /**
+   * Sets the keyed scalar to the maximum of the current and the passed value.
+   *
+   * @param aName The scalar name.
+   * @param aKey The key name.
+   * @param aValue The numeric value to set the scalar to. Only unsigned integers supported.
+   */
+  [implicit_jscontext]
+  void keyedScalarSetMaximum(in ACString aName, in AString aKey, in jsval aValue);
+
+  /**
+   * Serializes the keyed scalars from the given dataset to a JSON-style object and
+   * resets them.
+   * The returned structure looks like:
+   *   { "group1.probe": { "key_1": 2, "key_2": 1, ... }, ... }
+   *
+   * @param aDataset DATASET_RELEASE_CHANNEL_OPTOUT or DATASET_RELEASE_CHANNEL_OPTIN.
+   * @param [aClear=false] Whether to clear out the scalars after snapshotting.
+   */
+  [implicit_jscontext, optional_argc]
+  jsval snapshotKeyedScalars(in uint32_t aDataset, [optional] in boolean aClear);
+
+  /**
+   * Resets all the stored scalars. This is intended to be only used in tests.
+   */
+  void clearScalars();
+
+  /**
+   * Immediately sends any Telemetry batched on this process to the parent
+   * process. This is intended only to be used on process shutdown.
+   */
+  void flushBatchedChildTelemetry();
+
+  /**
+   * Record an event in Telemetry.
+   *
+   * @param aCategory The category name.
+   * @param aMethod The method name.
+   * @param aMethod The object name.
+   * @param aValue An optional string value to record.
+   * @param aExtra An optional object of the form (string -> string).
+   *               It should only contain registered extra keys.
+   *
+   * @throws NS_ERROR_INVALID_ARG When trying to record an unknown event.
+   */
+  [implicit_jscontext, optional_argc]
+  void recordEvent(in ACString aCategory, in ACString aMethod, in ACString aObject, [optional] in jsval aValue, [optional] in jsval extra);
+
+  /**
+   * Serializes the recorded events to a JSON-appropriate array and optionally resets them.
+   * The returned structure looks like this:
+   *   [
+   *     // [timestamp, category, method, object, stringValue, extraValues]
+   *     [43245, "category1", "method1", "object1", "string value", null],
+   *     [43258, "category1", "method2", "object1", null, {"key1": "string value"}],
+   *     ...
+   *   ]
+   *
+   * @param aDataset DATASET_RELEASE_CHANNEL_OPTOUT or DATASET_RELEASE_CHANNEL_OPTIN.
+   * @param [aClear=false] Whether to clear out the scalars after snapshotting.
+   */
+  [implicit_jscontext, optional_argc]
+  jsval snapshotBuiltinEvents(in uint32_t aDataset, [optional] in boolean aClear);
+
+  /**
+   * Resets all the stored events. This is intended to be only used in tests.
+   */
+  void clearEvents();
 };

@@ -6,7 +6,6 @@
 #ifdef GL_PROVIDER_GLX
 
 #include "X11TextureSourceOGL.h"
-#include "mozilla/layers/CompositorOGL.h"
 #include "gfxXlibSurface.h"
 #include "gfx2DGlue.h"
 
@@ -19,6 +18,7 @@ X11TextureSourceOGL::X11TextureSourceOGL(CompositorOGL* aCompositor, gfxXlibSurf
   : mCompositor(aCompositor)
   , mSurface(aSurface)
   , mTexture(0)
+  , mUpdated(false)
 {
 }
 
@@ -40,7 +40,8 @@ X11TextureSourceOGL::DeallocateDeviceData()
 }
 
 void
-X11TextureSourceOGL::BindTexture(GLenum aTextureUnit, gfx::Filter aFilter)
+X11TextureSourceOGL::BindTexture(GLenum aTextureUnit,
+                                 gfx::SamplingFilter aSamplingFilter)
 {
   gl()->fActiveTexture(aTextureUnit);
 
@@ -52,16 +53,19 @@ X11TextureSourceOGL::BindTexture(GLenum aTextureUnit, gfx::Filter aFilter)
     gl::sGLXLibrary.BindTexImage(mSurface->XDisplay(), mSurface->GetGLXPixmap());
   } else {
     gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
-    gl::sGLXLibrary.UpdateTexImage(mSurface->XDisplay(), mSurface->GetGLXPixmap());
+    if (mUpdated) {
+      gl::sGLXLibrary.UpdateTexImage(mSurface->XDisplay(), mSurface->GetGLXPixmap());
+      mUpdated = false;
+    }
   }
 
-  ApplyFilterToBoundTexture(gl(), aFilter, LOCAL_GL_TEXTURE_2D);
+  ApplySamplingFilterToBoundTexture(gl(), aSamplingFilter, LOCAL_GL_TEXTURE_2D);
 }
 
 IntSize
 X11TextureSourceOGL::GetSize() const
 {
-  return ToIntSize(mSurface->GetSize());
+  return mSurface->GetSize();
 }
 
 SurfaceFormat
@@ -73,12 +77,14 @@ X11TextureSourceOGL::GetFormat() const {
 void
 X11TextureSourceOGL::SetCompositor(Compositor* aCompositor)
 {
-  MOZ_ASSERT(!aCompositor || aCompositor->GetBackendType() == LayersBackend::LAYERS_OPENGL);
-  if (mCompositor == aCompositor) {
+  CompositorOGL* glCompositor = AssertGLCompositor(aCompositor);
+  if (mCompositor == glCompositor) {
     return;
   }
   DeallocateDeviceData();
-  mCompositor = static_cast<CompositorOGL*>(aCompositor);
+  if (glCompositor) {
+    mCompositor = glCompositor;
+  }
 }
 
 gl::GLContext*
@@ -102,7 +108,7 @@ X11TextureSourceOGL::ContentTypeToSurfaceFormat(gfxContentType aType)
   }
 }
 
-#endif
+}
+}
 
-}
-}
+#endif

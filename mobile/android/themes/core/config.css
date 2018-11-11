@@ -60,8 +60,8 @@ body {
     flex: 1 1 auto;
 }
 
-#filter-input:-moz-placeholder {
-    color: rgba(255,255,255,0.5);
+#filter-input::placeholder {
+    color: #777777;
 }
 
 .toolbar input {
@@ -74,7 +74,7 @@ body {
 
 #new-pref-toggle-button {
     background-position: center center;
-    background-image: url("chrome://browser/skin/images/reader-plus-icon-xhdpi.png");
+    background-image: url("chrome://browser/skin/images/config-plus.png");
     background-size: 48px 48px;
     height: 48px;
     width: 48px;

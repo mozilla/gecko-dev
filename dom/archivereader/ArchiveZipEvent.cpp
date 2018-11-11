@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,6 +10,9 @@
 #include "nsContentUtils.h"
 #include "nsCExternalHandlerService.h"
 
+#include "mozilla/UniquePtr.h"
+
+using namespace mozilla;
 using namespace mozilla::dom;
 
 USING_ARCHIVEREADER_NAMESPACE
@@ -74,9 +77,9 @@ ArchiveZipItem::GetFilename(nsString& aFilename)
   return NS_OK;
 }
 
-// From zipItem to DOMFile:
-nsIDOMFile*
-ArchiveZipItem::File(ArchiveReader* aArchiveReader)
+// From zipItem to File:
+already_AddRefed<File>
+ArchiveZipItem::GetFile(ArchiveReader* aArchiveReader)
 {
   nsString filename;
 
@@ -84,11 +87,13 @@ ArchiveZipItem::File(ArchiveReader* aArchiveReader)
     return nullptr;
   }
 
-  return new ArchiveZipFile(filename,
-                            NS_ConvertUTF8toUTF16(GetType()),
-                            StrToInt32(mCentralStruct.orglen),
-                            mCentralStruct,
-                            aArchiveReader);
+  RefPtr<dom::File> file = dom::File::Create(aArchiveReader,
+    new ArchiveZipBlobImpl(filename,
+                           NS_ConvertUTF8toUTF16(GetType()),
+                           StrToInt32(mCentralStruct.orglen),
+                           mCentralStruct, aArchiveReader->GetBlobImpl()));
+  MOZ_ASSERT(file);
+  return file.forget();
 }
 
 uint32_t
@@ -189,8 +194,8 @@ ArchiveReaderZipEvent::Exec()
     }
 
     // Read the name:
-    nsAutoArrayPtr<char> filename(new char[filenameLen + 1]);
-    rv = inputStream->Read(filename, filenameLen, &ret);
+    auto filename = MakeUnique<char[]>(filenameLen + 1);
+    rv = inputStream->Read(filename.get(), filenameLen, &ret);
     if (NS_FAILED(rv) || ret != filenameLen) {
       return RunShare(NS_ERROR_UNEXPECTED);
     }
@@ -199,7 +204,8 @@ ArchiveReaderZipEvent::Exec()
 
     // We ignore the directories:
     if (filename[filenameLen - 1] != '/') {
-      mFileList.AppendElement(new ArchiveZipItem(filename, centralStruct, mEncoding));
+      mFileList.AppendElement(new ArchiveZipItem(filename.get(), centralStruct,
+                                                 mEncoding));
     }
 
     // Ignore the rest

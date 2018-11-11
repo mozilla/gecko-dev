@@ -3,6 +3,7 @@
 <head>
   <title>Test the URI Classifier</title>
   <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="text/javascript" src="classifierHelper.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 
@@ -13,52 +14,19 @@
 
 <script class="testbody" type="text/javascript">
 
-var Cc = SpecialPowers.Cc;
-var Ci = SpecialPowers.Ci;
-
 // Add some URLs to the malware database.
-var testData = "example.com/tests/toolkit/components/url-classifier/tests/mochitest/evilWorker.js";
-var testUpdate =
-  "n:1000\ni:test-malware-simple\nad:550\n" +
-  "a:550:32:" + testData.length + "\n" +
-  testData;
+var testData = [
+  { url: "example.com/tests/toolkit/components/url-classifier/tests/mochitest/evilWorker.js",
+    db: "test-malware-simple"
+  },
+  { url: "example.com/tests/toolkit/components/url-classifier/tests/mochitest/unwantedWorker.js",
+    db: "test-unwanted-simple"
+  }
+];
 
-var dbService = Cc["@mozilla.org/url-classifier/dbservice;1"]
-                .getService(Ci.nsIUrlClassifierDBService);
-
-function doUpdate(update) {
-  var listener = {
-    QueryInterface: function(iid)
-    {
-      if (iid.equals(Ci.nsISupports) ||
-          iid.equals(Ci.nsIUrlClassifierUpdateObserver))
-        return this;
-
-      throw Cr.NS_ERROR_NO_INTERFACE;
-    },
-    updateUrlRequested: function(url) { },
-    streamFinished: function(status) { },
-    updateError: function(errorCode) {
-      ok(false, "Couldn't update classifier.");
-      // Abort test.
-      SimpleTest.finish();
-    },
-    updateSuccess: function(requestedTimeout) {
-      SpecialPowers.pushPrefEnv(
-        {"set" : [["browser.safebrowsing.malware.enabled", true]]},
-        function loadTestFrame() {
-          document.getElementById("testFrame").src =
-            "http://example.com/tests/toolkit/components/url-classifier/tests/mochitest/workerFrame.html";
-        }
-      );
-    }
-  };
-
-  dbService.beginUpdate(listener, "test-malware-simple", "");
-  dbService.beginStream("", "");
-  dbService.updateStream(update);
-  dbService.finishStream();
-  dbService.finishUpdate();
+function loadTestFrame() {
+  document.getElementById("testFrame").src =
+    "http://example.com/tests/toolkit/components/url-classifier/tests/mochitest/workerFrame.html";
 }
 
 function onmessage(event)
@@ -72,10 +40,29 @@ function onmessage(event)
   is(pieces[0], "success", pieces[1]);
 }
 
+function updateSuccess() {
+  SpecialPowers.pushPrefEnv(
+    {"set" : [["browser.safebrowsing.malware.enabled", true]]},
+    loadTestFrame);
+}
+
+function updateError(errorCode) {
+  ok(false, "Couldn't update classifier. Error code: " + errorCode);
+  // Abort test.
+  SimpleTest.finish();
+};
+
 SpecialPowers.pushPrefEnv(
-  {"set" : [["urlclassifier.malware_table", "test-malware-simple"],
-            ["urlclassifier.phish_table", "test-phish-simple"]]},
-  function() { doUpdate(testUpdate); });
+  {"set" : [["urlclassifier.malwareTable", "test-malware-simple,test-unwanted-simple"],
+            ["urlclassifier.phishTable", "test-phish-simple"]]},
+  function() {
+    classifierHelper.waitForInit()
+      .then(() => classifierHelper.addUrlToDB(testData))
+      .then(updateSuccess)
+      .catch(err => {
+        updateError(err);
+      });
+  });
 
 window.addEventListener("message", onmessage, false);
 

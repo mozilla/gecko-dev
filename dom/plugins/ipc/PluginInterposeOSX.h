@@ -86,8 +86,8 @@ public:
   };
 
   NSCursorInfo();
-  NSCursorInfo(NSCursor* aCursor);
-  NSCursorInfo(const Cursor* aCursor);
+  explicit NSCursorInfo(NSCursor* aCursor);
+  explicit NSCursorInfo(const Cursor* aCursor);
   ~NSCursorInfo();
 
   NSCursor* GetNSCursor() const;
@@ -124,14 +124,14 @@ void OnShowCursor(bool show);
 void OnPushCursor(const NSCursorInfo& cursorInfo);
 void OnPopCursor();
 
-}
+} // namespace parent
 
 namespace child {
 
 void SetUpCocoaInterposing();
 
-}
+} // namespace child
 
-}
+} // namespace mac_plugin_interposing
 
 #endif /* DOM_PLUGINS_IPC_PLUGININTERPOSEOSX_H */

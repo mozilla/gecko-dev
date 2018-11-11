@@ -16,18 +16,22 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <title>&loadError.label;</title>
-    <link rel="stylesheet" type="text/css" media="all"
-          href="chrome://browser/skin/aboutSocialError.css"/>
+    <link rel="stylesheet" href="chrome://browser/skin/aboutNetError.css" type="text/css" media="all" />
+    <link rel="stylesheet" type="text/css" media="all" href="chrome://browser/skin/aboutSocialError.css"/>
+    <link rel="icon" type="image/png" id="favicon" href="chrome://global/skin/icons/warning-16.png"/>
   </head>
 
   <body>
-    <div id="error-box">
-      <p id="main-error-msg"></p>
-      <p id="helper-error-msg"></p>
-    </div>
+    <div id="errorPageContainer">
+
+      <!-- Error Title -->
+      <div id="errorTitle">
+        <p id="errorShortDescText" >foo</p>
+      </div>
+
     <div id="button-box">
       <button id="btnTryAgain" onclick="tryAgainButton()"/>
-      <button id="btnCloseSidebar" onclick="closeSidebarButton()"/>
+    </div>
     </div>
   </body>
 
@@ -42,32 +46,28 @@
     }
 
     function parseQueryString() {
-      let url = document.documentURI;
-      let queryString = url.replace(/^about:socialerror\??/, "");
-
-      let modeMatch = queryString.match(/mode=([^&]+)/);
-      let mode = modeMatch && modeMatch[1] ? modeMatch[1] : "";
-      let originMatch = queryString.match(/origin=([^&]+)/);
-      config.origin = originMatch && originMatch[1] ? decodeURIComponent(originMatch[1]) : "";
+      let searchParams = new URLSearchParams(document.documentURI.split("?")[1]);
+      let mode = searchParams.get("mode");
+      config.origin = searchParams.get("origin");
+      let encodedURL = searchParams.get("url");
+      let url = decodeURIComponent(encodedURL);
+      // directory does not have origin set, in that case use the url origin for
+      // the error message.
+      if (!config.origin) {
+        let URI = Services.io.newURI(url, null, null);
+        config.origin =
+          Services.scriptSecurityManager.createCodebasePrincipal(URI, {}).origin;
+      }
 
       switch (mode) {
         case "compactInfo":
           document.getElementById("btnTryAgain").style.display = 'none';
-          document.getElementById("btnCloseSidebar").style.display = 'none';
           break;
         case "tryAgainOnly":
-          document.getElementById("btnCloseSidebar").style.display = 'none';
           //intentional fall-through
         case "tryAgain":
-          let urlMatch = queryString.match(/url=([^&]+)/);
-          let encodedURL = urlMatch && urlMatch[1] ? urlMatch[1] : "";
-          let url = decodeURIComponent(encodedURL);
-
           config.tryAgainCallback = loadQueryURL;
           config.queryURL = url;
-          break;
-        case "workerFailure":
-          config.tryAgainCallback = reloadProvider;
           break;
         default:
           break;
@@ -80,24 +80,16 @@
 
       let productName = brandBundle.GetStringFromName("brandShortName");
       let provider = Social._getProviderFromOrigin(config.origin);
-      let providerName = provider && provider.name;
+      let providerName = provider ? provider.name : config.origin;
 
       // Sets up the error message
       let msg = browserBundle.formatStringFromName("social.error.message", [productName, providerName], 2);
-      document.getElementById("main-error-msg").textContent = msg;
+      document.getElementById("errorShortDescText").textContent = msg;
 
       // Sets up the buttons' labels and accesskeys
       let btnTryAgain = document.getElementById("btnTryAgain");
       btnTryAgain.textContent = browserBundle.GetStringFromName("social.error.tryAgain.label");
       btnTryAgain.accessKey = browserBundle.GetStringFromName("social.error.tryAgain.accesskey");
-
-      let btnCloseSidebar = document.getElementById("btnCloseSidebar");
-      btnCloseSidebar.textContent = browserBundle.GetStringFromName("social.error.closeSidebar.label");
-      btnCloseSidebar.accessKey = browserBundle.GetStringFromName("social.error.closeSidebar.accesskey");
-    }
-
-    function closeSidebarButton() {
-      SocialSidebar.toggleSidebar();
     }
 
     function tryAgainButton() {
@@ -109,20 +101,8 @@
     }
 
     function reloadProvider() {
-      // Just incase the current provider *isn't* in a frameworker-error
-      // state, reload the current one.
       let provider = Social._getProviderFromOrigin(config.origin);
       provider.reload();
-      // If the problem is a frameworker-error, it may be that the child
-      // process crashed - and if that happened, then *all* providers in that
-      // process will have crashed.  However, only the current provider is
-      // likely to have the error surfaced in the UI - so we reload *all*
-      // providers that are in a frameworker-error state.
-      for (let provider of Social.providers) {
-        if (provider.enabled && provider.errorState == "frameworker-error") {
-          provider.reload();
-        }
-      }
     }
 
     parseQueryString();

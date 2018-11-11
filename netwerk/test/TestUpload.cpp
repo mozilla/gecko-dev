@@ -10,22 +10,19 @@
 #endif
 
 #include "nsIComponentRegistrar.h"
-#include "nsIIOService.h"
+#include "nsIScriptSecurityManager.h"
+#include "nsServiceManagerUtils.h"
 #include "nsIServiceManager.h"
 #include "nsNetUtil.h"
 
 #include "nsIUploadChannel.h"
 
-static NS_DEFINE_CID(kIOServiceCID, NS_IOSERVICE_CID);
-
-#include "prlog.h"
-#if defined(PR_LOGGING)
+#include "NetwerkTestLogging.h"
 //
 // set NSPR_LOG_MODULES=Test:5
 //
 static PRLogModuleInfo *gTestLog = nullptr;
-#endif
-#define LOG(args) PR_LOG(gTestLog, PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(gTestLog, mozilla::LogLevel::Debug, args)
 
 //-----------------------------------------------------------------------------
 // InputTestConsumer
@@ -33,10 +30,11 @@ static PRLogModuleInfo *gTestLog = nullptr;
 
 class InputTestConsumer : public nsIStreamListener
 {
+  virtual ~InputTestConsumer();
+
 public:
 
   InputTestConsumer();
-  virtual ~InputTestConsumer();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIREQUESTOBSERVER
@@ -47,9 +45,7 @@ InputTestConsumer::InputTestConsumer()
 {
 }
 
-InputTestConsumer::~InputTestConsumer()
-{
-}
+InputTestConsumer::~InputTestConsumer() = default;
 
 NS_IMPL_ISUPPORTS(InputTestConsumer,
                   nsIStreamListener,
@@ -112,9 +108,7 @@ main(int argc, char* argv[])
     char* uriSpec  = argv[1];
     char* fileName = argv[2];
 
-#if defined(PR_LOGGING) 
     gTestLog = PR_NewLogModule("Test");
-#endif
 
     {
         nsCOMPtr<nsIServiceManager> servMan;
@@ -128,15 +122,24 @@ main(int argc, char* argv[])
                                   nsDependentCString(fileName)); // XXX UTF-8
         if (NS_FAILED(rv)) return -1;
 
-        nsCOMPtr<nsIIOService> ioService(do_GetService(kIOServiceCID, &rv));
-
         // create our url.
         nsCOMPtr<nsIURI> uri;
         rv = NS_NewURI(getter_AddRefs(uri), uriSpec);
         if (NS_FAILED(rv)) return -1;
 
+        nsCOMPtr<nsIScriptSecurityManager> secman =
+          do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
+        if (NS_FAILED(rv)) return -1;
+        nsCOMPtr<nsIPrincipal> systemPrincipal;
+        rv = secman->GetSystemPrincipal(getter_AddRefs(systemPrincipal));
+        if (NS_FAILED(rv)) return -1;
+
         nsCOMPtr<nsIChannel> channel;
-        rv = ioService->NewChannelFromURI(uri, getter_AddRefs(channel));
+        rv = NS_NewChannel(getter_AddRefs(channel),
+                           uri,
+                           systemPrincipal,
+                           nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS,
+                           nsIContentPolicy::TYPE_OTHER);
         if (NS_FAILED(rv)) return -1;
 	
         // QI and set the upload stream
@@ -153,7 +156,7 @@ main(int argc, char* argv[])
         }
         NS_ADDREF(listener);
 
-        channel->AsyncOpen(listener, nullptr);
+        channel->AsyncOpen2(listener);
 
         PumpEvents();
     } // this scopes the nsCOMPtrs

@@ -1,14 +1,5 @@
-﻿// ***************************************************************************
-// *
-// * Copyright (C) 2013 International Business Machines
-// * Corporation and others. All Rights Reserved.
-// * Tool: org.unicode.cldr.icu.NewLdml2IcuConverter
-// * Source File: <path>/common/main/or.xml
-// *
-// ***************************************************************************
-/**
- * ICU <specials> source: <path>/common/main/or.xml
- */
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html#License
 or{
     AuxExemplarCharacters{"[\u200C\u200D]"}
     ExemplarCharacters{
@@ -19,9 +10,6 @@ or{
     ExemplarCharactersIndex{
         "[ଅ ଆ ଇ ଈ ଉ ଊ ଋ ଏ ଐ ଓ ଔ କ ଖ ଗ ଘ ଙ ଚ ଛ ଜ ଝ ଞ ଟ ଠ ଡ ଢ ଣ ତ ଥ ଦ ଧ ନ ପ ଫ ବ ଭ ମ ଯ ର"
         " ଲ ଳ ଶ ଷ ସ ହ {କ\u0B4Dଷ}]"
-    }
-    LocaleScript{
-        "Orya",
     }
     NumberElements{
         default{"latn"}
@@ -38,7 +26,7 @@ or{
         }
         native{"orya"}
     }
-    Version{"2.0.92.87"}
+    Version{"2.1.27.78"}
     calendar{
         generic{
             DateTimePatterns{
@@ -66,6 +54,10 @@ or{
         }
         gregorian{
             AmPmMarkers{
+                "am",
+                "pm",
+            }
+            AmPmMarkersAbbr{
                 "am",
                 "pm",
             }
@@ -117,6 +109,15 @@ or{
                     }
                 }
                 stand-alone{
+                    abbreviated{
+                        "ରବି",
+                        "ସୋମ",
+                        "ମଙ୍ଗଳ",
+                        "ବୁଧ",
+                        "ଗୁରୁ",
+                        "ଶୁକ୍ର",
+                        "ଶନି",
+                    }
                     narrow{
                         "ର",
                         "ସୋ",
@@ -130,12 +131,26 @@ or{
             }
             monthNames{
                 format{
-                    wide{
+                    abbreviated{
                         "ଜାନୁଆରୀ",
-                        "ଫେବ୍ରୁୟାରୀ",
+                        "ଫେବୃଆରୀ",
                         "ମାର୍ଚ୍ଚ",
                         "ଅପ୍ରେଲ",
-                        "ମେ",
+                        "ମଇ",
+                        "ଜୁନ",
+                        "ଜୁଲାଇ",
+                        "ଅଗଷ୍ଟ",
+                        "ସେପ୍ଟେମ୍ବର",
+                        "ଅକ୍ଟୋବର",
+                        "ନଭେମ୍ବର",
+                        "ଡିସେମ୍ବର",
+                    }
+                    wide{
+                        "ଜାନୁଆରୀ",
+                        "ଫେବୃଆରୀ",
+                        "ମାର୍ଚ୍ଚ",
+                        "ଅପ୍ରେଲ",
+                        "ମଇ",
                         "ଜୁନ",
                         "ଜୁଲାଇ",
                         "ଅଗଷ୍ଟ",
@@ -146,12 +161,26 @@ or{
                     }
                 }
                 stand-alone{
+                    abbreviated{
+                        "ଜାନୁଆରୀ",
+                        "ଫେବୃଆରୀ",
+                        "ମାର୍ଚ୍ଚ",
+                        "ଅପ୍ରେଲ",
+                        "ମଇ",
+                        "ଜୁନ",
+                        "ଜୁଲାଇ",
+                        "ଅଗଷ୍ଟ",
+                        "ସେପ୍ଟେମ୍ବର",
+                        "ଅକ୍ଟୋବର",
+                        "ନଭେମ୍ବର",
+                        "ଡିସେମ୍ବର",
+                    }
                     narrow{
                         "ଜା",
                         "ଫେ",
                         "ମା",
                         "ଅ",
-                        "ମେ",
+                        "ମଇ",
                         "ଜୁ",
                         "ଜୁ",
                         "ଅ",
@@ -159,6 +188,20 @@ or{
                         "ଅ",
                         "ନ",
                         "ଡି",
+                    }
+                    wide{
+                        "ଜାନୁଆରୀ",
+                        "ଫେବୃଆରୀ",
+                        "ମାର୍ଚ୍ଚ",
+                        "ଅପ୍ରେଲ",
+                        "ମଇ",
+                        "ଜୁନ",
+                        "ଜୁଲାଇ",
+                        "ଅଗଷ୍ଟ",
+                        "ସେପ୍ଟେମ୍ବର",
+                        "ଅକ୍ଟୋବର",
+                        "ନଭେମ୍ବର",
+                        "ଡିସେମ୍ବର",
                     }
                 }
             }

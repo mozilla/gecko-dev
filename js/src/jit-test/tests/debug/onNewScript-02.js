@@ -2,7 +2,7 @@
 
 var g = newGlobal();
 var dbg = Debugger(g);
-var seen = WeakMap();
+var seen = new WeakMap();
 var hits;
 dbg.onNewScript = function (s) {
     assertEq(s instanceof Debugger.Script, true);
@@ -44,16 +44,13 @@ test(function () { g.eval("var obj = {get x() { return 1; }, set x(v) { print(v)
 test(function () { return g.Function("a", "b", "return b - a;"); });
 
 // cloning a function with nested functions
-test(function () { g.clone(evaluate("(function(x) { return x + 1; })", {compileAndGo: false})); });
+test(function () { g.clone(evaluate("(function(x) { return x + 1; })")); });
 
 // eval declaring a generator
 test(function () { g.eval("function r(n) { for (var i=0;i<n;i++) yield i; }"); });
 
 // eval declaring a star generator
 test(function () { g.eval("function* sg(n) { for (var i=0;i<n;i++) yield i; }"); });
-
-// eval with a generator-expression
-test(function () { g.eval("var it = (obj[p] for (p in obj));"); });
 
 // eval creating several instances of a closure
 test(function () { g.eval("for (var i = 0; i < 7; i++)\n" +

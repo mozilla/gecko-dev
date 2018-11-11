@@ -12,6 +12,12 @@
 #include "nsStringGlue.h"
 #include "prio.h"
 #include "mozilla/net/DNS.h"
+#include "TimingStruct.h"
+
+#ifdef MOZ_CRASHREPORTER
+#include "nsExceptionHandler.h"
+#include "nsPrintfCString.h"
+#endif
 
 namespace IPC {
 
@@ -19,26 +25,20 @@ namespace IPC {
 
 struct Permission
 {
-  nsCString host, type;
+  nsCString origin, type;
   uint32_t capability, expireType;
   int64_t expireTime;
-  uint32_t appId;
-  bool isInBrowserElement;
 
   Permission() { }
-  Permission(const nsCString& aHost,
-             const uint32_t aAppId,
-             const bool aIsInBrowserElement,
+  Permission(const nsCString& aOrigin,
              const nsCString& aType,
              const uint32_t aCapability,
              const uint32_t aExpireType,
-             const int64_t aExpireTime) : host(aHost),
+             const int64_t aExpireTime) : origin(aOrigin),
                                           type(aType),
                                           capability(aCapability),
                                           expireType(aExpireType),
-                                          expireTime(aExpireTime),
-                                          appId(aAppId),
-                                          isInBrowserElement(aIsInBrowserElement)
+                                          expireTime(aExpireTime)
   {}
 };
 
@@ -47,34 +47,26 @@ struct ParamTraits<Permission>
 {
   static void Write(Message* aMsg, const Permission& aParam)
   {
-    WriteParam(aMsg, aParam.host);
+    WriteParam(aMsg, aParam.origin);
     WriteParam(aMsg, aParam.type);
     WriteParam(aMsg, aParam.capability);
     WriteParam(aMsg, aParam.expireType);
     WriteParam(aMsg, aParam.expireTime);
-    WriteParam(aMsg, aParam.appId);
-    WriteParam(aMsg, aParam.isInBrowserElement);
   }
 
-  static bool Read(const Message* aMsg, void** aIter, Permission* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, Permission* aResult)
   {
-    return ReadParam(aMsg, aIter, &aResult->host) &&
+    return ReadParam(aMsg, aIter, &aResult->origin) &&
            ReadParam(aMsg, aIter, &aResult->type) &&
            ReadParam(aMsg, aIter, &aResult->capability) &&
            ReadParam(aMsg, aIter, &aResult->expireType) &&
-           ReadParam(aMsg, aIter, &aResult->expireTime) &&
-           ReadParam(aMsg, aIter, &aResult->appId) &&
-           ReadParam(aMsg, aIter, &aResult->isInBrowserElement);
+           ReadParam(aMsg, aIter, &aResult->expireTime);
   }
 
   static void Log(const Permission& p, std::wstring* l)
   {
     l->append(L"(");
-    LogParam(p.host, l);
-    l->append(L", ");
-    LogParam(p.appId, l);
-    l->append(L", ");
-    LogParam(p.isInBrowserElement, l);
+    LogParam(p.origin, l);
     l->append(L", ");
     LogParam(p.capability, l);
     l->append(L", ");
@@ -109,21 +101,24 @@ struct ParamTraits<mozilla::net::NetAddr>
                       "https://bugzilla.mozilla.org/show_bug.cgi?id=661158");
       aMsg->WriteBytes(aParam.local.path, sizeof(aParam.local.path));
 #endif
+    } else {
+#ifdef MOZ_CRASHREPORTER
+      if (XRE_IsParentProcess()) {
+        nsPrintfCString msg("%d", aParam.raw.family);
+        CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("Unknown NetAddr socket family"), msg);
+      }
+#endif
+      NS_RUNTIMEABORT("Unknown socket family");
     }
-
-    /* If we get here without hitting any of the cases above, there's not much
-     * we can do but let the deserializer fail when it gets this message */
   }
 
-  static bool Read(const Message* aMsg, void** aIter, mozilla::net::NetAddr* aResult)
+  static bool Read(const Message* aMsg, PickleIterator* aIter, mozilla::net::NetAddr* aResult)
   {
     if (!ReadParam(aMsg, aIter, &aResult->raw.family))
       return false;
 
     if (aResult->raw.family == AF_UNSPEC) {
-      return aMsg->ReadBytes(aIter,
-                             reinterpret_cast<const char**>(&aResult->raw.data),
-                             sizeof(aResult->raw.data));
+      return aMsg->ReadBytesInto(aIter, &aResult->raw.data, sizeof(aResult->raw.data));
     } else if (aResult->raw.family == AF_INET) {
       return ReadParam(aMsg, aIter, &aResult->inet.port) &&
              ReadParam(aMsg, aIter, &aResult->inet.ip);
@@ -135,9 +130,7 @@ struct ParamTraits<mozilla::net::NetAddr>
              ReadParam(aMsg, aIter, &aResult->inet6.scope_id);
 #if defined(XP_UNIX)
     } else if (aResult->raw.family == AF_LOCAL) {
-      return aMsg->ReadBytes(aIter,
-                             reinterpret_cast<const char**>(&aResult->local.path),
-                             sizeof(aResult->local.path));
+      return aMsg->ReadBytesInto(aIter, &aResult->local.path, sizeof(aResult->local.path));
 #endif
     }
 
@@ -146,6 +139,51 @@ struct ParamTraits<mozilla::net::NetAddr>
   }
 };
 
-}
+template<>
+struct ParamTraits<mozilla::net::ResourceTimingStruct>
+{
+  static void Write(Message* aMsg, const mozilla::net::ResourceTimingStruct& aParam)
+  {
+    WriteParam(aMsg, aParam.domainLookupStart);
+    WriteParam(aMsg, aParam.domainLookupEnd);
+    WriteParam(aMsg, aParam.connectStart);
+    WriteParam(aMsg, aParam.connectEnd);
+    WriteParam(aMsg, aParam.requestStart);
+    WriteParam(aMsg, aParam.responseStart);
+    WriteParam(aMsg, aParam.responseEnd);
+
+    WriteParam(aMsg, aParam.fetchStart);
+    WriteParam(aMsg, aParam.redirectStart);
+    WriteParam(aMsg, aParam.redirectEnd);
+
+    WriteParam(aMsg, aParam.transferSize);
+    WriteParam(aMsg, aParam.encodedBodySize);
+    WriteParam(aMsg, aParam.protocolVersion);
+
+    WriteParam(aMsg, aParam.cacheReadStart);
+    WriteParam(aMsg, aParam.cacheReadEnd);
+  }
+
+  static bool Read(const Message* aMsg, PickleIterator* aIter, mozilla::net::ResourceTimingStruct* aResult)
+  {
+    return ReadParam(aMsg, aIter, &aResult->domainLookupStart) &&
+           ReadParam(aMsg, aIter, &aResult->domainLookupEnd) &&
+           ReadParam(aMsg, aIter, &aResult->connectStart) &&
+           ReadParam(aMsg, aIter, &aResult->connectEnd) &&
+           ReadParam(aMsg, aIter, &aResult->requestStart) &&
+           ReadParam(aMsg, aIter, &aResult->responseStart) &&
+           ReadParam(aMsg, aIter, &aResult->responseEnd) &&
+           ReadParam(aMsg, aIter, &aResult->fetchStart) &&
+           ReadParam(aMsg, aIter, &aResult->redirectStart) &&
+           ReadParam(aMsg, aIter, &aResult->redirectEnd) &&
+           ReadParam(aMsg, aIter, &aResult->transferSize) &&
+           ReadParam(aMsg, aIter, &aResult->encodedBodySize) &&
+           ReadParam(aMsg, aIter, &aResult->protocolVersion) &&
+           ReadParam(aMsg, aIter, &aResult->cacheReadStart) &&
+           ReadParam(aMsg, aIter, &aResult->cacheReadEnd);
+  }
+};
+
+} // namespace IPC
 
 #endif // mozilla_net_NeckoMessageUtils_h

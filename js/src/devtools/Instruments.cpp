@@ -3,6 +3,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "Instruments.h"
+#include "mozilla/Attributes.h"
 
 #ifdef __APPLE__
 
@@ -42,7 +43,7 @@ template<typename T>
 class AutoReleased
 {
 public:
-  AutoReleased(T aTypeRef) : mTypeRef(aTypeRef)
+  MOZ_IMPLICIT AutoReleased(T aTypeRef) : mTypeRef(aTypeRef)
   {
   }
   ~AutoReleased()
@@ -84,7 +85,7 @@ LoadDTPerformanceLibraries(bool dontLoad)
     flags |= RTLD_NOLOAD;
   }
 
-  void *DTPerformanceLibrary = dlopen(DTPerformanceLibraryPath, flags);
+  void* DTPerformanceLibrary = dlopen(DTPerformanceLibraryPath, flags);
   if (!DTPerformanceLibrary) {
     DTPerformanceLibrary = dlopen(OldDTPerformanceLibraryPath, flags);
   }
@@ -94,7 +95,7 @@ LoadDTPerformanceLibraries(bool dontLoad)
 bool
 LoadDTPerformanceLibrary()
 {
-  void *DTPerformanceLibrary = LoadDTPerformanceLibraries(true);
+  void* DTPerformanceLibrary = LoadDTPerformanceLibraries(true);
   if (!DTPerformanceLibrary) {
     DTPerformanceLibrary = LoadDTPerformanceLibraries(false);
     if (!DTPerformanceLibrary) {

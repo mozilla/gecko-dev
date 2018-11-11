@@ -15,11 +15,20 @@ function makeRotaryEngine() {
   return new RotaryEngine(Service);
 }
 
-function cleanAndGo(server) {
+function clean() {
   Svc.Prefs.resetBranch("");
   Svc.Prefs.set("log.logger.engine.rotary", "Trace");
   Service.recordManager.clearCache();
+}
+
+function cleanAndGo(server) {
+  clean();
   server.stop(run_next_test);
+}
+
+function promiseClean(server) {
+  clean();
+  return new Promise(resolve => server.stop(resolve));
 }
 
 function configureService(server, username, password) {
@@ -172,7 +181,7 @@ add_test(function test_syncStartup_syncIDMismatchResetsClient() {
   try {
 
     // Confirm initial environment
-    do_check_eq(engine.syncID, 'fake-guid-0');
+    do_check_eq(engine.syncID, 'fake-guid-00');
     do_check_eq(engine._tracker.changedIDs["rekolok"], undefined);
 
     engine.lastSync = Date.now() / 1000;
@@ -401,8 +410,8 @@ add_test(function test_processIncoming_reconcile_local_deleted() {
   let wbo = new ServerWBO("DUPE_INCOMING", record, now + 2);
   server.insertWBO(user, "rotary", wbo);
 
-  let record = encryptPayload({id: "DUPE_LOCAL", denomination: "local"});
-  let wbo = new ServerWBO("DUPE_LOCAL", record, now - 1);
+  record = encryptPayload({id: "DUPE_LOCAL", denomination: "local"});
+  wbo = new ServerWBO("DUPE_LOCAL", record, now - 1);
   server.insertWBO(user, "rotary", wbo);
 
   engine._store.create({id: "DUPE_LOCAL", denomination: "local"});
@@ -475,7 +484,7 @@ add_test(function test_processIncoming_reconcile_locally_deleted_dupe_new() {
   do_check_empty(engine._store.items);
   let collection = server.getCollection(user, "rotary");
   do_check_eq(1, collection.count());
-  let wbo = collection.wbo("DUPE_INCOMING");
+  wbo = collection.wbo("DUPE_INCOMING");
   do_check_neq(null, wbo);
   let payload = JSON.parse(JSON.parse(wbo.payload).ciphertext);
   do_check_true(payload.deleted);
@@ -515,7 +524,7 @@ add_test(function test_processIncoming_reconcile_locally_deleted_dupe_old() {
 
   let collection = server.getCollection(user, "rotary");
   do_check_eq(1, collection.count());
-  let wbo = collection.wbo("DUPE_INCOMING");
+  wbo = collection.wbo("DUPE_INCOMING");
   let payload = JSON.parse(JSON.parse(wbo.payload).ciphertext);
   do_check_eq("incoming", payload.denomination);
 
@@ -551,7 +560,7 @@ add_test(function test_processIncoming_reconcile_changed_dupe() {
   // have its payload set to what was in the local record.
   let collection = server.getCollection(user, "rotary");
   do_check_eq(1, collection.count());
-  let wbo = collection.wbo("DUPE_INCOMING");
+  wbo = collection.wbo("DUPE_INCOMING");
   do_check_neq(undefined, wbo);
   let payload = JSON.parse(JSON.parse(wbo.payload).ciphertext);
   do_check_eq("local", payload.denomination);
@@ -589,7 +598,7 @@ add_test(function test_processIncoming_reconcile_changed_dupe_new() {
   // have its payload retained.
   let collection = server.getCollection(user, "rotary");
   do_check_eq(1, collection.count());
-  let wbo = collection.wbo("DUPE_INCOMING");
+  wbo = collection.wbo("DUPE_INCOMING");
   do_check_neq(undefined, wbo);
   let payload = JSON.parse(JSON.parse(wbo.payload).ciphertext);
   do_check_eq("incoming", payload.denomination);
@@ -667,7 +676,7 @@ add_test(function test_processIncoming_mobile_batchSize() {
 });
 
 
-add_test(function test_processIncoming_store_toFetch() {
+add_task(function *test_processIncoming_store_toFetch() {
   _("If processIncoming fails in the middle of a batch on mobile, state is saved in toFetch and lastSync.");
   Service.identity.username = "foo";
   Svc.Prefs.set("client.type", "mobile");
@@ -714,11 +723,10 @@ add_test(function test_processIncoming_store_toFetch() {
 
     let error;
     try {
-      engine.sync();
+      yield sync_engine_and_validate_telem(engine, true);
     } catch (ex) {
       error = ex;
     }
-    do_check_true(!!error);
 
     // Only the first two batches have been applied.
     do_check_eq(Object.keys(engine._store.items).length,
@@ -730,7 +738,7 @@ add_test(function test_processIncoming_store_toFetch() {
     do_check_eq(engine.lastSync, collection.wbo("record-no-99").modified);
 
   } finally {
-    cleanAndGo(server);
+    yield promiseClean(server);
   }
 });
 
@@ -1221,7 +1229,7 @@ add_test(function test_processIncoming_failed_records() {
 });
 
 
-add_test(function test_processIncoming_decrypt_failed() {
+add_task(function *test_processIncoming_decrypt_failed() {
   _("Ensure that records failing to decrypt are either replaced or refetched.");
 
   Service.identity.username = "foo";
@@ -1280,7 +1288,10 @@ add_test(function test_processIncoming_decrypt_failed() {
     });
 
     engine.lastSync = collection.wbo("nojson").modified - 1;
-    engine.sync();
+    let ping = yield sync_engine_and_validate_telem(engine, true);
+    do_check_eq(ping.engines[0].incoming.applied, 2);
+    do_check_eq(ping.engines[0].incoming.failed, 4);
+    do_check_eq(ping.engines[0].incoming.newFailed, 4);
 
     do_check_eq(engine.previousFailed.length, 4);
     do_check_eq(engine.previousFailed[0], "nojson");
@@ -1294,7 +1305,7 @@ add_test(function test_processIncoming_decrypt_failed() {
     do_check_eq(observerSubject.failed, 4);
 
   } finally {
-    cleanAndGo(server);
+    yield promiseClean(server);
   }
 });
 
@@ -1358,7 +1369,7 @@ add_test(function test_uploadOutgoing_toEmptyServer() {
 });
 
 
-add_test(function test_uploadOutgoing_failed() {
+add_task(function *test_uploadOutgoing_failed() {
   _("SyncEngine._uploadOutgoing doesn't clear the tracker of objects that failed to upload.");
 
   Service.identity.username = "foo";
@@ -1401,7 +1412,7 @@ add_test(function test_uploadOutgoing_failed() {
     do_check_eq(engine._tracker.changedIDs['peppercorn'], PEPPERCORN_CHANGED);
 
     engine.enabled = true;
-    engine.sync();
+    yield sync_engine_and_validate_telem(engine, true);
 
     // Local timestamp has been set.
     do_check_true(engine.lastSyncLocal > 0);
@@ -1416,11 +1427,14 @@ add_test(function test_uploadOutgoing_failed() {
     do_check_eq(engine._tracker.changedIDs['peppercorn'], PEPPERCORN_CHANGED);
 
   } finally {
-    cleanAndGo(server);
+    yield promiseClean(server);
   }
 });
 
-
+/* A couple of "functional" tests to ensure we split records into appropriate
+   POST requests. More comprehensive unit-tests for this "batching" are in
+   test_postqueue.js.
+*/
 add_test(function test_uploadOutgoing_MAX_UPLOAD_RECORDS() {
   _("SyncEngine._uploadOutgoing uploads in batches of MAX_UPLOAD_RECORDS");
 
@@ -1430,9 +1444,18 @@ add_test(function test_uploadOutgoing_MAX_UPLOAD_RECORDS() {
   // Let's count how many times the client posts to the server
   var noOfUploads = 0;
   collection.post = (function(orig) {
-    return function() {
+    return function(data, request) {
+      // This test doesn't arrange for batch semantics - so we expect the
+      // first request to come in with batch=true and the others to have no
+      // batch related headers at all (as the first response did not provide
+      // a batch ID)
+      if (noOfUploads == 0) {
+        do_check_eq(request.queryString, "batch=true");
+      } else {
+        do_check_eq(request.queryString, "");
+      }
       noOfUploads++;
-      return orig.apply(this, arguments);
+      return orig.call(this, data, request);
     };
   }(collection.post));
 
@@ -1472,6 +1495,44 @@ add_test(function test_uploadOutgoing_MAX_UPLOAD_RECORDS() {
     // Ensure that the uploads were performed in batches of MAX_UPLOAD_RECORDS.
     do_check_eq(noOfUploads, Math.ceil(234/MAX_UPLOAD_RECORDS));
 
+  } finally {
+    cleanAndGo(server);
+  }
+});
+
+add_test(function test_uploadOutgoing_largeRecords() {
+  _("SyncEngine._uploadOutgoing throws on records larger than MAX_UPLOAD_BYTES");
+
+  Service.identity.username = "foo";
+  let collection = new ServerCollection();
+
+  let engine = makeRotaryEngine();
+  engine.allowSkippedRecord = false;
+  engine._store.items["large-item"] = "Y".repeat(MAX_UPLOAD_BYTES*2);
+  engine._tracker.addChangedID("large-item", 0);
+  collection.insert("large-item");
+
+
+  let meta_global = Service.recordManager.set(engine.metaURL,
+                                              new WBORecord(engine.metaURL));
+  meta_global.payload.engines = {rotary: {version: engine.version,
+                                         syncID: engine.syncID}};
+
+  let server = sync_httpd_setup({
+      "/1.1/foo/storage/rotary": collection.handler()
+  });
+
+  let syncTesting = new SyncTestingInfrastructure(server);
+
+  try {
+    engine._syncStartup();
+    let error = null;
+    try {
+      engine._uploadOutgoing();
+    } catch (e) {
+      error = e;
+    }
+    ok(!!error);
   } finally {
     cleanAndGo(server);
   }
@@ -1606,7 +1667,7 @@ add_test(function test_syncFinish_deleteLotsInBatches() {
 });
 
 
-add_test(function test_sync_partialUpload() {
+add_task(function *test_sync_partialUpload() {
   _("SyncEngine.sync() keeps changedIDs that couldn't be uploaded.");
 
   Service.identity.username = "foo";
@@ -1654,11 +1715,12 @@ add_test(function test_sync_partialUpload() {
     engine.enabled = true;
     let error;
     try {
-      engine.sync();
+      yield sync_engine_and_validate_telem(engine, true);
     } catch (ex) {
       error = ex;
     }
-    do_check_true(!!error);
+
+    ok(!!error);
 
     // The timestamp has been updated.
     do_check_true(engine.lastSyncLocal > 456);
@@ -1676,7 +1738,7 @@ add_test(function test_sync_partialUpload() {
     }
 
   } finally {
-    cleanAndGo(server);
+    yield promiseClean(server);
   }
 });
 

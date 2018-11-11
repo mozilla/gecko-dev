@@ -1,4 +1,4 @@
-/* -*- Mode: Javascript; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
 
 "use strict";
 
@@ -21,23 +21,27 @@ loadCallgraph(callgraph_filename);
 
 printErr("Writing " + gcFunctions_filename);
 redirect(gcFunctions_filename);
+
 for (var name in gcFunctions) {
-    print("");
-    print("GC Function: " + name + "|" + readableNames[name][0]);
-    do {
-        name = gcFunctions[name];
-        if (name in readableNames)
-            print("    " + readableNames[name][0]);
-        else
-            print("    " + name);
-    } while (name in gcFunctions);
+    for (let readable of readableNames[name]) {
+        print("");
+        print("GC Function: " + name + "$" + readable);
+        let current = name;
+        do {
+            current = gcFunctions[current];
+            if (current in readableNames)
+                print("    " + readableNames[current][0]);
+            else
+                print("    " + current);
+        } while (current in gcFunctions);
+    }
 }
 
 printErr("Writing " + gcFunctionsList_filename);
 redirect(gcFunctionsList_filename);
 for (var name in gcFunctions) {
     for (var readable of readableNames[name])
-        print(name + "|" + readable);
+        print(name + "$" + readable);
 }
 
 // gcEdges is a list of edges that can GC for more specific reasons than just

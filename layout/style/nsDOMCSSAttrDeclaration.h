@@ -11,20 +11,18 @@
 #include "mozilla/Attributes.h"
 #include "nsDOMCSSDeclaration.h"
 
-#include "nsAutoPtr.h"
 
 namespace mozilla {
 namespace dom {
 class Element;
-}
-}
+} // namespace dom
+} // namespace mozilla
 
-class nsDOMCSSAttributeDeclaration MOZ_FINAL : public nsDOMCSSDeclaration
+class nsDOMCSSAttributeDeclaration final : public nsDOMCSSDeclaration
 {
 public:
   typedef mozilla::dom::Element Element;
   nsDOMCSSAttributeDeclaration(Element* aContent, bool aIsSMILOverride);
-  ~nsDOMCSSAttributeDeclaration();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsDOMCSSAttributeDeclaration,
@@ -32,20 +30,22 @@ public:
 
   // If GetCSSDeclaration returns non-null, then the decl it returns
   // is owned by our current style rule.
-  virtual mozilla::css::Declaration* GetCSSDeclaration(bool aAllocate);
-  virtual void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv) MOZ_OVERRIDE;
-  NS_IMETHOD GetParentRule(nsIDOMCSSRule **aParent) MOZ_OVERRIDE;
+  virtual mozilla::DeclarationBlock* GetCSSDeclaration(Operation aOperation) override;
+  virtual void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv) override;
+  NS_IMETHOD GetParentRule(nsIDOMCSSRule **aParent) override;
 
-  virtual nsINode* GetParentObject() MOZ_OVERRIDE;
+  virtual nsINode* GetParentObject() override;
 
-  NS_IMETHOD SetPropertyValue(const nsCSSProperty aPropID,
-                              const nsAString& aValue) MOZ_OVERRIDE;
+  NS_IMETHOD SetPropertyValue(const nsCSSPropertyID aPropID,
+                              const nsAString& aValue) override;
 
 protected:
-  virtual nsresult SetCSSDeclaration(mozilla::css::Declaration* aDecl) MOZ_OVERRIDE;
-  virtual nsIDocument* DocToUpdate() MOZ_OVERRIDE;
+  ~nsDOMCSSAttributeDeclaration();
 
-  nsRefPtr<Element> mElement;
+  virtual nsresult SetCSSDeclaration(mozilla::DeclarationBlock* aDecl) override;
+  virtual nsIDocument* DocToUpdate() override;
+
+  RefPtr<Element> mElement;
 
   /* If true, this indicates that this nsDOMCSSAttributeDeclaration
    * should interact with mContent's SMIL override style rule (rather

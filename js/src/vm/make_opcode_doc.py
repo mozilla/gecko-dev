@@ -3,7 +3,7 @@
 """ Usage: make_opcode_doc.py PATH_TO_MOZILLA_CENTRAL
 
     This script generates SpiderMonkey bytecode documentation
-    from js/src/vm/Opcodes.h and js/src/vm/Xdr.h.
+    from js/src/vm/Opcodes.h.
 
     Output is written to stdout and should be pasted into the following
     MDN page:
@@ -15,24 +15,11 @@ import re
 import sys
 from xml.sax.saxutils import escape
 
-SOURCE_BASE = 'http://mxr.mozilla.org/mozilla-central/source'
+SOURCE_BASE = 'http://dxr.mozilla.org/mozilla-central/source'
 
 def error(message):
     print("Error: {message}".format(message=message), file=sys.stderr)
     sys.exit(1)
-
-def get_xdr_version(dir):
-    version_pat = re.compile('XDR_BYTECODE_VERSION = uint32_t\(0xb973c0de - (\d+)\);')
-
-    version = ''
-    with open('{dir}/js/src/vm/Xdr.h'.format(dir=dir), 'r') as f:
-        data = f.read()
-
-    m = version_pat.search(data)
-    if m:
-        version = int(m.group(1))
-
-    return version
 
 quoted_pat = re.compile(r"([^A-Za-z0-9]|^)'([^']+)'")
 js_pat = re.compile(r"([^A-Za-z0-9]|^)(JS[A-Z0-9_\*]+)")
@@ -286,60 +273,78 @@ def format_flags(flags):
 
 def print_opcode(opcode):
     names_template = '{name} [-{nuses}, +{ndefs}]{flags}'
+    opcodes = sorted([opcode] + opcode.group,
+                     key=lambda opcode: opcode.name)
     names = map(lambda code: names_template.format(name=escape(code.name),
                                                    nuses=override(code.nuses,
                                                                   opcode.nuses_override),
                                                    ndefs=override(code.ndefs,
                                                                   opcode.ndefs_override),
                                                    flags=format_flags(code.flags)),
-                sorted([opcode] + opcode.group,
-                       key=lambda opcode: opcode.name))
-    if len(opcode.group) == 0:
+                opcodes)
+    if len(opcodes) == 1:
         values = ['{value} (0x{value:02x})'.format(value=opcode.value)]
     else:
         values_template = '{name}: {value} (0x{value:02x})'
         values = map(lambda code: values_template.format(name=escape(code.name),
                                                          value=code.value),
-                    sorted([opcode] + opcode.group,
-                           key=lambda opcode: opcode.name))
+                    opcodes)
 
-    print("""<dt>{names}</dt>
+    print("""<dt id="{id}">{names}</dt>
 <dd>
 <table class="standard-table">
+<tbody>
 <tr><th>Value</th><td><code>{values}</code></td></tr>
 <tr><th>Operands</th><td><code>{operands}</code></td></tr>
 <tr><th>Length</th><td><code>{length}</code></td></tr>
 <tr><th>Stack Uses</th><td><code>{stack_uses}</code></td></tr>
 <tr><th>Stack Defs</th><td><code>{stack_defs}</code></td></tr>
+</tbody>
 </table>
 
 {desc}
 </dd>
-""".format(names='<br>'.join(names),
+""".format(id=opcodes[0].name,
+           names='<br>'.join(names),
            values='<br>'.join(values),
-           operands=escape(opcode.operands),
+           operands=escape(opcode.operands) or "&nbsp;",
            length=escape(override(opcode.length,
                                   opcode.length_override)),
-           stack_uses=escape(opcode.stack_uses),
-           stack_defs=escape(opcode.stack_defs),
+           stack_uses=escape(opcode.stack_uses) or "&nbsp;",
+           stack_defs=escape(opcode.stack_defs) or "&nbsp;",
            desc=opcode.desc)) # desc is already escaped
 
-def make_element_id(name):
-    return name.replace(' ', '-')
+id_cache = dict()
+id_count = dict()
 
-def print_doc(version, index):
-    print("""<h2 id="Bytecode_Listing">Bytecode Listing</h2>
+def make_element_id(category, type=''):
+    key = '{}:{}'.format(category, type)
+    if key in id_cache:
+        return id_cache[key]
+
+    if type == '':
+        id = category.replace(' ', '_')
+    else:
+        id = type.replace(' ', '_')
+
+    if id in id_count:
+        id_count[id] += 1
+        id = '{}_{}'.format(id, id_count[id])
+    else:
+        id_count[id] = 1
+
+    id_cache[key] = id
+    return id
+
+def print_doc(index):
+    print("""<div>{{{{SpiderMonkeySidebar("Internals")}}}}</div>
+
+<h2 id="Bytecode_Listing">Bytecode Listing</h2>
 
 <p>This document is automatically generated from
-<a href="{source_base}/js/src/vm/Opcodes.h">Opcodes.h</a> and
-<a href="{source_base}/js/src/vm/Xdr.h">Xdr.h</a> by
+<a href="{source_base}/js/src/vm/Opcodes.h">Opcodes.h</a> by
 <a href="{source_base}/js/src/vm/make_opcode_doc.py">make_opcode_doc.py</a>.</p>
-
-<p>Bytecode version: <code>{version}</code>
-(<code>0x{actual_version:08x}</code>).</p>
-""".format(source_base=SOURCE_BASE,
-           version=version,
-           actual_version=0xb973c0de - version))
+""".format(source_base=SOURCE_BASE))
 
     for (category_name, types) in index:
         print('<h3 id="{id}">{name}</h3>'.format(name=category_name,
@@ -347,7 +352,7 @@ def print_doc(version, index):
         for (type_name, opcodes) in types:
             if type_name:
                 print('<h4 id="{id}">{name}</h4>'.format(name=type_name,
-                                                         id=make_element_id(type_name)))
+                                                         id=make_element_id(category_name, type_name)))
             print('<dl>')
             for opcode in sorted(opcodes,
                                  key=lambda opcode: opcode.sort_key):
@@ -360,6 +365,5 @@ if __name__ == '__main__':
               file=sys.stderr)
         sys.exit(1)
     dir = sys.argv[1]
-    version = get_xdr_version(dir)
     index = get_opcodes(dir)
-    print_doc(version, index)
+    print_doc(index)

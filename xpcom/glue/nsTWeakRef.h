@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -59,21 +59,20 @@
  * multiple instances of B, such that it is not possible for A and B to simply
  * have pointers to one another.
  */
-template <class Type>
-class nsTWeakRef {
+template<class Type>
+class nsTWeakRef
+{
 public:
-  ~nsTWeakRef() {
-    if (mRef)
-      mRef->Release();
-  }
+  ~nsTWeakRef()
+  {}
 
   /**
    * Construct from an object pointer (may be null).
    */
-  explicit
-  nsTWeakRef(Type *obj = nullptr) {
-    if (obj) {
-      mRef = new Inner(obj);
+  explicit nsTWeakRef(Type* aObj = nullptr)
+  {
+    if (aObj) {
+      mRef = new Inner(aObj);
     } else {
       mRef = nullptr;
     }
@@ -82,20 +81,16 @@ public:
   /**
    * Construct from another weak reference object.
    */
-  explicit
-  nsTWeakRef(const nsTWeakRef<Type> &other) : mRef(other.mRef) {
-    if (mRef)
-      mRef->AddRef();
-  }
+  explicit nsTWeakRef(const nsTWeakRef<Type>& aOther) : mRef(aOther.mRef)
+  {}
 
   /**
    * Assign from an object pointer.
    */
-  nsTWeakRef<Type> &operator=(Type *obj) {
-    if (mRef)  
-      mRef->Release();
-    if (obj) {
-      mRef = new Inner(obj);
+  nsTWeakRef<Type>& operator=(Type* aObj)
+  {
+    if (aObj) {
+      mRef = new Inner(aObj);
     } else {
       mRef = nullptr;
     }
@@ -104,13 +99,10 @@ public:
 
   /**
    * Assign from another weak reference object.
-   */ 
-  nsTWeakRef<Type> &operator=(const nsTWeakRef<Type> &other) {
-    if (mRef)  
-      mRef->Release();
-    mRef = other.mRef;
-    if (mRef)
-      mRef->AddRef();
+   */
+  nsTWeakRef<Type>& operator=(const nsTWeakRef<Type>& aOther)
+  {
+    mRef = aOther.mRef;
     return *this;
   }
 
@@ -118,21 +110,19 @@ public:
    * Get the referenced object.  This method may return null if the reference
    * has been cleared or if an out-of-memory error occurred at assignment.
    */
-  Type *get() const {
-    return mRef ? mRef->mObj : nullptr;
-  }
+  Type* get() const { return mRef ? mRef->mObj : nullptr; }
 
   /**
    * Called to "null out" the weak reference.  Typically, the object referenced
    * by this weak reference calls this method when it is being destroyed.
    * @returns The former referenced object.
    */
-  Type *forget() {
-    Type *obj;
+  Type* forget()
+  {
+    Type* obj;
     if (mRef) {
       obj = mRef->mObj;
       mRef->mObj = nullptr;
-      mRef->Release();
       mRef = nullptr;
     } else {
       obj = nullptr;
@@ -143,32 +133,44 @@ public:
   /**
    * Allow |*this| to be treated as a |Type*| for convenience.
    */
-  operator Type *() const {
-    return get();
-  }
+  operator Type*() const { return get(); }
 
   /**
    * Allow |*this| to be treated as a |Type*| for convenience.  Use with
    * caution since this method will crash if the referenced object is null.
    */
-  Type *operator->() const {
+  Type* operator->() const MOZ_NO_ADDREF_RELEASE_ON_RETURN
+  {
     NS_ASSERTION(mRef && mRef->mObj,
-        "You can't dereference a null weak reference with operator->().");
+                 "You can't dereference a null weak reference with operator->().");
     return get();
   }
 
 private:
 
-  struct Inner {
+  struct Inner
+  {
     int     mCnt;
-    Type   *mObj;
+    Type*   mObj;
 
-    Inner(Type *obj) : mCnt(1), mObj(obj) {}
-    void AddRef() { ++mCnt; }
-    void Release() { if (--mCnt == 0) delete this; }
+    explicit Inner(Type* aObj)
+      : mCnt(1)
+      , mObj(aObj)
+    {
+    }
+    void AddRef()
+    {
+      ++mCnt;
+    }
+    void Release()
+    {
+      if (--mCnt == 0) {
+        delete this;
+      }
+    }
   };
 
-  Inner *mRef;
+  RefPtr<Inner> mRef;
 };
 
 #endif  // nsTWeakRef_h__

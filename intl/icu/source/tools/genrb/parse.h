@@ -1,3 +1,5 @@
+// Copyright (C) 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
 /*
 *******************************************************************************
 *
@@ -28,6 +30,7 @@ void initParser();
 
 /* Parse a ResourceBundle text file */
 struct SRBRoot* parse(UCHARBUF *buf, const char* inputDir, const char* outputDir,
+                      const char *filename,
                       UBool makeBinaryCollation, UBool omitCollationRules, UErrorCode *status);
 
 U_CDECL_END

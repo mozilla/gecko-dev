@@ -30,7 +30,9 @@ class ViECaptureImpl
   virtual int GetCaptureDevice(unsigned int list_number, char* device_nameUTF8,
                                const unsigned int device_nameUTF8Length,
                                char* unique_idUTF8,
-                               const unsigned int unique_idUTF8Length);
+                               const unsigned int unique_idUTF8Length,
+                               pid_t* pid = nullptr);
+
   virtual int AllocateCaptureDevice(const char* unique_idUTF8,
                                     const unsigned int unique_idUTF8Length,
                                     int& capture_id);
@@ -47,8 +49,8 @@ class ViECaptureImpl
       const int capture_id,
       const CaptureCapability& capture_capability = CaptureCapability());
   virtual int StopCapture(const int capture_id);
-  virtual int SetRotateCapturedFrames(const int capture_id,
-                                      const RotateCapturedFrame rotation);
+  virtual int SetVideoRotation(const int capture_id,
+                               const VideoRotation rotation);
   virtual int SetCaptureDelay(const int capture_id,
                               const unsigned int capture_delay_ms);
   virtual int NumberOfCapabilities(const char* unique_idUTF8,
@@ -62,11 +64,13 @@ class ViECaptureImpl
     const char* dialog_title, void* parent_window = NULL,
     const unsigned int x = 200, const unsigned int y = 200);
   virtual int GetOrientation(const char* unique_idUTF8,
-                             RotateCapturedFrame& orientation);
+                             VideoRotation& orientation);
   virtual int EnableBrightnessAlarm(const int capture_id, const bool enable);
   virtual int RegisterObserver(const int capture_id,
                                ViECaptureObserver& observer);
+  virtual int RegisterInputObserver(ViEInputObserver* observer);
   virtual int DeregisterObserver(const int capture_id);
+  virtual int DeregisterInputObserver();
 
  protected:
   explicit ViECaptureImpl(ViESharedData* shared_data);

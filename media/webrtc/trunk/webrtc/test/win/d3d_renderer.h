@@ -12,6 +12,7 @@
 
 #include <Windows.h>
 #include <d3d9.h>
+#pragma comment(lib, "d3d9.lib")       // located in DirectX SDK
 
 #include "webrtc/system_wrappers/interface/scoped_refptr.h"
 #include "webrtc/test/video_renderer.h"
@@ -26,8 +27,9 @@ class D3dRenderer : public VideoRenderer {
                              size_t height);
   virtual ~D3dRenderer();
 
-  virtual void RenderFrame(const webrtc::I420VideoFrame& frame, int delta)
-      OVERRIDE;
+  void RenderFrame(const webrtc::I420VideoFrame& frame, int delta) override;
+  bool IsTextureSupported() const override { return false; }
+
  private:
   D3dRenderer(size_t width, size_t height);
 

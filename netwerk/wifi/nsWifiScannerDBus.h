@@ -10,14 +10,16 @@
 #define DBUS_API_SUBJECT_TO_CHANGE
 #include <dbus/dbus.h>
 
+#include "mozilla/ipc/DBusConnectionRefPtr.h"
+
 class nsWifiAccessPoint;
 
 namespace mozilla {
 
-class nsWifiScannerDBus MOZ_FINAL
+class nsWifiScannerDBus final
 {
 public:
-  nsWifiScannerDBus(nsCOMArray<nsWifiAccessPoint>* aAccessPoints);
+  explicit nsWifiScannerDBus(nsCOMArray<nsWifiAccessPoint>* aAccessPoints);
   ~nsWifiScannerDBus();
 
   nsresult Scan();
@@ -34,7 +36,7 @@ private:
   nsresult SetMac(DBusMessageIter* aVariant, nsWifiAccessPoint* aAp);
   nsresult GetDBusIterator(DBusMessage* aMsg, DBusMessageIter* aIterArray);
 
-  DBusConnection* mConnection;
+  RefPtr<DBusConnection> mConnection;
   nsCOMArray<nsWifiAccessPoint>* mAccessPoints;
 };
 

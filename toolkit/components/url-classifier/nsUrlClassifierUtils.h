@@ -7,12 +7,15 @@
 
 #include "nsAutoPtr.h"
 #include "nsIUrlClassifierUtils.h"
-#include "nsTArray.h"
-#include "nsDataHashtable.h"
-#include "mozilla/Attributes.h"
+#include "nsClassHashtable.h"
+#include "nsIObserver.h"
 
-class nsUrlClassifierUtils MOZ_FINAL : public nsIUrlClassifierUtils
+class nsUrlClassifierUtils final : public nsIUrlClassifierUtils,
+                                   public nsIObserver
 {
+public:
+  typedef nsClassHashtable<nsCStringHashKey, nsCString> ProviderDictType;
+
 private:
   /**
    * A fast, bit-vector map for ascii characters.
@@ -46,10 +49,10 @@ private:
 
 public:
   nsUrlClassifierUtils();
-  ~nsUrlClassifierUtils() {}
 
-  NS_DECL_ISUPPORTS
+  NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIURLCLASSIFIERUTILS
+  NS_DECL_NSIOBSERVER
 
   nsresult Init();
 
@@ -74,6 +77,8 @@ public:
                     nsACString & _retval);
 
 private:
+  ~nsUrlClassifierUtils() {}
+
   // Disallow copy constructor
   nsUrlClassifierUtils(const nsUrlClassifierUtils&);
 
@@ -82,7 +87,13 @@ private:
 
   void CleanupHostname(const nsACString & host, nsACString & _retval);
 
+  nsresult ReadProvidersFromPrefs(ProviderDictType& aDict);
+
   nsAutoPtr<Charmap> mEscapeCharmap;
+
+  // The provider lookup table and its mutex.
+  ProviderDictType mProviderDict;
+  mozilla::Mutex mProviderDictLock;
 };
 
 #endif // nsUrlClassifierUtils_h_

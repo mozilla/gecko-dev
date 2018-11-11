@@ -8,5 +8,5 @@ function f() {
     assertEq(y[1023], 0);
 }
 
-if (typeof SharedArrayBuffer !== "undefined")
+if (this.SharedArrayBuffer)
     f();

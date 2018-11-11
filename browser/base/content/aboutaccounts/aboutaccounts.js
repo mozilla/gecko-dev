@@ -4,16 +4,21 @@
 
 "use strict";
 
-const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
+var {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FxAccounts.jsm");
 
-let fxAccountsCommon = {};
+var fxAccountsCommon = {};
 Cu.import("resource://gre/modules/FxAccountsCommon.js", fxAccountsCommon);
 
+// for master-password utilities
+Cu.import("resource://services-sync/util.js");
+
 const PREF_LAST_FXA_USER = "identity.fxaccounts.lastSignedInUserHash";
-const PREF_SYNC_SHOW_CUSTOMIZATION = "services.sync.ui.showCustomizationDialog";
+const PREF_SYNC_SHOW_CUSTOMIZATION = "services.sync-setup.ui.showCustomizationDialog";
+
+const ACTION_URL_PARAM = "action";
 
 const OBSERVER_TOPICS = [
   fxAccountsCommon.ONVERIFIED_NOTIFICATION,
@@ -21,12 +26,12 @@ const OBSERVER_TOPICS = [
 ];
 
 function log(msg) {
-  //dump("FXA: " + msg + "\n");
-};
+  // dump("FXA: " + msg + "\n");
+}
 
 function error(msg) {
   console.log("Firefox Account Error: " + msg + "\n");
-};
+}
 
 function getPreviousAccountNameHash() {
   try {
@@ -90,29 +95,89 @@ function shouldAllowRelink(acctName) {
   return !needRelinkWarning(acctName) || promptForRelink(acctName);
 }
 
-let wrapper = {
+function updateDisplayedEmail(user) {
+  let emailDiv = document.getElementById("email");
+  if (emailDiv && user) {
+    emailDiv.textContent = user.email;
+  }
+}
+
+var wrapper = {
   iframe: null,
 
-  init: function (url=null) {
-    let weave = Cc["@mozilla.org/weave/service;1"]
-                  .getService(Ci.nsISupports)
-                  .wrappedJSObject;
-
-    // Don't show about:accounts with FxA disabled.
-    if (!weave.fxAccountsEnabled) {
-      document.body.remove();
-      return;
-    }
+  init: function (url, urlParams) {
+    // If a master-password is enabled, we want to encourage the user to
+    // unlock it.  Things still work if not, but the user will probably need
+    // to re-auth next startup (in which case we will get here again and
+    // re-prompt)
+    Utils.ensureMPUnlocked();
 
     let iframe = document.getElementById("remote");
     this.iframe = iframe;
+    this.iframe.QueryInterface(Ci.nsIFrameLoaderOwner);
+    let docShell = this.iframe.frameLoader.docShell;
+    docShell.QueryInterface(Ci.nsIWebProgress);
+    docShell.addProgressListener(this.iframeListener, Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
     iframe.addEventListener("load", this);
 
-    try {
-      iframe.src = url || fxAccounts.getAccountsSignUpURI();
-    } catch (e) {
-      error("Couldn't init Firefox Account wrapper: " + e.message);
+    // Ideally we'd just merge urlParams with new URL(url).searchParams, but our
+    // URLSearchParams implementation doesn't support iteration (bug 1085284).
+    let urlParamStr = urlParams.toString();
+    if (urlParamStr) {
+      url += (url.includes("?") ? "&" : "?") + urlParamStr;
     }
+    this.url = url;
+    // Set the iframe's location with loadURI/LOAD_FLAGS_REPLACE_HISTORY to
+    // avoid having a new history entry being added. REPLACE_HISTORY is used
+    // to replace the current entry, which is `about:blank`.
+    let webNav = iframe.frameLoader.docShell.QueryInterface(Ci.nsIWebNavigation);
+    webNav.loadURI(url, Ci.nsIWebNavigation.LOAD_FLAGS_REPLACE_HISTORY, null, null, null);
+  },
+
+  retry: function () {
+    let webNav = this.iframe.frameLoader.docShell.QueryInterface(Ci.nsIWebNavigation);
+    webNav.loadURI(this.url, Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_HISTORY, null, null, null);
+  },
+
+  iframeListener: {
+    QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
+                                         Ci.nsISupportsWeakReference,
+                                         Ci.nsISupports]),
+
+    onStateChange: function(aWebProgress, aRequest, aState, aStatus) {
+      let failure = false;
+
+      // Captive portals sometimes redirect users
+      if ((aState & Ci.nsIWebProgressListener.STATE_REDIRECTING)) {
+        failure = true;
+      } else if ((aState & Ci.nsIWebProgressListener.STATE_STOP)) {
+        if (aRequest instanceof Ci.nsIHttpChannel) {
+          try {
+            failure = aRequest.responseStatus != 200;
+          } catch (e) {
+            failure = aStatus != Components.results.NS_OK;
+          }
+        }
+      }
+
+      // Calling cancel() will raise some OnStateChange notifications by itself,
+      // so avoid doing that more than once
+      if (failure && aStatus != Components.results.NS_BINDING_ABORTED) {
+        aRequest.cancel(Components.results.NS_BINDING_ABORTED);
+        setErrorPage("networkError");
+      }
+    },
+
+    onLocationChange: function(aWebProgress, aRequest, aLocation, aFlags) {
+      if (aRequest && aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_ERROR_PAGE) {
+        aRequest.cancel(Components.results.NS_BINDING_ABORTED);
+        setErrorPage("networkError");
+      }
+    },
+
+    onProgressChange: function() {},
+    onStatusChange: function() {},
+    onSecurityChange: function() {},
   },
 
   handleEvent: function (evt) {
@@ -138,8 +203,13 @@ let wrapper = {
 
     if (accountData.customizeSync) {
       Services.prefs.setBoolPref(PREF_SYNC_SHOW_CUSTOMIZATION, true);
-      delete accountData.customizeSync;
     }
+    delete accountData.customizeSync;
+    // sessionTokenContext is erroneously sent by the content server.
+    // https://github.com/mozilla/fxa-content-server/issues/2766
+    // To avoid having the FxA storage manager not knowing what to do with
+    // it we delete it here.
+    delete accountData.sessionTokenContext;
 
     // We need to confirm a relink - see shouldAllowRelink for more
     let newAccountEmail = accountData.email;
@@ -150,8 +220,8 @@ let wrapper = {
       // we need to tell the page we successfully received the message, but
       // then bail without telling fxAccounts
       this.injectData("message", { status: "login" });
-      // and re-init the page by navigating to about:accounts
-      window.location = "about:accounts";
+      // after a successful login we return to preferences
+      openPrefs();
       return;
     }
     delete accountData.verifiedCanLinkAccount;
@@ -165,12 +235,13 @@ let wrapper = {
               .getService(Ci.nsISupports)
               .wrappedJSObject;
     xps.whenLoaded().then(() => {
+      updateDisplayedEmail(accountData);
       return fxAccounts.setSignedInUser(accountData);
     }).then(() => {
       // If the user data is verified, we want it to immediately look like
       // they are signed in without waiting for messages to bounce around.
       if (accountData.verified) {
-        show("stage", "manage");
+        openPrefs();
       }
       this.injectData("message", { status: "login" });
       // until we sort out a better UX, just leave the jelly page in place.
@@ -188,19 +259,6 @@ let wrapper = {
     // We need to confirm a relink - see shouldAllowRelink for more
     let ok = shouldAllowRelink(accountData.email);
     this.injectData("message", { status: "can_link_account", data: { ok: ok } });
-  },
-
-  /**
-   * onSessionStatus sends the currently signed in user's credentials
-   * to the jelly.
-   */
-  onSessionStatus: function () {
-    log("Received: 'session_status'.");
-
-    fxAccounts.getSignedInUser().then(
-      (accountData) => this.injectData("message", { status: "session_status", data: accountData }),
-      (err) => this.injectData("message", { status: "error", error: err })
-    );
   },
 
   /**
@@ -226,9 +284,6 @@ let wrapper = {
       case "can_link_account":
         this.onCanLinkAccount(data);
         break;
-      case "session_status":
-        this.onSessionStatus(data);
-        break;
       case "sign_out":
         this.onSignOut(data);
         break;
@@ -239,18 +294,17 @@ let wrapper = {
   },
 
   injectData: function (type, content) {
-    let authUrl;
-    try {
-      authUrl = fxAccounts.getAccountsSignUpURI();
-    } catch (e) {
-      error("Couldn't inject data: " + e.message);
-      return;
-    }
-    let data = {
-      type: type,
-      content: content
-    };
-    this.iframe.contentWindow.postMessage(data, authUrl);
+    return fxAccounts.promiseAccountsSignUpURI().then(authUrl => {
+      let data = {
+        type: type,
+        content: content
+      };
+      this.iframe.contentWindow.postMessage(data, authUrl);
+    })
+    .catch(e => {
+      console.log("Failed to inject data", e);
+      setErrorPage("configError");
+    });
   },
 };
 
@@ -273,8 +327,15 @@ function getStarted() {
   show("remote");
 }
 
+function retry() {
+  show("remote");
+  wrapper.retry();
+}
+
 function openPrefs() {
-  window.openPreferences("paneSync");
+  // Bug 1199303 calls for this tab to always be replaced with Preferences
+  // rather than it opening in a different tab.
+  window.location = "about:preferences#sync";
 }
 
 function init() {
@@ -282,46 +343,77 @@ function init() {
     // tests in particular might cause the window to start closing before
     // getSignedInUser has returned.
     if (window.closed) {
-      return;
+      return Promise.resolve();
     }
-    if (window.location.href.contains("action=signin")) {
+
+    updateDisplayedEmail(user);
+
+    // Ideally we'd use new URL(document.URL).searchParams, but for about: URIs,
+    // searchParams is empty.
+    let urlParams = new URLSearchParams(document.URL.split("?")[1] || "");
+    let action = urlParams.get(ACTION_URL_PARAM);
+    urlParams.delete(ACTION_URL_PARAM);
+
+    switch (action) {
+    case "signin":
       if (user) {
         // asking to sign-in when already signed in just shows manage.
         show("stage", "manage");
       } else {
-        show("remote");
-        wrapper.init(fxAccounts.getAccountsSignInURI());
+        return fxAccounts.promiseAccountsSignInURI().then(url => {
+          show("remote");
+          wrapper.init(url, urlParams);
+        });
       }
-    } else if (window.location.href.contains("action=signup")) {
+      break;
+    case "signup":
       if (user) {
         // asking to sign-up when already signed in just shows manage.
         show("stage", "manage");
       } else {
-        show("remote");
-        wrapper.init();
+        return fxAccounts.promiseAccountsSignUpURI().then(url => {
+          show("remote");
+          wrapper.init(url, urlParams);
+        });
       }
-    } else if (window.location.href.contains("action=reauth")) {
+      break;
+    case "reauth":
       // ideally we would only show this when we know the user is in a
       // "must reauthenticate" state - but we don't.
       // As the email address will be included in the URL returned from
       // promiseAccountsForceSigninURI, just always show it.
-      fxAccounts.promiseAccountsForceSigninURI().then(url => {
+      return fxAccounts.promiseAccountsForceSigninURI().then(url => {
         show("remote");
-        wrapper.init(url);
+        wrapper.init(url, urlParams);
       });
-    } else {
-      // No action specified
+    default:
+      // No action specified.
       if (user) {
         show("stage", "manage");
-        let sb = Services.strings.createBundle("chrome://browser/locale/syncSetup.properties");
-        document.title = sb.GetStringFromName("manage.pageTitle");
       } else {
-        show("stage", "intro");
-        // load the remote frame in the background
-        wrapper.init();
+        // Attempt a migration if enabled or show the introductory page
+        // otherwise.
+        return migrateToDevEdition(urlParams).then(migrated => {
+          if (!migrated) {
+            show("stage", "intro");
+            // load the remote frame in the background
+            return fxAccounts.promiseAccountsSignUpURI().then(uri =>
+              wrapper.init(uri, urlParams));
+          }
+          return Promise.resolve();
+        });
       }
+      break;
     }
+    return Promise.resolve();
+  }).catch(err => {
+    console.log("Configuration or sign in error", err);
+    setErrorPage("configError");
   });
+}
+
+function setErrorPage(errorType) {
+  show("stage", errorType);
 }
 
 // Causes the "top-level" element with |id| to be shown - all other top-level
@@ -350,11 +442,73 @@ function show(id, childId) {
   }
 }
 
+// Migrate sync data from the default profile to the dev-edition profile.
+// Returns a promise of a true value if migration succeeded, or false if it
+// failed.
+function migrateToDevEdition(urlParams) {
+  let defaultProfilePath;
+  try {
+    defaultProfilePath = window.getDefaultProfilePath();
+  } catch (e) {} // no default profile.
+  let migrateSyncCreds = false;
+  if (defaultProfilePath) {
+    try {
+      migrateSyncCreds = Services.prefs.getBoolPref("identity.fxaccounts.migrateToDevEdition");
+    } catch (e) {}
+  }
+
+  if (!migrateSyncCreds) {
+    return Promise.resolve(false);
+  }
+
+  Cu.import("resource://gre/modules/osfile.jsm");
+  let fxAccountsStorage = OS.Path.join(defaultProfilePath, fxAccountsCommon.DEFAULT_STORAGE_FILENAME);
+  return OS.File.read(fxAccountsStorage, { encoding: "utf-8" }).then(text => {
+    let accountData = JSON.parse(text).accountData;
+    updateDisplayedEmail(accountData);
+    return fxAccounts.setSignedInUser(accountData);
+  }).then(() => {
+    return fxAccounts.promiseAccountsForceSigninURI().then(url => {
+      show("remote");
+      wrapper.init(url, urlParams);
+    });
+  }).then(null, error => {
+    log("Failed to migrate FX Account: " + error);
+    show("stage", "intro");
+    // load the remote frame in the background
+    fxAccounts.promiseAccountsSignUpURI().then(uri => {
+      wrapper.init(uri, urlParams)
+    }).catch(e => {
+      console.log("Failed to load signup page", e);
+      setErrorPage("configError");
+    });
+  }).then(() => {
+    // Reset the pref after migration.
+    Services.prefs.setBoolPref("identity.fxaccounts.migrateToDevEdition", false);
+    return true;
+  }).then(null, err => {
+    Cu.reportError("Failed to reset the migrateToDevEdition pref: " + err);
+    return false;
+  });
+}
+
+// Helper function that returns the path of the default profile on disk. Will be
+// overridden in tests.
+function getDefaultProfilePath() {
+  let defaultProfile = Cc["@mozilla.org/toolkit/profile-service;1"]
+                        .getService(Ci.nsIToolkitProfileService)
+                        .defaultProfile;
+  return defaultProfile.rootDir.path;
+}
+
 document.addEventListener("DOMContentLoaded", function onload() {
   document.removeEventListener("DOMContentLoaded", onload, true);
   init();
   var buttonGetStarted = document.getElementById('buttonGetStarted');
   buttonGetStarted.addEventListener('click', getStarted);
+
+  var buttonRetry = document.getElementById('buttonRetry');
+  buttonRetry.addEventListener('click', retry);
 
   var oldsync = document.getElementById('oldsync');
   oldsync.addEventListener('click', handleOldSync);
@@ -371,8 +525,9 @@ function initObservers() {
       window.location = "about:accounts?action=signin";
       return;
     }
-    // must be onverified - just about:accounts is loaded.
-    window.location = "about:accounts";
+
+    // must be onverified - we want to open preferences.
+    openPrefs();
   }
 
   for (let topic of OBSERVER_TOPICS) {

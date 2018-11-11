@@ -8,16 +8,19 @@ include $(topsrcdir)/config/config.mk
 # http://code.google.com/p/android/issues/detail?id=3639
 AB_rCD = $(if $(filter he, $(AB_CD)),iw,$(if $(filter id, $(AB_CD)),in,$(subst -,-r,$(AB_CD))))
 
+# The search strings path is always passed to strings.xml.in; the
+# decision to include is made based on the feature flag at the
+# inclusion site.
+SEARCHSTRINGSPATH = $(abspath $(call MERGE_FILE,search_strings.dtd))
+
 SYNCSTRINGSPATH = $(abspath $(call MERGE_FILE,sync_strings.dtd))
 STRINGSPATH = $(abspath $(call MERGE_FILE,android_strings.dtd))
 ifeq (,$(XPI_NAME))
-BRANDPATH = $(abspath $(DEPTH)/dist/bin/chrome/$(AB_CD)/locale/branding/brand.dtd)
+BRANDPATH = $(topobjdir)/dist/bin/chrome/$(AB_CD)/locale/branding/brand.dtd
 else
-BRANDPATH = $(abspath $(DIST)/xpi-stage/$(XPI_NAME)/chrome/$(AB_CD)/locale/branding/brand.dtd)
+BRANDPATH = $(ABS_DIST)/xpi-stage/$(XPI_NAME)/chrome/$(AB_CD)/locale/branding/brand.dtd
 endif
 $(warnIfEmpty,AB_CD) # todo: $(errorIfEmpty )
-
-DEFINES += -DAB_CD=$(AB_CD)
 
 dir-res-values := ../res/values
 strings-xml    := $(dir-res-values)/strings.xml
@@ -25,16 +28,12 @@ strings-xml-in := $(srcdir)/../strings.xml.in
 
 GARBAGE += $(strings-xml)
 
-dir-res-raw         := ../res/raw
-suggestedsites-json := $(dir-res-raw)/suggestedsites.json
-
-GARBAGE += \
-  $(suggestedsites-json) \
-  $(NULL)
+dir-res-raw := ../res/raw
+suggestedsites := $(dir-res-raw)/suggestedsites.json
+browsersearch := $(dir-res-raw)/browsersearch.json
 
 libs realchrome:: \
   $(strings-xml) \
-  $(suggestedsites-json) \
   $(NULL)
 
 chrome-%:: AB_CD=$*
@@ -42,19 +41,8 @@ chrome-%::
 	@$(MAKE) \
 	  $(dir-res-values)-$(AB_rCD)/strings.xml \
 	  $(dir-res-raw)-$(AB_rCD)/suggestedsites.json \
+	  $(dir-res-raw)-$(AB_rCD)/browsersearch.json \
 	  AB_CD=$*
-
-# setup the path to bookmarks.inc. copied and tweaked version of MERGE_FILE from config/config.mk
-MOBILE_LOCALE_SRCDIR = $(if $(filter en-US,$(AB_CD)),$(topsrcdir)/mobile/locales/en-US,$(or $(realpath $(L10NBASEDIR)),$(abspath $(L10NBASEDIR)))/$(AB_CD)/mobile)
-
-ifdef LOCALE_MERGEDIR
-BOOKMARKSPATH = $(firstword \
-  $(wildcard $(LOCALE_MERGEDIR)/mobile/profile/bookmarks.inc ) \
-  $(wildcard $(MOBILE_LOCALE_SRCDIR)/profile/bookmarks.inc ) \
-  $(topsrcdir)/mobile/locales/en-US/profile/bookmarks.inc )
-else
-BOOKMARKSPATH = $(abspath $(MOBILE_LOCALE_SRCDIR)/profile/bookmarks.inc)
-endif
 
 # Determine the ../res/values[-*]/ path
 strings-xml-bypath  = $(filter %/strings.xml,$(MAKECMDGOALS))
@@ -67,43 +55,60 @@ strings-xml-preqs =\
   $(strings-xml-in) \
   $(BRANDPATH) \
   $(STRINGSPATH) \
+  $(SEARCHSTRINGSPATH) \
   $(SYNCSTRINGSPATH) \
-  $(BOOKMARKSPATH) \
   $(if $(IS_LANGUAGE_REPACK),FORCE) \
   $(NULL)
-
-$(if $(MOZ_ANDROID_SHARED_ACCOUNT_TYPE),,$(error Missing MOZ_ANDROID_SHARED_ACCOUNT_TYPE))
-$(if $(MOZ_ANDROID_SHARED_FXACCOUNT_TYPE),,$(error Missing MOZ_ANDROID_SHARED_FXACCOUNT_TYPE))
 
 $(dir-strings-xml)/strings.xml: $(strings-xml-preqs)
 	$(call py_action,preprocessor, \
       $(DEFINES) \
+      $(ACDEFINES) \
 	  -DANDROID_PACKAGE_NAME=$(ANDROID_PACKAGE_NAME) \
-	  -DBOOKMARKSPATH='$(BOOKMARKSPATH)' \
 	  -DBRANDPATH='$(BRANDPATH)' \
-	  -DMOZ_ANDROID_SHARED_ACCOUNT_TYPE=$(MOZ_ANDROID_SHARED_ACCOUNT_TYPE) \
-	  -DMOZ_ANDROID_SHARED_FXACCOUNT_TYPE=$(MOZ_ANDROID_SHARED_FXACCOUNT_TYPE) \
 	  -DMOZ_APP_DISPLAYNAME='@MOZ_APP_DISPLAYNAME@' \
 	  -DSTRINGSPATH='$(STRINGSPATH)' \
 	  -DSYNCSTRINGSPATH='$(SYNCSTRINGSPATH)' \
+	  -DSEARCHSTRINGSPATH='$(SEARCHSTRINGSPATH)' \
       $< \
 	  -o $@)
 
-suggestedsites-srcdir := $(if $(filter en-US,$(AB_CD)),,$(or $(realpath $(L10NBASEDIR)),$(abspath $(L10NBASEDIR)))/$(AB_CD)/mobile/chrome)
+# Arg 1: Valid Make identifier, like suggestedsites.
+# Arg 2: File name, like suggestedsites.json.
+define generated_file_template
 
 # Determine the ../res/raw[-*] path.  This can be ../res/raw when no
 # locale is explicitly specified.
-suggestedsites-json-bypath = $(filter %/suggestedsites.json,$(MAKECMDGOALS))
-ifeq (,$(strip $(suggestedsites-json-bypath)))
-  suggestedsites-json-bypath = $(suggestedsites-json)
+$(1)-bypath = $(filter %/$(2),$(MAKECMDGOALS))
+ifeq (,$$(strip $$($(1)-bypath)))
+  $(1)-bypath = $($(1))
 endif
-suggestedsites-dstdir-raw = $(patsubst %/,%,$(dir $(suggestedsites-json-bypath)))
+$(1)-dstdir-raw = $$(patsubst %/,%,$$(dir $$($(1)-bypath)))
+
+GARBAGE += $($(1))
+
+libs realchrome:: $($(1))
+endef
+
+# L10NBASEDIR is not defined for en-US.
+l10n-srcdir := $(if $(filter en-US,$(AB_CD)),,$(or $(realpath $(L10NBASEDIR)),$(abspath $(L10NBASEDIR)))/$(AB_CD)/mobile/chrome)
+
+$(eval $(call generated_file_template,suggestedsites,suggestedsites.json))
 
 $(suggestedsites-dstdir-raw)/suggestedsites.json: FORCE
 	$(call py_action,generate_suggestedsites, \
 		--verbose \
 		--android-package-name=$(ANDROID_PACKAGE_NAME) \
 		--resources=$(srcdir)/../resources \
-		$(if $(filter en-US,$(AB_CD)),,--srcdir=$(suggestedsites-srcdir)) \
+		$(if $(filter en-US,$(AB_CD)),,--srcdir=$(l10n-srcdir)) \
+		--srcdir=$(topsrcdir)/mobile/locales/en-US/chrome \
+		$@)
+
+$(eval $(call generated_file_template,browsersearch,browsersearch.json))
+
+$(browsersearch-dstdir-raw)/browsersearch.json: FORCE
+	$(call py_action,generate_browsersearch, \
+		--verbose \
+		$(if $(filter en-US,$(AB_CD)),,--srcdir=$(l10n-srcdir)) \
 		--srcdir=$(topsrcdir)/mobile/locales/en-US/chrome \
 		$@)

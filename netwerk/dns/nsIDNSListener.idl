@@ -10,7 +10,7 @@ interface nsIDNSRecord;
 /**
  * nsIDNSListener
  */
-[scriptable, uuid(41466a9f-f027-487d-a96c-af39e629b8d2)]
+[scriptable, function, uuid(27d49bfe-280c-49e0-bbaa-f6200c232c3d)]
 interface nsIDNSListener : nsISupports
 {
     /**
@@ -27,4 +27,20 @@ interface nsIDNSListener : nsISupports
     void onLookupComplete(in nsICancelable aRequest,
                           in nsIDNSRecord  aRecord,
                           in nsresult      aStatus);
+};
+
+/**
+ * nsIDNSListenerProxy:
+ *
+ * Must be implemented by classes that wrap the original listener passed to
+ * nsIDNSService.AsyncResolve, so we have access to original listener for
+ * comparison purposes.
+ */
+[uuid(60eff0e4-6f7c-493c-add9-1cbea59063ad)]
+interface nsIDNSListenerProxy : nsISupports
+{
+  /*
+   * The original nsIDNSListener which requested hostname resolution.
+   */
+  readonly attribute nsIDNSListener originalListener;
 };

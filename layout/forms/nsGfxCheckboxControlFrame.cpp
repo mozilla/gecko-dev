@@ -4,18 +4,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsGfxCheckboxControlFrame.h"
+
+#include "gfxUtils.h"
+#include "mozilla/gfx/2D.h"
 #include "nsIContent.h"
 #include "nsCOMPtr.h"
+#include "nsLayoutUtils.h"
 #include "nsRenderingContext.h"
 #include "nsIDOMHTMLInputElement.h"
 #include "nsDisplayList.h"
 #include <algorithm>
 
 using namespace mozilla;
+using namespace mozilla::gfx;
 
 static void
 PaintCheckMark(nsIFrame* aFrame,
-               nsRenderingContext* aCtx,
+               DrawTarget* aDrawTarget,
                const nsRect& aDirtyRect,
                nsPoint aPt)
 {
@@ -34,32 +39,39 @@ PaintCheckMark(nsIFrame* aFrame,
   nsPoint paintCenter(rect.x + rect.width  / 2,
                       rect.y + rect.height / 2);
 
-  nsPoint paintPolygon[checkNumPoints];
-  // Convert checkmark for screen rendering
-  for (int32_t polyIndex = 0; polyIndex < checkNumPoints; polyIndex++) {
-    paintPolygon[polyIndex] = paintCenter +
-                              nsPoint(checkPolygonX[polyIndex] * paintScale,
-                                      checkPolygonY[polyIndex] * paintScale);
-  }
+  RefPtr<PathBuilder> builder = aDrawTarget->CreatePathBuilder();
+  nsPoint p = paintCenter + nsPoint(checkPolygonX[0] * paintScale,
+                                    checkPolygonY[0] * paintScale);
 
-  aCtx->SetColor(aFrame->StyleColor()->mColor);
-  aCtx->FillPolygon(paintPolygon, checkNumPoints);
+  int32_t appUnitsPerDevPixel = aFrame->PresContext()->AppUnitsPerDevPixel();
+  builder->MoveTo(NSPointToPoint(p, appUnitsPerDevPixel));
+  for (int32_t polyIndex = 1; polyIndex < checkNumPoints; polyIndex++) {
+    p = paintCenter + nsPoint(checkPolygonX[polyIndex] * paintScale,
+                              checkPolygonY[polyIndex] * paintScale);
+    builder->LineTo(NSPointToPoint(p, appUnitsPerDevPixel));
+  }
+  RefPtr<Path> path = builder->Finish();
+  aDrawTarget->Fill(path,
+                    ColorPattern(ToDeviceColor(aFrame->StyleColor()->mColor)));
 }
 
 static void
 PaintIndeterminateMark(nsIFrame* aFrame,
-                       nsRenderingContext* aCtx,
+                       DrawTarget* aDrawTarget,
                        const nsRect& aDirtyRect,
                        nsPoint aPt)
 {
+  int32_t appUnitsPerDevPixel = aFrame->PresContext()->AppUnitsPerDevPixel();
+
   nsRect rect(aPt, aFrame->GetSize());
   rect.Deflate(aFrame->GetUsedBorderAndPadding());
-
   rect.y += (rect.height - rect.height/4) / 2;
   rect.height /= 4;
 
-  aCtx->SetColor(aFrame->StyleColor()->mColor);
-  aCtx->FillRect(rect);
+  Rect devPxRect = NSRectToSnappedRect(rect, appUnitsPerDevPixel, *aDrawTarget);
+
+  aDrawTarget->FillRect(
+    devPxRect, ColorPattern(ToDeviceColor(aFrame->StyleColor()->mColor)));
 }
 
 //------------------------------------------------------------

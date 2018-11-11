@@ -1,0 +1,521 @@
+/* TODO: May break up into component local CSS.  Pending future discussions by
+ * React component group on how to best handle CSS. */
+
+/**
+ * CSS Variables specific to the responsive design mode
+ */
+
+.theme-light {
+  --rdm-box-shadow: 0 4px 4px 0 rgba(155, 155, 155, 0.26);
+  --submit-button-active-background-color: rgba(0,0,0,0.12);
+  --submit-button-active-color: var(--theme-body-color);
+  --viewport-color: #999797;
+  --viewport-hover-color: var(--theme-body-color);
+  --viewport-active-color: #3b3b3b;
+  --viewport-selection-arrow: url("./images/select-arrow.svg#light");
+  --viewport-selection-arrow-hovered:
+    url("./images/select-arrow.svg#light-hovered");
+  --viewport-selection-arrow-selected:
+    url("./images/select-arrow.svg#light-selected");
+}
+
+.theme-dark {
+  --rdm-box-shadow: 0 4px 4px 0 rgba(105, 105, 105, 0.26);
+  --submit-button-active-background-color: var(--toolbar-tab-hover-active);
+  --submit-button-active-color: var(--theme-selection-color);
+  --viewport-color: #c6ccd0;
+  --viewport-hover-color: #dde1e4;
+  --viewport-active-color: #fcfcfc;
+  --viewport-selection-arrow: url("./images/select-arrow.svg#dark");
+  --viewport-selection-arrow-hovered:
+    url("./images/select-arrow.svg#dark-hovered");
+  --viewport-selection-arrow-selected:
+    url("./images/select-arrow.svg#dark-selected");
+}
+
+* {
+  box-sizing: border-box;
+}
+
+#root,
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+#app {
+  /* Center the viewports container */
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding-top: 15px;
+  padding-bottom: 1%;
+  position: relative;
+  height: 100%;
+}
+
+/**
+ * Common styles for shared components
+ */
+
+.container {
+  background-color: var(--theme-toolbar-background);
+  border: 1px solid var(--theme-splitter-color);
+}
+
+.toolbar-button {
+  margin: 1px 3px;
+  width: 16px;
+  height: 16px;
+  /* Reset styles from .devtools-button */
+  min-width: initial;
+  min-height: initial;
+  align-self: center;
+}
+
+.toolbar-button:active::before {
+  filter: url("chrome://devtools/skin/images/filters.svg#checked-icon-state");
+}
+
+select {
+  -moz-appearance: none;
+  background-color: var(--theme-toolbar-background);
+  background-image: var(--viewport-selection-arrow);
+  background-position: 100% 50%;
+  background-repeat: no-repeat;
+  background-size: 7px;
+  border: none;
+  color: var(--viewport-color);
+  height: 100%;
+  padding: 0 8px;
+  text-align: center;
+  text-overflow: ellipsis;
+  font-size: 11px;
+}
+
+select.selected {
+  background-image: var(--viewport-selection-arrow-selected);
+  color: var(--viewport-active-color);
+}
+
+select:not(:disabled):hover {
+  background-image: var(--viewport-selection-arrow-hovered);
+  color: var(--viewport-hover-color);
+}
+
+/* This is (believed to be?) separate from the identical select.selected rule
+   set so that it overrides select:hover because of file ordering once the
+   select is focused.  It's unclear whether the visual effect that results here
+   is intentional and desired. */
+select:focus {
+  background-image: var(--viewport-selection-arrow-selected);
+  color: var(--viewport-active-color);
+}
+
+select > option {
+  text-align: left;
+  padding: 5px 10px;
+}
+
+select > option,
+select > option:hover {
+  color: var(--viewport-active-color);
+}
+
+select > option.divider {
+  border-top: 1px solid var(--theme-splitter-color);
+  height: 0px;
+  padding: 0;
+  font-size: 0px;
+}
+
+/**
+ * Global Toolbar
+ */
+
+#global-toolbar {
+  color: var(--theme-body-color-alt);
+  border-radius: 2px;
+  box-shadow: var(--rdm-box-shadow);
+  margin: 0 0 15px 0;
+  padding: 4px 5px;
+  display: inline-flex;
+  -moz-user-select: none;
+}
+
+#global-toolbar > .title {
+  border-right: 1px solid var(--theme-splitter-color);
+  padding: 1px 6px 0 2px;
+}
+
+#global-toolbar .toolbar-button {
+  margin: 0 0 0 5px;
+  padding: 0;
+}
+
+#global-toolbar .toolbar-button,
+#global-toolbar .toolbar-button::before {
+  width: 12px;
+  height: 12px;
+}
+
+#global-touch-simulation-button::before {
+  background-image: url("./images/touch-events.svg");
+  margin: -6px 0 0 -6px;
+}
+
+#global-touch-simulation-button.active::before {
+  filter: url("chrome://devtools/skin/images/filters.svg#checked-icon-state");
+}
+
+#global-screenshot-button::before {
+  background-image: url("./images/screenshot.svg");
+  margin: -6px 0 0 -6px;
+}
+
+#global-exit-button::before {
+  background-image: url("./images/close.svg");
+  margin: -6px 0 0 -6px;
+}
+
+#global-screenshot-button:disabled {
+  filter: url("chrome://devtools/skin/images/filters.svg#checked-icon-state");
+  opacity: 1 !important;
+}
+
+#global-network-throttling-selector {
+  height: 15px;
+  padding-left: 0;
+  width: 103px;
+}
+
+#global-dpr-selector > select {
+  padding: 0 8px 0 0;
+  margin-left: 2px;
+}
+
+#global-dpr-selector {
+  margin: 0 8px;
+  -moz-user-select: none;
+  color: var(--viewport-color);
+  font-size: 11px;
+  height: 15px;
+}
+
+#global-dpr-selector.focused,
+#global-dpr-selector:not(.disabled):hover {
+  color: var(--viewport-hover-color);
+}
+
+#global-dpr-selector:not(.disabled):hover > select {
+  background-image: var(--viewport-selection-arrow-hovered);
+  color: var(--viewport-hover-color);
+}
+
+#global-dpr-selector:focus > select {
+  background-image: var(--viewport-selection-arrow-selected);
+  color: var(--viewport-active-color);
+}
+
+#global-dpr-selector.selected,
+#global-dpr-selector.selected > select {
+  color: var(--viewport-active-color);
+}
+
+#global-dpr-selector > select > option {
+  padding: 5px;
+}
+
+#viewports {
+  /* Make sure left-most viewport is visible when there's horizontal overflow.
+     That is, when the horizontal space become smaller than the viewports and a
+     scrollbar appears, then the first viewport will still be visible */
+  position: sticky;
+  left: 0;
+  /* Individual viewports are inline elements, make sure they stay on a single
+     line */
+  white-space: nowrap;
+}
+
+/**
+ * Viewport Container
+ */
+
+.viewport {
+  display: inline-block;
+  /* Align all viewports to the top */
+  vertical-align: top;
+}
+
+.resizable-viewport {
+  border: 1px solid var(--theme-splitter-color);
+  box-shadow: var(--rdm-box-shadow);
+  position: relative;
+}
+
+/**
+ * Viewport Toolbar
+ */
+
+.viewport-toolbar {
+  border-width: 0;
+  border-bottom-width: 1px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  height: 18px;
+}
+
+.viewport-rotate-button {
+  position: absolute;
+  right: 0;
+}
+
+.viewport-rotate-button::before {
+  background-image: url("./images/rotate-viewport.svg");
+}
+
+/**
+ * Viewport Content
+ */
+
+.viewport-content.resizing {
+  pointer-events: none;
+}
+
+/**
+ * Viewport Browser
+ */
+
+.browser-container {
+  width: inherit;
+  height: inherit;
+}
+
+.browser {
+  display: block;
+  border: 0;
+  -moz-user-select: none;
+}
+
+.browser:-moz-focusring {
+  outline: none;
+}
+
+/**
+ * Viewport Resize Handles
+ */
+
+.viewport-resize-handle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  bottom: 0;
+  right: 0;
+  background-image: url("./images/grippers.svg");
+  background-position: bottom right;
+  padding: 0 1px 1px 0;
+  background-repeat: no-repeat;
+  background-origin: content-box;
+  cursor: se-resize;
+}
+
+.viewport-resize-handle.hidden {
+  display: none;
+}
+
+.viewport-horizontal-resize-handle {
+  position: absolute;
+  width: 5px;
+  height: calc(100% - 16px);
+  right: -4px;
+  top: 0;
+  cursor: e-resize;
+}
+
+.viewport-vertical-resize-handle {
+  position: absolute;
+  width: calc(100% - 16px);
+  height: 5px;
+  left: 0;
+  bottom: -4px;
+  cursor: s-resize;
+}
+
+/**
+ * Viewport Dimension Label
+ */
+
+.viewport-dimension {
+  display: flex;
+  justify-content: center;
+  font: 10px sans-serif;
+  margin-bottom: 10px;
+}
+
+.viewport-dimension-editable {
+  border-bottom: 1px solid transparent;
+}
+
+.viewport-dimension-editable,
+.viewport-dimension-input {
+  color: var(--theme-body-color-inactive);
+  transition: all 0.25s ease;
+}
+
+.viewport-dimension-editable.editing,
+.viewport-dimension-input.editing {
+  color: var(--viewport-active-color);
+}
+
+.viewport-dimension-editable.editing {
+  border-bottom: 1px solid var(--theme-selection-background);
+}
+
+.viewport-dimension-editable.editing.invalid {
+  border-bottom: 1px solid #d92215;
+}
+
+.viewport-dimension-input {
+  background: transparent;
+  border: none;
+  text-align: center;
+}
+
+.viewport-dimension-separator {
+  -moz-user-select: none;
+}
+
+/**
+ * Device Modal
+ */
+
+@keyframes fade-in-and-up {
+  0% {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0px);
+  }
+}
+
+@keyframes fade-down-and-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(5px);
+    visibility: hidden;
+  }
+}
+
+.device-modal {
+  border-radius: 2px;
+  box-shadow: var(--rdm-box-shadow);
+  display: none;
+  position: absolute;
+  margin: auto;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 642px;
+  height: 612px;
+  z-index: 1;
+}
+
+/* Handles the opening/closing of the modal */
+#device-modal-wrapper.opened .device-modal {
+  animation: fade-in-and-up 0.3s ease;
+  animation-fill-mode: forwards;
+  display: block;
+}
+
+#device-modal-wrapper.closed .device-modal {
+  animation: fade-down-and-out 0.3s ease;
+  animation-fill-mode: forwards;
+  display: block;
+}
+
+#device-modal-wrapper.opened .modal-overlay {
+  background-color: var(--theme-splitter-color);
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  z-index: 0;
+  opacity: 0.5;
+}
+
+.device-modal-content {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  overflow: auto;
+  height: 550px;
+  width: 600px;
+  margin: 20px;
+}
+
+#device-close-button,
+#device-close-button::before {
+  position: absolute;
+  top: 5px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+}
+
+#device-close-button::before {
+  background-image: url("./images/close.svg");
+  margin: -6px 0 0 -6px;
+}
+
+.device-type {
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+}
+
+.device-header {
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: capitalize;
+  padding: 0 0 3px 23px;
+}
+
+.device-label {
+  font-size: 11px;
+  padding-bottom: 3px;
+  display: flex;
+  align-items: center;
+}
+
+.device-input-checkbox {
+  margin-right: 5px;
+}
+
+#device-submit-button {
+  background-color: var(--theme-tab-toolbar-background);
+  border-width: 1px 0 0 0;
+  border-top-width: 1px;
+  border-top-style: solid;
+  border-top-color: var(--theme-splitter-color);
+  color: var(--theme-body-color);
+  width: 100%;
+  height: 20px;
+}
+
+#device-submit-button:hover {
+  background-color: var(--toolbar-tab-hover);
+}
+
+#device-submit-button:hover:active {
+  background-color: var(--submit-button-active-background-color);
+  color: var(--submit-button-active-color);
+}

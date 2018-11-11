@@ -18,9 +18,9 @@ http://wiki.mozilla.org/Gecko:Effective_TLD_Service
 
 def getEffectiveTLDs(path):
   file = codecs.open(path, "r", "UTF-8")
+  entries = []
   domains = set()
-  while True:
-    line = file.readline()
+  for line in file:
     # line always contains a line terminator unless the file is empty
     if len(line) == 0:
       raise StopIteration
@@ -34,7 +34,12 @@ def getEffectiveTLDs(path):
     assert domain not in domains, \
            "repeating domain %s makes no sense" % domain
     domains.add(domain)
-    yield entry
+    entries.append(entry)
+
+  # Sort the entries so we can use binary search on them.
+  entries.sort(key=EffectiveTLDEntry.domain)
+
+  return entries
 
 def _normalizeHostname(domain):
   """
@@ -95,11 +100,11 @@ class EffectiveTLDEntry:
 # DO EVERYTHING #
 #################
 
-def main():
+def main(output, effective_tld_filename):
   """
-  argv[1] is the effective TLD file to parse.
+  effective_tld_filename is the effective TLD file to parse.
   A C++ array of { domain, exception, wild } entries representing the
-  eTLD file is then printed to stdout.
+  eTLD file is then printed to output.
   """
 
   def boolStr(b):
@@ -107,10 +112,10 @@ def main():
       return "true"
     return "false"
 
-  for etld in getEffectiveTLDs(sys.argv[1]):
+  for etld in getEffectiveTLDs(effective_tld_filename):
     exception = boolStr(etld.exception())
     wild = boolStr(etld.wild())
-    print 'ETLD_ENTRY("%s", %s, %s)' % (etld.domain(), exception, wild)
+    output.write('ETLD_ENTRY("%s", %s, %s)\n' % (etld.domain(), exception, wild))
 
 if __name__ == '__main__':
-  main()
+    main(sys.stdout, sys.argv[1])

@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,88 +9,64 @@ if CONFIG['OS_ARCH'] in ('Darwin', 'Linux'):
 
 UNIFIED_SOURCES += [
     'convert_UTF.c',
-    'logging.cc',
-    'module.cc',
-    'pathname_stripper.cc',
     'string_conversion.cc',
-    'unique_string.cc',
 ]
 
-if CONFIG['OS_TARGET'] != 'WINNT':
+if CONFIG['OS_ARCH'] != 'WINNT':
     UNIFIED_SOURCES += [
-        'arm_ex_reader.cc',
-        'arm_ex_to_module.cc',
-        'dwarf/bytereader.cc',
-        'dwarf/dwarf2diehandler.cc',
-        'dwarf/dwarf2reader.cc',
-        'dwarf_cfi_to_module.cc',
-        'dwarf_cu_to_module.cc',
-        'dwarf_line_to_module.cc',
-        'language.cc',
         'md5.cc',
     ]
 
 if CONFIG['OS_ARCH'] == 'Linux':
-    UNIFIED_SOURCES += [
-        'linux/dump_symbols.cc',
-        'linux/elf_symbols_to_module.cc',
+    HOST_DEFINES['HAVE_A_OUT_H'] = True
+elif CONFIG['OS_ARCH'] == 'Darwin':
+    HOST_DEFINES['HAVE_MACH_O_NLIST_H'] = True
+    HOST_SOURCES += [
+        'stabs_reader.cc',
+        'stabs_to_module.cc',
     ]
-
-if CONFIG['OS_TARGET'] == 'Android':
-    pass
-else:
-    if CONFIG['OS_TARGET'] != 'WINNT':
-        UNIFIED_SOURCES += [
-            'stabs_reader.cc',
-            'stabs_to_module.cc',
+    if CONFIG['HOST_OS_ARCH'] != 'Darwin':
+        HOST_CXXFLAGS += [
+            '-I%s/toolkit/crashreporter/google-breakpad/src/third_party/mac_headers/' % TOPSRCDIR,
         ]
 
-if CONFIG['OS_TARGET'] != 'WINNT' and CONFIG['MOZ_CRASHREPORTER']:
-    HOST_SOURCES += [ 'convert_UTF.c' ]
-    HOST_LIBRARY_NAME = 'host_breakpad_common_s'
+if CONFIG['OS_ARCH'] != 'WINNT':
     HOST_SOURCES += [
         'arm_ex_reader.cc',
         'arm_ex_to_module.cc',
+        'convert_UTF.c',
         'dwarf_cfi_to_module.cc',
         'dwarf_cu_to_module.cc',
         'dwarf_line_to_module.cc',
         'language.cc',
-        'logging.cc',
         'md5.cc',
         'module.cc',
-        'pathname_stripper.cc',
-        'stabs_reader.cc',
-        'stabs_to_module.cc',
         'string_conversion.cc',
-        'unique_string.cc',
     ]
-
-if CONFIG['OS_ARCH'] == 'Darwin':
-    UNIFIED_SOURCES += [
-        'mac/dump_syms.mm',
+    if CONFIG['OS_ARCH'] == 'Darwin':
+        HOST_CXXFLAGS += [
+            '-stdlib=libc++',
+        ]
+    HOST_CXXFLAGS += [
+        '-O2',
+        '-g',
     ]
+    HostLibrary('host_breakpad_common_s')
 
 if CONFIG['OS_TARGET'] == 'Android':
     # We don't support unifying assembly files.
     SOURCES += [
         'android/breakpad_getcontext.S',
     ]
+    LOCAL_INCLUDES += [
+        '/toolkit/crashreporter/google-breakpad/src/common/android/include',
+    ]
 
-LIBRARY_NAME = 'breakpad_common_s'
+Library('breakpad_common_s')
 
-MSVC_ENABLE_PGO = True
+# We allow warnings for third-party code that can be updated from upstream.
+ALLOW_COMPILER_WARNINGS = True
 
-FINAL_LIBRARY = 'xulapp_s'
-
-if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
-    DEFINES['ELFSIZE'] = 32
-
-if CONFIG['OS_TARGET'] == 'Android':
-    DEFINES['NO_STABS_SUPPORT'] = True
+FINAL_LIBRARY = 'xul'
 
 include('/toolkit/crashreporter/crashreporter.mozbuild')
-
-LOCAL_INCLUDES += [
-    '..',
-]
-

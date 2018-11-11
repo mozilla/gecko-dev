@@ -28,7 +28,7 @@
         document.getAnonymousElementByAttribute(this, "anonid", "main-box");
       </field>
       <field name="scrollBoxObject">
-        this._scrollbox.boxObject.QueryInterface(Components.interfaces.nsIScrollBoxObject);
+        this._scrollbox.boxObject;
       </field>
       <constructor>
         <![CDATA[
@@ -61,7 +61,7 @@
             var state = this.currentItem ? this.currentItem.id : "";
             if (this.selType == "multiple" && this.selectedCount) {
               let getId = function getId(aItem) { return aItem.id; }
-              state += " " + this.selectedItems.filter(getId).map(getId).join(" ");
+              state += " " + [... this.selectedItems].filter(getId).map(getId).join(" ");
             }
             if (state)
               this.setAttribute("last-selected", state);
@@ -357,7 +357,7 @@
               var suppressSelect = this._suppressOnSelect;
               this._suppressOnSelect = true;
               this.clearSelection();
-              for (var i = 1; i < ids.length; i++) {
+              for (let i = 1; i < ids.length; i++) {
                 var selectedItem = document.getElementById(ids[i]);
                 if (selectedItem)
                   this.addItemToSelection(selectedItem);
@@ -393,13 +393,17 @@
             // try to restore the selected items according to their IDs
             // (applies after a template rebuild, if last-selected was not set)
             if (this.selectedItems) {
-              for (i = this.selectedCount - 1; i >= 0; i--) {
-                if (this.selectedItems[i] && this.selectedItems[i].id)
-                  this.selectedItems[i] = document.getElementById(this.selectedItems[i].id);
-                else
-                  this.selectedItems[i] = null;
-                if (!this.selectedItems[i])
-                  this.selectedItems.splice(i, 1);
+              let itemIds = [];
+              for (let i = this.selectedCount - 1; i >= 0; i--) {
+                let selectedItem = this.selectedItems[i];
+                itemIds.push(selectedItem.id);
+                this.selectedItems.remove(selectedItem);
+              }
+              for (let i = 0; i < itemIds.length; i++) {
+                let selectedItem = document.getElementById(itemIds[i]);
+                if (selectedItem) {
+                  this.selectedItems.append(selectedItem);
+                }
               }
             }
             if (this.currentItem && this.currentItem.id)
@@ -415,9 +419,9 @@
               // cf. listbox constructor:
               // select items according to their attributes
               var children = this.children;
-              for (var i = 0; i < children.length; ++i) {
+              for (let i = 0; i < children.length; ++i) {
                 if (children[i].getAttribute("selected") == "true")
-                  this.selectedItems.push(children[i]);
+                  this.selectedItems.append(children[i]);
               }
             }
 
@@ -434,13 +438,11 @@
             if (!aItem)
               return false;
 
-            var y = {};
-            this.scrollBoxObject.getPosition({}, y);
-            y.value += this.scrollBoxObject.y;
+            var y = this.scrollBoxObject.positionY + this.scrollBoxObject.y;
 
             // Partially visible items are also considered visible
-            return (aItem.boxObject.y + aItem.boxObject.height > y.value) &&
-                   (aItem.boxObject.y < y.value + this.scrollBoxObject.height);
+            return (aItem.boxObject.y + aItem.boxObject.height > y) &&
+                   (aItem.boxObject.y < y + this.scrollBoxObject.height);
           ]]>
         </body>
       </method>
@@ -558,7 +560,7 @@
             const XULNS =
               "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
             return Array.map(this.getElementsByTagNameNS(XULNS, "label"),
-                             function (label) label.value)
+                             label => label.value)
                         .join(" ");
           ]]>
         </getter>
@@ -585,4 +587,3 @@
     </implementation>
   </binding>
 </bindings>
-

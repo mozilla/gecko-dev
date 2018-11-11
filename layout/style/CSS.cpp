@@ -8,11 +8,13 @@
 #include "CSS.h"
 
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/ServoBindings.h"
 #include "nsCSSParser.h"
 #include "nsGlobalWindow.h"
 #include "nsIDocument.h"
 #include "nsIURI.h"
 #include "nsStyleUtil.h"
+#include "xpcpublic.h"
 
 namespace mozilla {
 namespace dom {
@@ -22,25 +24,27 @@ struct SupportsParsingInfo
   nsIURI* mDocURI;
   nsIURI* mBaseURI;
   nsIPrincipal* mPrincipal;
+  StyleBackendType mStyleBackendType;
 };
 
 static nsresult
-GetParsingInfo(nsISupports* aGlobal,
+GetParsingInfo(const GlobalObject& aGlobal,
                SupportsParsingInfo& aInfo)
 {
-  if (!aGlobal) {
+  nsGlobalWindow* win = xpc::WindowOrNull(aGlobal.Get());
+  if (!win) {
     return NS_ERROR_FAILURE;
   }
 
-  nsGlobalWindow* win = nsGlobalWindow::FromSupports(aGlobal);
   nsCOMPtr<nsIDocument> doc = win->GetDoc();
   if (!doc) {
     return NS_ERROR_FAILURE;
   }
 
-  aInfo.mDocURI = nsCOMPtr<nsIURI>(doc->GetDocumentURI());
-  aInfo.mBaseURI = nsCOMPtr<nsIURI>(doc->GetBaseURI());
+  aInfo.mDocURI = nsCOMPtr<nsIURI>(doc->GetDocumentURI()).get();
+  aInfo.mBaseURI = nsCOMPtr<nsIURI>(doc->GetBaseURI()).get();
   aInfo.mPrincipal = win->GetPrincipal();
+  aInfo.mStyleBackendType = doc->GetStyleBackendType();
   return NS_OK;
 }
 
@@ -50,15 +54,21 @@ CSS::Supports(const GlobalObject& aGlobal,
               const nsAString& aValue,
               ErrorResult& aRv)
 {
-  nsCSSParser parser;
   SupportsParsingInfo info;
 
-  nsresult rv = GetParsingInfo(aGlobal.GetAsSupports(), info);
+  nsresult rv = GetParsingInfo(aGlobal, info);
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
     return false;
   }
 
+  if (info.mStyleBackendType == StyleBackendType::Servo) {
+    NS_ConvertUTF16toUTF8 property(aProperty);
+    NS_ConvertUTF16toUTF8 value(aValue);
+    return Servo_CSSSupports(&property, &value);
+  }
+
+  nsCSSParser parser;
   return parser.EvaluateSupportsDeclaration(aProperty, aValue, info.mDocURI,
                                             info.mBaseURI, info.mPrincipal);
 }
@@ -68,15 +78,19 @@ CSS::Supports(const GlobalObject& aGlobal,
               const nsAString& aCondition,
               ErrorResult& aRv)
 {
-  nsCSSParser parser;
   SupportsParsingInfo info;
 
-  nsresult rv = GetParsingInfo(aGlobal.GetAsSupports(), info);
+  nsresult rv = GetParsingInfo(aGlobal, info);
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
     return false;
   }
 
+  if (info.mStyleBackendType == StyleBackendType::Servo) {
+    MOZ_CRASH("stylo: CSS.supports() with arguments is not yet implemented");
+  }
+
+  nsCSSParser parser;
   return parser.EvaluateSupportsCondition(aCondition, info.mDocURI,
                                           info.mBaseURI, info.mPrincipal);
 }
@@ -84,15 +98,10 @@ CSS::Supports(const GlobalObject& aGlobal,
 /* static */ void
 CSS::Escape(const GlobalObject& aGlobal,
             const nsAString& aIdent,
-            nsAString& aReturn,
-            ErrorResult& aRv)
+            nsAString& aReturn)
 {
-  bool success = nsStyleUtil::AppendEscapedCSSIdent(aIdent, aReturn);
-
-  if (!success) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_CHARACTER_ERR);
-  }
+  nsStyleUtil::AppendEscapedCSSIdent(aIdent, aReturn);
 }
 
-} // dom
-} // mozilla
+} // namespace dom
+} // namespace mozilla

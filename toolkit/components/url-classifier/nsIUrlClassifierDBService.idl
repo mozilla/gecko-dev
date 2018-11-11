@@ -66,7 +66,7 @@ interface nsIUrlClassifierUpdateObserver : nsISupports {
  * It provides async methods for querying and updating the database.  As the
  * methods complete, they call the callback function.
  */
-[scriptable, uuid(3f9e61e5-01bd-45d0-8dd2-f1abcd20dbb7)]
+[scriptable, uuid(7a258022-6765-11e5-b379-b37b1f2354be)]
 interface nsIUrlClassifierDBService : nsISupports
 {
   /**
@@ -81,14 +81,24 @@ interface nsIUrlClassifierDBService : nsISupports
               in nsIUrlClassifierCallback c);
 
   /**
-   * Lists the tables along with which chunks are available in each table.
-   * This list is in the format of the request body:
-   *   tablename;chunkdata\n
-   *   tablename2;chunkdata2\n
+   * Lists the tables along with their meta info in the following format:
    *
-   * For example:
-   *   goog-phish-regexp;a:10,14,30-40s:56,67
-   *   goog-white-regexp;a:1-3,5
+   *   tablename;[metadata]\n
+   *   tablename2;[metadata]\n
+   *
+   * For v2 tables, the metadata is the chunks info such as
+   *
+   *   goog-phish-shavar;a:10,14,30-40s:56,67
+   *   goog-unwanted-shavar;a:1-3,5
+   *
+   * For v4 tables, base64 encoded state is currently the only info in the
+   * metadata (can be extended whenever necessary). For exmaple,
+   *
+   *   goog-phish-proto;Cg0IARAGGAEiAzAwMTABEKqTARoCGAjT1gDD:oCGAjT1gDD\n
+   *   goog-malware-proto;Cg0IAhAGGAEiAzAwMTABENCQARoCGAjx5Yty:BENCQARoCGAj\n
+   *
+   * Note that the metadata is colon-separated.
+   *
    */
   void getTables(in nsIUrlClassifierCallback c);
 
@@ -99,6 +109,18 @@ interface nsIUrlClassifierDBService : nsISupports
    */
   void setHashCompleter(in ACString tableName,
                         in nsIUrlClassifierHashCompleter completer);
+
+  /**
+   * Set the last update time for the given table. We use this to
+   * remember freshness past restarts. Time is in milliseconds since epoch.
+   */
+  void setLastUpdateTime(in ACString tableName,
+                         in unsigned long long lastUpdateTime);
+
+  /**
+   * Forget the results that were used in the last DB update.
+   */
+  void clearLastResults();
 
   ////////////////////////////////////////////////////////////////////////////
   // Incremental update methods.
@@ -179,20 +201,13 @@ interface nsIUrlClassifierDBService : nsISupports
    * database, emptying all tables.  Mostly intended for use in unit tests.
    */
   void resetDatabase();
-};
 
-/**
- * Interface for the actual worker thread.  Implementations of this need not
- * be thread aware and just work on the database.
- */
-[scriptable, uuid(abcd7978-c304-4a7d-a44c-33c2ed5441e7)]
-interface nsIUrlClassifierDBServiceWorker : nsIUrlClassifierDBService
-{
-  // Provide a way to forcibly close the db connection.
-  void closeDb();
-
-  [noscript]void cacheCompletions(in CacheCompletionArray completions);
-  [noscript]void cacheMisses(in PrefixArray misses);
+  /**
+   * Reload he url-classifier database. This will empty all cache for
+   * completions from gethash, and reload it from database. Mostly intended
+   * for use in tests.
+   */
+  void reloadDatabase();
 };
 
 /**

@@ -14,16 +14,15 @@
 #include "mozilla/Mutex.h"
 #include "AudioSegment.h"
 #include "MediaSegment.h"
-#include "StreamBuffer.h"
+#include "StreamTracks.h"
 #include "nsTArray.h"
 #include "nsIRunnable.h"
 #include "nsISupportsImpl.h"
-#include "nsIDOMMediaStream.h"
 #include "mozilla/dom/PeerConnectionObserverEnumsBinding.h"
 #include "PeerConnectionImpl.h"
 #include "nsWeakReference.h"
 
-namespace sipcc {
+namespace mozilla {
 class PeerConnectionImpl;
 }
 
@@ -48,7 +47,7 @@ public:
     stateError
   };
 
-  AFakePCObserver(sipcc::PeerConnectionImpl *peerConnection,
+  AFakePCObserver(mozilla::PeerConnectionImpl *peerConnection,
                   const std::string &aName) :
     state(stateNoResponse), addIceSuccessCount(0),
     onAddStreamCalled(false),
@@ -56,40 +55,50 @@ public:
     pc(peerConnection) {
   }
 
+  AFakePCObserver() :
+    state(stateNoResponse), addIceSuccessCount(0),
+    onAddStreamCalled(false),
+    name(""),
+    pc(nullptr) {
+  }
+
   virtual ~AFakePCObserver() {}
 
   std::vector<mozilla::DOMMediaStream *> GetStreams() { return streams; }
 
   ResponseState state;
-  char *lastString;
-  sipcc::PeerConnectionImpl::Error lastStatusCode;
+  std::string lastString;
+  mozilla::PeerConnectionImpl::Error lastStatusCode;
   mozilla::dom::PCObserverStateType lastStateType;
   int addIceSuccessCount;
   bool onAddStreamCalled;
   std::string name;
   std::vector<std::string> candidates;
 
-  virtual NS_IMETHODIMP OnCreateOfferSuccess(const char* offer, ER&) = 0;
-  virtual NS_IMETHODIMP OnCreateOfferError(uint32_t code, const char *msg, ER&) = 0;
-  virtual NS_IMETHODIMP OnCreateAnswerSuccess(const char* answer, ER&) = 0;
-  virtual NS_IMETHODIMP OnCreateAnswerError(uint32_t code, const char *msg, ER&) = 0;
-  virtual NS_IMETHODIMP OnSetLocalDescriptionSuccess(ER&) = 0;
-  virtual NS_IMETHODIMP OnSetRemoteDescriptionSuccess(ER&) = 0;
-  virtual NS_IMETHODIMP OnSetLocalDescriptionError(uint32_t code, const char *msg, ER&) = 0;
-  virtual NS_IMETHODIMP OnSetRemoteDescriptionError(uint32_t code, const char *msg, ER&) = 0;
-  virtual NS_IMETHODIMP NotifyDataChannel(nsIDOMDataChannel *channel, ER&) = 0;
-  virtual NS_IMETHODIMP OnStateChange(mozilla::dom::PCObserverStateType state_type, ER&,
+  NS_IMETHOD OnCreateOfferSuccess(const char* offer, ER&) = 0;
+  NS_IMETHOD OnCreateOfferError(uint32_t code, const char *msg, ER&) = 0;
+  NS_IMETHOD OnCreateAnswerSuccess(const char* answer, ER&) = 0;
+  NS_IMETHOD OnCreateAnswerError(uint32_t code, const char *msg, ER&) = 0;
+  NS_IMETHOD OnSetLocalDescriptionSuccess(ER&) = 0;
+  NS_IMETHOD OnSetRemoteDescriptionSuccess(ER&) = 0;
+  NS_IMETHOD OnSetLocalDescriptionError(uint32_t code, const char *msg, ER&) = 0;
+  NS_IMETHOD OnSetRemoteDescriptionError(uint32_t code, const char *msg, ER&) = 0;
+  NS_IMETHOD NotifyDataChannel(nsIDOMDataChannel *channel, ER&) = 0;
+  NS_IMETHOD OnStateChange(mozilla::dom::PCObserverStateType state_type, ER&,
                                       void* = nullptr) = 0;
-  virtual NS_IMETHODIMP OnAddStream(nsIDOMMediaStream *stream, ER&) = 0;
-  virtual NS_IMETHODIMP OnRemoveStream(ER&) = 0;
-  virtual NS_IMETHODIMP OnAddTrack(ER&) = 0;
-  virtual NS_IMETHODIMP OnRemoveTrack(ER&) = 0;
-  virtual NS_IMETHODIMP OnAddIceCandidateSuccess(ER&) = 0;
-  virtual NS_IMETHODIMP OnAddIceCandidateError(uint32_t code, const char *msg, ER&) = 0;
-  virtual NS_IMETHODIMP OnIceCandidate(uint16_t level, const char *mid,
+  NS_IMETHOD OnAddStream(mozilla::DOMMediaStream &stream, ER&) = 0;
+  NS_IMETHOD OnRemoveStream(mozilla::DOMMediaStream &stream, ER&) = 0;
+  NS_IMETHOD OnAddTrack(mozilla::dom::MediaStreamTrack &track, ER&) = 0;
+  NS_IMETHOD OnRemoveTrack(mozilla::dom::MediaStreamTrack &track, ER&) = 0;
+  NS_IMETHOD OnReplaceTrackSuccess(ER&) = 0;
+  NS_IMETHOD OnReplaceTrackError(uint32_t code, const char *msg, ER&) = 0;
+  NS_IMETHOD OnAddIceCandidateSuccess(ER&) = 0;
+  NS_IMETHOD OnAddIceCandidateError(uint32_t code, const char *msg, ER&) = 0;
+  NS_IMETHOD OnIceCandidate(uint16_t level, const char *mid,
                                        const char *candidate, ER&) = 0;
+  NS_IMETHOD OnNegotiationNeeded(ER&) = 0;
 protected:
-  sipcc::PeerConnectionImpl *pc;
+  mozilla::PeerConnectionImpl *pc;
   std::vector<mozilla::DOMMediaStream *> streams;
 };
 }

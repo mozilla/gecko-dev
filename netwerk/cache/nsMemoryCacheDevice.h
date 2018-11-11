@@ -8,7 +8,7 @@
 #define _nsMemoryCacheDevice_h_
 
 #include "nsCacheDevice.h"
-#include "pldhash.h"
+#include "PLDHashTable.h"
 #include "nsCacheEntry.h"
 
 
@@ -110,14 +110,13 @@ public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSICACHEDEVICEINFO
 
-    nsMemoryCacheDeviceInfo(nsMemoryCacheDevice* device)
+    explicit nsMemoryCacheDeviceInfo(nsMemoryCacheDevice* device)
         :   mDevice(device)
     {
     }
 
-    virtual ~nsMemoryCacheDeviceInfo() {}
-    
 private:
+    virtual ~nsMemoryCacheDeviceInfo() {}
     nsMemoryCacheDevice* mDevice;
 };
 

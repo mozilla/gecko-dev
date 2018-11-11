@@ -36,7 +36,8 @@ class TransportLayerLoopback : public TransportLayer {
       timer_(nullptr),
       packets_(),
       packets_lock_(nullptr),
-      deliverer_(nullptr) {}
+      deliverer_(nullptr),
+      combinePackets_(false) {}
 
   ~TransportLayerLoopback() {
     while (!packets_.empty()) {
@@ -67,6 +68,8 @@ class TransportLayerLoopback : public TransportLayer {
     }
   }
 
+  void CombinePackets(bool combine) { combinePackets_ = combine; }
+
   // Overrides for TransportLayer
   virtual TransportResult SendPacket(const unsigned char *data, size_t len);
 
@@ -93,6 +96,16 @@ class TransportLayerLoopback : public TransportLayer {
       len_ = len;
     }
 
+    void Assign(const unsigned char *data1, size_t len1,
+                const unsigned char *data2, size_t len2) {
+      data_ = new unsigned char[len1 + len2];
+      memcpy(static_cast<void *>(data_),
+             static_cast<const void *>(data1), len1);
+      memcpy(static_cast<void *>(data_ + len1),
+             static_cast<const void *>(data2), len2);
+      len_ = len1 + len2;
+    }
+
     const unsigned char *data() const { return data_; }
     size_t len() const { return len_; }
 
@@ -107,10 +120,8 @@ class TransportLayerLoopback : public TransportLayer {
   // Fires every 100 ms
   class Deliverer : public nsITimerCallback {
    public:
-    Deliverer(TransportLayerLoopback *layer) :
+    explicit Deliverer(TransportLayerLoopback *layer) :
         layer_(layer) {}
-    virtual ~Deliverer() {
-    }
     void Detach() {
       layer_ = nullptr;
     }
@@ -119,6 +130,9 @@ class TransportLayerLoopback : public TransportLayer {
     NS_DECL_NSITIMERCALLBACK
 
  private:
+    virtual ~Deliverer() {
+    }
+
     DISALLOW_COPY_ASSIGN(Deliverer);
 
     TransportLayerLoopback *layer_;
@@ -131,7 +145,8 @@ class TransportLayerLoopback : public TransportLayer {
   nsCOMPtr<nsITimer> timer_;
   std::queue<QueuedPacket *> packets_;
   PRLock *packets_lock_;
-  nsRefPtr<Deliverer> deliverer_;
+  RefPtr<Deliverer> deliverer_;
+  bool combinePackets_;
 };
 
 }  // close namespace

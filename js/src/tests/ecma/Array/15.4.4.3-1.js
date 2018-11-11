@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- tab-width: 2; indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -30,8 +30,6 @@ writeHeaderToLog( SECTION + " Array.prototype.join()");
 var ARR_PROTOTYPE = Array.prototype;
 
 new TestCase( SECTION, "Array.prototype.join.length",           1,      Array.prototype.join.length );
-new TestCase( SECTION, "delete Array.prototype.join.length",    false,  delete Array.prototype.join.length );
-new TestCase( SECTION, "delete Array.prototype.join.length; Array.prototype.join.length",    1, eval("delete Array.prototype.join.length; Array.prototype.join.length") );
 
 // case where array length is 0
 

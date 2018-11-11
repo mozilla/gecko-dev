@@ -25,6 +25,39 @@ function* g() { yield 3; yield 4; }
 // Yield expressions.
 function* g() { (yield 3) + (yield 4); }
 
+// Yield without a RHS.
+function* g() { yield; }
+function* g() { yield }
+function* g() {
+    yield
+}
+function* g() { (yield) }
+function* g() { [yield] }
+function* g() { {yield} }
+function* g() { (yield), (yield) }
+function* g() { yield; yield }
+function* g() { (yield) ? yield : yield }
+function* g() {
+    (yield)
+    ? yield
+    : yield
+}
+
+// If yield has a RHS, it needs to start on the same line.  The * in a
+// yield* counts as starting the RHS.
+function* g() {
+    yield *
+    foo
+}
+assertThrows("function* g() { yield\n* foo }", SyntaxError);
+assertIteratorNext(function*(){
+                       yield
+                       3
+                   }(), undefined)
+
+// A YieldExpression is not a LogicalORExpression.
+assertThrows("function* g() { yield ? yield : yield }", SyntaxError);
+
 // You can have a generator in strict mode.
 function* g() { "use strict"; yield 3; yield 4; }
 
@@ -74,9 +107,6 @@ assertSyntaxError("function* g() { yield: 1 }")
 // functions.
 function* g() { function f(yield) { yield (yield + yield (0)); } }
 
-// Yield needs a RHS.
-assertSyntaxError("function* g() { yield; }");
-
 // Yield in a generator is not an identifier.
 assertSyntaxError("function* g() { yield = 10; }");
 
@@ -87,8 +117,21 @@ assertSyntaxError("function* g() { yield 3 + yield 4; }");
 // Yield is still a future-reserved-word in strict mode
 assertSyntaxError("function f() { 'use strict'; var yield = 13; }");
 
-// The name of the NFE is let-bound in G, so is invalid.
-assertSyntaxError("function* g() { yield (function yield() {}); }");
+// The name of the NFE isn't let-bound in F/G, so this is valid.
+function f() { (function yield() {}); }
+function* g() { (function yield() {}); }
+
+// The name of the NFE is let-bound in the function/generator expression, so this is invalid.
+assertSyntaxError("function f() { (function* yield() {}); }");
+assertSyntaxError("function* g() { (function* yield() {}); }");
+
+// The name of the declaration is let-bound in F, so this is valid.
+function f() { function yield() {} }
+function f() { function* yield() {} }
+
+// The name of the declaration is let-bound in G, so this is invalid.
+assertSyntaxError("function* g() { function yield() {} }");
+assertSyntaxError("function* g() { function* yield() {} }");
 
 // In generators, yield is invalid as a formal argument name.
 assertSyntaxError("function* g(yield) { yield (10); }");

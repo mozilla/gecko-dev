@@ -3,9 +3,21 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import os, tempfile, unittest, shutil, struct, platform, subprocess, multiprocessing.dummy
+import concurrent.futures
 import mock
+import mozunit
+import os
+import platform
+import shutil
+import struct
+import subprocess
+import sys
+import tempfile
+import unittest
+
 from mock import patch
+from mozpack.manifests import InstallManifest
+
 import symbolstore
 
 # Some simple functions to mock out files that the platform-specific dumpers will accept.
@@ -42,23 +54,58 @@ class HelperMixin(object):
     """
     def setUp(self):
         self.test_dir = tempfile.mkdtemp()
-        if not self.test_dir.endswith("/"):
-            self.test_dir += "/"
+        if not self.test_dir.endswith(os.sep):
+            self.test_dir += os.sep
         symbolstore.srcdirRepoInfo = {}
         symbolstore.vcsFileInfoCache = {}
+
+        # Remove environment variables that can influence tests.
+        for e in ('MOZ_SOURCE_CHANGESET', 'MOZ_SOURCE_REPO'):
+            try:
+                del os.environ[e]
+            except KeyError:
+                pass
 
     def tearDown(self):
         shutil.rmtree(self.test_dir)
         symbolstore.srcdirRepoInfo = {}
         symbolstore.vcsFileInfoCache = {}
 
+    def make_dirs(self, f):
+        d = os.path.dirname(f)
+        if d and not os.path.exists(d):
+            os.makedirs(d)
+
     def add_test_files(self, files):
         for f in files:
+            f = os.path.join(self.test_dir, f)
+            self.make_dirs(f)
+            writer(f)
+
+class TestSizeOrder(HelperMixin, unittest.TestCase):
+    def test_size_order(self):
+        """
+        Test that files are processed ordered by size on disk.
+        """
+        processed = []
+        def mock_process_file(filenames):
+            for filename in filenames:
+                processed.append((filename[len(self.test_dir):] if filename.startswith(self.test_dir) else filename).replace('\\', '/'))
+            return True
+        for f, size in (('a/one', 10), ('b/c/two', 30), ('c/three', 20)):
             f = os.path.join(self.test_dir, f)
             d = os.path.dirname(f)
             if d and not os.path.exists(d):
                 os.makedirs(d)
-            writer(f)
+            open(f, 'wb').write('x' * size)
+        d = symbolstore.GetPlatformSpecificDumper(dump_syms="dump_syms",
+                                                  symbol_path="symbol_path")
+        d.ShouldProcess = lambda f: True
+        d.ProcessFiles = mock_process_file
+        d.Process(self.test_dir)
+        d.Finish(stop_pool=False)
+        self.assertEqual(processed, ['b/c/two', 'c/three', 'a/one'])
+
 
 class TestExclude(HelperMixin, unittest.TestCase):
     def test_exclude_wildcard(self):
@@ -82,6 +129,7 @@ class TestExclude(HelperMixin, unittest.TestCase):
         expected.sort()
         self.assertEqual(processed, expected)
 
+
     def test_exclude_filenames(self):
         """
         Test that excluding a filename without a wildcard works.
@@ -103,54 +151,34 @@ class TestExclude(HelperMixin, unittest.TestCase):
         expected.sort()
         self.assertEqual(processed, expected)
 
-def popen_factory(stdouts):
-    """
-    Generate a class that can mock subprocess.Popen. |stdouts| is an iterable that
-    should return an iterable for the stdout of each process in turn.
-    """
-    class mock_popen(object):
-        def __init__(self, args, *args_rest, **kwargs):
-            self.stdout = stdouts.next()
 
-        def wait(self):
-            return 0
-    return mock_popen
-
-def mock_dump_syms(module_id, filename):
-    return ["MODULE os x86 %s %s" % (module_id, filename),
+def mock_dump_syms(module_id, filename, extra=[]):
+    return ["MODULE os x86 %s %s" % (module_id, filename)
+            ] + extra + [
             "FILE 0 foo.c",
             "PUBLIC xyz 123"]
 
-class TestCopyDebugUniversal(HelperMixin, unittest.TestCase):
-    """
-    Test that CopyDebug does the right thing when dumping multiple architectures.
-    """
+
+class TestCopyDebug(HelperMixin, unittest.TestCase):
     def setUp(self):
         HelperMixin.setUp(self)
         self.symbol_dir = tempfile.mkdtemp()
-        self._subprocess_call = subprocess.call
-        subprocess.call = self.mock_call
-        self._subprocess_popen = subprocess.Popen
-        subprocess.Popen = popen_factory(self.next_mock_stdout())
+        self.mock_call = patch("subprocess.call").start()
         self.stdouts = []
-        self._shutil_rmtree = shutil.rmtree
-        shutil.rmtree = self.mock_rmtree
+        self.mock_popen = patch("subprocess.Popen").start()
+        stdout_iter = self.next_mock_stdout()
+        def next_popen(*args, **kwargs):
+            m = mock.MagicMock()
+            m.stdout = stdout_iter.next()
+            m.wait.return_value = 0
+            return m
+        self.mock_popen.side_effect = next_popen
+        shutil.rmtree = patch("shutil.rmtree").start()
 
     def tearDown(self):
         HelperMixin.tearDown(self)
-        shutil.rmtree = self._shutil_rmtree
+        patch.stopall()
         shutil.rmtree(self.symbol_dir)
-        subprocess.call = self._subprocess_call
-        subprocess.Popen = self._subprocess_popen
-
-    def mock_rmtree(self, path):
-        pass
-
-    def mock_call(self, args, **kwargs):
-        if args[0].endswith("dsymutil"):
-            filename = args[-1]
-            os.makedirs(filename + ".dSYM")
-        return 0
 
     def next_mock_stdout(self):
         if not self.stdouts:
@@ -164,11 +192,16 @@ class TestCopyDebugUniversal(HelperMixin, unittest.TestCase):
         per file.
         """
         copied = []
-        def mock_copy_debug(filename, debug_file, guid):
+        def mock_copy_debug(filename, debug_file, guid, code_file, code_id):
             copied.append(filename[len(self.symbol_dir):] if filename.startswith(self.symbol_dir) else filename)
         self.add_test_files(add_extension(["foo"]))
         self.stdouts.append(mock_dump_syms("X" * 33, add_extension(["foo"])[0]))
         self.stdouts.append(mock_dump_syms("Y" * 33, add_extension(["foo"])[0]))
+        def mock_dsymutil(args, **kwargs):
+            filename = args[-1]
+            os.makedirs(filename + ".dSYM")
+            return 0
+        self.mock_call.side_effect = mock_dsymutil
         d = symbolstore.GetPlatformSpecificDumper(dump_syms="dump_syms",
                                                   symbol_path=self.symbol_dir,
                                                   copy_debug=True,
@@ -177,6 +210,29 @@ class TestCopyDebugUniversal(HelperMixin, unittest.TestCase):
         d.Process(self.test_dir)
         d.Finish(stop_pool=False)
         self.assertEqual(1, len(copied))
+
+    def test_copy_debug_copies_binaries(self):
+        """
+        Test that CopyDebug copies binaries as well on Windows.
+        """
+        test_file = os.path.join(self.test_dir, 'foo.pdb')
+        write_pdb(test_file)
+        code_file = 'foo.dll'
+        code_id = 'abc123'
+        self.stdouts.append(mock_dump_syms('X' * 33, 'foo.pdb',
+                                           ['INFO CODE_ID %s %s' % (code_id, code_file)]))
+        def mock_compress(args, **kwargs):
+            filename = args[-1]
+            open(filename, 'w').write('stuff')
+            return 0
+        self.mock_call.side_effect = mock_compress
+        d = symbolstore.Dumper_Win32(dump_syms='dump_syms',
+                                     symbol_path=self.symbol_dir,
+                                     copy_debug=True)
+        d.FixFilenameCase = lambda f: f
+        d.Process(self.test_dir)
+        d.Finish(stop_pool=False)
+        self.assertTrue(os.path.isfile(os.path.join(self.symbol_dir, code_file, code_id, code_file[:-1] + '_')))
 
 class TestGetVCSFilename(HelperMixin, unittest.TestCase):
     def setUp(self):
@@ -215,6 +271,16 @@ class TestGetVCSFilename(HelperMixin, unittest.TestCase):
         self.assertEqual("hg:example.com/other:bar.c:0987ffff",
                          symbolstore.GetVCSFilename(filename2, [srcdir1, srcdir2])[0])
 
+    def testVCSFilenameEnv(self):
+        # repo URL and changeset read from environment variables if defined.
+        os.environ['MOZ_SOURCE_REPO'] = 'https://somewhere.com/repo'
+        os.environ['MOZ_SOURCE_CHANGESET'] = 'abcdef0123456'
+        os.mkdir(os.path.join(self.test_dir, '.hg'))
+        filename = os.path.join(self.test_dir, 'foo.c')
+        self.assertEqual('hg:somewhere.com/repo:foo.c:abcdef0123456',
+                         symbolstore.GetVCSFilename(filename, [self.test_dir])[0])
+
+
 class TestRepoManifest(HelperMixin, unittest.TestCase):
     def testRepoManifest(self):
         manifest = os.path.join(self.test_dir, "sources.xml")
@@ -242,6 +308,31 @@ class TestRepoManifest(HelperMixin, unittest.TestCase):
                          symbolstore.GetVCSFilename(file3, d.srcdirs)[0])
 
 if platform.system() in ("Windows", "Microsoft"):
+    class TestFixFilenameCase(HelperMixin, unittest.TestCase):
+        def test_fix_filename_case(self):
+            # self.test_dir is going to be 8.3 paths...
+            junk = os.path.join(self.test_dir, 'x')
+            with open(junk, 'wb') as o:
+                o.write('x')
+            d = symbolstore.Dumper_Win32(dump_syms='dump_syms',
+                                         symbol_path=self.test_dir)
+            fixed_dir = os.path.dirname(d.FixFilenameCase(junk))
+            files = [
+                'one\\two.c',
+                'three\\Four.d',
+                'Five\\Six.e',
+                'seven\\Eight\\nine.F',
+            ]
+            for rel_path in files:
+                full_path = os.path.normpath(os.path.join(self.test_dir,
+                                                          rel_path))
+                self.make_dirs(full_path)
+                with open(full_path, 'wb') as o:
+                    o.write('x')
+                fixed_path = d.FixFilenameCase(full_path.lower())
+                fixed_path = os.path.relpath(fixed_path, fixed_dir)
+                self.assertEqual(rel_path, fixed_path)
+
     class TestSourceServer(HelperMixin, unittest.TestCase):
         @patch("subprocess.call")
         @patch("subprocess.Popen")
@@ -294,12 +385,199 @@ if platform.system() in ("Windows", "Microsoft"):
             self.assertEqual(len(hgserver), 1)
             self.assertEqual(hgserver[0].split("=")[1], "http://example.com/repo")
 
+class TestInstallManifest(HelperMixin, unittest.TestCase):
+    def setUp(self):
+        HelperMixin.setUp(self)
+        self.srcdir = os.path.join(self.test_dir, 'src')
+        os.mkdir(self.srcdir)
+        self.objdir = os.path.join(self.test_dir, 'obj')
+        os.mkdir(self.objdir)
+        self.manifest = InstallManifest()
+        self.canonical_mapping = {}
+        for s in ['src1', 'src2']:
+            srcfile = os.path.join(self.srcdir, s)
+            objfile = os.path.join(self.objdir, s)
+            self.canonical_mapping[objfile] = srcfile
+            self.manifest.add_copy(srcfile, s)
+        self.manifest_file = os.path.join(self.test_dir, 'install-manifest')
+        self.manifest.write(self.manifest_file)
+
+    def testMakeFileMapping(self):
+        '''
+        Test that valid arguments are validated.
+        '''
+        arg = '%s,%s' % (self.manifest_file, self.objdir)
+        ret = symbolstore.validate_install_manifests([arg])
+        self.assertEqual(len(ret), 1)
+        manifest, dest = ret[0]
+        self.assertTrue(isinstance(manifest, InstallManifest))
+        self.assertEqual(dest, self.objdir)
+
+        file_mapping = symbolstore.make_file_mapping(ret)
+        for obj, src in self.canonical_mapping.iteritems():
+            self.assertTrue(obj in file_mapping)
+            self.assertEqual(file_mapping[obj], src)
+
+    def testMissingFiles(self):
+        '''
+        Test that missing manifest files or install directories give errors.
+        '''
+        missing_manifest = os.path.join(self.test_dir, 'missing-manifest')
+        arg = '%s,%s' % (missing_manifest, self.objdir)
+        with self.assertRaises(IOError) as e:
+            symbolstore.validate_install_manifests([arg])
+            self.assertEqual(e.filename, missing_manifest)
+
+        missing_install_dir = os.path.join(self.test_dir, 'missing-dir')
+        arg = '%s,%s' % (self.manifest_file, missing_install_dir)
+        with self.assertRaises(IOError) as e:
+            symbolstore.validate_install_manifests([arg])
+            self.assertEqual(e.filename, missing_install_dir)
+
+    def testBadManifest(self):
+        '''
+        Test that a bad manifest file give errors.
+        '''
+        bad_manifest = os.path.join(self.test_dir, 'bad-manifest')
+        with open(bad_manifest, 'wb') as f:
+            f.write('junk\n')
+        arg = '%s,%s' % (bad_manifest, self.objdir)
+        with self.assertRaises(IOError) as e:
+            symbolstore.validate_install_manifests([arg])
+            self.assertEqual(e.filename, bad_manifest)
+
+    def testBadArgument(self):
+        '''
+        Test that a bad manifest argument gives an error.
+        '''
+        with self.assertRaises(ValueError) as e:
+            symbolstore.validate_install_manifests(['foo'])
+
+class TestFileMapping(HelperMixin, unittest.TestCase):
+    def setUp(self):
+        HelperMixin.setUp(self)
+        self.srcdir = os.path.join(self.test_dir, 'src')
+        os.mkdir(self.srcdir)
+        self.objdir = os.path.join(self.test_dir, 'obj')
+        os.mkdir(self.objdir)
+        self.symboldir = os.path.join(self.test_dir, 'symbols')
+        os.mkdir(self.symboldir)
+
+    @patch("subprocess.Popen")
+    def testFileMapping(self, mock_Popen):
+        files = [('a/b', 'mozilla/b'),
+                 ('c/d', 'foo/d')]
+        if os.sep != '/':
+            files = [[f.replace('/', os.sep) for f in x] for x in files]
+        file_mapping = {}
+        dumped_files = []
+        expected_files = []
+        for s, o in files:
+            srcfile = os.path.join(self.srcdir, s)
+            expected_files.append(srcfile)
+            file_mapping[os.path.join(self.objdir, o)] = srcfile
+            dumped_files.append(os.path.join(self.objdir, 'x', 'y',
+                                             '..', '..', o))
+        # mock the dump_syms output
+        file_id = ("X" * 33, 'somefile')
+        def mk_output(files):
+            return iter(
+                [
+                    'MODULE os x86 %s %s\n' % file_id
+                ] +
+                [
+                    'FILE %d %s\n' % (i,s) for i, s in enumerate(files)
+                ] +
+                [
+                    'PUBLIC xyz 123\n'
+                ]
+            )
+        mock_Popen.return_value.stdout = mk_output(dumped_files)
+
+        d = symbolstore.Dumper('dump_syms', self.symboldir,
+                               file_mapping=file_mapping)
+        f = os.path.join(self.objdir, 'somefile')
+        open(f, 'wb').write('blah')
+        d.Process(f)
+        d.Finish(stop_pool=False)
+        expected_output = ''.join(mk_output(expected_files))
+        symbol_file = os.path.join(self.symboldir,
+                                   file_id[1], file_id[0], file_id[1] + '.sym')
+        self.assertEqual(open(symbol_file, 'r').read(), expected_output)
+
+class TestFunctional(HelperMixin, unittest.TestCase):
+    '''Functional tests of symbolstore.py, calling it with a real
+    dump_syms binary and passing in a real binary to dump symbols from.
+
+    Since the rest of the tests in this file mock almost everything and
+    don't use the actual process pool like buildsymbols does, this tests
+    that the way symbolstore.py gets called in buildsymbols works.
+    '''
+    def setUp(self):
+        HelperMixin.setUp(self)
+        import buildconfig
+        self.skip_test = False
+        if buildconfig.substs['MOZ_BUILD_APP'] != 'browser':
+            self.skip_test = True
+        self.topsrcdir = buildconfig.topsrcdir
+        self.script_path = os.path.join(self.topsrcdir, 'toolkit',
+                                        'crashreporter', 'tools',
+                                        'symbolstore.py')
+        if platform.system() in ("Windows", "Microsoft"):
+            if buildconfig.substs['MSVC_HAS_DIA_SDK']:
+                self.dump_syms = os.path.join(buildconfig.topobjdir,
+                                              'dist', 'host', 'bin',
+                                              'dump_syms.exe')
+            else:
+                self.dump_syms = os.path.join(self.topsrcdir,
+                                              'toolkit',
+                                              'crashreporter',
+                                              'tools',
+                                              'win32',
+                                              'dump_syms_vc{_MSC_VER}.exe'.format(**buildconfig.substs))
+            self.target_bin = os.path.join(buildconfig.topobjdir,
+                                           'browser',
+                                           'app',
+                                           'firefox.pdb')
+        else:
+            self.dump_syms = os.path.join(buildconfig.topobjdir,
+                                          'dist', 'host', 'bin',
+                                          'dump_syms')
+            self.target_bin = os.path.join(buildconfig.topobjdir,
+                                           'dist', 'bin', 'firefox')
+
+
+    def tearDown(self):
+        HelperMixin.tearDown(self)
+
+    def testSymbolstore(self):
+        if self.skip_test:
+            raise unittest.SkipTest('Skipping test in non-Firefox product')
+        output = subprocess.check_output([sys.executable,
+                                          self.script_path,
+                                          '--vcs-info',
+                                          '-s', self.topsrcdir,
+                                          self.dump_syms,
+                                          self.test_dir,
+                                          self.target_bin],
+                                         stderr=open(os.devnull, 'w'))
+        lines = filter(lambda x: x.strip(), output.splitlines())
+        self.assertEqual(1, len(lines),
+                         'should have one filename in the output')
+        symbol_file = os.path.join(self.test_dir, lines[0])
+        self.assertTrue(os.path.isfile(symbol_file))
+        symlines = open(symbol_file, 'r').readlines()
+        file_lines = filter(lambda x: x.startswith('FILE') and 'nsBrowserApp.cpp' in x, symlines)
+        self.assertEqual(len(file_lines), 1,
+                         'should have nsBrowserApp.cpp FILE line')
+        filename = file_lines[0].split(None, 2)[2]
+        self.assertEqual('hg:', filename[:3])
+
+
 if __name__ == '__main__':
-    # use the multiprocessing.dummy module to use threading wrappers so
-    # that our mocking/module-patching works
-    symbolstore.Dumper.GlobalInit(module=multiprocessing.dummy)
+    # use ThreadPoolExecutor to use threading instead of processes so
+    # that our mocking/module-patching works.
+    symbolstore.Dumper.GlobalInit(concurrent.futures.ThreadPoolExecutor)
 
-    unittest.main()
+    mozunit.main()
 
-    symbolstore.Dumper.pool.close()
-    symbolstore.Dumper.pool.join()

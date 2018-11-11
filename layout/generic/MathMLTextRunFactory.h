@@ -6,6 +6,7 @@
 #ifndef MATHMLTEXTRUNFACTORY_H_
 #define MATHMLTEXTRUNFACTORY_H_
 
+#include "mozilla/UniquePtr.h"
 #include "nsTextRunTransformations.h"
 
 /**
@@ -13,15 +14,28 @@
  */
 class MathMLTextRunFactory : public nsTransformingTextRunFactory {
 public:
-  MathMLTextRunFactory(nsTransformingTextRunFactory* aInnerTransformingTextRunFactory,
-                       uint8_t aSSTYScriptLevel)
-    : mInnerTransformingTextRunFactory(aInnerTransformingTextRunFactory),
+  MathMLTextRunFactory(UniquePtr<nsTransformingTextRunFactory> aInnerTransformingTextRunFactory,
+                       uint32_t aFlags, uint8_t aSSTYScriptLevel,
+                       float aFontInflation)
+    : mInnerTransformingTextRunFactory(Move(aInnerTransformingTextRunFactory)),
+      mFlags(aFlags),
+      mFontInflation(aFontInflation),
       mSSTYScriptLevel(aSSTYScriptLevel) {}
 
   virtual void RebuildTextRun(nsTransformedTextRun* aTextRun,
-                              gfxContext* aRefContext) MOZ_OVERRIDE;
+                              mozilla::gfx::DrawTarget* aRefDrawTarget,
+                              gfxMissingFontRecorder* aMFR) override;
+  enum {
+    // Style effects which may override single character <mi> behaviour
+    MATH_FONT_STYLING_NORMAL   = 0x1, // fontstyle="normal" has been set.
+    MATH_FONT_WEIGHT_BOLD      = 0x2, // fontweight="bold" has been set.
+    MATH_FONT_FEATURE_DTLS     = 0x4, // font feature dtls should be set
+  };
+
 protected:
-  nsAutoPtr<nsTransformingTextRunFactory> mInnerTransformingTextRunFactory;
+  UniquePtr<nsTransformingTextRunFactory> mInnerTransformingTextRunFactory;
+  uint32_t mFlags;
+  float mFontInflation;
   uint8_t mSSTYScriptLevel;
 };
 

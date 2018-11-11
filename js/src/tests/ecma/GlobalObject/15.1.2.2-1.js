@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- tab-width: 2; indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -98,21 +98,6 @@ new TestCase( SECTION,
 new TestCase( SECTION, 
 	      "var PROPS=''; for ( var p in parseInt ) { PROPS += p; }; PROPS",   "",
 	      eval("var PROPS=''; for ( var p in parseInt ) { PROPS += p; }; PROPS") );
-
-new TestCase( SECTION, 
-	      "delete parseInt.length",  
-	      false, 
-	      delete parseInt.length );
-
-new TestCase( SECTION, 
-	      "delete parseInt.length; parseInt.length", 
-	      2, 
-	      eval("delete parseInt.length; parseInt.length") );
-
-new TestCase( SECTION, 
-	      "parseInt.length = null; parseInt.length", 
-	      2, 
-	      eval("parseInt.length = null; parseInt.length") );
 
 new TestCase( SECTION, 
 	      "parseInt()",      

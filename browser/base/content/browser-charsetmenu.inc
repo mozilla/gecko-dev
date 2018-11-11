@@ -3,17 +3,10 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 <menu id="charsetMenu"
-    label="&charsetMenu.label;"
-#ifndef OMIT_ACCESSKEYS
-    accesskey="&charsetMenu.accesskey;"
-#endif
+    label="&charsetMenu2.label;"
+    accesskey="&charsetMenu2.accesskey;"
     oncommand="BrowserSetForcedCharacterSet(event.target.getAttribute('charset'));"
-#ifdef OMIT_ACCESSKEYS
-    onpopupshowing="CharsetMenu.build(event.target, false);"
-#else
-    onpopupshowing="CharsetMenu.build(event.target);"
-#endif
-    onpopupshown="UpdateCurrentCharset(this);">
+    onpopupshowing="CharsetMenu.build(event.target); UpdateCurrentCharset(this);">
   <menupopup>
   </menupopup>
 </menu>

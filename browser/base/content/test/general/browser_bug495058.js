@@ -1,43 +1,38 @@
-function test() {
-  waitForExplicitFinish();
-  next();
-}
+/**
+ * Tests that the right elements of a tab are focused when it is
+ * torn out into its own window.
+ */
 
-var uris = [
+const URIS = [
   "about:blank",
   "about:sessionrestore",
   "about:privatebrowsing",
 ];
 
-function next() {
-  var tab = gBrowser.addTab();
-  var uri = uris.shift();
+add_task(function*() {
+  for (let uri of URIS) {
+    let tab = gBrowser.addTab();
+    yield BrowserTestUtils.loadURI(tab.linkedBrowser, uri);
 
-  if (uri == "about:blank") {
-    detach();
-  } else {
-    let browser = tab.linkedBrowser;
-    browser.addEventListener("load", function () {
-      browser.removeEventListener("load", arguments.callee, true);
-      detach();
-    }, true);
-    browser.loadURI(uri);
+    let win = gBrowser.replaceTabWithWindow(tab);
+    yield TestUtils.topicObserved("browser-delayed-startup-finished",
+                                  subject => subject == win);
+    tab = win.gBrowser.selectedTab;
+
+    // BrowserTestUtils doesn't get the add-on shims, which means that
+    // MozAfterPaint won't get shimmed over if we add an event handler
+    // for it in the parent.
+    if (tab.linkedBrowser.isRemoteBrowser) {
+      yield BrowserTestUtils.waitForContentEvent(tab.linkedBrowser, "MozAfterPaint");
+    } else {
+      yield BrowserTestUtils.waitForEvent(tab.linkedBrowser, "MozAfterPaint");
+    }
+
+    Assert.equal(win.gBrowser.currentURI.spec, uri, uri + ": uri loaded in detached tab");
+    Assert.equal(win.document.activeElement, win.gBrowser.selectedBrowser, uri + ": browser is focused");
+    Assert.equal(win.gURLBar.value, "", uri + ": urlbar is empty");
+    Assert.ok(win.gURLBar.placeholder, uri + ": placeholder text is present");
+
+    yield BrowserTestUtils.closeWindow(win);
   }
-
-  function detach() {
-    var win = gBrowser.replaceTabWithWindow(tab);
-
-    whenDelayedStartupFinished(win, function () {
-      is(win.gBrowser.currentURI.spec, uri, uri + ": uri loaded in detached tab");
-      is(win.document.activeElement, win.gBrowser.selectedBrowser, uri + ": browser is focused");
-      is(win.gURLBar.value, "", uri + ": urlbar is empty");
-      ok(win.gURLBar.placeholder, uri + ": placeholder text is present");
-
-      win.close();
-      if (uris.length)
-        next();
-      else
-        executeSoon(finish);
-    });
-  }
-}
+});

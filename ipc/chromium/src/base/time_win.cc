@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 // Copyright (c) 2006-2008 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -45,7 +47,6 @@
 #include "base/logging.h"
 #include "base/cpu.h"
 #include "base/singleton.h"
-#include "base/system_monitor.h"
 #include "mozilla/Casting.h"
 
 using base::Time;
@@ -128,7 +129,7 @@ Time Time::Now() {
       continue;
     }
 
-    return Time(elapsed + initial_time);
+    return Time(elapsed + Time(initial_time));
   }
 }
 
@@ -325,7 +326,7 @@ class HighResNowSingleton {
  private:
   // Synchronize the QPC clock with GetSystemTimeAsFileTime.
   void InitializeClock() {
-    LARGE_INTEGER ticks_per_sec = {0};
+    LARGE_INTEGER ticks_per_sec = {{0}};
     if (!QueryPerformanceFrequency(&ticks_per_sec))
       return;  // Broken, we don't guarantee this function works.
     ticks_per_microsecond_ = static_cast<float>(ticks_per_sec.QuadPart) /

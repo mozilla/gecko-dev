@@ -1,0 +1,29 @@
+[package]
+name = "mp4parse"
+version = "0.6.0"
+authors = [
+  "Ralph Giles <giles@mozilla.com>",
+  "Matthew Gregan <kinetik@flim.org>",
+  "Alfredo Yang <ayang@mozilla.com>",
+]
+
+description = "Parser for ISO base media file format (mp4)"
+documentation = "https://mp4parse-docs.surge.sh/mp4parse/"
+license = "MPL-2.0"
+
+repository = "https://github.com/mozilla/mp4parse-rust"
+
+# Avoid complaints about trying to package test files.
+exclude = [
+  "*.mp4",
+]
+
+[dependencies]
+byteorder = "0.5.0"
+
+[dev-dependencies]
+test-assembler = "0.1.2"
+
+# Somewhat heavy-handed, but we want at least -Z force-overflow-checks=on.
+[profile.release]
+debug-assertions = true

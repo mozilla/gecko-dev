@@ -11,11 +11,43 @@
  * and create derivative works of this document.
  */
 
-// No support for [Unforgeable] on interfaces yet
-//[Unforgeable]
+[Unforgeable, NonOrdinaryGetPrototypeOf]
 interface Location {
-  void assign(DOMString url);
-  void replace(DOMString url);
-  void reload();
+  // Bug 824857: no support for stringifier attributes yet.
+  //  stringifier attribute USVString href;
+
+  // Bug 824857 should remove this.
+  [Throws, NeedsSubjectPrincipal]
+  stringifier;
+
+  [Throws, CrossOriginWritable, NeedsSubjectPrincipal]
+           attribute USVString href;
+  [Throws, NeedsSubjectPrincipal]
+  readonly attribute USVString origin;
+  [Throws, NeedsSubjectPrincipal]
+           attribute USVString protocol;
+  [Throws, NeedsSubjectPrincipal]
+           attribute USVString host;
+  [Throws, NeedsSubjectPrincipal]
+           attribute USVString hostname;
+  [Throws, NeedsSubjectPrincipal]
+           attribute USVString port;
+  [Throws, NeedsSubjectPrincipal]
+           attribute USVString pathname;
+  [Throws, NeedsSubjectPrincipal]
+           attribute USVString search;
+  [Throws, NeedsSubjectPrincipal]
+           attribute USVString hash;
+
+  [Throws, UnsafeInPrerendering, NeedsSubjectPrincipal]
+  void assign(USVString url);
+
+  [Throws, CrossOriginCallable, UnsafeInPrerendering, NeedsSubjectPrincipal]
+  void replace(USVString url);
+
+  // XXXbz there is no forceget argument in the spec!  See bug 1037721.
+  [Throws, UnsafeInPrerendering, NeedsSubjectPrincipal]
+  void reload(optional boolean forceget = false);
+
+  // Bug 1085214 [SameObject] readonly attribute USVString[] ancestorOrigins;
 };
-Location implements URLUtils;

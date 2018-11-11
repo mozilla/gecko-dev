@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,7 +10,6 @@
 #include "mozilla/dom/ScreenOrientation.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/ErrorResult.h"
-#include "mozilla/HalScreenConfiguration.h"
 #include "nsIDOMScreen.h"
 #include "nsCOMPtr.h"
 #include "nsRect.h"
@@ -19,20 +19,22 @@ class nsDeviceContext;
 // Script "screen" object
 class nsScreen : public mozilla::DOMEventTargetHelper
                , public nsIDOMScreen
-               , public mozilla::hal::ScreenConfigurationObserver
 {
   typedef mozilla::ErrorResult ErrorResult;
 public:
-  static already_AddRefed<nsScreen> Create(nsPIDOMWindow* aWindow);
+  static already_AddRefed<nsScreen> Create(nsPIDOMWindowInner* aWindow);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIDOMSCREEN
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsScreen, mozilla::DOMEventTargetHelper)
   NS_REALLY_FORWARD_NSIDOMEVENTTARGET(mozilla::DOMEventTargetHelper)
 
-  nsPIDOMWindow* GetParentObject() const
+  nsPIDOMWindowInner* GetParentObject() const
   {
     return GetOwner();
   }
+
+  nsPIDOMWindowOuter* GetOuter() const;
 
   int32_t GetTop(ErrorResult& aRv)
   {
@@ -52,8 +54,7 @@ public:
   {
     nsRect rect;
     if (IsDeviceSizePageSize()) {
-      nsCOMPtr<nsPIDOMWindow> owner = GetOwner();
-      if (owner) {
+      if (nsCOMPtr<nsPIDOMWindowInner> owner = GetOwner()) {
         int32_t innerWidth = 0;
         aRv = owner->GetInnerWidth(&innerWidth);
         return innerWidth;
@@ -68,8 +69,7 @@ public:
   {
     nsRect rect;
     if (IsDeviceSizePageSize()) {
-      nsCOMPtr<nsPIDOMWindow> owner = GetOwner();
-      if (owner) {
+      if (nsCOMPtr<nsPIDOMWindowInner> owner = GetOwner()) {
         int32_t innerHeight = 0;
         aRv = owner->GetInnerHeight(&innerHeight);
         return innerHeight;
@@ -114,7 +114,8 @@ public:
     return rect.height;
   }
 
-  void GetMozOrientation(nsString& aOrientation);
+  // Deprecated
+  void GetMozOrientation(nsString& aOrientation) const;
 
   IMPL_EVENT_HANDLER(mozorientationchange)
 
@@ -122,41 +123,25 @@ public:
   bool MozLockOrientation(const mozilla::dom::Sequence<nsString>& aOrientations, ErrorResult& aRv);
   void MozUnlockOrientation();
 
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
-  void Notify(const mozilla::hal::ScreenConfiguration& aConfiguration);
+  mozilla::dom::ScreenOrientation* Orientation() const;
 
 protected:
   nsDeviceContext* GetDeviceContext();
   nsresult GetRect(nsRect& aRect);
   nsresult GetAvailRect(nsRect& aRect);
-
-  mozilla::dom::ScreenOrientation mOrientation;
+  nsresult GetWindowInnerRect(nsRect& aRect);
 
 private:
-  class FullScreenEventListener MOZ_FINAL : public nsIDOMEventListener
-  {
-  public:
-    FullScreenEventListener() {};
-
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIDOMEVENTLISTENER
-  };
-
-  nsScreen(nsPIDOMWindow* aWindow);
+  explicit nsScreen(nsPIDOMWindowInner* aWindow);
   virtual ~nsScreen();
-
-  enum LockPermission {
-    LOCK_DENIED,
-    FULLSCREEN_LOCK_ALLOWED,
-    LOCK_ALLOWED
-  };
-
-  LockPermission GetLockOrientationPermission() const;
 
   bool IsDeviceSizePageSize();
 
-  nsRefPtr<FullScreenEventListener> mEventListener;
+  bool ShouldResistFingerprinting() const;
+
+  RefPtr<mozilla::dom::ScreenOrientation> mScreenOrientation;
 };
 
 #endif /* nsScreen_h___ */

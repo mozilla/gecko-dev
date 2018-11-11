@@ -6,7 +6,7 @@
 const kWidgetId = 'test-981418-widget-onbeforecreated';
 
 // Should be able to add broken view widget
-add_task(function testAddOnBeforeCreatedWidget() {
+add_task(function* testAddOnBeforeCreatedWidget() {
   let viewShownDeferred = Promise.defer();
   let onBeforeCreatedCalled = false;
   let widgetSpec = {
@@ -45,12 +45,15 @@ add_task(function testAddOnBeforeCreatedWidget() {
     try {
       widgetNode.click();
 
+      let tempPanel = document.getElementById("customizationui-widget-panel");
+      let panelShownPromise = promisePanelElementShown(window, tempPanel);
+
       let shownTimeout = setTimeout(() => viewShownDeferred.reject("Panel not shown within 20s"), 20000);
       yield viewShownDeferred.promise;
+      yield panelShownPromise;
       clearTimeout(shownTimeout);
       ok(true, "Found view shown");
 
-      let tempPanel = document.getElementById("customizationui-widget-panel");
       let panelHiddenPromise = promisePanelElementHidden(window, tempPanel);
       tempPanel.hidePopup();
       yield panelHiddenPromise;
@@ -85,6 +88,6 @@ add_task(function testAddOnBeforeCreatedWidget() {
   ok(noError, "Should not throw an exception trying to remove the broken view widget.");
 });
 
-add_task(function asyncCleanup() {
+add_task(function* asyncCleanup() {
   yield resetCustomization();
 });

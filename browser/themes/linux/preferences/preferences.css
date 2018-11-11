@@ -1,78 +1,29 @@
-%if 0
 /*
 # -*- Mode: Java; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-%endif
 
 /* Global Styles */
-#BrowserPreferences radio[pane] {
-  list-style-image: url("chrome://browser/skin/preferences/Options.png"); 
+.checkbox-check {
+  -moz-appearance: checkbox;
 }
 
-radio[pane=paneMain] {
-  -moz-image-region: rect(0px, 32px,  32px, 0px)
+/* General Pane */
+#useFirefoxSync,
+#getStarted {
+  font-size: 90%;
 }
 
-radio[pane=paneTabs] {
-  -moz-image-region: rect(0px, 64px, 32px, 32px)
+#isNotDefaultLabel {
+  font-weight: bold;
 }
 
-radio[pane=paneContent] {
-  -moz-image-region: rect(0px, 96px,  32px, 64px)
-}
-
-radio[pane=paneApplications] {
-  -moz-image-region: rect(0px, 128px,  32px, 96px)
-}
-
-radio[pane=panePrivacy] {
-  -moz-image-region: rect(0px, 160px,  32px, 128px)
-}
-
-radio[pane=paneSecurity] {
-  -moz-image-region: rect(0px, 192px,  32px, 160px)
-}
-
-radio[pane=paneAdvanced] {
-  -moz-image-region: rect(0px, 224px, 32px, 192px)
-}
-
-%ifdef MOZ_SERVICES_SYNC
-radio[pane=paneSync] {
-  list-style-image: url("chrome://browser/skin/preferences/Options-sync.png") !important;
-}
-%endif
-
-label.small {
-  font-size: smaller;
-}
-
-#tabPrefsBox {
-  margin: 5px;
-}
-
-/* Applications Pane */
-#BrowserPreferences[animated="true"] #handlersView {
-  height: 25em;
-}
-
-#BrowserPreferences[animated="false"] #handlersView {
-  -moz-box-flex: 1;
-}
-
-/* Privacy Pane */
-
-/* styles for the link elements copied from .text-link in global.css */
-.inline-link {
-  color: -moz-nativehyperlinktext;
-  text-decoration: none;
-}
-
-.inline-link:hover {
-  text-decoration: underline;
+/* Content Pane */
+#translationAttributionImage {
+  width: 70px;
+  cursor: pointer;
 }
 
 /* Modeless Window Dialogs */
@@ -97,20 +48,10 @@ label.small {
   list-style-image: url("chrome://mozapps/skin/places/defaultFavicon.png");
 }
 
-#paneApplications {
-  margin-left: 4px;
-  margin-right: 4px; 
-  padding-left: 0;
-  padding-right: 0; 
-}
-
 #linksOpenInBox {
   margin-top: 5px;
 }
 
-#paneAdvanced {
-  padding-bottom: 10px;
-}
 #advancedPrefs {
   margin-left: 0;
   margin-right: 0; 
@@ -140,7 +81,6 @@ label.small {
   margin-top: 0;
 }
 
-%ifdef MOZ_SERVICES_SYNC
 /* Sync Pane */
 
 #syncDesc {
@@ -164,13 +104,3 @@ label.small {
 #noFxaAccount > label:first-child {
   margin-bottom: 0.6em;
 }
-
-#fxa-pweng-help-link > label {
-  margin: 0;
-}
-
-#fxa-pweng-help-link > image {
-  list-style-image: url("chrome://global/skin/icons/question-16.png");
-}
-
-%endif

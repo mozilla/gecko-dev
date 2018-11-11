@@ -18,20 +18,21 @@ public:
 
   NS_DECL_ISUPPORTS
 
-  virtual ~nsFrameIterator() {}
+  virtual void First() override;
+  virtual void Next() override;
+  virtual nsIFrame* CurrentItem() override;
+  virtual bool IsDone() override;
 
-  virtual void First() MOZ_OVERRIDE;
-  virtual void Next() MOZ_OVERRIDE;
-  virtual nsIFrame* CurrentItem() MOZ_OVERRIDE;
-  virtual bool IsDone() MOZ_OVERRIDE;
-
-  virtual void Last() MOZ_OVERRIDE;
-  virtual void Prev() MOZ_OVERRIDE;
+  virtual void Last() override;
+  virtual void Prev() override;
 
   nsFrameIterator(nsPresContext* aPresContext, nsIFrame *aStart,
-                  nsIteratorType aType, bool aLockScroll, bool aFollowOOFs);
+                  nsIteratorType aType, bool aLockScroll, bool aFollowOOFs,
+                  bool aSkipPopupChecks);
 
 protected:
+  virtual ~nsFrameIterator() {}
+
   void      setCurrent(nsIFrame *aFrame){mCurrent = aFrame;}
   nsIFrame *getCurrent(){return mCurrent;}
   nsIFrame *getStart(){return mStart;}
@@ -87,6 +88,7 @@ protected:
   nsPresContext* const mPresContext;
   const bool mLockScroll;
   const bool mFollowOOFs;
+  const bool mSkipPopupChecks;
   const nsIteratorType mType;
 
 private:
@@ -103,28 +105,27 @@ class nsVisualIterator: public nsFrameIterator
 {
 public:
   nsVisualIterator(nsPresContext* aPresContext, nsIFrame *aStart,
-                   nsIteratorType aType, bool aLockScroll, bool aFollowOOFs) :
-  nsFrameIterator(aPresContext, aStart, aType, aLockScroll, aFollowOOFs) {}
+                   nsIteratorType aType, bool aLockScroll,
+                   bool aFollowOOFs, bool aSkipPopupChecks) :
+  nsFrameIterator(aPresContext, aStart, aType, aLockScroll, aFollowOOFs, aSkipPopupChecks) {}
 
 protected:
-  nsIFrame* GetFirstChildInner(nsIFrame* aFrame) MOZ_OVERRIDE;
-  nsIFrame* GetLastChildInner(nsIFrame* aFrame) MOZ_OVERRIDE;  
+  nsIFrame* GetFirstChildInner(nsIFrame* aFrame) override;
+  nsIFrame* GetLastChildInner(nsIFrame* aFrame) override;  
   
-  nsIFrame* GetNextSiblingInner(nsIFrame* aFrame) MOZ_OVERRIDE;
-  nsIFrame* GetPrevSiblingInner(nsIFrame* aFrame) MOZ_OVERRIDE;  
+  nsIFrame* GetNextSiblingInner(nsIFrame* aFrame) override;
+  nsIFrame* GetPrevSiblingInner(nsIFrame* aFrame) override;  
 };
 
 /************IMPLEMENTATIONS**************/
 
-nsresult NS_CreateFrameTraversal(nsIFrameTraversal** aResult)
+nsresult
+NS_CreateFrameTraversal(nsIFrameTraversal** aResult)
 {
   NS_ENSURE_ARG_POINTER(aResult);
-  *aResult = nullptr;
 
-  nsCOMPtr<nsIFrameTraversal> t(new nsFrameTraversal());
-
-  *aResult = t;
-  NS_ADDREF(*aResult);
+  nsCOMPtr<nsIFrameTraversal> t = new nsFrameTraversal();
+  t.forget(aResult);
 
   return NS_OK;
 }
@@ -136,7 +137,8 @@ NS_NewFrameTraversal(nsIFrameEnumerator **aEnumerator,
                      nsIteratorType aType,
                      bool aVisual,
                      bool aLockInScrollView,
-                     bool aFollowOOFs)
+                     bool aFollowOOFs,
+                     bool aSkipPopupChecks)
 {
   if (!aEnumerator || !aStart)
     return NS_ERROR_NULL_POINTER;
@@ -148,10 +150,10 @@ NS_NewFrameTraversal(nsIFrameEnumerator **aEnumerator,
   nsCOMPtr<nsIFrameEnumerator> trav;
   if (aVisual) {
     trav = new nsVisualIterator(aPresContext, aStart, aType,
-                                aLockInScrollView, aFollowOOFs);
+                                aLockInScrollView, aFollowOOFs, aSkipPopupChecks);
   } else {
     trav = new nsFrameIterator(aPresContext, aStart, aType,
-                               aLockInScrollView, aFollowOOFs);
+                               aLockInScrollView, aFollowOOFs, aSkipPopupChecks);
   }
   trav.forget(aEnumerator);
   return NS_OK;
@@ -175,11 +177,12 @@ NS_IMETHODIMP
                                      int32_t aType,
                                      bool aVisual,
                                      bool aLockInScrollView,
-                                     bool aFollowOOFs)
+                                     bool aFollowOOFs,
+                                     bool aSkipPopupChecks)
 {
   return NS_NewFrameTraversal(aEnumerator, aPresContext, aStart,
                               static_cast<nsIteratorType>(aType),
-                              aVisual, aLockInScrollView, aFollowOOFs);  
+                              aVisual, aLockInScrollView, aFollowOOFs, aSkipPopupChecks);  
 }
 
 // nsFrameIterator implementation
@@ -188,10 +191,11 @@ NS_IMPL_ISUPPORTS(nsFrameIterator, nsIFrameEnumerator)
 
 nsFrameIterator::nsFrameIterator(nsPresContext* aPresContext, nsIFrame *aStart,
                                  nsIteratorType aType, bool aLockInScrollView,
-                                 bool aFollowOOFs)
+                                 bool aFollowOOFs, bool aSkipPopupChecks)
 : mPresContext(aPresContext),
   mLockScroll(aLockInScrollView),
   mFollowOOFs(aFollowOOFs),
+  mSkipPopupChecks(aSkipPopupChecks),
   mType(aType),
   mStart(aStart),
   mCurrent(aStart),
@@ -242,7 +246,7 @@ nsFrameIterator::Last()
   nsIFrame* parent = getCurrent();
   // If the current frame is a popup, don't move farther up the tree.
   // Otherwise, get the nearest root frame or popup.
-  if (parent->GetType() != nsGkAtoms::menuPopupFrame) {
+  if (mSkipPopupChecks || parent->GetType() != nsGkAtoms::menuPopupFrame) {
     while (!IsRootFrame(parent) && (result = GetParentFrameNotPopup(parent)))
       parent = result;
   }
@@ -460,7 +464,7 @@ nsFrameIterator::GetPrevSibling(nsIFrame* aFrame)
 
 nsIFrame*
 nsFrameIterator::GetFirstChildInner(nsIFrame* aFrame) {
-  return aFrame->GetFirstPrincipalChild();
+  return aFrame->PrincipalChildList().FirstChild();
 }
 
 nsIFrame*
@@ -499,8 +503,13 @@ nsFrameIterator::GetPlaceholderFrame(nsIFrame* aFrame)
 bool
 nsFrameIterator::IsPopupFrame(nsIFrame* aFrame)
 {
+  // If skipping popup checks, pretend this isn't one.
+  if (mSkipPopupChecks) {
+    return false;
+  }
+
   return (aFrame &&
-          aFrame->StyleDisplay()->mDisplay == NS_STYLE_DISPLAY_POPUP);
+          aFrame->StyleDisplay()->mDisplay == StyleDisplay::Popup);
 }
 
 // nsVisualIterator implementation

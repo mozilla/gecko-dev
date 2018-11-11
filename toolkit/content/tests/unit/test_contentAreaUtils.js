@@ -1,11 +1,11 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const Ci = Components.interfaces;
-const Cc = Components.classes;
-const Cr = Components.results;
+var Ci = Components.interfaces;
+var Cc = Components.classes;
+var Cr = Components.results;
 
 function loadUtilsScript() {
   var loader = Cc["@mozilla.org/moz/jssubscript-loader;1"].
@@ -26,7 +26,7 @@ function test_urlSecurityCheck() {
     urlSecurityCheck(makeURI(HTTP_URI), nullPrincipal,
                      DISALLOW_INHERIT_PRINCIPAL);
   }
-  catch(ex) {
+  catch (ex) {
     do_throw("urlSecurityCheck should not throw when linking to a http uri with a null principal");
   }
 
@@ -35,7 +35,7 @@ function test_urlSecurityCheck() {
     urlSecurityCheck(HTTP_URI, nullPrincipal,
                      DISALLOW_INHERIT_PRINCIPAL);
   }
-  catch(ex) {
+  catch (ex) {
     do_throw("urlSecurityCheck failed to handle the http URI as a string (uri spec)");
   }
 
@@ -44,7 +44,7 @@ function test_urlSecurityCheck() {
     urlSecurityCheck(CHROME_URI, nullPrincipal,
                      DISALLOW_INHERIT_PRINCIPAL);
   }
-  catch(ex) { 
+  catch (ex) {
     shouldThrow = false;
   }
   if (shouldThrow)
@@ -62,7 +62,7 @@ function test_stringBundle() {
     "SaveLinkTitle",
   ];
 
-  for (let [, filePickerTitleKey] in Iterator(validFilePickerTitleKeys)) {
+  for (let filePickerTitleKey of validFilePickerTitleKeys) {
     // Just check that the string exists
     try {
       ContentAreaUtils.stringBundle.GetStringFromName(filePickerTitleKey);

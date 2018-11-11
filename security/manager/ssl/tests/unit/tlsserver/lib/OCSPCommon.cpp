@@ -6,21 +6,49 @@
 
 #include <stdio.h>
 
-#include "ScopedNSSTypes.h"
-#include "TLSServer.h"
 #include "pkixtestutil.h"
+#include "TLSServer.h"
 #include "secder.h"
 #include "secerr.h"
 
+namespace mozilla { namespace pkix { namespace test {
+
+// Ownership of privateKey is transfered.
+TestKeyPair* CreateTestKeyPair(const TestPublicKeyAlgorithm publicKeyAlg,
+                               const SECKEYPublicKey& publicKey,
+                               SECKEYPrivateKey* privateKey);
+
+} } } // namespace mozilla::pkix::test
+
 using namespace mozilla;
-using namespace mozilla::test;
+using namespace mozilla::pkix;
 using namespace mozilla::pkix::test;
+using namespace mozilla::test;
 
-
-SECItemArray *
-GetOCSPResponseForType(OCSPResponseType aORT, CERTCertificate *aCert,
-                       PLArenaPool *aArena, const char *aAdditionalCertName)
+static TestKeyPair*
+CreateTestKeyPairFromCert(const UniqueCERTCertificate& cert)
 {
+  UniqueSECKEYPrivateKey privateKey(PK11_FindKeyByAnyCert(cert.get(), nullptr));
+  if (!privateKey) {
+    return nullptr;
+  }
+  UniqueSECKEYPublicKey publicKey(CERT_ExtractPublicKey(cert.get()));
+  if (!publicKey) {
+    return nullptr;
+  }
+  return CreateTestKeyPair(RSA_PKCS1(), *publicKey.get(), privateKey.release());
+}
+
+SECItemArray*
+GetOCSPResponseForType(OCSPResponseType aORT, const UniqueCERTCertificate& aCert,
+                       const UniquePLArenaPool& aArena,
+                       const char* aAdditionalCertName)
+{
+  MOZ_ASSERT(aArena);
+  MOZ_ASSERT(aCert);
+  // Note: |aAdditionalCertName| may or may not need to be non-null depending
+  //       on the |aORT| value given.
+
   if (aORT == ORTNone) {
     if (gDebugLevel >= DEBUG_WARNINGS) {
       fprintf(stderr, "GetOCSPResponseForType called with type ORTNone, "
@@ -30,57 +58,71 @@ GetOCSPResponseForType(OCSPResponseType aORT, CERTCertificate *aCert,
   }
 
   if (aORT == ORTEmpty) {
-    SECItemArray* arr = SECITEM_AllocArray(aArena, nullptr, 1);
+    SECItemArray* arr = SECITEM_AllocArray(aArena.get(), nullptr, 1);
     arr->items[0].data = nullptr;
     arr->items[0].len = 0;
     return arr;
   }
 
-  PRTime now = PR_Now();
-  PRTime oneDay = 60*60*24 * (PRTime)PR_USEC_PER_SEC;
-  PRTime oldNow = now - (8 * oneDay);
+  time_t now = time(nullptr);
+  time_t oldNow = now - (8 * Time::ONE_DAY_IN_SECONDS);
 
-  OCSPResponseContext context(aArena, aCert, now);
+  mozilla::UniqueCERTCertificate cert(CERT_DupCertificate(aCert.get()));
 
   if (aORT == ORTGoodOtherCert) {
-    context.cert = PK11_FindCertFromNickname(aAdditionalCertName, nullptr);
-    if (!context.cert) {
+    cert.reset(PK11_FindCertFromNickname(aAdditionalCertName, nullptr));
+    if (!cert) {
       PrintPRError("PK11_FindCertFromNickname failed");
       return nullptr;
     }
   }
   // XXX CERT_FindCertIssuer uses the old, deprecated path-building logic
-  ScopedCERTCertificate issuerCert(CERT_FindCertIssuer(aCert, now,
-                                                       certUsageSSLCA));
+  mozilla::UniqueCERTCertificate
+    issuerCert(CERT_FindCertIssuer(aCert.get(), PR_Now(), certUsageSSLCA));
   if (!issuerCert) {
     PrintPRError("CERT_FindCertIssuer failed");
     return nullptr;
   }
-  context.issuerNameDER = &issuerCert->derSubject;
-  context.issuerSPKI = &issuerCert->subjectPublicKeyInfo;
-  ScopedCERTCertificate signerCert;
+  Input issuer;
+  if (issuer.Init(cert->derIssuer.data, cert->derIssuer.len) != Success) {
+    return nullptr;
+  }
+  Input issuerPublicKey;
+  if (issuerPublicKey.Init(issuerCert->derPublicKey.data,
+                           issuerCert->derPublicKey.len) != Success) {
+    return nullptr;
+  }
+  Input serialNumber;
+  if (serialNumber.Init(cert->serialNumber.data,
+                        cert->serialNumber.len) != Success) {
+    return nullptr;
+  }
+  CertID certID(issuer, issuerPublicKey, serialNumber);
+  OCSPResponseContext context(certID, now);
+
+  mozilla::UniqueCERTCertificate signerCert;
   if (aORT == ORTGoodOtherCA || aORT == ORTDelegatedIncluded ||
       aORT == ORTDelegatedIncludedLast || aORT == ORTDelegatedMissing ||
       aORT == ORTDelegatedMissingMultiple) {
-    signerCert = PK11_FindCertFromNickname(aAdditionalCertName, nullptr);
+    signerCert.reset(PK11_FindCertFromNickname(aAdditionalCertName, nullptr));
     if (!signerCert) {
       PrintPRError("PK11_FindCertFromNickname failed");
       return nullptr;
     }
   }
 
-  const SECItem* certs[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
+  ByteString certs[5];
 
   if (aORT == ORTDelegatedIncluded) {
-    certs[0] = &signerCert->derCert;
+    certs[0].assign(signerCert->derCert.data, signerCert->derCert.len);
     context.certs = certs;
   }
   if (aORT == ORTDelegatedIncludedLast || aORT == ORTDelegatedMissingMultiple) {
-    certs[0] = &issuerCert->derCert;
-    certs[1] = &context.cert->derCert;
-    certs[2] = &issuerCert->derCert;
+    certs[0].assign(issuerCert->derCert.data, issuerCert->derCert.len);
+    certs[1].assign(cert->derCert.data, cert->derCert.len);
+    certs[2].assign(issuerCert->derCert.data, issuerCert->derCert.len);
     if (aORT != ORTDelegatedMissingMultiple) {
-      certs[3] = &signerCert->derCert;
+      certs[3].assign(signerCert->derCert.data, signerCert->derCert.len);
     }
     context.certs = certs;
   }
@@ -109,20 +151,21 @@ GetOCSPResponseForType(OCSPResponseType aORT, CERTCertificate *aCert,
   if (aORT == ORTSkipResponseBytes) {
     context.skipResponseBytes = true;
   }
-  if (aORT == ORTExpired || aORT == ORTExpiredFreshCA) {
+  if (aORT == ORTExpired || aORT == ORTExpiredFreshCA ||
+      aORT == ORTRevokedOld || aORT == ORTUnknownOld) {
     context.thisUpdate = oldNow;
-    context.nextUpdate = oldNow + 10 * PR_USEC_PER_SEC;
+    context.nextUpdate = oldNow + Time::ONE_DAY_IN_SECONDS;
   }
   if (aORT == ORTLongValidityAlmostExpired) {
-    context.thisUpdate = now - (320 * oneDay);
+    context.thisUpdate = now - (320 * Time::ONE_DAY_IN_SECONDS);
   }
   if (aORT == ORTAncientAlmostExpired) {
-    context.thisUpdate = now - (640 * oneDay);
+    context.thisUpdate = now - (640 * Time::ONE_DAY_IN_SECONDS);
   }
-  if (aORT == ORTRevoked) {
+  if (aORT == ORTRevoked || aORT == ORTRevokedOld) {
     context.certStatus = 1;
   }
-  if (aORT == ORTUnknown) {
+  if (aORT == ORTUnknown || aORT == ORTUnknownOld) {
     context.certStatus = 2;
   }
   if (aORT == ORTBadSignature) {
@@ -130,57 +173,43 @@ GetOCSPResponseForType(OCSPResponseType aORT, CERTCertificate *aCert,
   }
   OCSPResponseExtension extension;
   if (aORT == ORTCriticalExtension || aORT == ORTNoncriticalExtension) {
-    SECItem oidItem = {
-      siBuffer,
-      nullptr,
-      0
+    // python DottedOIDToCode.py --tlv some-Mozilla-OID 1.3.6.1.4.1.13769.666.666.666.1.500.9.2
+    static const uint8_t tlv_some_Mozilla_OID[] = {
+      0x06, 0x12, 0x2b, 0x06, 0x01, 0x04, 0x01, 0xeb, 0x49, 0x85, 0x1a, 0x85,
+      0x1a, 0x85, 0x1a, 0x01, 0x83, 0x74, 0x09, 0x02
     };
-    // 1.3.6.1.4.1.13769.666.666.666 is the root of Mozilla's testing OID space
-    static const char* testExtensionOID = "1.3.6.1.4.1.13769.666.666.666.1.500.9.2";
-    if (SEC_StringToOID(aArena, &oidItem, testExtensionOID,
-                        PL_strlen(testExtensionOID)) != SECSuccess) {
-      return nullptr;
-    }
-    DERTemplate oidTemplate[2] = { { DER_OBJECT_ID, 0 }, { 0 } };
-    extension.id.data = nullptr;
-    extension.id.len = 0;
-    if (DER_Encode(aArena, &extension.id, oidTemplate, &oidItem)
-          != SECSuccess) {
-      return nullptr;
-    }
+
+    extension.id.assign(tlv_some_Mozilla_OID, sizeof(tlv_some_Mozilla_OID));
     extension.critical = (aORT == ORTCriticalExtension);
-    static const uint8_t value[2] = { 0x05, 0x00 };
-    extension.value.data = const_cast<uint8_t*>(value);
-    extension.value.len = PR_ARRAY_SIZE(value);
+    extension.value.push_back(0x05); // tag: NULL
+    extension.value.push_back(0x00); // length: 0
     extension.next = nullptr;
-    context.extensions = &extension;
+    context.responseExtensions = &extension;
   }
   if (aORT == ORTEmptyExtensions) {
     context.includeEmptyExtensions = true;
   }
 
   if (!signerCert) {
-    signerCert = CERT_DupCertificate(issuerCert.get());
+    signerCert.reset(CERT_DupCertificate(issuerCert.get()));
   }
-  context.signerPrivateKey = PK11_FindKeyByAnyCert(signerCert.get(), nullptr);
-  if (!context.signerPrivateKey) {
+  context.signerKeyPair.reset(CreateTestKeyPairFromCert(signerCert));
+  if (!context.signerKeyPair) {
     PrintPRError("PK11_FindKeyByAnyCert failed");
     return nullptr;
   }
 
-  SECItem* response = CreateEncodedOCSPResponse(context);
-  if (!response) {
+  ByteString response(CreateEncodedOCSPResponse(context));
+  if (ENCODING_FAILED(response)) {
     PrintPRError("CreateEncodedOCSPResponse failed");
     return nullptr;
   }
 
-  SECItemArray* arr = SECITEM_AllocArray(aArena, nullptr, 1);
-  if (!arr) {
-    PrintPRError("SECITEM_AllocArray failed");
-    return nullptr;
-  }
-  arr->items[0].data = response->data;
-  arr->items[0].len = response->len;
-
-  return arr;
+  SECItem item = {
+    siBuffer,
+    const_cast<uint8_t*>(response.data()),
+    static_cast<unsigned int>(response.length())
+  };
+  SECItemArray arr = { &item, 1 };
+  return SECITEM_DupArray(aArena.get(), &arr);
 }

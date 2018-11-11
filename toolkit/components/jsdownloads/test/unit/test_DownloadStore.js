@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
@@ -9,8 +9,7 @@
 
 "use strict";
 
-////////////////////////////////////////////////////////////////////////////////
-//// Globals
+// Globals
 
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadStore",
                                   "resource://gre/modules/DownloadStore.jsm");
@@ -38,13 +37,12 @@ function promiseNewListAndStore(aStorePath)
   });
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//// Tests
+// Tests
 
 /**
  * Saves downloads to a file, then reloads them.
  */
-add_task(function test_save_reload()
+add_task(function* test_save_reload()
 {
   let [listForSave, storeForSave] = yield promiseNewListAndStore();
   let [listForLoad, storeForLoad] = yield promiseNewListAndStore(
@@ -57,12 +55,34 @@ add_task(function test_save_reload()
     target: getTempFile(TEST_TARGET_FILE_NAME),
   }));
 
+  // This PDF download should not be serialized because it never succeeds.
+  let pdfDownload = yield Downloads.createDownload({
+    source: { url: httpUrl("empty.txt"),
+              referrer: TEST_REFERRER_URL },
+    target: getTempFile(TEST_TARGET_FILE_NAME),
+    saver: "pdf",
+  });
+  listForSave.add(pdfDownload);
+
+  // If we used a callback to adjust the channel, the download should
+  // not be serialized because we can't recreate it across sessions.
+  let adjustedDownload = yield Downloads.createDownload({
+    source: { url: httpUrl("empty.txt"),
+              adjustChannel: () => Promise.resolve() },
+    target: getTempFile(TEST_TARGET_FILE_NAME),
+  });
+  listForSave.add(adjustedDownload);
+
   let legacyDownload = yield promiseStartLegacyDownload();
   yield legacyDownload.cancel();
   listForSave.add(legacyDownload);
 
   yield storeForSave.save();
   yield storeForLoad.load();
+
+  // Remove the PDF and adjusted downloads because they should not appear here.
+  listForSave.remove(adjustedDownload);
+  listForSave.remove(pdfDownload);
 
   let itemsForSave = yield listForSave.getAll();
   let itemsForLoad = yield listForLoad.getAll();
@@ -89,9 +109,9 @@ add_task(function test_save_reload()
 /**
  * Checks that saving an empty list deletes any existing file.
  */
-add_task(function test_save_empty()
+add_task(function* test_save_empty()
 {
-  let [list, store] = yield promiseNewListAndStore();
+  let [, store] = yield promiseNewListAndStore();
 
   let createdFile = yield OS.File.open(store.path, { create: true });
   yield createdFile.close();
@@ -107,7 +127,7 @@ add_task(function test_save_empty()
 /**
  * Checks that loading from a missing file results in an empty list.
  */
-add_task(function test_load_empty()
+add_task(function* test_load_empty()
 {
   let [list, store] = yield promiseNewListAndStore();
 
@@ -124,7 +144,7 @@ add_task(function test_load_empty()
  * test is to verify that the JSON format used in previous versions can be
  * loaded, assuming the file is reloaded on the same platform.
  */
-add_task(function test_load_string_predefined()
+add_task(function* test_load_string_predefined()
 {
   let [list, store] = yield promiseNewListAndStore();
 
@@ -162,7 +182,7 @@ add_task(function test_load_string_predefined()
 /**
  * Loads downloads from a well-formed JSON string containing unrecognized data.
  */
-add_task(function test_load_string_unrecognized()
+add_task(function* test_load_string_unrecognized()
 {
   let [list, store] = yield promiseNewListAndStore();
 
@@ -194,7 +214,7 @@ add_task(function test_load_string_unrecognized()
 /**
  * Loads downloads from a malformed JSON string.
  */
-add_task(function test_load_string_malformed()
+add_task(function* test_load_string_malformed()
 {
   let [list, store] = yield promiseNewListAndStore();
 
@@ -207,7 +227,10 @@ add_task(function test_load_string_malformed()
   try {
     yield store.load();
     do_throw("Exception expected when JSON data is malformed.");
-  } catch (ex if ex.name == "SyntaxError") {
+  } catch (ex) {
+    if (ex.name != "SyntaxError") {
+      throw ex;
+    }
     do_print("The expected SyntaxError exception was thrown.");
   }
 
@@ -220,7 +243,7 @@ add_task(function test_load_string_malformed()
  * Saves downloads with unknown properties to a file and then reloads
  * them to ensure that these properties are preserved.
  */
-add_task(function test_save_reload_unknownProperties()
+add_task(function* test_save_reload_unknownProperties()
 {
   let [listForSave, storeForSave] = yield promiseNewListAndStore();
   let [listForLoad, storeForLoad] = yield promiseNewListAndStore(
@@ -290,9 +313,3 @@ add_task(function test_save_reload_unknownProperties()
   do_check_eq(itemsForLoad[2].saver._unknownProperties.saver2,
               "download3saver2");
 });
-
-////////////////////////////////////////////////////////////////////////////////
-//// Termination
-
-let tailFile = do_get_file("tail.js");
-Services.scriptloader.loadSubScript(NetUtil.newURI(tailFile).spec);

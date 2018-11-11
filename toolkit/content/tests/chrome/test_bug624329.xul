@@ -57,9 +57,10 @@ function childResized() {
     const isOSXLion = navigator.userAgent.indexOf("Mac OS X 10.7") != -1;
     const isOSXMtnLion = navigator.userAgent.indexOf("Mac OS X 10.8") != -1;
     const isOSXMavericks = navigator.userAgent.indexOf("Mac OS X 10.9") != -1;
-    if (isOSXLion || isOSXMtnLion || isOSXMavericks) {
+    const isOSXYosemite = navigator.userAgent.indexOf("Mac OS X 10.10") != -1;
+    if (isOSXLion || isOSXMtnLion || isOSXMavericks || isOSXYosemite) {
         todo_is(win.windowState, win.STATE_MAXIMIZED,
-                "A resize before being maximized breaks this test on 10.7 and 10.8 and 10.9");
+                "A resize before being maximized breaks this test on 10.7 and 10.8 and 10.9 and 10.10");
         finish();
         return;
     }
@@ -98,20 +99,45 @@ function openContextMenu() {
 
     function checkPosition() {
         var menubox = menu.boxObject;
-        var winbox = win.document.documentElement.boxObject
+        var winbox = win.document.documentElement.boxObject;
+        var platformIsMac = navigator.userAgent.indexOf("Mac") > -1;
 
         var x = menubox.screenX - winbox.screenX;
         var y = menubox.screenY - winbox.screenY;
-        ok(y >= mouseY,
-           "menu top " + y + " should be below click point " + mouseY);
+
+        if (platformIsMac)
+        {
+          // This check is alterered slightly for OSX which adds padding to the top
+          // and bottom of its context menus. The menu position calculation must
+          // be changed to allow for the pointer to be outside this padding
+          // when the menu opens.
+          // (Bug 1075089)
+          ok(y + 6 >= mouseY,
+             "menu top " + (y + 6) + " should be below click point " + mouseY);
+        }
+        else
+        {
+          ok(y >= mouseY,
+             "menu top " + y + " should be below click point " + mouseY);
+        }
+        
         ok(y <= mouseY + 20,
            "menu top " + y + " should not be too far below click point " + mouseY);
 
         ok(x < mouseX,
            "menu left " + x + " should be left of click point " + mouseX);
         var right = x + menubox.width;
-        ok(right > mouseX,
-           "menu right " + right + " should be right of click point " + mouseX);
+
+        if (platformIsMac) {
+          // Rather than be constrained by the right hand screen edge, OSX menus flip
+          // horizontally and appear to the left of the mouse pointer
+          ok(right < mouseX,
+             "menu right " + right + " should be left of click point " + mouseX);
+        }
+        else {
+          ok(right > mouseX,
+             "menu right " + right + " should be right of click point " + mouseX);
+        }
 
         clearTimeout(timeoutID);
         finish();

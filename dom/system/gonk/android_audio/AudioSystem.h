@@ -42,12 +42,9 @@ typedef enum {
     AUDIO_POLICY_FORCE_WIRED_ACCESSORY,
     AUDIO_POLICY_FORCE_BT_CAR_DOCK,
     AUDIO_POLICY_FORCE_BT_DESK_DOCK,
-
-#ifdef VANILLA_ANDROID
     AUDIO_POLICY_FORCE_ANALOG_DOCK,
     AUDIO_POLICY_FORCE_DIGITAL_DOCK,
-#endif
-
+    AUDIO_POLICY_FORCE_NO_BT_A2DP,
     AUDIO_POLICY_FORCE_CFG_CNT,
     AUDIO_POLICY_FORCE_CFG_MAX = AUDIO_POLICY_FORCE_CFG_CNT - 1,
 
@@ -77,7 +74,9 @@ typedef enum {
     AUDIO_STREAM_ENFORCED_AUDIBLE = 7, /* Sounds that cannot be muted by user and must be routed to speaker */
     AUDIO_STREAM_DTMF             = 8,
     AUDIO_STREAM_TTS              = 9,
+#if ANDROID_VERSION < 19
     AUDIO_STREAM_FM               = 10,
+#endif
 
     AUDIO_STREAM_CNT,
     AUDIO_STREAM_MAX              = AUDIO_STREAM_CNT - 1,
@@ -242,7 +241,8 @@ typedef enum {
 
 #if ANDROID_VERSION < 17
 typedef enum {
-    /* output devices */      
+    AUDIO_DEVICE_NONE                          = 0x0,
+    /* output devices */
     AUDIO_DEVICE_OUT_EARPIECE                  = 0x1,
     AUDIO_DEVICE_OUT_SPEAKER                   = 0x2,
     AUDIO_DEVICE_OUT_WIRED_HEADSET             = 0x4,
@@ -302,7 +302,7 @@ typedef enum {
     AUDIO_DEVICE_IN_FM_RX                 = 0x20000000,
     AUDIO_DEVICE_IN_FM_RX_A2DP            = 0x40000000,
     AUDIO_DEVICE_IN_DEFAULT               = 0x80000000,
-    
+
     AUDIO_DEVICE_IN_ALL     = (AUDIO_DEVICE_IN_COMMUNICATION |
                                AUDIO_DEVICE_IN_AMBIENT |
                                AUDIO_DEVICE_IN_BUILTIN_MIC |
@@ -317,7 +317,7 @@ typedef enum {
                                AUDIO_DEVICE_IN_DEFAULT),
     AUDIO_DEVICE_IN_ALL_SCO = AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET,
 } audio_devices_t;
-#else
+#elif ANDROID_VERSION < 21
 enum {
     AUDIO_DEVICE_NONE                          = 0x0,
     /* reserved bits */
@@ -419,14 +419,157 @@ enum {
 };
 
 typedef uint32_t audio_devices_t;
+#else
+enum {
+    AUDIO_DEVICE_NONE                          = 0x0,
+    /* reserved bits */
+    AUDIO_DEVICE_BIT_IN                        = 0x80000000,
+    AUDIO_DEVICE_BIT_DEFAULT                   = 0x40000000,
+    /* output devices */
+    AUDIO_DEVICE_OUT_EARPIECE                  = 0x1,
+    AUDIO_DEVICE_OUT_SPEAKER                   = 0x2,
+    AUDIO_DEVICE_OUT_WIRED_HEADSET             = 0x4,
+    AUDIO_DEVICE_OUT_WIRED_HEADPHONE           = 0x8,
+    AUDIO_DEVICE_OUT_BLUETOOTH_SCO             = 0x10,
+    AUDIO_DEVICE_OUT_BLUETOOTH_SCO_HEADSET     = 0x20,
+    AUDIO_DEVICE_OUT_BLUETOOTH_SCO_CARKIT      = 0x40,
+    AUDIO_DEVICE_OUT_BLUETOOTH_A2DP            = 0x80,
+    AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES = 0x100,
+    AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER    = 0x200,
+    AUDIO_DEVICE_OUT_AUX_DIGITAL               = 0x400,
+    AUDIO_DEVICE_OUT_HDMI                      = AUDIO_DEVICE_OUT_AUX_DIGITAL,
+    /* uses an analog connection (multiplexed over the USB connector pins for instance) */
+    AUDIO_DEVICE_OUT_ANLG_DOCK_HEADSET         = 0x800,
+    AUDIO_DEVICE_OUT_DGTL_DOCK_HEADSET         = 0x1000,
+    /* USB accessory mode: your Android device is a USB device and the dock is a USB host */
+    AUDIO_DEVICE_OUT_USB_ACCESSORY             = 0x2000,
+    /* USB host mode: your Android device is a USB host and the dock is a USB device */
+    AUDIO_DEVICE_OUT_USB_DEVICE                = 0x4000,
+    AUDIO_DEVICE_OUT_REMOTE_SUBMIX             = 0x8000,
+    /* Telephony voice TX path */
+    AUDIO_DEVICE_OUT_TELEPHONY_TX              = 0x10000,
+    /* Analog jack with line impedance detected */
+    AUDIO_DEVICE_OUT_LINE                      = 0x20000,
+    /* HDMI Audio Return Channel */
+    AUDIO_DEVICE_OUT_HDMI_ARC                  = 0x40000,
+    /* S/PDIF out */
+    AUDIO_DEVICE_OUT_SPDIF                     = 0x80000,
+    /* FM transmitter out */
+    AUDIO_DEVICE_OUT_FM                        = 0x100000,
+    /* Line out for av devices */
+    AUDIO_DEVICE_OUT_AUX_LINE                  = 0x200000,
+    /* limited-output speaker device for acoustic safety */
+    AUDIO_DEVICE_OUT_SPEAKER_SAFE              = 0x400000,
+    AUDIO_DEVICE_OUT_DEFAULT                   = AUDIO_DEVICE_BIT_DEFAULT,
+    AUDIO_DEVICE_OUT_ALL      = (AUDIO_DEVICE_OUT_EARPIECE |
+                                 AUDIO_DEVICE_OUT_SPEAKER |
+                                 AUDIO_DEVICE_OUT_WIRED_HEADSET |
+                                 AUDIO_DEVICE_OUT_WIRED_HEADPHONE |
+                                 AUDIO_DEVICE_OUT_BLUETOOTH_SCO |
+                                 AUDIO_DEVICE_OUT_BLUETOOTH_SCO_HEADSET |
+                                 AUDIO_DEVICE_OUT_BLUETOOTH_SCO_CARKIT |
+                                 AUDIO_DEVICE_OUT_BLUETOOTH_A2DP |
+                                 AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES |
+                                 AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER |
+                                 AUDIO_DEVICE_OUT_AUX_DIGITAL |
+                                 AUDIO_DEVICE_OUT_ANLG_DOCK_HEADSET |
+                                 AUDIO_DEVICE_OUT_DGTL_DOCK_HEADSET |
+                                 AUDIO_DEVICE_OUT_USB_ACCESSORY |
+                                 AUDIO_DEVICE_OUT_USB_DEVICE |
+                                 AUDIO_DEVICE_OUT_REMOTE_SUBMIX |
+                                 AUDIO_DEVICE_OUT_TELEPHONY_TX |
+                                 AUDIO_DEVICE_OUT_LINE |
+                                 AUDIO_DEVICE_OUT_HDMI_ARC |
+                                 AUDIO_DEVICE_OUT_SPDIF |
+                                 AUDIO_DEVICE_OUT_FM |
+                                 AUDIO_DEVICE_OUT_AUX_LINE |
+                                 AUDIO_DEVICE_OUT_SPEAKER_SAFE |
+                                 AUDIO_DEVICE_OUT_DEFAULT),
+    AUDIO_DEVICE_OUT_ALL_A2DP = (AUDIO_DEVICE_OUT_BLUETOOTH_A2DP |
+                                 AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES |
+                                 AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER),
+    AUDIO_DEVICE_OUT_ALL_SCO  = (AUDIO_DEVICE_OUT_BLUETOOTH_SCO |
+                                 AUDIO_DEVICE_OUT_BLUETOOTH_SCO_HEADSET |
+                                 AUDIO_DEVICE_OUT_BLUETOOTH_SCO_CARKIT),
+    AUDIO_DEVICE_OUT_ALL_USB  = (AUDIO_DEVICE_OUT_USB_ACCESSORY |
+                                 AUDIO_DEVICE_OUT_USB_DEVICE),
+    /* input devices */
+    AUDIO_DEVICE_IN_COMMUNICATION         = AUDIO_DEVICE_BIT_IN | 0x1,
+    AUDIO_DEVICE_IN_AMBIENT               = AUDIO_DEVICE_BIT_IN | 0x2,
+    AUDIO_DEVICE_IN_BUILTIN_MIC           = AUDIO_DEVICE_BIT_IN | 0x4,
+    AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET = AUDIO_DEVICE_BIT_IN | 0x8,
+    AUDIO_DEVICE_IN_WIRED_HEADSET         = AUDIO_DEVICE_BIT_IN | 0x10,
+    AUDIO_DEVICE_IN_AUX_DIGITAL           = AUDIO_DEVICE_BIT_IN | 0x20,
+    AUDIO_DEVICE_IN_HDMI                  = AUDIO_DEVICE_IN_AUX_DIGITAL,
+    /* Telephony voice RX path */
+    AUDIO_DEVICE_IN_VOICE_CALL            = AUDIO_DEVICE_BIT_IN | 0x40,
+    AUDIO_DEVICE_IN_BACK_MIC              = AUDIO_DEVICE_BIT_IN | 0x80,
+    AUDIO_DEVICE_IN_REMOTE_SUBMIX         = AUDIO_DEVICE_BIT_IN | 0x100,
+    AUDIO_DEVICE_IN_ANLG_DOCK_HEADSET     = AUDIO_DEVICE_BIT_IN | 0x200,
+    AUDIO_DEVICE_IN_DGTL_DOCK_HEADSET     = AUDIO_DEVICE_BIT_IN | 0x400,
+    AUDIO_DEVICE_IN_USB_ACCESSORY         = AUDIO_DEVICE_BIT_IN | 0x800,
+    AUDIO_DEVICE_IN_USB_DEVICE            = AUDIO_DEVICE_BIT_IN | 0x1000,
+    /* FM tuner input */
+    AUDIO_DEVICE_IN_FM_TUNER              = AUDIO_DEVICE_BIT_IN | 0x2000,
+    /* TV tuner input */
+    AUDIO_DEVICE_IN_TV_TUNER              = AUDIO_DEVICE_BIT_IN | 0x4000,
+    /* Analog jack with line impedance detected */
+    AUDIO_DEVICE_IN_LINE                  = AUDIO_DEVICE_BIT_IN | 0x8000,
+    /* S/PDIF in */
+    AUDIO_DEVICE_IN_SPDIF                 = AUDIO_DEVICE_BIT_IN | 0x10000,
+    AUDIO_DEVICE_IN_BLUETOOTH_A2DP        = AUDIO_DEVICE_BIT_IN | 0x20000,
+    AUDIO_DEVICE_IN_LOOPBACK              = AUDIO_DEVICE_BIT_IN | 0x40000,
+    AUDIO_DEVICE_IN_DEFAULT               = AUDIO_DEVICE_BIT_IN | AUDIO_DEVICE_BIT_DEFAULT,
+    AUDIO_DEVICE_IN_ALL     = (AUDIO_DEVICE_IN_COMMUNICATION |
+                               AUDIO_DEVICE_IN_AMBIENT |
+                               AUDIO_DEVICE_IN_BUILTIN_MIC |
+                               AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET |
+                               AUDIO_DEVICE_IN_WIRED_HEADSET |
+                               AUDIO_DEVICE_IN_AUX_DIGITAL |
+                               AUDIO_DEVICE_IN_VOICE_CALL |
+                               AUDIO_DEVICE_IN_BACK_MIC |
+                               AUDIO_DEVICE_IN_REMOTE_SUBMIX |
+                               AUDIO_DEVICE_IN_ANLG_DOCK_HEADSET |
+                               AUDIO_DEVICE_IN_DGTL_DOCK_HEADSET |
+                               AUDIO_DEVICE_IN_USB_ACCESSORY |
+                               AUDIO_DEVICE_IN_USB_DEVICE |
+                               AUDIO_DEVICE_IN_FM_TUNER |
+                               AUDIO_DEVICE_IN_TV_TUNER |
+                               AUDIO_DEVICE_IN_LINE |
+                               AUDIO_DEVICE_IN_SPDIF |
+                               AUDIO_DEVICE_IN_BLUETOOTH_A2DP |
+                               AUDIO_DEVICE_IN_LOOPBACK |
+                               AUDIO_DEVICE_IN_DEFAULT),
+    AUDIO_DEVICE_IN_ALL_SCO = AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET,
+    AUDIO_DEVICE_IN_ALL_USB = (AUDIO_DEVICE_IN_USB_ACCESSORY |
+                               AUDIO_DEVICE_IN_USB_DEVICE),
+};
+
+typedef uint32_t audio_devices_t;
 #endif
+
+static inline bool audio_is_output_device(uint32_t device)
+{
+#if ANDROID_VERSION < 17
+    if ((__builtin_popcount(device) == 1) && ((device & ~AUDIO_DEVICE_OUT_ALL) == 0))
+        return true;
+    else
+        return false;
+#else
+    if (((device & AUDIO_DEVICE_BIT_IN) == 0) &&
+            (__builtin_popcount(device) == 1) && ((device & ~AUDIO_DEVICE_OUT_ALL) == 0))
+        return true;
+    else
+        return false;
+#endif
+}
 
 /* device connection states used for audio_policy->set_device_connection_state()
  *  */
 typedef enum {
     AUDIO_POLICY_DEVICE_STATE_UNAVAILABLE,
     AUDIO_POLICY_DEVICE_STATE_AVAILABLE,
-    
+
     AUDIO_POLICY_DEVICE_STATE_CNT,
     AUDIO_POLICY_DEVICE_STATE_MAX = AUDIO_POLICY_DEVICE_STATE_CNT - 1,
 } audio_policy_dev_state_t;
@@ -724,6 +867,9 @@ public:
         FORCE_WIRED_ACCESSORY,
         FORCE_BT_CAR_DOCK,
         FORCE_BT_DESK_DOCK,
+        FORCE_ANALOG_DOCK,
+        FORCE_DIGITAL_DOCK,
+        FORCE_NO_BT_A2DP,
         NUM_FORCE_CONFIG,
         FORCE_DEFAULT = FORCE_NONE
     };
@@ -840,6 +986,9 @@ public:
     static status_t getStreamVolumeIndex(audio_stream_type_t stream, int *index);
 
     static uint32_t getStrategyForStream(stream_type stream);
+#if ANDROID_VERSION >= 17
+    static audio_devices_t getDevicesForStream(audio_stream_type_t stream);
+#endif
 
     static audio_io_handle_t getOutputForEffect(effect_descriptor_t *desc);
     static status_t registerEffect(effect_descriptor_t *desc,
@@ -865,6 +1014,23 @@ public:
     static bool isValidFormat(uint32_t format);
     static bool isLinearPCM(uint32_t format);
     static bool isModeInCall();
+
+#if ANDROID_VERSION >= 21
+    class AudioPortCallback : public RefBase
+    {
+    public:
+
+                AudioPortCallback() {}
+        virtual ~AudioPortCallback() {}
+
+        virtual void onAudioPortListUpdate() = 0;
+        virtual void onAudioPatchListUpdate() = 0;
+        virtual void onServiceDied() = 0;
+
+    };
+
+    static void setAudioPortCallback(sp<AudioPortCallback> callBack);
+#endif
 
 private:
 

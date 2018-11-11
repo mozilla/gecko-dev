@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
@@ -9,8 +9,7 @@
 
 "use strict";
 
-////////////////////////////////////////////////////////////////////////////////
-//// Tests
+// Tests
 
 /**
  * Tests setLoginSavingEnabled and getAllDisabledHosts.
@@ -26,23 +25,24 @@ add_task(function test_setLoginSavingEnabled_getAllDisabledHosts()
   Services.logins.setLoginSavingEnabled(hostname2, false);
   Services.logins.setLoginSavingEnabled(hostname3, false);
 
-  LoginTest.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
-                                     [hostname1, hostname2, hostname3]);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
+                                          [hostname1, hostname2, hostname3]);
 
   // Adding the same host twice should not result in an error.
   Services.logins.setLoginSavingEnabled(hostname2, false);
-  LoginTest.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
-                                     [hostname1, hostname2, hostname3]);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
+                                          [hostname1, hostname2, hostname3]);
 
   // Removing a disabled host should work.
   Services.logins.setLoginSavingEnabled(hostname2, true);
-  LoginTest.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
-                                     [hostname1, hostname3]);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
+                                          [hostname1, hostname3]);
 
   // Removing the last disabled host should work.
   Services.logins.setLoginSavingEnabled(hostname1, true);
   Services.logins.setLoginSavingEnabled(hostname3, true);
-  LoginTest.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(), []);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
+                                          []);
 });
 
 /**
@@ -83,7 +83,8 @@ add_task(function test_setLoginSavingEnabled_invalid_characters()
                 /Invalid hostname/);
 
   // Verify that no data was stored by the previous call.
-  LoginTest.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(), []);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
+                                          []);
 });
 
 /**
@@ -112,8 +113,8 @@ add_task(function test_rememberSignons()
   do_check_false(Services.logins.getLoginSavingEnabled(hostname2));
 
   // The list of disabled hosts should be unaltered.
-  LoginTest.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
-                                     [hostname1]);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
+                                          [hostname1]);
 
   // Changing values with the preference set should work.
   Services.logins.setLoginSavingEnabled(hostname1, true);
@@ -124,8 +125,8 @@ add_task(function test_rememberSignons()
   do_check_false(Services.logins.getLoginSavingEnabled(hostname2));
 
   // The list of disabled hosts should have been changed.
-  LoginTest.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
-                                     [hostname2]);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
+                                          [hostname2]);
 
   // Enable storage of saved passwords again.
   Services.prefs.setBoolPref("signon.rememberSignons", true);
@@ -136,19 +137,60 @@ add_task(function test_rememberSignons()
 
   // Clean up.
   Services.logins.setLoginSavingEnabled(hostname2, true);
-  LoginTest.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(), []);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
+                                          []);
 });
 
 /**
- * Tests storing disabled hosts containing non-ASCII characters.
+ * Tests storing disabled hosts with non-ASCII characters where IDN is supported.
  */
-add_task(function test_storage_setLoginSavingEnabled_nonascii()
+add_task(function* test_storage_setLoginSavingEnabled_nonascii_IDN_is_supported()
 {
-  let hostname = "http://" + String.fromCharCode(355) + ".example.com";
-  Services.logins.setLoginSavingEnabled(hostname, false);
+  let hostname = "http://大.net";
+  let encoding = "http://xn--pss.net";
 
-  yield LoginTest.reloadData();
-  LoginTest.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
-                                     [hostname]);
-  LoginTest.clearData();
+  // Test adding disabled host with nonascii URL (http://大.net).
+  Services.logins.setLoginSavingEnabled(hostname, false);
+  yield* LoginTestUtils.reloadData();
+  Assert.equal(Services.logins.getLoginSavingEnabled(hostname), false);
+  Assert.equal(Services.logins.getLoginSavingEnabled(encoding), false);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(), [hostname]);
+
+  LoginTestUtils.clearData();
+
+  // Test adding disabled host with IDN ("http://xn--pss.net").
+  Services.logins.setLoginSavingEnabled(encoding, false);
+  yield* LoginTestUtils.reloadData();
+  Assert.equal(Services.logins.getLoginSavingEnabled(hostname), false);
+  Assert.equal(Services.logins.getLoginSavingEnabled(encoding), false);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(), [hostname]);
+
+  LoginTestUtils.clearData();
+});
+
+/**
+ * Tests storing disabled hosts with non-ASCII characters where IDN is not supported.
+ */
+add_task(function* test_storage_setLoginSavingEnabled_nonascii_IDN_not_supported()
+{
+  let hostname = "http://√.com";
+  let encoding = "http://xn--19g.com";
+
+  // Test adding disabled host with nonascii URL (http://√.com).
+  Services.logins.setLoginSavingEnabled(hostname, false);
+  yield* LoginTestUtils.reloadData();
+  Assert.equal(Services.logins.getLoginSavingEnabled(hostname), false);
+  Assert.equal(Services.logins.getLoginSavingEnabled(encoding), false);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(), [encoding]);
+
+  LoginTestUtils.clearData();
+
+  // Test adding disabled host with IDN ("http://xn--19g.com").
+  Services.logins.setLoginSavingEnabled(encoding, false);
+  yield* LoginTestUtils.reloadData();
+  Assert.equal(Services.logins.getLoginSavingEnabled(hostname), false);
+  Assert.equal(Services.logins.getLoginSavingEnabled(encoding), false);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(), [encoding]);
+
+  LoginTestUtils.clearData();
 });

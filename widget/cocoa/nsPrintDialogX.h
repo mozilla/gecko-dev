@@ -19,15 +19,17 @@ class nsPrintDialogServiceX : public nsIPrintDialogService
 {
 public:
   nsPrintDialogServiceX();
-  virtual ~nsPrintDialogServiceX();
 
   NS_DECL_ISUPPORTS
 
-  NS_IMETHODIMP Init();
-  NS_IMETHODIMP Show(nsIDOMWindow *aParent, nsIPrintSettings *aSettings,
-                     nsIWebBrowserPrint *aWebBrowserPrint);
-  NS_IMETHODIMP ShowPageSetup(nsIDOMWindow *aParent,
-                              nsIPrintSettings *aSettings);
+  NS_IMETHOD Init() override;
+  NS_IMETHOD Show(nsPIDOMWindowOuter *aParent, nsIPrintSettings *aSettings,
+                  nsIWebBrowserPrint *aWebBrowserPrint) override;
+  NS_IMETHOD ShowPageSetup(nsPIDOMWindowOuter *aParent,
+                           nsIPrintSettings *aSettings) override;
+
+protected:
+  virtual ~nsPrintDialogServiceX();
 };
 
 @interface PrintPanelAccessoryView : NSView

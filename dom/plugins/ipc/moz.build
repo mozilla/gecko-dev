@@ -1,4 +1,4 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,8 +21,9 @@ EXPORTS.mozilla.plugins += [
     'NPEventOSX.h',
     'NPEventUnix.h',
     'NPEventWindows.h',
-    'PluginIdentifierChild.h',
-    'PluginIdentifierParent.h',
+    'PluginAsyncSurrogate.h',
+    'PluginBridge.h',
+    'PluginDataResolver.h',
     'PluginInstanceChild.h',
     'PluginInstanceParent.h',
     'PluginMessageUtils.h',
@@ -30,6 +31,7 @@ EXPORTS.mozilla.plugins += [
     'PluginModuleParent.h',
     'PluginProcessChild.h',
     'PluginProcessParent.h',
+    'PluginQuirks.h',
     'PluginScriptableObjectChild.h',
     'PluginScriptableObjectParent.h',
     'PluginScriptableObjectUtils-inl.h',
@@ -37,7 +39,8 @@ EXPORTS.mozilla.plugins += [
     'PluginStreamChild.h',
     'PluginStreamParent.h',
     'PluginUtilsOSX.h',
-    'ScopedMethodFactory.h',
+    'PluginWidgetChild.h',
+    'PluginWidgetParent.h',
     'StreamNotifyChild.h',
     'StreamNotifyParent.h',
 ]
@@ -46,16 +49,16 @@ if CONFIG['OS_ARCH'] == 'WINNT':
     EXPORTS.mozilla.plugins += [
         'PluginSurfaceParent.h',
     ]
-    # These files cannot be built in unified mode because they force NSPR logging.
-    SOURCES += [
-        'COMMessageFilter.cpp',
-        'MiniShmParent.cpp',
+    UNIFIED_SOURCES += [
         'PluginHangUIParent.cpp',
         'PluginSurfaceParent.cpp',
     ]
+    SOURCES += [
+        'MiniShmParent.cpp', # Issues with CreateEvent
+    ]
     DEFINES['MOZ_HANGUI_PROCESS_NAME'] = '"plugin-hang-ui%s"' % CONFIG['BIN_SUFFIX']
     LOCAL_INCLUDES += [
-        '/widget/shared',
+        '/widget',
         'hangui',
     ]
 
@@ -64,48 +67,48 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
         'PluginInterposeOSX.h',
     ]
 
-if CONFIG['MOZ_ENABLE_QT']:
-    GENERATED_SOURCES += [
-        'moc_NestedLoopTimer.cpp',
-    ]
-    # These files cannot be built in unified mode because they force NSPR logging.
-    SOURCES += [
-        'NestedLoopTimer.cpp',
-    ]
-
-# These files cannot be built in unified mode because they force NSPR logging.
-SOURCES += [
+UNIFIED_SOURCES += [
     'BrowserStreamChild.cpp',
     'BrowserStreamParent.cpp',
     'ChildAsyncCall.cpp',
     'ChildTimer.cpp',
+    'PluginAsyncSurrogate.cpp',
     'PluginBackgroundDestroyer.cpp',
-    'PluginIdentifierChild.cpp',
-    'PluginIdentifierParent.cpp',
-    'PluginInstanceChild.cpp',
     'PluginInstanceParent.cpp',
     'PluginMessageUtils.cpp',
-    'PluginModuleChild.cpp',
     'PluginModuleParent.cpp',
     'PluginProcessChild.cpp',
     'PluginProcessParent.cpp',
+    'PluginQuirks.cpp',
     'PluginScriptableObjectChild.cpp',
     'PluginScriptableObjectParent.cpp',
     'PluginStreamChild.cpp',
     'PluginStreamParent.cpp',
 ]
 
+SOURCES += [
+    'PluginInstanceChild.cpp', # 'PluginThreadCallback' : ambiguous symbol
+    'PluginModuleChild.cpp',   # Redefinition of mozilla::WindowsDllInterceptor sUser32Intercept
+    'PluginWidgetChild.cpp',
+    'PluginWidgetParent.cpp',
+]
+
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
-    # These files cannot be built in unified mode because they force NSPR logging.
-    SOURCES += [
+    UNIFIED_SOURCES += [
         'PluginInterposeOSX.mm',
         'PluginUtilsOSX.mm',
     ]
 
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
+    UNIFIED_SOURCES += [
+        'D3D11SurfaceHolder.cpp',
+        'PluginUtilsWin.cpp'
+    ]
+
 IPDL_SOURCES += [
     'PBrowserStream.ipdl',
+    'PluginTypes.ipdlh',
     'PPluginBackgroundDestroyer.ipdl',
-    'PPluginIdentifier.ipdl',
     'PPluginInstance.ipdl',
     'PPluginModule.ipdl',
     'PPluginScriptableObject.ipdl',
@@ -113,8 +116,6 @@ IPDL_SOURCES += [
     'PPluginSurface.ipdl',
     'PStreamNotify.ipdl',
 ]
-
-FAIL_ON_WARNINGS = True
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
@@ -124,5 +125,29 @@ LOCAL_INCLUDES += [
     '/xpcom/base/',
 ]
 
+if CONFIG['MOZ_SANDBOX'] and CONFIG['OS_ARCH'] == 'WINNT':
+    LOCAL_INCLUDES += [
+        '/security/sandbox/chromium',
+        '/security/sandbox/chromium-shim',
+    ]
+
 DEFINES['FORCE_PR_LOG'] = True
 
+if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'gtk3':
+    CXXFLAGS += CONFIG['TK_CFLAGS']
+else:
+    # Force build against gtk+2 for struct offsets and such.
+    CXXFLAGS += CONFIG['MOZ_GTK2_CFLAGS']
+
+CXXFLAGS += CONFIG['MOZ_CAIRO_CFLAGS']
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wno-error=shadow']
+
+if CONFIG['_MSC_VER']:
+    # This is intended as a temporary hack to support building with VS2015.
+    # conversion from 'X' to 'Y' requires a narrowing conversion
+    CXXFLAGS += ['-wd4838']
+
+    # 'type cast': conversion from 'unsigned int' to 'HIMC' of greater size
+    CXXFLAGS += ['-wd4312']

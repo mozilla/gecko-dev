@@ -7,6 +7,7 @@
 #ifndef jit_AliasAnalysis_h
 #define jit_AliasAnalysis_h
 
+#include "jit/AliasAnalysisShared.h"
 #include "jit/MIR.h"
 #include "jit/MIRGraph.h"
 
@@ -14,24 +15,17 @@ namespace js {
 namespace jit {
 
 class LoopAliasInfo;
-class MIRGraph;
 
-class AliasAnalysis
+class AliasAnalysis : public AliasAnalysisShared
 {
-    MIRGenerator *mir;
-    MIRGraph &graph_;
-    LoopAliasInfo *loop_;
-
-    TempAllocator &alloc() const {
-        return graph_.alloc();
-    }
+    LoopAliasInfo* loop_;
 
   public:
-    AliasAnalysis(MIRGenerator *mir, MIRGraph &graph);
-    bool analyze();
+    AliasAnalysis(MIRGenerator* mir, MIRGraph& graph);
+    MOZ_MUST_USE bool analyze() override;
 };
 
-} // namespace js
 } // namespace jit
+} // namespace js
 
 #endif /* jit_AliasAnalysis_h */

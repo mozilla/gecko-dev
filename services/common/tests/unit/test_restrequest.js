@@ -221,6 +221,40 @@ add_test(function test_get_utf8() {
 });
 
 /**
+ * Test HTTP POST data is encoded as UTF-8 by default.
+ */
+add_test(function test_post_utf8() {
+  // We setup a handler that responds with exactly what it received.
+  // Given we've already tested above that responses are correctly utf-8
+  // decoded we can surmise that the correct response coming back means the
+  // input must also have been encoded.
+  let server = httpd_setup({"/echo": function(req, res) {
+    res.setStatusLine(req.httpVersion, 200, "OK");
+    res.setHeader("Content-Type", req.getHeader("content-type"));
+    // Get the body as bytes and write them back without touching them
+    let sis = Cc["@mozilla.org/scriptableinputstream;1"]
+              .createInstance(Ci.nsIScriptableInputStream);
+    sis.init(req.bodyInputStream);
+    let body = sis.read(sis.available());
+    sis.close()
+    res.write(body);
+  }});
+
+  let data = {copyright: "\xa9"}; // \xa9 is the copyright symbol
+  let request1 = new RESTRequest(server.baseURI + "/echo");
+  request1.post(data, function(error) {
+    do_check_null(error);
+
+    do_check_eq(request1.response.status, 200);
+    deepEqual(JSON.parse(request1.response.body), data);
+    do_check_eq(request1.response.headers["content-type"],
+                "application/json; charset=utf-8")
+
+    server.stop(run_next_test);
+  });
+});
+
+/**
  * Test more variations of charset handling.
  */
 add_test(function test_charsets() {
@@ -271,9 +305,10 @@ add_test(function test_charsets() {
 });
 
 /**
- * Test HTTP PUT with a simple string argument and default Content-Type.
+ * Used for testing PATCH/PUT/POST methods.
  */
-add_test(function test_put() {
+function check_posting_data(method) {
+  let funcName = method.toLowerCase();
   let handler = httpd_handler(200, "OK", "Got it!");
   let server = httpd_setup({"/resource": handler});
 
@@ -299,7 +334,7 @@ add_test(function test_put() {
     do_check_eq(this.response.status, 200);
     do_check_eq(this.response.body, "Got it!");
 
-    do_check_eq(handler.request.method, "PUT");
+    do_check_eq(handler.request.method, method);
     do_check_eq(handler.request.body, "Hullo?");
     do_check_eq(handler.request.getHeader("Content-Type"), "text/plain");
 
@@ -311,61 +346,33 @@ add_test(function test_put() {
     });
   };
 
-  do_check_eq(request.put("Hullo?", onComplete, onProgress), request);
+  do_check_eq(request[funcName]("Hullo?", onComplete, onProgress), request);
   do_check_eq(request.status, request.SENT);
-  do_check_eq(request.method, "PUT");
+  do_check_eq(request.method, method);
   do_check_throws(function () {
-    request.put("Hai!");
+    request[funcName]("Hai!");
   });
+}
+
+/**
+ * Test HTTP PATCH with a simple string argument and default Content-Type.
+ */
+add_test(function test_patch() {
+  check_posting_data("PATCH");
+});
+
+/**
+ * Test HTTP PUT with a simple string argument and default Content-Type.
+ */
+add_test(function test_put() {
+  check_posting_data("PUT");
 });
 
 /**
  * Test HTTP POST with a simple string argument and default Content-Type.
  */
 add_test(function test_post() {
-  let handler = httpd_handler(200, "OK", "Got it!");
-  let server = httpd_setup({"/resource": handler});
-
-  let request = new RESTRequest(server.baseURI + "/resource");
-  do_check_eq(request.status, request.NOT_SENT);
-
-  request.onProgress = request.onComplete = function () {
-    do_throw("This function should have been overwritten!");
-  };
-
-  let onProgress_called = false;
-  function onProgress() {
-    onProgress_called = true;
-    do_check_eq(this.status, request.IN_PROGRESS);
-    do_check_true(this.response.body.length > 0);
-  };
-
-  function onComplete(error) {
-    do_check_eq(error, null);
-
-    do_check_eq(this.status, this.COMPLETED);
-    do_check_true(this.response.success);
-    do_check_eq(this.response.status, 200);
-    do_check_eq(this.response.body, "Got it!");
-
-    do_check_eq(handler.request.method, "POST");
-    do_check_eq(handler.request.body, "Hullo?");
-    do_check_eq(handler.request.getHeader("Content-Type"), "text/plain");
-
-    do_check_true(onProgress_called);
-    CommonUtils.nextTick(function () {
-      do_check_eq(request.onComplete, null);
-      do_check_eq(request.onProgress, null);
-      server.stop(run_next_test);
-    });
-  };
-
-  do_check_eq(request.post("Hullo?", onComplete, onProgress), request);
-  do_check_eq(request.status, request.SENT);
-  do_check_eq(request.method, "POST");
-  do_check_throws(function () {
-    request.post("Hai!");
-  });
+  check_posting_data("POST");
 });
 
 /**
@@ -458,7 +465,7 @@ add_test(function test_put_json() {
 
     do_check_eq(handler.request.method, "PUT");
     do_check_eq(handler.request.body, JSON.stringify(sample_data));
-    do_check_eq(handler.request.getHeader("Content-Type"), "text/plain");
+    do_check_eq(handler.request.getHeader("Content-Type"), "application/json; charset=utf-8");
 
     server.stop(run_next_test);
   });
@@ -488,6 +495,32 @@ add_test(function test_post_json() {
 
     do_check_eq(handler.request.method, "POST");
     do_check_eq(handler.request.body, JSON.stringify(sample_data));
+    do_check_eq(handler.request.getHeader("Content-Type"), "application/json; charset=utf-8");
+
+    server.stop(run_next_test);
+  });
+});
+
+/**
+ * The content-type will be text/plain without a charset if the 'data' argument
+ * to POST is already a string.
+ */
+add_test(function test_post_json() {
+  let handler = httpd_handler(200, "OK");
+  let server = httpd_setup({"/resource": handler});
+
+  let sample_data = "hello";
+  let request = new RESTRequest(server.baseURI + "/resource");
+  request.post(sample_data, function (error) {
+    do_check_eq(error, null);
+
+    do_check_eq(this.status, this.COMPLETED);
+    do_check_true(this.response.success);
+    do_check_eq(this.response.status, 200);
+    do_check_eq(this.response.body, "");
+
+    do_check_eq(handler.request.method, "POST");
+    do_check_eq(handler.request.body, sample_data);
     do_check_eq(handler.request.getHeader("Content-Type"), "text/plain");
 
     server.stop(run_next_test);

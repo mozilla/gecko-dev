@@ -1,0 +1,167 @@
+# HG changeset patch
+# User Alex Chronopoulos <achronop@gmail.com>
+# Parent  00c051cd38c7a6cb3178fd0890d52056f83abfdc
+Bug 1345049 - Uplift part of cubeb upstream f07ee6d to esr52. r=padenot. a=xxxxxx
+
+diff --git a/media/libcubeb/src/cubeb_audiounit.cpp b/media/libcubeb/src/cubeb_audiounit.cpp
+--- a/media/libcubeb/src/cubeb_audiounit.cpp
++++ b/media/libcubeb/src/cubeb_audiounit.cpp
+@@ -590,33 +590,43 @@ audiounit_get_input_device_id(AudioDevic
+                                  device_id);
+   if (r != noErr) {
+     return CUBEB_ERROR;
+   }
+ 
+   return CUBEB_OK;
+ }
+ 
++static int audiounit_stream_get_volume(cubeb_stream * stm, float * volume);
++static int audiounit_stream_set_volume(cubeb_stream * stm, float volume);
++
+ static int
+ audiounit_reinit_stream(cubeb_stream * stm, bool is_started)
+ {
++  auto_lock context_lock(stm->context->mutex);
+   if (is_started) {
+     audiounit_stream_stop_internal(stm);
+   }
+ 
+   {
+     auto_lock lock(stm->mutex);
++    float volume = 0.0;
++    int vol_rv = audiounit_stream_get_volume(stm, &volume);
+ 
+     audiounit_close_stream(stm);
+ 
+     if (audiounit_setup_stream(stm) != CUBEB_OK) {
+       LOG("(%p) Stream reinit failed.", stm);
+       return CUBEB_ERROR;
+     }
+ 
++    if (vol_rv == CUBEB_OK) {
++      audiounit_stream_set_volume(stm, volume);
++    }
++
+     // Reset input frames to force new stream pre-buffer
+     // silence if needed, check `is_extra_input_needed()`
+     stm->frames_read = 0;
+ 
+     // If the stream was running, start it again.
+     if (is_started) {
+       audiounit_stream_start_internal(stm);
+     }
+@@ -1007,20 +1017,22 @@ audiounit_get_preferred_sample_rate(cube
+ static OSStatus audiounit_remove_device_listener(cubeb * context);
+ 
+ static void
+ audiounit_destroy(cubeb * ctx)
+ {
+   // Disabling this assert for bug 1083664 -- we seem to leak a stream
+   // assert(ctx->active_streams == 0);
+ 
+-  /* Unregister the callback if necessary. */
+-  if(ctx->collection_changed_callback) {
++  {
+     auto_lock lock(ctx->mutex);
+-    audiounit_remove_device_listener(ctx);
++    /* Unregister the callback if necessary. */
++    if(ctx->collection_changed_callback) {
++      audiounit_remove_device_listener(ctx);
++    }
+   }
+ 
+   ctx->~cubeb();
+   free(ctx);
+ }
+ 
+ static void audiounit_stream_destroy(cubeb_stream * stm);
+ 
+@@ -1861,17 +1873,17 @@ audiounit_close_stream(cubeb_stream *stm
+   cubeb_resampler_destroy(stm->resampler);
+ }
+ 
+ static void
+ audiounit_stream_destroy(cubeb_stream * stm)
+ {
+   stm->shutdown = true;
+ 
+-  auto_lock context_locl(stm->context->mutex);
++  auto_lock context_lock(stm->context->mutex);
+   audiounit_stream_stop_internal(stm);
+ 
+   {
+     auto_lock lock(stm->mutex);
+     audiounit_close_stream(stm);
+   }
+ 
+ #if !TARGET_OS_IPHONE
+@@ -1905,17 +1917,17 @@ audiounit_stream_start_internal(cubeb_st
+ }
+ 
+ static int
+ audiounit_stream_start(cubeb_stream * stm)
+ {
+   stm->shutdown = false;
+   stm->draining = false;
+ 
+-  auto_lock context_locl(stm->context->mutex);
++  auto_lock context_lock(stm->context->mutex);
+   audiounit_stream_start_internal(stm);
+ 
+   stm->state_callback(stm, stm->user_ptr, CUBEB_STATE_STARTED);
+ 
+   LOG("Cubeb stream (%p) started successfully.", stm);
+   return CUBEB_OK;
+ }
+ 
+@@ -1933,17 +1945,17 @@ audiounit_stream_stop_internal(cubeb_str
+   }
+ }
+ 
+ static int
+ audiounit_stream_stop(cubeb_stream * stm)
+ {
+   stm->shutdown = true;
+ 
+-  auto_lock context_locl(stm->context->mutex);
++  auto_lock context_lock(stm->context->mutex);
+   audiounit_stream_stop_internal(stm);
+ 
+   stm->state_callback(stm, stm->user_ptr, CUBEB_STATE_STOPPED);
+ 
+   LOG("Cubeb stream (%p) stopped successfully.", stm);
+   return CUBEB_OK;
+ }
+ 
+@@ -2030,16 +2042,31 @@ audiounit_stream_get_latency(cubeb_strea
+   }
+ 
+   *latency = stm->hw_latency_frames + stm->current_latency_frames;
+ 
+   return CUBEB_OK;
+ #endif
+ }
+ 
++static int
++audiounit_stream_get_volume(cubeb_stream * stm, float * volume)
++{
++  assert(stm->output_unit);
++  OSStatus r = AudioUnitGetParameter(stm->output_unit,
++                                     kHALOutputParam_Volume,
++                                     kAudioUnitScope_Global,
++                                     0, volume);
++  if (r != noErr) {
++    LOG("AudioUnitGetParameter/kHALOutputParam_Volume rv=%d", r);
++    return CUBEB_ERROR;
++  }
++  return CUBEB_OK;
++}
++
+ int audiounit_stream_set_volume(cubeb_stream * stm, float volume)
+ {
+   OSStatus r;
+ 
+   r = AudioUnitSetParameter(stm->output_unit,
+                             kHALOutputParam_Volume,
+                             kAudioUnitScope_Global,
+                             0, volume, 0);

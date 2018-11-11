@@ -10,20 +10,24 @@
 #include <ostream>
 #include <sstream>
 #include <cstring>
-#include "RecordingTypes.h"
-#include "PathRecording.h"
+#include <vector>
 
 namespace mozilla {
 namespace gfx {
+
+struct PathOp;
+class PathRecording;
+
+const uint32_t kMagicInt = 0xc001feed;
 
 // A change in major revision means a change in event binary format, causing
 // loss of backwards compatibility. Old streams will not work in a player
 // using a newer major revision. And new streams will not work in a player
 // using an older major revision.
-const uint16_t kMajorRevision = 3;
+const uint16_t kMajorRevision = 6;
 // A change in minor revision means additions of new events. New streams will
 // not play in older players.
-const uint16_t kMinorRevision = 2;
+const uint16_t kMinorRevision = 0;
 
 struct ReferencePtr
 {
@@ -31,12 +35,12 @@ struct ReferencePtr
     : mLongPtr(0)
   {}
 
-  ReferencePtr(const void* aLongPtr)
+  MOZ_IMPLICIT ReferencePtr(const void* aLongPtr)
     : mLongPtr(uint64_t(aLongPtr))
   {}
 
   template <typename T>
-  ReferencePtr(const RefPtr<T>& aPtr)
+  MOZ_IMPLICIT ReferencePtr(const RefPtr<T>& aPtr)
     : mLongPtr(uint64_t(aPtr.get()))
   {}
 
@@ -58,6 +62,14 @@ struct ReferencePtr
   uint64_t mLongPtr;
 };
 
+struct RecordedFontDetails
+{
+  uint64_t fontDataKey;
+  uint32_t size;
+  uint32_t index;
+  Float glyphSize;
+};
+
 // Used by the Azure drawing debugger (player2d)
 inline std::string StringFromPtr(ReferencePtr aPtr)
 {
@@ -77,6 +89,7 @@ public:
   virtual FilterNode *LookupFilterNode(ReferencePtr aRefPtr) = 0;
   virtual GradientStops *LookupGradientStops(ReferencePtr aRefPtr) = 0;
   virtual ScaledFont *LookupScaledFont(ReferencePtr aRefPtr) = 0;
+  virtual NativeFontResource *LookupNativeFontResource(uint64_t aKey) = 0;
   virtual void AddDrawTarget(ReferencePtr aRefPtr, DrawTarget *aDT) = 0;
   virtual void RemoveDrawTarget(ReferencePtr aRefPtr) = 0;
   virtual void AddPath(ReferencePtr aRefPtr, Path *aPath) = 0;
@@ -89,7 +102,12 @@ public:
   virtual void RemoveGradientStops(ReferencePtr aRefPtr) = 0;
   virtual void AddScaledFont(ReferencePtr aRefPtr, ScaledFont *aScaledFont) = 0;
   virtual void RemoveScaledFont(ReferencePtr aRefPtr) = 0;
+  virtual void AddNativeFontResource(uint64_t aKey,
+                                     NativeFontResource *aNativeFontResource) = 0;
 
+  virtual already_AddRefed<DrawTarget> CreateDrawTarget(ReferencePtr aRefPtr,
+                                                        const IntSize &aSize,
+                                                        SurfaceFormat aFormat);
   virtual DrawTarget *GetReferenceDrawTarget() = 0;
   virtual FontType GetDesiredFontType() = 0;
 };
@@ -120,9 +138,10 @@ struct RadialGradientPatternStorage
 struct SurfacePatternStorage
 {
   ExtendMode mExtend;
-  Filter mFilter;
+  SamplingFilter mSamplingFilter;
   ReferencePtr mSurface;
   Matrix mMatrix;
+  IntRect mSamplingRect;
 };
 
 struct PatternStorage
@@ -171,13 +190,28 @@ public:
     FILTERNODEDESTRUCTION,
     DRAWFILTER,
     FILTERNODESETATTRIBUTE,
-    FILTERNODESETINPUT
+    FILTERNODESETINPUT,
+    CREATESIMILARDRAWTARGET,
+    FONTDATA,
+    FONTDESC,
+    PUSHLAYER,
+    POPLAYER,
   };
   static const uint32_t kTotalEventTypes = RecordedEvent::FILTERNODESETINPUT + 1;
 
+  virtual ~RecordedEvent() {}
+
   static std::string GetEventName(EventType aType);
 
-  virtual void PlayEvent(Translator *aTranslator) const {}
+  /**
+   * Play back this event using the translator. Note that derived classes should
+   * only return false when there is a fatal error, as it will probably mean the
+   * translation will abort.
+   * @param aTranslator Translator to be used for retrieving other referenced
+   *                    objects and making playback decisions.
+   * @return true unless a fatal problem has occurred and playback should abort.
+   */
+  virtual bool PlayEvent(Translator *aTranslator) const { return true; }
 
   virtual void RecordToStream(std::ostream &aStream) const {}
 
@@ -203,7 +237,7 @@ public:
 protected:
   friend class DrawEventRecorderPrivate;
 
-  RecordedEvent(int32_t aType) : mType(aType)
+  MOZ_IMPLICIT RecordedEvent(int32_t aType) : mType(aType)
   {}
 
   int32_t mType;
@@ -237,7 +271,7 @@ public:
     , mHasExistingData(aHasExistingData), mExistingData(aExistingData)
   {}
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -255,16 +289,16 @@ public:
 private:
   friend class RecordedEvent;
 
-  RecordedDrawTargetCreation(std::istream &aStream);
+  MOZ_IMPLICIT RecordedDrawTargetCreation(std::istream &aStream);
 };
 
 class RecordedDrawTargetDestruction : public RecordedEvent {
 public:
-  RecordedDrawTargetDestruction(ReferencePtr aRefPtr)
+  MOZ_IMPLICIT RecordedDrawTargetDestruction(ReferencePtr aRefPtr)
     : RecordedEvent(DRAWTARGETDESTRUCTION), mRefPtr(aRefPtr)
   {}
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -278,7 +312,35 @@ public:
 private:
   friend class RecordedEvent;
 
-  RecordedDrawTargetDestruction(std::istream &aStream);
+  MOZ_IMPLICIT RecordedDrawTargetDestruction(std::istream &aStream);
+};
+
+class RecordedCreateSimilarDrawTarget : public RecordedEvent
+{
+public:
+  RecordedCreateSimilarDrawTarget(ReferencePtr aRefPtr, const IntSize &aSize,
+                                  SurfaceFormat aFormat)
+    : RecordedEvent(CREATESIMILARDRAWTARGET)
+    , mRefPtr(aRefPtr) , mSize(aSize), mFormat(aFormat)
+  {
+  }
+
+  virtual bool PlayEvent(Translator *aTranslator) const;
+
+  virtual void RecordToStream(std::ostream &aStream) const;
+  virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
+
+  virtual std::string GetName() const { return "CreateSimilarDrawTarget"; }
+  virtual ReferencePtr GetObjectRef() const { return mRefPtr; }
+
+  ReferencePtr mRefPtr;
+  IntSize mSize;
+  SurfaceFormat mFormat;
+
+private:
+  friend class RecordedEvent;
+
+  MOZ_IMPLICIT RecordedCreateSimilarDrawTarget(std::istream &aStream);
 };
 
 class RecordedFillRect : public RecordedDrawingEvent {
@@ -289,7 +351,7 @@ public:
     StorePattern(mPattern, aPattern);
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -298,7 +360,7 @@ public:
 private:
   friend class RecordedEvent;
 
-  RecordedFillRect(std::istream &aStream);
+  MOZ_IMPLICIT RecordedFillRect(std::istream &aStream);
 
   Rect mRect;
   PatternStorage mPattern;
@@ -315,7 +377,7 @@ public:
     StorePattern(mPattern, aPattern);
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -324,7 +386,7 @@ public:
 private:
   friend class RecordedEvent;
 
-  RecordedStrokeRect(std::istream &aStream);
+  MOZ_IMPLICIT RecordedStrokeRect(std::istream &aStream);
 
   Rect mRect;
   PatternStorage mPattern;
@@ -343,7 +405,7 @@ public:
     StorePattern(mPattern, aPattern);
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -352,7 +414,7 @@ public:
 private:
   friend class RecordedEvent;
 
-  RecordedStrokeLine(std::istream &aStream);
+  MOZ_IMPLICIT RecordedStrokeLine(std::istream &aStream);
 
   Point mBegin;
   Point mEnd;
@@ -369,7 +431,7 @@ public:
     StorePattern(mPattern, aPattern);
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -378,7 +440,7 @@ public:
 private:
   friend class RecordedEvent;
 
-  RecordedFill(std::istream &aStream);
+  MOZ_IMPLICIT RecordedFill(std::istream &aStream);
 
   ReferencePtr mPath;
   PatternStorage mPattern;
@@ -398,7 +460,7 @@ public:
   }
   virtual ~RecordedFillGlyphs();
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -407,7 +469,7 @@ public:
 private:
   friend class RecordedEvent;
 
-  RecordedFillGlyphs(std::istream &aStream);
+  MOZ_IMPLICIT RecordedFillGlyphs(std::istream &aStream);
 
   ReferencePtr mScaledFont;
   PatternStorage mPattern;
@@ -425,7 +487,7 @@ public:
     StorePattern(mMask, aMask);
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -434,7 +496,7 @@ public:
 private:
   friend class RecordedEvent;
 
-  RecordedMask(std::istream &aStream);
+  MOZ_IMPLICIT RecordedMask(std::istream &aStream);
 
   PatternStorage mSource;
   PatternStorage mMask;
@@ -451,7 +513,7 @@ public:
     StorePattern(mPattern, aPattern);
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -460,7 +522,7 @@ public:
 private:
   friend class RecordedEvent;
 
-  RecordedStroke(std::istream &aStream);
+  MOZ_IMPLICIT RecordedStroke(std::istream &aStream);
 
   ReferencePtr mPath;
   PatternStorage mPattern;
@@ -475,7 +537,7 @@ public:
   {
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -484,7 +546,7 @@ public:
 private:
   friend class RecordedEvent;
 
-  RecordedClearRect(std::istream &aStream);
+  MOZ_IMPLICIT RecordedClearRect(std::istream &aStream);
 
   Rect mRect;
 };
@@ -498,7 +560,7 @@ public:
   {
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -507,7 +569,7 @@ public:
 private:
   friend class RecordedEvent;
 
-  RecordedCopySurface(std::istream &aStream);
+  MOZ_IMPLICIT RecordedCopySurface(std::istream &aStream);
 
   ReferencePtr mSourceSurface;
   IntRect mSourceRect;
@@ -521,7 +583,7 @@ public:
   {
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -530,7 +592,7 @@ public:
 private:
   friend class RecordedEvent;
 
-  RecordedPushClip(std::istream &aStream);
+  MOZ_IMPLICIT RecordedPushClip(std::istream &aStream);
 
   ReferencePtr mPath;
 };
@@ -542,7 +604,7 @@ public:
   {
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -551,18 +613,18 @@ public:
 private:
   friend class RecordedEvent;
 
-  RecordedPushClipRect(std::istream &aStream);
+  MOZ_IMPLICIT RecordedPushClipRect(std::istream &aStream);
 
   Rect mRect;
 };
 
 class RecordedPopClip : public RecordedDrawingEvent {
 public:
-  RecordedPopClip(DrawTarget *aDT)
+  MOZ_IMPLICIT RecordedPopClip(DrawTarget *aDT)
     : RecordedDrawingEvent(POPCLIP, aDT)
   {}
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -571,7 +633,56 @@ public:
 private:
   friend class RecordedEvent;
 
-  RecordedPopClip(std::istream &aStream);
+  MOZ_IMPLICIT RecordedPopClip(std::istream &aStream);
+};
+
+class RecordedPushLayer : public RecordedDrawingEvent {
+public:
+  RecordedPushLayer(DrawTarget* aDT, bool aOpaque, Float aOpacity,
+                    SourceSurface* aMask, const Matrix& aMaskTransform,
+                    const IntRect& aBounds, bool aCopyBackground)
+    : RecordedDrawingEvent(PUSHLAYER, aDT), mOpaque(aOpaque)
+    , mOpacity(aOpacity), mMask(aMask), mMaskTransform(aMaskTransform)
+    , mBounds(aBounds), mCopyBackground(aCopyBackground)
+  {
+  }
+
+  virtual bool PlayEvent(Translator *aTranslator) const;
+
+  virtual void RecordToStream(std::ostream &aStream) const;
+  virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
+
+  virtual std::string GetName() const { return "PushLayer"; }
+private:
+  friend class RecordedEvent;
+
+  MOZ_IMPLICIT RecordedPushLayer(std::istream &aStream);
+
+  bool mOpaque;
+  Float mOpacity;
+  ReferencePtr mMask;
+  Matrix mMaskTransform;
+  IntRect mBounds;
+  bool mCopyBackground;
+};
+
+class RecordedPopLayer : public RecordedDrawingEvent {
+public:
+  MOZ_IMPLICIT RecordedPopLayer(DrawTarget* aDT)
+    : RecordedDrawingEvent(POPLAYER, aDT)
+  {
+  }
+
+  virtual bool PlayEvent(Translator *aTranslator) const;
+
+  virtual void RecordToStream(std::ostream &aStream) const;
+  virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
+
+  virtual std::string GetName() const { return "PopLayer"; }
+private:
+  friend class RecordedEvent;
+
+  MOZ_IMPLICIT RecordedPopLayer(std::istream &aStream);
 };
 
 class RecordedSetTransform : public RecordedDrawingEvent {
@@ -581,7 +692,7 @@ public:
   {
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -590,7 +701,7 @@ public:
 private:
   friend class RecordedEvent;
 
-  RecordedSetTransform(std::istream &aStream);
+   MOZ_IMPLICIT RecordedSetTransform(std::istream &aStream);
 
   Matrix mTransform;
 };
@@ -605,7 +716,7 @@ public:
   {
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -614,7 +725,7 @@ public:
 private:
   friend class RecordedEvent;
 
-  RecordedDrawSurface(std::istream &aStream);
+   MOZ_IMPLICIT RecordedDrawSurface(std::istream &aStream);
 
   ReferencePtr mRefSource;
   Rect mDest;
@@ -633,7 +744,7 @@ public:
   {
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -642,7 +753,7 @@ public:
 private:
   friend class RecordedEvent;
 
-  RecordedDrawSurfaceWithShadow(std::istream &aStream);
+  MOZ_IMPLICIT RecordedDrawSurfaceWithShadow(std::istream &aStream);
 
   ReferencePtr mRefSource;
   Point mDest;
@@ -663,7 +774,7 @@ public:
   {
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -672,7 +783,7 @@ public:
 private:
   friend class RecordedEvent;
 
-  RecordedDrawFilter(std::istream &aStream);
+  MOZ_IMPLICIT RecordedDrawFilter(std::istream &aStream);
 
   ReferencePtr mNode;
   Rect mSourceRect;
@@ -682,10 +793,10 @@ private:
 
 class RecordedPathCreation : public RecordedEvent {
 public:
-  RecordedPathCreation(PathRecording *aPath);
+  MOZ_IMPLICIT RecordedPathCreation(PathRecording *aPath);
   ~RecordedPathCreation();
   
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -699,17 +810,17 @@ private:
   FillRule mFillRule;
   std::vector<PathOp> mPathOps;
 
-  RecordedPathCreation(std::istream &aStream);
+  MOZ_IMPLICIT RecordedPathCreation(std::istream &aStream);
 };
 
 class RecordedPathDestruction : public RecordedEvent {
 public:
-  RecordedPathDestruction(PathRecording *aPath)
+  MOZ_IMPLICIT RecordedPathDestruction(PathRecording *aPath)
     : RecordedEvent(PATHDESTRUCTION), mRefPtr(aPath)
   {
   }
   
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -721,7 +832,7 @@ private:
 
   ReferencePtr mRefPtr;
 
-  RecordedPathDestruction(std::istream &aStream);
+  MOZ_IMPLICIT RecordedPathDestruction(std::istream &aStream);
 };
 
 class RecordedSourceSurfaceCreation : public RecordedEvent {
@@ -735,7 +846,7 @@ public:
 
   ~RecordedSourceSurfaceCreation();
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -752,17 +863,17 @@ private:
   SurfaceFormat mFormat;
   bool mDataOwned;
 
-  RecordedSourceSurfaceCreation(std::istream &aStream);
+  MOZ_IMPLICIT RecordedSourceSurfaceCreation(std::istream &aStream);
 };
 
 class RecordedSourceSurfaceDestruction : public RecordedEvent {
 public:
-  RecordedSourceSurfaceDestruction(ReferencePtr aRefPtr)
+  MOZ_IMPLICIT RecordedSourceSurfaceDestruction(ReferencePtr aRefPtr)
     : RecordedEvent(SOURCESURFACEDESTRUCTION), mRefPtr(aRefPtr)
   {
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -774,7 +885,7 @@ private:
 
   ReferencePtr mRefPtr;
 
-  RecordedSourceSurfaceDestruction(std::istream &aStream);
+  MOZ_IMPLICIT RecordedSourceSurfaceDestruction(std::istream &aStream);
 };
 
 class RecordedFilterNodeCreation : public RecordedEvent {
@@ -786,7 +897,7 @@ public:
 
   ~RecordedFilterNodeCreation();
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -799,17 +910,17 @@ private:
   ReferencePtr mRefPtr;
   FilterType mType;
 
-  RecordedFilterNodeCreation(std::istream &aStream);
+  MOZ_IMPLICIT RecordedFilterNodeCreation(std::istream &aStream);
 };
 
 class RecordedFilterNodeDestruction : public RecordedEvent {
 public:
-  RecordedFilterNodeDestruction(ReferencePtr aRefPtr)
+  MOZ_IMPLICIT RecordedFilterNodeDestruction(ReferencePtr aRefPtr)
     : RecordedEvent(FILTERNODEDESTRUCTION), mRefPtr(aRefPtr)
   {
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -821,7 +932,7 @@ private:
 
   ReferencePtr mRefPtr;
 
-  RecordedFilterNodeDestruction(std::istream &aStream);
+  MOZ_IMPLICIT RecordedFilterNodeDestruction(std::istream &aStream);
 };
 
 class RecordedGradientStopsCreation : public RecordedEvent {
@@ -835,7 +946,7 @@ public:
 
   ~RecordedGradientStopsCreation();
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -851,17 +962,17 @@ private:
   ExtendMode mExtendMode;
   bool mDataOwned;
 
-  RecordedGradientStopsCreation(std::istream &aStream);
+  MOZ_IMPLICIT RecordedGradientStopsCreation(std::istream &aStream);
 };
 
 class RecordedGradientStopsDestruction : public RecordedEvent {
 public:
-  RecordedGradientStopsDestruction(ReferencePtr aRefPtr)
+  MOZ_IMPLICIT RecordedGradientStopsDestruction(ReferencePtr aRefPtr)
     : RecordedEvent(GRADIENTSTOPSDESTRUCTION), mRefPtr(aRefPtr)
   {
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -873,7 +984,7 @@ private:
 
   ReferencePtr mRefPtr;
 
-  RecordedGradientStopsDestruction(std::istream &aStream);
+  MOZ_IMPLICIT RecordedGradientStopsDestruction(std::istream &aStream);
 };
 
 class RecordedSnapshot : public RecordedEvent {
@@ -883,7 +994,7 @@ public:
   {
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -896,25 +1007,115 @@ private:
   ReferencePtr mRefPtr;
   ReferencePtr mDT;
 
-  RecordedSnapshot(std::istream &aStream);
+  MOZ_IMPLICIT RecordedSnapshot(std::istream &aStream);
+};
+
+class RecordedFontData : public RecordedEvent {
+public:
+
+  static void FontDataProc(const uint8_t *aData, uint32_t aSize,
+                           uint32_t aIndex, Float aGlyphSize, void* aBaton)
+  {
+    auto recordedFontData = static_cast<RecordedFontData*>(aBaton);
+    recordedFontData->SetFontData(aData, aSize, aIndex, aGlyphSize);
+  }
+
+  explicit RecordedFontData(ScaledFont *aScaledFont)
+    : RecordedEvent(FONTDATA), mData(nullptr)
+  {
+    mGetFontFileDataSucceeded = aScaledFont->GetFontFileData(&FontDataProc, this);
+  }
+
+  ~RecordedFontData();
+
+  virtual bool PlayEvent(Translator *aTranslator) const;
+
+  virtual void RecordToStream(std::ostream &aStream) const;
+  virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
+
+  virtual std::string GetName() const { return "Font Data"; }
+  virtual ReferencePtr GetObjectRef() const { return nullptr; };
+
+  void SetFontData(const uint8_t *aData, uint32_t aSize, uint32_t aIndex,
+                   Float aGlyphSize);
+
+  bool GetFontDetails(RecordedFontDetails& fontDetails);
+
+private:
+  friend class RecordedEvent;
+
+  uint8_t *mData;
+  RecordedFontDetails mFontDetails;
+
+  bool mGetFontFileDataSucceeded = false;
+
+  MOZ_IMPLICIT RecordedFontData(std::istream &aStream);
+};
+
+class RecordedFontDescriptor : public RecordedEvent {
+public:
+
+  static void FontDescCb(const uint8_t *aData, uint32_t aSize,
+                         Float aFontSize, void* aBaton)
+  {
+    auto recordedFontDesc = static_cast<RecordedFontDescriptor*>(aBaton);
+    recordedFontDesc->SetFontDescriptor(aData, aSize, aFontSize);
+  }
+
+  explicit RecordedFontDescriptor(ScaledFont* aScaledFont)
+    : RecordedEvent(FONTDESC)
+    , mType(aScaledFont->GetType())
+    , mRefPtr(aScaledFont)
+  {
+    mHasDesc = aScaledFont->GetFontDescriptor(FontDescCb, this);
+  }
+
+  ~RecordedFontDescriptor();
+
+  bool IsValid() const { return mHasDesc; }
+
+  virtual bool PlayEvent(Translator *aTranslator) const;
+
+  virtual void RecordToStream(std::ostream &aStream) const;
+  virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
+
+  virtual std::string GetName() const { return "Font Desc"; }
+  virtual ReferencePtr GetObjectRef() const { return mRefPtr; }
+
+private:
+  friend class RecordedEvent;
+
+  void SetFontDescriptor(const uint8_t* aData, uint32_t aSize, Float aFontSize);
+
+  bool mHasDesc;
+
+  FontType mType;
+  Float mFontSize;
+  std::vector<uint8_t> mData;
+  ReferencePtr mRefPtr;
+
+  MOZ_IMPLICIT RecordedFontDescriptor(std::istream &aStream);
 };
 
 class RecordedScaledFontCreation : public RecordedEvent {
 public:
-  static void FontDataProc(const uint8_t *aData, uint32_t aSize, uint32_t aIndex, Float aGlyphSize, void* aBaton)
+
+  static void FontInstanceDataProc(const uint8_t* aData, uint32_t aSize, void* aBaton)
   {
-    static_cast<RecordedScaledFontCreation*>(aBaton)->SetFontData(aData, aSize, aIndex, aGlyphSize);
+    auto recordedScaledFontCreation = static_cast<RecordedScaledFontCreation*>(aBaton);
+    recordedScaledFontCreation->SetFontInstanceData(aData, aSize);
   }
 
-  RecordedScaledFontCreation(ReferencePtr aRefPtr, ScaledFont *aScaledFont)
-    : RecordedEvent(SCALEDFONTCREATION), mRefPtr(aRefPtr), mData(nullptr)
+  RecordedScaledFontCreation(ScaledFont* aScaledFont,
+                             RecordedFontDetails aFontDetails)
+    : RecordedEvent(SCALEDFONTCREATION), mRefPtr(aScaledFont)
+    , mFontDataKey(aFontDetails.fontDataKey)
+    , mGlyphSize(aFontDetails.glyphSize) , mIndex(aFontDetails.index)
   {
-    aScaledFont->GetFontFileData(&FontDataProc, this);
+    aScaledFont->GetFontInstanceData(FontInstanceDataProc, this);
   }
 
-  ~RecordedScaledFontCreation();
-
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -922,28 +1123,28 @@ public:
   virtual std::string GetName() const { return "ScaledFont Creation"; }
   virtual ReferencePtr GetObjectRef() const { return mRefPtr; }
 
-  void SetFontData(const uint8_t *aData, uint32_t aSize, uint32_t aIndex, Float aGlyphSize);
+  void SetFontInstanceData(const uint8_t *aData, uint32_t aSize);
 
 private:
   friend class RecordedEvent;
 
   ReferencePtr mRefPtr;
-  uint8_t *mData;
-  uint32_t mSize;
+  uint64_t mFontDataKey;
   Float mGlyphSize;
   uint32_t mIndex;
+  std::vector<uint8_t> mInstanceData;
 
-  RecordedScaledFontCreation(std::istream &aStream);
+  MOZ_IMPLICIT RecordedScaledFontCreation(std::istream &aStream);
 };
 
 class RecordedScaledFontDestruction : public RecordedEvent {
 public:
-  RecordedScaledFontDestruction(ReferencePtr aRefPtr)
+  MOZ_IMPLICIT RecordedScaledFontDestruction(ReferencePtr aRefPtr)
     : RecordedEvent(SCALEDFONTDESTRUCTION), mRefPtr(aRefPtr)
   {
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -955,7 +1156,7 @@ private:
 
   ReferencePtr mRefPtr;
 
-  RecordedScaledFontDestruction(std::istream &aStream);
+  MOZ_IMPLICIT RecordedScaledFontDestruction(std::istream &aStream);
 };
 
 class RecordedMaskSurface : public RecordedDrawingEvent {
@@ -968,7 +1169,7 @@ public:
     StorePattern(mPattern, aPattern);
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
 
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
@@ -977,7 +1178,7 @@ public:
 private:
   friend class RecordedEvent;
 
-  RecordedMaskSurface(std::istream &aStream);
+  MOZ_IMPLICIT RecordedMaskSurface(std::istream &aStream);
 
   PatternStorage mPattern;
   ReferencePtr mRefMask;
@@ -998,6 +1199,7 @@ public:
     ARGTYPE_RECT,
     ARGTYPE_INTRECT,
     ARGTYPE_POINT,
+    ARGTYPE_MATRIX,
     ARGTYPE_MATRIX5X4,
     ARGTYPE_POINT3D,
     ARGTYPE_COLOR,
@@ -1019,7 +1221,7 @@ public:
     memcpy(&mPayload.front(), aFloat, sizeof(Float) * aSize);
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
 
@@ -1036,7 +1238,7 @@ private:
   ArgType mArgType;
   std::vector<uint8_t> mPayload;
 
-  RecordedFilterNodeSetAttribute(std::istream &aStream);
+  MOZ_IMPLICIT RecordedFilterNodeSetAttribute(std::istream &aStream);
 };
 
 class RecordedFilterNodeSetInput : public RecordedEvent
@@ -1054,7 +1256,7 @@ public:
   {
   }
 
-  virtual void PlayEvent(Translator *aTranslator) const;
+  virtual bool PlayEvent(Translator *aTranslator) const;
   virtual void RecordToStream(std::ostream &aStream) const;
   virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const;
 
@@ -1070,10 +1272,10 @@ private:
   ReferencePtr mInputFilter;
   ReferencePtr mInputSurface;
 
-  RecordedFilterNodeSetInput(std::istream &aStream);
+  MOZ_IMPLICIT RecordedFilterNodeSetInput(std::istream &aStream);
 };
 
-}
-}
+} // namespace gfx
+} // namespace mozilla
 
 #endif

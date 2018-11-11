@@ -21,6 +21,9 @@ interface HTMLAnchorElement : HTMLElement {
            attribute DOMString ping;
            [SetterThrows]
            attribute DOMString rel;
+           [SetterThrows, Pref="network.http.enablePerElementReferrer"]
+           attribute DOMString referrerPolicy;
+           [PutForwards=value]
   readonly attribute DOMTokenList relList;
            [SetterThrows]
            attribute DOMString hreflang;
@@ -30,7 +33,8 @@ interface HTMLAnchorElement : HTMLElement {
            [SetterThrows]
            attribute DOMString text;
 };
-HTMLAnchorElement implements URLUtils;
+
+HTMLAnchorElement implements HTMLHyperlinkElementUtils;
 
 // http://www.whatwg.org/specs/web-apps/current-work/#other-elements,-attributes-and-apis
 partial interface HTMLAnchorElement {

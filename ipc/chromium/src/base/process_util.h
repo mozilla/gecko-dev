@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 // Copyright (c) 2009 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -13,6 +15,10 @@
 #if defined(OS_WIN)
 #include <windows.h>
 #include <tlhelp32.h>
+#include <io.h>
+#ifndef STDOUT_FILENO
+#define STDOUT_FILENO 1
+#endif
 #elif defined(OS_LINUX) || defined(__GLIBC__)
 #include <dirent.h>
 #include <limits.h>
@@ -24,6 +30,11 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <stdio.h>
+#include <stdlib.h>
+#ifndef OS_WIN
+#include <unistd.h>
+#endif
 
 #include "base/command_line.h"
 #include "base/process.h"
@@ -62,7 +73,9 @@ enum ProcessArchitecture {
   PROCESS_ARCH_I386 = 0x1,
   PROCESS_ARCH_X86_64 = 0x2,
   PROCESS_ARCH_PPC = 0x4,
-  PROCESS_ARCH_ARM = 0x8
+  PROCESS_ARCH_ARM = 0x8,
+  PROCESS_ARCH_MIPS = 0x10,
+  PROCESS_ARCH_ARM64 = 0x20
 };
 
 inline ProcessArchitecture GetCurrentProcessArchitecture()
@@ -76,6 +89,10 @@ inline ProcessArchitecture GetCurrentProcessArchitecture()
   currentArchitecture = base::PROCESS_ARCH_PPC;
 #elif defined(ARCH_CPU_ARMEL)
   currentArchitecture = base::PROCESS_ARCH_ARM;
+#elif defined(ARCH_CPU_MIPS)
+  currentArchitecture = base::PROCESS_ARCH_MIPS;
+#elif defined(ARCH_CPU_ARM64)
+  currentArchitecture = base::PROCESS_ARCH_ARM64;
 #endif
   return currentArchitecture;
 }
@@ -249,12 +266,56 @@ class ProcessMetrics {
 
 }  // namespace base
 
+namespace mozilla {
+
+class EnvironmentLog
+{
+public:
+  explicit EnvironmentLog(const char* varname) {
+    const char *e = getenv(varname);
+    if (e && *e) {
+      fname_ = e;
+    }
+  }
+
+  ~EnvironmentLog() {}
+
+  void print(const char* format, ...) {
+    if (!fname_.size())
+      return;
+
+    FILE* f;
+    if (fname_.compare("-") == 0) {
+      f = fdopen(dup(STDOUT_FILENO), "a");
+    } else {
+      f = fopen(fname_.c_str(), "a");
+    }
+
+    if (!f)
+      return;
+
+    va_list a;
+    va_start(a, format);
+    vfprintf(f, format, a);
+    va_end(a);
+    fclose(f);
+  }
+
+private:
+  std::string fname_;
+
+  DISALLOW_EVIL_CONSTRUCTORS(EnvironmentLog);
+};
+
+} // namespace mozilla
+
 #if defined(OS_WIN)
 // Undo the windows.h damage
 #undef GetMessage
 #undef CreateEvent
 #undef GetClassName
 #undef GetBinaryType
+#undef RemoveDirectory
 #endif
 
 #endif  // BASE_PROCESS_UTIL_H_

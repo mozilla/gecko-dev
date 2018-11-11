@@ -31,11 +31,10 @@ using mozilla::IsWin7OrLater;
 #include <stdlib.h>
 #include <sys/param.h>
 #include "prenv.h"
-
+#if defined(MOZ_WIDGET_COCOA)
+#include "CocoaFileUtils.h"
 #endif
 
-#if defined(VMS)
-#include <unixlib.h>
 #endif
 
 #ifndef MAXPATHLEN
@@ -153,8 +152,8 @@ GetLibrarySaveToPath(int aFallbackFolderId, REFKNOWNFOLDERID aFolderId,
     return GetWindowsFolder(aFallbackFolderId, aFile);
   }
 
-  nsRefPtr<IShellLibrary> shellLib;
-  nsRefPtr<IShellItem> savePath;
+  RefPtr<IShellLibrary> shellLib;
+  RefPtr<IShellItem> savePath;
   HRESULT hr =
     SHLoadLibraryFromKnownFolder(aFolderId, STGM_READ,
                                  IID_IShellLibrary, getter_AddRefs(shellLib));
@@ -221,19 +220,7 @@ GetRegWindowsAppDataFolder(bool aLocal, nsIFile** aFile)
 static nsresult
 GetUnixHomeDir(nsIFile** aFile)
 {
-#ifdef VMS
-  char* pHome;
-  pHome = getenv("HOME");
-  if (*pHome == '/') {
-    return NS_NewNativeLocalFile(nsDependentCString(pHome),
-                                 true,
-                                 aFile);
-  } else {
-    return NS_NewNativeLocalFile(nsDependentCString(decc$translate_vms(pHome)),
-                                 true,
-                                 aFile);
-  }
-#elif defined(ANDROID)
+#if defined(ANDROID)
   // XXX no home dir on android; maybe we should return the sdcard if present?
   return NS_ERROR_FAILURE;
 #else
@@ -751,6 +738,14 @@ GetSpecialSystemDirectory(SystemDirectories aSystemSystemDirectory,
       }
       return rv;
     }
+#if defined(MOZ_CONTENT_SANDBOX)
+    case Win_LocalAppdataLow: {
+      // This should only really fail on versions pre-Vista, in which case this
+      // shouldn't have been used in the first place.
+      GUID localAppDataLowGuid = FOLDERID_LocalAppDataLow;
+      return GetKnownFolder(&localAppDataLowGuid, aFile);
+    }
+#endif
     case Win_Documents: {
       return GetLibrarySaveToPath(CSIDL_MYDOCUMENTS,
                                   FOLDERID_DocumentsLibrary,
@@ -807,10 +802,20 @@ GetSpecialSystemDirectory(SystemDirectories aSystemSystemDirectory,
 nsresult
 GetOSXFolderType(short aDomain, OSType aFolderType, nsIFile** aLocalFile)
 {
-  OSErr err;
-  FSRef fsRef;
   nsresult rv = NS_ERROR_FAILURE;
 
+  if (aFolderType == kTemporaryFolderType) {
+    NS_NewLocalFile(EmptyString(), true, aLocalFile);
+    nsCOMPtr<nsILocalFileMac> localMacFile(do_QueryInterface(*aLocalFile));
+    if (localMacFile) {
+      rv = localMacFile->InitWithCFURL(
+             CocoaFileUtils::GetTemporaryFolderCFURLRef());
+    }
+    return rv;
+  }
+
+  OSErr err;
+  FSRef fsRef;
   err = ::FSFindFolder(aDomain, aFolderType, kCreateFolder, &fsRef);
   if (err == noErr) {
     NS_NewLocalFile(EmptyString(), true, aLocalFile);

@@ -12,7 +12,6 @@
 
 interface Principal;
 interface URI;
-interface UserDataHandler;
 
 interface Node : EventTarget {
   const unsigned short ELEMENT_NODE = 1;
@@ -32,11 +31,15 @@ interface Node : EventTarget {
   [Pure]
   readonly attribute DOMString nodeName;
 
-  [Pure]
+  [Pure, Throws]
   readonly attribute DOMString? baseURI;
 
+  [Pure, BinaryName=getComposedDoc]
+  readonly attribute boolean isConnected;
   [Pure]
   readonly attribute Document? ownerDocument;
+  [Pure, Pref="dom.node.rootNode.enabled"]
+  readonly attribute Node rootNode;
   [Pure]
   readonly attribute Node? parentNode;
   [Pure]
@@ -56,7 +59,7 @@ interface Node : EventTarget {
 
   [SetterThrows, Pure]
            attribute DOMString? nodeValue;
-  [SetterThrows, Pure]
+  [Throws, Pure]
            attribute DOMString? textContent;
   [Throws]
   Node insertBefore(Node node, Node? child);
@@ -70,6 +73,8 @@ interface Node : EventTarget {
 
   [Throws]
   Node cloneNode(optional boolean deep = false);
+  [Pure]
+  boolean isSameNode(Node? node);
   [Pure]
   boolean isEqualNode(Node? node);
 
@@ -92,20 +97,8 @@ interface Node : EventTarget {
   boolean isDefaultNamespace(DOMString? namespace);
 
   // Mozilla-specific stuff
-  // These have been moved to Element in the spec.
-  // If we move namespaceURI, prefix and localName to Element they should return
-  // a non-nullable type.
-  [Constant]
-  readonly attribute DOMString? namespaceURI;
-  [Constant]
-  readonly attribute DOMString? prefix;
-  [Constant]
-  readonly attribute DOMString? localName;
-
-  [Pure]
-  boolean hasAttributes();
   [Throws, Func="IsChromeOrXBL"]
-  any setUserData(DOMString key, any data, UserDataHandler? handler);
+  any setUserData(DOMString key, any data);
   [Throws, Func="IsChromeOrXBL"]
   any getUserData(DOMString key);
   [ChromeOnly]
@@ -114,4 +107,9 @@ interface Node : EventTarget {
   readonly attribute URI? baseURIObject;
   [ChromeOnly]
   sequence<MutationObserver> getBoundMutationObservers();
+
+#ifdef ACCESSIBILITY
+  [Pref="accessibility.AOM.enabled"]
+  readonly attribute AccessibleNode? accessibleNode;
+#endif
 };

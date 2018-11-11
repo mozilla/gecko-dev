@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+</head>
+<body>
+<script>
+window.addEventListener("Test:DispatchKeyEvents", aEvent => {
+  var keyCode = KeyEvent["DOM_" + aEvent.detail.code];
+
+  document.body.focus();
+  var evt = document.createEvent("KeyboardEvent");
+  evt.initKeyEvent("keydown", true, true, window,
+                   false, false, false, false,
+                   keyCode, 0);
+  document.body.dispatchEvent(evt);
+
+  evt = document.createEvent("KeyboardEvent");
+  evt.initKeyEvent("keypress", true, true, window,
+                   false, false, false, false,
+                   keyCode, 0);
+  document.body.dispatchEvent(evt);
+
+  evt = document.createEvent("KeyboardEvent");
+  evt.initKeyEvent("keyup", true, true, window,
+                   false, false, false, false,
+                   keyCode, 0);
+  document.body.dispatchEvent(evt);
+});
+</script>
+</body>
+</html>

@@ -6,26 +6,19 @@
 #######################################################################
 # Master "Core Components" macros for getting the OS architecture     #
 # defines these symbols:
-# 64BIT_TAG
 # OS_ARCH	(from uname -r)
 # OS_TEST	(from uname -m)
 # OS_RELEASE	(from uname -v and/or -r)
 # OS_TARGET	User defined, or set to OS_ARCH
 # CPU_ARCH  	(from unmame -m or -p, ONLY on WINNT)
 # OS_CONFIG	OS_TARGET + OS_RELEASE
-# OBJDIR_TAG
+# OBJDIR_TAG    (uses ASAN_TAG, GCOV_TAG, 64BIT_TAG)
 # OBJDIR_NAME
 #######################################################################
 
 #
 # Macros for getting the OS architecture
 #
-
-ifeq ($(USE_64), 1)
-	64BIT_TAG=_64
-else
-	64BIT_TAG=
-endif
 
 OS_ARCH := $(subst /,_,$(shell uname -s))
 
@@ -205,11 +198,11 @@ ifeq (CYGWIN_NT,$(findstring CYGWIN_NT,$(OS_ARCH)))
     endif
 endif
 #
-# If uname -s returns "MINGW32_NT-*", we assume that we are using
+# If uname -s returns "MINGW*_NT-*", we assume that we are using
 # the uname.exe in the MSYS toolkit.
 #
-ifeq (MINGW32_NT,$(findstring MINGW32_NT,$(OS_ARCH)))
-    OS_RELEASE := $(patsubst MINGW32_NT-%,%,$(OS_ARCH))
+ifneq (,$(filter MINGW32_NT-% MINGW64_NT-%,$(OS_ARCH)))
+    OS_RELEASE := $(patsubst MINGW64_NT-%,%,$(patsubst MINGW32_NT-%,%,$(OS_ARCH)))
     OS_ARCH = WINNT
     USE_MSYS = 1
     ifndef CPU_ARCH
@@ -217,7 +210,7 @@ ifeq (MINGW32_NT,$(findstring MINGW32_NT,$(OS_ARCH)))
 	#
 	# MSYS's uname -m returns "i686" on a Pentium Pro machine.
 	#
-	ifneq (,$(findstring 86,$(CPU_ARCH)))
+	ifneq (,$(filter i%86,$(CPU_ARCH)))
 	    CPU_ARCH = x386
 	endif
     endif
@@ -261,13 +254,30 @@ OS_CONFIG = $(OS_TARGET)$(OS_RELEASE)
 # to distinguish between debug and release builds.
 #
 
+ifeq ($(USE_ASAN), 1)
+    ASAN_TAG = _ASAN
+else
+    ASAN_TAG =
+endif
+ifeq ($(USE_GCOV), 1)
+    GCOV_TAG = _GCOV
+else
+    GCOV_TAG =
+endif
+ifeq ($(USE_64), 1)
+    64BIT_TAG = _64
+else
+    64BIT_TAG =
+endif
+OBJDIR_TAG_BASE=$(ASAN_TAG)$(GCOV_TAG)$(64BIT_TAG)
+
 ifdef BUILD_OPT
-    OBJDIR_TAG = $(64BIT_TAG)_OPT
+    OBJDIR_TAG = $(OBJDIR_TAG_BASE)_OPT
 else
     ifdef BUILD_IDG
-	OBJDIR_TAG = $(64BIT_TAG)_IDG
+	OBJDIR_TAG = $(OBJDIR_TAG_BASE)_IDG
     else
-	OBJDIR_TAG = $(64BIT_TAG)_DBG
+	OBJDIR_TAG = $(OBJDIR_TAG_BASE)_DBG
     endif
 endif
 
@@ -280,7 +290,14 @@ endif
 # IMPL_STRATEGY may be defined too.
 #
 
-OBJDIR_NAME = $(OS_TARGET)$(OS_RELEASE)$(CPU_TAG)$(COMPILER_TAG)$(LIBC_TAG)$(IMPL_STRATEGY)$(OBJDIR_TAG).OBJ
+ifdef CROSS_COMPILE
+    OBJDIR_NAME_COMPILER =
+else
+    OBJDIR_NAME_COMPILER = $(COMPILER_TAG)
+endif
+OBJDIR_NAME_BASE = $(OS_TARGET)$(OS_RELEASE)$(CPU_TAG)$(OBJDIR_NAME_COMPILER)$(LIBC_TAG)$(IMPL_STRATEGY)$(OBJDIR_TAG)
+OBJDIR_NAME = $(OBJDIR_NAME_BASE).OBJ
+
 
 ifeq (,$(filter-out WIN%,$(OS_TARGET)))
 ifndef BUILD_OPT
@@ -289,7 +306,7 @@ ifndef BUILD_OPT
 # (RTL) in the debug build
 #
 ifdef USE_DEBUG_RTL
-    OBJDIR_NAME = $(OS_TARGET)$(OS_RELEASE)$(CPU_TAG)$(COMPILER_TAG)$(IMPL_STRATEGY)$(OBJDIR_TAG).OBJD
+    OBJDIR_NAME = $(OBJDIR_NAME_BASE).OBJD
 endif
 endif
 endif

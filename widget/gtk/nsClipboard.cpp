@@ -7,6 +7,7 @@
 
 #include "mozilla/ArrayUtils.h"
 
+#include "nsArrayUtils.h"
 #include "nsClipboard.h"
 #include "nsSupportsPrimitives.h"
 #include "nsString.h"
@@ -32,6 +33,7 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <unistd.h>
+#include "X11UndefineNone.h"
 
 #include "mozilla/dom/EncodingUtils.h"
 #include "nsIUnicodeDecoder.h"
@@ -72,6 +74,11 @@ wait_for_contents          (GtkClipboard *clipboard, GdkAtom target);
 static gchar *
 wait_for_text              (GtkClipboard *clipboard);
 
+static GdkFilterReturn
+selection_request_filter   (GdkXEvent *gdk_xevent,
+                            GdkEvent *event,
+                            gpointer data);
+
 nsClipboard::nsClipboard()
 {
 }
@@ -99,6 +106,13 @@ nsClipboard::Init(void)
 
     os->AddObserver(this, "quit-application", false);
 
+    // A custom event filter to workaround attempting to dereference a null
+    // selection requestor in GTK3 versions before 3.11.3. See bug 1178799.
+#if (MOZ_WIDGET_GTK == 3) && defined(MOZ_X11)
+    if (gtk_check_version(3, 11, 3))
+        gdk_window_add_filter(nullptr, selection_request_filter, nullptr);
+#endif
+
     return NS_OK;
 }
 
@@ -108,6 +122,7 @@ nsClipboard::Observe(nsISupports *aSubject, const char *aTopic, const char16_t *
     if (strcmp(aTopic, "quit-application") == 0) {
         // application is going to quit, save clipboard content
         Store();
+        gdk_window_remove_filter(nullptr, selection_request_filter, nullptr);
     }
     return NS_OK;
 }
@@ -137,14 +152,6 @@ nsClipboard::SetData(nsITransferable *aTransferable,
         return NS_OK;
     }
 
-    nsresult rv;
-    if (!mPrivacyHandler) {
-        rv = NS_NewClipboardPrivacyHandler(getter_AddRefs(mPrivacyHandler));
-        NS_ENSURE_SUCCESS(rv, rv);
-    }
-    rv = mPrivacyHandler->PrepareDataForClipboard(aTransferable);
-    NS_ENSURE_SUCCESS(rv, rv);
-
     // Clear out the clipboard in order to set the new data
     EmptyClipboard(aWhichClipboard);
 
@@ -152,20 +159,19 @@ nsClipboard::SetData(nsITransferable *aTransferable,
     GtkTargetList *list = gtk_target_list_new(nullptr, 0);
 
     // Get the types of supported flavors
-    nsCOMPtr<nsISupportsArray> flavors;
+    nsCOMPtr<nsIArray> flavors;
 
-    rv = aTransferable->FlavorsTransferableCanExport(getter_AddRefs(flavors));
+    nsresult rv =
+        aTransferable->FlavorsTransferableCanExport(getter_AddRefs(flavors));
     if (!flavors || NS_FAILED(rv))
         return NS_ERROR_FAILURE;
 
     // Add all the flavors to this widget's supported type.
     bool imagesAdded = false;
     uint32_t count;
-    flavors->Count(&count);
+    flavors->GetLength(&count);
     for (uint32_t i=0; i < count; i++) {
-        nsCOMPtr<nsISupports> tastesLike;
-        flavors->GetElementAt(i, getter_AddRefs(tastesLike));
-        nsCOMPtr<nsISupportsCString> flavor = do_QueryInterface(tastesLike);
+        nsCOMPtr<nsISupportsCString> flavor = do_QueryElementAt(flavors, i);
 
         if (flavor) {
             nsXPIDLCString flavorStr;
@@ -251,20 +257,17 @@ nsClipboard::GetData(nsITransferable *aTransferable, int32_t aWhichClipboard)
     nsAutoCString  foundFlavor;
 
     // Get a list of flavors this transferable can import
-    nsCOMPtr<nsISupportsArray> flavors;
+    nsCOMPtr<nsIArray> flavors;
     nsresult rv;
     rv = aTransferable->FlavorsTransferableCanImport(getter_AddRefs(flavors));
     if (!flavors || NS_FAILED(rv))
         return NS_ERROR_FAILURE;
 
     uint32_t count;
-    flavors->Count(&count);
+    flavors->GetLength(&count);
     for (uint32_t i=0; i < count; i++) {
-        nsCOMPtr<nsISupports> genericFlavor;
-        flavors->GetElementAt(i, getter_AddRefs(genericFlavor));
-
         nsCOMPtr<nsISupportsCString> currentFlavor;
-        currentFlavor = do_QueryInterface(genericFlavor);
+        currentFlavor = do_QueryElementAt(flavors, i);
 
         if (currentFlavor) {
             nsXPIDLCString flavorStr;
@@ -338,7 +341,7 @@ nsClipboard::GetData(nsITransferable *aTransferable, int32_t aWhichClipboard)
                     data = (guchar *)htmlBody;
                     length = htmlBodyLen * 2;
                 } else {
-                    data = (guchar *)nsMemory::Alloc(length);
+                    data = (guchar *)moz_xmalloc(length);
                     if (!data)
                         break;
                     memcpy(data, clipboardData, length);
@@ -361,7 +364,7 @@ nsClipboard::GetData(nsITransferable *aTransferable, int32_t aWhichClipboard)
     }
 
     if (data)
-        nsMemory::Free(data);
+        free(data);
 
     return NS_OK;
 }
@@ -523,9 +526,8 @@ nsClipboard::SelectionGetEvent(GtkClipboard     *aClipboard,
     nsCOMPtr<nsISupports> item;
     uint32_t len;
 
-  
     GdkAtom selectionTarget = gtk_selection_data_get_target(aSelectionData);
-  
+
     // Check to see if the selection data includes any of the string
     // types that we support.
     if (selectionTarget == gdk_atom_intern ("STRING", FALSE) ||
@@ -554,7 +556,7 @@ nsClipboard::SelectionGetEvent(GtkClipboard     *aClipboard,
         gtk_selection_data_set_text (aSelectionData, utf8string,
                                      strlen(utf8string));
 
-        nsMemory::Free(utf8string);
+        free(utf8string);
         return;
     }
 
@@ -563,12 +565,11 @@ nsClipboard::SelectionGetEvent(GtkClipboard     *aClipboard,
         // Look through our transfer data for the image
         static const char* const imageMimeTypes[] = {
             kNativeImageMime, kPNGImageMime, kJPEGImageMime, kJPGImageMime, kGIFImageMime };
-        nsCOMPtr<nsISupports> item;
-        uint32_t len;
+        nsCOMPtr<nsISupports> imageItem;
         nsCOMPtr<nsISupportsInterfacePointer> ptrPrimitive;
         for (uint32_t i = 0; !ptrPrimitive && i < ArrayLength(imageMimeTypes); i++) {
-            rv = trans->GetTransferData(imageMimeTypes[i], getter_AddRefs(item), &len);
-            ptrPrimitive = do_QueryInterface(item);
+            rv = trans->GetTransferData(imageMimeTypes[i], getter_AddRefs(imageItem), &len);
+            ptrPrimitive = do_QueryInterface(imageItem);
         }
         if (!ptrPrimitive)
             return;
@@ -616,13 +617,13 @@ nsClipboard::SelectionGetEvent(GtkClipboard     *aClipboard,
              * detect mozilla use UCS2 encoding when copy-paste.
              */
             guchar *buffer = (guchar *)
-                    nsMemory::Alloc((len * sizeof(guchar)) + sizeof(char16_t));
+                    moz_xmalloc((len * sizeof(guchar)) + sizeof(char16_t));
             if (!buffer)
                 return;
             char16_t prefix = 0xFEFF;
             memcpy(buffer, &prefix, sizeof(prefix));
             memcpy(buffer + sizeof(prefix), primitive_data, len);
-            nsMemory::Free((guchar *)primitive_data);
+            free((guchar *)primitive_data);
             primitive_data = (guchar *)buffer;
             len += sizeof(prefix);
         }
@@ -630,7 +631,7 @@ nsClipboard::SelectionGetEvent(GtkClipboard     *aClipboard,
         gtk_selection_data_set(aSelectionData, selectionTarget,
                                8, /* 8 bits in a unit */
                                (const guchar *)primitive_data, len);
-        nsMemory::Free(primitive_data);
+        free(primitive_data);
     }
 
     g_free(target_name);
@@ -698,7 +699,7 @@ void ConvertHTMLtoUCS2(guchar * data, int32_t dataLength,
     if (charset.EqualsLiteral("UTF-16")) {//current mozilla
         outUnicodeLen = (dataLength / 2) - 1;
         *unicodeData = reinterpret_cast<char16_t*>
-                                       (nsMemory::Alloc((outUnicodeLen + sizeof('\0')) *
+                                       (moz_xmalloc((outUnicodeLen + sizeof('\0')) *
                        sizeof(char16_t)));
         if (*unicodeData) {
             memcpy(*unicodeData, data + sizeof(char16_t),
@@ -723,11 +724,17 @@ void ConvertHTMLtoUCS2(guchar * data, int32_t dataLength,
         }
         decoder = EncodingUtils::DecoderForEncoding(encoding);
         // converting
-        decoder->GetMaxLength((const char *)data, dataLength, &outUnicodeLen);
+        nsresult rv = decoder->GetMaxLength((const char *)data, dataLength,
+                                            &outUnicodeLen);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          outUnicodeLen = 0;
+          return;
+        }
+
         // |outUnicodeLen| is number of chars
         if (outUnicodeLen) {
             *unicodeData = reinterpret_cast<char16_t*>
-                                           (nsMemory::Alloc((outUnicodeLen + sizeof('\0')) *
+                                           (moz_xmalloc((outUnicodeLen + sizeof('\0')) *
                            sizeof(char16_t)));
             if (*unicodeData) {
                 int32_t numberTmp = dataLength;
@@ -918,52 +925,54 @@ RetrievalContext::Wait()
         return data;
     }
 
-    Display *xDisplay = GDK_DISPLAY_XDISPLAY(gdk_display_get_default()) ;
-    checkEventContext context;
-    context.cbWidget = nullptr;
-    context.selAtom = gdk_x11_atom_to_xatom(gdk_atom_intern("GDK_SELECTION",
-                                                            FALSE));
+    GdkDisplay *gdkDisplay = gdk_display_get_default();
+    if (GDK_IS_X11_DISPLAY(gdkDisplay)) {
+        Display *xDisplay = GDK_DISPLAY_XDISPLAY(gdkDisplay);
+        checkEventContext context;
+        context.cbWidget = nullptr;
+        context.selAtom = gdk_x11_atom_to_xatom(gdk_atom_intern("GDK_SELECTION",
+                                                                FALSE));
 
-    // Send X events which are relevant to the ongoing selection retrieval
-    // to the clipboard widget.  Wait until either the operation completes, or
-    // we hit our timeout.  All other X events remain queued.
+        // Send X events which are relevant to the ongoing selection retrieval
+        // to the clipboard widget.  Wait until either the operation completes, or
+        // we hit our timeout.  All other X events remain queued.
 
-    int select_result;
+        int select_result;
 
-    int cnumber = ConnectionNumber(xDisplay);
-    fd_set select_set;
-    FD_ZERO(&select_set);
-    FD_SET(cnumber, &select_set);
-    ++cnumber;
-    TimeStamp start = TimeStamp::Now();
+        int cnumber = ConnectionNumber(xDisplay);
+        fd_set select_set;
+        FD_ZERO(&select_set);
+        FD_SET(cnumber, &select_set);
+        ++cnumber;
+        TimeStamp start = TimeStamp::Now();
 
-    do {
-        XEvent xevent;
+        do {
+            XEvent xevent;
 
-        while (XCheckIfEvent(xDisplay, &xevent, checkEventProc,
-                             (XPointer) &context)) {
+            while (XCheckIfEvent(xDisplay, &xevent, checkEventProc,
+                                 (XPointer) &context)) {
 
-            if (xevent.xany.type == SelectionNotify)
-                DispatchSelectionNotifyEvent(context.cbWidget, &xevent);
-            else
-                DispatchPropertyNotifyEvent(context.cbWidget, &xevent);
+                if (xevent.xany.type == SelectionNotify)
+                    DispatchSelectionNotifyEvent(context.cbWidget, &xevent);
+                else
+                    DispatchPropertyNotifyEvent(context.cbWidget, &xevent);
 
-            if (mState == COMPLETED) {
-                void *data = mData;
-                mData = nullptr;
-                return data;
+                if (mState == COMPLETED) {
+                    void *data = mData;
+                    mData = nullptr;
+                    return data;
+                }
             }
-        }
 
-        TimeStamp now = TimeStamp::Now();
-        struct timeval tv;
-        tv.tv_sec = 0;
-        tv.tv_usec = std::max<int32_t>(0,
-            kClipboardTimeout - (now - start).ToMicroseconds());
-        select_result = select(cnumber, &select_set, nullptr, nullptr, &tv);
-    } while (select_result == 1 ||
-             (select_result == -1 && errno == EINTR));
-
+            TimeStamp now = TimeStamp::Now();
+            struct timeval tv;
+            tv.tv_sec = 0;
+            tv.tv_usec = std::max<int32_t>(0,
+                kClipboardTimeout - (now - start).ToMicroseconds());
+            select_result = select(cnumber, &select_set, nullptr, nullptr, &tv);
+        } while (select_result == 1 ||
+                 (select_result == -1 && errno == EINTR));
+    }
 #ifdef DEBUG_CLIPBOARD
     printf("exceeded clipboard timeout\n");
 #endif
@@ -986,7 +995,7 @@ wait_for_contents(GtkClipboard *clipboard, GdkAtom target)
 {
     RefPtr<RetrievalContext> context = new RetrievalContext();
     // Balanced by Release in clipboard_contents_received
-    context->AddRef();
+    context.get()->AddRef();
     gtk_clipboard_request_contents(clipboard, target,
                                    clipboard_contents_received,
                                    context.get());
@@ -1008,7 +1017,30 @@ wait_for_text(GtkClipboard *clipboard)
 {
     RefPtr<RetrievalContext> context = new RetrievalContext();
     // Balanced by Release in clipboard_text_received
-    context->AddRef();
+    context.get()->AddRef();
     gtk_clipboard_request_text(clipboard, clipboard_text_received, context.get());
     return static_cast<gchar*>(context->Wait());
+}
+
+static GdkFilterReturn
+selection_request_filter(GdkXEvent *gdk_xevent, GdkEvent *event, gpointer data)
+{
+    XEvent *xevent = static_cast<XEvent*>(gdk_xevent);
+    if (xevent->xany.type == SelectionRequest) {
+        if (xevent->xselectionrequest.requestor == X11None)
+            return GDK_FILTER_REMOVE;
+
+        GdkDisplay *display = gdk_x11_lookup_xdisplay(
+                xevent->xselectionrequest.display);
+        if (!display)
+            return GDK_FILTER_REMOVE;
+
+        GdkWindow *window = gdk_x11_window_foreign_new_for_display(display,
+                xevent->xselectionrequest.requestor);
+        if (!window)
+            return GDK_FILTER_REMOVE;
+
+        g_object_unref(window);
+    }
+    return GDK_FILTER_CONTINUE;
 }

@@ -7,15 +7,17 @@
 /* representation of one line within a block frame, a CSS line box */
 
 #include "nsLineBox.h"
-#include "prprf.h"
-#include "nsFrame.h"
-#include "nsPresArena.h"
-#include "nsBidiPresUtils.h"
-#include "nsIFrameInlines.h"
-#include "WritingModes.h"
+
+#include "mozilla/ArenaObjectID.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Likely.h"
+#include "mozilla/WritingModes.h"
+#include "nsBidiPresUtils.h"
+#include "nsFrame.h"
+#include "nsIFrameInlines.h"
+#include "nsPresArena.h"
 #include "nsPrintfCString.h"
+#include "mozilla/Sprintf.h"
 
 #ifdef DEBUG
 static int32_t ctorCount;
@@ -31,7 +33,7 @@ using namespace mozilla;
 
 nsLineBox::nsLineBox(nsIFrame* aFrame, int32_t aCount, bool aIsBlock)
   : mFirstChild(aFrame)
-  , mContainerWidth(-1)
+  , mContainerSize(-1, -1)
   , mBounds(WritingMode()) // mBounds will be initialized with the correct
                            // writing mode when it is set
 // NOTE: memory is already zeroed since we allocate with AllocateByObjectID.
@@ -46,13 +48,9 @@ nsLineBox::nsLineBox(nsIFrame* aFrame, int32_t aCount, bool aIsBlock)
                  "wrong kind of child frame");
   }
 #endif
-
-  static_assert(NS_STYLE_CLEAR_MAX <= 15,
+  static_assert(static_cast<int>(StyleClear::Max) <= 15,
                 "FlagBits needs more bits to store the full range of "
                 "break type ('clear') values");
-#if NS_STYLE_CLEAR_NONE > 0
-  mFlags.mBreakType = NS_STYLE_CLEAR_NONE;
-#endif
   mChildCount = aCount;
   MarkDirty();
   mFlags.mBlock = aIsBlock;
@@ -79,7 +77,7 @@ NS_NewLineBox(nsIPresShell* aPresShell, nsLineBox* aFromLine,
 {
   nsLineBox* newLine = new (aPresShell) nsLineBox(aFrame, aCount, false);
   newLine->NoteFramesMovedFrom(aFromLine);
-  newLine->mContainerWidth = aFromLine->mContainerWidth;
+  newLine->mContainerSize = aFromLine->mContainerSize;
   return newLine;
 }
 
@@ -144,19 +142,17 @@ nsLineBox::NoteFramesMovedFrom(nsLineBox* aFromLine)
   }
 }
 
-// Overloaded new operator. Uses an arena (which comes from the presShell)
-// to perform the allocation.
 void*
-nsLineBox::operator new(size_t sz, nsIPresShell* aPresShell) CPP_THROW_NEW
+nsLineBox::operator new(size_t sz, nsIPresShell* aPresShell)
 {
-  return aPresShell->AllocateByObjectID(nsPresArena::nsLineBox_id, sz);
+  return aPresShell->AllocateByObjectID(eArenaObjectID_nsLineBox, sz);
 }
 
 void
 nsLineBox::Destroy(nsIPresShell* aPresShell)
 {
   this->nsLineBox::~nsLineBox();
-  aPresShell->FreeByObjectID(nsPresArena::nsLineBox_id, this);
+  aPresShell->FreeByObjectID(eArenaObjectID_nsLineBox, this);
 }
 
 void
@@ -195,17 +191,18 @@ ListFloats(FILE* out, const char* aPrefix, const nsFloatCacheList& aFloats)
   }
 }
 
-const char *
-BreakTypeToString(uint8_t aBreakType)
+const char*
+nsLineBox::BreakTypeToString(StyleClear aBreakType) const
 {
   switch (aBreakType) {
-  case NS_STYLE_CLEAR_NONE: return "nobr";
-  case NS_STYLE_CLEAR_LEFT: return "leftbr";
-  case NS_STYLE_CLEAR_RIGHT: return "rightbr";
-  case NS_STYLE_CLEAR_BOTH: return "leftbr+rightbr";
-  case NS_STYLE_CLEAR_LINE: return "linebr";
-  default:
-    break;
+    case StyleClear::None: return "nobr";
+    case StyleClear::Left: return "leftbr";
+    case StyleClear::Right: return "rightbr";
+    case StyleClear::InlineStart: return "inlinestartbr";
+    case StyleClear::InlineEnd: return "inlineendbr";
+    case StyleClear::Both: return "leftbr+rightbr";
+    case StyleClear::Line: return "linebr";
+    case StyleClear::Max: return "leftbr+rightbr+linebr";
   }
   return "unknown";
 }
@@ -213,15 +210,15 @@ BreakTypeToString(uint8_t aBreakType)
 char*
 nsLineBox::StateToString(char* aBuf, int32_t aBufSize) const
 {
-  PR_snprintf(aBuf, aBufSize, "%s,%s,%s,%s,%s,before:%s,after:%s[0x%x]",
-              IsBlock() ? "block" : "inline",
-              IsDirty() ? "dirty" : "clean",
-              IsPreviousMarginDirty() ? "prevmargindirty" : "prevmarginclean",
-              IsImpactedByFloat() ? "impacted" : "not impacted",
-              IsLineWrapped() ? "wrapped" : "not wrapped",
-              BreakTypeToString(GetBreakTypeBefore()),
-              BreakTypeToString(GetBreakTypeAfter()),
-              mAllFlags);
+  snprintf(aBuf, aBufSize, "%s,%s,%s,%s,%s,before:%s,after:%s[0x%x]",
+           IsBlock() ? "block" : "inline",
+           IsDirty() ? "dirty" : "clean",
+           IsPreviousMarginDirty() ? "prevmargindirty" : "prevmarginclean",
+           IsImpactedByFloat() ? "impacted" : "not impacted",
+           IsLineWrapped() ? "wrapped" : "not wrapped",
+           BreakTypeToString(GetBreakTypeBefore()),
+           BreakTypeToString(GetBreakTypeAfter()),
+           mAllFlags);
   return aBuf;
 }
 
@@ -243,12 +240,18 @@ nsLineBox::List(FILE* out, const char* aPrefix, uint32_t aFlags) const
   str += nsPrintfCString("line %p: count=%d state=%s ",
           static_cast<const void*>(this), GetChildCount(),
           StateToString(cbuf, sizeof(cbuf)));
-  if (IsBlock() && !GetCarriedOutBottomMargin().IsZero()) {
-    str += nsPrintfCString("bm=%d ", GetCarriedOutBottomMargin().get());
+  if (IsBlock() && !GetCarriedOutBEndMargin().IsZero()) {
+    str += nsPrintfCString("bm=%d ", GetCarriedOutBEndMargin().get());
   }
   nsRect bounds = GetPhysicalBounds();
   str += nsPrintfCString("{%d,%d,%d,%d} ",
           bounds.x, bounds.y, bounds.width, bounds.height);
+  if (mWritingMode.IsVertical() || !mWritingMode.IsBidiLTR()) {
+    str += nsPrintfCString("{%s: %d,%d,%d,%d; cs=%d,%d} ",
+                           mWritingMode.DebugString(),
+                           IStart(), BStart(), ISize(), BSize(),
+                           mContainerSize.width, mContainerSize.height);
+  }
   if (mData &&
       (!mData->mOverflowAreas.VisualOverflow().IsEqualEdges(bounds) ||
        !mData->mOverflowAreas.ScrollableOverflow().IsEqualEdges(bounds))) {
@@ -279,9 +282,7 @@ nsLineBox::List(FILE* out, const char* aPrefix, uint32_t aFlags) const
   }
   fprintf_stderr(out, "%s>\n", aPrefix);
 }
-#endif
 
-#ifdef DEBUG
 nsIFrame*
 nsLineBox::LastChild() const
 {
@@ -430,17 +431,17 @@ nsLineBox::RFindLineContaining(nsIFrame* aFrame,
 }
 
 nsCollapsingMargin
-nsLineBox::GetCarriedOutBottomMargin() const
+nsLineBox::GetCarriedOutBEndMargin() const
 {
   NS_ASSERTION(IsBlock(),
-               "GetCarriedOutBottomMargin called on non-block line.");
+               "GetCarriedOutBEndMargin called on non-block line.");
   return (IsBlock() && mBlockData)
-    ? mBlockData->mCarriedOutBottomMargin
+    ? mBlockData->mCarriedOutBEndMargin
     : nsCollapsingMargin();
 }
 
 bool
-nsLineBox::SetCarriedOutBottomMargin(nsCollapsingMargin aValue)
+nsLineBox::SetCarriedOutBEndMargin(nsCollapsingMargin aValue)
 {
   bool changed = false;
   if (IsBlock()) {
@@ -448,12 +449,12 @@ nsLineBox::SetCarriedOutBottomMargin(nsCollapsingMargin aValue)
       if (!mBlockData) {
         mBlockData = new ExtraBlockData(GetPhysicalBounds());
       }
-      changed = aValue != mBlockData->mCarriedOutBottomMargin;
-      mBlockData->mCarriedOutBottomMargin = aValue;
+      changed = aValue != mBlockData->mCarriedOutBEndMargin;
+      mBlockData->mCarriedOutBEndMargin = aValue;
     }
     else if (mBlockData) {
-      changed = aValue != mBlockData->mCarriedOutBottomMargin;
-      mBlockData->mCarriedOutBottomMargin = aValue;
+      changed = aValue != mBlockData->mCarriedOutBEndMargin;
+      mBlockData->mCarriedOutBEndMargin = aValue;
       MaybeFreeData();
     }
   }
@@ -471,7 +472,7 @@ nsLineBox::MaybeFreeData()
         mInlineData = nullptr;
       }
     }
-    else if (mBlockData->mCarriedOutBottomMargin.IsZero()) {
+    else if (mBlockData->mCarriedOutBEndMargin.IsZero()) {
       delete mBlockData;
       mBlockData = nullptr;
     }
@@ -482,7 +483,7 @@ nsLineBox::MaybeFreeData()
 nsFloatCache*
 nsLineBox::GetFirstFloat()
 {
-  NS_ABORT_IF_FALSE(IsInline(), "block line can't have floats");
+  MOZ_ASSERT(IsInline(), "block line can't have floats");
   return mInlineData ? mInlineData->mFloats.Head() : nullptr;
 }
 
@@ -490,7 +491,7 @@ nsLineBox::GetFirstFloat()
 void
 nsLineBox::FreeFloats(nsFloatCacheFreeList& aFreeList)
 {
-  NS_ABORT_IF_FALSE(IsInline(), "block line can't have floats");
+  MOZ_ASSERT(IsInline(), "block line can't have floats");
   if (IsInline() && mInlineData) {
     if (mInlineData->mFloats.NotEmpty()) {
       aFreeList.Append(mInlineData->mFloats);
@@ -502,7 +503,7 @@ nsLineBox::FreeFloats(nsFloatCacheFreeList& aFreeList)
 void
 nsLineBox::AppendFloats(nsFloatCacheFreeList& aFreeList)
 { 
-  NS_ABORT_IF_FALSE(IsInline(), "block line can't have floats");
+  MOZ_ASSERT(IsInline(), "block line can't have floats");
   if (IsInline()) {
     if (aFreeList.NotEmpty()) {
       if (!mInlineData) {
@@ -516,7 +517,7 @@ nsLineBox::AppendFloats(nsFloatCacheFreeList& aFreeList)
 bool
 nsLineBox::RemoveFloat(nsIFrame* aFrame)
 {
-  NS_ABORT_IF_FALSE(IsInline(), "block line can't have floats");
+  MOZ_ASSERT(IsInline(), "block line can't have floats");
   if (IsInline() && mInlineData) {
     nsFloatCache* fc = mInlineData->mFloats.Find(aFrame);
     if (fc) {
@@ -636,12 +637,10 @@ NS_IMETHODIMP
 nsLineIterator::GetLine(int32_t aLineNumber,
                         nsIFrame** aFirstFrameOnLine,
                         int32_t* aNumFramesOnLine,
-                        nsRect& aLineBounds,
-                        uint32_t* aLineFlags)
+                        nsRect& aLineBounds)
 {
   NS_ENSURE_ARG_POINTER(aFirstFrameOnLine);
   NS_ENSURE_ARG_POINTER(aNumFramesOnLine);
-  NS_ENSURE_ARG_POINTER(aLineFlags);
 
   if ((aLineNumber < 0) || (aLineNumber >= mNumLines)) {
     *aFirstFrameOnLine = nullptr;
@@ -653,16 +652,6 @@ nsLineIterator::GetLine(int32_t aLineNumber,
   *aFirstFrameOnLine = line->mFirstChild;
   *aNumFramesOnLine = line->GetChildCount();
   aLineBounds = line->GetPhysicalBounds();
-
-  uint32_t flags = 0;
-  if (line->IsBlock()) {
-    flags |= NS_LINE_FLAG_IS_BLOCK;
-  }
-  else {
-    if (line->HasBreakAfter())
-      flags |= NS_LINE_FLAG_ENDS_IN_BREAK;
-  }
-  *aLineFlags = flags;
 
   return NS_OK;
 }
@@ -711,14 +700,14 @@ nsLineIterator::CheckLineOrder(int32_t                  aLine,
 
 NS_IMETHODIMP
 nsLineIterator::FindFrameAt(int32_t aLineNumber,
-                            nscoord aX,
+                            nsPoint aPos,
                             nsIFrame** aFrameFound,
-                            bool* aXIsBeforeFirstFrame,
-                            bool* aXIsAfterLastFrame)
+                            bool* aPosIsBeforeFirstFrame,
+                            bool* aPosIsAfterLastFrame)
 {
-  NS_PRECONDITION(aFrameFound && aXIsBeforeFirstFrame && aXIsAfterLastFrame,
+  NS_PRECONDITION(aFrameFound && aPosIsBeforeFirstFrame && aPosIsAfterLastFrame,
                   "null OUT ptr");
-  if (!aFrameFound || !aXIsBeforeFirstFrame || !aXIsAfterLastFrame) {
+  if (!aFrameFound || !aPosIsBeforeFirstFrame || !aPosIsAfterLastFrame) {
     return NS_ERROR_NULL_POINTER;
   }
   if ((aLineNumber < 0) || (aLineNumber >= mNumLines)) {
@@ -728,8 +717,8 @@ nsLineIterator::FindFrameAt(int32_t aLineNumber,
   nsLineBox* line = mLines[aLineNumber];
   if (!line) {
     *aFrameFound = nullptr;
-    *aXIsBeforeFirstFrame = true;
-    *aXIsAfterLastFrame = false;
+    *aPosIsBeforeFirstFrame = true;
+    *aPosIsAfterLastFrame = false;
     return NS_OK;
   }
 
@@ -737,51 +726,63 @@ nsLineIterator::FindFrameAt(int32_t aLineNumber,
     return NS_ERROR_FAILURE;
 
   nsIFrame* frame = line->mFirstChild;
-  nsIFrame* closestFromLeft = nullptr;
-  nsIFrame* closestFromRight = nullptr;
+  nsIFrame* closestFromStart = nullptr;
+  nsIFrame* closestFromEnd = nullptr;
+
+  WritingMode wm = line->mWritingMode;
+  nsSize containerSize = line->mContainerSize;
+
+  LogicalPoint pos(wm, aPos, containerSize);
+
   int32_t n = line->GetChildCount();
   while (n--) {
-    nsRect rect = frame->GetRect();
-    if (rect.width > 0) {
-      // If aX is inside this frame - this is it
-      if (rect.x <= aX && rect.XMost() > aX) {
-        closestFromLeft = closestFromRight = frame;
+    LogicalRect rect = frame->GetLogicalRect(wm, containerSize);
+    if (rect.ISize(wm) > 0) {
+      // If pos.I() is inside this frame - this is it
+      if (rect.IStart(wm) <= pos.I(wm) && rect.IEnd(wm) > pos.I(wm)) {
+        closestFromStart = closestFromEnd = frame;
         break;
       }
-      if (rect.x < aX) {
-        if (!closestFromLeft || 
-            rect.XMost() > closestFromLeft->GetRect().XMost())
-          closestFromLeft = frame;
+      if (rect.IStart(wm) < pos.I(wm)) {
+        if (!closestFromStart || 
+            rect.IEnd(wm) > closestFromStart->
+                              GetLogicalRect(wm, containerSize).IEnd(wm))
+          closestFromStart = frame;
       }
       else {
-        if (!closestFromRight ||
-            rect.x < closestFromRight->GetRect().x)
-          closestFromRight = frame;
+        if (!closestFromEnd ||
+            rect.IStart(wm) < closestFromEnd->
+                                GetLogicalRect(wm, containerSize).IStart(wm))
+          closestFromEnd = frame;
       }
     }
     frame = frame->GetNextSibling();
   }
-  if (!closestFromLeft && !closestFromRight) {
+  if (!closestFromStart && !closestFromEnd) {
     // All frames were zero-width. Just take the first one.
-    closestFromLeft = closestFromRight = line->mFirstChild;
+    closestFromStart = closestFromEnd = line->mFirstChild;
   }
-  *aXIsBeforeFirstFrame = mRightToLeft ? !closestFromRight : !closestFromLeft;
-  *aXIsAfterLastFrame = mRightToLeft ? !closestFromLeft : !closestFromRight;
-  if (closestFromLeft == closestFromRight) {
-    *aFrameFound = closestFromLeft;
+  *aPosIsBeforeFirstFrame = mRightToLeft ? !closestFromEnd : !closestFromStart;
+  *aPosIsAfterLastFrame = mRightToLeft ? !closestFromStart : !closestFromEnd;
+  if (closestFromStart == closestFromEnd) {
+    *aFrameFound = closestFromStart;
   }
-  else if (!closestFromLeft) {
-    *aFrameFound = closestFromRight;
+  else if (!closestFromStart) {
+    *aFrameFound = closestFromEnd;
   }
-  else if (!closestFromRight) {
-    *aFrameFound = closestFromLeft;
+  else if (!closestFromEnd) {
+    *aFrameFound = closestFromStart;
   }
   else { // we're between two frames
-    nscoord delta = closestFromRight->GetRect().x - closestFromLeft->GetRect().XMost();
-    if (aX < closestFromLeft->GetRect().XMost() + delta/2)
-      *aFrameFound = closestFromLeft;
-    else
-      *aFrameFound = closestFromRight;
+    nscoord delta =
+      closestFromEnd->GetLogicalRect(wm, containerSize).IStart(wm) -
+      closestFromStart->GetLogicalRect(wm, containerSize).IEnd(wm);
+    if (pos.I(wm) < closestFromStart->
+                      GetLogicalRect(wm, containerSize).IEnd(wm) + delta/2) {
+      *aFrameFound = closestFromStart;
+    } else {
+      *aFrameFound = closestFromEnd;
+    }
   }
   return NS_OK;
 }

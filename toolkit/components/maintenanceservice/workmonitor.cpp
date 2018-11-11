@@ -22,20 +22,22 @@
 #include "registrycertificates.h"
 #include "uachelper.h"
 #include "updatehelper.h"
+#include "pathhash.h"
 #include "errors.h"
 
 // Wait 15 minutes for an update operation to run at most.
-// Updates usually take less than a minute so this seems like a 
+// Updates usually take less than a minute so this seems like a
 // significantly large and safe amount of time to wait.
 static const int TIME_TO_WAIT_ON_UPDATER = 15 * 60 * 1000;
-char16_t* MakeCommandLine(int argc, char16_t **argv);
+wchar_t* MakeCommandLine(int argc, wchar_t** argv);
 BOOL WriteStatusFailure(LPCWSTR updateDirPath, int errorCode);
-BOOL PathGetSiblingFilePath(LPWSTR destinationBuffer,  LPCWSTR siblingFilePath, 
+BOOL PathGetSiblingFilePath(LPWSTR destinationBuffer,  LPCWSTR siblingFilePath,
                             LPCWSTR newFileName);
+BOOL DoesFallbackKeyExist();
 
-/* 
+/*
  * Read the update.status file and sets isApplying to true if
- * the status is set to applying
+ * the status is set to applying.
  *
  * @param  updateDirPath The directory where update.status is stored
  * @param  isApplying Out parameter for specifying if the status
@@ -54,8 +56,8 @@ IsStatusApplying(LPCWSTR updateDirPath, BOOL &isApplying)
   }
 
   nsAutoHandle statusFile(CreateFileW(updateStatusFilePath, GENERIC_READ,
-                                      FILE_SHARE_READ | 
-                                      FILE_SHARE_WRITE | 
+                                      FILE_SHARE_READ |
+                                      FILE_SHARE_WRITE |
                                       FILE_SHARE_DELETE,
                                       nullptr, OPEN_EXISTING, 0, nullptr));
 
@@ -71,10 +73,8 @@ IsStatusApplying(LPCWSTR updateDirPath, BOOL &isApplying)
     return FALSE;
   }
 
-  LOG(("updater.exe returned status: %s", buf));
-
   const char kApplying[] = "applying";
-  isApplying = strncmp(buf, kApplying, 
+  isApplying = strncmp(buf, kApplying,
                        sizeof(kApplying) - 1) == 0;
   return TRUE;
 }
@@ -82,15 +82,50 @@ IsStatusApplying(LPCWSTR updateDirPath, BOOL &isApplying)
 /**
  * Determines whether we're staging an update.
  *
- * @param argc    The argc value normally sent to updater.exe
- * @param argv    The argv value normally sent to updater.exe
- * @param boolean True if we're staging an update
+ * @param  argc    The argc value normally sent to updater.exe
+ * @param  argv    The argv value normally sent to updater.exe
+ * @return boolean True if we're staging an update
  */
 static bool
 IsUpdateBeingStaged(int argc, LPWSTR *argv)
 {
   // PID will be set to -1 if we're supposed to stage an update.
-  return argc == 4 && !wcscmp(argv[3], L"-1");
+  return argc == 4 && !wcscmp(argv[3], L"-1") ||
+         argc == 5 && !wcscmp(argv[4], L"-1");
+}
+
+/**
+ * Determines whether the param only contains digits.
+ *
+ * @param str     The string to check
+ * @param boolean True if the param only contains digits
+ */
+static bool
+IsDigits(WCHAR *str)
+{
+  while (*str) {
+    if (!iswdigit(*str++)) {
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
+/**
+ * Determines whether the command line contains just the directory to apply the
+ * update to (old command line) or if it contains the installation directory and
+ * the directory to apply the update to.
+ *
+ * @param argc    The argc value normally sent to updater.exe
+ * @param argv    The argv value normally sent to updater.exe
+ * @param boolean True if the command line contains just the directory to apply
+ *                the update to
+ */
+static bool
+IsOldCommandline(int argc, LPWSTR *argv)
+{
+  return argc == 4 && !wcscmp(argv[3], L"-1") ||
+         argc >= 4 && (wcsstr(argv[3], L"/replace") || IsDigits(argv[3]));
 }
 
 /**
@@ -103,19 +138,29 @@ IsUpdateBeingStaged(int argc, LPWSTR *argv)
 static BOOL
 GetInstallationDir(int argcTmp, LPWSTR *argvTmp, WCHAR aResultDir[MAX_PATH + 1])
 {
-  if (argcTmp < 2) {
+  int index = 3;
+  if (IsOldCommandline(argcTmp, argvTmp)) {
+    index = 2;
+  }
+
+  if (argcTmp < index) {
     return FALSE;
   }
+
   wcsncpy(aResultDir, argvTmp[2], MAX_PATH);
   WCHAR* backSlash = wcsrchr(aResultDir, L'\\');
   // Make sure that the path does not include trailing backslashes
   if (backSlash && (backSlash[1] == L'\0')) {
     *backSlash = L'\0';
   }
-  bool backgroundUpdate = IsUpdateBeingStaged(argcTmp, argvTmp);
-  bool replaceRequest = (argcTmp >= 4 && wcsstr(argvTmp[3], L"/replace"));
-  if (backgroundUpdate || replaceRequest) {
-    return PathRemoveFileSpecW(aResultDir);
+
+  // The new command line's argv[2] is always the installation directory.
+  if (index == 2) {
+    bool backgroundUpdate = IsUpdateBeingStaged(argcTmp, argvTmp);
+    bool replaceRequest = (argcTmp >= 4 && wcsstr(argvTmp[3], L"/replace"));
+    if (backgroundUpdate || replaceRequest) {
+      return PathRemoveFileSpecW(aResultDir);
+    }
   }
   return TRUE;
 }
@@ -145,32 +190,20 @@ StartUpdateProcess(int argc,
   // updater.exe update-dir apply [wait-pid [callback-dir callback-path args]]
   LPWSTR cmdLine = MakeCommandLine(argc, argv);
 
+  int index = 3;
+  if (IsOldCommandline(argc, argv)) {
+    index = 2;
+  }
+
   // If we're about to start the update process from session 0,
   // then we should not show a GUI.  This only really needs to be done
   // on Vista and higher, but it's better to keep everything consistent
   // across all OS if it's of no harm.
-  if (argc >= 2 ) {
+  if (argc >= index) {
     // Setting the desktop to blank will ensure no GUI is displayed
     si.lpDesktop = L"";
     si.dwFlags |= STARTF_USESHOWWINDOW;
     si.wShowWindow = SW_HIDE;
-  }
-
-  // We move the updater.ini file out of the way because we will handle 
-  // executing PostUpdate through the service.  We handle PostUpdate from
-  // the service because there are some per user things that happen that
-  // can't run in session 0 which we run updater.exe in.
-  // Once we are done running updater.exe we rename updater.ini back so
-  // that if there were any errors the next updater.exe will run correctly.
-  WCHAR updaterINI[MAX_PATH + 1];
-  WCHAR updaterINITemp[MAX_PATH + 1];
-  BOOL selfHandlePostUpdate = FALSE;
-  // We use the updater.ini from the same directory as the updater.exe
-  // because of background updates.
-  if (PathGetSiblingFilePath(updaterINI, argv[0], L"updater.ini") &&
-      PathGetSiblingFilePath(updaterINITemp, argv[0], L"updater.tmp")) {
-    selfHandlePostUpdate = MoveFileExW(updaterINI, updaterINITemp, 
-                                       MOVEFILE_REPLACE_EXISTING);
   }
 
   // Add an env var for MOZ_USING_SERVICE so the updater.exe can
@@ -178,16 +211,16 @@ StartUpdateProcess(int argc,
   // Search in updater.cpp for more info on MOZ_USING_SERVICE.
   putenv(const_cast<char*>("MOZ_USING_SERVICE=1"));
   LOG(("Starting service with cmdline: %ls", cmdLine));
-  processStarted = CreateProcessW(argv[0], cmdLine, 
-                                  nullptr, nullptr, FALSE, 
-                                  CREATE_DEFAULT_ERROR_MODE, 
-                                  nullptr, 
+  processStarted = CreateProcessW(argv[0], cmdLine,
+                                  nullptr, nullptr, FALSE,
+                                  CREATE_DEFAULT_ERROR_MODE,
+                                  nullptr,
                                   nullptr, &si, &pi);
-  // Empty value on putenv is how you remove an env variable in Windows
-  putenv(const_cast<char*>("MOZ_USING_SERVICE="));
-  
+
   BOOL updateWasSuccessful = FALSE;
   if (processStarted) {
+    BOOL processTerminated = FALSE;
+    BOOL noProcessExitCode = FALSE;
     // Wait for the updater process to finish
     LOG(("Process was started... waiting on result."));
     DWORD waitRes = WaitForSingleObject(pi.hProcess, TIME_TO_WAIT_ON_UPDATER);
@@ -195,6 +228,7 @@ StartUpdateProcess(int argc,
       // We waited a long period of time for updater.exe and it never finished
       // so kill it.
       TerminateProcess(pi.hProcess, 1);
+      processTerminated = TRUE;
     } else {
       // Check the return code of updater.exe to make sure we get 0
       DWORD returnCode;
@@ -204,6 +238,7 @@ StartUpdateProcess(int argc,
         updateWasSuccessful = (returnCode == 0);
       } else {
         LOG_WARN(("Process finished but could not obtain return code."));
+        noProcessExitCode = TRUE;
       }
     }
     CloseHandle(pi.hProcess);
@@ -214,22 +249,27 @@ StartUpdateProcess(int argc,
     BOOL isApplying = FALSE;
     if (IsStatusApplying(argv[1], isApplying) && isApplying) {
       if (updateWasSuccessful) {
-        LOG(("update.status is still applying even know update "
-             " was successful."));
-        if (!WriteStatusFailure(argv[1], 
+        LOG(("update.status is still applying even though update was "
+             "successful."));
+        if (!WriteStatusFailure(argv[1],
                                 SERVICE_STILL_APPLYING_ON_SUCCESS)) {
-          LOG_WARN(("Could not write update.status still applying on"
-                    " success error."));
+          LOG_WARN(("Could not write update.status still applying on "
+                    "success error."));
         }
         // Since we still had applying we know updater.exe didn't do its
         // job correctly.
         updateWasSuccessful = FALSE;
       } else {
         LOG_WARN(("update.status is still applying and update was not successful."));
-        if (!WriteStatusFailure(argv[1], 
-                                SERVICE_STILL_APPLYING_ON_FAILURE)) {
-          LOG_WARN(("Could not write update.status still applying on"
-                    " success error."));
+        int failcode = SERVICE_STILL_APPLYING_ON_FAILURE;
+        if (noProcessExitCode) {
+          failcode = SERVICE_STILL_APPLYING_NO_EXIT_CODE;
+        } else if (processTerminated) {
+          failcode = SERVICE_STILL_APPLYING_TERMINATED;
+        }
+        if (!WriteStatusFailure(argv[1], failcode)) {
+          LOG_WARN(("Could not write update.status still applying on "
+                    "failure error."));
         }
       }
     }
@@ -240,40 +280,122 @@ StartUpdateProcess(int argc,
               argv[0], cmdLine, lastError));
   }
 
-  // Now that we're done with the update, restore back the updater.ini file
-  // We use it ourselves, and also we want it back in case we had any type 
-  // of error so that the normal update process can use it.
-  if (selfHandlePostUpdate) {
-    MoveFileExW(updaterINITemp, updaterINI, MOVEFILE_REPLACE_EXISTING);
-
-    // Only run the PostUpdate if the update was successful
-    if (updateWasSuccessful && argc > 2) {
-      LPCWSTR updateInfoDir = argv[1];
-      bool backgroundUpdate = IsUpdateBeingStaged(argc, argv);
-
-      // Launch the PostProcess with admin access in session 0.  This is
-      // actually launching the post update process but it takes in the 
-      // callback app path to figure out where to apply to.
-      // The PostUpdate process with user only access will be done inside
-      // the unelevated updater.exe after the update process is complete
-      // from the service.  We don't know here which session to start
-      // the user PostUpdate process from.
-      // Note that we don't need to do this if we're just staging the
-      // update in the background, as the PostUpdate step runs when
-      // performing the replacing in that case.
-      if (!backgroundUpdate) {
-        LOG(("Launching post update process as the service in session 0."));
-        if (!LaunchWinPostProcess(installDir, updateInfoDir, true, nullptr)) {
-          LOG_WARN(("The post update process could not be launched."
-                    " installDir: %ls, updateInfoDir: %ls",
-                    installDir, updateInfoDir));
-        }
-      }
-    }
-  }
+  // Empty value on putenv is how you remove an env variable in Windows
+  putenv(const_cast<char*>("MOZ_USING_SERVICE="));
 
   free(cmdLine);
   return updateWasSuccessful;
+}
+
+/**
+ * Validates a file as an official updater.
+ *
+ * @param updater     Path to the updater to validate
+ * @param installDir  Path to the application installation
+ *                    being updated
+ * @param updateDir   Update applyTo direcotry,
+ *                    where logs will be written
+ *
+ * @return true if updater is the path to a valid updater
+ */
+static bool
+UpdaterIsValid(LPWSTR updater, LPWSTR installDir, LPWSTR updateDir)
+{
+  // Make sure the path to the updater to use for the update is local.
+  // We do this check to make sure that file locking is available for
+  // race condition security checks.
+  BOOL isLocal = FALSE;
+  if (!IsLocalFile(updater, isLocal) || !isLocal) {
+    LOG_WARN(("Filesystem in path %ls is not supported (%d)",
+              updater, GetLastError()));
+    if (!WriteStatusFailure(updateDir, SERVICE_UPDATER_NOT_FIXED_DRIVE)) {
+      LOG_WARN(("Could not write update.status service update failure.  (%d)",
+                GetLastError()));
+    }
+    return false;
+  }
+
+  nsAutoHandle noWriteLock(CreateFileW(updater, GENERIC_READ, FILE_SHARE_READ,
+                                       nullptr, OPEN_EXISTING, 0, nullptr));
+  if (INVALID_HANDLE_VALUE == noWriteLock) {
+    LOG_WARN(("Could not set no write sharing access on file.  (%d)",
+              GetLastError()));
+    if (!WriteStatusFailure(updateDir, SERVICE_COULD_NOT_LOCK_UPDATER)) {
+      LOG_WARN(("Could not write update.status service update failure.  (%d)",
+                GetLastError()));
+    }
+    return false;
+  }
+
+  // Verify that the updater.exe that we are executing is the same
+  // as the one in the installation directory which we are updating.
+  // The installation dir that we are installing to is installDir.
+  WCHAR installDirUpdater[MAX_PATH + 1] = { L'\0' };
+  wcsncpy(installDirUpdater, installDir, MAX_PATH);
+  if (!PathAppendSafe(installDirUpdater, L"updater.exe")) {
+    LOG_WARN(("Install directory updater could not be determined."));
+    return false;
+  }
+
+  BOOL updaterIsCorrect;
+  if (!VerifySameFiles(updater, installDirUpdater, updaterIsCorrect)) {
+    LOG_WARN(("Error checking if the updaters are the same.\n"
+              "Path 1: %ls\nPath 2: %ls", updater, installDirUpdater));
+    return false;
+  }
+
+  if (!updaterIsCorrect) {
+    LOG_WARN(("The updaters do not match, updater will not run.\n"
+              "Path 1: %ls\nPath 2: %ls", updater, installDirUpdater));
+    if (!WriteStatusFailure(updateDir, SERVICE_UPDATER_COMPARE_ERROR)) {
+      LOG_WARN(("Could not write update.status updater compare failure."));
+    }
+    return false;
+  }
+
+  LOG(("updater.exe was compared successfully to the installation directory"
+       " updater.exe."));
+
+  // Check to make sure the updater.exe module has the unique updater identity.
+  // This is a security measure to make sure that the signed executable that
+  // we will run is actually an updater.
+  bool result = true;
+  HMODULE updaterModule = LoadLibraryEx(updater, nullptr,
+                                        LOAD_LIBRARY_AS_DATAFILE);
+  if (!updaterModule) {
+    LOG_WARN(("updater.exe module could not be loaded. (%d)", GetLastError()));
+    result = false;
+  } else {
+    char updaterIdentity[64];
+    if (!LoadStringA(updaterModule, IDS_UPDATER_IDENTITY,
+      updaterIdentity, sizeof(updaterIdentity))) {
+      LOG_WARN(("The updater.exe application does not contain the Mozilla"
+                " updater identity."));
+      result = false;
+    }
+
+    if (strcmp(updaterIdentity, UPDATER_IDENTITY_STRING)) {
+      LOG_WARN(("The updater.exe identity string is not valid."));
+      result = false;
+    }
+    FreeLibrary(updaterModule);
+  }
+
+  if (result) {
+    LOG(("The updater.exe application contains the Mozilla"
+         " updater identity."));
+  } else {
+    if (!WriteStatusFailure(updateDir, SERVICE_UPDATER_IDENTITY_ERROR)) {
+      LOG_WARN(("Could not write update.status no updater identity."));
+    }
+    return false;
+  }
+
+#ifndef DISABLE_UPDATER_AUTHENTICODE_CHECK
+  return DoesBinaryMatchAllowedCertificates(installDir, updater);
+#else
+  return true;
+#endif
 }
 
 /**
@@ -294,9 +416,8 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
 
     // We can only update update.status if argv[1] exists.  argv[1] is
     // the directory where the update.status file exists.
-    if (argc < 2 || 
-        !WriteStatusFailure(argv[1], 
-                            SERVICE_NOT_ENOUGH_COMMAND_LINE_ARGS)) {
+    if (argc < 2 ||
+        !WriteStatusFailure(argv[1], SERVICE_NOT_ENOUGH_COMMAND_LINE_ARGS)) {
       LOG_WARN(("Could not write update.status service update failure.  (%d)",
                 GetLastError()));
     }
@@ -306,119 +427,13 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
   WCHAR installDir[MAX_PATH + 1] = {L'\0'};
   if (!GetInstallationDir(argc, argv, installDir)) {
     LOG_WARN(("Could not get the installation directory"));
-    if (!WriteStatusFailure(argv[1],
-                            SERVICE_INSTALLDIR_ERROR)) {
+    if (!WriteStatusFailure(argv[1], SERVICE_INSTALLDIR_ERROR)) {
       LOG_WARN(("Could not write update.status for GetInstallationDir failure."));
     }
     return FALSE;
   }
 
-  // Make sure the path to the updater to use for the update is local.
-  // We do this check to make sure that file locking is available for
-  // race condition security checks.
-  BOOL isLocal = FALSE;
-  if (!IsLocalFile(argv[0], isLocal) || !isLocal) {
-    LOG_WARN(("Filesystem in path %ls is not supported (%d)",
-              argv[0], GetLastError()));
-    if (!WriteStatusFailure(argv[1], 
-                            SERVICE_UPDATER_NOT_FIXED_DRIVE)) {
-      LOG_WARN(("Could not write update.status service update failure.  (%d)",
-                GetLastError()));
-    }
-    return FALSE;
-  }
-
-  nsAutoHandle noWriteLock(CreateFileW(argv[0], GENERIC_READ, FILE_SHARE_READ, 
-                                       nullptr, OPEN_EXISTING, 0, nullptr));
-  if (INVALID_HANDLE_VALUE == noWriteLock) {
-      LOG_WARN(("Could not set no write sharing access on file.  (%d)",
-                GetLastError()));
-    if (!WriteStatusFailure(argv[1], 
-                            SERVICE_COULD_NOT_LOCK_UPDATER)) {
-      LOG_WARN(("Could not write update.status service update failure.  (%d)",
-                GetLastError()));
-    }
-    return FALSE;
-  }
-
-  // Verify that the updater.exe that we are executing is the same
-  // as the one in the installation directory which we are updating.
-  // The installation dir that we are installing to is installDir.
-  WCHAR installDirUpdater[MAX_PATH + 1] = { L'\0' };
-  wcsncpy(installDirUpdater, installDir, MAX_PATH);
-  if (!PathAppendSafe(installDirUpdater, L"updater.exe")) {
-    LOG_WARN(("Install directory updater could not be determined."));
-    result = FALSE;
-  }
-
-  BOOL updaterIsCorrect;
-  if (result && !VerifySameFiles(argv[0], installDirUpdater, 
-                                 updaterIsCorrect)) {
-    LOG_WARN(("Error checking if the updaters are the same.\n"
-              "Path 1: %ls\nPath 2: %ls", argv[0], installDirUpdater));
-    result = FALSE;
-  }
-
-  if (result && !updaterIsCorrect) {
-    LOG_WARN(("The updaters do not match, updater will not run.")); 
-    result = FALSE;
-  }
-
-  if (result) {
-    LOG(("updater.exe was compared successfully to the installation directory"
-         " updater.exe."));
-  } else {
-    if (!WriteStatusFailure(argv[1], 
-                            SERVICE_UPDATER_COMPARE_ERROR)) {
-      LOG_WARN(("Could not write update.status updater compare failure."));
-    }
-    return FALSE;
-  }
-
-  // Check to make sure the updater.exe module has the unique updater identity.
-  // This is a security measure to make sure that the signed executable that
-  // we will run is actually an updater.
-  HMODULE updaterModule = LoadLibraryEx(argv[0], nullptr, 
-                                        LOAD_LIBRARY_AS_DATAFILE);
-  if (!updaterModule) {
-    LOG_WARN(("updater.exe module could not be loaded. (%d)", GetLastError()));
-    result = FALSE;
-  } else {
-    char updaterIdentity[64];
-    if (!LoadStringA(updaterModule, IDS_UPDATER_IDENTITY, 
-                     updaterIdentity, sizeof(updaterIdentity))) {
-      LOG_WARN(("The updater.exe application does not contain the Mozilla"
-                " updater identity."));
-      result = FALSE;
-    }
-
-    if (strcmp(updaterIdentity, UPDATER_IDENTITY_STRING)) {
-      LOG_WARN(("The updater.exe identity string is not valid."));
-      result = FALSE;
-    }
-    FreeLibrary(updaterModule);
-  }
-
-  if (result) {
-    LOG(("The updater.exe application contains the Mozilla"
-          " updater identity."));
-  } else {
-    if (!WriteStatusFailure(argv[1], 
-                            SERVICE_UPDATER_IDENTITY_ERROR)) {
-      LOG_WARN(("Could not write update.status no updater identity."));
-    }
-    return TRUE;
-  }
-
-  // Check for updater.exe sign problems
-  BOOL updaterSignProblem = FALSE;
-#ifndef DISABLE_UPDATER_AUTHENTICODE_CHECK
-  updaterSignProblem = !DoesBinaryMatchAllowedCertificates(installDir,
-                                                           argv[0]);
-#endif
-
-  // Only proceed with the update if we have no signing problems
-  if (!updaterSignProblem) {
+  if (UpdaterIsValid(argv[0], installDir, argv[1])) {
     BOOL updateProcessWasStarted = FALSE;
     if (StartUpdateProcess(argc, argv, installDir,
                            updateProcessWasStarted)) {
@@ -438,12 +453,12 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
       LogFlush();
 
       // If the update process was started, then updater.exe is responsible for
-      // setting the failure code.  If it could not be started then we do the 
-      // work.  We set an error instead of directly setting status pending 
-      // so that the app.update.service.errors pref can be updated when 
+      // setting the failure code.  If it could not be started then we do the
+      // work.  We set an error instead of directly setting status pending
+      // so that the app.update.service.errors pref can be updated when
       // the callback app restarts.
       if (!updateProcessWasStarted) {
-        if (!WriteStatusFailure(argv[1], 
+        if (!WriteStatusFailure(argv[1],
                                 SERVICE_UPDATER_COULD_NOT_BE_STARTED)) {
           LOG_WARN(("Could not write update.status service update failure.  (%d)",
                     GetLastError()));
@@ -457,7 +472,7 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
 
     // When there is a certificate check error on the updater.exe application,
     // we want to write out the error.
-    if (!WriteStatusFailure(argv[1], 
+    if (!WriteStatusFailure(argv[1],
                             SERVICE_UPDATER_SIGN_ERROR)) {
       LOG_WARN(("Could not write pending state to update.status.  (%d)",
                 GetLastError()));
@@ -547,7 +562,7 @@ DeleteSecureUpdater(WCHAR serviceUpdaterPath[MAX_PATH + 1])
  * @param argv The service command line arguments, argv[0] and argv[1]
  *             and automatically included by Windows.  argv[2] is the
  *             service command.
- *             
+ *
  * @return FALSE if there was an error executing the service command.
  */
 BOOL
@@ -558,7 +573,7 @@ ExecuteServiceCommand(int argc, LPWSTR *argv)
     return FALSE;
   }
 
-  // The tests work by making sure the log has changed, so we put a 
+  // The tests work by making sure the log has changed, so we put a
   // unique ID in the log.
   RPC_WSTR guidString = RPC_WSTR(L"");
   GUID guid;
@@ -572,27 +587,137 @@ ExecuteServiceCommand(int argc, LPWSTR *argv)
 
   BOOL result = FALSE;
   if (!lstrcmpi(argv[2], L"software-update")) {
+    // This check is also performed in updater.cpp and is performed here
+    // as well since the maintenance service can be called directly.
+    if (argc < 4 || !IsValidFullPath(argv[4])) {
+      // Since the status file is written to the patch directory and the patch
+      // directory is invalid don't write the status file.
+      LOG_WARN(("The patch directory path is not valid for this application."));
+      return FALSE;
+    }
+
+    // This check is also performed in updater.cpp and is performed here
+    // as well since the maintenance service can be called directly.
+    if (argc < 5 || !IsValidFullPath(argv[5])) {
+      LOG_WARN(("The install directory path is not valid for this application."));
+      if (!WriteStatusFailure(argv[4], SERVICE_INVALID_INSTALL_DIR_PATH_ERROR)) {
+        LOG_WARN(("Could not write update.status for previous failure."));
+      }
+      return FALSE;
+    }
+
+    if (!IsOldCommandline(argc - 3, argv + 3)) {
+      // This check is also performed in updater.cpp and is performed here
+      // as well since the maintenance service can be called directly.
+      if (argc < 6 || !IsValidFullPath(argv[6])) {
+        LOG_WARN(("The working directory path is not valid for this application."));
+        if (!WriteStatusFailure(argv[4], SERVICE_INVALID_WORKING_DIR_PATH_ERROR)) {
+          LOG_WARN(("Could not write update.status for previous failure."));
+        }
+        return FALSE;
+      }
+
+      // These checks are also performed in updater.cpp and is performed here
+      // as well since the maintenance service can be called directly.
+      if (_wcsnicmp(argv[6], argv[5], MAX_PATH) != 0) {
+        if (wcscmp(argv[7], L"-1") != 0 && !wcsstr(argv[7], L"/replace")) {
+          LOG_WARN(("Installation directory and working directory must be the "
+                    "same for non-staged updates. Exiting."));
+          if (!WriteStatusFailure(argv[4], SERVICE_INVALID_APPLYTO_DIR_ERROR)) {
+            LOG_WARN(("Could not write update.status for previous failure."));
+          }
+          return FALSE;
+        }
+
+        NS_tchar workingDirParent[MAX_PATH];
+        NS_tsnprintf(workingDirParent,
+                     sizeof(workingDirParent) / sizeof(workingDirParent[0]),
+                     NS_T("%s"), argv[6]);
+        if (!PathRemoveFileSpecW(workingDirParent)) {
+          LOG_WARN(("Couldn't remove file spec when attempting to verify the "
+                    "working directory path.  (%d)", GetLastError()));
+          if (!WriteStatusFailure(argv[4], REMOVE_FILE_SPEC_ERROR)) {
+            LOG_WARN(("Could not write update.status for previous failure."));
+          }
+          return FALSE;
+        }
+
+        if (_wcsnicmp(workingDirParent, argv[5], MAX_PATH) != 0) {
+          LOG_WARN(("The apply-to directory must be the same as or "
+                    "a child of the installation directory! Exiting."));
+          if (!WriteStatusFailure(argv[4], SERVICE_INVALID_APPLYTO_DIR_STAGED_ERROR)) {
+            LOG_WARN(("Could not write update.status for previous failure."));
+          }
+          return FALSE;
+        }
+      }
+
+    }
 
     // Use the passed in command line arguments for the update, except for the
-    // path to updater.exe.  We copy updater.exe to a the directory of the
+    // path to updater.exe. We always look for updater.exe in the installation
+    // directory, then we copy updater.exe to a the directory of the
     // MozillaMaintenance service so that a low integrity process cannot
     // replace the updater.exe at any point and use that for the update.
     // It also makes DLL injection attacks harder.
-    LPWSTR oldUpdaterPath = argv[3];
+    WCHAR installDir[MAX_PATH + 1] = { L'\0' };
+    if (!GetInstallationDir(argc - 3, argv + 3, installDir)) {
+      LOG_WARN(("Could not get the installation directory"));
+      if (!WriteStatusFailure(argv[4], SERVICE_INSTALLDIR_ERROR)) {
+        LOG_WARN(("Could not write update.status for previous failure."));
+      }
+      return FALSE;
+    }
+
+    if (!DoesFallbackKeyExist()) {
+      WCHAR maintenanceServiceKey[MAX_PATH + 1];
+      if (CalculateRegistryPathFromFilePath(installDir, maintenanceServiceKey)) {
+        LOG(("Checking for Maintenance Service registry. key: '%ls'",
+             maintenanceServiceKey));
+        HKEY baseKey = nullptr;
+        if (RegOpenKeyExW(HKEY_LOCAL_MACHINE,
+                          maintenanceServiceKey, 0,
+                          KEY_READ | KEY_WOW64_64KEY,
+                          &baseKey) != ERROR_SUCCESS) {
+          LOG_WARN(("The maintenance service registry key does not exist."));
+          if (!WriteStatusFailure(argv[4], SERVICE_INSTALL_DIR_REG_ERROR)) {
+            LOG_WARN(("Could not write update.status for previous failure."));
+          }
+          return FALSE;
+        }
+        RegCloseKey(baseKey);
+      } else {
+        if (!WriteStatusFailure(argv[4], SERVICE_CALC_REG_PATH_ERROR)) {
+          LOG_WARN(("Could not write update.status for previous failure."));
+        }
+        return FALSE;
+      }
+    }
+
+    WCHAR installDirUpdater[MAX_PATH + 1] = { L'\0' };
+    wcsncpy(installDirUpdater, installDir, MAX_PATH);
+    if (!PathAppendSafe(installDirUpdater, L"updater.exe")) {
+      LOG_WARN(("Install directory updater could not be determined."));
+      result = FALSE;
+    }
+
+    result = UpdaterIsValid(installDirUpdater, installDir, argv[4]);
+
     WCHAR secureUpdaterPath[MAX_PATH + 1] = { L'\0' };
-    result = GetSecureUpdaterPath(secureUpdaterPath); // Does its own logging
+    if (result) {
+      result = GetSecureUpdaterPath(secureUpdaterPath); // Does its own logging
+    }
     if (result) {
       LOG(("Passed in path: '%ls'; Using this path for updating: '%ls'.",
-           oldUpdaterPath, secureUpdaterPath));
+           installDirUpdater, secureUpdaterPath));
       DeleteSecureUpdater(secureUpdaterPath);
-      result = CopyFileW(oldUpdaterPath, secureUpdaterPath, FALSE);
+      result = CopyFileW(installDirUpdater, secureUpdaterPath, FALSE);
     }
 
     if (!result) {
       LOG_WARN(("Could not copy path to secure location.  (%d)",
                 GetLastError()));
-      if (argc > 4 && !WriteStatusFailure(argv[4],
-                                          SERVICE_COULD_NOT_COPY_UPDATER)) {
+      if (!WriteStatusFailure(argv[4], SERVICE_COULD_NOT_COPY_UPDATER)) {
         LOG_WARN(("Could not write update.status could not copy updater error"));
       }
     } else {
@@ -601,16 +726,16 @@ ExecuteServiceCommand(int argc, LPWSTR *argv)
       // use for the service update.
       argv[3] = secureUpdaterPath;
 
-      WCHAR oldUpdaterINIPath[MAX_PATH + 1] = { L'\0' };
+      WCHAR installDirUpdaterINIPath[MAX_PATH + 1] = { L'\0' };
       WCHAR secureUpdaterINIPath[MAX_PATH + 1] = { L'\0' };
       if (PathGetSiblingFilePath(secureUpdaterINIPath, secureUpdaterPath,
                                  L"updater.ini") &&
-          PathGetSiblingFilePath(oldUpdaterINIPath, oldUpdaterPath,
+          PathGetSiblingFilePath(installDirUpdaterINIPath, installDirUpdater,
                                  L"updater.ini")) {
         // This is non fatal if it fails there is no real harm
-        if (!CopyFileW(oldUpdaterINIPath, secureUpdaterINIPath, FALSE)) {
+        if (!CopyFileW(installDirUpdaterINIPath, secureUpdaterINIPath, FALSE)) {
           LOG_WARN(("Could not copy updater.ini from: '%ls' to '%ls'.  (%d)",
-                    oldUpdaterINIPath, secureUpdaterINIPath, GetLastError()));
+                    installDirUpdaterINIPath, secureUpdaterINIPath, GetLastError()));
         }
       }
 

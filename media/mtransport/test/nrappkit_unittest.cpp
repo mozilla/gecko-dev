@@ -17,7 +17,6 @@ extern "C" {
 #include "async_timer.h"
 }
 
-#include "mtransport_test_utils.h"
 #include "runnable_utils.h"
 
 #define GTEST_HAS_RTTI 0
@@ -26,19 +25,28 @@ extern "C" {
 
 using namespace mozilla;
 
-MtransportTestUtils *test_utils;
-
 namespace {
 
-class TimerTest : public ::testing::Test {
+class TimerTest : public MtransportTest {
  public:
-  TimerTest() : handle_(nullptr), fired_(false) {}
+  TimerTest() : MtransportTest(), handle_(nullptr), fired_(false) {}
+  virtual ~TimerTest() {}
 
   int ArmTimer(int timeout) {
     int ret;
 
-    test_utils->sts_target()->Dispatch(
-        WrapRunnableRet(this, &TimerTest::ArmTimer_w, timeout, &ret),
+    test_utils_->sts_target()->Dispatch(
+        WrapRunnableRet(&ret, this, &TimerTest::ArmTimer_w, timeout),
+        NS_DISPATCH_SYNC);
+
+    return ret;
+  }
+
+  int ArmCancelTimer(int timeout) {
+    int ret;
+
+    test_utils_->sts_target()->Dispatch(
+        WrapRunnableRet(&ret, this, &TimerTest::ArmCancelTimer_w, timeout),
         NS_DISPATCH_SYNC);
 
     return ret;
@@ -48,11 +56,20 @@ class TimerTest : public ::testing::Test {
     return NR_ASYNC_TIMER_SET(timeout, cb, this, &handle_);
   }
 
+  int ArmCancelTimer_w(int timeout) {
+    int r;
+    r = ArmTimer_w(timeout);
+    if (r)
+      return r;
+
+    return CancelTimer_w();
+  }
+
   int CancelTimer() {
     int ret;
 
-    test_utils->sts_target()->Dispatch(
-        WrapRunnableRet(this, &TimerTest::CancelTimer_w, &ret),
+    test_utils_->sts_target()->Dispatch(
+        WrapRunnableRet(&ret, this, &TimerTest::CancelTimer_w),
         NS_DISPATCH_SYNC);
 
     return ret;
@@ -65,8 +82,8 @@ class TimerTest : public ::testing::Test {
   int Schedule() {
     int ret;
 
-    test_utils->sts_target()->Dispatch(
-        WrapRunnableRet(this, &TimerTest::Schedule_w, &ret),
+    test_utils_->sts_target()->Dispatch(
+        WrapRunnableRet(&ret, this, &TimerTest::Schedule_w),
         NS_DISPATCH_SYNC);
 
     return ret;
@@ -74,7 +91,7 @@ class TimerTest : public ::testing::Test {
 
   int Schedule_w() {
     NR_ASYNC_SCHEDULE(cb, this);
-    
+
     return 0;
   }
 
@@ -105,18 +122,13 @@ TEST_F(TimerTest, CancelTimer) {
   ASSERT_FALSE(fired_);
 }
 
+TEST_F(TimerTest, CancelTimer0) {
+  ArmCancelTimer(0);
+  PR_Sleep(100);
+  ASSERT_FALSE(fired_);
+}
+
 TEST_F(TimerTest, ScheduleTest) {
   Schedule();
   ASSERT_TRUE_WAIT(fired_, 1000);
-}
-
-int main(int argc, char **argv) {
-  test_utils = new MtransportTestUtils();
-
-  // Start the tests
-  ::testing::InitGoogleTest(&argc, argv);
-
-  int rv = RUN_ALL_TESTS();
-  delete test_utils;
-  return rv;
 }

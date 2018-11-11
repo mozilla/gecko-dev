@@ -1,7 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
+var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 const NETWORK_STATUS_READY   = 0;
 const NETWORK_STATUS_STANDBY = 1;
@@ -47,7 +47,7 @@ add_test(function test_networkStatsAvailable_ok() {
     NetworkStatsService.networkStatsAvailable(function (success, msg) {
       do_check_eq(success, true);
       run_next_test();
-    }, netId, true, 1234, 4321, new Date());
+    }, netId, true, 1234, 4321, Date.now());
   });
 });
 
@@ -58,7 +58,7 @@ add_test(function test_networkStatsAvailable_failure() {
     NetworkStatsService.networkStatsAvailable(function (success, msg) {
       do_check_eq(success, false);
       run_next_test();
-    }, netId, false, 1234, 4321, new Date());
+    }, netId, false, 1234, 4321, Date.now());
   });
 });
 
@@ -158,12 +158,12 @@ add_test(function test_queue() {
   };
 
   // Fill networks with fake network interfaces to enable netd async requests.
-  var network = {id: "1234", type: Ci.nsIDOMMozNetworkStatsManager.MOBILE};
+  var network = {id: "1234", type: Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE};
   var netId1 = NetworkStatsService.getNetworkId(network.id, network.type);
   NetworkStatsService._networks[netId1] = { network: network,
                                             interfaceName: "net1" };
 
-  network = {id: "5678", type: Ci.nsIDOMMozNetworkStatsManager.MOBILE};
+  network = {id: "5678", type: Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE};
   var netId2 = NetworkStatsService.getNetworkId(network.id, network.type);
   NetworkStatsService._networks[netId2] = { network: network,
                                             interfaceName: "net2" };
@@ -260,7 +260,7 @@ add_test(function test_fireAlarm() {
   NetworkStatsService._networks[wifiId].status = NETWORK_STATUS_STANDBY;
 
   NetworkStatsService._db.addAlarm(alarm, function addSuccessCb(error, newId) {
-    NetworkStatsService._db.getAlarms(Ci.nsINetworkInterface.NETWORK_TYPE_WIFI,
+    NetworkStatsService._db.getAlarms(Ci.nsINetworkInfo.NETWORK_TYPE_WIFI,
                                       testManifestURL, function onGet(error, result) {
       do_check_eq(error, null);
       do_check_eq(result.length, 1);
@@ -272,7 +272,7 @@ add_test(function test_fireAlarm() {
       result[0].manifestURL = testManifestURL;
 
       NetworkStatsService._fireAlarm(result[0], false);
-      NetworkStatsService._db.getAlarms(Ci.nsINetworkInterface.NETWORK_TYPE_WIFI,
+      NetworkStatsService._db.getAlarms(Ci.nsINetworkInfo.NETWORK_TYPE_WIFI,
                                         testManifestURL, function onGet(error, result) {
         do_check_eq(error, undefined);
         do_check_eq(result.length, 0);

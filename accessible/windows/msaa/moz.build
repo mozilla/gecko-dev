@@ -1,0 +1,76 @@
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+EXPORTS += [
+    'IUnknownImpl.h',
+]
+
+EXPORTS.mozilla.a11y += [
+    'AccessibleWrap.h',
+    'Compatibility.h',
+    'HyperTextAccessibleWrap.h',
+    'IDSet.h',
+    'MsaaIdGenerator.h',
+]
+
+UNIFIED_SOURCES += [
+    'AccessibleWrap.cpp',
+    'ApplicationAccessibleWrap.cpp',
+    'ARIAGridAccessibleWrap.cpp',
+    'Compatibility.cpp',
+    'DocAccessibleWrap.cpp',
+    'EnumVariant.cpp',
+    'HTMLTableAccessibleWrap.cpp',
+    'HTMLWin32ObjectAccessible.cpp',
+    'HyperTextAccessibleWrap.cpp',
+    'ImageAccessibleWrap.cpp',
+    'IUnknownImpl.cpp',
+    'MsaaIdGenerator.cpp',
+    'nsWinUtils.cpp',
+    'Platform.cpp',
+    'RootAccessibleWrap.cpp',
+    'TextLeafAccessibleWrap.cpp',
+]
+
+# This file cannot be built in unified mode because it includes ISimpleDOMNode_i.c.
+SOURCES += [
+    'ServiceProvider.cpp',
+]
+
+if CONFIG['MOZ_XUL']:
+    UNIFIED_SOURCES += [
+        'XULListboxAccessibleWrap.cpp',
+        'XULMenuAccessibleWrap.cpp',
+        'XULTreeGridAccessibleWrap.cpp',
+    ]
+
+LOCAL_INCLUDES += [
+    '/accessible/base',
+    '/accessible/generic',
+    '/accessible/html',
+    '/accessible/ipc',
+    '/accessible/ipc/win',
+    '/accessible/windows',
+    '/accessible/windows/ia2',
+    '/accessible/windows/sdn',
+    '/accessible/windows/uia',
+    '/accessible/xpcom',
+    '/accessible/xul',
+    '/dom/base',
+    '/layout/style',
+]
+
+# The Windows MIDL code generator creates things like:
+#
+#   #endif !_MIDL_USE_GUIDDEF_
+#
+# which clang-cl complains about.  MSVC doesn't, so turn this warning off.
+if CONFIG['CLANG_CL']:
+    CXXFLAGS += ['-Wno-extra-tokens']
+
+include('/ipc/chromium/chromium-config.mozbuild')
+
+FINAL_LIBRARY = 'xul'

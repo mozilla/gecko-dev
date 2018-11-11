@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -53,31 +53,13 @@ var testData = [
    uri: "http://foo.com/", annoName: goodAnnoName, annoVal: val,
    lastVisit: jan14_2130, title: "moz"},
 
-  // Test begin edge of time
-  {isInQuery: true, isVisit: true, isDetails: true, title: "moz mozilla",
-   uri: "http://foo.com/begin.html", lastVisit: beginTime},
-
-  // Test end edge of time
-  {isInQuery: true, isVisit: true, isDetails: true, title: "moz mozilla",
-   uri: "http://foo.com/end.html", lastVisit: endTime},
-
-  // Test uri included with isRedirect=true, different transtype
-  {isInQuery: true, isVisit: true, isDetails: true, title: "moz",
-   isRedirect: true, uri: "http://foo.com/redirect", lastVisit: jan11_800,
-   transType: PlacesUtils.history.TRANSITION_LINK},
-
-  // Test leading time edge with tag string is included
-  {isInQuery: true, isVisit: true, isDetails: true, title: "taggariffic",
-   uri: "http://foo.com/tagging/test.html", lastVisit: beginTime, isTag: true,
-   tagArray: ["moz"] },
-
-  // Begin the invalid queries: 
+  // Begin the invalid queries:
   // Test www. style URI is not included, with an annotation
   {isInQuery: false, isVisit: true, isDetails: true, isPageAnnotation: true,
    uri: "http://www.foo.com/yiihah", annoName: goodAnnoName, annoVal: val,
    lastVisit: jan7_800, title: "moz"},
 
-   // Test subdomain not inclued at the leading time edge 
+   // Test subdomain not inclued at the leading time edge
    {isInQuery: false, isVisit: true, isDetails: true,
     uri: "http://mail.foo.com/yiihah", title: "moz", lastVisit: jan6_815},
 
@@ -98,7 +80,7 @@ var testData = [
   {isInQuery: false, isVisit:true, isDetails: true, isPageAnnotation: true,
    title: "moz", uri: "http://foo.com/badanno.htm", lastVisit: jan12_1730,
    annoName: badAnnoName, annoVal: val},
-  
+
   // Test afterward, one to update
   {isInQuery: false, isVisit:true, isDetails: true, title: "changeme",
    uri: "http://foo.com/changeme1.htm", lastVisit: jan12_1730},
@@ -123,9 +105,9 @@ function run_test()
   run_next_test();
 }
 
-add_task(function test_abstime_annotation_uri()
+add_task(function* test_abstime_annotation_uri()
 {
-  //Initialize database
+  // Initialize database
   yield task_populateDB(testData);
 
   // Query
@@ -136,7 +118,6 @@ add_task(function test_abstime_annotation_uri()
   query.endTimeReference = PlacesUtils.history.TIME_RELATIVE_EPOCH;
   query.searchTerms = "moz";
   query.uri = uri("http://foo.com");
-  query.uriIsPrefix = true;
   query.annotation = "text/foo";
   query.annotationIsNot = true;
 
@@ -156,53 +137,26 @@ add_task(function test_abstime_annotation_uri()
   // Ensure the result set is correct
   compareArrayToResult(testData, root);
 
-  // Make some changes to the result set
-  // Let's add something first
-  var addItem = [{isInQuery: true, isVisit: true, isDetails: true, title: "moz",
-                 uri: "http://foo.com/i-am-added.html", lastVisit: jan11_800}];
-  yield task_populateDB(addItem);
-  LOG("Adding item foo.com/i-am-added.html");
-  do_check_eq(isInResult(addItem, root), true);
-
-  // Let's update something by title
-  var change1 = [{isDetails: true, uri: "http://foo.com/changeme1",
-                  lastVisit: jan12_1730, title: "moz moz mozzie"}];
+  // live update.
+  do_print("change title");
+  var change1 = [{isDetails: true, uri:"http://foo.com/",
+                  title: "mo"}, ];
   yield task_populateDB(change1);
-  LOG("LiveUpdate by changing title");
-  do_check_eq(isInResult(change1, root), true);
+  do_check_false(isInResult({uri: "http://foo.com/"}, root));
 
-  // Let's update something by annotation
-  // Updating a page by removing an annotation does not cause it to join this
-  // query set.  I tend to think that it should cause that page to join this
-  // query set, because this visit fits all theother specified criteria once the
-  // annotation is removed. Uncommenting this will fail the test.
-  // This is bug 424050 - appears to happen for both domain and URI queries
-  /*var change2 = [{isPageAnnotation: true, uri: "http://foo.com/badannotaion.html",
-                  annoName: "text/mozilla", annoVal: "test"}];
+  var change2 = [{isDetails: true, uri:"http://foo.com/",
+                  title: "moz", lastvisit: endTime}, ];
   yield task_populateDB(change2);
-  LOG("LiveUpdate by removing annotation");
-  do_check_eq(isInResult(change2, root), true);*/
+  dump_table("moz_places");
+  do_check_false(isInResult({uri: "http://foo.com/"}, root));
 
-  // Let's update by adding a visit in the time range for an existing URI
-  var change3 = [{isDetails: true, uri: "http://foo.com/changeme3.htm",
-                  title: "moz", lastVisit: jan15_2045}];
+  // Let's delete something from the result set - using annotation
+  var change3 = [{isPageAnnotation: true,
+                  uri: "http://foo.com/",
+                  annoName: badAnnoName, annoVal: "test"}];
   yield task_populateDB(change3);
-  LOG("LiveUpdate by adding visit within timerange");
-  do_check_eq(isInResult(change3, root), true);
-
-  // And delete something from the result set - using annotation
-  // Once more, bug 424050
-  /*var change4 = [{isPageAnnotation: true, uri: "http://foo.com/",
-                  annoVal: "test", annoName: badAnnoName}];
-  yield task_populateDB(change4);
-  LOG("LiveUpdate by deleting item from set by adding annotation");
-  do_check_eq(isInResult(change4, root), false);*/
-
-  // Delete something by changing the title
-  var change5 = [{isDetails: true, uri: "http://foo.com/end.html", title: "deleted"}];
-  yield task_populateDB(change5);
-  LOG("LiveUpdate by deleting item by changing title");
-  do_check_eq(isInResult(change5, root), false);
+  do_print("LiveUpdate by removing annotation");
+  do_check_false(isInResult({uri: "http://foo.com/"}, root));
 
   root.containerOpen = false;
 });

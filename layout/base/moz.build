@@ -1,8 +1,47 @@
-# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
 # vim: set filetype=python:
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+with Files('ActiveLayerTracker.*'):
+    BUG_COMPONENT = ('Core', 'Layout: View Rendering')
+
+with Files('Display*'):
+    BUG_COMPONENT = ('Core', 'Layout: View Rendering')
+
+with Files('FrameLayerBuilder.*'):
+    BUG_COMPONENT = ('Core', 'Layout: View Rendering')
+
+with Files('LayerState.*'):
+    BUG_COMPONENT = ('Core', 'Layout: View Rendering')
+
+with Files('MaskLayerImageCache.*'):
+    BUG_COMPONENT = ('Core', 'Layout: View Rendering')
+
+with Files('PaintTracker.*'):
+    BUG_COMPONENT = ('Core', 'Layout: View Rendering')
+
+with Files('nsCSSRendering.*'):
+    BUG_COMPONENT = ('Core', 'Layout: View Rendering')
+
+with Files('nsDisplay*'):
+    BUG_COMPONENT = ('Core', 'Layout: View Rendering')
+
+with Files('Restyle*'):
+    BUG_COMPONENT = ('Core', 'CSS Parsing and Computation')
+
+with Files('nsStyle*'):
+    BUG_COMPONENT = ('Core', 'CSS Parsing and Computation')
+
+with Files('nsChangeHint.h'):
+    BUG_COMPONENT = ('Core', 'CSS Parsing and Computation')
+
+with Files('nsBidi*'):
+    BUG_COMPONENT = ('Core', 'Layout: Text')
+
+with Files('AccessibleCaret*'):
+    BUG_COMPONENT = ('Core', 'Selection')
 
 XPIDL_SOURCES += [
     'nsIStyleSheetService.idl',
@@ -17,10 +56,14 @@ XPIDL_MODULE = 'layout_base'
 
 EXPORTS += [
     'ActiveLayerTracker.h',
+    'CaretAssociationHint.h',
     'DisplayItemClip.h',
+    'DisplayItemScrollClip.h',
     'DisplayListClipState.h',
     'FrameLayerBuilder.h',
     'FramePropertyTable.h',
+    'LayerState.h',
+    'LayoutLogging.h',
     'nsArenaMemoryStats.h',
     'nsBidi.h',
     'nsBidiPresUtils.h',
@@ -38,35 +81,56 @@ EXPORTS += [
     'nsIFrameTraversal.h',
     'nsILayoutDebugger.h',
     'nsILayoutHistoryState.h',
-    'nsIPercentHeightObserver.h',
+    'nsIPercentBSizeObserver.h',
     'nsIPresShell.h',
     'nsIReflowCallback.h',
     'nsLayoutUtils.h',
     'nsPresArena.h',
+    'nsPresArenaObjectList.h',
     'nsPresContext.h',
     'nsPresState.h',
     'nsRefreshDriver.h',
     'nsStyleChangeList.h',
+    'nsStyleSheetService.h',
     'ScrollbarStyles.h',
     'StackArena.h',
     'Units.h',
     'UnitTransforms.h',
+    'WordMovementType.h',
 ]
 
 EXPORTS.mozilla += [
+    'ArenaObjectID.h',
+    'ArenaRefPtr.h',
+    'ArenaRefPtrInlines.h',
     'GeometryUtils.h',
+    'OverflowChangedTracker.h',
     'PaintTracker.h',
+    'RestyleLogging.h',
+    'RestyleManager.h',
+    'RestyleManagerBase.h',
+    'RestyleManagerHandle.h',
+    'RestyleManagerHandleInlines.h',
+    'ServoRestyleManager.h',
+    'StaticPresData.h',
 ]
 
 UNIFIED_SOURCES += [
+    'AccessibleCaret.cpp',
+    'AccessibleCaretEventHub.cpp',
+    'AccessibleCaretManager.cpp',
     'ActiveLayerTracker.cpp',
+    'DashedCornerFinder.cpp',
     'DisplayItemClip.cpp',
+    'DisplayItemScrollClip.cpp',
     'DisplayListClipState.cpp',
+    'DottedCornerFinder.cpp',
     'FrameLayerBuilder.cpp',
     'FramePropertyTable.cpp',
     'GeometryUtils.cpp',
+    'LayoutLogging.cpp',
     'MaskLayerImageCache.cpp',
-    'nsBidi.cpp',
+    'MobileViewportManager.cpp',
     'nsBidiPresUtils.cpp',
     'nsCaret.cpp',
     'nsCounterManager.cpp',
@@ -76,6 +140,7 @@ UNIFIED_SOURCES += [
     'nsCSSRenderingBorders.cpp',
     'nsDisplayList.cpp',
     'nsDisplayListInvalidation.cpp',
+    'nsDocumentViewer.cpp',
     'nsFrameManager.cpp',
     'nsFrameTraversal.cpp',
     'nsGenConList.cpp',
@@ -83,40 +148,51 @@ UNIFIED_SOURCES += [
     'nsLayoutHistoryState.cpp',
     'nsLayoutUtils.cpp',
     'nsPresContext.cpp',
+    'nsPresShell.cpp',
     'nsQuoteList.cpp',
     'nsStyleChangeList.cpp',
     'nsStyleSheetService.cpp',
     'PaintTracker.cpp',
     'PositionedEventTargeting.cpp',
     'RestyleManager.cpp',
+    'RestyleManagerBase.cpp',
     'RestyleTracker.cpp',
-    'SelectionCarets.cpp',
+    'ScrollbarStyles.cpp',
+    'ServoRestyleManager.cpp',
     'StackArena.cpp',
-    'TouchCaret.cpp',
+    'StaticPresData.cpp',
+    'TouchManager.cpp',
+    'ZoomConstraintsClient.cpp',
 ]
 
-# nsDocumentViewer.cpp and nsPresShell.cpp need to be built separately
-# because they force NSPR logging.
+if CONFIG['ENABLE_INTL_API']:
+    EXPORTS += [
+        'nsBidi_ICU.h',
+    ]
+    UNIFIED_SOURCES += [
+        'nsBidi_ICU.cpp',
+    ]
+else:
+    EXPORTS += [
+        'nsBidi_noICU.h',
+    ]
+    UNIFIED_SOURCES += [
+        'nsBidi_noICU.cpp',
+    ]
+
 # nsPresArena.cpp needs to be built separately because it uses plarena.h.
 # nsRefreshDriver.cpp needs to be built separately because of name clashes in the OS X headers
 SOURCES += [
-    'nsDocumentViewer.cpp',
     'nsPresArena.cpp',
-    'nsPresShell.cpp',
     'nsRefreshDriver.cpp',
 ]
 
-FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
+if CONFIG['ENABLE_TESTS']:
+    DIRS += ['gtest']
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
 LOCAL_INCLUDES += [
-    '../../content/base/src',
-    '../../content/html/content/src',
-    '../../content/svg/content/src',
-    '../../view/src',
     '../forms',
     '../generic',
     '../mathml',
@@ -128,11 +204,30 @@ LOCAL_INCLUDES += [
     '../xul/tree/',
     '/docshell/base',
     '/dom/base',
+    '/dom/html',
+    '/dom/svg',
     '/dom/xbl',
+    '/view',
 ]
 
-FINAL_LIBRARY = 'gklayout'
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
+    LOCAL_INCLUDES += [
+        '/widget/android',
+    ]
 
+FINAL_LIBRARY = 'xul'
+
+BROWSER_CHROME_MANIFESTS += ['tests/browser.ini']
+MARIONETTE_LAYOUT_MANIFESTS += ['tests/marionette/manifest.ini']
 MOCHITEST_MANIFESTS += ['tests/mochitest.ini']
 MOCHITEST_CHROME_MANIFESTS += ['tests/chrome/chrome.ini']
-BROWSER_CHROME_MANIFESTS += ['tests/browser.ini']
+
+CXXFLAGS += CONFIG['MOZ_CAIRO_CFLAGS']
+
+if CONFIG['_MSC_VER']:
+    # This is intended as a temporary hack to support building with VS2015.
+    # 'type cast': conversion from 'unsigned int' to 'void *' of greater size
+    CXXFLAGS += ['-wd4312']
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wno-error=shadow']

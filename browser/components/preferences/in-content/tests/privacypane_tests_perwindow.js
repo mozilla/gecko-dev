@@ -1,21 +1,12 @@
-/* Any copyright is dedicated to the Public Domain.
- * http://creativecommons.org/publicdomain/zero/1.0/ */
-
-function runTestOnPrivacyPrefPane(testFunc) {
-  
-  gBrowser.tabContainer.addEventListener("TabOpen", function(aEvent) {
-    gBrowser.tabContainer.removeEventListener("TabOpen", arguments.callee, true);
-    let browser = aEvent.originalTarget.linkedBrowser;
-    browser.addEventListener("Initialized", function(aEvent) {
-      browser.removeEventListener("Initialized", arguments.callee, true);
-      is(browser.contentWindow.location.href, "about:preferences", "Checking if the preferences tab was opened");
-      testFunc(browser.contentWindow);
-      gBrowser.removeCurrentTab();
-      testRunner.runNext();
-    }, true);
-  }, true);
-  
-  gBrowser.selectedTab = gBrowser.addTab("about:preferences");
+function* runTestOnPrivacyPrefPane(testFunc) {
+  info("runTestOnPrivacyPrefPane entered");
+  let tab = yield BrowserTestUtils.openNewForegroundTab(gBrowser, "about:preferences", true, true);
+  let browser = tab.linkedBrowser;
+  info("loaded about:preferences");
+  browser.contentWindow.gotoPref("panePrivacy");
+  info("viewing privacy pane, executing testFunc");
+  testFunc(browser.contentWindow);
+  yield BrowserTestUtils.removeTab(tab);
 }
 
 function controlChanged(element) {
@@ -39,6 +30,8 @@ function test_pane_visibility(win) {
     controlChanged(historymode);
     is(historypane.selectedPanel, win.document.getElementById(modes[mode]),
       "The correct pane should be selected for the " + mode + " mode");
+    is_element_visible(historypane.selectedPanel,
+                       "Correct pane should be visible for the " + mode + " mode");
   }
 }
 
@@ -251,7 +244,7 @@ function test_dependent_prefs(win) {
 }
 
 function test_historymode_retention(mode, expect) {
-  return function(win) {
+  return function test_historymode_retention_fn(win) {
     let historymode = win.document.getElementById("historyMode");
     ok(historymode, "history mode menulist should exist");
 
@@ -272,7 +265,7 @@ function test_historymode_retention(mode, expect) {
 }
 
 function test_custom_retention(controlToChange, expect, valueIncrement) {
-  return function(win) {
+  return function test_custom_retention_fn(win) {
     let historymode = win.document.getElementById("historyMode");
     ok(historymode, "history mode menulist should exist");
 
@@ -301,53 +294,37 @@ function test_custom_retention(controlToChange, expect, valueIncrement) {
   };
 }
 
-function test_locbar_suggestion_retention(mode, expect) {
+function test_locbar_suggestion_retention(suggestion, autocomplete) {
   return function(win) {
-    let locbarsuggest = win.document.getElementById("locationBarSuggestion");
-    ok(locbarsuggest, "location bar suggestion menulist should exist");
+    let elem = win.document.getElementById(suggestion + "Suggestion");
+    ok(elem, "Suggest " + suggestion + " checkbox should exist.");
+    elem.click();
 
-    if (expect !== undefined) {
-      is(locbarsuggest.value, expect,
-        "location bar suggestion is expected to remain " + expect);
-    }
-
-    locbarsuggest.value = mode;
-    controlChanged(locbarsuggest);
+    is(Services.prefs.getBoolPref("browser.urlbar.autocomplete.enabled"), autocomplete,
+       "browser.urlbar.autocomplete.enabled pref should be " + autocomplete);
   };
+}
+
+const gPrefCache = new Map();
+
+function cache_preferences(win) {
+  let prefs = win.document.querySelectorAll("#privacyPreferences > preference");
+  for (let pref of prefs)
+    gPrefCache.set(pref.name, pref.value);
 }
 
 function reset_preferences(win) {
   let prefs = win.document.querySelectorAll("#privacyPreferences > preference");
-  for (let i = 0; i < prefs.length; ++i)
-    if (prefs[i].hasUserValue)
-      prefs[i].reset();
+  for (let pref of prefs)
+    pref.value = gPrefCache.get(pref.name);
 }
 
-let testRunner;
 function run_test_subset(subset) {
-  Services.prefs.setBoolPref("browser.preferences.instantApply", true);
-  dump("subset: " + [x.name for (x of subset)].join(",") + "\n");
+  info("subset: " + Array.from(subset, x => x.name).join(",") + "\n");
+  SpecialPowers.pushPrefEnv({"set": [["browser.preferences.instantApply", true]]});
 
-  waitForExplicitFinish();
-  registerCleanupFunction(function() {
-    // Reset pref to its default
-    Services.prefs.clearUserPref("browser.preferences.instantApply");
-  });
-
-  testRunner = {
-    tests: subset,
-    counter: 0,
-    runNext: function() {
-      if (this.counter == this.tests.length) {
-        finish();
-      } else {
-        let self = this;
-        setTimeout(function() {
-          runTestOnPrivacyPrefPane(self.tests[self.counter++]);
-        }, 0);
-      }
-    }
-  };
-
-  testRunner.runNext();
+  let tests = [cache_preferences, ...subset, reset_preferences];
+  for (let test of tests) {
+    add_task(runTestOnPrivacyPrefPane.bind(undefined, test));
+  }
 }

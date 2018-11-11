@@ -7,6 +7,7 @@
 #define txResultRecycler_h__
 
 #include "nsCOMPtr.h"
+#include "nsAutoPtr.h"
 #include "txStack.h"
 
 class txAExprResult;
@@ -21,7 +22,6 @@ class txResultRecycler
 public:
     txResultRecycler();
     ~txResultRecycler();
-    nsresult init();
 
     void AddRef()
     {
@@ -72,9 +72,9 @@ private:
     txStack mStringResults;
     txStack mNodeSetResults;
     txStack mNumberResults;
-    StringResult* mEmptyStringResult;
-    BooleanResult* mTrueResult;
-    BooleanResult* mFalseResult;
+    RefPtr<StringResult> mEmptyStringResult;
+    RefPtr<BooleanResult> mTrueResult;
+    RefPtr<BooleanResult> mFalseResult;
 };
 
 #endif //txResultRecycler_h__

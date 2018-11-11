@@ -18,9 +18,14 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIPERMISSION
 
-  nsPermission(const nsACString &aHost,
-               uint32_t aAppId,
-               bool aIsInBrowserElement,
+  static already_AddRefed<nsPermission> Create(nsIPrincipal* aPrincipal,
+                                               const nsACString &aType,
+                                               uint32_t aCapability,
+                                               uint32_t aExpireType,
+                                               int64_t aExpireTime);
+
+protected:
+  nsPermission(nsIPrincipal* aPrincipal,
                const nsACString &aType,
                uint32_t aCapability,
                uint32_t aExpireType,
@@ -28,14 +33,11 @@ public:
 
   virtual ~nsPermission() {};
 
-protected:
-  nsCString mHost;
+  nsCOMPtr<nsIPrincipal> mPrincipal;
   nsCString mType;
   uint32_t  mCapability;
   uint32_t  mExpireType;
   int64_t   mExpireTime;
-  uint32_t  mAppId;
-  bool      mIsInBrowserElement;
 };
 
 #endif // nsPermission_h__

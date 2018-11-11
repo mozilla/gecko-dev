@@ -7,19 +7,21 @@
 #ifndef COMPILER_PREPROCESSOR_LEXER_H_
 #define COMPILER_PREPROCESSOR_LEXER_H_
 
+#include "common/angleutils.h"
+
 namespace pp
 {
 
 struct Token;
 
-class Lexer
+class Lexer : angle::NonCopyable
 {
   public:
     virtual ~Lexer();
 
-    virtual void lex(Token* token) = 0;
+    virtual void lex(Token *token) = 0;
 };
 
 }  // namespace pp
-#endif  // COMPILER_PREPROCESSOR_LEXER_H_
 
+#endif  // COMPILER_PREPROCESSOR_LEXER_H_

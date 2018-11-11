@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -36,8 +37,8 @@ public:
   void Notify(
     const mozilla::hal::SystemTimezoneChangeInformation& aSystemTimezoneChangeInfo);
 
-  nsresult AddWindowListenerImpl(nsPIDOMWindow* aWindow);
-  nsresult RemoveWindowListenerImpl(nsPIDOMWindow* aWindow);
+  nsresult AddWindowListenerImpl(nsPIDOMWindowInner* aWindow);
+  nsresult RemoveWindowListenerImpl(nsPIDOMWindowInner* aWindow);
 
 private:
   nsSystemTimeChangeObserver() { };
@@ -68,8 +69,8 @@ nsSystemTimeChangeObserver::FireMozTimeChangeEvent()
   ListenerArray::ForwardIterator iter(mWindowListeners);
   while (iter.HasMore()) {
     nsWeakPtr weakWindow = iter.GetNext();
-    nsCOMPtr<nsPIDOMWindow> innerWindow = do_QueryReferent(weakWindow);
-    nsCOMPtr<nsPIDOMWindow> outerWindow;
+    nsCOMPtr<nsPIDOMWindowInner> innerWindow = do_QueryReferent(weakWindow);
+    nsCOMPtr<nsPIDOMWindowOuter> outerWindow;
     nsCOMPtr<nsIDocument> document;
     if (!innerWindow ||
         !(document = innerWindow->GetExtantDoc()) ||
@@ -107,23 +108,16 @@ nsSystemTimeChangeObserver::Notify(
 }
 
 nsresult
-mozilla::time::AddWindowListener(nsPIDOMWindow* aWindow)
+mozilla::time::AddWindowListener(nsPIDOMWindowInner* aWindow)
 {
   return nsSystemTimeChangeObserver::GetInstance()->AddWindowListenerImpl(aWindow);
 }
 
 nsresult
-nsSystemTimeChangeObserver::AddWindowListenerImpl(nsPIDOMWindow* aWindow)
+nsSystemTimeChangeObserver::AddWindowListenerImpl(nsPIDOMWindowInner* aWindow)
 {
   if (!aWindow) {
     return NS_ERROR_ILLEGAL_VALUE;
-  }
-
-  if (aWindow->IsOuterWindow()) {
-    aWindow = aWindow->GetCurrentInnerWindow();
-    if (!aWindow) {
-      return NS_ERROR_FAILURE;
-    }
   }
 
   nsWeakPtr windowWeakRef = do_GetWeakReference(aWindow);
@@ -144,7 +138,7 @@ nsSystemTimeChangeObserver::AddWindowListenerImpl(nsPIDOMWindow* aWindow)
 }
 
 nsresult
-mozilla::time::RemoveWindowListener(nsPIDOMWindow* aWindow)
+mozilla::time::RemoveWindowListener(nsPIDOMWindowInner* aWindow)
 {
   if (!sObserver) {
     return NS_OK;
@@ -154,17 +148,10 @@ mozilla::time::RemoveWindowListener(nsPIDOMWindow* aWindow)
 }
 
 nsresult
-nsSystemTimeChangeObserver::RemoveWindowListenerImpl(nsPIDOMWindow* aWindow)
+nsSystemTimeChangeObserver::RemoveWindowListenerImpl(nsPIDOMWindowInner* aWindow)
 {
   if (!aWindow) {
     return NS_OK;
-  }
-
-  if (aWindow->IsOuterWindow()) {
-    aWindow = aWindow->GetCurrentInnerWindow();
-    if (!aWindow) {
-      return NS_ERROR_FAILURE;
-    }
   }
 
   nsWeakPtr windowWeakRef = do_GetWeakReference(aWindow);

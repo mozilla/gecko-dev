@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -23,16 +23,13 @@
  *
  * DownloadsViewItem
  * Builds and updates a single item in the downloads list widget, responding to
- * changes in the download state and real-time data.
+ * changes in the download state and real-time data, and handles the user
+ * interaction events related to a single item in the downloads list widgets.
  *
  * DownloadsViewController
  * Handles part of the user interaction events raised by the downloads list
  * widget, in particular the "commands" that apply to multiple items, and
  * dispatches the commands that apply to individual items.
- *
- * DownloadsViewItemController
- * Handles all the user interaction events, in particular the "commands",
- * related to a single item in the downloads list widgets.
  */
 
 /**
@@ -64,21 +61,22 @@
 
 "use strict";
 
-////////////////////////////////////////////////////////////////////////////////
-//// Globals
+var { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
-XPCOMUtils.defineLazyModuleGetter(this, "DownloadUtils",
-                                  "resource://gre/modules/DownloadUtils.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadsCommon",
                                   "resource:///modules/DownloadsCommon.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "OS",
-                                  "resource://gre/modules/osfile.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
-                                  "resource://gre/modules/PrivateBrowsingUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
-                                  "resource://gre/modules/PlacesUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "DownloadsViewUI",
+                                  "resource:///modules/DownloadsViewUI.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
+                                  "resource://gre/modules/FileUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
+                                  "resource://gre/modules/PlacesUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Services",
+                                  "resource://gre/modules/Services.jsm");
 
 ////////////////////////////////////////////////////////////////////////////////
 //// DownloadsPanel
@@ -97,22 +95,33 @@ const DownloadsPanel = {
   _state: 0,
 
   /** The panel is not linked to downloads data yet. */
-  get kStateUninitialized() 0,
+  get kStateUninitialized() {
+    return 0;
+  },
   /** This object is linked to data, but the panel is invisible. */
-  get kStateHidden() 1,
+  get kStateHidden() {
+    return 1;
+  },
   /** The panel will be shown as soon as possible. */
-  get kStateWaitingData() 2,
+  get kStateWaitingData() {
+    return 2;
+  },
   /** The panel is almost shown - we're just waiting to get a handle on the
       anchor. */
-  get kStateWaitingAnchor() 3,
+  get kStateWaitingAnchor() {
+    return 3;
+  },
   /** The panel is open. */
-  get kStateShown() 4,
+  get kStateShown() {
+    return 4;
+  },
 
   /**
    * Location of the panel overlay.
    */
-  get kDownloadsOverlay()
-      "chrome://browser/content/downloads/downloadsOverlay.xul",
+  get kDownloadsOverlay() {
+    return "chrome://browser/content/downloads/downloadsOverlay.xul";
+  },
 
   /**
    * Starts loading the download data in background, without opening the panel.
@@ -121,8 +130,7 @@ const DownloadsPanel = {
    * @param aCallback
    *        Called when initialization is complete.
    */
-  initialize: function DP_initialize(aCallback)
-  {
+  initialize(aCallback) {
     DownloadsCommon.log("Attempting to initialize DownloadsPanel for a window.");
     if (this._state != this.kStateUninitialized) {
       DownloadsCommon.log("DownloadsPanel is already initialized.");
@@ -141,8 +149,7 @@ const DownloadsPanel = {
     // Now that data loading has eventually started, load the required XUL
     // elements and initialize our views.
     DownloadsCommon.log("Ensuring DownloadsPanel overlay loaded.");
-    DownloadsOverlayLoader.ensureOverlayLoaded(this.kDownloadsOverlay,
-                                               function DP_I_callback() {
+    DownloadsOverlayLoader.ensureOverlayLoaded(this.kDownloadsOverlay, () => {
       DownloadsViewController.initialize();
       DownloadsCommon.log("Attaching DownloadsView...");
       DownloadsCommon.getData(window).addView(DownloadsView);
@@ -161,8 +168,7 @@ const DownloadsPanel = {
    * downloads.  The downloads panel can be reopened later, even after this
    * function has been called.
    */
-  terminate: function DP_terminate()
-  {
+  terminate() {
     DownloadsCommon.log("Attempting to terminate DownloadsPanel for a window.");
     if (this._state == this.kStateUninitialized) {
       DownloadsCommon.log("DownloadsPanel was never initialized. Nothing to do.");
@@ -193,10 +199,9 @@ const DownloadsPanel = {
    * Main panel element in the browser window, or null if the panel overlay
    * hasn't been loaded yet.
    */
-  get panel()
-  {
+  get panel() {
     // If the downloads panel overlay hasn't loaded yet, just return null
-    // without reseting this.panel.
+    // without resetting this.panel.
     let downloadsPanel = document.getElementById("downloadsPanel");
     if (!downloadsPanel)
       return null;
@@ -211,8 +216,7 @@ const DownloadsPanel = {
    * initialized the first time this method is called, and the panel is shown
    * only when data is ready.
    */
-  showPanel: function DP_showPanel()
-  {
+  showPanel() {
     DownloadsCommon.log("Opening the downloads panel.");
 
     if (this.isPanelShowing) {
@@ -221,13 +225,21 @@ const DownloadsPanel = {
       return;
     }
 
-    this.initialize(function DP_SP_callback() {
+    this.initialize(() => {
+      let downloadsFooterButtons =
+        document.getElementById("downloadsFooterButtons");
+      if (DownloadsCommon.showPanelDropmarker) {
+        downloadsFooterButtons.classList.remove("downloadsHideDropmarker");
+      } else {
+        downloadsFooterButtons.classList.add("downloadsHideDropmarker");
+      }
+
       // Delay displaying the panel because this function will sometimes be
       // called while another window is closing (like the window for selecting
       // whether to save or open the file), and that would cause the panel to
       // close immediately.
-      setTimeout(function () DownloadsPanel._openPopupIfDataReady(), 0);
-    }.bind(this));
+      setTimeout(() => this._openPopupIfDataReady(), 0);
+    });
 
     DownloadsCommon.log("Waiting for the downloads panel to appear.");
     this._state = this.kStateWaitingData;
@@ -237,8 +249,7 @@ const DownloadsPanel = {
    * Hides the downloads panel, if visible, but keeps the internal state so that
    * the panel can be reopened quickly if required.
    */
-  hidePanel: function DP_hidePanel()
-  {
+  hidePanel() {
     DownloadsCommon.log("Closing the downloads panel.");
 
     if (!this.isPanelShowing) {
@@ -258,8 +269,7 @@ const DownloadsPanel = {
   /**
    * Indicates whether the panel is shown or will be shown.
    */
-  get isPanelShowing()
-  {
+  get isPanelShowing() {
     return this._state == this.kStateWaitingData ||
            this._state == this.kStateWaitingAnchor ||
            this._state == this.kStateShown;
@@ -268,8 +278,7 @@ const DownloadsPanel = {
   /**
    * Returns whether the user has started keyboard navigation.
    */
-  get keyFocusing()
-  {
+  get keyFocusing() {
     return this.panel.hasAttribute("keyfocus");
   },
 
@@ -278,8 +287,7 @@ const DownloadsPanel = {
    * showing focusrings in the panel. Also adds a mousemove event handler to
    * the panel which disables keyFocusing.
    */
-  set keyFocusing(aValue)
-  {
+  set keyFocusing(aValue) {
     if (aValue) {
       this.panel.setAttribute("keyfocus", "true");
       this.panel.addEventListener("mousemove", this);
@@ -294,10 +302,29 @@ const DownloadsPanel = {
    * Handles the mousemove event for the panel, which disables focusring
    * visualization.
    */
-  handleEvent: function DP_handleEvent(aEvent)
-  {
-    if (aEvent.type == "mousemove") {
-      this.keyFocusing = false;
+  handleEvent(aEvent) {
+    switch (aEvent.type) {
+      case "mousemove":
+        this.keyFocusing = false;
+        break;
+      case "keydown":
+        return this._onKeyDown(aEvent);
+      case "keypress":
+        return this._onKeyPress(aEvent);
+      case "popupshown":
+        if (this.setHeightToFitOnShow) {
+          this.setHeightToFitOnShow = false;
+          this.setHeightToFit();
+        }
+        break;
+    }
+  },
+
+  setHeightToFit() {
+    if (this._state == this.kStateShown) {
+      DownloadsBlockedSubview.view.setHeightToFit();
+    } else {
+      this.setHeightToFitOnShow = true;
     }
   },
 
@@ -307,22 +334,19 @@ const DownloadsPanel = {
   /**
    * Called after data loading finished.
    */
-  onViewLoadCompleted: function DP_onViewLoadCompleted()
-  {
+  onViewLoadCompleted() {
     this._openPopupIfDataReady();
   },
 
   //////////////////////////////////////////////////////////////////////////////
   //// User interface event functions
 
-  onWindowUnload: function DP_onWindowUnload()
-  {
+  onWindowUnload() {
     // This function is registered as an event listener, we can't use "this".
     DownloadsPanel.terminate();
   },
 
-  onPopupShown: function DP_onPopupShown(aEvent)
-  {
+  onPopupShown(aEvent) {
     // Ignore events raised by nested popups.
     if (aEvent.target != aEvent.currentTarget) {
       return;
@@ -343,8 +367,7 @@ const DownloadsPanel = {
     this._focusPanel();
   },
 
-  onPopupHidden: function DP_onPopupHidden(aEvent)
-  {
+  onPopupHidden(aEvent) {
     // Ignore events raised by nested popups.
     if (aEvent.target != aEvent.currentTarget) {
       return;
@@ -366,20 +389,44 @@ const DownloadsPanel = {
     this._state = this.kStateHidden;
   },
 
+  onFooterPopupShowing(aEvent) {
+    let itemClearList = document.getElementById("downloadsDropdownItemClearList");
+    if (DownloadsCommon.getData(window).canRemoveFinished) {
+      itemClearList.removeAttribute("hidden");
+    } else {
+      itemClearList.setAttribute("hidden", "true");
+    }
+    DownloadsViewController.updateCommands();
+
+    document.getElementById("downloadsFooter")
+      .setAttribute("showingdropdown", true);
+  },
+
+  onFooterPopupHidden(aEvent) {
+    document.getElementById("downloadsFooter")
+      .removeAttribute("showingdropdown");
+  },
+
   //////////////////////////////////////////////////////////////////////////////
   //// Related operations
 
   /**
    * Shows or focuses the user interface dedicated to downloads history.
    */
-  showDownloadsHistory: function DP_showDownloadsHistory()
-  {
+  showDownloadsHistory() {
     DownloadsCommon.log("Showing download history.");
     // Hide the panel before showing another window, otherwise focus will return
     // to the browser window when the panel closes automatically.
     this.hidePanel();
 
     BrowserDownloadsUI();
+  },
+
+  openDownloadsFolder() {
+    Downloads.getPreferredDownloadsDirectory().then(downloadsPath => {
+      DownloadsCommon.showDirectory(new FileUtils.File(downloadsPath));
+    }).catch(Cu.reportError);
+    this.hidePanel();
   },
 
   //////////////////////////////////////////////////////////////////////////////
@@ -390,29 +437,27 @@ const DownloadsPanel = {
    * removed in _unattachEventListeners. This is called automatically after the
    * panel has successfully loaded.
    */
-  _attachEventListeners: function DP__attachEventListeners()
-  {
+  _attachEventListeners() {
     // Handle keydown to support accel-V.
-    this.panel.addEventListener("keydown", this._onKeyDown.bind(this), false);
+    this.panel.addEventListener("keydown", this, false);
     // Handle keypress to be able to preventDefault() events before they reach
     // the richlistbox, for keyboard navigation.
-    this.panel.addEventListener("keypress", this._onKeyPress.bind(this), false);
+    this.panel.addEventListener("keypress", this, false);
+    // Handle height adjustment on show.
+    this.panel.addEventListener("popupshown", this, false);
   },
 
   /**
    * Unattach event listeners that were added in _attachEventListeners. This
    * is called automatically on panel termination.
    */
-  _unattachEventListeners: function DP__unattachEventListeners()
-  {
-    this.panel.removeEventListener("keydown", this._onKeyDown.bind(this),
-                                   false);
-    this.panel.removeEventListener("keypress", this._onKeyPress.bind(this),
-                                   false);
+  _unattachEventListeners() {
+    this.panel.removeEventListener("keydown", this, false);
+    this.panel.removeEventListener("keypress", this, false);
+    this.panel.removeEventListener("popupshown", this, false);
   },
 
-  _onKeyPress: function DP__onKeyPress(aEvent)
-  {
+  _onKeyPress(aEvent) {
     // Handle unmodified keys only.
     if (aEvent.altKey || aEvent.ctrlKey || aEvent.shiftKey || aEvent.metaKey) {
       return;
@@ -431,8 +476,9 @@ const DownloadsPanel = {
       this.keyFocusing = true;
       // Ensure there's a selection, we will show the focus ring around it and
       // prevent the richlistbox from changing the selection.
-      if (DownloadsView.richListBox.selectedIndex == -1)
+      if (DownloadsView.richListBox.selectedIndex == -1) {
         DownloadsView.richListBox.selectedIndex = 0;
+      }
       aEvent.preventDefault();
       return;
     }
@@ -459,8 +505,7 @@ const DownloadsPanel = {
    * as the the accel-V "paste" event, which initiates a file download if the
    * pasted item can be resolved to a URI.
    */
-  _onKeyDown: function DP__onKeyDown(aEvent)
-  {
+  _onKeyDown(aEvent) {
     // If the footer is focused and the downloads list has at least 1 element
     // in it, focus the last element in the list when going up.
     if (aEvent.keyCode == Ci.nsIDOMKeyEvent.DOM_VK_UP &&
@@ -473,11 +518,7 @@ const DownloadsPanel = {
     }
 
     let pasting = aEvent.keyCode == Ci.nsIDOMKeyEvent.DOM_VK_V &&
-#ifdef XP_MACOSX
-                  aEvent.metaKey;
-#else
-                  aEvent.ctrlKey;
-#endif
+                  aEvent.getModifierState("Accel");
 
     if (!pasting) {
       return;
@@ -513,8 +554,7 @@ const DownloadsPanel = {
    * Move focus to the main element in the downloads panel, unless another
    * element in the panel is already focused.
    */
-  _focusPanel: function DP_focusPanel()
-  {
+  _focusPanel() {
     // We may be invoked while the panel is still waiting to be shown.
     if (this._state != this.kStateShown) {
       return;
@@ -536,8 +576,7 @@ const DownloadsPanel = {
   /**
    * Opens the downloads panel when data is ready to be displayed.
    */
-  _openPopupIfDataReady: function DP_openPopupIfDataReady()
-  {
+  _openPopupIfDataReady() {
     // We don't want to open the popup if we already displayed it, or if we are
     // still loading data.
     if (this._state != this.kStateWaitingData || DownloadsView.loading) {
@@ -548,15 +587,16 @@ const DownloadsPanel = {
 
     // Ensure the anchor is visible.  If that is not possible, show the panel
     // anchored to the top area of the window, near the default anchor position.
-    DownloadsButton.getAnchor(function DP_OPIDR_callback(aAnchor) {
+    DownloadsButton.getAnchor(anchor => {
       // If somehow we've switched states already (by getting a panel hiding
       // event before an overlay is loaded, for example), bail out.
-      if (this._state != this.kStateWaitingAnchor)
+      if (this._state != this.kStateWaitingAnchor) {
         return;
+      }
 
       // At this point, if the window is minimized, opening the panel could fail
       // without any notification, and there would be no way to either open or
-      // close the panel anymore.  To prevent this, check if the window is
+      // close the panel any more.  To prevent this, check if the window is
       // minimized and in that case force the panel to the closed state.
       if (window.windowState == Ci.nsIDOMChromeWindow.STATE_MINIMIZED) {
         DownloadsButton.releaseAnchor();
@@ -564,28 +604,26 @@ const DownloadsPanel = {
         return;
       }
 
+      if (!anchor) {
+        DownloadsCommon.error("Downloads button cannot be found.");
+        return;
+      }
+
       // When the panel is opened, we check if the target files of visible items
       // still exist, and update the allowed items interactions accordingly.  We
       // do these checks on a background thread, and don't prevent the panel to
       // be displayed while these checks are being performed.
-      for each (let viewItem in DownloadsView._viewItems) {
-        viewItem.verifyTargetExists();
+      for (let viewItem of DownloadsView._visibleViewItems.values()) {
+        viewItem.download.refresh().catch(Cu.reportError);
       }
 
-      if (aAnchor) {
-        DownloadsCommon.log("Opening downloads panel popup.");
-        this.panel.openPopup(aAnchor, "bottomcenter topright", 0, 0, false,
-                             null);
-      } else {
-        DownloadsCommon.error("We can't find the anchor! Failure case - opening",
-                              "downloads panel on TabsToolbar. We should never",
-                              "get here!");
-        Components.utils.reportError(
-          "Downloads button cannot be found");
-      }
-    }.bind(this));
-  }
+      DownloadsCommon.log("Opening downloads panel popup.");
+      this.panel.openPopup(anchor, "bottomcenter topright", 0, 0, false, null);
+    });
+  },
 };
+
+XPCOMUtils.defineConstant(this, "DownloadsPanel", DownloadsPanel);
 
 ////////////////////////////////////////////////////////////////////////////////
 //// DownloadsOverlayLoader
@@ -622,8 +660,7 @@ const DownloadsOverlayLoader = {
    *        Invoked when loading is completed.  If the overlay is already
    *        loaded, the function is called immediately.
    */
-  ensureOverlayLoaded: function DOL_ensureOverlayLoaded(aOverlay, aCallback)
-  {
+  ensureOverlayLoaded(aOverlay, aCallback) {
     // The overlay is already loaded, invoke the callback immediately.
     if (aOverlay in this._loadedOverlays) {
       aCallback();
@@ -636,16 +673,14 @@ const DownloadsOverlayLoader = {
       return;
     }
 
-    function DOL_EOL_loadCallback() {
+    this._overlayLoading = true;
+    DownloadsCommon.log("Loading overlay ", aOverlay);
+    document.loadOverlay(aOverlay, () => {
       this._overlayLoading = false;
       this._loadedOverlays[aOverlay] = true;
 
       this.processPendingRequests();
-    }
-
-    this._overlayLoading = true;
-    DownloadsCommon.log("Loading overlay ", aOverlay);
-    document.loadOverlay(aOverlay, DOL_EOL_loadCallback.bind(this));
+    });
   },
 
   /**
@@ -653,8 +688,7 @@ const DownloadsOverlayLoader = {
    * and/or loading more overlays as needed.  In most cases, there will be a
    * single request for one overlay, that will be processed immediately.
    */
-  processPendingRequests: function DOL_processPendingRequests()
-  {
+  processPendingRequests() {
     // Re-process all the currently pending requests, yet allow more requests
     // to be appended at the end of the array if we're not ready for them.
     let currentLength = this._loadRequests.length;
@@ -666,8 +700,10 @@ const DownloadsOverlayLoader = {
       // for the associated overlay to load.
       this.ensureOverlayLoaded(request.overlay, request.callback);
     }
-  }
+  },
 };
+
+XPCOMUtils.defineConstant(this, "DownloadsOverlayLoader", DownloadsOverlayLoader);
 
 ////////////////////////////////////////////////////////////////////////////////
 //// DownloadsView
@@ -684,7 +720,17 @@ const DownloadsView = {
   /**
    * Maximum number of items shown by the list at any given time.
    */
-  kItemCountLimit: 3,
+  kItemCountLimit: 5,
+
+  /**
+   * Indicates whether there is an open contextMenu for a download item.
+   */
+  contextMenuOpen: false,
+
+  /**
+   * Indicates whether there is a DownloadsBlockedSubview open.
+   */
+  subViewOpen: false,
 
   /**
    * Indicates whether we are still loading downloads data asynchronously.
@@ -692,28 +738,27 @@ const DownloadsView = {
   loading: false,
 
   /**
-   * Ordered array of all DownloadsDataItem objects.  We need to keep this array
-   * because only a limited number of items are shown at once, and if an item
-   * that is currently visible is removed from the list, we might need to take
-   * another item from the array and make it appear at the bottom.
+   * Ordered array of all Download objects.  We need to keep this array because
+   * only a limited number of items are shown at once, and if an item that is
+   * currently visible is removed from the list, we might need to take another
+   * item from the array and make it appear at the bottom.
    */
-  _dataItems: [],
+  _downloads: [],
 
   /**
-   * Object containing the available DownloadsViewItem objects, indexed by their
-   * numeric download identifier.  There is a limited number of view items in
-   * the panel at any given time.
+   * Associates the visible Download objects with their corresponding
+   * DownloadsViewItem object.  There is a limited number of view items in the
+   * panel at any given time.
    */
-  _viewItems: {},
+  _visibleViewItems: new Map(),
 
   /**
    * Called when the number of items in the list changes.
    */
-  _itemCountChanged: function DV_itemCountChanged()
-  {
+  _itemCountChanged() {
     DownloadsCommon.log("The downloads item count has changed - we are tracking",
-                        this._dataItems.length, "downloads in total.");
-    let count = this._dataItems.length;
+                        this._downloads.length, "downloads in total.");
+    let count = this._downloads.length;
     let hiddenCount = count - this.kItemCountLimit;
 
     if (count > 0) {
@@ -733,8 +778,7 @@ const DownloadsView = {
   /**
    * Element corresponding to the list of downloads.
    */
-  get richListBox()
-  {
+  get richListBox() {
     delete this.richListBox;
     return this.richListBox = document.getElementById("downloadsListBox");
   },
@@ -742,8 +786,7 @@ const DownloadsView = {
   /**
    * Element corresponding to the button for showing more downloads.
    */
-  get downloadsHistory()
-  {
+  get downloadsHistory() {
     delete this.downloadsHistory;
     return this.downloadsHistory = document.getElementById("downloadsHistory");
   },
@@ -754,8 +797,7 @@ const DownloadsView = {
   /**
    * Called before multiple downloads are about to be loaded.
    */
-  onDataLoadStarting: function DV_onDataLoadStarting()
-  {
+  onDataLoadStarting() {
     DownloadsCommon.log("onDataLoadStarting called for DownloadsView.");
     this.loading = true;
   },
@@ -763,8 +805,7 @@ const DownloadsView = {
   /**
    * Called after data loading finished.
    */
-  onDataLoadCompleted: function DV_onDataLoadCompleted()
-  {
+  onDataLoadCompleted() {
     DownloadsCommon.log("onDataLoadCompleted called for DownloadsView.");
 
     this.loading = false;
@@ -782,8 +823,8 @@ const DownloadsView = {
    * Called when a new download data item is available, either during the
    * asynchronous data load or when a new download is started.
    *
-   * @param aDataItem
-   *        DownloadsDataItem object that was just added.
+   * @param aDownload
+   *        Download object that was just added.
    * @param aNewest
    *        When true, indicates that this item is the most recent and should be
    *        added in the topmost position.  This happens when a new download is
@@ -791,28 +832,27 @@ const DownloadsView = {
    *        and should be appended.  The latter generally happens during the
    *        asynchronous data load.
    */
-  onDataItemAdded: function DV_onDataItemAdded(aDataItem, aNewest)
-  {
+  onDownloadAdded(download, aNewest) {
     DownloadsCommon.log("A new download data item was added - aNewest =",
                         aNewest);
 
     if (aNewest) {
-      this._dataItems.unshift(aDataItem);
+      this._downloads.unshift(download);
     } else {
-      this._dataItems.push(aDataItem);
+      this._downloads.push(download);
     }
 
-    let itemsNowOverflow = this._dataItems.length > this.kItemCountLimit;
+    let itemsNowOverflow = this._downloads.length > this.kItemCountLimit;
     if (aNewest || !itemsNowOverflow) {
       // The newly added item is visible in the panel and we must add the
       // corresponding element.  This is either because it is the first item, or
       // because it was added at the bottom but the list still doesn't overflow.
-      this._addViewItem(aDataItem, aNewest);
+      this._addViewItem(download, aNewest);
     }
     if (aNewest && itemsNowOverflow) {
       // If the list overflows, remove the last item from the panel to make room
       // for the new one that we just added at the top.
-      this._removeViewItem(this._dataItems[this.kItemCountLimit]);
+      this._removeViewItem(this._downloads[this.kItemCountLimit]);
     }
 
     // For better performance during batch loads, don't update the count for
@@ -822,70 +862,71 @@ const DownloadsView = {
     }
   },
 
+  onDownloadStateChanged(download) {
+    let viewItem = this._visibleViewItems.get(download);
+    if (viewItem) {
+      viewItem.onStateChanged();
+    }
+  },
+
+  onDownloadChanged(download) {
+    let viewItem = this._visibleViewItems.get(download);
+    if (viewItem) {
+      viewItem.onChanged();
+    }
+  },
+
   /**
    * Called when a data item is removed.  Ensures that the widget associated
    * with the view item is removed from the user interface.
    *
-   * @param aDataItem
-   *        DownloadsDataItem object that is being removed.
+   * @param download
+   *        Download object that is being removed.
    */
-  onDataItemRemoved: function DV_onDataItemRemoved(aDataItem)
-  {
+  onDownloadRemoved(download) {
     DownloadsCommon.log("A download data item was removed.");
 
-    let itemIndex = this._dataItems.indexOf(aDataItem);
-    this._dataItems.splice(itemIndex, 1);
+    let itemIndex = this._downloads.indexOf(download);
+    this._downloads.splice(itemIndex, 1);
 
     if (itemIndex < this.kItemCountLimit) {
       // The item to remove is visible in the panel.
-      this._removeViewItem(aDataItem);
-      if (this._dataItems.length >= this.kItemCountLimit) {
+      this._removeViewItem(download);
+      if (this._downloads.length >= this.kItemCountLimit) {
         // Reinsert the next item into the panel.
-        this._addViewItem(this._dataItems[this.kItemCountLimit - 1], false);
+        this._addViewItem(this._downloads[this.kItemCountLimit - 1], false);
       }
     }
 
     this._itemCountChanged();
+
+    // Adjust the panel height if we removed items.
+    DownloadsPanel.setHeightToFit();
   },
 
   /**
-   * Returns the view item associated with the provided data item for this view.
-   *
-   * @param aDataItem
-   *        DownloadsDataItem object for which the view item is requested.
-   *
-   * @return Object that can be used to notify item status events.
+   * Associates each richlistitem for a download with its corresponding
+   * DownloadsViewItem object.
    */
-  getViewItem: function DV_getViewItem(aDataItem)
-  {
-    // If the item is visible, just return it, otherwise return a mock object
-    // that doesn't react to notifications.
-    if (aDataItem.downloadGuid in this._viewItems) {
-      return this._viewItems[aDataItem.downloadGuid];
-    }
-    return this._invisibleViewItem;
-  },
+  _itemsForElements: new Map(),
 
-  /**
-   * Mock DownloadsDataItem object that doesn't react to notifications.
-   */
-  _invisibleViewItem: Object.freeze({
-    onStateChange: function () { },
-    onProgressChange: function () { }
-  }),
+  itemForElement(element) {
+    return this._itemsForElements.get(element);
+  },
 
   /**
    * Creates a new view item associated with the specified data item, and adds
    * it to the top or the bottom of the list.
    */
-  _addViewItem: function DV_addViewItem(aDataItem, aNewest)
+  _addViewItem(download, aNewest)
   {
     DownloadsCommon.log("Adding a new DownloadsViewItem to the downloads list.",
                         "aNewest =", aNewest);
 
     let element = document.createElement("richlistitem");
-    let viewItem = new DownloadsViewItem(aDataItem, element);
-    this._viewItems[aDataItem.downloadGuid] = viewItem;
+    let viewItem = new DownloadsViewItem(download, element);
+    this._visibleViewItems.set(download, viewItem);
+    this._itemsForElements.set(element, viewItem);
     if (aNewest) {
       this.richListBox.insertBefore(element, this.richListBox.firstChild);
     } else {
@@ -896,17 +937,17 @@ const DownloadsView = {
   /**
    * Removes the view item associated with the specified data item.
    */
-  _removeViewItem: function DV_removeViewItem(aDataItem)
-  {
+  _removeViewItem(download) {
     DownloadsCommon.log("Removing a DownloadsViewItem from the downloads list.");
-    let element = this.getViewItem(aDataItem)._element;
+    let element = this._visibleViewItems.get(download).element;
     let previousSelectedIndex = this.richListBox.selectedIndex;
     this.richListBox.removeChild(element);
     if (previousSelectedIndex != -1) {
       this.richListBox.selectedIndex = Math.min(previousSelectedIndex,
                                                 this.richListBox.itemCount - 1);
     }
-    delete this._viewItems[aDataItem.downloadGuid];
+    this._visibleViewItems.delete(download);
+    this._itemsForElements.delete(element);
   },
 
   //////////////////////////////////////////////////////////////////////////////
@@ -922,29 +963,35 @@ const DownloadsView = {
    * @param aCommand
    *        The command to be performed.
    */
-  onDownloadCommand: function DV_onDownloadCommand(aEvent, aCommand)
-  {
+  onDownloadCommand(aEvent, aCommand) {
     let target = aEvent.target;
     while (target.nodeName != "richlistitem") {
       target = target.parentNode;
     }
-    new DownloadsViewItemController(target).doCommand(aCommand);
+    DownloadsView.itemForElement(target).doCommand(aCommand);
   },
 
-  onDownloadClick: function DV_onDownloadClick(aEvent)
-  {
+  onDownloadClick(aEvent) {
     // Handle primary clicks only, and exclude the action button.
     if (aEvent.button == 0 &&
         !aEvent.originalTarget.hasAttribute("oncommand")) {
-      goDoCommand("downloadsCmd_open");
+      let target = aEvent.target;
+      while (target.nodeName != "richlistitem") {
+        target = target.parentNode;
+      }
+      let download = DownloadsView.itemForElement(target).download;
+      if (download.hasBlockedData) {
+        goDoCommand("downloadsCmd_showBlockedInfo");
+      } else {
+        goDoCommand("downloadsCmd_open");
+      }
     }
   },
 
   /**
    * Handles keypress events on a download item.
    */
-  onDownloadKeyPress: function DV_onDownloadKeyPress(aEvent)
-  {
+  onDownloadKeyPress(aEvent) {
     // Pressing the key on buttons should not invoke the action because the
     // event has already been handled by the button itself.
     if (aEvent.originalTarget.hasAttribute("command") ||
@@ -962,31 +1009,56 @@ const DownloadsView = {
     }
   },
 
+  /**
+   * Event handlers to keep track of context menu state (open/closed) for
+   * download items.
+   */
+  onContextPopupShown(aEvent) {
+    // Ignore events raised by nested popups.
+    if (aEvent.target != aEvent.currentTarget) {
+      return;
+    }
+
+    DownloadsCommon.log("Context menu has shown.");
+    this.contextMenuOpen = true;
+  },
+
+  onContextPopupHidden(aEvent) {
+    // Ignore events raised by nested popups.
+    if (aEvent.target != aEvent.currentTarget) {
+      return;
+    }
+
+    DownloadsCommon.log("Context menu has hidden.");
+    this.contextMenuOpen = false;
+  },
 
   /**
    * Mouse listeners to handle selection on hover.
    */
-  onDownloadMouseOver: function DV_onDownloadMouseOver(aEvent)
-  {
-    if (aEvent.originalTarget.parentNode == this.richListBox)
-      this.richListBox.selectedItem = aEvent.originalTarget;
-  },
-  onDownloadMouseOut: function DV_onDownloadMouseOut(aEvent)
-  {
-    if (aEvent.originalTarget.parentNode == this.richListBox) {
-      // If the destination element is outside of the richlistitem, clear the
-      // selection.
-      let element = aEvent.relatedTarget;
-      while (element && element != aEvent.originalTarget) {
-        element = element.parentNode;
-      }
-      if (!element)
-        this.richListBox.selectedIndex = -1;
+  onDownloadMouseOver(aEvent) {
+    if (!(this.contextMenuOpen || this.subViewOpen) &&
+        aEvent.target.parentNode == this.richListBox) {
+      this.richListBox.selectedItem = aEvent.target;
     }
   },
 
-  onDownloadContextMenu: function DV_onDownloadContextMenu(aEvent)
-  {
+  onDownloadMouseOut(aEvent) {
+    if (!(this.contextMenuOpen || this.subViewOpen) &&
+        aEvent.target.parentNode == this.richListBox) {
+      // If the destination element is outside of the richlistitem, clear the
+      // selection.
+      let element = aEvent.relatedTarget;
+      while (element && element != aEvent.target) {
+        element = element.parentNode;
+      }
+      if (!element) {
+        this.richListBox.selectedIndex = -1;
+      }
+    }
+  },
+
+  onDownloadContextMenu(aEvent) {
     let element = this.richListBox.selectedItem;
     if (!element) {
       return;
@@ -997,287 +1069,185 @@ const DownloadsView = {
     // Set the state attribute so that only the appropriate items are displayed.
     let contextMenu = document.getElementById("downloadsContextMenu");
     contextMenu.setAttribute("state", element.getAttribute("state"));
+    contextMenu.classList.toggle("temporary-block",
+                                 element.classList.contains("temporary-block"));
   },
 
-  onDownloadDragStart: function DV_onDownloadDragStart(aEvent)
-  {
+  onDownloadDragStart(aEvent) {
     let element = this.richListBox.selectedItem;
     if (!element) {
       return;
     }
 
-    let controller = new DownloadsViewItemController(element);
-    let localFile = controller.dataItem.localFile;
-    if (!localFile.exists()) {
+    // We must check for existence synchronously because this is a DOM event.
+    let file = new FileUtils.File(DownloadsView.itemForElement(element)
+                                               .download.target.path);
+    if (!file.exists()) {
       return;
     }
 
     let dataTransfer = aEvent.dataTransfer;
-    dataTransfer.mozSetDataAt("application/x-moz-file", localFile, 0);
+    dataTransfer.mozSetDataAt("application/x-moz-file", file, 0);
     dataTransfer.effectAllowed = "copyMove";
-    var url = Services.io.newFileURI(localFile).spec;
-    dataTransfer.setData("text/uri-list", url);
-    dataTransfer.setData("text/plain", url);
+    let spec = NetUtil.newURI(file).spec;
+    dataTransfer.setData("text/uri-list", spec);
+    dataTransfer.setData("text/plain", spec);
     dataTransfer.addElement(element);
 
     aEvent.stopPropagation();
-  }
+  },
 }
+
+XPCOMUtils.defineConstant(this, "DownloadsView", DownloadsView);
 
 ////////////////////////////////////////////////////////////////////////////////
 //// DownloadsViewItem
 
 /**
  * Builds and updates a single item in the downloads list widget, responding to
- * changes in the download state and real-time data.
+ * changes in the download state and real-time data, and handles the user
+ * interaction events related to a single item in the downloads list widgets.
  *
- * @param aDataItem
- *        DownloadsDataItem to be associated with the view item.
+ * @param download
+ *        Download object to be associated with the view item.
  * @param aElement
  *        XUL element corresponding to the single download item in the view.
  */
-function DownloadsViewItem(aDataItem, aElement)
-{
-  this._element = aElement;
-  this.dataItem = aDataItem;
+function DownloadsViewItem(download, aElement) {
+  this.download = download;
+  this.element = aElement;
+  this.element._shell = this;
 
-  this.lastEstimatedSecondsLeft = Infinity;
+  this.element.setAttribute("type", "download");
+  this.element.classList.add("download-state");
 
-  // Set the URI that represents the correct icon for the target file.  As soon
-  // as bug 239948 comment 12 is handled, the "file" property will be always a
-  // file URL rather than a file name.  At that point we should remove the "//"
-  // (double slash) from the icon URI specification (see test_moz_icon_uri.js).
-  this.image = "moz-icon://" + this.dataItem.file + "?size=32";
-
-  let attributes = {
-    "type": "download",
-    "class": "download-state",
-    "id": "downloadsItem_" + this.dataItem.downloadGuid,
-    "downloadGuid": this.dataItem.downloadGuid,
-    "state": this.dataItem.state,
-    "progress": this.dataItem.inProgress ? this.dataItem.percentComplete : 100,
-    "target": this.dataItem.target,
-    "image": this.image
-  };
-
-  for (let attributeName in attributes) {
-    this._element.setAttribute(attributeName, attributes[attributeName]);
-  }
-
-  // Initialize more complex attributes.
-  this._updateProgress();
-  this._updateStatusLine();
-  this.verifyTargetExists();
+  this._updateState();
 }
 
 DownloadsViewItem.prototype = {
-  /**
-   * The DownloadDataItem associated with this view item.
-   */
-  dataItem: null,
+  __proto__: DownloadsViewUI.DownloadElementShell.prototype,
 
   /**
    * The XUL element corresponding to the associated richlistbox item.
    */
   _element: null,
 
-  /**
-   * The inner XUL element for the progress bar, or null if not available.
-   */
-  _progressElement: null,
+  onStateChanged() {
+    this._updateState();
+  },
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// Callback functions from DownloadsData
-
-  /**
-   * Called when the download state might have changed.  Sometimes the state of
-   * the download might be the same as before, if the data layer received
-   * multiple events for the same download.
-   */
-  onStateChange: function DVI_onStateChange(aOldState)
-  {
-    // If a download just finished successfully, it means that the target file
-    // now exists and we can extract its specific icon.  To ensure that the icon
-    // is reloaded, we must change the URI used by the XUL image element, for
-    // example by adding a query parameter.  Since this URI has a "moz-icon"
-    // scheme, this only works if we add one of the parameters explicitly
-    // supported by the nsIMozIconURI interface.
-    if (aOldState != Ci.nsIDownloadManager.DOWNLOAD_FINISHED &&
-        aOldState != this.dataItem.state) {
-      this._element.setAttribute("image", this.image + "&state=normal");
-
-      // We assume the existence of the target of a download that just completed
-      // successfully, without checking the condition in the background.  If the
-      // panel is already open, this will take effect immediately.  If the panel
-      // is opened later, a new background existence check will be performed.
-      this._element.setAttribute("exists", "true");
-    }
-
-    // Update the user interface after switching states.
-    this._element.setAttribute("state", this.dataItem.state);
+  onChanged() {
     this._updateProgress();
-    this._updateStatusLine();
   },
 
-  /**
-   * Called when the download progress has changed.
-   */
-  onProgressChange: function DVI_onProgressChange() {
-    this._updateProgress();
-    this._updateStatusLine();
+  isCommandEnabled(aCommand) {
+    switch (aCommand) {
+      case "downloadsCmd_open": {
+        if (!this.download.succeeded) {
+          return false;
+        }
+
+        let file = new FileUtils.File(this.download.target.path);
+        return file.exists();
+      }
+      case "downloadsCmd_show": {
+        let file = new FileUtils.File(this.download.target.path);
+        if (file.exists()) {
+          return true;
+        }
+
+        if (!this.download.target.partFilePath) {
+          return false;
+        }
+
+        let partFile = new FileUtils.File(this.download.target.partFilePath);
+        return partFile.exists();
+      }
+      case "cmd_delete":
+      case "downloadsCmd_cancel":
+      case "downloadsCmd_copyLocation":
+      case "downloadsCmd_doDefault":
+        return true;
+      case "downloadsCmd_showBlockedInfo":
+        return this.download.hasBlockedData;
+    }
+    return DownloadsViewUI.DownloadElementShell.prototype
+                          .isCommandEnabled.call(this, aCommand);
+  },
+
+  doCommand(aCommand) {
+    if (this.isCommandEnabled(aCommand)) {
+      this[aCommand]();
+    }
   },
 
   //////////////////////////////////////////////////////////////////////////////
-  //// Functions for updating the user interface
+  //// Item commands
 
-  /**
-   * Updates the progress bar.
-   */
-  _updateProgress: function DVI_updateProgress() {
-    if (this.dataItem.starting) {
-      // Before the download starts, the progress meter has its initial value.
-      this._element.setAttribute("progressmode", "normal");
-      this._element.setAttribute("progress", "0");
-    } else if (this.dataItem.state == Ci.nsIDownloadManager.DOWNLOAD_SCANNING ||
-               this.dataItem.percentComplete == -1) {
-      // We might not know the progress of a running download, and we don't know
-      // the remaining time during the malware scanning phase.
-      this._element.setAttribute("progressmode", "undetermined");
-    } else {
-      // This is a running download of which we know the progress.
-      this._element.setAttribute("progressmode", "normal");
-      this._element.setAttribute("progress", this.dataItem.percentComplete);
-    }
-
-    // Find the progress element as soon as the download binding is accessible.
-    if (!this._progressElement) {
-      this._progressElement =
-           document.getAnonymousElementByAttribute(this._element, "anonid",
-                                                   "progressmeter");
-    }
-
-    // Dispatch the ValueChange event for accessibility, if possible.
-    if (this._progressElement) {
-      let event = document.createEvent("Events");
-      event.initEvent("ValueChange", true, true);
-      this._progressElement.dispatchEvent(event);
-    }
+  cmd_delete() {
+    DownloadsCommon.removeAndFinalizeDownload(this.download);
+    PlacesUtils.bhistory.removePage(
+                           NetUtil.newURI(this.download.source.url));
   },
 
-  /**
-   * Updates the main status line, including bytes transferred, bytes total,
-   * download rate, and time remaining.
-   */
-  _updateStatusLine: function DVI_updateStatusLine() {
-    const nsIDM = Ci.nsIDownloadManager;
-
-    let status = "";
-    let statusTip = "";
-
-    if (this.dataItem.paused) {
-      let transfer = DownloadUtils.getTransferTotal(this.dataItem.currBytes,
-                                                    this.dataItem.maxBytes);
-
-      // We use the same XUL label to display both the state and the amount
-      // transferred, for example "Paused -  1.1 MB".
-      status = DownloadsCommon.strings.statusSeparatorBeforeNumber(
-                                            DownloadsCommon.strings.statePaused,
-                                            transfer);
-    } else if (this.dataItem.state == nsIDM.DOWNLOAD_DOWNLOADING) {
-      // We don't show the rate for each download in order to reduce clutter.
-      // The remaining time per download is likely enough information for the
-      // panel.
-      [status] =
-        DownloadUtils.getDownloadStatusNoRate(this.dataItem.currBytes,
-                                              this.dataItem.maxBytes,
-                                              this.dataItem.speed,
-                                              this.lastEstimatedSecondsLeft);
-
-      // We are, however, OK with displaying the rate in the tooltip.
-      let newEstimatedSecondsLeft;
-      [statusTip, newEstimatedSecondsLeft] =
-        DownloadUtils.getDownloadStatus(this.dataItem.currBytes,
-                                        this.dataItem.maxBytes,
-                                        this.dataItem.speed,
-                                        this.lastEstimatedSecondsLeft);
-      this.lastEstimatedSecondsLeft = newEstimatedSecondsLeft;
-    } else if (this.dataItem.starting) {
-      status = DownloadsCommon.strings.stateStarting;
-    } else if (this.dataItem.state == nsIDM.DOWNLOAD_SCANNING) {
-      status = DownloadsCommon.strings.stateScanning;
-    } else if (!this.dataItem.inProgress) {
-      let stateLabel = function () {
-        let s = DownloadsCommon.strings;
-        switch (this.dataItem.state) {
-          case nsIDM.DOWNLOAD_FAILED:           return s.stateFailed;
-          case nsIDM.DOWNLOAD_CANCELED:         return s.stateCanceled;
-          case nsIDM.DOWNLOAD_BLOCKED_PARENTAL: return s.stateBlockedParentalControls;
-          case nsIDM.DOWNLOAD_BLOCKED_POLICY:   return s.stateBlockedPolicy;
-          case nsIDM.DOWNLOAD_DIRTY:            return s.stateDirty;
-          case nsIDM.DOWNLOAD_FINISHED:         return this._fileSizeText;
-        }
-        return null;
-      }.apply(this);
-
-      let [displayHost, fullHost] =
-        DownloadUtils.getURIHost(this.dataItem.referrer || this.dataItem.uri);
-
-      let end = new Date(this.dataItem.endTime);
-      let [displayDate, fullDate] = DownloadUtils.getReadableDates(end);
-
-      // We use the same XUL label to display the state, the host name, and the
-      // end time, for example "Canceled - 222.net - 11:15" or "1.1 MB -
-      // website2.com - Yesterday".  We show the full host and the complete date
-      // in the tooltip.
-      let firstPart = DownloadsCommon.strings.statusSeparator(stateLabel,
-                                                              displayHost);
-      status = DownloadsCommon.strings.statusSeparator(firstPart, displayDate);
-      statusTip = DownloadsCommon.strings.statusSeparator(fullHost, fullDate);
-    }
-
-    this._element.setAttribute("status", status);
-    this._element.setAttribute("statusTip", statusTip || status);
+  downloadsCmd_unblock() {
+    DownloadsPanel.hidePanel();
+    this.confirmUnblock(window, "unblock");
   },
 
-  /**
-   * Localized string representing the total size of completed downloads, for
-   * example "1.5 MB" or "Unknown size".
-   */
-  get _fileSizeText()
-  {
-    // Display the file size, but show "Unknown" for negative sizes.
-    let fileSize = this.dataItem.maxBytes;
-    if (fileSize < 0) {
-      return DownloadsCommon.strings.sizeUnknown;
-    }
-    let [size, unit] = DownloadUtils.convertByteUnits(fileSize);
-    return DownloadsCommon.strings.sizeWithUnits(size, unit);
+  downloadsCmd_chooseUnblock() {
+    DownloadsPanel.hidePanel();
+    this.confirmUnblock(window, "chooseUnblock");
   },
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// Functions called by the panel
+  downloadsCmd_unblockAndOpen() {
+    DownloadsPanel.hidePanel();
+    this.unblockAndOpenDownload().catch(Cu.reportError);
+  },
 
-  /**
-   * Starts checking whether the target file of a finished download is still
-   * available on disk, and sets an attribute that controls how the item is
-   * presented visually.
-   *
-   * The existence check is executed on a background thread.
-   */
-  verifyTargetExists: function DVI_verifyTargetExists() {
-    // We don't need to check if the download is not finished successfully.
-    if (!this.dataItem.openable) {
-      return;
+  downloadsCmd_open() {
+    this.download.launch().catch(Cu.reportError);
+
+    // We explicitly close the panel here to give the user the feedback that
+    // their click has been received, and we're handling the action.
+    // Otherwise, we'd have to wait for the file-type handler to execute
+    // before the panel would close. This also helps to prevent the user from
+    // accidentally opening a file several times.
+    DownloadsPanel.hidePanel();
+  },
+
+  downloadsCmd_show() {
+    let file = new FileUtils.File(this.download.target.path);
+    DownloadsCommon.showDownloadedFile(file);
+
+    // We explicitly close the panel here to give the user the feedback that
+    // their click has been received, and we're handling the action.
+    // Otherwise, we'd have to wait for the operating system file manager
+    // window to open before the panel closed. This also helps to prevent the
+    // user from opening the containing folder several times.
+    DownloadsPanel.hidePanel();
+  },
+
+  downloadsCmd_showBlockedInfo() {
+    DownloadsBlockedSubview.toggle(this.element,
+                                   ...this.rawBlockedTitleAndDetails);
+  },
+
+  downloadsCmd_openReferrer() {
+    openURL(this.download.source.referrer);
+  },
+
+  downloadsCmd_copyLocation() {
+    let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"]
+                    .getService(Ci.nsIClipboardHelper);
+    clipboard.copyString(this.download.source.url);
+  },
+
+  downloadsCmd_doDefault() {
+    let defaultCommand = this.currentDefaultCommandName;
+    if (defaultCommand && this.isCommandEnabled(defaultCommand)) {
+      this.doCommand(defaultCommand);
     }
-
-    OS.File.exists(this.dataItem.localFile.path).then(
-      function DVI_RTE_onSuccess(aExists) {
-        if (aExists) {
-          this._element.setAttribute("exists", "true");
-        } else {
-          this._element.removeAttribute("exists");
-        }
-      }.bind(this), Cu.reportError);
   },
 };
 
@@ -1293,27 +1263,40 @@ const DownloadsViewController = {
   //////////////////////////////////////////////////////////////////////////////
   //// Initialization and termination
 
-  initialize: function DVC_initialize()
-  {
+  initialize() {
     window.controllers.insertControllerAt(0, this);
   },
 
-  terminate: function DVC_terminate()
-  {
+  terminate() {
     window.controllers.removeController(this);
   },
 
   //////////////////////////////////////////////////////////////////////////////
   //// nsIController
 
-  supportsCommand: function DVC_supportsCommand(aCommand)
-  {
+  supportsCommand(aCommand) {
+    if (aCommand === "downloadsCmd_clearList") {
+      return true;
+    }
     // Firstly, determine if this is a command that we can handle.
-    if (!(aCommand in this.commands) &&
-        !(aCommand in DownloadsViewItemController.prototype.commands)) {
+    if (!DownloadsViewUI.isCommandName(aCommand)) {
       return false;
     }
-    // Secondly, determine if focus is on a control in the downloads list.
+    if (!(aCommand in this) &&
+        !(aCommand in DownloadsViewItem.prototype)) {
+      return false;
+    }
+    // The currently supported commands depend on whether the blocked subview is
+    // showing.  If it is, then take the following path.
+    if (DownloadsBlockedSubview.view.showingSubView) {
+      let blockedSubviewCmds = [
+        "downloadsCmd_unblockAndOpen",
+        "cmd_delete",
+      ];
+      return blockedSubviewCmds.indexOf(aCommand) >= 0;
+    }
+    // If the blocked subview is not showing, then determine if focus is on a
+    // control in the downloads list.
     let element = document.commandDispatcher.focusedElement;
     while (element && element != DownloadsView.richListBox) {
       element = element.parentNode;
@@ -1323,8 +1306,7 @@ const DownloadsViewController = {
     return !!element;
   },
 
-  isCommandEnabled: function DVC_isCommandEnabled(aCommand)
-  {
+  isCommandEnabled(aCommand) {
     // Handle commands that are not selection-specific.
     if (aCommand == "downloadsCmd_clearList") {
       return DownloadsCommon.getData(window).canRemoveFinished;
@@ -1332,15 +1314,14 @@ const DownloadsViewController = {
 
     // Other commands are selection-specific.
     let element = DownloadsView.richListBox.selectedItem;
-    return element &&
-           new DownloadsViewItemController(element).isCommandEnabled(aCommand);
+    return element && DownloadsView.itemForElement(element)
+                                   .isCommandEnabled(aCommand);
   },
 
-  doCommand: function DVC_doCommand(aCommand)
-  {
+  doCommand(aCommand) {
     // If this command is not selection-specific, execute it.
-    if (aCommand in this.commands) {
-      this.commands[aCommand].apply(this);
+    if (aCommand in this) {
+      this[aCommand]();
       return;
     }
 
@@ -1348,182 +1329,36 @@ const DownloadsViewController = {
     let element = DownloadsView.richListBox.selectedItem;
     if (element) {
       // The doCommand function also checks if the command is enabled.
-      new DownloadsViewItemController(element).doCommand(aCommand);
+      DownloadsView.itemForElement(element).doCommand(aCommand);
     }
   },
 
-  onEvent: function () { },
+  onEvent() {},
 
   //////////////////////////////////////////////////////////////////////////////
   //// Other functions
 
-  updateCommands: function DVC_updateCommands()
-  {
-    Object.keys(this.commands).forEach(goUpdateCommand);
-    Object.keys(DownloadsViewItemController.prototype.commands)
-          .forEach(goUpdateCommand);
+  updateCommands() {
+    function updateCommandsForObject(object) {
+      for (let name in object) {
+        if (DownloadsViewUI.isCommandName(name)) {
+          goUpdateCommand(name);
+        }
+      }
+    }
+    updateCommandsForObject(this);
+    updateCommandsForObject(DownloadsViewItem.prototype);
   },
 
   //////////////////////////////////////////////////////////////////////////////
   //// Selection-independent commands
 
-  /**
-   * This object contains one key for each command that operates regardless of
-   * the currently selected item in the list.
-   */
-  commands: {
-    downloadsCmd_clearList: function DVC_downloadsCmd_clearList()
-    {
-      DownloadsCommon.getData(window).removeFinished();
-    }
-  }
+  downloadsCmd_clearList() {
+    DownloadsCommon.getData(window).removeFinished();
+  },
 };
 
-////////////////////////////////////////////////////////////////////////////////
-//// DownloadsViewItemController
-
-/**
- * Handles all the user interaction events, in particular the "commands",
- * related to a single item in the downloads list widgets.
- */
-function DownloadsViewItemController(aElement) {
-  let downloadGuid = aElement.getAttribute("downloadGuid");
-  this.dataItem = DownloadsCommon.getData(window).dataItems[downloadGuid];
-}
-
-DownloadsViewItemController.prototype = {
-  //////////////////////////////////////////////////////////////////////////////
-  //// Command dispatching
-
-  /**
-   * The DownloadDataItem controlled by this object.
-   */
-  dataItem: null,
-
-  isCommandEnabled: function DVIC_isCommandEnabled(aCommand)
-  {
-    switch (aCommand) {
-      case "downloadsCmd_open": {
-        return this.dataItem.openable && this.dataItem.localFile.exists();
-      }
-      case "downloadsCmd_show": {
-        return this.dataItem.localFile.exists() ||
-               this.dataItem.partFile.exists();
-      }
-      case "downloadsCmd_pauseResume":
-        return this.dataItem.inProgress && this.dataItem.resumable;
-      case "downloadsCmd_retry":
-        return this.dataItem.canRetry;
-      case "downloadsCmd_openReferrer":
-        return !!this.dataItem.referrer;
-      case "cmd_delete":
-      case "downloadsCmd_cancel":
-      case "downloadsCmd_copyLocation":
-      case "downloadsCmd_doDefault":
-        return true;
-    }
-    return false;
-  },
-
-  doCommand: function DVIC_doCommand(aCommand)
-  {
-    if (this.isCommandEnabled(aCommand)) {
-      this.commands[aCommand].apply(this);
-    }
-  },
-
-  //////////////////////////////////////////////////////////////////////////////
-  //// Item commands
-
-  /**
-   * This object contains one key for each command that operates on this item.
-   *
-   * In commands, the "this" identifier points to the controller item.
-   */
-  commands: {
-    cmd_delete: function DVIC_cmd_delete()
-    {
-      this.dataItem.remove();
-      PlacesUtils.bhistory.removePage(NetUtil.newURI(this.dataItem.uri));
-    },
-
-    downloadsCmd_cancel: function DVIC_downloadsCmd_cancel()
-    {
-      this.dataItem.cancel();
-    },
-
-    downloadsCmd_open: function DVIC_downloadsCmd_open()
-    {
-      this.dataItem.openLocalFile();
-
-      // We explicitly close the panel here to give the user the feedback that
-      // their click has been received, and we're handling the action.
-      // Otherwise, we'd have to wait for the file-type handler to execute
-      // before the panel would close. This also helps to prevent the user from
-      // accidentally opening a file several times.
-      DownloadsPanel.hidePanel();
-    },
-
-    downloadsCmd_show: function DVIC_downloadsCmd_show()
-    {
-      this.dataItem.showLocalFile();
-
-      // We explicitly close the panel here to give the user the feedback that
-      // their click has been received, and we're handling the action.
-      // Otherwise, we'd have to wait for the operating system file manager
-      // window to open before the panel closed. This also helps to prevent the
-      // user from opening the containing folder several times.
-      DownloadsPanel.hidePanel();
-    },
-
-    downloadsCmd_pauseResume: function DVIC_downloadsCmd_pauseResume()
-    {
-      this.dataItem.togglePauseResume();
-    },
-
-    downloadsCmd_retry: function DVIC_downloadsCmd_retry()
-    {
-      this.dataItem.retry();
-    },
-
-    downloadsCmd_openReferrer: function DVIC_downloadsCmd_openReferrer()
-    {
-      openURL(this.dataItem.referrer);
-    },
-
-    downloadsCmd_copyLocation: function DVIC_downloadsCmd_copyLocation()
-    {
-      let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"]
-                      .getService(Ci.nsIClipboardHelper);
-      clipboard.copyString(this.dataItem.uri, document);
-    },
-
-    downloadsCmd_doDefault: function DVIC_downloadsCmd_doDefault()
-    {
-      const nsIDM = Ci.nsIDownloadManager;
-
-      // Determine the default command for the current item.
-      let defaultCommand = function () {
-        switch (this.dataItem.state) {
-          case nsIDM.DOWNLOAD_NOTSTARTED:       return "downloadsCmd_cancel";
-          case nsIDM.DOWNLOAD_FINISHED:         return "downloadsCmd_open";
-          case nsIDM.DOWNLOAD_FAILED:           return "downloadsCmd_retry";
-          case nsIDM.DOWNLOAD_CANCELED:         return "downloadsCmd_retry";
-          case nsIDM.DOWNLOAD_PAUSED:           return "downloadsCmd_pauseResume";
-          case nsIDM.DOWNLOAD_QUEUED:           return "downloadsCmd_cancel";
-          case nsIDM.DOWNLOAD_BLOCKED_PARENTAL: return "downloadsCmd_openReferrer";
-          case nsIDM.DOWNLOAD_SCANNING:         return "downloadsCmd_show";
-          case nsIDM.DOWNLOAD_DIRTY:            return "downloadsCmd_openReferrer";
-          case nsIDM.DOWNLOAD_BLOCKED_POLICY:   return "downloadsCmd_openReferrer";
-        }
-        return "";
-      }.apply(this);
-      if (defaultCommand && this.isCommandEnabled(defaultCommand))
-        this.doCommand(defaultCommand);
-    }
-  }
-};
-
+XPCOMUtils.defineConstant(this, "DownloadsViewController", DownloadsViewController);
 
 ////////////////////////////////////////////////////////////////////////////////
 //// DownloadsSummary
@@ -1541,8 +1376,7 @@ const DownloadsSummary = {
    * @param aActive
    *        Set to true to activate the summary.
    */
-  set active(aActive)
-  {
+  set active(aActive) {
     if (aActive == this._active || !this._summaryNode) {
       return this._active;
     }
@@ -1559,7 +1393,9 @@ const DownloadsSummary = {
   /**
    * Returns the active state of the downloads summary.
    */
-  get active() this._active,
+  get active() {
+    return this._active;
+  },
 
   _active: false,
 
@@ -1569,8 +1405,7 @@ const DownloadsSummary = {
    * @param aShowingProgress
    *        True if we should show the progress bar.
    */
-  set showingProgress(aShowingProgress)
-  {
+  set showingProgress(aShowingProgress) {
     if (aShowingProgress) {
       this._summaryNode.setAttribute("inprogress", "true");
     } else {
@@ -1587,8 +1422,7 @@ const DownloadsSummary = {
    *        A value between 0 and 100 to represent the progress of the
    *        summarized downloads.
    */
-  set percentComplete(aValue)
-  {
+  set percentComplete(aValue) {
     if (this._progressNode) {
       this._progressNode.setAttribute("value", aValue);
     }
@@ -1602,8 +1436,7 @@ const DownloadsSummary = {
    *        A string representing the description of the summarized
    *        downloads.
    */
-  set description(aValue)
-  {
+  set description(aValue) {
     if (this._descriptionNode) {
       this._descriptionNode.setAttribute("value", aValue);
       this._descriptionNode.setAttribute("tooltiptext", aValue);
@@ -1619,8 +1452,7 @@ const DownloadsSummary = {
    *        A string representing the details of the summarized
    *        downloads.
    */
-  set details(aValue)
-  {
+  set details(aValue) {
     if (this._detailsNode) {
       this._detailsNode.setAttribute("value", aValue);
       this._detailsNode.setAttribute("tooltiptext", aValue);
@@ -1631,8 +1463,7 @@ const DownloadsSummary = {
   /**
    * Focuses the root element of the summary.
    */
-  focus: function()
-  {
+  focus() {
     if (this._summaryNode) {
       this._summaryNode.focus();
     }
@@ -1644,8 +1475,7 @@ const DownloadsSummary = {
    * @param aEvent
    *        The keydown event being handled.
    */
-  onKeyDown: function DS_onKeyDown(aEvent)
-  {
+  onKeyDown(aEvent) {
     if (aEvent.charCode == " ".charCodeAt(0) ||
         aEvent.keyCode == KeyEvent.DOM_VK_RETURN) {
       DownloadsPanel.showDownloadsHistory();
@@ -1658,16 +1488,14 @@ const DownloadsSummary = {
    * @param aEvent
    *        The click event being handled.
    */
-  onClick: function DS_onClick(aEvent)
-  {
+  onClick(aEvent) {
     DownloadsPanel.showDownloadsHistory();
   },
 
   /**
    * Element corresponding to the root of the downloads summary.
    */
-  get _summaryNode()
-  {
+  get _summaryNode() {
     let node = document.getElementById("downloadsSummary");
     if (!node) {
       return null;
@@ -1679,8 +1507,7 @@ const DownloadsSummary = {
   /**
    * Element corresponding to the progress bar in the downloads summary.
    */
-  get _progressNode()
-  {
+  get _progressNode() {
     let node = document.getElementById("downloadsSummaryProgress");
     if (!node) {
       return null;
@@ -1693,8 +1520,7 @@ const DownloadsSummary = {
    * Element corresponding to the main description of the downloads
    * summary.
    */
-  get _descriptionNode()
-  {
+  get _descriptionNode() {
     let node = document.getElementById("downloadsSummaryDescription");
     if (!node) {
       return null;
@@ -1707,8 +1533,7 @@ const DownloadsSummary = {
    * Element corresponding to the secondary description of the downloads
    * summary.
    */
-  get _detailsNode()
-  {
+  get _detailsNode() {
     let node = document.getElementById("downloadsSummaryDetails");
     if (!node) {
       return null;
@@ -1716,7 +1541,9 @@ const DownloadsSummary = {
     delete this._detailsNode;
     return this._detailsNode = node;
   }
-}
+};
+
+XPCOMUtils.defineConstant(this, "DownloadsSummary", DownloadsSummary);
 
 ////////////////////////////////////////////////////////////////////////////////
 //// DownloadsFooter
@@ -1732,8 +1559,7 @@ const DownloadsFooter = {
    * is visible, focus it. If not, focus the "Show All Downloads"
    * button.
    */
-  focus: function DF_focus()
-  {
+  focus() {
     if (this._showingSummary) {
       DownloadsSummary.focus();
     } else {
@@ -1747,13 +1573,16 @@ const DownloadsFooter = {
    * Sets whether or not the Downloads Summary should be displayed in the
    * footer. If not, the "Show All Downloads" button is shown instead.
    */
-  set showingSummary(aValue)
-  {
+  set showingSummary(aValue) {
     if (this._footerNode) {
       if (aValue) {
         this._footerNode.setAttribute("showingsummary", "true");
       } else {
         this._footerNode.removeAttribute("showingsummary");
+      }
+      if (!aValue && this._showingSummary) {
+        // Make sure the panel's height shrinks when the summary is hidden.
+        DownloadsPanel.setHeightToFit();
       }
       this._showingSummary = aValue;
     }
@@ -1763,8 +1592,7 @@ const DownloadsFooter = {
   /**
    * Element corresponding to the footer of the downloads panel.
    */
-  get _footerNode()
-  {
+  get _footerNode() {
     let node = document.getElementById("downloadsFooter");
     if (!node) {
       return null;
@@ -1773,3 +1601,132 @@ const DownloadsFooter = {
     return this._footerNode = node;
   }
 };
+
+XPCOMUtils.defineConstant(this, "DownloadsFooter", DownloadsFooter);
+
+
+////////////////////////////////////////////////////////////////////////////////
+//// DownloadsBlockedSubview
+
+/**
+ * Manages the blocked subview that slides in when you click a blocked download.
+ */
+const DownloadsBlockedSubview = {
+
+  get subview() {
+    let subview = document.getElementById("downloadsPanel-blockedSubview");
+    delete this.subview;
+    return this.subview = subview;
+  },
+
+  /**
+   * Elements in the subview.
+   */
+  get elements() {
+    let idSuffixes = [
+      "title",
+      "details1",
+      "details2",
+      "openButton",
+      "deleteButton",
+    ];
+    let elements = idSuffixes.reduce((memo, s) => {
+      memo[s] = document.getElementById("downloadsPanel-blockedSubview-" + s);
+      return memo;
+    }, {});
+    delete this.elements;
+    return this.elements = elements;
+  },
+
+  /**
+   * The multiview that contains both the main view and the subview.
+   */
+  get view() {
+    let view = document.getElementById("downloadsPanel-multiView");
+    delete this.view;
+    return this.view = view;
+  },
+
+  /**
+   * The blocked-download richlistitem element that was clicked to show the
+   * subview.  If the subview is not showing, this is undefined.
+   */
+  element: undefined,
+
+  /**
+   * Slides in the blocked subview.
+   *
+   * @param element
+   *        The blocked-download richlistitem element that was clicked.
+   * @param title
+   *        The title to show in the subview.
+   * @param details
+   *        An array of strings with information about the block.
+   */
+  toggle(element, title, details) {
+    if (this.view.showingSubView) {
+      this.hide();
+      return;
+    }
+
+    this.element = element;
+    element.setAttribute("showingsubview", "true");
+    DownloadsView.subViewOpen = true;
+    DownloadsViewController.updateCommands();
+
+    let e = this.elements;
+    let s = DownloadsCommon.strings;
+    e.title.textContent = title;
+    e.details1.textContent = details[0];
+    e.details2.textContent = details[1];
+    e.openButton.label = s.unblockButtonOpen;
+    e.deleteButton.label = s.unblockButtonConfirmBlock;
+
+    let verdict = element.getAttribute("verdict");
+    this.subview.setAttribute("verdict", verdict);
+    this.subview.addEventListener("ViewHiding", this);
+
+    this.view.showSubView(this.subview.id);
+
+    // Without this, the mainView is more narrow than the panel once all
+    // downloads are removed from the panel.
+    document.getElementById("downloadsPanel-mainView").style.minWidth =
+      window.getComputedStyle(this.view).width;
+  },
+
+  handleEvent(event) {
+    switch (event.type) {
+      case "ViewHiding":
+        this.subview.removeEventListener(event.type, this);
+        this.element.removeAttribute("showingsubview");
+        DownloadsView.subViewOpen = false;
+        delete this.element;
+        break;
+      default:
+        DownloadsCommon.log("Unhandled DownloadsBlockedSubview event: " +
+                            event.type);
+        break;
+    }
+  },
+
+  /**
+   * Slides out the blocked subview and shows the main view.
+   */
+  hide() {
+    this.view.showMainView();
+    // The point of this is to focus the proper element in the panel now that
+    // the main view is showing again.  showPanel handles that.
+    DownloadsPanel.showPanel();
+  },
+
+  /**
+   * Deletes the download and hides the entire panel.
+   */
+  confirmBlock() {
+    goDoCommand("cmd_delete");
+    DownloadsPanel.hidePanel();
+  },
+};
+
+XPCOMUtils.defineConstant(this, "DownloadsBlockedSubview",
+                          DownloadsBlockedSubview);

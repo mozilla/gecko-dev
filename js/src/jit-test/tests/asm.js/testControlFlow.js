@@ -1,8 +1,8 @@
 load(libdir + "asm.js");
 
-assertAsmTypeFail(USE_ASM + "function f(i,j) { i=i|0;j=+j; if (i) return j; return j } return f");
+assertEq(asmLink(asmCompile(USE_ASM + "function f(i,j) { i=i|0;j=+j; if (i) return j; return j+1.0 } return f"))(0, 1.2), 1.2+1.0);
 assertEq(asmLink(asmCompile(USE_ASM + "function f(i,j) { i=i|0;j=+j; if (i) return j; return +~~i } return f"))(1,1.4), 1.4);
-assertAsmTypeFail(USE_ASM + "function f(i,j) { i=i|0;j=j|0; if (i) return j^0; return i^0 } return f");
+assertEq(asmLink(asmCompile(USE_ASM + "function f(i,j) { i=i|0;j=j|0; if (i) return j^0; return i^1 } return f"))(1, 1), 1);
 assertEq(asmLink(asmCompile(USE_ASM + "function f(i,j) { i=i|0;j=j|0; if (i) return j^0; return i|0 } return f"))(1,8), 8);
 assertEq(asmLink(asmCompile(USE_ASM + "function f(i) { i=i|0; if ((i|0) == 0) return 10; else if ((i|0) == 1) return 12; else if ((i|0) == 2) return 14; return 0} return f"))(2), 14);
 assertEq(asmLink(asmCompile(USE_ASM + "function f(i) { i=i|0; if ((i|0) == 0) return 10; else if ((i|0) == 1) return 12; else if ((i|0) == 2) return 14; else return 16; return 0} return f"))(3), 16);
@@ -11,7 +11,7 @@ assertEq(asmLink(asmCompile(USE_ASM + "function f(i) { i=i|0; if ((i|0) == 0) i 
 assertAsmTypeFail(USE_ASM + "function f(i) { i=i|0; if (i) return 0; } return f");
 assertAsmTypeFail(USE_ASM + "function f(i) { i=i|0; if (i) return 0; else return 1 } return f");
 assertAsmTypeFail(USE_ASM + "function f(i) { i=i|0; if (i) return 0; return 1.0 } return f");
-assertAsmTypeFail(USE_ASM + "function f() { return 0; 1 } return f");
+assertAsmTypeFail(USE_ASM + "function f() { if (0) return 0; 1 } return f");
 
 assertEq(asmLink(asmCompile(USE_ASM + "function f() { while (0) {} return 0} return f"))(), 0);
 assertEq(asmLink(asmCompile(USE_ASM + "function f() { for (;0;) {} return 0} return f"))(), 0);
@@ -20,6 +20,9 @@ assertEq(asmLink(asmCompile(USE_ASM + "function f() { do {} while(0); return 0} 
 assertEq(asmLink(asmCompile(USE_ASM + "function f() { while (0) ; return 0} return f"))(), 0);
 assertEq(asmLink(asmCompile(USE_ASM + "function f() { for (;0;) ; return 0} return f"))(), 0);
 assertEq(asmLink(asmCompile(USE_ASM + "function f() { do ; while(0); return 0} return f"))(), 0);
+
+assertEq(asmLink(asmCompile(USE_ASM + "function f() { do {} while (0); while (0); return 0} return f"))(), 0);
+assertEq(asmLink(asmCompile(USE_ASM + "function f() { var i = 0; do {} while (0); return i|0} return f"))(), 0);
 
 assertAsmTypeFail(USE_ASM + "function f(d) {d=+d; while (d) {}; return 0} return f");
 assertAsmTypeFail(USE_ASM + "function f(d) {d=+d; for (;d;) {}; return 0} return f");
@@ -177,10 +180,14 @@ assertEq(f(2), 13);
 assertEq(f(3), 12);
 
 assertEq(asmLink(asmCompile(USE_ASM + "function f() { var i=8,sum=0; a:for(; (i|0)<20; i=(i+1)|0) { switch(i&3) { case 0:case 1:sum=(sum+i)|0;break;case 2:sum=(sum+100)|0;continue;default:break a} sum=(sum+10)|0; } sum=(sum+1000)|0; return sum|0 } return f"))(), 1137);
+assertEq(asmLink(asmCompile(USE_ASM + "function f() { a: do{break a;}while(0); a: do{break a;}while(0); return 42 } return f"))(), 42);
 assertEq(asmLink(asmCompile('g', USE_ASM + "function f() { g:{ return 42 } return 13 } return f"), null)(), 42);
+assertEq(asmLink(asmCompile(USE_ASM + "function f(x) {x=x|0;switch (x|0) {case 31:return 13;case 9: {x = 3;if ((x|0) <= 0) {return -1;}}}return 1;} return f"))(31), 13);
 
 var imp = { ffi:function() { throw "Wrong" } };
 assertEq(asmLink(asmCompile('glob','imp', USE_ASM + "var ffi=imp.ffi; function f() { var i=0; return (i+1)|0; return ffi(i|0)|0 } return f"), null, imp)(), 1);
+
+assertEq(asmLink(asmCompile(USE_ASM + 'function f() {var k = 1;if (1) {for(k = 1; k|0; k=k-1|0) {}} return 1}; return f'))(), 1);
 
 // Ternaries conditionals
 //
@@ -208,6 +215,14 @@ assertEq(guard.called(), false);
 var f = asmLink(asmCompile('glob', 'ffi', USE_ASM + "var func=ffi.func; function f(x) { x=x|0; var a=2;if(x?0:0){a=1; func()}else a=0;return a|0 } return f"), this, {func: guard.call});
 assertEq(f(1), 0);
 assertEq(f(0), 0);
+assertEq(guard.called(), false);
+
+var f = asmLink(asmCompile('glob', 'ffi', USE_ASM + "var func=ffi.func; function f(x,y) { x=x|0;y=y|0; var a=2;if(x?func()|0:y)a=1;else a=0; return a|0 } return f"), this, {func: guard.call});
+assertEq(f(0,1), 1);
+assertEq(guard.called(), false);
+
+var f = asmLink(asmCompile('glob', 'ffi', USE_ASM + "var func=ffi.func; function f(x,y) { x=x|0;y=y|0; var a=2;if(x?y:func()|0)a=1;else a=0; return a|0 } return f"), this, {func: guard.call});
+assertEq(f(1,0), 0);
 assertEq(guard.called(), false);
 
 var f = asmLink(asmCompile(USE_ASM + "function f(x,y) { x=x|0;y=y|0; var a=2;if(x?0:y)a=1;else a=0; return a|0 } return f"));

@@ -7,7 +7,7 @@
 #define MOZILLA_GFX_PATH_SKIA_H_
 
 #include "2D.h"
-#include "skia/SkPath.h"
+#include "skia/include/core/SkPath.h"
 
 namespace mozilla {
 namespace gfx {
@@ -19,7 +19,7 @@ class PathBuilderSkia : public PathBuilder
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(PathBuilderSkia)
   PathBuilderSkia(const Matrix& aTransform, const SkPath& aPath, FillRule aFillRule);
-  PathBuilderSkia(FillRule aFillRule);
+  explicit PathBuilderSkia(FillRule aFillRule);
 
   virtual void MoveTo(const Point &aPoint);
   virtual void LineTo(const Point &aPoint);
@@ -32,9 +32,11 @@ public:
   virtual void Arc(const Point &aOrigin, float aRadius, float aStartAngle,
                    float aEndAngle, bool aAntiClockwise = false);
   virtual Point CurrentPoint() const;
-  virtual TemporaryRef<Path> Finish();
+  virtual already_AddRefed<Path> Finish();
 
   void AppendPath(const SkPath &aPath);
+
+  virtual BackendType GetBackendType() const { return BackendType::SKIA; }
 
 private:
 
@@ -56,9 +58,9 @@ public:
   
   virtual BackendType GetBackendType() const { return BackendType::SKIA; }
 
-  virtual TemporaryRef<PathBuilder> CopyToBuilder(FillRule aFillRule = FillRule::FILL_WINDING) const;
-  virtual TemporaryRef<PathBuilder> TransformedCopyToBuilder(const Matrix &aTransform,
-                                                             FillRule aFillRule = FillRule::FILL_WINDING) const;
+  virtual already_AddRefed<PathBuilder> CopyToBuilder(FillRule aFillRule) const;
+  virtual already_AddRefed<PathBuilder> TransformedCopyToBuilder(const Matrix &aTransform,
+                                                             FillRule aFillRule) const;
 
   virtual bool ContainsPoint(const Point &aPoint, const Matrix &aTransform) const;
   
@@ -84,7 +86,7 @@ private:
   FillRule mFillRule;
 };
 
-}
-}
+} // namespace gfx
+} // namespace mozilla
 
 #endif /* MOZILLA_GFX_PATH_SKIA_H_ */

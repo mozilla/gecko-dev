@@ -8,9 +8,9 @@
 // Firefox chrome intentionally prevents "simple gesture" events from
 // reaching web content.
 
-let test_utils;
-let test_commandset;
-let test_prefBranch = "browser.gesture.";
+var test_utils;
+var test_commandset;
+var test_prefBranch = "browser.gesture.";
 
 function test()
 {
@@ -39,13 +39,13 @@ function test()
   test_rotateGestures();
 }
 
-let test_eventCount = 0;
-let test_expectedType;
-let test_expectedDirection;
-let test_expectedDelta;
-let test_expectedModifiers;
-let test_expectedClickCount;
-let test_imageTab;
+var test_eventCount = 0;
+var test_expectedType;
+var test_expectedDirection;
+var test_expectedDelta;
+var test_expectedModifiers;
+var test_expectedClickCount;
+var test_imageTab;
 
 function test_gestureListener(evt)
 {
@@ -155,7 +155,7 @@ function test_TestEventListeners()
   e("MozRotateGestureUpdate", SimpleGestureEvent.ROTATION_COUNTERCLOCKWISE, -13.0, 0);
   e("MozRotateGestureUpdate", SimpleGestureEvent.ROTATION_CLOCKWISE, 13.0, 0);
   e("MozRotateGesture", SimpleGestureEvent.ROTATION_CLOCKWISE, 33.0, 0);
-  
+
   // Tap and presstap gesture events
   test_clicks("MozTapGesture", 1);
   test_clicks("MozTapGesture", 2);
@@ -283,7 +283,7 @@ function test_emitLatchedEvents(eventPrefix, initialDelta, cmd)
   for (let dir in cmd)
     cmd[dir].callCount = expect[dir] = 0;
 
-  let check = function(aDir, aMsg) ok(cmd[aDir].callCount == expect[aDir], aMsg);
+  let check = (aDir, aMsg) => ok(cmd[aDir].callCount == expect[aDir], aMsg);
   let checkBoth = function(aNum, aInc, aDec) {
     let prefix = "Step " + aNum + ": ";
     check("inc", prefix + aInc);
@@ -546,7 +546,6 @@ function test_rotateHelperOneGesture(aImageElement, aCurrentRotation,
 
   // easier to type names for the direction constants
   let clockwise = SimpleGestureEvent.ROTATION_CLOCKWISE;
-  let cclockwise = SimpleGestureEvent.ROTATION_COUNTERCLOCKWISE;
 
   let delta = aAmount * (aDirection == clockwise ? 1 : -1);
 

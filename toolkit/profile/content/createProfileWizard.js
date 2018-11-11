@@ -5,13 +5,14 @@
 const C = Components.classes;
 const I = Components.interfaces;
 
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
+
 const ToolkitProfileService = "@mozilla.org/toolkit/profile-service;1";
 
 var gProfileService;
 var gProfileManagerBundle;
 
 var gDefaultProfileParent;
-var gOldProfileName;
 
 // The directory where the profile will be created.
 var gProfileRoot;
@@ -21,7 +22,7 @@ var gProfileDisplay;
 
 // Called once when the wizard is opened.
 function initWizard()
-{ 
+{
   try {
     gProfileService = C[ToolkitProfileService].getService(I.nsIToolkitProfileService);
     gProfileManagerBundle = document.getElementById("bundle_profileManager");
@@ -29,20 +30,18 @@ function initWizard()
     var dirService = C["@mozilla.org/file/directory_service;1"].getService(I.nsIProperties);
     gDefaultProfileParent = dirService.get("DefProfRt", I.nsIFile);
 
-    gOldProfileName = document.getElementById("profileName").value;
-
     // Initialize the profile location display.
     gProfileDisplay = document.getElementById("profileDisplay").firstChild;
     setDisplayToDefaultFolder();
   }
-  catch(e) {
+  catch (e) {
     window.close();
     throw (e);
   }
 }
 
 // Called every time the second wizard page is displayed.
-function initSecondWizardPage() 
+function initSecondWizardPage()
 {
   var profileName = document.getElementById("profileName");
   profileName.select();
@@ -85,7 +84,7 @@ function updateProfileDisplay()
 function chooseProfileFolder()
 {
   var newProfileRoot;
-  
+
   var dirChooser = C["@mozilla.org/filepicker;1"].createInstance(I.nsIFilePicker);
   dirChooser.init(window, gProfileManagerBundle.getString("chooseFolder"),
                   I.nsIFilePicker.modeGetFolder);
@@ -117,11 +116,12 @@ function checkCurrentInput(currentInput)
 
   if (!errorMessage) {
     finishText.className = "";
-#ifndef XP_MACOSX
-    finishText.firstChild.data = gProfileManagerBundle.getString("profileFinishText");
-#else
-    finishText.firstChild.data = gProfileManagerBundle.getString("profileFinishTextMac");
-#endif
+    if (AppConstants.platform == "macosx") {
+      finishText.firstChild.data = gProfileManagerBundle.getString("profileFinishTextMac");
+    }
+    else {
+      finishText.firstChild.data = gProfileManagerBundle.getString("profileFinishText");
+    }
     canAdvance = true;
   }
   else {
@@ -134,20 +134,16 @@ function checkCurrentInput(currentInput)
   finishButton.disabled = !canAdvance;
 
   updateProfileDisplay();
+
+  return canAdvance;
 }
 
-function updateProfileName(aNewName) {
-  checkCurrentInput(aNewName);
-
-  var re = new RegExp("^[a-z0-9]{8}\\." +
-                      gOldProfileName.replace(/[|^$()\[\]{}\\+?.*]/g, "\\$&")
-                      + '$');
-
-  if (re.test(gProfileRoot.leafName)) {
+function updateProfileName(aNewName)
+{
+  if (checkCurrentInput(aNewName)) {
     gProfileRoot.leafName = saltName(aNewName);
     updateProfileDisplay();
   }
-  gOldProfileName = aNewName;
 }
 
 // Checks whether the given string is a valid profile name.
@@ -188,7 +184,7 @@ function enableNextButton()
   document.documentElement.canAdvance = true;
 }
 
-function onFinish() 
+function onFinish()
 {
   var profileName = document.getElementById("profileName").value;
   var profile;

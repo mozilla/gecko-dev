@@ -12,14 +12,14 @@ function debug(msg) {
 }
 
 function netErrorURL() {
-  let uri = "app://system.gaiamobile.org/net_error.html";
-  try {
-    uri = Services.prefs.getCharPref("b2g.neterror.url");
-  } catch(e) {}
-  return uri;
+  let systemManifestURL = Services.prefs.getCharPref("b2g.system_manifest_url");
+  systemManifestURL = Services.io.newURI(systemManifestURL, null, null);
+  let netErrorURL = Services.prefs.getCharPref("b2g.neterror.url");
+  netErrorURL = Services.io.newURI(netErrorURL, null, systemManifestURL);
+  return netErrorURL.spec;
 }
 
-let modules = {
+var modules = {
   certerror: {
     uri: "chrome://b2g/content/aboutCertError.xhtml",
     privileged: false,
@@ -52,13 +52,15 @@ B2GAboutRedirector.prototype = {
     return flags | Ci.nsIAboutModule.ALLOW_SCRIPT;
   },
 
-  newChannel: function(aURI) {
+  newChannel: function(aURI, aLoadInfo) {
     let moduleInfo = this._getModuleInfo(aURI);
 
     var ios = Cc["@mozilla.org/network/io-service;1"].
               getService(Ci.nsIIOService);
 
-    var channel = ios.newChannel(moduleInfo.uri, null, null);
+    var newURI = ios.newURI(moduleInfo.uri, null, null);
+
+    var channel = ios.newChannelFromURIWithLoadInfo(newURI, aLoadInfo);
 
     if (!moduleInfo.privileged) {
       // Setting the owner to null means that we'll go through the normal

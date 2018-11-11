@@ -2,24 +2,27 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-function test() {
-  waitForExplicitFinish();
-  gBrowser.selectedTab = gBrowser.addTab();
-  // Open a html page with about:certerror in an iframe
-  window.content.addEventListener("load", testIframeCert, true);
-  content.location = "data:text/html,<iframe width='700' height='700' src='about:certerror'></iframe>";
-}
+add_task(function* test() {
+  const URL = "data:text/html,<iframe width='700' height='700'></iframe>";
+  yield BrowserTestUtils.withNewTab({ gBrowser, url: URL }, function* (browser) {
+    yield ContentTask.spawn(browser,
+                            { is_element_hidden_: is_element_hidden.toSource(),
+                              is_hidden_: is_hidden.toSource() },
+    function* ({ is_element_hidden_, is_hidden_ }) {
+      let loadError =
+        ContentTaskUtils.waitForEvent(this, "AboutNetErrorLoad", false, null, true);
+      let iframe = content.document.querySelector("iframe");
+      iframe.src = "https://expired.example.com/";
 
-function testIframeCert() {
-  window.content.removeEventListener("load", testIframeCert, true);
-  // Confirm that the expert section is hidden
-  var doc = gBrowser.contentDocument.getElementsByTagName('iframe')[0].contentDocument;
-  var eC = doc.getElementById("expertContent");
-  ok(eC, "Expert content should exist")
-  ok(eC.hasAttribute("hidden"), "Expert content should be hidded by default");
+      yield loadError;
 
-  // Clean up
-  gBrowser.removeCurrentTab();
-  
-  finish();
-}
+      let is_hidden = eval(`(() => ${is_hidden_})()`);
+      let is_element_hidden = eval(`(() => ${is_element_hidden_})()`);
+      let doc = content.document.getElementsByTagName("iframe")[0].contentDocument;
+      let aP = doc.getElementById("badCertAdvancedPanel");
+      ok(aP, "Advanced content should exist");
+      void is_hidden; // Quiet eslint warnings (actual use under is_element_hidden)
+      is_element_hidden(aP, "Advanced content should not be visible by default")
+    });
+  });
+});

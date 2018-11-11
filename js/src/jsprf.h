@@ -14,39 +14,38 @@
 **      %x - unsigned hex
 **      %X - unsigned uppercase hex
 **      %o - unsigned octal
-**      %hd, %hu, %hx, %hX, %ho - 16-bit versions of above
-**      %ld, %lu, %lx, %lX, %lo - 32-bit versions of above
-**      %lld, %llu, %llx, %llX, %llo - 64 bit versions of above
-**      %s - ascii string
-**      %hs - ucs2 string
+**      %hd, %hu, %hx, %hX, %ho - "short" versions of above
+**      %ld, %lu, %lx, %lX, %lo - "long" versions of above
+**      %lld, %llu, %llx, %llX, %llo - "long long" versions of above
+**      %zd, %zo, %zu, %zx, %zX - size_t versions of above
+**      %Id, %Io, %Iu, %Ix, %IX - size_t versions of above (for Windows compat)
+**           You should use PRI*SIZE macros instead
+**      %s - string
 **      %c - character
 **      %p - pointer (deals with machine dependent pointer size)
 **      %f - float
 **      %g - float
 */
 
+#include "mozilla/IntegerPrintfMacros.h"
+#include "mozilla/SizePrintfMacros.h"
+
 #include <stdarg.h>
 
 #include "jstypes.h"
-
-/*
-** sprintf into a fixed size buffer. Guarantees that a NUL is at the end
-** of the buffer. Returns the length of the written output, NOT including
-** the NUL, or (uint32_t)-1 if an error occurs.
-*/
-extern JS_PUBLIC_API(uint32_t) JS_snprintf(char *out, uint32_t outlen, const char *fmt, ...);
 
 /*
 ** sprintf into a malloc'd buffer. Return a pointer to the malloc'd
 ** buffer on success, nullptr on failure. Call "JS_smprintf_free" to release
 ** the memory returned.
 */
-extern JS_PUBLIC_API(char*) JS_smprintf(const char *fmt, ...);
+extern JS_PUBLIC_API(char*) JS_smprintf(const char* fmt, ...)
+    MOZ_FORMAT_PRINTF(1, 2);
 
 /*
 ** Free the memory allocated, for the caller, by JS_smprintf
 */
-extern JS_PUBLIC_API(void) JS_smprintf_free(char *mem);
+extern JS_PUBLIC_API(void) JS_smprintf_free(char* mem);
 
 /*
 ** "append" sprintf into a malloc'd buffer. "last" is the last value of
@@ -55,13 +54,13 @@ extern JS_PUBLIC_API(void) JS_smprintf_free(char *mem);
 ** will allocate the initial string. The return value is the new value of
 ** last for subsequent calls, or nullptr if there is a malloc failure.
 */
-extern JS_PUBLIC_API(char*) JS_sprintf_append(char *last, const char *fmt, ...);
+extern JS_PUBLIC_API(char*) JS_sprintf_append(char* last, const char* fmt, ...)
+    MOZ_FORMAT_PRINTF(2, 3);
 
 /*
 ** va_list forms of the above.
 */
-extern JS_PUBLIC_API(uint32_t) JS_vsnprintf(char *out, uint32_t outlen, const char *fmt, va_list ap);
-extern JS_PUBLIC_API(char*) JS_vsmprintf(const char *fmt, va_list ap);
-extern JS_PUBLIC_API(char*) JS_vsprintf_append(char *last, const char *fmt, va_list ap);
+extern JS_PUBLIC_API(char*) JS_vsmprintf(const char* fmt, va_list ap);
+extern JS_PUBLIC_API(char*) JS_vsprintf_append(char* last, const char* fmt, va_list ap);
 
 #endif /* jsprf_h */

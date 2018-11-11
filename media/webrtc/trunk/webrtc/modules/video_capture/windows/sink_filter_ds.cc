@@ -206,7 +206,7 @@ CaptureInputPin::CheckMediaType ( IN const MediaType * pMediaType)
         }
 
         WEBRTC_TRACE(webrtc::kTraceInfo, webrtc::kTraceVideoCapture, _moduleId,
-                     "CheckMediaType width:%d height:%d Compression:0x%x\n",
+                     "CheckMediaType width:%d height:%d Compression:0x%x",
                      pvi->bmiHeader.biWidth,pvi->bmiHeader.biHeight,
                      pvi->bmiHeader.biCompression);
 
@@ -259,7 +259,7 @@ CaptureInputPin::CheckMediaType ( IN const MediaType * pMediaType)
         }
 
         WEBRTC_TRACE(webrtc::kTraceInfo, webrtc::kTraceVideoCapture, _moduleId,
-                     "CheckMediaType width:%d height:%d Compression:0x%x\n",
+                     "CheckMediaType width:%d height:%d Compression:0x%x",
                      pvi->bmiHeader.biWidth,pvi->bmiHeader.biHeight,
                      pvi->bmiHeader.biCompression);
 
@@ -442,6 +442,7 @@ CaptureSinkFilter::GetPin(IN int Index)
 
 STDMETHODIMP CaptureSinkFilter::Pause()
 {
+    LockReceive();
     LockFilter();
     if (mState == State_Stopped)
     {
@@ -461,6 +462,7 @@ STDMETHODIMP CaptureSinkFilter::Pause()
         mState = State_Paused;
     }
     UnlockFilter();
+    UnlockReceive();
     return S_OK;
 }
 

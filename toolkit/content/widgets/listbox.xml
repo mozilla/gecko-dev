@@ -174,7 +174,7 @@
         </setter>
       </property>
 
-      <field name="selectedItems">[]</field>
+      <field name="selectedItems">new ChromeNodeList()</field>
 
       <method name="addItemToSelection">
         <parameter name="aItem"/>
@@ -186,7 +186,7 @@
           if (aItem.selected)
             return;
 
-          this.selectedItems.push(aItem);
+          this.selectedItems.append(aItem);
           aItem.selected = true;
 
           this._fireOnSelect();
@@ -201,14 +201,8 @@
           if (!aItem.selected)
             return;
 
-          for (var i = 0; i < this.selectedItems.length; ++i) {
-            if (this.selectedItems[i] == aItem) {
-              this.selectedItems.splice(i, 1);
-              aItem.selected = false;
-              break;
-            }
-          }
-
+          this.selectedItems.remove(aItem);
+          aItem.selected = false;
           this._fireOnSelect();
         ]]>
         </body>
@@ -355,10 +349,11 @@
         <body>
         <![CDATA[
           if (this.selectedItems) {
-            for (var i = this.selectedItems.length - 1; i >= 0; --i)
-              this.selectedItems[i].selected = false;
-
-            this.selectedItems.length = 0;
+            while (this.selectedItems.length > 0) {
+              let item = this.selectedItems[0];
+              item.selected = false;
+              this.selectedItems.remove(item);
+            }
           }
 
           this._selectionStart = null;
@@ -668,7 +663,7 @@
         <children includes="listhead"/>
         <xul:listboxbody xbl:inherits="rows,size,minheight">
           <children includes="listitem"/>
-        </xul:listboxbody> 
+        </xul:listboxbody>
       </xul:listrows>
     </content>
 
@@ -677,7 +672,7 @@
       <!-- ///////////////// public listbox members ///////////////// -->
 
       <property name="listBoxObject"
-                onget="return this.boxObject.QueryInterface(Components.interfaces.nsIListBoxObject);"
+                onget="return this.boxObject;"
                 readonly="true"/>
 
       <!-- ///////////////// private listbox members ///////////////// -->
@@ -700,7 +695,7 @@
         for (var index = 0; index < count; index++) {
           var item = this.getItemAtIndex(index);
           if (item.getAttribute("selected") == "true")
-            this.selectedItems.push(item);
+            this.selectedItems.append(item);
         }
       ]]>
       </constructor>
@@ -794,7 +789,7 @@
 
       <method name="scrollOnePage">
         <parameter name="direction"/>  <!-- Must be -1 or 1 -->
-        <body>      
+        <body>
           <![CDATA[
             var pageOffset = this.getNumberOfVisibleRows() * direction;
             // skip over invisible elements - the user won't care about them
@@ -817,21 +812,26 @@
             if (newTop < 0)
               newTop = 0;
             this.scrollToIndex(newTop);
-            return pageOffset;          
+            return pageOffset;
           ]]>
         </body>
       </method>
     </implementation>
-    
+
     <handlers>
       <handler event="keypress" key=" " phase="target">
         <![CDATA[
           if (this.currentItem) {
-            if (this.currentItem.getAttribute("type") != "checkbox")
+            if (this.currentItem.getAttribute("type") != "checkbox") {
               this.addItemToSelection(this.currentItem);
+              // Prevent page from scrolling on the space key.
+              event.preventDefault();
+            }
             else if (!this.currentItem.disabled) {
               this.currentItem.checked = !this.currentItem.checked;
               this.currentItem.doCommand();
+              // Prevent page from scrolling on the space key.
+              event.preventDefault();
             }
           }
         ]]>
@@ -853,7 +853,7 @@
           }
         ]]>
       </handler>
-    </handlers>    
+    </handlers>
   </binding>
 
   <binding id="listrows">
@@ -892,7 +892,7 @@
       </handler>
     </handlers>
   </binding>
-  
+
   <binding id="listitem" role="xul:listitem"
            extends="chrome://global/content/bindings/general.xml#basetext">
     <resources>
@@ -913,19 +913,22 @@
           else
             this.removeAttribute("current");
 
-          this._fireEvent(val ? "DOMMenuItemActive" : "DOMMenuItemInactive");
+          let control = this.control;
+          if (!control || !control.suppressMenuItemEvent) {
+            this._fireEvent(val ? "DOMMenuItemActive" : "DOMMenuItemInactive");
+          }
 
           return val;
         ]]></setter>
       </property>
 
       <!-- ///////////////// nsIDOMXULSelectControlItemElement ///////////////// -->
-                
+
       <property name="value" onget="return this.getAttribute('value');"
                              onset="this.setAttribute('value', val); return val;"/>
       <property name="label" onget="return this.getAttribute('label');"
                              onset="this.setAttribute('label', val); return val;"/>
-      
+
       <property name="selected" onget="return this.getAttribute('selected') == 'true';">
         <setter><![CDATA[
           if (val)
@@ -968,11 +971,8 @@
         var control = this.control;
         if (!control || control.disabled)
           return;
-        if ((!event.ctrlKey
-#ifdef XP_MACOSX
-             || event.button == 2
-#endif
-            ) && !event.shiftKey && !event.metaKey) {
+        if ((!event.ctrlKey || (/Mac/.test(navigator.platform) && event.button == 2)) &&
+            !event.shiftKey && !event.metaKey) {
           if (!this.selected) {
             control.selectItem(this);
           }
@@ -1024,7 +1024,7 @@
       </children>
     </content>
   </binding>
-  
+
   <binding id="listitem-checkbox"
            extends="chrome://global/content/bindings/listbox.xml#listitem">
     <content>
@@ -1049,7 +1049,7 @@
       </property>
     </implementation>
 
-    <handlers> 
+    <handlers>
       <handler event="mousedown" button="0">
       <![CDATA[
         if (!this.disabled && !this.control.disabled) {
@@ -1060,7 +1060,7 @@
       </handler>
     </handlers>
   </binding>
-  
+
   <binding id="listitem-checkbox-iconic"
            extends="chrome://global/content/bindings/listbox.xml#listitem-checkbox">
     <content>
@@ -1069,7 +1069,7 @@
       </children>
     </content>
   </binding>
-  
+
   <binding id="listcell" role="xul:listcell"
            extends="chrome://global/content/bindings/general.xml#basecontrol">
 
@@ -1142,4 +1142,3 @@
   </binding>
 
 </bindings>
-

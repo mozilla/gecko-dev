@@ -1,6 +1,8 @@
+# Copyright (C) 2016 and later: Unicode, Inc. and others.
+# License & terms of use: http://www.unicode.org/copyright.html
 #******************************************************************************
 #
-#   Copyright (C) 1999-2011, International Business Machines
+#   Copyright (C) 1999-2015, International Business Machines
 #   Corporation and others.  All Rights Reserved.
 #
 #******************************************************************************
@@ -126,7 +128,12 @@ endif
 
 ifneq ($(ENABLE_SHARED),)
 $(SHARED_OBJECT): $(OBJECTS)
+ifeq ($(BUILD_HOST_ICU),AIX_GCC)
+	$(SHLIB.c) $(LD_SONAME) $(OUTOPT)libicudata.so $^ $(LIBS)
+	mv libicudata.so $@
+else
 	$(SHLIB.c) $(LD_SONAME) $(OUTOPT)$@ $^ $(LIBS)
+endif
 ifeq ($(ENABLE_RPATH),YES)
 ifneq ($(wildcard $(libdir)/$(MIDDLE_SO_TARGET)),)
 	$(warning RPATH warning: --enable-rpath means test programs may use existing $(libdir)/$(MIDDLE_SO_TARGET))

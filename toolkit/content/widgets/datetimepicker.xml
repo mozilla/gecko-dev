@@ -27,7 +27,7 @@
 
     <content align="center">
       <xul:hbox class="datetimepicker-input-box" align="center"
-                xbl:inherits="context">
+                xbl:inherits="context,disabled,readonly">
         <xul:hbox class="textbox-input-box datetimepicker-input-subbox" align="center">
           <html:input class="datetimepicker-input textbox-input" anonid="input-one"
                       size="2" maxlength="2"
@@ -463,7 +463,7 @@
           <![CDATA[
             // aNoWrap is true when the user entered a value, so just
             // constrain within limits. If false, the value is being
-            // incremented or decremented, so wrap around values 
+            // incremented or decremented, so wrap around values
             var max = (aField == this.hourField) ? 24 : 60;
             if (aValue < 0)
               return aNoWrap ? 0 : max + aValue;
@@ -482,7 +482,9 @@
 
             var numberOrder = /^(\D*)\s*(\d+)(\D*)(\d+)(\D*)(\d+)\s*(\D*)$/;
 
-            var pmTime = new Date(2000,0,1,16,7,9).toLocaleFormat("%X");
+            var locale = Intl.DateTimeFormat().resolvedOptions().locale + "-u-ca-gregory-nu-latn";
+
+            var pmTime = new Date(2000, 0, 1, 16, 7, 9).toLocaleTimeString(locale);
             var numberFields = pmTime.match(numberOrder);
             if (numberFields) {
               this._separatorFirst.value = numberFields[3];
@@ -493,7 +495,7 @@
                 this.pmIndicator = numberFields[1] || numberFields[7];
             }
 
-            var amTime = new Date(2000,0,1,1,7,9).toLocaleFormat("%X");
+            var amTime = new Date(2000, 0, 1, 1, 7, 9).toLocaleTimeString(locale);
             numberFields = amTime.match(numberOrder);
             if (numberFields) {
               this.hourLeadingZero = (numberFields[2].length > 1);
@@ -673,7 +675,7 @@
         <body>
           <![CDATA[
             if (aField == this.yearField) {
-              var oldDate = this.date;
+              let oldDate = this.date;
               this._dateValue.setFullYear(aValue);
               if (oldDate != this.date) {
                 this._dateValue.setDate(0);
@@ -681,7 +683,7 @@
               }
             }
             else if (aField == this.monthField) {
-              var oldDate = this.date;
+              let oldDate = this.date;
               this._dateValue.setMonth(aValue);
               if (oldDate != this.date) {
                 this._dateValue.setDate(0);
@@ -770,7 +772,9 @@
 
             var numberOrder = /^(\D*)\s*(\d+)(\D*)(\d+)(\D*)(\d+)\s*(\D*)$/;
 
-            var dt = new Date(2002,9,4).toLocaleFormat("%x");
+            var locale = Intl.DateTimeFormat().resolvedOptions().locale + "-u-ca-gregory-nu-latn";
+
+            var dt = new Date(2002, 9, 4).toLocaleDateString(locale);
             var numberFields = dt.match(numberOrder);
             if (numberFields) {
               this._separatorFirst.value = numberFields[3];
@@ -778,24 +782,29 @@
 
               var yi = 2, mi = 4, di = 6;
 
+              function fieldForNumber(i) {
+                if (i == 2)
+                  return "input-one";
+                if (i == 4)
+                  return "input-two";
+                return "input-three";
+              }
+
               for (var i = 1; i < numberFields.length; i++) {
                 switch (Number(numberFields[i])) {
                   case 2:
                     twoDigitYear = true; // fall through
                   case 2002:
                     yi = i;
-                    yfield = (i == 2 ? "input-one" :
-                             (i == 4 ? "input-two" : "input-three"));
+                    yfield = fieldForNumber(i);
                     break;
                   case 9, 10:
                     mi = i;
-                    mfield = (i == 2 ? "input-one" :
-                             (i == 4 ? "input-two" : "input-three"));
+                    mfield = fieldForNumber(i);
                     break;
                   case 4:
                     di = i;
-                    dfield = (i == 2 ? "input-one" :
-                             (i == 4 ? "input-two" : "input-three"));
+                    dfield = fieldForNumber(i);
                     break;
                 }
               }
@@ -833,18 +842,18 @@
                   oncommand="document.getBindingParent(this)._increaseOrDecreaseMonth(-1);"/>
           <spacer flex="1"/>
           <deck anonid="monthlabeldeck">
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
           </deck>
           <label anonid="yearlabel" class="datepicker-gridlabel"/>
           <spacer flex="1"/>
@@ -989,11 +998,15 @@
       <method name="_init">
         <body>
           <![CDATA[
+            var locale = Intl.DateTimeFormat().resolvedOptions().locale + "-u-ca-gregory";
+            var dtfMonth = Intl.DateTimeFormat(locale, {month: "long"});
+            var dtfWeekday = Intl.DateTimeFormat(locale, {weekday: "narrow"});
+
             var monthLabel = this.monthField.firstChild;
             var tempDate = new Date(2005, 0, 1);
             for (var month = 0; month < 12; month++) {
               tempDate.setMonth(month);
-              monthLabel.setAttribute("value", tempDate.toLocaleFormat("%B"));
+              monthLabel.setAttribute("value", dtfMonth.format(tempDate));
               monthLabel = monthLabel.nextSibling;
             }
 
@@ -1005,7 +1018,7 @@
             var date = new Date();
             date.setDate(date.getDate() - (date.getDay() - this._weekStart));
             for (var i = 0; i < weekbox.length; i++) {
-              weekbox[i].value = date.toLocaleFormat("%a").charAt(0);
+              weekbox[i].value = dtfWeekday.format(date);
               date.setDate(date.getDate() + 1);
             }
           ]]>
@@ -1215,7 +1228,7 @@
            extends="chrome://global/content/bindings/datetimepicker.xml#datepicker">
     <content align="center">
       <xul:hbox class="textbox-input-box datetimepicker-input-box" align="center"
-                allowevents="true" xbl:inherits="context">
+                allowevents="true" xbl:inherits="context,disabled,readonly">
         <xul:hbox class="datetimepicker-input-subbox" align="baseline">
           <html:input class="datetimepicker-input textbox-input" anonid="input-one"
                       size="2" maxlength="2"
@@ -1258,7 +1271,7 @@
       <property name="open" onget="return this.hasAttribute('open');">
         <setter>
           <![CDATA[
-            if (this.boxObject instanceof Components.interfaces.nsIMenuBoxObject)
+            if (this.boxObject instanceof MenuBoxObject)
               this.boxObject.openMenu(val);
             return val;
           ]]>

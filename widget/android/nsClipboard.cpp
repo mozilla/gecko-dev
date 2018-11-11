@@ -43,7 +43,7 @@ nsClipboard::SetData(nsITransferable *aTransferable,
   nsAutoString buffer;
   supportsString->GetData(buffer);
 
-  mozilla::widget::android::Clipboard::SetClipboardText(buffer);
+  java::Clipboard::SetText(buffer);
   return NS_OK;
 }
 
@@ -84,7 +84,7 @@ nsClipboard::EmptyClipboard(int32_t aWhichClipboard)
 {
   if (aWhichClipboard != kGlobalClipboard)
     return NS_ERROR_NOT_IMPLEMENTED;
-  mozilla::widget::android::Clipboard::ClearText();
+  java::Clipboard::ClearText();
   
   return NS_OK;
 }
@@ -97,7 +97,14 @@ nsClipboard::HasDataMatchingFlavors(const char **aFlavorList,
   *aHasText = false;
   if (aWhichClipboard != kGlobalClipboard)
     return NS_ERROR_NOT_IMPLEMENTED;
-  *aHasText = mozilla::widget::android::Clipboard::HasText();
+
+  for (uint32_t k = 0; k < aLength; k++) {
+    if (strcmp(aFlavorList[k], kUnicodeMime) == 0) {
+      *aHasText = java::Clipboard::HasText();
+      break;
+    }
+  }
+
   return NS_OK;
 }
 

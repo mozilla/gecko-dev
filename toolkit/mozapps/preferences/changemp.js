@@ -1,4 +1,4 @@
-// -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+// -*- tab-width: 2; indent-tabs-mode: nil; js-indent-level: 2 -*-
 
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,7 +20,7 @@ var pw1;
 function init()
 {
   pw1 = document.getElementById("pw1");
-	 	 
+
   process();
 }
 
@@ -40,9 +40,9 @@ function process()
      var status = slot.status;
      if (status == nsIPKCS11Slot.SLOT_UNINITIALIZED
          || status == nsIPKCS11Slot.SLOT_READY) {
-      
+
        oldpwbox.setAttribute("hidden", "true");
-       msgBox.setAttribute("value", bundle.getString("password_not_set")); 
+       msgBox.setAttribute("value", bundle.getString("password_not_set"));
        msgBox.setAttribute("hidden", "false");
 
        if (status == nsIPKCS11Slot.SLOT_READY) {
@@ -50,10 +50,10 @@ function process()
        } else {
          oldpwbox.setAttribute("inited", "true");
        }
-      
+
        // Select first password field
        document.getElementById('pw1').focus();
-    
+
      } else {
        // Select old password field
        oldpwbox.setAttribute("hidden", "false");
@@ -67,7 +67,7 @@ function process()
     // Return value 0 means "canceled"
     params.SetInt(1, 0);
   }
-  
+
   checkPasswords();
 }
 
@@ -82,24 +82,24 @@ function setPassword()
   var oldpwbox = document.getElementById("oldpw");
   var initpw = oldpwbox.getAttribute("inited");
   var bundle = document.getElementById("bundlePreferences");
-  
+
   var success = false;
-  
+
   if (initpw == "false" || initpw == "empty") {
     try {
       var oldpw = "";
       var passok = 0;
-      
+
       if (initpw == "empty") {
         passok = 1;
       } else {
         oldpw = oldpwbox.value;
         passok = token.checkPassword(oldpw);
       }
-      
+
       if (passok) {
         if (initpw == "empty" && pw1.value == "") {
-          // This makes no sense that we arrive here, 
+          // This makes no sense that we arrive here,
           // we reached a case that should have been prevented by checkPasswords.
         } else {
           if (pw1.value == "") {
@@ -117,7 +117,7 @@ function setPassword()
             if (pw1.value == "") {
               promptService.alert(window,
                                   bundle.getString("pw_change_success_title"),
-                                  bundle.getString("pw_erased_ok") 
+                                  bundle.getString("pw_erased_ok")
                                   + " " + bundle.getString("pw_empty_warning"));
             } else {
               promptService.alert(window,
@@ -165,25 +165,25 @@ function setPasswordStrength()
 
   var pw=document.getElementById('pw1').value;
 
-//length of the password
+// length of the password
   var pwlength=(pw.length);
   if (pwlength>5)
     pwlength=5;
 
 
-//use of numbers in the password
+// use of numbers in the password
   var numnumeric = pw.replace (/[0-9]/g, "");
   var numeric=(pw.length - numnumeric.length);
   if (numeric>3)
     numeric=3;
 
-//use of symbols in the password
+// use of symbols in the password
   var symbols = pw.replace (/\W/g, "");
   var numsymbols=(pw.length - symbols.length);
   if (numsymbols>3)
     numsymbols=3;
 
-//use of uppercase in the password
+// use of uppercase in the password
   var numupper = pw.replace (/[A-Z]/g, "");
   var upper=(pw.length - numupper.length);
   if (upper>3)
@@ -196,7 +196,7 @@ function setPasswordStrength()
   if ( pwstrength < 0 ) {
     pwstrength = 0;
   }
-  
+
   if ( pwstrength > 100 ) {
     pwstrength = 100;
   }
@@ -222,16 +222,16 @@ function checkPasswords()
       // was called with the intention to change the password.
       // The token currently uses an empty password.
       // We will not allow changing the password from empty to empty.
-      ok.setAttribute("disabled","true");
+      ok.setAttribute("disabled", "true");
       return;
     }
   }
 
-  if (pw1 == pw2){
-    ok.setAttribute("disabled","false");
+  if (pw1 == pw2) {
+    ok.setAttribute("disabled", "false");
   } else
   {
-    ok.setAttribute("disabled","true");
+    ok.setAttribute("disabled", "true");
   }
 
 }

@@ -1,6 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: sw=2 ts=8 et :
- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,58 +21,45 @@ namespace mozilla {
  * to instead use the RAII wrappers MonitorAutoLock and
  * MonitorAutoUnlock.
  */
-class NS_COM_GLUE Monitor
+class Monitor
 {
 public:
-    Monitor(const char* aName) :
-        mMutex(aName),
-        mCondVar(mMutex, "[Monitor.mCondVar]")
-    {}
+  explicit Monitor(const char* aName)
+    : mMutex(aName)
+    , mCondVar(mMutex, "[Monitor.mCondVar]")
+  {
+  }
 
-    ~Monitor() {}
+  ~Monitor() {}
 
-    void Lock()
-    {
-        mMutex.Lock();
-    }
+  void Lock() { mMutex.Lock(); }
+  void Unlock() { mMutex.Unlock(); }
 
-    void Unlock()
-    {
-        mMutex.Unlock();
-    }
+  nsresult Wait(PRIntervalTime aInterval = PR_INTERVAL_NO_TIMEOUT)
+  {
+    return mCondVar.Wait(aInterval);
+  }
 
-    nsresult Wait(PRIntervalTime interval = PR_INTERVAL_NO_TIMEOUT)
-    {
-        return mCondVar.Wait(interval);
-    }
+  nsresult Notify() { return mCondVar.Notify(); }
+  nsresult NotifyAll() { return mCondVar.NotifyAll(); }
 
-    nsresult Notify()
-    {
-        return mCondVar.Notify();
-    }
+  void AssertCurrentThreadOwns() const
+  {
+    mMutex.AssertCurrentThreadOwns();
+  }
 
-    nsresult NotifyAll()
-    {
-        return mCondVar.NotifyAll();
-    }
-
-    void AssertCurrentThreadOwns() const
-    {
-        mMutex.AssertCurrentThreadOwns();
-    }
-
-    void AssertNotCurrentThreadOwns() const
-    {
-        mMutex.AssertNotCurrentThreadOwns();
-    }
+  void AssertNotCurrentThreadOwns() const
+  {
+    mMutex.AssertNotCurrentThreadOwns();
+  }
 
 private:
-    Monitor();
-    Monitor(const Monitor&);
-    Monitor& operator =(const Monitor&);
+  Monitor();
+  Monitor(const Monitor&);
+  Monitor& operator=(const Monitor&);
 
-    Mutex mMutex;
-    CondVar mCondVar;
+  Mutex mMutex;
+  CondVar mCondVar;
 };
 
 /**
@@ -83,43 +69,35 @@ private:
  * The monitor must be unlocked when instances of this class are
  * created.
  */
-class NS_COM_GLUE MOZ_STACK_CLASS MonitorAutoLock
+class MOZ_STACK_CLASS MonitorAutoLock
 {
 public:
-    MonitorAutoLock(Monitor& aMonitor) :
-        mMonitor(&aMonitor)
-    {
-        mMonitor->Lock();
-    }
-    
-    ~MonitorAutoLock()
-    {
-        mMonitor->Unlock();
-    }
- 
-    nsresult Wait(PRIntervalTime interval = PR_INTERVAL_NO_TIMEOUT)
-    {
-       return mMonitor->Wait(interval);
-    }
+  explicit MonitorAutoLock(Monitor& aMonitor)
+    : mMonitor(&aMonitor)
+  {
+    mMonitor->Lock();
+  }
 
-    nsresult Notify()
-    {
-        return mMonitor->Notify();
-    }
+  ~MonitorAutoLock()
+  {
+    mMonitor->Unlock();
+  }
 
-    nsresult NotifyAll()
-    {
-        return mMonitor->NotifyAll();
-    }
+  nsresult Wait(PRIntervalTime aInterval = PR_INTERVAL_NO_TIMEOUT)
+  {
+    return mMonitor->Wait(aInterval);
+  }
+
+  nsresult Notify() { return mMonitor->Notify(); }
+  nsresult NotifyAll() { return mMonitor->NotifyAll(); }
 
 private:
-    MonitorAutoLock();
-    MonitorAutoLock(const MonitorAutoLock&);
-    MonitorAutoLock& operator =(const MonitorAutoLock&);
-    static void* operator new(size_t) CPP_THROW_NEW;
-    static void operator delete(void*);
+  MonitorAutoLock();
+  MonitorAutoLock(const MonitorAutoLock&);
+  MonitorAutoLock& operator=(const MonitorAutoLock&);
+  static void* operator new(size_t) CPP_THROW_NEW;
 
-    Monitor* mMonitor;
+  Monitor* mMonitor;
 };
 
 /**
@@ -129,28 +107,27 @@ private:
  * The monitor must be locked by the current thread when instances of
  * this class are created.
  */
-class NS_COM_GLUE MOZ_STACK_CLASS MonitorAutoUnlock
+class MOZ_STACK_CLASS MonitorAutoUnlock
 {
 public:
-    MonitorAutoUnlock(Monitor& aMonitor) :
-        mMonitor(&aMonitor)
-    {
-        mMonitor->Unlock();
-    }
-    
-    ~MonitorAutoUnlock()
-    {
-        mMonitor->Lock();
-    }
- 
-private:
-    MonitorAutoUnlock();
-    MonitorAutoUnlock(const MonitorAutoUnlock&);
-    MonitorAutoUnlock& operator =(const MonitorAutoUnlock&);
-    static void* operator new(size_t) CPP_THROW_NEW;
-    static void operator delete(void*);
+  explicit MonitorAutoUnlock(Monitor& aMonitor)
+    : mMonitor(&aMonitor)
+  {
+    mMonitor->Unlock();
+  }
 
-    Monitor* mMonitor;
+  ~MonitorAutoUnlock()
+  {
+    mMonitor->Lock();
+  }
+
+private:
+  MonitorAutoUnlock();
+  MonitorAutoUnlock(const MonitorAutoUnlock&);
+  MonitorAutoUnlock& operator=(const MonitorAutoUnlock&);
+  static void* operator new(size_t) CPP_THROW_NEW;
+
+  Monitor* mMonitor;
 };
 
 } // namespace mozilla

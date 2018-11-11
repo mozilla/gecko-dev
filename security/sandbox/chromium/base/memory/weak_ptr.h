@@ -16,6 +16,7 @@
 //
 //  class Controller {
 //   public:
+//    Controller() : weak_factory_(this) {}
 //    void SpawnWorker() { Worker::StartNew(weak_factory_.GetWeakPtr()); }
 //    void WorkComplete(const Result& result) { ... }
 //   private:
@@ -48,24 +49,30 @@
 // ------------------------- IMPORTANT: Thread-safety -------------------------
 
 // Weak pointers may be passed safely between threads, but must always be
-// dereferenced and invalidated on the same thread otherwise checking the
-// pointer would be racey.
+// dereferenced and invalidated on the same SequencedTaskRunner otherwise
+// checking the pointer would be racey.
 //
 // To ensure correct use, the first time a WeakPtr issued by a WeakPtrFactory
 // is dereferenced, the factory and its WeakPtrs become bound to the calling
-// thread, and cannot be dereferenced or invalidated on any other thread. Bound
-// WeakPtrs can still be handed off to other threads, e.g. to use to post tasks
-// back to object on the bound thread.
+// thread or current SequencedWorkerPool token, and cannot be dereferenced or
+// invalidated on any other task runner. Bound WeakPtrs can still be handed
+// off to other task runners, e.g. to use to post tasks back to object on the
+// bound sequence.
 //
-// Invalidating the factory's WeakPtrs un-binds it from the thread, allowing it
-// to be passed for a different thread to use or delete it.
+// If all WeakPtr objects are destroyed or invalidated then the factory is
+// unbound from the SequencedTaskRunner/Thread. The WeakPtrFactory may then be
+// destroyed, or new WeakPtr objects may be used, from a different sequence.
+//
+// Thus, at least one WeakPtr object must exist and have been dereferenced on
+// the correct thread to enforce that other WeakPtr objects will enforce they
+// are used on the desired thread.
 
 #ifndef BASE_MEMORY_WEAK_PTR_H_
 #define BASE_MEMORY_WEAK_PTR_H_
 
-#include "base/basictypes.h"
 #include "base/base_export.h"
 #include "base/logging.h"
+#include "base/macros.h"
 #include "base/memory/ref_counted.h"
 #include "base/sequence_checker.h"
 #include "base/template_util.h"
@@ -81,9 +88,9 @@ namespace internal {
 
 class BASE_EXPORT WeakReference {
  public:
-  // Although Flag is bound to a specific thread, it may be deleted from another
-  // via base::WeakPtr::~WeakPtr().
-  class Flag : public RefCountedThreadSafe<Flag> {
+  // Although Flag is bound to a specific SequencedTaskRunner, it may be
+  // deleted from another via base::WeakPtr::~WeakPtr().
+  class BASE_EXPORT Flag : public RefCountedThreadSafe<Flag> {
    public:
     Flag();
 
@@ -154,8 +161,8 @@ class SupportsWeakPtrBase {
   static WeakPtr<Derived> StaticAsWeakPtr(Derived* t) {
     typedef
         is_convertible<Derived, internal::SupportsWeakPtrBase&> convertible;
-    COMPILE_ASSERT(convertible::value,
-                   AsWeakPtr_argument_inherits_from_SupportsWeakPtr);
+    static_assert(convertible::value,
+                  "AsWeakPtr argument must inherit from SupportsWeakPtr");
     return AsWeakPtrImpl<Derived>(t, *t);
   }
 

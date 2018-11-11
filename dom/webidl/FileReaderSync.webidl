@@ -10,9 +10,8 @@
  * liability, trademark and document use rules apply.
  */
 
-interface Blob;
-
-[Constructor]
+[Constructor,
+ Exposed=Worker]
 interface FileReaderSync {
 
   // Synchronously return strings

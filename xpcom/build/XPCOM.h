@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -61,12 +63,11 @@
 #include "nsIAtomService.h"
 #include "nsICategoryManager.h"
 #include "nsIClassInfo.h"
-#include "nsICollection.h"
 #include "nsIComponentManager.h"
 #include "nsIConsoleListener.h"
 #include "nsIConsoleMessage.h"
 #include "nsIConsoleService.h"
-#include "nsIDebug.h"
+#include "nsIDebug2.h"
 #include "nsIDirectoryEnumerator.h"
 #include "nsIEnvironment.h"
 #include "nsIErrorService.h"
@@ -85,7 +86,6 @@
 #include "nsIObserverService.h"
 #include "nsIOutputStream.h"
 #include "nsIProcess.h"
-#include "nsIProgrammingLanguage.h"
 #include "nsIProperties.h"
 #include "nsIPropertyBag2.h"
 #include "nsIRunnable.h"
@@ -94,7 +94,6 @@
 #include "nsIServiceManager.h"
 #include "nsIScriptableInputStream.h"
 #include "nsISimpleEnumerator.h"
-#include "nsISimpleUnicharStreamFactory.h"
 #include "nsIStreamBufferAccess.h"
 #include "nsIStringEnumerator.h"
 #include "nsIStorageStream.h"
@@ -119,7 +118,6 @@
 #include "nsIBinaryOutputStream.h"
 #include "nsIConverterInputStream.h"
 #include "nsIConverterOutputStream.h"
-#include "nsIDebug2.h"
 #include "nsIInputStreamTee.h"
 #include "nsIMultiplexInputStream.h"
 #include "nsIMutableArray.h"

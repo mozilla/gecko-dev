@@ -238,13 +238,7 @@ void _PR_InitLog(void)
         }
         PR_SetLogBuffering(isSync ? 0 : bufSize);
 
-#ifdef XP_UNIX
-        if ((getuid() != geteuid()) || (getgid() != getegid())) {
-            return;
-        }
-#endif /* XP_UNIX */
-
-        ev = PR_GetEnv("NSPR_LOG_FILE");
+        ev = PR_GetEnvSecure("NSPR_LOG_FILE");
         if (ev && ev[0]) {
             if (!PR_SetLogFile(ev)) {
 #ifdef XP_PC
@@ -537,6 +531,9 @@ PR_IMPLEMENT(void) PR_LogFlush(void)
 PR_IMPLEMENT(void) PR_Abort(void)
 {
     PR_LogPrint("Aborting");
+#ifdef ANDROID
+    __android_log_write(ANDROID_LOG_ERROR, "PRLog", "Aborting");
+#endif
     abort();
 }
 
@@ -547,9 +544,11 @@ PR_IMPLEMENT(void) PR_Assert(const char *s, const char *file, PRIntn ln)
     fflush(stderr);
 #ifdef WIN32
     DebugBreak();
-#endif
-#ifdef XP_OS2
+#elif defined(XP_OS2)
     asm("int $3");
+#elif defined(ANDROID)
+    __android_log_assert(NULL, "PRLog", "Assertion failure: %s, at %s:%d\n",
+                         s, file, ln);
 #endif
     abort();
 }

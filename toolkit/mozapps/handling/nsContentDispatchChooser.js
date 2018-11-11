@@ -4,8 +4,7 @@
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-////////////////////////////////////////////////////////////////////////////////
-//// Constants
+// Constants
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -14,8 +13,7 @@ const Cr = Components.results;
 const CONTENT_HANDLING_URL = "chrome://mozapps/content/handling/dialog.xul";
 const STRINGBUNDLE_URL = "chrome://mozapps/locale/handling/handling.properties";
 
-////////////////////////////////////////////////////////////////////////////////
-//// nsContentDispatchChooser class
+// nsContentDispatchChooser class
 
 function nsContentDispatchChooser()
 {
@@ -25,8 +23,7 @@ nsContentDispatchChooser.prototype =
 {
   classID: Components.ID("e35d5067-95bc-4029-8432-e8f1e431148d"),
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// nsIContentDispatchChooser
+  // nsIContentDispatchChooser
 
   ask: function ask(aHandler, aWindowContext, aURI, aReason)
   {
@@ -58,7 +55,7 @@ nsContentDispatchChooser.prototype =
     let SupportsString = Components.Constructor(
                            "@mozilla.org/supports-string;1",
                            "nsISupportsString");
-    for each (let text in arr) {
+    for (let text of arr) {
       let string = new SupportsString;
       string.data = text;
       params.appendElement(string, false);
@@ -66,7 +63,7 @@ nsContentDispatchChooser.prototype =
     params.appendElement(aHandler, false);
     params.appendElement(aURI, false);
     params.appendElement(aWindowContext, false);
-    
+
     var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
              getService(Ci.nsIWindowWatcher);
     ww.openWindow(window,
@@ -76,15 +73,13 @@ nsContentDispatchChooser.prototype =
                   params);
   },
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// nsISupports
+  // nsISupports
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIContentDispatchChooser])
 };
 
-////////////////////////////////////////////////////////////////////////////////
-//// Module
+// Module
 
-let components = [nsContentDispatchChooser];
+var components = [nsContentDispatchChooser];
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory(components);

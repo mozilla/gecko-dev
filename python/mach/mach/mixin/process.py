@@ -30,7 +30,7 @@ else:
 
 _in_msys = False
 
-if os.environ.get('MSYSTEM', None) == 'MINGW32':
+if os.environ.get('MSYSTEM', None) in ('MINGW32', 'MINGW64'):
     _in_msys = True
 
     if not _current_shell.lower().endswith('.exe'):
@@ -75,7 +75,7 @@ class ProcessExecutionMixin(LoggingMixin):
         """
         args = self._normalize_command(args, require_unix_environment)
 
-        self.log(logging.INFO, 'new_process', {'args': args}, ' '.join(args))
+        self.log(logging.INFO, 'new_process', {'args': ' '.join(args)}, '{args}')
 
         def handleLine(line):
             # Converts str to unicode on Python 2 and bytes to str on Python 3.
@@ -88,7 +88,7 @@ class ProcessExecutionMixin(LoggingMixin):
             if not log_name:
                 return
 
-            self.log(log_level, log_name, {'line': line.strip()}, '{line}')
+            self.log(log_level, log_name, {'line': line.rstrip()}, '{line}')
 
         use_env = {}
         if explicit_env:
@@ -144,7 +144,7 @@ class ProcessExecutionMixin(LoggingMixin):
             ensure_exit_code = 0
 
         if status != ensure_exit_code:
-            raise Exception('Process executed with non-0 exit code: %s' % args)
+            raise Exception('Process executed with non-0 exit code %d: %s' % (status, args))
 
         return status
 

@@ -21,13 +21,15 @@ public:
     NS_DECL_NSIHTTPACTIVITYDISTRIBUTOR
 
     nsHttpActivityDistributor();
-    virtual ~nsHttpActivityDistributor();
 
 protected:
+    virtual ~nsHttpActivityDistributor();
+
     ObserverArray mObservers;
     Mutex mLock;
 };
 
-}} // namespace mozilla::net
+} // namespace net
+} // namespace mozilla
 
 #endif // nsHttpActivityDistributor_h__

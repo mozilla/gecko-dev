@@ -5,32 +5,38 @@
 "use strict";
 
 // Avoid leaks by using tmp for imports...
-let tmp = {};
+var tmp = {};
 Cu.import("resource://gre/modules/Promise.jsm", tmp);
 Cu.import("resource:///modules/CustomizableUI.jsm", tmp);
-let {Promise, CustomizableUI} = tmp;
+Cu.import("resource://gre/modules/AppConstants.jsm", tmp);
+var {Promise, CustomizableUI, AppConstants} = tmp;
 
-let ChromeUtils = {};
-Services.scriptloader.loadSubScript("chrome://mochikit/content/tests/SimpleTest/ChromeUtils.js", ChromeUtils);
+var EventUtils = {};
+Services.scriptloader.loadSubScript("chrome://mochikit/content/tests/SimpleTest/EventUtils.js", EventUtils);
 
 Services.prefs.setBoolPref("browser.uiCustomization.skipSourceNodeCheck", true);
 registerCleanupFunction(() => Services.prefs.clearUserPref("browser.uiCustomization.skipSourceNodeCheck"));
 
-let {synthesizeDragStart, synthesizeDrop} = ChromeUtils;
+// Remove temporary e10s related new window options in customize ui,
+// they break a lot of tests.
+CustomizableUI.destroyWidget("e10s-button");
+CustomizableUI.removeWidgetFromArea("e10s-button");
+
+var {synthesizeDragStart, synthesizeDrop} = EventUtils;
 
 const kNSXUL = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 const kTabEventFailureTimeoutInMs = 20000;
 
-function createDummyXULButton(id, label) {
+function createDummyXULButton(id, label, win = window) {
   let btn = document.createElementNS(kNSXUL, "toolbarbutton");
   btn.id = id;
   btn.setAttribute("label", label || id);
   btn.className = "toolbarbutton-1 chromeclass-toolbar-additional";
-  window.gNavToolbox.palette.appendChild(btn);
+  win.gNavToolbox.palette.appendChild(btn);
   return btn;
 }
 
-let gAddedToolbars = new Set();
+var gAddedToolbars = new Set();
 
 function createToolbarWithPlacements(id, placements = []) {
   gAddedToolbars.add(id);
@@ -108,15 +114,13 @@ function resetCustomization() {
   return CustomizableUI.reset();
 }
 
-function isInWin8() {
-  if (!Services.metro)
-    return false;
-  return Services.metro.supported;
+function isInDevEdition() {
+  return AppConstants.MOZ_DEV_EDITION;
 }
 
-function addSwitchToMetroButtonInWindows8(areaPanelPlacements) {
-  if (isInWin8()) {
-    areaPanelPlacements.push("switch-to-metro-button");
+function removeDeveloperButtonIfDevEdition(areaPanelPlacements) {
+  if (isInDevEdition()) {
+    areaPanelPlacements.splice(areaPanelPlacements.indexOf("developer-button"), 1);
   }
 }
 
@@ -136,7 +140,7 @@ function placementArraysEqual(areaId, actualPlacements, expectedPlacements) {
     } else if (expectedPlacements[i] instanceof RegExp) {
       ok(expectedPlacements[i].test(actualPlacements[i]),
          "Item " + i + " (" + actualPlacements[i] + ") in " +
-         areaId + " should match " + expectedPlacements[i]); 
+         areaId + " should match " + expectedPlacements[i]);
     } else {
       ok(false, "Unknown type of expected placement passed to " +
                 " assertAreaPlacements. Is your test broken?");
@@ -166,12 +170,8 @@ function getAreaWidgetIds(areaId) {
   return CustomizableUI.getWidgetIdsInArea(areaId);
 }
 
-function simulateItemDrag(toDrag, target) {
-  let docId = toDrag.ownerDocument.documentElement.id;
-  let dragData = [[{type: 'text/toolbarwrapper-id/' + docId,
-                    data: toDrag.id}]];
-  synthesizeDragStart(toDrag.parentNode, dragData);
-  synthesizeDrop(target, target, dragData);
+function simulateItemDrag(aToDrag, aTarget) {
+  synthesizeDrop(aToDrag.parentNode, aTarget);
 }
 
 function endCustomizing(aWindow=window) {
@@ -188,32 +188,12 @@ function endCustomizing(aWindow=window) {
   aWindow.gNavToolbox.addEventListener("aftercustomization", onCustomizationEnds);
   aWindow.gCustomizeMode.exit();
 
-  return deferredEndCustomizing.promise.then(function() {
-    let deferredLoadNewTab = Promise.defer();
-
-    //XXXgijs so some tests depend on this tab being about:blank. Make it so.
-    let newTabBrowser = aWindow.gBrowser.selectedBrowser;
-    newTabBrowser.stop();
-
-    // If we stop early enough, this might actually be about:blank.
-    if (newTabBrowser.contentDocument.location.href == "about:blank") {
-      return;
-    }
-
-    // Otherwise, make it be about:blank, and wait for that to be done.
-    function onNewTabLoaded(e) {
-      newTabBrowser.removeEventListener("load", onNewTabLoaded, true);
-      deferredLoadNewTab.resolve();
-    }
-    newTabBrowser.addEventListener("load", onNewTabLoaded, true);
-    newTabBrowser.contentDocument.location.replace("about:blank");
-    return deferredLoadNewTab.promise;
-  });
+  return deferredEndCustomizing.promise;
 }
 
 function startCustomizing(aWindow=window) {
   if (aWindow.document.documentElement.getAttribute("customizing") == "true") {
-    return;
+    return null;
   }
   Services.prefs.setBoolPref("browser.uiCustomization.disableAnimation", true);
   let deferred = Promise.defer();
@@ -224,6 +204,15 @@ function startCustomizing(aWindow=window) {
   }
   aWindow.gNavToolbox.addEventListener("customizationready", onCustomizing);
   aWindow.gCustomizeMode.enter();
+  return deferred.promise;
+}
+
+function promiseObserverNotified(aTopic) {
+  let deferred = Promise.defer();
+  Services.obs.addObserver(function onNotification(aSubject, aTopic, aData) {
+    Services.obs.removeObserver(onNotification, aTopic);
+      deferred.resolve({subject: aSubject, data: aData});
+    }, aTopic, false);
   return deferred.promise;
 }
 
@@ -277,7 +266,7 @@ function promisePanelElementShown(win, aPanel) {
     aPanel.removeEventListener("popupshown", onPanelOpen);
     win.clearTimeout(timeoutId);
     deferred.resolve();
-  };
+  }
   aPanel.addEventListener("popupshown", onPanelOpen);
   return deferred.promise;
 }
@@ -312,7 +301,7 @@ function isPanelUIOpen() {
 
 function subviewShown(aSubview) {
   let deferred = Promise.defer();
-  let win = aSubview.ownerDocument.defaultView;
+  let win = aSubview.ownerGlobal;
   let timeoutId = win.setTimeout(() => {
     deferred.reject("Subview (" + aSubview.id + ") did not show within 20 seconds.");
   }, 20000);
@@ -320,14 +309,14 @@ function subviewShown(aSubview) {
     aSubview.removeEventListener("ViewShowing", onViewShowing);
     win.clearTimeout(timeoutId);
     deferred.resolve();
-  };
+  }
   aSubview.addEventListener("ViewShowing", onViewShowing);
   return deferred.promise;
 }
 
 function subviewHidden(aSubview) {
   let deferred = Promise.defer();
-  let win = aSubview.ownerDocument.defaultView;
+  let win = aSubview.ownerGlobal;
   let timeoutId = win.setTimeout(() => {
     deferred.reject("Subview (" + aSubview.id + ") did not hide within 20 seconds.");
   }, 20000);
@@ -335,7 +324,7 @@ function subviewHidden(aSubview) {
     aSubview.removeEventListener("ViewHiding", onViewHiding);
     win.clearTimeout(timeoutId);
     deferred.resolve();
-  };
+  }
   aSubview.addEventListener("ViewHiding", onViewHiding);
   return deferred.promise;
 }
@@ -362,7 +351,7 @@ function waitForCondition(aConditionFn, aMaxTries=50, aCheckInterval=100) {
 
 function waitFor(aTimeout=100) {
   let deferred = Promise.defer();
-  setTimeout(function() deferred.resolve(), aTimeout);
+  setTimeout(() => deferred.resolve(), aTimeout);
   return deferred.promise;
 }
 
@@ -374,29 +363,11 @@ function waitFor(aTimeout=100) {
  * @param aEventType The load event type to wait for.  Defaults to "load".
  * @return {Promise} resolved when the event is handled.
  */
-function promiseTabLoadEvent(aTab, aURL, aEventType="load") {
-  let deferred = Promise.defer();
-  info("Wait for tab event: " + aEventType);
+function promiseTabLoadEvent(aTab, aURL) {
+  let browser = aTab.linkedBrowser;
 
-  let timeoutId = setTimeout(() => {
-    aTab.linkedBrowser.removeEventListener(aEventType, onTabLoad, true);
-    deferred.reject("TabSelect did not happen within " + kTabEventFailureTimeoutInMs + "ms");
-  }, kTabEventFailureTimeoutInMs);
-
-  function onTabLoad(event) {
-    if (event.originalTarget != aTab.linkedBrowser.contentDocument ||
-        event.target.location.href == "about:blank") {
-      info("skipping spurious load event");
-      return;
-    }
-    clearTimeout(timeoutId);
-    aTab.linkedBrowser.removeEventListener(aEventType, onTabLoad, true);
-    info("Tab event received: " + aEventType);
-    deferred.resolve();
-  }
-  aTab.linkedBrowser.addEventListener(aEventType, onTabLoad, true, true);
-  aTab.linkedBrowser.loadURI(aURL);
-  return deferred.promise;
+  BrowserTestUtils.loadURI(browser, aURL);
+  return BrowserTestUtils.browserLoaded(browser);
 }
 
 /**
@@ -433,6 +404,34 @@ function promiseTabHistoryNavigation(aDirection = -1, aConditionFn) {
   return deferred.promise;
 }
 
+/**
+ * Wait for an attribute on a node to change
+ *
+ * @param aNode      Node on which the mutation is expected
+ * @param aAttribute The attribute we're interested in
+ * @param aFilterFn  A function to check if the new value is what we want.
+ * @return {Promise} resolved when the requisite mutation shows up.
+ */
+function promiseAttributeMutation(aNode, aAttribute, aFilterFn) {
+  return new Promise((resolve, reject) => {
+    info("waiting for mutation of attribute '" + aAttribute + "'.");
+    let obs = new MutationObserver((mutations) => {
+      for (let mut of mutations) {
+        let attr = mut.attributeName;
+        let newValue = mut.target.getAttribute(attr);
+        if (aFilterFn(newValue)) {
+          ok(true, "mutation occurred: attribute '" + attr + "' changed to '" + newValue + "' from '" + mut.oldValue + "'.");
+          obs.disconnect();
+          resolve();
+        } else {
+          info("Ignoring mutation that produced value " + newValue + " because of filter.");
+        }
+      }
+    });
+    obs.observe(aNode, {attributeFilter: [aAttribute]});
+  });
+}
+
 function popupShown(aPopup) {
   return promisePopupEvent(aPopup, "shown");
 }
@@ -459,13 +458,12 @@ function popupHidden(aPopup) {
  */
 function promisePopupEvent(aPopup, aEventSuffix) {
   let deferred = Promise.defer();
-  let win = aPopup.ownerDocument.defaultView;
   let eventType = "popup" + aEventSuffix;
 
   function onPopupEvent(e) {
     aPopup.removeEventListener(eventType, onPopupEvent);
     deferred.resolve();
-  };
+  }
 
   aPopup.addEventListener(eventType, onPopupEvent);
   return deferred.promise;
@@ -474,7 +472,10 @@ function promisePopupEvent(aPopup, aEventSuffix) {
 // This is a simpler version of the context menu check that
 // exists in contextmenu_common.js.
 function checkContextMenu(aContextMenu, aExpectedEntries, aWindow=window) {
-  let childNodes = aContextMenu.childNodes;
+  let childNodes = [...aContextMenu.childNodes];
+  // Ignore hidden nodes:
+  childNodes = childNodes.filter((n) => !n.hidden);
+
   for (let i = 0; i < childNodes.length; i++) {
     let menuitem = childNodes[i];
     try {
@@ -484,7 +485,7 @@ function checkContextMenu(aContextMenu, aExpectedEntries, aWindow=window) {
       }
 
       let selector = aExpectedEntries[i][0];
-      ok(menuitem.mozMatchesSelector(selector), "menuitem should match " + selector + " selector");
+      ok(menuitem.matches(selector), "menuitem should match " + selector + " selector");
       let commandValue = menuitem.getAttribute("command");
       let relatedCommand = commandValue ? aWindow.document.getElementById(commandValue) : null;
       let menuItemDisabled = relatedCommand ?

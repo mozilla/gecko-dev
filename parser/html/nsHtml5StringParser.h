@@ -25,7 +25,6 @@ class nsHtml5StringParser : public nsParserBase
      * nsContentUtils statics that wrap this.
      */
     nsHtml5StringParser();
-    virtual ~nsHtml5StringParser();
 
     /**
      * Invoke the fragment parsing algorithm (innerHTML).
@@ -58,6 +57,8 @@ class nsHtml5StringParser : public nsParserBase
 
   private:
 
+    virtual ~nsHtml5StringParser();
+
     nsresult Tokenize(const nsAString& aSourceBuffer,
                       nsIDocument* aDocument,
                       bool aScriptingEnabledForNoscriptParsing);
@@ -65,7 +66,7 @@ class nsHtml5StringParser : public nsParserBase
     /**
      * The tree operation executor
      */
-    nsRefPtr<nsHtml5OplessBuilder>      mBuilder;
+    RefPtr<nsHtml5OplessBuilder>      mBuilder;
 
     /**
      * The HTML5 tree builder

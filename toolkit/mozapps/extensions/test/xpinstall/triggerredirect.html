@@ -8,14 +8,19 @@
 <head>
 <title>InstallTrigger tests</title>
 <script type="text/javascript">
+/* globals InstallTrigger */
 function installCallback(url, status) {
   document.location = "#foo";
+
+  dump("Sending InstallComplete\n");
+  var event = new CustomEvent("InstallComplete");
+  window.dispatchEvent(event);
 }
 
 function startInstall() {
   InstallTrigger.install({
     "Unsigned XPI": {
-      URL: "unsigned.xpi",
+      URL: "amosigned.xpi",
       IconURL: "icon.png",
       toString: function() { return this.URL; }
     }

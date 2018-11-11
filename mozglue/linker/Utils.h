@@ -5,6 +5,7 @@
 #ifndef Utils_h
 #define Utils_h
 
+#include <pthread.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <sys/mman.h>
@@ -290,6 +291,10 @@ public:
       static_cast<T *>(this)->munmap(get(), GetLength());
   }
 
+  void release()
+  {
+    MemoryRange::Assign(MAP_FAILED, 0);
+  }
 };
 
 struct MappedPtr: public GenericMappedPtr<MappedPtr>
@@ -592,6 +597,22 @@ void *FunctionPtr(T func)
   f.func = func;
   return f.ptr;
 }
+
+class AutoLock {
+public:
+  AutoLock(pthread_mutex_t *mutex): mutex(mutex)
+  {
+    if (pthread_mutex_lock(mutex))
+      MOZ_CRASH("pthread_mutex_lock failed");
+  }
+  ~AutoLock()
+  {
+    if (pthread_mutex_unlock(mutex))
+      MOZ_CRASH("pthread_mutex_unlock failed");
+  }
+private:
+  pthread_mutex_t *mutex;
+};
 
 #endif /* Utils_h */
  

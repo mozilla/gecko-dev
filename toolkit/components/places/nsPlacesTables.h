@@ -21,11 +21,10 @@
     ", frecency INTEGER DEFAULT -1 NOT NULL" \
     ", last_visit_date INTEGER " \
     ", guid TEXT" \
+    ", foreign_count INTEGER DEFAULT 0 NOT NULL" \
+    ", url_hash INTEGER DEFAULT 0 NOT NULL " \
   ")" \
 )
-#define MOZ_PLACES_COLUMNS \
-  "id, url, title, rev_host, visit_count, hidden, typed, favicon_id, " \
-  "frecency, last_visit_date"
 
 #define CREATE_MOZ_HISTORYVISITS NS_LITERAL_CSTRING( \
   "CREATE TABLE moz_historyvisits (" \
@@ -37,8 +36,6 @@
     ", session INTEGER" \
   ")" \
 )
-#define MOZ_HISTORYVISITS_COLUMNS \
-  "id, from_visit, place_id, visit_date, visit_type, session"
 
 
 #define CREATE_MOZ_INPUTHISTORY NS_LITERAL_CSTRING( \
@@ -94,7 +91,6 @@
     ", data BLOB" \
     ", mime_type VARCHAR(32)" \
     ", expiration LONG" \
-    ", guid TEXT" \
   ")" \
 )
 
@@ -114,17 +110,12 @@
   ")" \
 )
 
-#define CREATE_MOZ_BOOKMARKS_ROOTS NS_LITERAL_CSTRING( \
-  "CREATE TABLE moz_bookmarks_roots (" \
-    "  root_name VARCHAR(16) UNIQUE" \
-    ", folder_id INTEGER" \
-  ")" \
-)
-
 #define CREATE_MOZ_KEYWORDS NS_LITERAL_CSTRING( \
   "CREATE TABLE moz_keywords (" \
     "  id INTEGER PRIMARY KEY AUTOINCREMENT" \
     ", keyword TEXT UNIQUE" \
+    ", place_id INTEGER" \
+    ", post_data TEXT" \
   ")" \
 )
 
@@ -142,9 +133,22 @@
 //       nsPlacesAutoComplete.js.
 #define CREATE_MOZ_OPENPAGES_TEMP NS_LITERAL_CSTRING( \
   "CREATE TEMP TABLE moz_openpages_temp (" \
-    "  url TEXT PRIMARY KEY" \
+    "  url TEXT" \
+    ", userContextId INTEGER" \
     ", open_count INTEGER" \
+    ", PRIMARY KEY (url, userContextId)" \
   ")" \
+)
+
+// This table is used, along with moz_places_afterdelete_trigger, to update
+// hosts after places removals. During a DELETE FROM moz_places, hosts are
+// accumulated into this table, then a DELETE FROM moz_updatehosts_temp will
+// take care of updating the moz_hosts table for every modified host.
+// See CREATE_PLACES_AFTERDELETE_TRIGGER in nsPlacestriggers.h for details.
+#define CREATE_UPDATEHOSTS_TEMP NS_LITERAL_CSTRING( \
+  "CREATE TEMP TABLE moz_updatehosts_temp (" \
+    "  host TEXT PRIMARY KEY " \
+  ") WITHOUT ROWID " \
 )
 
 #endif // __nsPlacesTables_h__

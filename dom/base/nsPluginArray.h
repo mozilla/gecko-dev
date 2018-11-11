@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sw=2 et tw=79: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -11,15 +11,15 @@
 #include "nsWeakReference.h"
 #include "nsIObserver.h"
 #include "nsWrapperCache.h"
-#include "nsPluginTags.h"
 #include "nsPIDOMWindow.h"
 
 class nsPluginElement;
 class nsMimeType;
+class nsIInternalPluginTag;
 
-class nsPluginArray MOZ_FINAL : public nsIObserver,
-                                public nsSupportsWeakReference,
-                                public nsWrapperCache
+class nsPluginArray final : public nsIObserver,
+                            public nsSupportsWeakReference,
+                            public nsWrapperCache
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -29,11 +29,9 @@ public:
   // nsIObserver
   NS_DECL_NSIOBSERVER
 
-  nsPluginArray(nsPIDOMWindow* aWindow);
-  virtual ~nsPluginArray();
-
-  nsPIDOMWindow* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  explicit nsPluginArray(nsPIDOMWindowInner* aWindow);
+  nsPIDOMWindowInner* GetParentObject() const;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   // nsPluginArray registers itself as an observer with a weak reference.
   // This can't be done in the constructor, because at that point its
@@ -42,8 +40,10 @@ public:
   void Init();
   void Invalidate();
 
-  void GetMimeTypes(nsTArray<nsRefPtr<nsMimeType> >& aMimeTypes,
-                    nsTArray<nsRefPtr<nsMimeType> >& aHiddenMimeTypes);
+  void GetMimeTypes(nsTArray<RefPtr<nsMimeType>>& aMimeTypes);
+  void GetCTPMimeTypes(nsTArray<RefPtr<nsMimeType>>& aMimeTypes);
+
+  static void NotifyHiddenPluginTouched(nsPluginElement* aElement);
 
   // PluginArray WebIDL methods
 
@@ -52,42 +52,37 @@ public:
   void Refresh(bool aReloadDocuments);
   nsPluginElement* IndexedGetter(uint32_t aIndex, bool &aFound);
   nsPluginElement* NamedGetter(const nsAString& aName, bool &aFound);
-  bool NameIsEnumerable(const nsAString& aName);
   uint32_t Length();
-  void GetSupportedNames(unsigned, nsTArray<nsString>& aRetval);
+  void GetSupportedNames(nsTArray<nsString>& aRetval);
 
 private:
+  virtual ~nsPluginArray();
+
   bool AllowPlugins() const;
   void EnsurePlugins();
 
-  nsCOMPtr<nsPIDOMWindow> mWindow;
-
-  // Many sites check whether a particular plugin is installed by enumerating
-  // all navigator.plugins, checking each plugin's name. These sites should
-  // just check navigator.plugins["Popular Plugin Name"] instead. mPlugins
-  // contains those popular plugins that must be exposed in navigator.plugins
-  // enumeration to avoid breaking web content.
-  nsTArray<nsRefPtr<nsPluginElement> > mPlugins;
-
-  // mHiddenPlugins contains plugins that can be queried by
-  // navigator.plugins["Hidden Plugin Name"] but do not need to be exposed in
-  // navigator.plugins enumeration.
-  nsTArray<nsRefPtr<nsPluginElement> > mHiddenPlugins;
+  nsCOMPtr<nsPIDOMWindowInner> mWindow;
+  nsTArray<RefPtr<nsPluginElement> > mPlugins;
+  /* A separate list of click-to-play plugins that we don't tell content
+   * about but keep track of so we can still prompt the user to click to play.
+   */
+  nsTArray<RefPtr<nsPluginElement> > mCTPPlugins;
 };
 
-class nsPluginElement MOZ_FINAL : public nsISupports,
-                                  public nsWrapperCache
+class nsPluginElement final : public nsISupports,
+                              public nsWrapperCache
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsPluginElement)
 
-  nsPluginElement(nsPIDOMWindow* aWindow, nsPluginTag* aPluginTag);
+  nsPluginElement(nsPIDOMWindowInner* aWindow,
+                  nsIInternalPluginTag* aPluginTag);
 
-  nsPIDOMWindow* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  nsPIDOMWindowInner* GetParentObject() const;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
-  nsPluginTag* PluginTag() const
+  nsIInternalPluginTag* PluginTag() const
   {
     return mPluginTag;
   }
@@ -102,18 +97,19 @@ public:
   nsMimeType* NamedItem(const nsAString& name);
   nsMimeType* IndexedGetter(uint32_t index, bool &found);
   nsMimeType* NamedGetter(const nsAString& name, bool &found);
-  bool NameIsEnumerable(const nsAString& aName);
   uint32_t Length();
-  void GetSupportedNames(unsigned, nsTArray<nsString>& retval);
+  void GetSupportedNames(nsTArray<nsString>& retval);
 
-  nsTArray<nsRefPtr<nsMimeType> >& MimeTypes();
+  nsTArray<RefPtr<nsMimeType> >& MimeTypes();
 
 protected:
+  ~nsPluginElement();
+
   void EnsurePluginMimeTypes();
 
-  nsCOMPtr<nsPIDOMWindow> mWindow;
-  nsRefPtr<nsPluginTag> mPluginTag;
-  nsTArray<nsRefPtr<nsMimeType> > mMimeTypes;
+  nsCOMPtr<nsPIDOMWindowInner> mWindow;
+  nsCOMPtr<nsIInternalPluginTag> mPluginTag;
+  nsTArray<RefPtr<nsMimeType> > mMimeTypes;
 };
 
 #endif /* nsPluginArray_h___ */

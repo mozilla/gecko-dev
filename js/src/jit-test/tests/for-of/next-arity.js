@@ -7,12 +7,12 @@ var log = '';
 function Iter() {
     function next() {
         log += 'n';
-        assertEq(arguments.length, 1)
+        assertEq(arguments.length, 0)
         assertEq(arguments[0], undefined)
         return { get value() { throw 42; }, done: true }
     }
 
-    this[std_iterator] = function () { return this; }
+    this[Symbol.iterator] = function () { return this; }
     this.next = next;
 }
 

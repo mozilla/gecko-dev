@@ -1,6 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 <head>
+    <meta charset="utf-8">
     <title>Test for Async Auth Prompt</title>
     <script type="text/javascript" src="/MochiKit/MochiKit.js"></script>
     <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
@@ -9,7 +10,13 @@
 
     <script class="testbody" type="text/javascript">
         SimpleTest.waitForExplicitFinish();
+        SimpleTest.requestFlakyTimeout("untriaged");
 
+        const { NetUtil } = SpecialPowers.Cu.import('resource://gre/modules/NetUtil.jsm');
+
+        var prefs = Cc["@mozilla.org/preferences-service;1"].
+                        getService(Ci.nsIPrefBranch);
+        prefs.setIntPref("network.auth.subresource-http-auth-allow", 2);
         // Class monitoring number of open dialog windows
         // It checks there is always open just a single dialog per application
         function dialogMonitor() {
@@ -35,7 +42,7 @@
             QueryInterface : function (iid) {
                 const interfaces = [Ci.nsIObserver, Ci.nsISupports];
 
-                if (!interfaces.some( function(v) { return iid.equals(v) } ))
+                if (!interfaces.some( function(v) { return iid.equals(v); } ))
                         throw SpecialPowers.Cr.NS_ERROR_NO_INTERFACE;
                 return this;
             },
@@ -126,7 +133,7 @@
 	QueryInterface : function (iid) {
 	const interfaces = [Ci.nsIProtocolProxyCallback, Ci.nsISupports];
 
-        if (!interfaces.some( function(v) { return iid.equals(v) } ))
+        if (!interfaces.some( function(v) { return iid.equals(v); } ))
           throw SpecialPowers.Cr.NS_ERROR_NO_INTERFACE;
 	  return this;
 	},
@@ -138,15 +145,16 @@
 	});
 
 	function startup() {
-            //need to allow for arbitrary network servers defined in PAC instead of a hardcoded moz-proxy.
-            var ios = SpecialPowers.Cc["@mozilla.org/network/io-service;1"]
-                                   .getService(SpecialPowers.Ci.nsIIOService);
+            // Need to allow for arbitrary network servers defined in PAC instead of a hardcoded moz-proxy.
+            var channel = NetUtil.newChannel({
+                uri: "http://example.com",
+                loadUsingSystemPrincipal: true
+            });
 
             var pps = SpecialPowers.Cc["@mozilla.org/network/protocol-proxy-service;1"]
                                    .getService();
 
-            var uri = ios.newURI("http://example.com", null, null);
-            pps.asyncResolve(uri, 0, resolveCallback);
+            pps.asyncResolve(channel, 0, resolveCallback);
 	}
 
         // --------------- Test loop spin ----------------
@@ -163,7 +171,7 @@
             iframe2b.onload = onFrameLoad;
 
 	    startup();
-        }
+        };
 
         var expectedLoads;
         var expectedDialogs;
@@ -181,7 +189,7 @@
             }
         }
 
-        function doTest(testNum)
+        function doTest(testNumber)
         {
             /*
              * These contentDocument variables are located here,
@@ -195,7 +203,7 @@
             var exampleCom = "http://example.com/tests/toolkit/components/passwordmgr/test/";
             var exampleOrg = "http://example.org/tests/toolkit/components/passwordmgr/test/";
 
-            switch (testNum)
+            switch (testNumber)
             {
             case 1:
                 // Load through a single proxy with authentication required 3 different
@@ -205,29 +213,29 @@
                 ok(true, "doTest testNum 1");
                 expectedLoads = 3;
                 expectedDialogs = 3;
-                iframe1.src = exampleCom + "authenticate.sjs?"+
-                    "r=1&"+
-                    "user=user1name&"+
-                    "pass=user1pass&"+
-                    "realm=mochirealm&"+
-                    "proxy_user=proxy_user&"+
-                    "proxy_pass=proxy_pass&"+
+                iframe1.src = exampleCom + "authenticate.sjs?" +
+                    "r=1&" +
+                    "user=user1name&" +
+                    "pass=user1pass&" +
+                    "realm=mochirealm&" +
+                    "proxy_user=proxy_user&" +
+                    "proxy_pass=proxy_pass&" +
                     "proxy_realm=proxy_realm";
-                iframe2a.src = exampleOrg + "authenticate.sjs?"+
-                    "r=2&"+
-                    "user=user2name&"+
-                    "pass=user2pass&"+
-                    "realm=mochirealm2&"+
-                    "proxy_user=proxy_user&"+
-                    "proxy_pass=proxy_pass&"+
+                iframe2a.src = exampleOrg + "authenticate.sjs?" +
+                    "r=2&" +
+                    "user=user2name&" +
+                    "pass=user2pass&" +
+                    "realm=mochirealm2&" +
+                    "proxy_user=proxy_user&" +
+                    "proxy_pass=proxy_pass&" +
                     "proxy_realm=proxy_realm";
-                iframe2b.src = exampleOrg + "authenticate.sjs?"+
-                    "r=3&"+
-                    "user=user2name&"+
-                    "pass=user2pass&"+
-                    "realm=mochirealm2&"+
-                    "proxy_user=proxy_user&"+
-                    "proxy_pass=proxy_pass&"+
+                iframe2b.src = exampleOrg + "authenticate.sjs?" +
+                    "r=3&" +
+                    "user=user2name&" +
+                    "pass=user2pass&" +
+                    "realm=mochirealm2&" +
+                    "proxy_user=proxy_user&" +
+                    "proxy_pass=proxy_pass&" +
                     "proxy_realm=proxy_realm";
                 break;
 
@@ -250,12 +258,12 @@
                 ok(true, "doTest testNum 3");
                 expectedLoads = 1;
                 expectedDialogs = 1;
-                iframe1.src = exampleCom + "authenticate.sjs?"+
-                    "user=user4name&"+
-                    "pass=user4pass&"+
-                    "realm=mochirealm4&"+
-                    "proxy_user=proxy_user3&"+
-                    "proxy_pass=proxy_pass3&"+
+                iframe1.src = exampleCom + "authenticate.sjs?" +
+                    "user=user4name&" +
+                    "pass=user4pass&" +
+                    "realm=mochirealm4&" +
+                    "proxy_user=proxy_user3&" +
+                    "proxy_pass=proxy_pass3&" +
                     "proxy_realm=proxy_realm3";
                 break;
 
@@ -266,12 +274,12 @@
                 ok(true, "doTest testNum 4");
                 expectedLoads = 1;
                 expectedDialogs = 2;
-                iframe1.src = exampleCom + "authenticate.sjs?"+
-                    "user=user4name&"+
-                    "pass=user4pass&"+
-                    "realm=mochirealm4&"+
-                    "proxy_user=proxy_user3&"+
-                    "proxy_pass=proxy_pass3&"+
+                iframe1.src = exampleCom + "authenticate.sjs?" +
+                    "user=user4name&" +
+                    "pass=user4pass&" +
+                    "realm=mochirealm4&" +
+                    "proxy_user=proxy_user3&" +
+                    "proxy_pass=proxy_pass3&" +
                     "proxy_realm=proxy_realm3";
 
 
@@ -286,13 +294,13 @@
                 ok(true, "doTest testNum 5");
                 expectedLoads = 1;
                 expectedDialogs = 1;
-                iframe1.src = exampleCom + "authenticate.sjs?"+
-                    "user=user5name&"+
-                    "pass=user5pass&"+
-                    "realm=mochirealm5&"+
-                    "proxy_user=proxy_user4&"+
-                    "proxy_pass=proxy_pass4&"+
-                    "proxy_realm=proxy_realm4&"+
+                iframe1.src = exampleCom + "authenticate.sjs?" +
+                    "user=user5name&" +
+                    "pass=user5pass&" +
+                    "realm=mochirealm5&" +
+                    "proxy_user=proxy_user4&" +
+                    "proxy_pass=proxy_pass4&" +
+                    "proxy_realm=proxy_realm4&" +
                     "huge=1";
                 break;
 
@@ -303,13 +311,13 @@
                 ok(true, "doTest testNum 6");
                 expectedLoads = 1;
                 expectedDialogs = 2;
-                iframe1.src = exampleCom + "authenticate.sjs?"+
-                    "user=user5name&"+
-                    "pass=user5pass&"+
-                    "realm=mochirealm5&"+
-                    "proxy_user=proxy_user4&"+
-                    "proxy_pass=proxy_pass4&"+
-                    "proxy_realm=proxy_realm4&"+
+                iframe1.src = exampleCom + "authenticate.sjs?" +
+                    "user=user5name&" +
+                    "pass=user5pass&" +
+                    "realm=mochirealm5&" +
+                    "proxy_user=proxy_user4&" +
+                    "proxy_pass=proxy_pass4&" +
+                    "proxy_realm=proxy_realm4&" +
                     "huge=1";
                 break;
 
@@ -329,14 +337,14 @@
                 ok(true, "doTest testNum 8");
                 expectedLoads = 1;
                 expectedDialogs = 5;
-                iframe1.src = exampleCom + "authenticate.sjs?"+
-                    "user=user6name&"+
-                    "pass=user6pass&"+
-                    "realm=mochirealm6&"+
-                    "proxy_user=proxy_user5&"+
-                    "proxy_pass=proxy_pass5&"+
-                    "proxy_realm=proxy_realm5&"+
-                    "huge=1&"+
+                iframe1.src = exampleCom + "authenticate.sjs?" +
+                    "user=user6name&" +
+                    "pass=user6pass&" +
+                    "realm=mochirealm6&" +
+                    "proxy_user=proxy_user5&" +
+                    "proxy_pass=proxy_pass5&" +
+                    "proxy_realm=proxy_realm5&" +
+                    "huge=1&" +
                     "multiple=3";
                 break;
 
@@ -348,11 +356,11 @@
             startCallbackTimer();
         }
 
-        function handleDialog(doc, testNum)
+        function handleDialog(doc, testNumber)
         {
             var dialog        = doc.getElementById("commonDialog");
 
-            switch (testNum)
+            switch (testNumber)
             {
                 case 1:
                 case 2:
@@ -395,26 +403,29 @@
                     break;
 
                 default:
-                    ok(false, "Unhandled testNum "+testNum+" in handleDialog");
+                    ok(false, "Unhandled testNum " + testNumber + " in handleDialog");
             }
 
             if (--expectedDialogs > 0)
                 startCallbackTimer();
         }
 
-        function doCheck(testNum)
+        function doCheck(testNumber)
         {
             var iframe1Doc = SpecialPowers.wrap(iframe1).contentDocument;
             var iframe2aDoc = SpecialPowers.wrap(iframe2a).contentDocument;
             var iframe2bDoc = SpecialPowers.wrap(iframe2b).contentDocument;
-            switch (testNum)
+            var authok1;
+            var proxyok1;
+            var footnote;
+            switch (testNumber)
             {
                 case 1:
                     ok(true, "doCheck testNum 1");
                     is(monitor.windowsRegistered, 3, "Registered 3 open dialogs");
-                    
-                    var authok1 = iframe1Doc.getElementById("ok").textContent;
-                    var proxyok1 = iframe1Doc.getElementById("proxy").textContent;
+
+                    authok1 = iframe1Doc.getElementById("ok").textContent;
+                    proxyok1 = iframe1Doc.getElementById("proxy").textContent;
 
                     var authok2a = iframe2aDoc.getElementById("ok").textContent;
                     var proxyok2a = iframe2aDoc.getElementById("proxy").textContent;
@@ -436,7 +447,7 @@
 
                     function checkIframe(frame) {
                         var doc = SpecialPowers.wrap(frame).contentDocument;
-                        
+
                         var authok = doc.getElementById("ok").textContent;
                         var proxyok = doc.getElementById("proxy").textContent;
 
@@ -454,14 +465,14 @@
                     is(monitor.windowsRegistered, 1, "Registered 1 open dialog");
 
                     // ensure that the page content is not displayed on failed proxy auth
-                    is(iframe1Doc.getElementById("ok"), undefined, "frame did not load");
+                    is(iframe1Doc.getElementById("ok"), null, "frame did not load");
                     break;
 
                 case 4:
                     ok(true, "doCheck testNum 4");
                     is(monitor.windowsRegistered, 2, "Registered 2 open dialogs");
-                    var authok1 = iframe1Doc.getElementById("ok").textContent;
-                    var proxyok1 = iframe1Doc.getElementById("proxy").textContent;
+                    authok1 = iframe1Doc.getElementById("ok").textContent;
+                    proxyok1 = iframe1Doc.getElementById("proxy").textContent;
 
                     is(authok1, "FAIL", "WWW Authorization FAILED, frame1");
                     is(proxyok1, "PASS", "Proxy Authorization OK, frame1");
@@ -472,15 +483,15 @@
                     is(monitor.windowsRegistered, 1, "Registered 1 open dialog");
 
                     // ensure that the page content is not displayed on failed proxy auth
-                    is(iframe1Doc.getElementById("footnote"), undefined, "frame did not load");
+                    is(iframe1Doc.getElementById("footnote"), null, "frame did not load");
                     break;
 
                 case 6:
                     ok(true, "doCheck testNum 6");
                     is(monitor.windowsRegistered, 2, "Registered 2 open dialogs");
-                    var authok1 = iframe1Doc.getElementById("ok").textContent;
-                    var proxyok1 = iframe1Doc.getElementById("proxy").textContent;
-                    var footnote = iframe1Doc.getElementById("footnote").textContent;
+                    authok1 = iframe1Doc.getElementById("ok").textContent;
+                    proxyok1 = iframe1Doc.getElementById("proxy").textContent;
+                    footnote = iframe1Doc.getElementById("footnote").textContent;
 
                     is(authok1, "FAIL", "WWW Authorization FAILED, frame1");
                     is(proxyok1, "PASS", "Proxy Authorization OK, frame1");
@@ -491,9 +502,9 @@
                 case 7:
                     ok(true, "doCheck testNum 7");
                     is(monitor.windowsRegistered, 1, "Registered 1 open dialogs");
-                    var authok1 = iframe1Doc.getElementById("ok").textContent;
-                    var proxyok1 = iframe1Doc.getElementById("proxy").textContent;
-                    var footnote = iframe1Doc.getElementById("footnote").textContent;
+                    authok1 = iframe1Doc.getElementById("ok").textContent;
+                    proxyok1 = iframe1Doc.getElementById("proxy").textContent;
+                    footnote = iframe1Doc.getElementById("footnote").textContent;
 
                     is(authok1, "PASS", "WWW Authorization OK, frame1");
                     is(proxyok1, "PASS", "Proxy Authorization OK, frame1");
@@ -504,9 +515,9 @@
                 case 8:
                     ok(true, "doCheck testNum 8");
                     is(monitor.windowsRegistered, 5, "Registered 5 open dialogs");
-                    var authok1 = iframe1Doc.getElementById("ok").textContent;
-                    var proxyok1 = iframe1Doc.getElementById("proxy").textContent;
-                    var footnote = iframe1Doc.getElementById("footnote").textContent;
+                    authok1 = iframe1Doc.getElementById("ok").textContent;
+                    proxyok1 = iframe1Doc.getElementById("proxy").textContent;
+                    footnote = iframe1Doc.getElementById("footnote").textContent;
 
                     is(authok1, "PASS", "WWW Authorization OK, frame1");
                     is(proxyok1, "PASS", "Proxy Authorization OK, frame1");
@@ -515,7 +526,7 @@
                     break;
 
                 default:
-                    ok(false, "Unhandled testNum "+testNum+" in doCheck");
+                    ok(false, "Unhandled testNum " + testNumber + " in doCheck");
             }
         }
 

@@ -6,34 +6,34 @@
 #include "nsFTPDirListingConv.h"
 #include "nsMemory.h"
 #include "plstr.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsCOMPtr.h"
 #include "nsEscape.h"
 #include "nsStringStream.h"
 #include "nsIStreamListener.h"
 #include "nsCRT.h"
-#include "nsAutoPtr.h"
 #include "nsIChannel.h"
 #include "nsIURI.h"
 
 #include "ParseFTPList.h"
 #include <algorithm>
 
-#if defined(PR_LOGGING)
+#include "mozilla/UniquePtrExtensions.h"
+#include "mozilla/Unused.h"
+
 //
 // Log module for FTP dir listing stream converter logging...
 //
 // To enable logging (see prlog.h for full details):
 //
-//    set NSPR_LOG_MODULES=nsFTPDirListConv:5
-//    set NSPR_LOG_FILE=nspr.log
+//    set MOZ_LOG=nsFTPDirListConv:5
+//    set MOZ_LOG_FILE=network.log
 //
-// this enables PR_LOG_DEBUG level information and places all output in
-// the file nspr.log
+// This enables LogLevel::Debug level information and places all output in
+// the file network.log.
 //
-PRLogModuleInfo* gFTPDirListConvLog = nullptr;
-
-#endif /* PR_LOGGING */
+static mozilla::LazyLogModule gFTPDirListConvLog("nsFTPDirListingConv");
+using namespace mozilla;
 
 // nsISupports implementation
 NS_IMPL_ISUPPORTS(nsFTPDirListingConv,
@@ -63,7 +63,7 @@ nsFTPDirListingConv::AsyncConvertData(const char *aFromType, const char *aToType
     mFinalListener = aListener;
     NS_ADDREF(mFinalListener);
 
-    PR_LOG(gFTPDirListConvLog, PR_LOG_DEBUG, 
+    MOZ_LOG(gFTPDirListConvLog, LogLevel::Debug, 
         ("nsFTPDirListingConv::AsyncConvertData() converting FROM raw, TO application/http-index-format\n"));
 
     return NS_OK;
@@ -88,34 +88,30 @@ nsFTPDirListingConv::OnDataAvailable(nsIRequest* request, nsISupports *ctxt,
     NS_ENSURE_SUCCESS(rv, rv);
     streamLen = (uint32_t)std::min(streamLen64, uint64_t(UINT32_MAX - 1));
 
-    nsAutoArrayPtr<char> buffer(new char[streamLen + 1]);
+    auto buffer = MakeUniqueFallible<char[]>(streamLen + 1);
     NS_ENSURE_TRUE(buffer, NS_ERROR_OUT_OF_MEMORY);
 
-    rv = inStr->Read(buffer, streamLen, &read);
+    rv = inStr->Read(buffer.get(), streamLen, &read);
     NS_ENSURE_SUCCESS(rv, rv);
 
     // the dir listings are ascii text, null terminate this sucker.
     buffer[streamLen] = '\0';
 
-    PR_LOG(gFTPDirListConvLog, PR_LOG_DEBUG, ("nsFTPDirListingConv::OnData(request = %x, ctxt = %x, inStr = %x, sourceOffset = %llu, count = %u)\n", request, ctxt, inStr, sourceOffset, count));
+    MOZ_LOG(gFTPDirListConvLog, LogLevel::Debug, ("nsFTPDirListingConv::OnData(request = %x, ctxt = %x, inStr = %x, sourceOffset = %llu, count = %u)\n", request, ctxt, inStr, sourceOffset, count));
 
     if (!mBuffer.IsEmpty()) {
         // we have data left over from a previous OnDataAvailable() call.
         // combine the buffers so we don't lose any data.
-        mBuffer.Append(buffer);
+        mBuffer.Append(buffer.get());
 
-        buffer = new char[mBuffer.Length()+1];
+        buffer = MakeUniqueFallible<char[]>(mBuffer.Length()+1);
         NS_ENSURE_TRUE(buffer, NS_ERROR_OUT_OF_MEMORY);
 
-        strncpy(buffer, mBuffer.get(), mBuffer.Length()+1);
+        strncpy(buffer.get(), mBuffer.get(), mBuffer.Length()+1);
         mBuffer.Truncate();
     }
 
-#ifndef DEBUG_dougt
-    PR_LOG(gFTPDirListConvLog, PR_LOG_DEBUG, ("::OnData() received the following %d bytes...\n\n%s\n\n", streamLen, buffer.get()) );
-#else
-    printf("::OnData() received the following %d bytes...\n\n%s\n\n", streamLen, buffer);
-#endif // DEBUG_dougt
+    MOZ_LOG(gFTPDirListConvLog, LogLevel::Debug, ("::OnData() received the following %d bytes...\n\n%s\n\n", streamLen, buffer.get()) );
 
     nsAutoCString indexFormat;
     if (!mSentHeading) {
@@ -130,25 +126,16 @@ nsFTPDirListingConv::OnDataAvailable(nsIRequest* request, nsISupports *ctxt,
         mSentHeading = true;
     }
 
-    char *line = buffer;
+    char *line = buffer.get();
     line = DigestBufferLines(line, indexFormat);
 
-#ifndef DEBUG_dougt
-    PR_LOG(gFTPDirListConvLog, PR_LOG_DEBUG, ("::OnData() sending the following %d bytes...\n\n%s\n\n", 
+    MOZ_LOG(gFTPDirListConvLog, LogLevel::Debug, ("::OnData() sending the following %d bytes...\n\n%s\n\n", 
         indexFormat.Length(), indexFormat.get()) );
-#else
-    char *unescData = ToNewCString(indexFormat);
-    NS_ENSURE_TRUE(unescData, NS_ERROR_OUT_OF_MEMORY);
-    
-    nsUnescape(unescData);
-    printf("::OnData() sending the following %d bytes...\n\n%s\n\n", indexFormat.Length(), unescData);
-    nsMemory::Free(unescData);
-#endif // DEBUG_dougt
 
     // if there's any data left over, buffer it.
     if (line && *line) {
         mBuffer.Append(line);
-        PR_LOG(gFTPDirListConvLog, PR_LOG_DEBUG, ("::OnData() buffering the following %d bytes...\n\n%s\n\n",
+        MOZ_LOG(gFTPDirListConvLog, LogLevel::Debug, ("::OnData() buffering the following %d bytes...\n\n%s\n\n",
             strlen(line), line) );
     }
 
@@ -189,21 +176,6 @@ nsFTPDirListingConv::nsFTPDirListingConv() {
 
 nsFTPDirListingConv::~nsFTPDirListingConv() {
     NS_IF_RELEASE(mFinalListener);
-}
-
-nsresult
-nsFTPDirListingConv::Init() {
-#if defined(PR_LOGGING)
-    //
-    // Initialize the global PRLogModule for FTP Protocol logging 
-    // if necessary...
-    //
-    if (nullptr == gFTPDirListConvLog) {
-        gFTPDirListConvLog = PR_NewLogModule("nsFTPDirListingConv");
-    }
-#endif /* PR_LOGGING */
-
-    return NS_OK;
 }
 
 nsresult
@@ -316,6 +288,13 @@ nsFTPDirListingConv::DigestBufferLines(char *aBuffer, nsCString &aString) {
 
         // MODIFIED DATE
         char buffer[256] = "";
+
+        // ParseFTPList can return time structure with invalid values.
+        // PR_NormalizeTime will set all values into valid limits.
+        result.fe_time.tm_params.tp_gmt_offset = 0;
+        result.fe_time.tm_params.tp_dst_offset = 0;
+        PR_NormalizeTime(&result.fe_time, PR_GMTParameters);
+
         // Note: The below is the RFC822/1123 format, as required by
         // the application/http-index-format specs
         // viewers of such a format can then reformat this into the
@@ -323,9 +302,9 @@ nsFTPDirListingConv::DigestBufferLines(char *aBuffer, nsCString &aString) {
         PR_FormatTimeUSEnglish(buffer, sizeof(buffer),
                                "%a, %d %b %Y %H:%M:%S", &result.fe_time );
 
-        char *escapedDate = nsEscape(buffer, url_Path);
-        aString.Append(escapedDate);
-        nsMemory::Free(escapedDate);
+        nsAutoCString escaped;
+        Unused << NS_WARN_IF(!NS_Escape(nsDependentCString(buffer), escaped, url_Path));
+        aString.Append(escaped);
         aString.Append(' ');
 
         // ENTRY TYPE
@@ -362,5 +341,5 @@ NS_NewFTPDirListingConv(nsFTPDirListingConv** aFTPDirListingConv)
         return NS_ERROR_OUT_OF_MEMORY;
 
     NS_ADDREF(*aFTPDirListingConv);
-    return (*aFTPDirListingConv)->Init();
+    return NS_OK;
 }

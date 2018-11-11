@@ -13,7 +13,7 @@
 #include "nsCacheMetaData.h"
 
 #include "nspr.h"
-#include "pldhash.h"
+#include "PLDHashTable.h"
 #include "nsAutoPtr.h"
 #include "nscore.h"
 #include "nsCOMPtr.h"
@@ -195,7 +195,7 @@ public:
     bool     RemoveDescriptor( nsCacheEntryDescriptor * descriptor,
                                bool                   * doomEntry);
 
-    void     GetDescriptors(nsTArray<nsRefPtr<nsCacheEntryDescriptor> > &outDescriptors);
+    void     GetDescriptors(nsTArray<RefPtr<nsCacheEntryDescriptor> > &outDescriptors);
 
 private:
     friend class nsCacheEntryHashTable;
@@ -238,27 +238,28 @@ public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSICACHEENTRYINFO
 
-    nsCacheEntryInfo(nsCacheEntry* entry)
+    explicit nsCacheEntryInfo(nsCacheEntry* entry)
         :   mCacheEntry(entry)
     {
     }
 
-    virtual ~nsCacheEntryInfo() {}
     void    DetachEntry() { mCacheEntry = nullptr; }
-    
+
 private:
     nsCacheEntry * mCacheEntry;
+
+    virtual ~nsCacheEntryInfo() {}
 };
 
 
 /******************************************************************************
 * nsCacheEntryHashTable
 *******************************************************************************/
-typedef struct {
-    PLDHashNumber  keyHash;
-    nsCacheEntry  *cacheEntry;
-} nsCacheEntryHashTableEntry;
 
+struct nsCacheEntryHashTableEntry : public PLDHashEntryHdr
+{
+    nsCacheEntry  *cacheEntry;
+};
 
 class nsCacheEntryHashTable
 {
@@ -266,22 +267,21 @@ public:
     nsCacheEntryHashTable();
     ~nsCacheEntryHashTable();
 
-    nsresult      Init();
+    void          Init();
     void          Shutdown();
 
     nsCacheEntry *GetEntry( const nsCString * key);
     nsresult      AddEntry( nsCacheEntry *entry);
     void          RemoveEntry( nsCacheEntry *entry);
-    
-    void          VisitEntries( PLDHashEnumerator etor, void *arg);
+
+    PLDHashTable::Iterator Iter();
 
 private:
     // PLDHashTable operation callbacks
-    static PLDHashNumber  HashKey( PLDHashTable *table, const void *key);
+    static PLDHashNumber  HashKey(const void *key);
 
-    static bool           MatchEntry( PLDHashTable *           table,
-                                      const PLDHashEntryHdr *  entry,
-                                      const void *             key);
+    static bool           MatchEntry(const PLDHashEntryHdr *  entry,
+                                     const void *             key);
 
     static void           MoveEntry( PLDHashTable *table,
                                      const PLDHashEntryHdr *from,
@@ -291,21 +291,12 @@ private:
 
     static void           Finalize( PLDHashTable *table);
 
-    static
-    PLDHashOperator       FreeCacheEntries(PLDHashTable *    table,
-                                           PLDHashEntryHdr * hdr,
-                                           uint32_t          number,
-                                           void *            arg);
-    static
-    PLDHashOperator       VisitEntry(PLDHashTable *         table,
-                                     PLDHashEntryHdr *      hdr,
-                                     uint32_t               number,
-                                     void *                 arg);
-                                     
     // member variables
     static const PLDHashTableOps ops;
     PLDHashTable                 table;
     bool                         initialized;
+
+    static const uint32_t kInitialTableLength = 256;
 };
 
 #endif // _nsCacheEntry_h_
